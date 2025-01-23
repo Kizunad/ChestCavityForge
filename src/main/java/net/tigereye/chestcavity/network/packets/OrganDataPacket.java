@@ -1,19 +1,22 @@
 package net.tigereye.chestcavity.network.packets;
 
-
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.util.OrganDataPacketHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -27,7 +30,7 @@ public class OrganDataPacket {
         this.helpers = helpers;
     }
 
-    public static OrganDataPacket decode(PacketBuffer buf) {
+    public static OrganDataPacket decode(FriendlyByteBuf buf) {
         int organCount = buf.readInt();
         ArrayList<OrganDataPacketHelper> helpers = new ArrayList<>();
         for(int i = 0; i < organCount; i++) {
@@ -44,7 +47,7 @@ public class OrganDataPacket {
         return new OrganDataPacket(organCount, helpers);
     }
 
-    public void encode(PacketBuffer buf) {
+    public void encode(FriendlyByteBuf buf) {
         buf.writeInt(this.organCount);
         this.helpers.forEach(helper -> {
             buf.writeResourceLocation(helper.getResourceLocation());
@@ -60,7 +63,6 @@ public class OrganDataPacket {
     public boolean handle(Supplier<NetworkEvent.Context> contextSupplier) {
         AtomicBoolean success = new AtomicBoolean(false);
         contextSupplier.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            System.out.println("BOONELDAN TEST PACKET RECEIVED");
             OrganManager.GeneratedOrganData.clear();
             this.helpers.forEach(helper -> {
                 OrganData organData = new OrganData();

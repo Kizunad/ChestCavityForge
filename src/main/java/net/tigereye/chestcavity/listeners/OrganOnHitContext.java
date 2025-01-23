@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.listeners;
 
-
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class OrganOnHitContext {
     public OrganOnHitContext(ItemStack organ, OrganOnHitListener listener){

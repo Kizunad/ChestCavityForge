@@ -1,17 +1,16 @@
 package net.tigereye.chestcavity.enchantments;
 
 
-
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.enchantment.LootBonusEnchantment;
-import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.LootBonusEnchantment;
 import net.tigereye.chestcavity.registration.CCEnchantments;
 
 public class SurgicalEnchantment extends LootBonusEnchantment {
     public SurgicalEnchantment() {
-        super(Rarity.VERY_RARE, EnchantmentType.WEAPON, EquipmentSlotType.MAINHAND);
+        super(Rarity.VERY_RARE, EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND);
     }
 
     public int getMinCost(int level) {

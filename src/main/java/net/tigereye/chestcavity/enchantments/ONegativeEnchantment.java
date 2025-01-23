@@ -1,15 +1,15 @@
 package net.tigereye.chestcavity.enchantments;
 
 
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
 
 public class ONegativeEnchantment extends Enchantment {
 
     public ONegativeEnchantment() {
-        super(Rarity.RARE, EnchantmentType.VANISHABLE, new EquipmentSlotType[]{});
+        super(Rarity.RARE, EnchantmentCategory.VANISHABLE, new EquipmentSlot[]{});
     }
 
 

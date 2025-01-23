@@ -1,9 +1,11 @@
 package net.tigereye.chestcavity.registration;
 
-import net.minecraft.enchantment.Enchantment;
-import net.minecraftforge.fml.RegistryObject;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.enchantments.MalpracticeCurseEnchantment;
 import net.tigereye.chestcavity.enchantments.ONegativeEnchantment;

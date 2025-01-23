@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.listeners;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCOrganScores;
@@ -35,7 +35,7 @@ public class OrganUpdateListeners {
     public static void UpdateAppendix(LivingEntity entity, ChestCavityInstance cc) {
         //Update Max Health Modifier
         if(cc.getOldOrganScore(CCOrganScores.LUCK) != cc.getOrganScore(CCOrganScores.LUCK)){
-            ModifiableAttributeInstance att = entity.getAttribute(Attributes.LUCK);
+            AttributeInstance att = entity.getAttribute(Attributes.LUCK);
             if(att != null) {
                 AttributeModifier mod = new AttributeModifier(APPENDIX_ID, "ChestCavityAppendixLuck",
                         (cc.getOrganScore(CCOrganScores.LUCK) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.LUCK))
@@ -48,7 +48,7 @@ public class OrganUpdateListeners {
     public static void UpdateHeart(LivingEntity entity, ChestCavityInstance cc) {
         //Update Max Health Modifier
         if(cc.getOldOrganScore(CCOrganScores.HEALTH) != cc.getOrganScore(CCOrganScores.HEALTH)){
-            ModifiableAttributeInstance att = entity.getAttribute(Attributes.MAX_HEALTH);
+            AttributeInstance att = entity.getAttribute(Attributes.MAX_HEALTH);
             if(att != null) {
                 AttributeModifier mod = new AttributeModifier(HEART_ID, "ChestCavityHeartMaxHP",
                         (cc.getOrganScore(CCOrganScores.HEALTH) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.HEALTH))
@@ -61,7 +61,7 @@ public class OrganUpdateListeners {
     public static void UpdateStrength(LivingEntity entity, ChestCavityInstance cc) {
         if(cc.getOldOrganScore(CCOrganScores.STRENGTH) != cc.getOrganScore(CCOrganScores.STRENGTH)) {
             //Update Damage Modifier and Speed Modifier
-            ModifiableAttributeInstance att = entity.getAttribute(Attributes.ATTACK_DAMAGE);
+            AttributeInstance att = entity.getAttribute(Attributes.ATTACK_DAMAGE);
             if (att != null) {
                 AttributeModifier mod = new AttributeModifier(MUSCLE_STRENGTH_ID, "ChestCavityMuscleAttackDamage",
                         (cc.getOrganScore(CCOrganScores.STRENGTH) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.STRENGTH))
@@ -74,7 +74,7 @@ public class OrganUpdateListeners {
     public static void UpdateSpeed(LivingEntity entity, ChestCavityInstance cc) {
         if(cc.getOldOrganScore(CCOrganScores.SPEED) != cc.getOrganScore(CCOrganScores.SPEED)) {
             //Update Damage Modifier and Speed Modifier
-            ModifiableAttributeInstance att = entity.getAttribute(Attributes.MOVEMENT_SPEED);
+            AttributeInstance att = entity.getAttribute(Attributes.MOVEMENT_SPEED);
             if(att != null) {
                 AttributeModifier mod = new AttributeModifier(MUSCLE_SPEED_ID, "ChestCavityMovementSpeed",
                         (cc.getOrganScore(CCOrganScores.SPEED) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.SPEED))
@@ -88,7 +88,7 @@ public class OrganUpdateListeners {
         if(cc.getOldOrganScore(CCOrganScores.NERVES) != cc.getOrganScore(CCOrganScores.NERVES)
                 && cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.NERVES) != 0) {
             //Update Speed Modifier. No spine? NO MOVING.
-            ModifiableAttributeInstance att = entity.getAttribute(Attributes.MOVEMENT_SPEED);
+            AttributeInstance att = entity.getAttribute(Attributes.MOVEMENT_SPEED);
             if(att != null) {
                 AttributeModifier mod = new AttributeModifier(SPINE_MOVEMENT_ID, "ChestCavitySpineMovement",
                         cc.getOrganScore(CCOrganScores.NERVES) > 0 ? 0 : -1, AttributeModifier.Operation.MULTIPLY_TOTAL);
@@ -108,7 +108,7 @@ public class OrganUpdateListeners {
     public static void UpdateKnockbackResistance(LivingEntity entity, ChestCavityInstance cc) {
         if(cc.getOldOrganScore(CCOrganScores.KNOCKBACK_RESISTANT) != cc.getOrganScore(CCOrganScores.KNOCKBACK_RESISTANT)) {
             //Update Knockback Res Modifier
-            ModifiableAttributeInstance att = entity.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+            AttributeInstance att = entity.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
             if(att != null) {
                 AttributeModifier mod = new AttributeModifier(KNOCKBACK_RESISTANCE_ID, "ChestCavityKnockbackResistance",
                         (cc.getOrganScore(CCOrganScores.KNOCKBACK_RESISTANT) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.KNOCKBACK_RESISTANT))
@@ -127,7 +127,7 @@ public class OrganUpdateListeners {
         }
     }
 
-    private static void ReplaceAttributeModifier(ModifiableAttributeInstance att, AttributeModifier mod)
+    private static void ReplaceAttributeModifier(AttributeInstance att, AttributeModifier mod)
     {
         //removes any existing mod and replaces it with the updated one.
         att.removeModifier(mod);

@@ -1,11 +1,11 @@
 package net.tigereye.chestcavity.chestcavities.organs;
 
 import com.google.gson.Gson;
-import net.minecraft.item.Item;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.resources.IResourceManagerReloadListener;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.world.item.Item;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.util.Pair;
 
@@ -15,13 +15,13 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 
-public class OrganManager implements IResourceManagerReloadListener {
+public class OrganManager implements ResourceManagerReloadListener {
     private static final ResourceLocation RESOURCE_LOCATION = new ResourceLocation(ChestCavity.MODID, "organs");
     private final OrganSerializer SERIALIZER = new OrganSerializer();
     public static Map<ResourceLocation, OrganData> GeneratedOrganData = new HashMap<>();
 
-    @Override
-    public void onResourceManagerReload(IResourceManager manager) {
+
+    public void onResourceManagerReload(ResourceManager manager) {
         GeneratedOrganData.clear();
         ChestCavity.LOGGER.info("Loading organs.");
         for (ResourceLocation id : manager.listResources(RESOURCE_LOCATION.getPath(), path -> path.endsWith(".json"))) {
@@ -37,11 +37,11 @@ public class OrganManager implements IResourceManagerReloadListener {
     }
 
     public static boolean hasEntry(Item item) {
-        return GeneratedOrganData.containsKey(ForgeRegistries.ITEMS.getKey(item));
+        return GeneratedOrganData.containsKey(Registry.ITEM.getKey(item));
     }
 
     public static OrganData getEntry(Item item) {
-        return GeneratedOrganData.get(ForgeRegistries.ITEMS.getKey(item));
+        return GeneratedOrganData.get(Registry.ITEM.getKey(item));
     }
 
     public static boolean isTrueOrgan(Item item) {

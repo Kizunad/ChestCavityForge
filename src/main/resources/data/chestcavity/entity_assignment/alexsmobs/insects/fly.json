@@ -1,0 +1,6 @@
+{
+  "chestcavity": "chestcavity:types/compatibility/alexsmobs/insects/bee.json",
+  "entities": [
+    "alexsmobs:fly"
+  ]
+}

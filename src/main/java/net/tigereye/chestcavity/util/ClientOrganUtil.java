@@ -1,28 +1,28 @@
 package net.tigereye.chestcavity.util;
 
-
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCEnchantments;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 
-
 import java.util.*;
+import java.util.List;
 
-public class ClientOrganUtil { //I moved the code that is ran on the server to CommonOrganUtil
-    public static void displayOrganQuality(Map<ResourceLocation,Float> organQualityMap, List<ITextComponent> tooltip){
+public class ClientOrganUtil {
+
+    public static void displayOrganQuality(Map<ResourceLocation,Float> organQualityMap, List<Component> tooltip){
         organQualityMap.forEach((organ,score) -> {
             String tier;
             if(organ.equals(CCOrganScores.HYDROALLERGENIC)){
@@ -53,37 +53,35 @@ public class ClientOrganUtil { //I moved the code that is ran on the server to C
                 } else if (score >= -.75f) {
                     tier = "quality.chestcavity.greatly_reduces";
                 } else {
-                    tier = "cripples";
+                    tier = "quality.chestcavity.cripples";
                 }
             }
-            TranslationTextComponent text = new TranslationTextComponent("organscore." + organ.getNamespace() + "." + organ.getPath(), new TranslationTextComponent(tier));
+            TranslatableComponent text = new TranslatableComponent("organscore." + organ.getNamespace() + "." + organ.getPath(), new TranslatableComponent(tier));
             tooltip.add(text);
         });
     }
 
-    public static void displayCompatibility(ItemStack itemStack, World world, List<ITextComponent> tooltip, ITooltipFlag tooltipContext) {
-        CompoundNBT tag = itemStack.getTag();
+    public static void displayCompatibility(ItemStack itemStack, Level world, List<Component> tooltip, TooltipFlag tooltipContext) {
+        CompoundTag tag = itemStack.getTag();
         String textString;
         boolean uuidMatch = false;
         int compatLevel = 0;
-        PlayerEntity serverPlayer = null;
+        Player serverPlayer = null;
         net.minecraft.server.MinecraftServer server = world.getServer();
         if(server == null) {
             server = Minecraft.getInstance().getSingleplayerServer();
         }
         if(server != null) {
             serverPlayer = server.getPlayerList().getPlayer(Minecraft.getInstance().player.getUUID());
-            if(serverPlayer instanceof ChestCavityEntity){
-                ChestCavityEntity ccPlayer = (ChestCavityEntity) serverPlayer;
+            if(serverPlayer instanceof ChestCavityEntity ccPlayer){
                 UUID ccID = ccPlayer.getChestCavityInstance().compatibility_id;
-                //tooltip.add(new StringTextComponent("ServerPlayerCC: "+ccID));
+                //tooltip.add(Text.literal("ServerPlayerCC: "+ccID));
                 compatLevel = ChestCavityUtil.getCompatibilityLevel(ccPlayer.getChestCavityInstance(),itemStack);
             }
         }
         else{
             compatLevel = -1;
         }
-
 
         if(EnchantmentHelper.getItemEnchantmentLevel(CCEnchantments.MALPRACTICE.get(),itemStack) > 0){
             textString = "Unsafe to use";
@@ -92,26 +90,24 @@ public class ClientOrganUtil { //I moved the code that is ran on the server to C
                 && EnchantmentHelper.getItemEnchantmentLevel(CCEnchantments.O_NEGATIVE.get(),itemStack) <= 0) {
             tag = tag.getCompound(ChestCavity.COMPATIBILITY_TAG.toString());
             String name = tag.getString("name");
-            //tooltip.add(new StringTextComponent("OrganOwnerCC: "+tag.getUUID("owner")));
-            textString = "Only Compatible With: "+name;//+" ("+compatLevel+" compat)";
+            //tooltip.add(new TextComponent("OrganOwnerCC: " + tag.getUUID("owner")));
+            textString = "Only Compatible With: " + name;// + " (" + compatLevel + " compat)";
         }
         else{
             textString = "Safe to Use";
         }
 
-        StringTextComponent text = new StringTextComponent("");
+        TextComponent text = new TextComponent("");
         if(compatLevel > 0) {
-            text.withStyle(TextFormatting.GREEN);
+            text.withStyle(ChatFormatting.GREEN);
         }
         else if(compatLevel == 0){
-            text.withStyle(TextFormatting.RED);
+            text.withStyle(ChatFormatting.RED);
         }
         else{
-            text.withStyle(TextFormatting.YELLOW);
+            text.withStyle(ChatFormatting.YELLOW);
         }
         text.append(textString);
         tooltip.add(text);
     }
-
-
 }

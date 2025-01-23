@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.registration;
 
-import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.*;
 
 public class CCListeners {
     public static void register(){

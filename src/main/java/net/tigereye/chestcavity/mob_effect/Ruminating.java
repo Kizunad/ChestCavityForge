@@ -1,18 +1,17 @@
 package net.tigereye.chestcavity.mob_effect;
 
-
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.EffectType;
-import net.minecraft.util.FoodStats;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodData;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.registration.CCItems;
 
 public class Ruminating extends CCStatusEffect{
 
     public Ruminating(){
-        super(EffectType.BENEFICIAL, 0xC8FF00);
+        super(MobEffectCategory.BENEFICIAL, 0xC8FF00);
     }
 
     public boolean isDurationEffectTick(int duration, int amplifier) {
@@ -20,10 +19,10 @@ public class Ruminating extends CCStatusEffect{
     }
 
     public void applyEffectTick(LivingEntity entity, int amplifier) {
-        if(entity instanceof PlayerEntity){
+        if(entity instanceof Player){
             if(!(entity.level.isClientSide)) {
-                FoodStats hungerManager = ((PlayerEntity) entity).getFoodData();
-                hungerManager.eat(CCItems.CUD.get(), new ItemStack(CCItems.CUD.get()));
+                FoodData hungerManager = ((Player) entity).getFoodData();
+                hungerManager.eat(CCItems.CUD.get(), new ItemStack(CCItems.CUD.get()), entity);
             }
         }
     }

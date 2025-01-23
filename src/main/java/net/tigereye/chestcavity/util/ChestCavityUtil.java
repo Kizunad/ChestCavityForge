@@ -1,29 +1,31 @@
 package net.tigereye.chestcavity.util;
 
 
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.PotionEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.IndirectEntityDamageSource;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.GameRules;
+import net.minecraft.core.Registry;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.IndirectEntityDamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.ThrownPotion;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
-import net.tigereye.chestcavity.chestcavities.ChestCavityType;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.chestcavities.organs.OrganData;
+import net.tigereye.chestcavity.chestcavities.ChestCavityType;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.*;
 import net.tigereye.chestcavity.registration.*;
@@ -101,7 +103,7 @@ public class ChestCavityUtil {
         }
 
         float airLoss;
-        if(cc.owner.hasEffect(Effects.WATER_BREATHING) || cc.owner.hasEffect(Effects.CONDUIT_POWER)){
+        if(cc.owner.hasEffect(MobEffects.WATER_BREATHING) || cc.owner.hasEffect(MobEffects.CONDUIT_POWER)){
             airLoss = 0;
         }
         else{airLoss = 1;}
@@ -182,7 +184,7 @@ public class ChestCavityUtil {
             return hunger;
         }
         if(digestion < 0){
-            cc.owner.addEffect(new EffectInstance(Effects.CONFUSION,(int)(-hunger*digestion*400)));
+            cc.owner.addEffect(new MobEffectInstance(MobEffects.CONFUSION,(int)(-hunger*digestion*400)));
             return 0;
         }
         //sadly, in order to get saturation at all we must grant at least half a haunch of food, unless we embrace incompatibility
@@ -226,7 +228,7 @@ public class ChestCavityUtil {
             return saturation;
         }
         if(nutrition < 0){
-            cc.owner.addEffect(new EffectInstance(Effects.HUNGER,(int)(saturation*nutrition*800)));
+            cc.owner.addEffect(new MobEffectInstance(MobEffects.HUNGER,(int)(saturation*nutrition*800)));
             return 0;
         }
         return saturation*nutrition/4;
@@ -288,7 +290,7 @@ public class ChestCavityUtil {
         if(!CommonOrganUtil.teleportRandomly(cc.owner,ChestCavity.config.ARROW_DODGE_DISTANCE/dodge)){
             return false;
         }
-        cc.owner.addEffect(new EffectInstance(CCStatusEffects.ARROW_DODGE_COOLDOWN.get(), (int) (ChestCavity.config.ARROW_DODGE_COOLDOWN/dodge), 0, false, false, true));
+        cc.owner.addEffect(new MobEffectInstance(CCStatusEffects.ARROW_DODGE_COOLDOWN.get(), (int) (ChestCavity.config.ARROW_DODGE_COOLDOWN/dodge), 0, false, false, true));
         return true;
     }
 
@@ -419,8 +421,8 @@ public class ChestCavityUtil {
 
     public static void forcefullyAddStack(ChestCavityInstance cc, ItemStack stack, int slot){
         if(!cc.inventory.canAddItem(stack)) {
-            if (cc.owner.level.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && cc.owner instanceof PlayerEntity) {
-                if (!((PlayerEntity) cc.owner).inventory.add(stack)) {
+            if (cc.owner.getLevel().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && cc.owner instanceof Player) {
+                if (!((Player) cc.owner).getInventory().add(stack)) {
                     cc.owner.spawnAtLocation(cc.inventory.removeItemNoUpdate(slot));
                 }
             } else {
@@ -444,7 +446,7 @@ public class ChestCavityUtil {
             }
             int oNegative = EnchantmentHelper.getItemEnchantmentLevel(CCEnchantments.O_NEGATIVE.get(),itemStack);
             int ownership = 0;
-            CompoundNBT tag = itemStack.getTag();
+            CompoundTag tag = itemStack.getTag();
             if (tag != null && tag.contains(ChestCavity.COMPATIBILITY_TAG.toString())) {
                 tag = tag.getCompound(ChestCavity.COMPATIBILITY_TAG.toString());
                 if (tag.getUUID("owner").equals(cc.compatibility_id)) {
@@ -492,9 +494,9 @@ public class ChestCavityUtil {
             return OrganManager.getEntry(itemStack.getItem());
         }
         else{ //check for tag organs
-            for (ITag.INamedTag<Item> itemTag:
+            for (TagKey<Item> itemTag:
                     CCTagOrgans.tagMap.keySet()) {
-                if(itemTag.contains(itemStack.getItem())){
+                if(itemStack.is(itemTag)){
                     organData = new OrganData();
                     organData.pseudoOrgan = true;
                     organData.organScores = CCTagOrgans.tagMap.get(itemTag);
@@ -505,15 +507,14 @@ public class ChestCavityUtil {
         return null;
     }
 
-    public static EffectInstance onAddStatusEffect(ChestCavityInstance cc, EffectInstance effect) {
+    public static MobEffectInstance onAddStatusEffect(ChestCavityInstance cc, MobEffectInstance effect) {
         return OrganAddStatusEffectCallback.organAddMobEffect(cc.owner, effect);
     }
 
     public static void onDeath(ChestCavityEntity entity){
         ChestCavityInstance ccinstance = entity.getChestCavityInstance();
         ccinstance.getChestCavityType().onDeath(ccinstance);
-        if(entity instanceof PlayerEntity){
-            PlayerEntity playerEntity = (PlayerEntity) entity;
+        if(entity instanceof Player playerEntity){
             if(!ChestCavity.config.KEEP_CHEST_CAVITY) {
                 Map<Integer,ItemStack> organsToKeep = new HashMap<>();
                 for (int i = 0; i < ccinstance.inventory.getContainerSize(); i++) {
@@ -573,7 +574,7 @@ public class ChestCavityUtil {
         Map<ResourceLocation,Float> organScores = cc.getOrganScores();
         if(!cc.oldOrganScores.equals(organScores))
         {
-            if(ChestCavity.isDebugMode() && cc.owner instanceof PlayerEntity) {
+            if(ChestCavity.isDebugMode() && cc.owner instanceof Player) {
                 ChestCavityUtil.outputOrganScoresString(System.out::println,cc);
             }
             OrganUpdateCallback.organUpdate(cc.owner, cc);
@@ -585,7 +586,7 @@ public class ChestCavityUtil {
 
     public static void outputOrganScoresString(Consumer<String> output, ChestCavityInstance cc){
         try {
-            ITextComponent name = cc.owner.getDisplayName();
+            Component name = cc.owner.getDisplayName();
             output.accept("[Chest Cavity] Displaying " + name.getString() +"'s organ scores:");
         }
         catch(Exception e){
@@ -595,8 +596,8 @@ public class ChestCavityUtil {
                 output.accept(key.getPath() + ": " + value + " "));
     }
 
-    public static void splashHydrophobicWithWater(PotionEntity splash){
-        AxisAlignedBB box = splash.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
+    public static void splashHydrophobicWithWater(ThrownPotion splash){
+        AABB box = splash.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
         List<LivingEntity> list = splash.level.getEntitiesOfClass(LivingEntity.class, box, ChestCavityUtil::isHydroPhobicOrAllergic);
         if (!list.isEmpty()) {
             for(LivingEntity livingEntity:list) {

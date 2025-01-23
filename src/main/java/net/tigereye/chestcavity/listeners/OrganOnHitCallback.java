@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.listeners;
 
 
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
 public class OrganOnHitCallback {

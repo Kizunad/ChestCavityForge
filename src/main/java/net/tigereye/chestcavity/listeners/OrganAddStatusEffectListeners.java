@@ -1,9 +1,8 @@
 package net.tigereye.chestcavity.listeners;
 
-
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.CCStatusEffect;
@@ -12,14 +11,14 @@ import net.tigereye.chestcavity.registration.CCOrganScores;
 
 public class OrganAddStatusEffectListeners {
 
-    public static EffectInstance callMethods(LivingEntity livingEntity, ChestCavityInstance chestCavityInstance, EffectInstance mobEffectInstance){
+    public static MobEffectInstance callMethods(LivingEntity livingEntity, ChestCavityInstance chestCavityInstance, MobEffectInstance mobEffectInstance){
         ApplyBuffPurging(livingEntity, chestCavityInstance, mobEffectInstance);
         ApplyDetoxification(livingEntity, chestCavityInstance, mobEffectInstance);
         ApplyWithered(livingEntity, chestCavityInstance, mobEffectInstance);
         return mobEffectInstance;
     }
 
-    private static EffectInstance ApplyBuffPurging(LivingEntity entity, ChestCavityInstance cc, EffectInstance instance) {
+    private static MobEffectInstance ApplyBuffPurging(LivingEntity entity, ChestCavityInstance cc, MobEffectInstance instance) {
         if(cc.getOrganScore(CCOrganScores.BUFF_PURGING) > 0
                 && ((CCStatusEffect)(instance.getEffect())).CC_IsBeneficial())
         {
@@ -30,7 +29,7 @@ public class OrganAddStatusEffectListeners {
         return instance;
     }
 
-    private static EffectInstance ApplyDetoxification(LivingEntity entity, ChestCavityInstance cc, EffectInstance instance) {
+    private static MobEffectInstance ApplyDetoxification(LivingEntity entity, ChestCavityInstance cc, MobEffectInstance instance) {
         if(cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.DETOXIFICATION) <= 0
         || cc.getOrganScore(CCOrganScores.DETOXIFICATION) == cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.DETOXIFICATION))
         {
@@ -45,10 +44,10 @@ public class OrganAddStatusEffectListeners {
         return instance;
     }
 
-    private static EffectInstance ApplyFiltration(LivingEntity entity, ChestCavityInstance cc, EffectInstance instance) {
+    private static MobEffectInstance ApplyFiltration(LivingEntity entity, ChestCavityInstance cc, MobEffectInstance instance) {
         float filtrationDiff = cc.getOrganScore(CCOrganScores.FILTRATION) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.FILTRATION);
         if(filtrationDiff > 0
-                && instance.getEffect() == Effects.POISON)
+                && instance.getEffect() == MobEffects.POISON)
         {
             CCStatusEffectInstance ccInstance = (CCStatusEffectInstance) instance;
             ccInstance.CC_setDuration((int)(instance.getDuration()/
@@ -57,9 +56,9 @@ public class OrganAddStatusEffectListeners {
         return instance;
     }
 
-    private static EffectInstance ApplyWithered(LivingEntity entity, ChestCavityInstance cc, EffectInstance instance) {
+    private static MobEffectInstance ApplyWithered(LivingEntity entity, ChestCavityInstance cc, MobEffectInstance instance) {
         if(cc.getOrganScore(CCOrganScores.WITHERED) > 0
-                && instance.getEffect() == Effects.WITHER)
+                && instance.getEffect() == MobEffects.WITHER)
         {
             CCStatusEffectInstance ccInstance = (CCStatusEffectInstance) instance;
             ccInstance.CC_setDuration((int)(instance.getDuration()/

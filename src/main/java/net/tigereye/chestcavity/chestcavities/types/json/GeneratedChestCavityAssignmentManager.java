@@ -1,9 +1,13 @@
 package net.tigereye.chestcavity.chestcavities.types.json;
 
 import com.google.gson.Gson;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.resources.IResourceManagerReloadListener;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.tigereye.chestcavity.ChestCavity;
 
 import java.io.InputStream;
@@ -12,13 +16,13 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GeneratedChestCavityAssignmentManager implements IResourceManagerReloadListener {
+public class GeneratedChestCavityAssignmentManager implements ResourceManagerReloadListener {
     private static final ResourceLocation RESOURCE_LOCATION = new ResourceLocation(ChestCavity.MODID, "entity_assignment");
     private final ChestCavityAssignmentSerializer SERIALIZER = new ChestCavityAssignmentSerializer();
     public static Map<ResourceLocation, ResourceLocation> GeneratedChestCavityAssignments = new HashMap<>();
 
     @Override
-    public void onResourceManagerReload(IResourceManager manager) {
+    public void onResourceManagerReload(ResourceManager manager) {
         GeneratedChestCavityAssignments.clear();
         ChestCavity.LOGGER.info("Loading chest cavity assignments.");
         for(ResourceLocation id : manager.listResources(RESOURCE_LOCATION.getPath(), path -> path.endsWith(".json"))) {

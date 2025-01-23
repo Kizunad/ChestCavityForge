@@ -1,20 +1,19 @@
 package net.tigereye.chestcavity.listeners;
 
-
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.item.EnderCrystalEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.FoodStats;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodData;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCDamageSource;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
-import net.tigereye.chestcavity.util.CCMixinThing;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
 import java.util.List;
@@ -37,27 +36,25 @@ public class OrganTickListeners {
     }
 
     public static void TickBuoyant(LivingEntity entity, ChestCavityInstance chestCavity){
-        if(entity.isOnGround() || entity.isNoGravity()){
+        float buoyancy = chestCavity.getOrganScore(CCOrganScores.BUOYANT) - chestCavity.getChestCavityType().getDefaultOrganScore(CCOrganScores.BUOYANT);
+        if((entity instanceof Player ent && ent.isCreative() && ent.getAbilities().flying) || entity.isOnGround() || entity.isNoGravity() || buoyancy == 0)
+        {
             return;
         }
-        float buoyancy = chestCavity.getOrganScore(CCOrganScores.BUOYANT) - chestCavity.getChestCavityType().getDefaultOrganScore(CCOrganScores.BUOYANT);
-        if(buoyancy != 0)
-        {
-            entity.push(0.0D, buoyancy*0.02D, 0.0D);
-        }
+        entity.push(0.0D, buoyancy*0.02D, 0.0D);
     }
 
     public static void TickCrystalsynthesis(LivingEntity entity, ChestCavityInstance cc){
         float crystalsynthesis = cc.getOrganScore(CCOrganScores.CRYSTALSYNTHESIS);
         //if the old crystal had been exploded, suffer
         if (cc.connectedCrystal != null) {
-            if(cc.connectedCrystal.isPickable()) {
+            if(cc.connectedCrystal.isRemoved()) {
                 entity.hurt(DamageSource.STARVE, crystalsynthesis * 2);
                 cc.connectedCrystal = null;
             }
             else{
                 if(crystalsynthesis != 0){
-                    cc.connectedCrystal.setBeamTarget(((CCMixinThing) (Object) entity).getMixinBlockPos().below(2));
+                    cc.connectedCrystal.setBeamTarget(entity.getOnPos().below(2));
                 }
                 else{
                     cc.connectedCrystal.setBeamTarget(null);
@@ -65,15 +62,15 @@ public class OrganTickListeners {
                 }
             }
         }
-        if(crystalsynthesis != 0 && entity.level.getDayTime() % ChestCavity.config.CRYSTALSYNTHESIS_FREQUENCY == 0 && !(entity instanceof EnderDragonEntity))
+        if(crystalsynthesis != 0 && entity.level.getDayTime() % ChestCavity.config.CRYSTALSYNTHESIS_FREQUENCY == 0 && !(entity instanceof EnderDragon))
         {
-            EnderCrystalEntity oldcrystal = cc.connectedCrystal;
+            EndCrystal oldcrystal = cc.connectedCrystal;
             //attempt to bind to a crystal
-            List<EnderCrystalEntity> list = entity.level.getEntitiesOfClass(EnderCrystalEntity.class, entity.getBoundingBox().inflate(ChestCavity.config.CRYSTALSYNTHESIS_RANGE));
-            EnderCrystalEntity endCrystalEntity = null;
+            List<EndCrystal> list = entity.level.getEntitiesOfClass(EndCrystal.class, entity.getBoundingBox().inflate(ChestCavity.config.CRYSTALSYNTHESIS_RANGE));
+            EndCrystal endCrystalEntity = null;
             double d = Double.MAX_VALUE;
 
-            for (EnderCrystalEntity endCrystalEntity2 : list) {
+            for (EndCrystal endCrystalEntity2 : list) {
                 double e = endCrystalEntity2.distanceToSqr(entity);
                 if (e < d) {
                     d = e;
@@ -86,9 +83,9 @@ public class OrganTickListeners {
             }
             //then, if a crystal has been bound to
             if (cc.connectedCrystal != null) {
-                if(entity instanceof PlayerEntity){
-                    PlayerEntity playerEntity = (PlayerEntity) entity;
-                    FoodStats hungerManager = playerEntity.getFoodData();
+                if(entity instanceof Player){
+                    Player playerEntity = (Player)entity;
+                    FoodData hungerManager = playerEntity.getFoodData();
                     //first restore hunger
                     if(hungerManager.needsFood()) {
                         if(crystalsynthesis >= 5
@@ -116,17 +113,21 @@ public class OrganTickListeners {
     }
 
     public static void TickPhotosynthesis(LivingEntity entity, ChestCavityInstance cc){
-        if(entity.level.isClientSide()){
+        if(entity.getLevel().isClientSide()){
             return;
+        }
+        if(entity instanceof ServerPlayer player) {
+            System.out.println();
         }
         float photosynthesis = cc.getOrganScore(CCOrganScores.PHOTOSYNTHESIS) - cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.PHOTOSYNTHESIS);
         if(photosynthesis > 0){
-            cc.photosynthesisProgress += photosynthesis*entity.level.getLightEmission(((CCMixinThing) (Object) entity).getMixinBlockPos());
+            int lightLevel = entity.getLevel().getMaxLocalRawBrightness(entity.getOnPos().above());
+            cc.photosynthesisProgress += photosynthesis*lightLevel;
             if(cc.photosynthesisProgress > ChestCavity.config.PHOTOSYNTHESIS_FREQUENCY*8*15){
                 cc.photosynthesisProgress = 0;
-                if(entity instanceof PlayerEntity){
-                    PlayerEntity playerEntity = (PlayerEntity) entity;
-                    FoodStats hungerManager = playerEntity.getFoodData();
+                if(entity instanceof Player){
+                    Player playerEntity = (Player)entity;
+                    FoodData hungerManager = playerEntity.getFoodData();
                     //first restore hunger
                     if(hungerManager.needsFood()) {
                         hungerManager.eat(1,0);
@@ -163,7 +164,7 @@ public class OrganTickListeners {
     }
 
     public static void TickFiltration(LivingEntity entity, ChestCavityInstance cc){
-        if(entity.level.isClientSide()){ //this is a server-side event
+        if(entity.getLevel().isClientSide()){ //this is a server-side event
             return;
         }
         if(cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.FILTRATION) <= 0){ //don't bother if the target doesn't need kidneys
@@ -174,7 +175,7 @@ public class OrganTickListeners {
         {
             cc.bloodPoisonTimer = cc.bloodPoisonTimer+1;
             if(cc.bloodPoisonTimer >= ChestCavity.config.KIDNEY_RATE){
-                entity.addEffect(new EffectInstance(Effects.POISON, (int)Math.max(1,48*(1-KidneyRatio))));
+                entity.addEffect(new MobEffectInstance(MobEffects.POISON, (int)Math.max(1,48*(1-KidneyRatio))));
                 cc.bloodPoisonTimer = 0;
             }
         }
@@ -196,7 +197,7 @@ public class OrganTickListeners {
     }
 
     private static void TickHydroallergenic(LivingEntity entity, ChestCavityInstance cc) {
-        if(entity.level.isClientSide()){ //this is a server-side event
+        if(entity.getLevel().isClientSide()){ //this is a server-side event
             return;
         }
         float Hydroallergy = cc.getOrganScore(CCOrganScores.HYDROALLERGENIC);
@@ -206,13 +207,13 @@ public class OrganTickListeners {
         if (entity.isInWater()) {
             if(!entity.hasEffect(CCStatusEffects.WATER_VULNERABILITY.get())) {
                 entity.hurt(DamageSource.MAGIC, 10);
-                entity.addEffect(new EffectInstance(CCStatusEffects.WATER_VULNERABILITY.get(), (int) (260 / Hydroallergy), 0, false, false, true));
+                entity.addEffect(new MobEffectInstance(CCStatusEffects.WATER_VULNERABILITY.get(), (int) (260 / Hydroallergy), 0, false, false, true));
             }
         }
         else if (entity.isInWaterOrRain()) {
             if(!entity.hasEffect(CCStatusEffects.WATER_VULNERABILITY.get())) {
                 entity.hurt(DamageSource.MAGIC, 1);
-                entity.addEffect(new EffectInstance(CCStatusEffects.WATER_VULNERABILITY.get(), (int) (260 / Hydroallergy), 0, false, false, true));
+                entity.addEffect(new MobEffectInstance(CCStatusEffects.WATER_VULNERABILITY.get(), (int) (260 / Hydroallergy), 0, false, false, true));
             }
         }
     }
@@ -229,27 +230,27 @@ public class OrganTickListeners {
     }
 
     public static void TickIncompatibility(LivingEntity entity,ChestCavityInstance chestCavity){
-        if(entity.level.isClientSide() || ChestCavity.config.DISABLE_ORGAN_REJECTION){ //this is a server-side event
+        if(entity.getLevel().isClientSide() || ChestCavity.config.DISABLE_ORGAN_REJECTION){ //this is a server-side event
             return;
         }
         float incompatibility = chestCavity.getOrganScore(CCOrganScores.INCOMPATIBILITY);
         if(incompatibility > 0)
         {
             if(!entity.hasEffect(CCStatusEffects.ORGAN_REJECTION.get())){
-                entity.addEffect(new EffectInstance(CCStatusEffects.ORGAN_REJECTION.get(), (int)(ChestCavity.config.ORGAN_REJECTION_RATE /incompatibility),0, false, true, true));
+                entity.addEffect(new MobEffectInstance(CCStatusEffects.ORGAN_REJECTION.get(), (int)(ChestCavity.config.ORGAN_REJECTION_RATE /incompatibility),0, false, true, true));
             }
         }
     }
 
     public static void TickGlowing(LivingEntity entity,ChestCavityInstance chestCavity){
-        if(entity.level.isClientSide()){ //this is a server-side event
+        if(entity.getLevel().isClientSide()){ //this is a server-side event
             return;
         }
         float glowing = chestCavity.getOrganScore(CCOrganScores.GLOWING);
         if(glowing > 0)
         {
-            if(!entity.hasEffect(Effects.GLOWING)){
-                entity.addEffect(new EffectInstance(Effects.GLOWING, 200,0, false, true, true));
+            if(!entity.hasEffect(MobEffects.GLOWING)){
+                entity.addEffect(new MobEffectInstance(MobEffects.GLOWING, 200,0, false, true, true));
             }
         }
     }

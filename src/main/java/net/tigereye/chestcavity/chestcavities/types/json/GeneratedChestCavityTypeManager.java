@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.chestcavities.types.json;
 
 import com.google.gson.Gson;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.resources.IResourceManagerReloadListener;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.types.GeneratedChestCavityType;
 
@@ -13,14 +13,14 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GeneratedChestCavityTypeManager implements IResourceManagerReloadListener {
+public class GeneratedChestCavityTypeManager implements ResourceManagerReloadListener {
     private static final ResourceLocation RESOURCE_LOCATION = new ResourceLocation(ChestCavity.MODID, "types");
     private final ChestCavityTypeSerializer SERIALIZER = new ChestCavityTypeSerializer();
     public static Map<ResourceLocation, GeneratedChestCavityType> GeneratedChestCavityTypes = new HashMap<>();
 
 
-    @Override
-    public void onResourceManagerReload(IResourceManager manager) {
+
+    public void onResourceManagerReload(ResourceManager manager) {
         GeneratedChestCavityTypes.clear();
         ChestCavity.LOGGER.info("Loading chest cavity types.");
         for(ResourceLocation id : manager.listResources(RESOURCE_LOCATION.getPath(), path -> path.endsWith(".json"))) {

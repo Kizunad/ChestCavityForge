@@ -1,10 +1,10 @@
 package net.tigereye.chestcavity.listeners;
 
 
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,25 +14,24 @@ import net.tigereye.chestcavity.network.NetworkHandler;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPacket;
 import net.tigereye.chestcavity.registration.CCKeybindings;
 import net.tigereye.chestcavity.registration.CCOrganScores;
+import net.tigereye.chestcavity.util.NetworkUtil;
 
 @Mod.EventBusSubscriber(modid = ChestCavity.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class KeybindingClientListeners {
-    private static PlayerEntity player = null;
+    private static Player player = null;
 
     @SubscribeEvent
     public static void checkForKeys(TickEvent.ClientTickEvent tickEvent){
         player = Minecraft.getInstance().player;
         while(CCKeybindings.UTILITY_ABILITIES.consumeClick()) {
             if(player != null) {
-                ChestCavity.printOnDebug("KeyBinding consumeClick()! Key id: " + CCKeybindings.UTILITY_ABILITIES_ID.toString());
-                for(ResourceLocation i : CCKeybindings.UTILITY_ABILITY_LIST) { //Why send each one individually? why not send the resourcelocation and then run the code on the server?
+                for(ResourceLocation i : CCKeybindings.UTILITY_ABILITY_LIST) {
                     NetworkHandler.CHANNEL.sendToServer(new ChestCavityHotkeyPacket(i));
                 }
             }
         }
         while(CCKeybindings.ATTACK_ABILITIES.consumeClick()) {
             if(player != null) {
-                ChestCavity.printOnDebug("KeyBinding consumeClick()! Key id: " + CCKeybindings.ATTACK_ABILITIES_ID.toString());
                 for(ResourceLocation i : CCKeybindings.ATTACK_ABILITY_LIST) {
                     NetworkHandler.CHANNEL.sendToServer(new ChestCavityHotkeyPacket(i));
                 }
@@ -53,10 +52,9 @@ public class KeybindingClientListeners {
     }
 
 
-    public static void checkSpecificKey(KeyBinding keybinding, ResourceLocation id){
+    public static void checkSpecificKey(KeyMapping keybinding, ResourceLocation id){
         while(keybinding.consumeClick()) {
             if(player != null) {
-                ChestCavity.printOnDebug("KeyBinding consumeClick()! Key id: " + id.toString());
                 NetworkHandler.CHANNEL.sendToServer(new ChestCavityHotkeyPacket(id));
             }
         }

@@ -1,22 +1,24 @@
 package net.tigereye.chestcavity.ui;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
+
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCContainers;
 
-
-
-public class ChestCavityScreenHandler extends Container {
+public class ChestCavityScreenHandler extends AbstractContainerMenu {
 
     private final ChestCavityInventory inventory;
     private final int size;
     private final int rows;
 
-    private static ChestCavityInventory getOrCreateChestCavityInventory(PlayerInventory playerInventory){/*
+    private static ChestCavityInventory getOrCreateChestCavityInventory(Inventory playerInventory){/*
         ChestCavityInstance playerCC = ((ChestCavityEntity)playerInventory.player).getChestCavityInstance();
         ChestCavityInstance targetCCI = playerCC.ccBeingOpened;
         if(targetCCI != null){
@@ -27,11 +29,11 @@ public class ChestCavityScreenHandler extends Container {
         return new ChestCavityInventory();
     }
 
-    public ChestCavityScreenHandler(int syncId, PlayerInventory playerInventory) {
+    public ChestCavityScreenHandler(int syncId, Inventory playerInventory) {
         this(syncId, playerInventory, getOrCreateChestCavityInventory(playerInventory));
     }
 
-    public ChestCavityScreenHandler(int syncId, PlayerInventory playerInventory, ChestCavityInventory inventory) {
+    public ChestCavityScreenHandler(int syncId, Inventory playerInventory, ChestCavityInventory inventory) {
         super(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), syncId);
         this.size = inventory.getContainerSize();
         this.inventory = inventory;
@@ -60,7 +62,7 @@ public class ChestCavityScreenHandler extends Container {
     }
 
     @Override
-    public ItemStack quickMoveStack(PlayerEntity player, int invSlot) {
+    public ItemStack quickMoveStack(Player player, int invSlot) {
         ItemStack newStack = ItemStack.EMPTY;
         Slot slot = this.slots.get(invSlot);
         if (slot != null && slot.hasItem()) {
@@ -88,7 +90,7 @@ public class ChestCavityScreenHandler extends Container {
     }
 
     @Override
-    public boolean stillValid(PlayerEntity player) {
+    public boolean stillValid(Player player) {
         return this.inventory.stillValid(player);
     }
 }

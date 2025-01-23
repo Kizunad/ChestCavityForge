@@ -1,18 +1,20 @@
 package net.tigereye.chestcavity.recipes;
 
-
-import net.minecraft.inventory.CraftingInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.crafting.ICraftingRecipe;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
+import net.minecraft.core.NonNullList;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.level.Level;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.recipes.json.SalvageRecipeSerializer;
 import net.tigereye.chestcavity.registration.CCRecipes;
+import org.checkerframework.checker.units.qual.C;
 
-public class SalvageRecipe implements ICraftingRecipe {
+public class SalvageRecipe implements CraftingRecipe {
     private final Ingredient input;
     private int required;
     private final ItemStack outputStack;
@@ -37,7 +39,7 @@ public class SalvageRecipe implements ICraftingRecipe {
     }
 
     @Override
-    public boolean matches(CraftingInventory inv, World world) {
+    public boolean matches(CraftingContainer inv, Level world) {
         //ChestCavity.LOGGER.info("Attempting to match salvage recipe");
         int count = 0;
         ItemStack target;
@@ -61,7 +63,7 @@ public class SalvageRecipe implements ICraftingRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInventory inv) {
+    public ItemStack assemble(CraftingContainer inv) {
         //ChestCavity.LOGGER.info("Attempting to craft salvage recipe");
         int count = 0;
         ItemStack target;
@@ -107,7 +109,7 @@ public class SalvageRecipe implements ICraftingRecipe {
     }
 
     @Override
-    public IRecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<?> getSerializer() {
         return CCRecipes.SALVAGE_RECIPE_SERIALIZER.get();
     }
 

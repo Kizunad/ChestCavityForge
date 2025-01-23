@@ -1,31 +1,32 @@
 package net.tigereye.chestcavity.util;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.AreaEffectCloudEntity;
-import net.minecraft.entity.EntityPredicate;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.passive.horse.LlamaEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.*;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.potion.PotionUtils;
-import net.minecraft.util.Direction;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.Explosion;
-import net.minecraft.world.GameRules;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.AreaEffectCloud;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.animal.horse.Llama;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.*;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.CCStatusEffectInstance;
@@ -36,28 +37,26 @@ import net.tigereye.chestcavity.registration.CCStatusEffects;
 import java.util.*;
 
 public class CommonOrganUtil {
-
     public static void explode(LivingEntity entity, float explosionYield) {
         if (!entity.level.isClientSide) {
-            Explosion.Mode destructionType = entity.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) ? Explosion.Mode.DESTROY : Explosion.Mode.NONE;
+            Explosion.BlockInteraction destructionType = entity.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) ? Explosion.BlockInteraction.DESTROY : Explosion.BlockInteraction.NONE;
             entity.level.explode(null, entity.getX(), entity.getY(), entity.getZ(), (float)Math.sqrt(explosionYield), destructionType);
             spawnEffectsCloud(entity);
         }
-
     }
 
-    public static List<EffectInstance> getStatusEffects(ItemStack organ){
-        CompoundNBT tag = organ.getOrCreateTag();
-        ListNBT NbtList;
+    public static List<MobEffectInstance> getStatusEffects(ItemStack organ){
+        CompoundTag tag = organ.getOrCreateTag();
+        ListTag NbtList;
         if (!tag.contains("CustomPotionEffects", 9)) {
             return new ArrayList<>();
         }
         else{
             NbtList = tag.getList("CustomPotionEffects",10);
-            List<EffectInstance> list = new ArrayList<>();
+            List<MobEffectInstance> list = new ArrayList<>();
             for(int i = 0; i < NbtList.size(); ++i) {
-                CompoundNBT compoundNBT = NbtList.getCompound(i);
-                EffectInstance statusEffectInstance = EffectInstance.load(compoundNBT);
+                CompoundTag CompoundTag = NbtList.getCompound(i);
+                MobEffectInstance statusEffectInstance = MobEffectInstance.load(CompoundTag);
                 if (statusEffectInstance != null) {
                     list.add(statusEffectInstance);
                 }
@@ -74,7 +73,7 @@ public class CommonOrganUtil {
                     float silk = cc.getOrganScore(CCOrganScores.SILK);
                     if(silk > 0){
                         if(spinWeb(entity,cc,silk)) {
-                            entity.addEffect(new EffectInstance(CCStatusEffects.SILK_COOLDOWN.get(), ChestCavity.config.SILK_COOLDOWN,0,false,false,true));
+                            entity.addEffect(new MobEffectInstance(CCStatusEffects.SILK_COOLDOWN.get(), ChestCavity.config.SILK_COOLDOWN,0,false,false,true));
                         }
                     }
                 }
@@ -83,75 +82,75 @@ public class CommonOrganUtil {
     }
 
     public static void queueDragonBombs(LivingEntity entity, ChestCavityInstance cc, int bombs){
-        if(entity instanceof PlayerEntity){
-            ((PlayerEntity)entity).causeFoodExhaustion(bombs*.6f);
+        if(entity instanceof Player){
+            ((Player)entity).causeFoodExhaustion(bombs*.6f);
         }
         for(int i = 0; i < bombs;i++){
             cc.projectileQueue.add(CommonOrganUtil::spawnDragonBomb);
         }
-        entity.addEffect(new EffectInstance(CCStatusEffects.DRAGON_BOMB_COOLDOWN.get(), ChestCavity.config.DRAGON_BOMB_COOLDOWN, 0, false, false, true));
+        entity.addEffect(new MobEffectInstance(CCStatusEffects.DRAGON_BOMB_COOLDOWN.get(), ChestCavity.config.DRAGON_BOMB_COOLDOWN, 0, false, false, true));
     }
 
     public static void queueForcefulSpit(LivingEntity entity, ChestCavityInstance cc, int projectiles){
-        if(entity instanceof PlayerEntity){
-            ((PlayerEntity)entity).causeFoodExhaustion(projectiles*.1f);
+        if(entity instanceof Player){
+            ((Player)entity).causeFoodExhaustion(projectiles*.1f);
         }
         for(int i = 0; i < projectiles;i++){
             cc.projectileQueue.add(CommonOrganUtil::spawnSpit);
         }
-        entity.addEffect(new EffectInstance(CCStatusEffects.FORCEFUL_SPIT_COOLDOWN.get(), ChestCavity.config.FORCEFUL_SPIT_COOLDOWN, 0, false, false, true));
+        entity.addEffect(new MobEffectInstance(CCStatusEffects.FORCEFUL_SPIT_COOLDOWN.get(), ChestCavity.config.FORCEFUL_SPIT_COOLDOWN, 0, false, false, true));
     }
 
     public static void queueGhastlyFireballs(LivingEntity entity, ChestCavityInstance cc, int ghastly){
-        if(entity instanceof PlayerEntity){
-            ((PlayerEntity)entity).causeFoodExhaustion(ghastly*.3f);
+        if(entity instanceof Player){
+            ((Player)entity).causeFoodExhaustion(ghastly*.3f);
         }
         for(int i = 0; i < ghastly;i++){
             cc.projectileQueue.add(CommonOrganUtil::spawnGhastlyFireball);
         }
-        entity.addEffect(new EffectInstance(CCStatusEffects.GHASTLY_COOLDOWN.get(), ChestCavity.config.GHASTLY_COOLDOWN, 0, false, false, true));
+        entity.addEffect(new MobEffectInstance(CCStatusEffects.GHASTLY_COOLDOWN.get(), ChestCavity.config.GHASTLY_COOLDOWN, 0, false, false, true));
     }
 
     public static void queuePyromancyFireballs(LivingEntity entity, ChestCavityInstance cc, int pyromancy){
-        if(entity instanceof PlayerEntity){
-            ((PlayerEntity)entity).causeFoodExhaustion(pyromancy*.1f);
+        if(entity instanceof Player){
+            ((Player)entity).causeFoodExhaustion(pyromancy*.1f);
         }
         for(int i = 0; i < pyromancy;i++){
             cc.projectileQueue.add(CommonOrganUtil::spawnPyromancyFireball);
         }
-        entity.addEffect(new EffectInstance(CCStatusEffects.PYROMANCY_COOLDOWN.get(), ChestCavity.config.PYROMANCY_COOLDOWN, 0, false, false, true));
+        entity.addEffect(new MobEffectInstance(CCStatusEffects.PYROMANCY_COOLDOWN.get(), ChestCavity.config.PYROMANCY_COOLDOWN, 0, false, false, true));
     }
 
     public static void queueShulkerBullets(LivingEntity entity, ChestCavityInstance cc, int shulkerBullets){
-        if(entity instanceof PlayerEntity){
-            ((PlayerEntity)entity).causeFoodExhaustion(shulkerBullets*.3f);
+        if(entity instanceof Player){
+            ((Player)entity).causeFoodExhaustion(shulkerBullets*.3f);
         }
         for(int i = 0; i < shulkerBullets;i++){
             cc.projectileQueue.add(CommonOrganUtil::spawnShulkerBullet);
         }
-        entity.addEffect(new EffectInstance(CCStatusEffects.SHULKER_BULLET_COOLDOWN.get(), ChestCavity.config.SHULKER_BULLET_COOLDOWN, 0, false, false, true));
+        entity.addEffect(new MobEffectInstance(CCStatusEffects.SHULKER_BULLET_COOLDOWN.get(), ChestCavity.config.SHULKER_BULLET_COOLDOWN, 0, false, false, true));
     }
 
     public static void setStatusEffects(ItemStack organ, ItemStack potion){
-        List<EffectInstance> potionList = PotionUtils.getMobEffects(potion);
-        List<EffectInstance> list = new ArrayList<>();
-        for (EffectInstance effect : potionList) {
-            EffectInstance effectCopy = new EffectInstance(effect);
+        List<MobEffectInstance> potionList = PotionUtils.getMobEffects(potion);
+        List<MobEffectInstance> list = new ArrayList<>();
+        for (MobEffectInstance effect : potionList) {
+            MobEffectInstance effectCopy = new MobEffectInstance(effect);
             ((CCStatusEffectInstance) effectCopy).CC_setDuration(Math.max(1,effectCopy.getDuration()/4));
             list.add(effectCopy);
         }
         setStatusEffects(organ,list);
     }
 
-    public static void setStatusEffects(ItemStack organ, List<EffectInstance> list){
-        CompoundNBT tag = organ.getOrCreateTag();
-        ListNBT NbtList = new ListNBT();
+    public static void setStatusEffects(ItemStack organ, List<MobEffectInstance> list){
+        CompoundTag tag = organ.getOrCreateTag();
+        ListTag NbtList = new ListTag();
 
         for(int i = 0; i < list.size(); ++i) {
-            EffectInstance effect = list.get(i);
+            MobEffectInstance effect = list.get(i);
             if (effect != null) {
-                CompoundNBT compoundNBT = new CompoundNBT();
-                NbtList.add(effect.save(compoundNBT));
+                CompoundTag CompoundTag = new CompoundTag();
+                NbtList.add(effect.save(CompoundTag));
             }
         }
         tag.put("CustomPotionEffects",NbtList);
@@ -179,19 +178,19 @@ public class CommonOrganUtil {
     }
 
     public static void spawnEffectsCloud(LivingEntity entity) {
-        Collection<EffectInstance> collection = entity.getActiveEffects();
+        Collection<MobEffectInstance> collection = entity.getActiveEffects();
         if (!collection.isEmpty()) {
-            AreaEffectCloudEntity areaEffectCloudEntity = new AreaEffectCloudEntity(entity.level, entity.getX(), entity.getY(), entity.getZ());
+            AreaEffectCloud areaEffectCloudEntity = new AreaEffectCloud(entity.level, entity.getX(), entity.getY(), entity.getZ());
             areaEffectCloudEntity.setRadius(2.5F);
             areaEffectCloudEntity.setRadiusOnUse(-0.5F);
             areaEffectCloudEntity.setWaitTime(10);
             areaEffectCloudEntity.setDuration(areaEffectCloudEntity.getDuration() / 2);
             areaEffectCloudEntity.setRadiusPerTick(-areaEffectCloudEntity.getRadius() / (float)areaEffectCloudEntity.getDuration());
-            Iterator<EffectInstance> var3 = collection.iterator();
+            Iterator<MobEffectInstance> var3 = collection.iterator();
 
             while(var3.hasNext()) {
-                EffectInstance statusEffectInstance = var3.next();
-                areaEffectCloudEntity.addEffect(new EffectInstance(statusEffectInstance));
+                MobEffectInstance statusEffectInstance = var3.next();
+                areaEffectCloudEntity.addEffect(new MobEffectInstance(statusEffectInstance));
             }
 
             entity.level.addFreshEntity(areaEffectCloudEntity);
@@ -204,14 +203,14 @@ public class CommonOrganUtil {
     }
 
     public static void spawnSpit(LivingEntity entity){
-        Vector3d entityFacing = entity.getLookAngle().normalize();
+        Vec3 entityFacing = entity.getLookAngle().normalize();
 
-        LlamaEntity fakeLlama = new LlamaEntity(EntityType.LLAMA,entity.level);
+        Llama fakeLlama = new Llama(EntityType.LLAMA,entity.level);
         fakeLlama.setPos(entity.getX(),entity.getY(),entity.getZ());
-        fakeLlama.xRot = entity.xRot;
-        fakeLlama.yRot = entity.yRot;
+        fakeLlama.setXRot(entity.getXRot());
+        fakeLlama.setYRot(entity.getYRot());
         fakeLlama.yBodyRot = entity.yBodyRot;
-        LlamaSpitEntity llamaSpitEntity = new LlamaSpitEntity(entity.level, fakeLlama);
+        LlamaSpit llamaSpitEntity = new LlamaSpit(entity.level, fakeLlama);
         llamaSpitEntity.setOwner(entity);
         llamaSpitEntity.setDeltaMovement(entityFacing.x*2,entityFacing.y*2,entityFacing.z*2);
         entity.level.addFreshEntity(llamaSpitEntity);
@@ -220,8 +219,8 @@ public class CommonOrganUtil {
     }
 
     public static void spawnDragonBomb(LivingEntity entity){
-        Vector3d entityFacing = entity.getLookAngle().normalize();
-        DragonFireballEntity fireballEntity = new DragonFireballEntity(entity.level, entity, entityFacing.x, entityFacing.y, entityFacing.z);
+        Vec3 entityFacing = entity.getLookAngle().normalize();
+        DragonFireball fireballEntity = new DragonFireball(entity.level, entity, entityFacing.x, entityFacing.y, entityFacing.z);
         fireballEntity.absMoveTo(fireballEntity.getX(), entity.getX(0.5D) + 0.3D, fireballEntity.getZ());
         entity.level.addFreshEntity(fireballEntity);
         entityFacing = entityFacing.scale(-0.2D);
@@ -230,19 +229,19 @@ public class CommonOrganUtil {
 
     public static void spawnDragonBreath(LivingEntity entity){
         Optional<ChestCavityEntity> optional = ChestCavityEntity.of(entity);
-        if(!optional.isPresent()){
+        if(optional.isEmpty()){
             return;
         }
         ChestCavityEntity cce = optional.get();
         ChestCavityInstance cc= cce.getChestCavityInstance();
         float breath = cc.getOrganScore(CCOrganScores.DRAGON_BREATH);
         double range = Math.sqrt(breath/2)*5;
-        RayTraceResult result = entity.pick(range, 0, false);
-        Vector3d pos = result.getLocation();
+        HitResult result = entity.pick(range, 0, false);
+        Vec3 pos = result.getLocation();
         double x = pos.x;
         double y = pos.y;
         double z = pos.z;
-        BlockPos.Mutable mutable = new BlockPos.Mutable(x,y,z);
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(x,y,z);
         while(entity.level.isEmptyBlock(mutable)) {
             --y;
             if (y < 0.0D) {
@@ -251,20 +250,20 @@ public class CommonOrganUtil {
 
             mutable.set(x,y,z);
         }
-        y = (Math.floor(y) + 1);
-        AreaEffectCloudEntity breathEntity = new AreaEffectCloudEntity(entity.level, x, y, z);
+        y = (Mth.floor(y) + 1);
+        AreaEffectCloud breathEntity = new AreaEffectCloud(entity.level, x, y, z);
         breathEntity.setOwner(entity);
         breathEntity.setRadius((float)Math.max(range/2,Math.min(range, MathUtil.horizontalDistanceTo(breathEntity,entity))));
         breathEntity.setDuration(200);
         breathEntity.setParticle(ParticleTypes.DRAGON_BREATH);
-        breathEntity.addEffect(new EffectInstance(Effects.HARM));
+        breathEntity.addEffect(new MobEffectInstance(MobEffects.HARM));
         entity.level.addFreshEntity(breathEntity);
 
     }
 
     public static void spawnGhastlyFireball(LivingEntity entity){
-        Vector3d entityFacing = entity.getLookAngle().normalize();
-        FireballEntity fireballEntity = new FireballEntity(entity.level, entity, entityFacing.x, entityFacing.y, entityFacing.z);
+        Vec3 entityFacing = entity.getLookAngle().normalize();
+        LargeFireball fireballEntity = new LargeFireball(entity.level, entity, entityFacing.x, entityFacing.y, entityFacing.z, 1);
         fireballEntity.absMoveTo(fireballEntity.getX(), entity.getY(0.5D) + 0.3D, fireballEntity.getZ());
         entity.level.addFreshEntity(fireballEntity);
         entityFacing = entityFacing.scale(-.8D);
@@ -272,8 +271,8 @@ public class CommonOrganUtil {
     }
 
     public static void spawnPyromancyFireball(LivingEntity entity){
-        Vector3d entityFacing = entity.getLookAngle().normalize();
-        SmallFireballEntity smallFireballEntity = new SmallFireballEntity(entity.level, entity, entityFacing.x + entity.getRandom().nextGaussian() * .1, entityFacing.y, entityFacing.z + entity.getRandom().nextGaussian() * .1);
+        Vec3 entityFacing = entity.getLookAngle().normalize();
+        SmallFireball smallFireballEntity = new SmallFireball(entity.level, entity, entityFacing.x + entity.getRandom().nextGaussian() * .1, entityFacing.y, entityFacing.z + entity.getRandom().nextGaussian() * .1);
         smallFireballEntity.absMoveTo(smallFireballEntity.getX(), entity.getY(0.5D) + 0.3D, smallFireballEntity.getZ());
         entity.level.addFreshEntity(smallFireballEntity);
         entityFacing = entityFacing.scale(-.2D);
@@ -281,17 +280,17 @@ public class CommonOrganUtil {
     }
 
     public static void spawnShulkerBullet(LivingEntity entity){
-        //Vector3dd entityFacing = entity.getRotationVector().normalize();
-        EntityPredicate targetPredicate = new EntityPredicate();
+        //Vec3d entityFacing = entity.getRotationVector().normalize();
+        TargetingConditions targetPredicate = TargetingConditions.forCombat();
         targetPredicate.range(ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE*2);
         LivingEntity target = entity.level.getNearestEntity(LivingEntity.class,
                 targetPredicate, entity, entity.getX(), entity.getY(),entity.getZ(),
-                new AxisAlignedBB(entity.getX()-ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,entity.getY()-ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,entity.getZ()-ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,
+                new AABB(entity.getX()-ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,entity.getY()-ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,entity.getZ()-ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,
                         entity.getX()+ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,entity.getY()+ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE,entity.getZ()+ChestCavity.config.SHULKER_BULLET_TARGETING_RANGE));
         if(target == null){
             return;
         }
-        ShulkerBulletEntity shulkerBulletEntity = new ShulkerBulletEntity(entity.level,entity,target, Direction.Axis.Y);
+        ShulkerBullet shulkerBulletEntity = new ShulkerBullet(entity.level,entity,target, Direction.Axis.Y);
         shulkerBulletEntity.absMoveTo(shulkerBulletEntity.getX(), entity.getY(0.5D) + 0.3D, shulkerBulletEntity.getZ());
         entity.level.addFreshEntity(shulkerBulletEntity);
         //entityFacing = entityFacing.multiply(-.4D);
@@ -300,26 +299,26 @@ public class CommonOrganUtil {
 
     public static boolean spinWeb(LivingEntity entity, ChestCavityInstance cc, float silkScore){
         int hungerCost = 0;
-        PlayerEntity player = null;
-        if(entity instanceof PlayerEntity){
-            player = (PlayerEntity)entity;
+        Player player = null;
+        if(entity instanceof Player){
+            player = (Player)entity;
             if(player.getFoodData().getFoodLevel() < 6){
                 return false;
             }
         }
 
         if(silkScore >= 2) {
-            BlockPos pos = ((CCMixinThing) (Object) entity).getMixinBlockPos().relative(entity.getDirection().getOpposite());
-            if(entity.level.getBlockState(pos).isAir()){
+            BlockPos pos = entity.getOnPos().relative(entity.getDirection().getOpposite());
+            if(entity.getLevel().getBlockState(pos).isAir()){
                 if(silkScore >= 3) {
                     hungerCost = 16;
                     silkScore -= 3;
-                    entity.level.setBlock(pos, Blocks.WHITE_WOOL.defaultBlockState(), 2);
+                    entity.getLevel().setBlock(pos, Blocks.WHITE_WOOL.defaultBlockState(), 2);
                 }
                 else{
                     hungerCost = 8;
                     silkScore -= 2;
-                    entity.level.setBlock(pos, Blocks.COBWEB.defaultBlockState(), 2);
+                    entity.getLevel().setBlock(pos, Blocks.COBWEB.defaultBlockState(), 2);
                 }
             }
         }
@@ -352,7 +351,7 @@ public class CommonOrganUtil {
         if(entity.isPassenger()){
             entity.stopRiding();
         }
-        BlockPos.Mutable targetPos = new BlockPos.Mutable(x, y, z);
+        BlockPos.MutableBlockPos targetPos = new BlockPos.MutableBlockPos(x, y, z);
         BlockState blockState = entity.level.getBlockState(targetPos);
         while(targetPos.getY() > 0 && !(blockState.getMaterial().blocksMotion()
                 || blockState.getMaterial().isLiquid()))

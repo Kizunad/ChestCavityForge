@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.registration;
 
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 
 public class CCOrganScores {

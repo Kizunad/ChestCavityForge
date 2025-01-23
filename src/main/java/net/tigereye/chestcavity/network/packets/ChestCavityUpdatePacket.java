@@ -1,14 +1,13 @@
 package net.tigereye.chestcavity.network.packets;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.network.NetworkHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,9 +16,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 public class ChestCavityUpdatePacket {
-    private final boolean open;
-    private final int size;
-    private final Map<ResourceLocation,Float> organScoresMap;
+    private boolean open;
+    private int size;
+    private Map<ResourceLocation,Float> organScoresMap;
 
     public ChestCavityUpdatePacket(boolean open, int size, Map<ResourceLocation,Float> organScoresMap) {
         this.open = open;
@@ -27,7 +26,7 @@ public class ChestCavityUpdatePacket {
         this.organScoresMap = organScoresMap;
     }
 
-    public static ChestCavityUpdatePacket decode(PacketBuffer buf) {
+    public static ChestCavityUpdatePacket decode(FriendlyByteBuf buf) {
         boolean open = buf.readBoolean();
         int size = buf.readInt();
         Map<ResourceLocation,Float> organScores = new HashMap<>();
@@ -37,7 +36,7 @@ public class ChestCavityUpdatePacket {
         return new ChestCavityUpdatePacket(open, size, organScores);
     }
 
-    public void encode(PacketBuffer buf) {
+    public void encode(FriendlyByteBuf buf) {
         buf.writeBoolean(this.open);
         buf.writeInt(this.size);
         this.organScoresMap.forEach((id, value) -> {
@@ -54,7 +53,6 @@ public class ChestCavityUpdatePacket {
                 ChestCavityInstance instance = chestCavityEntity.getChestCavityInstance();
                 instance.opened = this.open;
                 instance.setOrganScores(this.organScoresMap);
-                //NetworkHandler.CHANNEL.sendToServer(new RecievedChestCavityUpdatePacket());
                 success.set(true);
             });
         }));

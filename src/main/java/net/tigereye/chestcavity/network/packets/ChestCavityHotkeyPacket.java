@@ -1,12 +1,12 @@
 package net.tigereye.chestcavity.network.packets;
 
-
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.network.NetworkEvent;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.util.NetworkUtil;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -20,18 +20,18 @@ public class ChestCavityHotkeyPacket {
         this.location = location;
     }
 
-    public ChestCavityHotkeyPacket(PacketBuffer buf) {
+    public ChestCavityHotkeyPacket(FriendlyByteBuf buf) {
         this(buf.readResourceLocation());
     }
 
-    public void encode(PacketBuffer buf) {
+    public void encode(FriendlyByteBuf buf) {
         buf.writeResourceLocation(this.location);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> contextSupplier) {
         AtomicBoolean success = new AtomicBoolean(false);
         contextSupplier.get().enqueueWork(() -> {
-            PlayerEntity player = contextSupplier.get().getSender();
+            Player player = contextSupplier.get().getSender();
             Optional<ChestCavityEntity> optional = ChestCavityEntity.of(player);
             optional.ifPresent(chestCavityEntity -> {
                 OrganActivationListeners.activate(this.location, chestCavityEntity.getChestCavityInstance());

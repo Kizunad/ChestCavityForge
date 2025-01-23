@@ -1,14 +1,13 @@
 package net.tigereye.chestcavity.items;
 
 
-
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
 
 import javax.annotation.Nullable;
@@ -21,9 +20,9 @@ public class CreeperAppendix extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack itemStack, @Nullable World world, List<ITextComponent> tooltip, ITooltipFlag tooltipContext) {
+    public void appendHoverText(ItemStack itemStack, @Nullable Level world, List<Component> tooltip, TooltipFlag tooltipContext) {
         super.appendHoverText(itemStack,world,tooltip,tooltipContext);
-        tooltip.add(new StringTextComponent("This appears to be a fuse.").withStyle(TextFormatting.ITALIC));
-        tooltip.add(new StringTextComponent("It won't do much by itself.").withStyle(TextFormatting.ITALIC));
+        tooltip.add(new TextComponent("This appears to be a fuse.").withStyle(ChatFormatting.ITALIC));
+        tooltip.add(new TextComponent("It won't do much by itself.").withStyle(ChatFormatting.ITALIC));
     }
 }

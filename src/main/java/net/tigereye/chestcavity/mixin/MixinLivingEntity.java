@@ -1,57 +1,58 @@
 package net.tigereye.chestcavity.mixin;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.boss.WitherEntity;
-import net.minecraft.entity.monster.CreeperEntity;
-import net.minecraft.entity.monster.MonsterEntity;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.CowEntity;
-import net.minecraft.entity.passive.SheepEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.loot.LootContext;
-import net.minecraft.loot.LootParameterSets;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.potion.EffectInstance;
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Hand;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Cow;
+import net.minecraft.world.entity.animal.Sheep;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraftforge.common.util.ITeleporter;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
-import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.listeners.LootRegister;
+import net.tigereye.chestcavity.listeners.OrganFoodEffectCallback;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.items.ChestOpener;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nullable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,14 +60,13 @@ import java.util.Optional;
 public class MixinLivingEntity extends Entity implements ChestCavityEntity {
     private ChestCavityInstance chestCavityInstance;
 
-    protected MixinLivingEntity(EntityType<? extends LivingEntity> entityType, World world) {
+    protected MixinLivingEntity(EntityType<? extends LivingEntity> entityType, Level world) {
         super(entityType, world);
     }
 
     @Inject(at = @At("TAIL"), method = "<init>")
-    public void chestCavityLivingEntityConstructorMixin(EntityType<? extends LivingEntity> entityType, World world, CallbackInfo info){
+    public void chestCavityLivingEntityConstructorMixin(EntityType<? extends LivingEntity> entityType, Level world, CallbackInfo info){
         chestCavityInstance = ChestCavityInstanceFactory.newChestCavityInstance(entityType,(LivingEntity)(Object)this);
-        ChestCavity.printOnDebug("CHESTCAVITY LIVINGENTITY MIXIN <init> RAN!");
         //chestCavityInstance.init();
     }
 
@@ -95,7 +95,7 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
 
     @Inject(at = @At("RETURN"), method = "createLootContext")
     protected void addCustomLootFromEntity(boolean p_21105_, DamageSource p_21106_, CallbackInfoReturnable<LootContext.Builder> cir) {
-        LootContext lootContext = cir.getReturnValue().create(LootParameterSets.ENTITY);
+        LootContext lootContext = cir.getReturnValue().create(LootContextParamSets.ENTITY);
         List<ItemStack> list = LootRegister.addLoot(lootContext);
         list = LootRegister.modifyLoot(list, lootContext);
         list.forEach(this::spawnAtLocation);
@@ -118,12 +118,24 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
     }
 
     @ModifyVariable(at = @At("HEAD"), method = "addEffect", ordinal = 0)
-    public EffectInstance chestCavityLivingEntityAddStatusEffectMixin(EffectInstance effect){
+    public MobEffectInstance chestCavityLivingEntityAddStatusEffectMixin(MobEffectInstance effect){
         return ChestCavityUtil.onAddStatusEffect(chestCavityInstance,effect);
     }
 
 
-
+    //booneldan - why was this gone?? deleted not just commented
+    @ModifyVariable(//at = @At(value = "INVOKE", target = "Lnet/minecraft/item/Item;isFood()Z"),
+            at = @At("STORE"),
+            method = "addEatEffect", ordinal = 0)
+    public List<Pair<MobEffectInstance, Float>> chestCavityLivingEntityApplyFoodEffectsMixin(List<Pair<MobEffectInstance, Float>> list, ItemStack stack, Level world, LivingEntity targetEntity){
+        Optional<ChestCavityEntity> option = ChestCavityEntity.of(targetEntity);
+        if (option.isPresent()) {
+            list = new LinkedList<>(list); //this divorces the list I shall modify from the item's long term list
+            //OrganFoodEffectCallback.EVENT.invoker().onApplyFoodEffects(list, stack, world, targetEntity, option.get().getChestCavityInstance());
+            OrganFoodEffectCallback.addFoodEffects(list, stack, world, targetEntity, option.get().getChestCavityInstance());
+        }
+        return list;
+    }
 
 
 
@@ -138,7 +150,7 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
     //Lnet/minecraft/entity/LivingEntity;hasStatusEffect(Lnet/minecraft/entity/effect/StatusEffect;)Z
     //@ModifyVariable(at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V"), method = "travel",ordinal = 1)
     //@Group(name = "WaterTravelMixins", max = 2, min = 1)
-    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;moveRelative(FLnet/minecraft/util/math/vector/Vector3d;)V"), method = "travel",index = 0, require = 0)
+    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;moveRelative(FLnet/minecraft/world/phys/Vec3;)V"), method = "travel",index = 0, require = 0)
     protected float chestCavityLivingEntityWaterTravelMixin(float g) {
         return g*ChestCavityUtil.applySwimSpeedInWater(chestCavityInstance);
     }
@@ -164,35 +176,32 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
 
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
-    private void readCustomDataFromNbt(CompoundNBT tag, CallbackInfo callbackInfo) {
+    private void readCustomDataFromNbt(CompoundTag tag, CallbackInfo callbackInfo) {
         chestCavityInstance.fromTag(tag,(LivingEntity)(Object)this);
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
-    private void writeCustomDataToNbt(CompoundNBT tag, CallbackInfo callbackInfo) {
+    private void writeCustomDataToNbt(CompoundTag tag, CallbackInfo callbackInfo) {
         chestCavityInstance.toTag(tag);
     }
 
-    @Mixin(MobEntity.class)
-    private static abstract class MixinMobEntity extends LivingEntity {
-        protected MixinMobEntity(EntityType<? extends LivingEntity> entityType, World world) {super(entityType, world);}
-
-
+    @Mixin(Mob.class)
+    private static abstract class MixinMobEntity extends LivingEntity{
+        protected MixinMobEntity(EntityType<? extends LivingEntity> entityType, Level world) {super(entityType, world);}
 
         @Inject(at = @At("HEAD"), method = "checkAndHandleImportantInteractions"/*"method_29506"*/, cancellable = true) //if this breaks, its likely because yarn changed the name to interactWithItem
-        protected void chestCavityLivingEntityInteractMobMixin(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResultType> info) {
-            ChestCavity.printOnDebug("checkAndHandleImportantInteractions called for: " + this.toString());
-            if(player.getItemInHand(hand).getItem() == CCItems.CHEST_OPENER.get() && (!(((LivingEntity)(Object)this) instanceof PlayerEntity))){
+        protected void chestCavityLivingEntityInteractMobMixin(Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> info) {
+            if(player.getItemInHand(hand).getItem() == CCItems.CHEST_OPENER.get() && (!(((LivingEntity)(Object)this) instanceof Player))){
                 ((ChestOpener)player.getItemInHand(hand).getItem()).openChestCavity(player,(LivingEntity)(Object)this);
                 ChestCavity.printOnDebug("Opened Cavity from checkAndHandleImportantInteractions. this: " + ((LivingEntity)(Object)this).toString());
-                info.setReturnValue(ActionResultType.SUCCESS);
+                info.setReturnValue(InteractionResult.SUCCESS);
             }
         }
     }
     
-    @Mixin(PlayerEntity.class)
+    @Mixin(Player.class)
     public static abstract class MixinPlayerEntity extends LivingEntity{
-        protected MixinPlayerEntity(EntityType<? extends LivingEntity> entityType, World world) {
+        protected MixinPlayerEntity(EntityType<? extends LivingEntity> entityType, Level world) {
             super(entityType, world);
         }
 
@@ -208,15 +217,16 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
         }
 
         @Inject(at = @At("HEAD"), method = "interactOn", cancellable = true)
-        void chestCavityPlayerEntityInteractPlayerMixin(Entity entity, Hand hand, CallbackInfoReturnable<ActionResultType> info) {
+        void chestCavityPlayerEntityInteractPlayerMixin(Entity entity, InteractionHand hand, CallbackInfoReturnable<InteractionResult> info) {
             ChestCavity.printOnDebug("InteractOn Mixin Called! entity instanceof LivingEntity: " + (entity instanceof LivingEntity) + ". Entity.toString(): " + entity.toString());
             if (entity instanceof LivingEntity && ChestCavity.config.CAN_OPEN_OTHER_PLAYERS) {
-                PlayerEntity player = ((PlayerEntity) (Object) this);
+                Player player = ((Player) (Object) this);
                 ItemStack stack = player.getItemInHand(hand);
     
                 if (stack.getItem() == CCItems.CHEST_OPENER.get()) {
                     ((ChestOpener) stack.getItem()).openChestCavity(player, (LivingEntity) entity);
-                    info.setReturnValue(ActionResultType.SUCCESS);
+                    ChestCavity.printOnDebug("Opened Cavity On InteractOn Method!");
+                    info.setReturnValue(InteractionResult.SUCCESS);
                     info.cancel();
                 }
             }
@@ -227,10 +237,10 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
         }
     }
 
-    @Mixin(CowEntity.class)
-    private static abstract class MixinCowEntity extends AnimalEntity {
+    @Mixin(Cow.class)
+    private static abstract class MixinCowEntity extends Animal {
 
-        protected MixinCowEntity(EntityType<? extends AnimalEntity> entityType, World world) {super(entityType, world);}
+        protected MixinCowEntity(EntityType<? extends Animal> entityType, Level world) {super(entityType, world);}
 
         @Inject(method = "mobInteract",
                 /*at = @At(value = "INVOKE",
@@ -241,17 +251,17 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
                         shift = At.Shift.AFTER)*/
                 at = @At(value = "RETURN", ordinal = 0)
                 )
-        protected void interactMob(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResultType> info) {
+        protected void interactMob(Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> info) {
             CommonOrganUtil.milkSilk(this);
         }
     }
 
-    @Mixin(CreeperEntity.class)
-    private static abstract class MixinCreeperEntity extends MonsterEntity {
+    @Mixin(Creeper.class)
+    private static abstract class MixinCreeperEntity extends Monster {
         @Shadow
         private int swell;
 
-        protected MixinCreeperEntity(EntityType<? extends MonsterEntity> entityType, World world) {super(entityType, world);}
+        protected MixinCreeperEntity(EntityType<? extends Monster> entityType, Level world) {super(entityType, world);}
 
         @Inject(at = @At("HEAD"), method = "tick")
         protected void chestCavityCreeperTickMixin(CallbackInfo info) {
@@ -292,14 +302,14 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
         }*/
     }
 
-    @Mixin(ServerPlayerEntity.class)
-    private static abstract class MixinServerPlayerEntity extends PlayerEntity {
-        public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile profile) {
+    @Mixin(ServerPlayer.class)
+    private static abstract class MixinServerPlayerEntity extends Player {
+        public MixinServerPlayerEntity(Level world, BlockPos pos, float yaw, GameProfile profile) {
             super(world, pos, yaw, profile);
         }
 
         @Inject(method = "restoreFrom", at = @At("TAIL"))
-        public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo callbackInfo) {
+        public void copyFrom(ServerPlayer oldPlayer, boolean alive, CallbackInfo callbackInfo) {
             ChestCavity.printOnDebug("Attempting to load ChestCavityInstance");
             ChestCavityEntity.of(this).ifPresent(chestCavityEntity -> ChestCavityEntity.of(oldPlayer).ifPresent(oldCCPlayerEntityInterface -> {
                 ChestCavity.printOnDebug("Copying ChestCavityInstance");
@@ -308,7 +318,7 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
         }
 
         @Inject(at = @At("RETURN"), method = "changeDimension", cancellable = true, remap = false)
-        public void chestCavityEntityMoveToWorldMixin(ServerWorld level, ITeleporter teleporter, CallbackInfoReturnable<Entity> info){
+        public void chestCavityEntityMoveToWorldMixin(ServerLevel level, ITeleporter teleporter, CallbackInfoReturnable<Entity> info){
             Entity entity = info.getReturnValue();
             if(entity instanceof ChestCavityEntity && !entity.level.isClientSide){
                 NetworkUtil.SendS2CChestCavityUpdatePacket(((ChestCavityEntity)entity).getChestCavityInstance());
@@ -316,24 +326,24 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
         }
     }
 
-    @Mixin(SheepEntity.class)
-    private static abstract class MixinSheepEntity extends AnimalEntity {
+    @Mixin(Sheep.class)
+    private static abstract class MixinSheepEntity extends Animal {
 
-        protected MixinSheepEntity(EntityType<? extends AnimalEntity> entityType, World world) {super(entityType, world);}
+        protected MixinSheepEntity(EntityType<? extends Animal> entityType, Level world) {super(entityType, world);}
 
         @Inject(method = "shear",
                 at = @At(value = "HEAD")
         )
-        protected void chestCavitySheared(SoundCategory shearedSoundCategory, CallbackInfo info) {
+        protected void chestCavitySheared(SoundSource shearedSoundCategory, CallbackInfo info) {
             CommonOrganUtil.shearSilk(this);
         }
     }
 
-    @Mixin(WitherEntity.class)
-    private static abstract class MixinWitherEntity extends MonsterEntity {
+    @Mixin(WitherBoss.class)
+    private static abstract class MixinWitherEntity extends Monster {
 
 
-        protected MixinWitherEntity(EntityType<? extends MonsterEntity> entityType, World world) {
+        protected MixinWitherEntity(EntityType<? extends Monster> entityType, Level world) {
             super(entityType, world);
         }
 
@@ -341,7 +351,7 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
         //  Lnet/minecraft/item/ItemConvertible;
         //)Lnet/minecraft/entity/ItemEntity;
         @Inject(method = "dropCustomDeathLoot",
-                at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/boss/WitherEntity;spawnAtLocation(Lnet/minecraft/util/IItemProvider;)Lnet/minecraft/entity/item/ItemEntity;"),
+                at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/boss/wither/WitherBoss;spawnAtLocation(Lnet/minecraft/world/level/ItemLike;)Lnet/minecraft/world/entity/item/ItemEntity;"),
                 cancellable = true
         )
         protected void chestCavityPreventNetherStarDrop(DamageSource source, int lootingMultiplier, boolean allowDrops, CallbackInfo info) {
@@ -362,13 +372,13 @@ public class MixinLivingEntity extends Entity implements ChestCavityEntity {
     protected void defineSynchedData() {}
 
     @Shadow
-    protected void readAdditionalSaveData(CompoundNBT tag) {}
+    protected void readAdditionalSaveData(CompoundTag tag) {}
 
     @Shadow
-    protected void addAdditionalSaveData(CompoundNBT tag) {}
+    protected void addAdditionalSaveData(CompoundTag tag) {}
 
     @Shadow
-    public IPacket<?> getAddEntityPacket() {return null;}
+    public Packet<?> getAddEntityPacket() {return null;}
 
     @Shadow
     protected int increaseAirSupply(int air) {

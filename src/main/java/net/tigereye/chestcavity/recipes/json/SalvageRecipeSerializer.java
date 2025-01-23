@@ -3,18 +3,18 @@ package net.tigereye.chestcavity.recipes.json;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.tigereye.chestcavity.recipes.SalvageRecipe;
 import net.tigereye.chestcavity.registration.CCRecipes;
+import org.jetbrains.annotations.Nullable;
 
-
-public class SalvageRecipeSerializer implements IRecipeSerializer<SalvageRecipe> {
+public class SalvageRecipeSerializer implements RecipeSerializer<SalvageRecipe> {
 
     @Override
     public SalvageRecipe fromJson(ResourceLocation id, JsonObject json) {
@@ -36,7 +36,7 @@ public class SalvageRecipeSerializer implements IRecipeSerializer<SalvageRecipe>
     }
 
     @Override
-    public SalvageRecipe fromNetwork(ResourceLocation id, PacketBuffer buf) {
+    public SalvageRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buf) {
         Ingredient input = Ingredient.fromNetwork(buf);
         int required = buf.readInt();
         ItemStack output = buf.readItem();
@@ -44,14 +44,14 @@ public class SalvageRecipeSerializer implements IRecipeSerializer<SalvageRecipe>
     }
 
     @Override
-    public void toNetwork(PacketBuffer buf, SalvageRecipe recipe) {
+    public void toNetwork(FriendlyByteBuf buf, SalvageRecipe recipe) {
         recipe.getInput().toNetwork(buf);
         buf.writeInt(recipe.getRequired());
         buf.writeItem(recipe.getResultItem());
     }
 
     @Override
-    public IRecipeSerializer<?> setRegistryName(ResourceLocation name) {
+    public RecipeSerializer<?> setRegistryName(ResourceLocation name) {
         return this;
     }
 
@@ -61,8 +61,8 @@ public class SalvageRecipeSerializer implements IRecipeSerializer<SalvageRecipe>
     }
 
     @Override
-    public Class<IRecipeSerializer<?>> getRegistryType() {
-        return castClass(IRecipeSerializer.class);
+    public Class<RecipeSerializer<?>> getRegistryType() {
+        return castClass(RecipeSerializer.class);
     }
 
     private static <G> Class<G> castClass(Class<?> cls)

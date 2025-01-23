@@ -1,10 +1,12 @@
 package net.tigereye.chestcavity.registration;
 
+import net.minecraft.core.Registry;
 
-import net.minecraft.item.*;
-import net.minecraftforge.fml.RegistryObject;
+import net.minecraft.world.food.Foods;
+import net.minecraft.world.item.*;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.items.CreeperAppendix;
@@ -14,16 +16,16 @@ public class CCItems {
 	public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ChestCavity.MODID);
 
 
-	public static final Item.Properties CHEST_OPENER_PROPERTIES = new Item.Properties().stacksTo(1).tab(ItemGroup.TAB_TOOLS);
-	public static final Item.Properties FOOD_ITEM_PROPERTIES = new Item.Properties().stacksTo(64).tab(ItemGroup.TAB_FOOD);
+	public static final Item.Properties CHEST_OPENER_PROPERTIES = new Item.Properties().stacksTo(1).tab(CreativeModeTab.TAB_TOOLS);
+	public static final Item.Properties FOOD_ITEM_PROPERTIES = new Item.Properties().stacksTo(64).tab(CreativeModeTab.TAB_FOOD);
 
 	public static final RegistryObject<Item> CHEST_OPENER = ITEMS.register("chest_opener", ChestOpener::new);
-	public static final RegistryObject<Item> WOODEN_CLEAVER = ITEMS.register("wooden_cleaver", () -> new SwordItem(ItemTier.WOOD,6,-3.2f,new Item.Properties().tab(ItemGroup.TAB_COMBAT)));
-	public static final RegistryObject<Item> GOLD_CLEAVER = ITEMS.register("gold_cleaver", () -> new SwordItem(ItemTier.GOLD,6,-3.0f,new Item.Properties().tab(ItemGroup.TAB_COMBAT)));
-	public static final RegistryObject<Item> STONE_CLEAVER = ITEMS.register("stone_cleaver", () -> new SwordItem(ItemTier.STONE,7,-3.2f,new Item.Properties().tab(ItemGroup.TAB_COMBAT)));
-	public static final RegistryObject<Item> IRON_CLEAVER = ITEMS.register("iron_cleaver", () -> new SwordItem(ItemTier.IRON,6,-3.1f,new Item.Properties().tab(ItemGroup.TAB_COMBAT)));
-	public static final RegistryObject<Item> DIAMOND_CLEAVER = ITEMS.register("diamond_cleaver", () -> new SwordItem(ItemTier.DIAMOND,5,-3.0f,new Item.Properties().tab(ItemGroup.TAB_COMBAT)));
-	public static final RegistryObject<Item> NETHERITE_CLEAVER = ITEMS.register("netherite_cleaver", () -> new SwordItem(ItemTier.NETHERITE,5,-3.0f,new Item.Properties().tab(ItemGroup.TAB_COMBAT).fireResistant()));
+	public static final RegistryObject<Item> WOODEN_CLEAVER = ITEMS.register("wooden_cleaver", () -> new SwordItem(Tiers.WOOD,6,-3.2f,new Item.Properties().tab(CreativeModeTab.TAB_COMBAT)));
+	public static final RegistryObject<Item> GOLD_CLEAVER = ITEMS.register("gold_cleaver", () -> new SwordItem(Tiers.GOLD,6,-3.0f,new Item.Properties().tab(CreativeModeTab.TAB_COMBAT)));
+	public static final RegistryObject<Item> STONE_CLEAVER = ITEMS.register("stone_cleaver", () -> new SwordItem(Tiers.STONE,7,-3.2f,new Item.Properties().tab(CreativeModeTab.TAB_COMBAT)));
+	public static final RegistryObject<Item> IRON_CLEAVER = ITEMS.register("iron_cleaver", () -> new SwordItem(Tiers.IRON,6,-3.1f,new Item.Properties().tab(CreativeModeTab.TAB_COMBAT)));
+	public static final RegistryObject<Item> DIAMOND_CLEAVER = ITEMS.register("diamond_cleaver", () -> new SwordItem(Tiers.DIAMOND,5,-3.0f,new Item.Properties().tab(CreativeModeTab.TAB_COMBAT)));
+	public static final RegistryObject<Item> NETHERITE_CLEAVER = ITEMS.register("netherite_cleaver", () -> new SwordItem(Tiers.NETHERITE,5,-3.0f,new Item.Properties().tab(CreativeModeTab.TAB_COMBAT).fireResistant()));
 
 	public static final RegistryObject<Item> HUMAN_APPENDIX = ITEMS.register("appendix", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP).food(CCFoodComponents.RAW_HUMAN_ORGAN_MEAT_FOOD_COMPONENT)));
 	public static final RegistryObject<Item> HUMAN_HEART = ITEMS.register("heart", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP).food(CCFoodComponents.RAW_HUMAN_ORGAN_MEAT_FOOD_COMPONENT)));
@@ -154,7 +156,7 @@ public class CCItems {
 	public static final RegistryObject<Item> GOLEM_CORE = ITEMS.register("golem_core", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP)));
 	public static final RegistryObject<Item> INNER_FURNACE = ITEMS.register("inner_furnace", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP)));
 	public static final RegistryObject<Item> PISTON_MUSCLE = ITEMS.register("piston_muscle", () -> new Item(new Item.Properties().stacksTo(16).tab(ChestCavity.ORGAN_ITEM_GROUP)));
-	public static final RegistryObject<Item> IRON_SCRAP = ITEMS.register("iron_scrap", () -> new Item(new Item.Properties().tab(ItemGroup.TAB_MATERIALS)));
+	public static final RegistryObject<Item> IRON_SCRAP = ITEMS.register("iron_scrap", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MATERIALS)));
 
 	public static final RegistryObject<Item> SALTWATER_HEART = ITEMS.register("saltwater_heart", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP)));
 	public static final RegistryObject<Item> SALTWATER_LUNG = ITEMS.register("saltwater_lung", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP)));
@@ -163,7 +165,7 @@ public class CCItems {
 	public static final RegistryObject<Item> SHIFTING_LEAVES = ITEMS.register("shifting_leaves", () -> new Item(new Item.Properties().stacksTo(16).tab(ChestCavity.ORGAN_ITEM_GROUP)));
 	public static final RegistryObject<Item> SHULKER_SPLEEN = ITEMS.register("shulker_spleen", () -> new Item(new Item.Properties().stacksTo(1).tab(ChestCavity.ORGAN_ITEM_GROUP)));
 
-	public static final RegistryObject<Item> SAUSAGE_SKIN = ITEMS.register("sausage_skin", () -> new Item(new Item.Properties().stacksTo(64).tab(ItemGroup.TAB_MISC)));
+	public static final RegistryObject<Item> SAUSAGE_SKIN = ITEMS.register("sausage_skin", () -> new Item(new Item.Properties().stacksTo(64).tab(CreativeModeTab.TAB_MISC)));
 	public static final RegistryObject<Item> MINI_SAUSAGE_SKIN = ITEMS.register("mini_sausage_skin", () -> new Item(new Item.Properties().stacksTo(64)));
 
 	public static final RegistryObject<Item> BURNT_MEAT_CHUNK = ITEMS.register("burnt_meat_chunk", () -> new Item(FOOD_ITEM_PROPERTIES.food(CCFoodComponents.BURNT_MEAT_CHUNK_COMPONENT)));

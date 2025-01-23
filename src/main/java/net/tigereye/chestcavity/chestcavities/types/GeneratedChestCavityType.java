@@ -1,12 +1,11 @@
 package net.tigereye.chestcavity.chestcavities.types;
 
 
-
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
@@ -171,7 +170,7 @@ public class GeneratedChestCavityType implements ChestCavityType {
         for(int i = 0; i < chestCavity.getContainerSize();i++){
             ItemStack itemStack = chestCavity.getItem(i);
             if(itemStack != null && itemStack != itemStack.EMPTY){
-                CompoundNBT tag = new CompoundNBT();
+                CompoundTag tag = new CompoundTag();
                 tag.putUUID("owner",instance.compatibility_id);
                 tag.putString("name",instance.owner.getDisplayName().getString());
                 itemStack.addTagElement(ChestCavity.COMPATIBILITY_TAG.toString(),tag);
@@ -210,7 +209,7 @@ public class GeneratedChestCavityType implements ChestCavityType {
     public boolean isOpenable(ChestCavityInstance instance){
         boolean weakEnough = instance.owner.getHealth() <= ChestCavity.config.CHEST_OPENER_ABSOLUTE_HEALTH_THRESHOLD
                 || instance.owner.getHealth() <= instance.owner.getMaxHealth()*ChestCavity.config.CHEST_OPENER_FRACTIONAL_HEALTH_THRESHOLD;
-        boolean chestVulnerable = instance.owner.getItemBySlot(EquipmentSlotType.CHEST).isEmpty();
+        boolean chestVulnerable = instance.owner.getItemBySlot(EquipmentSlot.CHEST).isEmpty();
         boolean easeOfAccess = instance.getOrganScore(CCOrganScores.EASE_OF_ACCESS) > 0;
         return chestVulnerable && (easeOfAccess || weakEnough);
     }
@@ -229,6 +228,4 @@ public class GeneratedChestCavityType implements ChestCavityType {
         //    ChestCavityUtil.insertWelfareOrgans(cc);
         //}
     }
-
-
 }

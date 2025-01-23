@@ -1,29 +1,26 @@
 package net.tigereye.chestcavity.listeners;
 
 import it.unimi.dsi.fastutil.ints.IntComparators;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.common.ForgeHooks;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.registration.CCTags;
-import net.tigereye.chestcavity.util.CCMixinThing;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 public class OrganActivationListeners {
@@ -66,7 +63,7 @@ public class OrganActivationListeners {
         ChestCavityUtil.destroyOrgansWithKey(cc,CCOrganScores.EXPLOSIVE);
         CommonOrganUtil.explode(entity, explosion_yield);
         if(entity.isAlive()) {
-            entity.addEffect(new EffectInstance(CCStatusEffects.EXPLOSION_COOLDOWN.get(), ChestCavity.config.EXPLOSION_COOLDOWN, 0, false, false, true));
+            entity.addEffect(new MobEffectInstance(CCStatusEffects.EXPLOSION_COOLDOWN.get(), ChestCavity.config.EXPLOSION_COOLDOWN, 0, false, false, true));
         }
     }
 
@@ -75,15 +72,15 @@ public class OrganActivationListeners {
         //    return; //this is spawning entities, this is no place for a client
         //}
         float breath = cc.getOrganScore(CCOrganScores.DRAGON_BREATH);
-        if(entity instanceof PlayerEntity){
-            ((PlayerEntity)entity).causeFoodExhaustion(breath*.6f);
+        if(entity instanceof Player){
+            ((Player)entity).causeFoodExhaustion(breath*.6f);
         }
         if(breath <= 0){
             return;
         }
 
         if(!entity.hasEffect(CCStatusEffects.DRAGON_BREATH_COOLDOWN.get())){
-            entity.addEffect(new EffectInstance(CCStatusEffects.DRAGON_BREATH_COOLDOWN.get(), ChestCavity.config.DRAGON_BREATH_COOLDOWN, 0, false, false, true));
+            entity.addEffect(new MobEffectInstance(CCStatusEffects.DRAGON_BREATH_COOLDOWN.get(), ChestCavity.config.DRAGON_BREATH_COOLDOWN, 0, false, false, true));
             cc.projectileQueue.add(CommonOrganUtil::spawnDragonBreath);
         }
     }
@@ -120,22 +117,23 @@ public class OrganActivationListeners {
             return;
         }
 
-        //test for fuel
+        //test for fuelA
         int fuelValue = 0;
-        ItemStack itemStack = cc.owner.getItemBySlot(EquipmentSlotType.MAINHAND);
+        ItemStack itemStack = cc.owner.getItemBySlot(EquipmentSlot.MAINHAND);
         if(itemStack != null && itemStack != ItemStack.EMPTY) {
             try {
-                fuelValue = 10; //FuelRegistry.INSTANCE.get(itemStack.getItem());
+
+                fuelValue = ForgeHooks.getBurnTime(itemStack, null); //10; //FuelRegistry.INSTANCE.get(itemStack.getItem());
             }
             catch (Exception e){
                 fuelValue = 0;
             }
         }
         if(fuelValue == 0){
-            itemStack = cc.owner.getItemBySlot(EquipmentSlotType.OFFHAND);
+            itemStack = cc.owner.getItemBySlot(EquipmentSlot.OFFHAND);
             if(itemStack != null && itemStack != ItemStack.EMPTY) {
                 try{
-                fuelValue = 10; //FuelRegistry.INSTANCE.get(itemStack.getItem());
+                fuelValue = ForgeHooks.getBurnTime(itemStack, null);//10; //FuelRegistry.INSTANCE.get(itemStack.getItem());
                 }
                 catch (Exception e){
                     fuelValue = 0;
@@ -147,13 +145,13 @@ public class OrganActivationListeners {
         }
 
         //setup the new status effect
-        EffectInstance newSEI = null;
+        MobEffectInstance newSEI = null;
         if(cc.owner.hasEffect(CCStatusEffects.FURNACE_POWER.get())) {
-            EffectInstance oldPower = cc.owner.getEffect(CCStatusEffects.FURNACE_POWER.get());
+            MobEffectInstance oldPower = cc.owner.getEffect(CCStatusEffects.FURNACE_POWER.get());
             if(oldPower.getAmplifier() >= furnacePowered-1){
                 return; //you can only fuel up if you have room
             }
-            CompoundNBT oldTag = new CompoundNBT();
+            CompoundTag oldTag = new CompoundTag();
             List<Integer> durations = new ArrayList<>();
             durations.add(fuelValue);
 
@@ -171,16 +169,16 @@ public class OrganActivationListeners {
             int amplifier = 0;
             for (Integer duration:
                  durations) {
-                newSEI = new EffectInstance(CCStatusEffects.FURNACE_POWER.get(), duration, amplifier, false, false, true,newSEI);
+                newSEI = new MobEffectInstance(CCStatusEffects.FURNACE_POWER.get(), duration, amplifier, false, false, true,newSEI);
                 amplifier++;
             }
         }
         else{
-            newSEI = new EffectInstance(CCStatusEffects.FURNACE_POWER.get(), fuelValue, 0, false, false, true);
+            newSEI = new MobEffectInstance(CCStatusEffects.FURNACE_POWER.get(), fuelValue, 0, false, false, true);
         }
         entity.removeEffect(CCStatusEffects.FURNACE_POWER.get());
         entity.addEffect(newSEI);
-        itemStack.shrink(1);
+        itemStack.shrink(1); //TODO: if player "eats" lava bucket it does not leave the bucket behind
     }
 
     public static void ActivateIronRepair(LivingEntity entity, ChestCavityInstance cc){
@@ -198,10 +196,10 @@ public class OrganActivationListeners {
             return;
         }
         //test for iron
-        ItemStack itemStack = cc.owner.getItemBySlot(EquipmentSlotType.MAINHAND);
-        if(itemStack == null || !itemStack.getItem().is(CCTags.IRON_REPAIR_MATERIAL)) {
-            itemStack = cc.owner.getItemBySlot(EquipmentSlotType.OFFHAND);
-            if(itemStack == null || !itemStack.getItem().is(CCTags.IRON_REPAIR_MATERIAL)) {
+        ItemStack itemStack = cc.owner.getItemBySlot(EquipmentSlot.MAINHAND);
+        if(itemStack == null || !itemStack.is(CCTags.IRON_REPAIR_MATERIAL)) {
+            itemStack = cc.owner.getItemBySlot(EquipmentSlot.OFFHAND);
+            if(itemStack == null || !itemStack.is(CCTags.IRON_REPAIR_MATERIAL)) {
                 return;
             }
         }
@@ -209,7 +207,7 @@ public class OrganActivationListeners {
         //success! heal target
         cc.owner.heal(cc.owner.getMaxHealth()*ChestCavity.config.IRON_REPAIR_PERCENT);
         entity.playSound(SoundEvents.IRON_GOLEM_REPAIR, .75f, 1);
-        cc.owner.addEffect(new EffectInstance(CCStatusEffects.IRON_REPAIR_COOLDOWN.get(), (int)(ChestCavity.config.IRON_REPAIR_COOLDOWN/ironRepair), 0, false, false, true));
+        cc.owner.addEffect(new MobEffectInstance(CCStatusEffects.IRON_REPAIR_COOLDOWN.get(), (int)(ChestCavity.config.IRON_REPAIR_COOLDOWN/ironRepair), 0, false, false, true));
         itemStack.shrink(1);
 
     }
@@ -232,7 +230,7 @@ public class OrganActivationListeners {
         if(grazing <= 0){
             return;
         }
-        BlockPos blockPos = ((CCMixinThing) (Object) entity).getMixinBlockPos().below();
+        BlockPos blockPos = entity.getOnPos();//.below();
         boolean ateGrass = false;
         if (entity.level.getBlockState(blockPos).is(Blocks.GRASS_BLOCK)
         || entity.level.getBlockState(blockPos).is(Blocks.MYCELIUM)){
@@ -248,18 +246,18 @@ public class OrganActivationListeners {
         if(ateGrass){
             int duration;
             if(entity.hasEffect(CCStatusEffects.RUMINATING.get())){
-                EffectInstance ruminating = entity.getEffect(CCStatusEffects.RUMINATING.get());
+                MobEffectInstance ruminating = entity.getEffect(CCStatusEffects.RUMINATING.get());
                 duration = (int)Math.min(ChestCavity.config.RUMINATION_TIME*ChestCavity.config.RUMINATION_GRASS_PER_SQUARE*ChestCavity.config.RUMINATION_SQUARES_PER_STOMACH*grazing,
                         ruminating.getDuration()+(ChestCavity.config.RUMINATION_TIME*ChestCavity.config.RUMINATION_GRASS_PER_SQUARE));
             }
             else{
                 duration = ChestCavity.config.RUMINATION_TIME*ChestCavity.config.RUMINATION_GRASS_PER_SQUARE;
             }
-            entity.addEffect(new EffectInstance(CCStatusEffects.RUMINATING.get(), duration, 0, false, false, true));
+            entity.addEffect(new MobEffectInstance(CCStatusEffects.RUMINATING.get(), duration, 0, false, false, true));
         }
     }
 
-    public static void ActivatePyromancy(LivingEntity entity_, ChestCavityInstance cc){
+    public static void ActivatePyromancy(LivingEntity entity, ChestCavityInstance cc){
         //if(entity.world.isClient){
         //    return; //we are spawning entities, this is no place for a client
         //}
@@ -267,22 +265,8 @@ public class OrganActivationListeners {
         if(pyromancy < 1){
             return;
         }
-        if(!entity_.hasEffect(CCStatusEffects.PYROMANCY_COOLDOWN.get())){
-            CommonOrganUtil.queuePyromancyFireballs(entity_,cc,(int)pyromancy);
-            //if(entity_ instanceof PlayerEntity){
-            //    ((PlayerEntity)entity_).causeFoodExhaustion(pyromancy*.1f);
-            //}
-            //for(int i = 0; i < pyromancy;i++){
-            //    cc.projectileQueue.add(entity -> {
-            //        Vector3d entityFacing = entity.getLookAngle().normalize();
-            //        SmallFireballEntity smallFireballEntity = new SmallFireballEntity(entity.level, entity, entityFacing.x + entity.getRandom().nextGaussian() * .1, entityFacing.y, entityFacing.z + entity.getRandom().nextGaussian() * .1);
-            //        smallFireballEntity.absMoveTo(smallFireballEntity.getX(), entity.getY(0.5D) + 0.3D, smallFireballEntity.getZ());
-            //        entity.level.addFreshEntity(smallFireballEntity);
-            //        entityFacing = entityFacing.scale(-.2D);
-            //        entity.push(entityFacing.x,entityFacing.y,entityFacing.z);
-            //    });//OrganUtil::spawnPyromancyFireball);
-            //}
-            //entity_.addEffect(new EffectInstance(CCStatusEffects.PYROMANCY_COOLDOWN.get(), ChestCavity.config.PYROMANCY_COOLDOWN, 0, false, false, true));
+        if(!entity.hasEffect(CCStatusEffects.PYROMANCY_COOLDOWN.get())){
+            CommonOrganUtil.queuePyromancyFireballs(entity,cc,(int)pyromancy);
         }
     }
 
@@ -307,7 +291,7 @@ public class OrganActivationListeners {
             return;
         }
         if(CommonOrganUtil.spinWeb(entity,cc, cc.getOrganScore(CCOrganScores.SILK))) {
-            entity.addEffect(new EffectInstance(CCStatusEffects.SILK_COOLDOWN.get(),ChestCavity.config.SILK_COOLDOWN,0,false,false,true));
+            entity.addEffect(new MobEffectInstance(CCStatusEffects.SILK_COOLDOWN.get(),ChestCavity.config.SILK_COOLDOWN,0,false,false,true));
         }
     }
 }

@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.util;
 
-
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
 

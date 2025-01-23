@@ -1,17 +1,19 @@
 package net.tigereye.chestcavity.chestcavities.instance;
 
 
-
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.EnderCrystalEntity;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.IInventoryChangedListener;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerListener;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganOnHitContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import org.apache.logging.log4j.LogManager;
@@ -20,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class ChestCavityInstance implements IInventoryChangedListener {
+public class ChestCavityInstance implements ContainerListener {
 
     public static final Logger LOGGER = LogManager.getLogger();
 
@@ -43,7 +45,7 @@ public class ChestCavityInstance implements IInventoryChangedListener {
     public int projectileCooldown = 0;
     public int furnaceProgress = 0;
     public int photosynthesisProgress = 0;
-    public EnderCrystalEntity connectedCrystal = null; //In fabric its EndCrystalEntity, not EnderCrystalEntity
+    public EndCrystal connectedCrystal = null;
 
     //public FriendlyByteBuf updatePacket = null;
     public boolean updateInstantiated = false;
@@ -77,17 +79,17 @@ public class ChestCavityInstance implements IInventoryChangedListener {
     }
 
     @Override
-    public void containerChanged(IInventory sender) {
+    public void containerChanged(Container sender) {
         ChestCavityUtil.clearForbiddenSlots(this);
         ChestCavityUtil.evaluateChestCavity(this);
     }
 
-    public void fromTag(CompoundNBT tag, LivingEntity owner) {
+    public void fromTag(CompoundTag tag, LivingEntity owner) {
         LOGGER.debug("[Chest Cavity] Reading ChestCavityManager fromTag");
         this.owner = owner;
         if(tag.contains("ChestCavity")){
             ChestCavity.printOnDebug("Found Save Data");
-            CompoundNBT ccTag = tag.getCompound("ChestCavity");
+            CompoundTag ccTag = tag.getCompound("ChestCavity");
             this.opened = ccTag.getBoolean("opened");
             this.heartBleedTimer = ccTag.getInt("HeartTimer");
             this.bloodPoisonTimer = ccTag.getInt("KidneyTimer");
@@ -107,7 +109,7 @@ public class ChestCavityInstance implements IInventoryChangedListener {
             }
             catch(NullPointerException ignored){}
             if (ccTag.contains("Inventory")) {
-                ListNBT NbtList = ccTag.getList("Inventory", 10);
+                ListTag NbtList = ccTag.getList("Inventory", 10);
                 this.inventory.readTags(NbtList);
             }
             else if(opened){
@@ -117,13 +119,13 @@ public class ChestCavityInstance implements IInventoryChangedListener {
             inventory.addListener(this);
         }
         else if(tag.contains("cardinal_components")){
-            CompoundNBT temp = tag.getCompound("cardinal_components");
+            CompoundTag temp = tag.getCompound("cardinal_components");
             if(temp.contains("chestcavity:inventorycomponent")){
                 temp = tag.getCompound("chestcavity:inventorycomponent");
                 if(temp.contains("chestcavity")){
                     LOGGER.info("[Chest Cavity] Found "+owner.getName().getContents()+"'s old [Cardinal Components] Chest Cavity.");
                     opened = true;
-                    ListNBT NbtList = temp.getList("Inventory", 10);
+                    ListTag NbtList = temp.getList("Inventory", 10);
                     try {
                         inventory.removeListener(this);
                     }
@@ -136,9 +138,9 @@ public class ChestCavityInstance implements IInventoryChangedListener {
         ChestCavityUtil.evaluateChestCavity(this);
     }
 
-    public void toTag(CompoundNBT tag) {
+    public void toTag(CompoundTag tag) {
         ChestCavity.printOnDebug("Writing ChestCavityManager toTag");
-        CompoundNBT ccTag = new CompoundNBT();
+        CompoundTag ccTag = new CompoundTag();
         ccTag.putBoolean("opened", this.opened);
         ccTag.putUUID("compatibility_id", this.compatibility_id);
         ccTag.putInt("HeartTimer", this.heartBleedTimer);

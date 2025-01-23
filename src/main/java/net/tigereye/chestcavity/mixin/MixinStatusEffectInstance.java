@@ -1,12 +1,12 @@
 package net.tigereye.chestcavity.mixin;
 
 
-import net.minecraft.potion.EffectInstance;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.tigereye.chestcavity.interfaces.CCStatusEffectInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(EffectInstance.class)
+@Mixin(MobEffectInstance.class)
 public abstract class MixinStatusEffectInstance implements CCStatusEffectInstance {
 
 	@Shadow

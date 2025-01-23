@@ -1,24 +1,24 @@
 package net.tigereye.chestcavity.recipes;
 
 
-import net.minecraft.inventory.CraftingInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.SpecialRecipe;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CustomRecipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.registration.CCRecipes;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
-public class InfuseVenomGland extends SpecialRecipe {
+public class InfuseVenomGland extends CustomRecipe {
     public InfuseVenomGland(ResourceLocation id) {
         super(id);
     }
 
     @Override
-    public boolean matches(CraftingInventory craftingInventory, World world) {
+    public boolean matches(CraftingContainer craftingInventory, Level world) {
         boolean foundVenomGland = false;
         boolean foundPotion = false;
         for(int i = 0; i < craftingInventory.getWidth(); ++i) {
@@ -44,7 +44,7 @@ public class InfuseVenomGland extends SpecialRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInventory craftingInventory) {
+    public ItemStack assemble(CraftingContainer craftingInventory) {
         ItemStack venomGland = null;
         ItemStack potion = null;
         ItemStack output = null;
@@ -81,7 +81,7 @@ public class InfuseVenomGland extends SpecialRecipe {
     }
 
     @Override
-    public IRecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<?> getSerializer() {
         return CCRecipes.INFUSE_VENOM_GLAND.get();
     }
 }
