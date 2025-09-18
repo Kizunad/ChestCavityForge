@@ -1,10 +1,10 @@
 # NeoForge 1.21.1 Migration Notes
 
 ## Tooling & environment
-- Minecraft 1.21.1 ships with Java 21; NeoForge toolchains default to Java 21. Plan to update devShell (`flake.nix`) and Gradle toolchain to 21 once the NeoForge project is scaffolded.
-- Replace ForgeGradle (6.x) with NeoForge's Gradle plugin (`net.neoforged.gradle`) which expects Gradle 8+.
+- Minecraft 1.21.1 ships with Java 21; devShell now provisions Temurin 21 and exports it via `JAVA_HOME`.
+- Replace ForgeGradle (6.x) with NeoForge's Gradle plugin (`net.neoforged.moddev` 2.0.14-beta) running on Gradle 8.8.
 - NeoForge encourages the `moddev` plugin to manage runs and mappings; verify latest setup docs.
-- Update mappings to official 1.21.1 (via `official`/`mojang` channel provided by NeoForge).
+- Current mapping plan: official 1.21 + parchment `2024.11.10` for method names.
 - NeoForge uses `META-INF/neoforge.mods.toml`; dependency syntax may differ (`cloth_config` ID check required).
 
 ## Required libraries
@@ -44,6 +44,13 @@
 
 ## Optional integrations
 - Optional dependencies commented in `build.gradle` must be revisited: ensure updated mod IDs/versions exist for NeoForge 1.21.1 or mark as unsupported.
+
+## Current compile blockers
+- Numerous Forge imports no longer resolve (e.g., `net.minecraftforge.*`, `RegistryObject`, event bus classes); need systematic migration to `net.neoforged.*` packages.
+- Creative tab creation now uses the data-driven tab system; replace `CreativeModeTab` fields and `.tab(...)` item properties with NeoForge creative tab registration + content callbacks.
+- Text API updates remove `TextComponent`; migrate to `Component.literal` / `Component.translatable`.
+- Brewing/damage APIs renamed (`IndirectEntityDamageSource`, `PotionUtils`); review 1.21 replacements.
+- Networking scaffolding still references deprecated Forge `SimpleChannel`; rewrite to NeoForge payload system as planned above.
 
 ## Outstanding research questions
 - Confirm availability/versions of Cloth Config + AutoConfig for NeoForge 1.21.1.

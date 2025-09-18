@@ -3,7 +3,10 @@ run_server
 build
 .gradle
 .idea
-gradle
+gradle/*
+!gradle/wrapper
+!gradle/wrapper/**
+!gradle/wrapper/gradle-wrapper.properties
 logs
 versions
 old_build.txt
