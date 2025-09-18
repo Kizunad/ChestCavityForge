@@ -1,12 +1,10 @@
 package net.tigereye.chestcavity.registration;
 
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.core.registries.Registries;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.RegistryObject;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.mob_effect.CCStatusEffect;
 import net.tigereye.chestcavity.mob_effect.FurnacePower;
@@ -14,7 +12,7 @@ import net.tigereye.chestcavity.mob_effect.OrganRejection;
 import net.tigereye.chestcavity.mob_effect.Ruminating;
 
 public class CCStatusEffects {
-    public static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, ChestCavity.MODID);
+    public static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, ChestCavity.MODID);
 
     public static final RegistryObject<MobEffect> ORGAN_REJECTION = MOB_EFFECTS.register("organ_rejection", OrganRejection::new);
     public static final RegistryObject<MobEffect> ARROW_DODGE_COOLDOWN = MOB_EFFECTS.register("arrow_dodge_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));

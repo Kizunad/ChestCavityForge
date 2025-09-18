@@ -8,16 +8,15 @@ import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
+import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.network.NetworkHandler;
 import net.tigereye.chestcavity.registration.*;
-import net.tigereye.chestcavity.test.BlockEntityRegistry;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,8 +57,6 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		//Register mod resources
 		//AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		//config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
-		BlockEntityRegistry.registerBus(bus);
-
 		CCContainers.MENU_TYPES.register(bus);
 		CCItems.ITEMS.register(bus);
 		CCRecipes.RECIPE_SERIALIZERS.register(bus);

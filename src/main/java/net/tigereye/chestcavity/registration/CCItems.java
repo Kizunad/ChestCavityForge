@@ -1,19 +1,16 @@
 package net.tigereye.chestcavity.registration;
 
-import net.minecraft.core.Registry;
-
 import net.minecraft.world.food.Foods;
 import net.minecraft.world.item.*;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.RegistryObject;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.items.CreeperAppendix;
 import net.tigereye.chestcavity.items.VenomGland;
 
 public class CCItems {
-	public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ChestCavity.MODID);
+	public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ChestCavity.MODID);
 
 
 	public static final Item.Properties CHEST_OPENER_PROPERTIES = new Item.Properties().stacksTo(1).tab(CreativeModeTab.TAB_TOOLS);
