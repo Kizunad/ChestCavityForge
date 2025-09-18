@@ -6,14 +6,13 @@ import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.network.NetworkHandler;
 import net.tigereye.chestcavity.registration.*;
@@ -37,12 +36,6 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 	public static final Logger LOGGER = LogManager.getLogger();
 	public static CCConfig config;
 	public static final ResourceLocation COMPATIBILITY_TAG = new ResourceLocation(MODID,"organ_compatibility");
-	public static final CreativeModeTab ORGAN_ITEM_GROUP = new CreativeModeTab("chestcavity.organs") {
-		@Override
-		public ItemStack makeIcon() {
-			return new ItemStack(CCItems.HUMAN_STOMACH.get());
-		}
-	};
 
 
 	public ChestCavity() {
@@ -57,12 +50,14 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		//Register mod resources
 		//AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		//config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
+		CCCreativeTabs.TABS.register(bus);
 		CCContainers.MENU_TYPES.register(bus);
 		CCItems.ITEMS.register(bus);
 		CCRecipes.RECIPE_SERIALIZERS.register(bus);
 		CCEnchantments.ENCHANTMENTS.register(bus);
 		CCListeners.register();
 		CCStatusEffects.MOB_EFFECTS.register(bus);
+		bus.addListener(CCKeybindings::register);
 		CCTagOrgans.init();
 		//CCCommands.register();
 		//CCNetworkingPackets.register();
