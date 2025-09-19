@@ -3,7 +3,7 @@ package net.tigereye.chestcavity.registration;
 import net.minecraft.world.food.Foods;
 import net.minecraft.world.item.*;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import net.neoforged.neoforge.registries.deferred.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredItem;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.items.CreeperAppendix;
@@ -17,12 +17,12 @@ public class CCItems {
 	public static final Item.Properties FOOD_ITEM_PROPERTIES = new Item.Properties().stacksTo(64);
 
 	public static final DeferredItem<Item> CHEST_OPENER = ITEMS.register("chest_opener", ChestOpener::new);
-	public static final DeferredItem<Item> WOODEN_CLEAVER = ITEMS.register("wooden_cleaver", () -> new SwordItem(Tiers.WOOD,6,-3.2f,new Item.Properties()));
-	public static final DeferredItem<Item> GOLD_CLEAVER = ITEMS.register("gold_cleaver", () -> new SwordItem(Tiers.GOLD,6,-3.0f,new Item.Properties()));
-	public static final DeferredItem<Item> STONE_CLEAVER = ITEMS.register("stone_cleaver", () -> new SwordItem(Tiers.STONE,7,-3.2f,new Item.Properties()));
-	public static final DeferredItem<Item> IRON_CLEAVER = ITEMS.register("iron_cleaver", () -> new SwordItem(Tiers.IRON,6,-3.1f,new Item.Properties()));
-	public static final DeferredItem<Item> DIAMOND_CLEAVER = ITEMS.register("diamond_cleaver", () -> new SwordItem(Tiers.DIAMOND,5,-3.0f,new Item.Properties()));
-	public static final DeferredItem<Item> NETHERITE_CLEAVER = ITEMS.register("netherite_cleaver", () -> new SwordItem(Tiers.NETHERITE,5,-3.0f,new Item.Properties().fireResistant()));
+	public static final DeferredItem<Item> WOODEN_CLEAVER = ITEMS.register("wooden_cleaver", () -> new SwordItem(Tiers.WOOD, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.WOOD, 6.0F, -3.2F))));
+	public static final DeferredItem<Item> GOLD_CLEAVER = ITEMS.register("gold_cleaver", () -> new SwordItem(Tiers.GOLD, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.GOLD, 6.0F, -3.0F))));
+	public static final DeferredItem<Item> STONE_CLEAVER = ITEMS.register("stone_cleaver", () -> new SwordItem(Tiers.STONE, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.STONE, 7.0F, -3.2F))));
+	public static final DeferredItem<Item> IRON_CLEAVER = ITEMS.register("iron_cleaver", () -> new SwordItem(Tiers.IRON, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.IRON, 6.0F, -3.1F))));
+	public static final DeferredItem<Item> DIAMOND_CLEAVER = ITEMS.register("diamond_cleaver", () -> new SwordItem(Tiers.DIAMOND, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.DIAMOND, 5.0F, -3.0F))));
+	public static final DeferredItem<Item> NETHERITE_CLEAVER = ITEMS.register("netherite_cleaver", () -> new SwordItem(Tiers.NETHERITE, new Item.Properties().fireResistant().attributes(SwordItem.createAttributes(Tiers.NETHERITE, 5.0F, -3.0F))));
 
 	public static final DeferredItem<Item> HUMAN_APPENDIX = ITEMS.register("appendix", () -> new Item(new Item.Properties().stacksTo(1).food(CCFoodComponents.RAW_HUMAN_ORGAN_MEAT_FOOD_COMPONENT)));
 	public static final DeferredItem<Item> HUMAN_HEART = ITEMS.register("heart", () -> new Item(new Item.Properties().stacksTo(1).food(CCFoodComponents.RAW_HUMAN_ORGAN_MEAT_FOOD_COMPONENT)));

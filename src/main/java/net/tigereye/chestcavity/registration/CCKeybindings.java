@@ -14,12 +14,12 @@ public class CCKeybindings {
 
     private static String ORGAN_ABILITY_KEY_CATEGORY = "organ_abilities";
     public static KeyMapping UTILITY_ABILITIES;
-    public static ResourceLocation UTILITY_ABILITIES_ID = new ResourceLocation(ChestCavity.MODID,"utility_abilities");
+    public static ResourceLocation UTILITY_ABILITIES_ID = ChestCavity.id("utility_abilities");
 
     public static List<ResourceLocation> UTILITY_ABILITY_LIST = new ArrayList<>();
     public static KeyMapping ATTACK_ABILITIES;
 
-    public static ResourceLocation ATTACK_ABILITIES_ID = new ResourceLocation(ChestCavity.MODID,"attack_abilities");
+    public static ResourceLocation ATTACK_ABILITIES_ID = ChestCavity.id("attack_abilities");
     public static List<ResourceLocation> ATTACK_ABILITY_LIST = new ArrayList<>();
 
     public static KeyMapping CREEPY;

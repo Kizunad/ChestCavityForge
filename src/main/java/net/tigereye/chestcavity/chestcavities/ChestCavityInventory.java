@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.chestcavities;
 
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.SimpleContainer;
@@ -35,12 +36,12 @@ public class ChestCavityInventory extends SimpleContainer {
 
     public void readTags(ListTag tags) {
         clearContent();
+        HolderLookup.Provider lookup = instance != null && instance.owner != null ? instance.owner.level().registryAccess() : null;
         for(int j = 0; j < tags.size(); ++j) {
-            CompoundTag NbtCompound = tags.getCompound(j);
-            int k = NbtCompound.getByte("Slot") & 255;
-            boolean f = NbtCompound.getBoolean("Forbidden");
-            if (k >= 0 && k < this.getContainerSize()) {
-                this.setItem(k, ItemStack.of(NbtCompound));
+            CompoundTag tag = tags.getCompound(j);
+            int slot = tag.getByte("Slot") & 255;
+            if (slot >= 0 && slot < this.getContainerSize() && lookup != null) {
+                this.setItem(slot, ItemStack.parseOptional(lookup, tag));
             }
         }
 
@@ -49,13 +50,14 @@ public class ChestCavityInventory extends SimpleContainer {
     public ListTag getTags() {
         ListTag list = new ListTag();
 
+        HolderLookup.Provider lookup = instance != null && instance.owner != null ? instance.owner.level().registryAccess() : null;
         for(int i = 0; i < this.getContainerSize(); ++i) {
             ItemStack itemStack = this.getItem(i);
-            if (!itemStack.isEmpty()) {
-                CompoundTag NbtCompound = new CompoundTag();
-                NbtCompound.putByte("Slot", (byte)i);
-                itemStack.save(NbtCompound);
-                list.add(NbtCompound);
+            if (!itemStack.isEmpty() && lookup != null) {
+                CompoundTag tag = new CompoundTag();
+                tag.putByte("Slot", (byte)i);
+                itemStack.save(lookup, tag);
+                list.add(tag);
             }
         }
 

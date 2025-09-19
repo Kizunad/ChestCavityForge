@@ -1,11 +1,13 @@
 package net.tigereye.chestcavity.chestcavities.types;
 
-
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.component.CustomData;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
@@ -137,7 +139,7 @@ public class GeneratedChestCavityType implements ChestCavityType {
     }
 
     @Override
-    public List<ItemStack> generateLootDrops(Random random, int looting) {
+    public List<ItemStack> generateLootDrops(RandomSource random, int looting) {
         List<ItemStack> loot = new ArrayList<>();
         if(playerChestCavity){
             return loot;
@@ -151,13 +153,13 @@ public class GeneratedChestCavityType implements ChestCavityType {
         }
         return loot;
     }
-    public void generateRareOrganDrops(Random random, int looting, List<ItemStack> loot){
+    public void generateRareOrganDrops(RandomSource random, int looting, List<ItemStack> loot){
         LinkedList<ItemStack> organPile = new LinkedList<>(getDroppableOrgans());
         int rolls = 1 + random.nextInt(3) + random.nextInt(3);
         ChestCavityUtil.drawOrgansFromPile(organPile,rolls,random,loot);
 
     }
-    public void generateGuaranteedOrganDrops(Random random, int looting, List<ItemStack> loot){
+    public void generateGuaranteedOrganDrops(RandomSource random, int looting, List<ItemStack> loot){
         LinkedList<ItemStack> organPile = new LinkedList<>(getDroppableOrgans());
         int rolls = 3 + random.nextInt(2+looting) + random.nextInt(2+looting);
         ChestCavityUtil.drawOrgansFromPile(organPile,rolls,random,loot);
@@ -169,16 +171,18 @@ public class GeneratedChestCavityType implements ChestCavityType {
         //first, make all organs personal
         for(int i = 0; i < chestCavity.getContainerSize();i++){
             ItemStack itemStack = chestCavity.getItem(i);
-            if(itemStack != null && itemStack != itemStack.EMPTY){
-                CompoundTag tag = new CompoundTag();
-                tag.putUUID("owner",instance.compatibility_id);
-                tag.putString("name",instance.owner.getDisplayName().getString());
-                itemStack.addTagElement(ChestCavity.COMPATIBILITY_TAG.toString(),tag);
+            if(itemStack != null && !itemStack.isEmpty()){
+                CustomData.update(DataComponents.CUSTOM_DATA, itemStack, tag -> {
+                    CompoundTag compatibility = tag.getCompound(ChestCavity.COMPATIBILITY_TAG.toString());
+                    compatibility.putUUID("owner",instance.compatibility_id);
+                    compatibility.putString("name",instance.owner.getDisplayName().getString());
+                    tag.put(ChestCavity.COMPATIBILITY_TAG.toString(), compatibility);
+                });
             }
         }
         if(!playerChestCavity) {
             int universalOrgans = 0;
-            Random random = instance.owner.getRandom();
+            RandomSource random = instance.owner.getRandom();
             if (bossChestCavity){
                 universalOrgans = 3+random.nextInt(2)+random.nextInt(2);
             }
@@ -189,8 +193,8 @@ public class GeneratedChestCavityType implements ChestCavityType {
             while(universalOrgans > 0){
                 int i = random.nextInt(chestCavity.getContainerSize());
                 ItemStack itemStack = chestCavity.getItem(i);
-                if(itemStack != null && itemStack != ItemStack.EMPTY && OrganManager.isTrueOrgan(itemStack.getItem())){
-                    itemStack.removeTagKey(ChestCavity.COMPATIBILITY_TAG.toString());
+                if(itemStack != null && !itemStack.isEmpty() && OrganManager.isTrueOrgan(itemStack.getItem())){
+                    CustomData.update(DataComponents.CUSTOM_DATA, itemStack, tag -> tag.remove(ChestCavity.COMPATIBILITY_TAG.toString()));
                 }
                 universalOrgans--;
             }

@@ -1,10 +1,9 @@
 package net.tigereye.chestcavity.chestcavities.instance;
 
-import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
 import net.tigereye.chestcavity.chestcavities.types.DefaultChestCavityType;
 import net.tigereye.chestcavity.chestcavities.types.json.GeneratedChestCavityAssignmentManager;
@@ -18,22 +17,36 @@ public class ChestCavityInstanceFactory {
     private static final Map<ResourceLocation, ChestCavityType> entityResourceLocationMap = new HashMap<>();
     private static final ChestCavityType DEFAULT_CHEST_CAVITY_TYPE = new DefaultChestCavityType();
 
+    public static ChestCavityInstance newChestCavityInstance(LivingEntity owner) {
+        return new ChestCavityInstance(resolveChestCavityType(owner), owner);
+    }
+
     public static ChestCavityInstance newChestCavityInstance(EntityType<? extends LivingEntity> entityType, LivingEntity owner){
-        ResourceLocation entityID = ForgeRegistries.ENTITIES.getKey(entityType);
+        return new ChestCavityInstance(resolveChestCavityType(entityType), owner);
+    }
+
+    public static ChestCavityType resolveChestCavityType(LivingEntity owner) {
+        @SuppressWarnings("unchecked")
+        EntityType<? extends LivingEntity> type = (EntityType<? extends LivingEntity>) owner.getType();
+        return resolveChestCavityType(type);
+    }
+
+    public static ChestCavityType resolveChestCavityType(EntityType<? extends LivingEntity> entityType) {
+        ResourceLocation entityID = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
         if(GeneratedChestCavityAssignmentManager.GeneratedChestCavityAssignments.containsKey(entityID)){
             ResourceLocation chestCavityTypeID = GeneratedChestCavityAssignmentManager.GeneratedChestCavityAssignments.get(entityID);
             if(GeneratedChestCavityTypeManager.GeneratedChestCavityTypes.containsKey(chestCavityTypeID)){
-                return new ChestCavityInstance(GeneratedChestCavityTypeManager.GeneratedChestCavityTypes.get(chestCavityTypeID),owner);
+                return GeneratedChestCavityTypeManager.GeneratedChestCavityTypes.get(chestCavityTypeID);
             }
         }
         if(entityResourceLocationMap.containsKey(entityID)){
-            return new ChestCavityInstance(entityResourceLocationMap.get(ForgeRegistries.ENTITIES.getKey(entityType)),owner);
+            return entityResourceLocationMap.get(entityID);
         }
-        return new ChestCavityInstance(DEFAULT_CHEST_CAVITY_TYPE,owner);
+        return DEFAULT_CHEST_CAVITY_TYPE;
     }
 
     public static void register(EntityType<? extends LivingEntity> entityType,ChestCavityType chestCavityType){
-        entityResourceLocationMap.put(ForgeRegistries.ENTITIES.getKey(entityType),chestCavityType);
+        entityResourceLocationMap.put(BuiltInRegistries.ENTITY_TYPE.getKey(entityType),chestCavityType);
     }
     public static void register(ResourceLocation entityResourceLocation, ChestCavityType chestCavityType){
         entityResourceLocationMap.put(entityResourceLocation,chestCavityType);

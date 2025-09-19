@@ -1,32 +1,30 @@
 package net.tigereye.chestcavity.items;
 
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.ui.ChestCavityScreenHandler;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public class ChestOpener extends Item {
 	
@@ -44,6 +42,13 @@ public class ChestOpener extends Item {
 		}
 	}
 
+	@Override
+	public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
+		return openChestCavity(player, target, true)
+				? InteractionResult.sidedSuccess(player.level().isClientSide())
+				: InteractionResult.PASS;
+	}
+
 	public boolean openChestCavity(Player player, LivingEntity target){
 		return openChestCavity(player,target,true);
 	}
@@ -56,7 +61,7 @@ public class ChestOpener extends Item {
 			ChestCavityInstance cc = chestCavityEntity.getChestCavityInstance();
 			if(target == player || cc.getChestCavityType().isOpenable(cc)) {
 				if (cc.getOrganScore(CCOrganScores.EASE_OF_ACCESS) > 0) {
-					if(player.level.isClientSide) {
+					if(player.level().isClientSide) {
 						player.playNotifySound(SoundEvents.CHEST_OPEN, SoundSource.PLAYERS, .75f, 1);
 					}
 				}
@@ -68,27 +73,21 @@ public class ChestOpener extends Item {
 					}
 				}
 				if (target.isAlive()) {
-					String name;
-					try {
-						name = target.getDisplayName().getString();
-						name = name.concat("'s ");
-					} catch (Exception e) {
-						name = "";
-					}
 					ChestCavityInventory inv = ChestCavityUtil.openChestCavity(cc);
-					((ChestCavityEntity)player).getChestCavityInstance().ccBeingOpened = cc;
-					player.openMenu(new SimpleMenuProvider((i, playerInventory, playerEntity) -> new ChestCavityScreenHandler(i, playerInventory, inv), new TranslatableComponent(name + "Chest Cavity")));
+					ChestCavityInstance playerCC = CCAttachments.getChestCavity(player);
+					playerCC.ccBeingOpened = cc;
+                    player.openMenu(new SimpleMenuProvider((i, playerInventory, playerEntity) -> new ChestCavityScreenHandler(i, playerInventory, inv), Component.translatable("gui.chestcavity.chest_cavity", target.getDisplayName())));
 				}
 				return true;
 			}
 			else{
-				if(player.level.isClientSide) {
-					if (!target.getItemBySlot(EquipmentSlot.CHEST).isEmpty()) {
-						player.sendMessage(new TextComponent("Target's chest is obstructed"), new UUID(100, 0));
+					if(player.level().isClientSide) {
+						if (!target.getItemBySlot(EquipmentSlot.CHEST).isEmpty()) {
+                        player.displayClientMessage(Component.translatable("message.chestcavity.chest_opener.obstructed"), true);
 						player.playNotifySound(SoundEvents.CHAIN_HIT, SoundSource.PLAYERS, .75f, 1);
 					} else {
-						player.sendMessage(new TextComponent("Target is too healthy to open"),new UUID(100, 0));
-						player.playNotifySound(SoundEvents.ARMOR_EQUIP_TURTLE, SoundSource.PLAYERS, .75f, 1);
+                        player.displayClientMessage(Component.translatable("message.chestcavity.chest_opener.healthy"), true);
+						player.playNotifySound(SoundEvents.ARMOR_EQUIP_TURTLE.value(), SoundSource.PLAYERS, .75f, 1);
 					}
 				}
 			}

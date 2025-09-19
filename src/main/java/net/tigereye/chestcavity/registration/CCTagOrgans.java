@@ -16,7 +16,7 @@ public class CCTagOrgans {
 
     public static void init(){
         Map<ResourceLocation,Float> ease_of_access = new HashMap<>();
-        ease_of_access.put(CCOrganScores.EASE_OF_ACCESS,1f* Items.OAK_DOOR.getMaxStackSize());
+        ease_of_access.put(CCOrganScores.EASE_OF_ACCESS, 1f * Items.OAK_DOOR.getDefaultMaxStackSize());
         tagMap.put(ItemTags.DOORS,ease_of_access);
         tagMap.put(ItemTags.TRAPDOORS,ease_of_access);
     }

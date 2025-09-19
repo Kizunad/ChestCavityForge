@@ -7,4 +7,5 @@ public class SalvageRecipeJsonFormat {
     int required;
     String result;
     int count;
+    String category;
 }

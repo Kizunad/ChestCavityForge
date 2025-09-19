@@ -1,24 +1,41 @@
 package net.tigereye.chestcavity.network;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPacket;
-import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePacket;
-import net.tigereye.chestcavity.network.packets.OrganDataPacket;
+import net.tigereye.chestcavity.chestcavities.organs.OrganData;
+import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
+import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePayload;
+import net.tigereye.chestcavity.network.packets.OrganDataPayload;
 
 public final class NetworkHandler {
 
-    private static final String VERSION = "2.16.4";
+    private NetworkHandler() {}
 
-    public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(ChestCavity.MODID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
+    public static void registerCommon(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar("1");
+        registrar.playToServer(ChestCavityHotkeyPayload.TYPE, ChestCavityHotkeyPayload.STREAM_CODEC, ChestCavityHotkeyPayload::handle);
+        registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
+        registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
+    }
 
-    public static void init() {
-        int index = 0;
-        CHANNEL.messageBuilder(ChestCavityUpdatePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT).encoder(ChestCavityUpdatePacket::encode).decoder(ChestCavityUpdatePacket::decode).consumer(ChestCavityUpdatePacket::handle).add();
-        CHANNEL.messageBuilder(OrganDataPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT).encoder(OrganDataPacket::encode).decoder(OrganDataPacket::decode).consumer(OrganDataPacket::handle).add();
-        CHANNEL.messageBuilder(ChestCavityHotkeyPacket.class, index++, NetworkDirection.PLAY_TO_SERVER).encoder(ChestCavityHotkeyPacket::encode).decoder(ChestCavityHotkeyPacket::new).consumer(ChestCavityHotkeyPacket::handle).add();
+
+    public static void sendChestCavityUpdate(ServerPlayer player, ChestCavityUpdatePayload payload) {
+        player.connection.send(payload);
+    }
+
+    public static void sendOrganData(ServerPlayer player) {
+        List<OrganDataPayload.Entry> entries = new ArrayList<>();
+        for (Map.Entry<ResourceLocation, OrganData> entry : OrganManager.GeneratedOrganData.entrySet()) {
+            entries.add(new OrganDataPayload.Entry(entry.getKey(), entry.getValue().pseudoOrgan, entry.getValue().organScores));
+        }
+        player.connection.send(new OrganDataPayload(entries));
     }
 }

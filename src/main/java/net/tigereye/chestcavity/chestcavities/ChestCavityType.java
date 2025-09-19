@@ -2,12 +2,12 @@ package net.tigereye.chestcavity.chestcavities;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.RandomSource;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public interface ChestCavityType {
 
@@ -20,7 +20,7 @@ public interface ChestCavityType {
     public void loadBaseOrganScores(Map<ResourceLocation, Float> organScores);
     public OrganData catchExceptionalOrgan(ItemStack slot);
 
-    public List<ItemStack> generateLootDrops(Random random, int looting);
+    public List<ItemStack> generateLootDrops(RandomSource random, int looting);
 
     public void setOrganCompatibility(ChestCavityInstance instance);
     public float getHeartBleedCap();

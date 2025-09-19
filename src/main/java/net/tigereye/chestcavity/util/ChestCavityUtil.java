@@ -2,22 +2,27 @@ package net.tigereye.chestcavity.util;
 
 
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.IndirectEntityDamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ThrownPotion;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.ChestCavity;
@@ -28,6 +33,7 @@ import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.*;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.tigereye.chestcavity.registration.*;
 
 import java.util.*;
@@ -87,7 +93,7 @@ public class ChestCavityUtil {
         if (airResult <= -20) {
             airResult = 0;
             cc.lungRemainder = 0;
-            cc.owner.hurt(DamageSource.DROWN, 2.0F);
+            cc.owner.hurt(cc.owner.level().damageSources().drown(), 2.0F);
         }
         return airResult;
     }
@@ -127,7 +133,7 @@ public class ChestCavityUtil {
         //its also possible to not have enough breath to keep up with airLoss
         if (airLoss > 0) {
             //first, check if resperation cancels the sequence.
-            int resperation = EnchantmentHelper.getRespiration(cc.owner);
+            int resperation = getRespirationLevel(cc.owner);
             if (cc.owner.getRandom().nextInt(resperation + 1) != 0) {
                 airLoss = 0;
             }
@@ -152,7 +158,7 @@ public class ChestCavityUtil {
         if (airResult <= -20) {
             airResult = 0;
             cc.lungRemainder = 0;
-            cc.owner.hurt(DamageSource.DROWN, 2.0F);
+            cc.owner.hurt(cc.owner.level().damageSources().drown(), 2.0F);
         }
         return airResult;
     }
@@ -164,16 +170,16 @@ public class ChestCavityUtil {
         if(attemptArrowDodging(cc,source)){
             return 0;
         }
-        if(!source.isBypassArmor()) {
+        if(!source.is(DamageTypeTags.BYPASSES_ARMOR)) {
             damage = applyBoneDefense(cc,damage);
         }
-        if(source == DamageSource.FALL){
+        if(source == cc.owner.level().damageSources().fall()){
             damage = applyLeapingToFallDamage(cc,damage);
         }
-        if(source == DamageSource.FALL || source == DamageSource.FLY_INTO_WALL){
+        if(source == cc.owner.level().damageSources().fall() || source == cc.owner.level().damageSources().flyIntoWall()){
             damage = applyImpactResistant(cc,damage);
         }
-        if(source.isFire()){
+        if(source.is(DamageTypeTags.IS_FIRE)){
             damage = applyFireResistant(cc,damage);
         }
         return damage;
@@ -281,16 +287,16 @@ public class ChestCavityUtil {
         if(dodge == 0){
             return false;
         }
-        if(cc.owner.hasEffect(CCStatusEffects.ARROW_DODGE_COOLDOWN.get())){
+        if(cc.owner.hasEffect(CCStatusEffects.ARROW_DODGE_COOLDOWN)){
             return false;
         }
-        if (!(source instanceof IndirectEntityDamageSource)) {
+        if (!source.is(DamageTypeTags.IS_PROJECTILE)) {
             return false;
         }
         if(!CommonOrganUtil.teleportRandomly(cc.owner,ChestCavity.config.ARROW_DODGE_DISTANCE/dodge)){
             return false;
         }
-        cc.owner.addEffect(new MobEffectInstance(CCStatusEffects.ARROW_DODGE_COOLDOWN.get(), (int) (ChestCavity.config.ARROW_DODGE_COOLDOWN/dodge), 0, false, false, true));
+        cc.owner.addEffect(new MobEffectInstance(CCStatusEffects.ARROW_DODGE_COOLDOWN, (int) (ChestCavity.config.ARROW_DODGE_COOLDOWN/dodge), 0, false, false, true));
         return true;
     }
 
@@ -347,7 +353,7 @@ public class ChestCavityUtil {
         return true;
     }
 
-    public static void drawOrgansFromPile(List<ItemStack> organPile, int rolls, Random random, List<ItemStack> loot){
+    public static void drawOrgansFromPile(List<ItemStack> organPile, int rolls, RandomSource random, List<ItemStack> loot){
         for (int i = 0; i < rolls; i++) {
             if(organPile.isEmpty()){
                 break;
@@ -421,7 +427,7 @@ public class ChestCavityUtil {
 
     public static void forcefullyAddStack(ChestCavityInstance cc, ItemStack stack, int slot){
         if(!cc.inventory.canAddItem(stack)) {
-            if (cc.owner.getLevel().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && cc.owner instanceof Player) {
+            if (cc.owner.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && cc.owner instanceof Player) {
                 if (!((Player) cc.owner).getInventory().add(stack)) {
                     cc.owner.spawnAtLocation(cc.inventory.removeItemNoUpdate(slot));
                 }
@@ -434,22 +440,43 @@ public class ChestCavityUtil {
 
     public static void generateChestCavityIfOpened(ChestCavityInstance cc){
         if(cc.opened) {
-            cc.inventory.readTags(cc.getChestCavityType().getDefaultChestCavity().getTags());
+            ChestCavityInventory defaults = cc.getChestCavityType().getDefaultChestCavity();
+            cc.inventory.clearContent();
+            for (int i = 0; i < defaults.getContainerSize(); i++) {
+                ItemStack item = defaults.getItem(i);
+                if (!item.isEmpty()) {
+                    cc.inventory.setItem(i, item.copy());
+                }
+            }
             cc.getChestCavityType().setOrganCompatibility(cc);
         }
     }
 
+    private static int getEnchantmentLevelSafe(net.minecraft.world.level.Level level, ItemStack stack, DeferredHolder<Enchantment, Enchantment> enchantment) {
+        if (stack == null || stack.isEmpty()) {
+            return 0;
+        }
+        return CCEnchantments.resolveHolder(level.registryAccess(), enchantment)
+                .map(stack::getEnchantmentLevel)
+                .orElseGet(() -> {
+                    if (enchantment.isBound()) {
+                        return stack.getEnchantmentLevel(enchantment);
+                    }
+                    return 0;
+                });
+    }
+
     public static int getCompatibilityLevel(ChestCavityInstance cc, ItemStack itemStack){
         if(itemStack != null && itemStack != ItemStack.EMPTY) {
-            if(EnchantmentHelper.getItemEnchantmentLevel(CCEnchantments.MALPRACTICE.get(),itemStack)>0){
+            if(getEnchantmentLevelSafe(cc.owner.level(), itemStack, CCEnchantments.MALPRACTICE) > 0){
                 return 0;
             }
-            int oNegative = EnchantmentHelper.getItemEnchantmentLevel(CCEnchantments.O_NEGATIVE.get(),itemStack);
+            int oNegative = getEnchantmentLevelSafe(cc.owner.level(), itemStack, CCEnchantments.O_NEGATIVE);
             int ownership = 0;
-            CompoundTag tag = itemStack.getTag();
-            if (tag != null && tag.contains(ChestCavity.COMPATIBILITY_TAG.toString())) {
-                tag = tag.getCompound(ChestCavity.COMPATIBILITY_TAG.toString());
-                if (tag.getUUID("owner").equals(cc.compatibility_id)) {
+            CompoundTag tag = itemStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            if (!tag.isEmpty() && tag.contains(ChestCavity.COMPATIBILITY_TAG.toString())) {
+                CompoundTag compatibility = tag.getCompound(ChestCavity.COMPATIBILITY_TAG.toString());
+                if (compatibility.contains("owner") && compatibility.getUUID("owner").equals(cc.compatibility_id)) {
                     ownership = 2;
                 }
             } else {
@@ -519,7 +546,7 @@ public class ChestCavityUtil {
                 Map<Integer,ItemStack> organsToKeep = new HashMap<>();
                 for (int i = 0; i < ccinstance.inventory.getContainerSize(); i++) {
                     ItemStack organ = ccinstance.inventory.getItem(i);
-                    if(EnchantmentHelper.getItemEnchantmentLevel(CCEnchantments.O_NEGATIVE.get(),organ) >= 2){
+                    if(getEnchantmentLevelSafe(ccinstance.owner.level(), organ, CCEnchantments.O_NEGATIVE) >= 2){
                         organsToKeep.put(i,organ.copy());
                     }
                 }
@@ -558,6 +585,7 @@ public class ChestCavityUtil {
     }
 
     public static ChestCavityInventory openChestCavity(ChestCavityInstance cc){
+        cc.refreshType();
         if(!cc.opened) {
             try {
                 cc.inventory.removeListener(cc);
@@ -598,7 +626,7 @@ public class ChestCavityUtil {
 
     public static void splashHydrophobicWithWater(ThrownPotion splash){
         AABB box = splash.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
-        List<LivingEntity> list = splash.level.getEntitiesOfClass(LivingEntity.class, box, ChestCavityUtil::isHydroPhobicOrAllergic);
+        List<LivingEntity> list = splash.level().getEntitiesOfClass(LivingEntity.class, box, ChestCavityUtil::isHydroPhobicOrAllergic);
         if (!list.isEmpty()) {
             for(LivingEntity livingEntity:list) {
                 double d = splash.distanceToSqr(livingEntity);
@@ -609,7 +637,8 @@ public class ChestCavityUtil {
                         float allergy = cc.getOrganScore(CCOrganScores.HYDROALLERGENIC);
                         float phobia = cc.getOrganScore(CCOrganScores.HYDROPHOBIA);
                         if (allergy > 0) {
-                            livingEntity.hurt(DamageSource.indirectMagic(livingEntity, splash.getOwner()), allergy/26);
+                            Entity causing = splash.getOwner() != null ? splash.getOwner() : splash;
+                            livingEntity.hurt(splash.level().damageSources().indirectMagic(causing, splash), allergy / 26);
                         }
                         if (phobia > 0) {
                             CommonOrganUtil.teleportRandomly(livingEntity,phobia*32);
@@ -618,5 +647,15 @@ public class ChestCavityUtil {
                 }
             }
         }
+    }
+
+    private static int getRespirationLevel(LivingEntity entity) {
+        var lookup = entity.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var respiration = lookup.getOrThrow(Enchantments.RESPIRATION);
+        int level = 0;
+        for (ItemStack stack : entity.getArmorSlots()) {
+            level = Math.max(level, stack.getEnchantmentLevel(respiration));
+        }
+        return level;
     }
 }

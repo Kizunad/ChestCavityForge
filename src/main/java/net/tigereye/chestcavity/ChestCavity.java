@@ -4,19 +4,26 @@ package net.tigereye.chestcavity;
 //import com.github.alexthe666.alexsmobs.AlexsMobs;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
-import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
-import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.tigereye.chestcavity.config.CCConfig;
+import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.chestcavities.types.json.GeneratedChestCavityAssignmentManager;
+import net.tigereye.chestcavity.chestcavities.types.json.GeneratedChestCavityTypeManager;
 import net.tigereye.chestcavity.network.NetworkHandler;
+import net.tigereye.chestcavity.network.ServerEvents;
 import net.tigereye.chestcavity.registration.*;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
+import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,15 +42,29 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
     private static final boolean DEBUG_MODE = false; //Make SURE that this is false when building
 	public static final Logger LOGGER = LogManager.getLogger();
 	public static CCConfig config;
-	public static final ResourceLocation COMPATIBILITY_TAG = new ResourceLocation(MODID,"organ_compatibility");
+	public static final ResourceLocation COMPATIBILITY_TAG = id("organ_compatibility");
+
+	public static ResourceLocation id(String path) {
+		return ResourceLocation.fromNamespaceAndPath(MODID, path);
+	}
 
 
-	public ChestCavity() {
+	public ChestCavity(IEventBus modEventBus) {
 		//AlexsMobs
-		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+		IEventBus bus = modEventBus;
 		bus.addListener(this::setup);
 		bus.addListener(this::doClientStuff);
+		bus.addListener(this::registerMenuScreens);
 		bus.addListener(this::doServerStuff);
+		bus.addListener(NetworkHandler::registerCommon);
+		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
+		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerRespawn);
+		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
+		NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
+		NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
+		if (FMLEnvironment.dist.isClient()) {
+			NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
+		}
 
 		AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
@@ -51,9 +72,11 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		//AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		//config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
 		CCCreativeTabs.TABS.register(bus);
+		CCAttachments.ATTACHMENT_TYPES.register(bus);
 		CCContainers.MENU_TYPES.register(bus);
 		CCItems.ITEMS.register(bus);
 		CCRecipes.RECIPE_SERIALIZERS.register(bus);
+		CCRecipes.RECIPE_TYPES.register(bus);
 		CCEnchantments.ENCHANTMENTS.register(bus);
 		CCListeners.register();
 		CCStatusEffects.MOB_EFFECTS.register(bus);
@@ -68,12 +91,13 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 
 	}
 	public void setup(FMLCommonSetupEvent event) {
-		NetworkHandler.init();
 	}
 
 	public void doClientStuff(FMLClientSetupEvent event) {
-		MenuScreens.register(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), ChestCavityScreen::new);
-		CCKeybindings.init();
+	}
+
+	private void registerMenuScreens(RegisterMenuScreensEvent event) {
+		event.register(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), ChestCavityScreen::new);
 	}
 
 	public void doServerStuff(FMLDedicatedServerSetupEvent event) {
@@ -85,6 +109,12 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		//    Optional<ChestCavityEntity> optional = ChestCavityEntity.of(player);
 		//    optional.ifPresent(chestCavityEntity -> NetworkUtil.ReadChestCavityHotkeyPacket(chestCavityEntity.getChestCavityInstance(),buf));
 		//});
+	}
+
+	private void registerReloadListeners(AddReloadListenerEvent event) {
+		event.addListener(new OrganManager());
+		event.addListener(new GeneratedChestCavityTypeManager());
+		event.addListener(new GeneratedChestCavityAssignmentManager());
 	}
 
 	public static boolean isDebugMode() {

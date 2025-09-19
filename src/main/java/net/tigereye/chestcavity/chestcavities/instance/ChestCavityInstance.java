@@ -56,6 +56,7 @@ public class ChestCavityInstance implements ContainerListener {
         this.owner = owner;
         this.compatibility_id = owner.getUUID();
         ChestCavityUtil.evaluateChestCavity(this);
+        this.inventory.setInstance(this);
     }
 
     public ChestCavityType getChestCavityType(){
@@ -158,6 +159,7 @@ public class ChestCavityInstance implements ContainerListener {
         opened = other.opened;
         type = other.type;
         compatibility_id = other.compatibility_id;
+        inventory.setInstance(this);
         try {
             inventory.removeListener(this);
         }
@@ -176,6 +178,22 @@ public class ChestCavityInstance implements ContainerListener {
         lungRemainder = other.lungRemainder;
         furnaceProgress = other.furnaceProgress;
         connectedCrystal = other.connectedCrystal;
+        ChestCavityUtil.evaluateChestCavity(this);
+    }
+
+    public void refreshType() {
+        if (owner == null) {
+            return;
+        }
+        ChestCavityType resolved = ChestCavityInstanceFactory.resolveChestCavityType(owner);
+        if (this.type == resolved) {
+            return;
+        }
+        this.type = resolved;
+        this.inventory.setInstance(this);
+        if (opened) {
+            ChestCavityUtil.generateChestCavityIfOpened(this);
+        }
         ChestCavityUtil.evaluateChestCavity(this);
     }
 

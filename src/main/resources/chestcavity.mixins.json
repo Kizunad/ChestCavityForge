@@ -3,29 +3,9 @@
   "minVersion": "0.8",
   "package": "net.tigereye.chestcavity.mixin",
   "compatibilityLevel": "JAVA_17",
-  "mixins": [
-    "MixinEnchantmentHelper",
-    "MixinEntity",
-    "MixinHungerManager",
-    "MixinLivingEntity",
-    "MixinLivingEntity$MixinCowEntity",
-    "MixinLivingEntity$MixinCreeperEntity",
-    "MixinLivingEntity$MixinMobEntity",
-    "MixinLivingEntity$MixinPlayerEntity",
-    "MixinLivingEntity$MixinServerPlayerEntity",
-    "MixinLivingEntity$MixinSheepEntity",
-    "MixinLivingEntity$MixinWitherEntity",
-    "MixinPotionEntity",
-    "MixinStatusEffect",
-    "MixinStatusEffectInstance",
-    "ResourceReloadMixin",
-    "MixinHanshake"
-  ],
-  "client": [
-    "MixinItem"
-  ],
-  "server": [
-  ],
+  "mixins": [],
+  "client": [],
+  "server": [],
   "injectors": {
     "defaultRequire": 1
   },

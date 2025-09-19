@@ -9,7 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCContainers;
 
 public class ChestCavityScreenHandler extends AbstractContainerMenu {
@@ -18,14 +18,12 @@ public class ChestCavityScreenHandler extends AbstractContainerMenu {
     private final int size;
     private final int rows;
 
-    private static ChestCavityInventory getOrCreateChestCavityInventory(Inventory playerInventory){/*
-        ChestCavityInstance playerCC = ((ChestCavityEntity)playerInventory.player).getChestCavityInstance();
-        ChestCavityInstance targetCCI = playerCC.ccBeingOpened;
-        if(targetCCI != null){
-            ChestCavity.LOGGER.info("Found CCI");
-            return targetCCI.inventory;
+    private static ChestCavityInventory getOrCreateChestCavityInventory(Inventory playerInventory){
+        Player player = playerInventory.player;
+        ChestCavityInstance playerCC = CCAttachments.getExistingChestCavity(player).orElse(null);
+        if(playerCC != null && playerCC.ccBeingOpened != null){
+            return playerCC.ccBeingOpened.inventory;
         }
-        ChestCavity.LOGGER.info("Missed CCI");*/
         return new ChestCavityInventory();
     }
 
