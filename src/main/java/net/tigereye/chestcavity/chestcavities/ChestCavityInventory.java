@@ -4,6 +4,7 @@ package net.tigereye.chestcavity.chestcavities;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -38,29 +39,49 @@ public class ChestCavityInventory extends SimpleContainer {
     }
 
     public void readTags(ListTag tags) {
+        readTags(tags, null);
+    }
+
+    public void readTags(ListTag tags, HolderLookup.Provider lookup) {
         clearContent();
-        HolderLookup.Provider lookup = instance != null && instance.owner != null ? instance.owner.level().registryAccess() : null;
-        for(int j = 0; j < tags.size(); ++j) {
+        HolderLookup.Provider effectiveLookup = lookup;
+        if (effectiveLookup == null && instance != null && instance.owner != null) {
+            effectiveLookup = instance.owner.level().registryAccess();
+        }
+        if (effectiveLookup == null) {
+            return;
+        }
+        for (int j = 0; j < tags.size(); ++j) {
             CompoundTag tag = tags.getCompound(j);
             int slot = tag.getByte("Slot") & 255;
-            if (slot >= 0 && slot < this.getContainerSize() && lookup != null) {
-                this.setItem(slot, ItemStack.parseOptional(lookup, tag));
+            if (slot >= 0 && slot < this.getContainerSize()) {
+                this.setItem(slot, ItemStack.parseOptional(effectiveLookup, tag));
             }
         }
-
     }
 
     public ListTag getTags() {
+        return getTags(null);
+    }
+
+    public ListTag getTags(HolderLookup.Provider lookup) {
         ListTag list = new ListTag();
 
-        HolderLookup.Provider lookup = instance != null && instance.owner != null ? instance.owner.level().registryAccess() : null;
-        for(int i = 0; i < this.getContainerSize(); ++i) {
+        HolderLookup.Provider effectiveLookup = lookup;
+        if (effectiveLookup == null && instance != null && instance.owner != null) {
+            effectiveLookup = instance.owner.level().registryAccess();
+        }
+        if (effectiveLookup == null) {
+            return list;
+        }
+        for (int i = 0; i < this.getContainerSize(); ++i) {
             ItemStack itemStack = this.getItem(i);
-            if (!itemStack.isEmpty() && lookup != null) {
-                CompoundTag tag = new CompoundTag();
-                tag.putByte("Slot", (byte)i);
-                itemStack.save(lookup, tag);
-                list.add(tag);
+            if (!itemStack.isEmpty()) {
+                Tag raw = itemStack.save(effectiveLookup);
+                if (raw instanceof CompoundTag tag && !tag.isEmpty()) {
+                    tag.putByte("Slot", (byte)i);
+                    list.add(tag);
+                }
             }
         }
 

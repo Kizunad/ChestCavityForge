@@ -52,7 +52,7 @@ public final class CCAttachments {
             if (!tag.isEmpty()) {
                 CompoundTag wrapper = new CompoundTag();
                 wrapper.put("ChestCavity", tag.copy());
-                instance.fromTag(wrapper, living);
+                instance.fromTag(wrapper, living, provider);
             }
             return instance;
         }
@@ -60,7 +60,7 @@ public final class CCAttachments {
         @Override
         public CompoundTag write(ChestCavityInstance attachment, net.minecraft.core.HolderLookup.Provider provider) {
             CompoundTag wrapper = new CompoundTag();
-            attachment.toTag(wrapper);
+            attachment.toTag(wrapper, provider);
             return wrapper.getCompound("ChestCavity");
         }
     }

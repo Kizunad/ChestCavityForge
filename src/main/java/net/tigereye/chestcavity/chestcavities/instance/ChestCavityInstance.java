@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.chestcavities.instance;
 
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -86,6 +87,10 @@ public class ChestCavityInstance implements ContainerListener {
     }
 
     public void fromTag(CompoundTag tag, LivingEntity owner) {
+        fromTag(tag, owner, null);
+    }
+
+    public void fromTag(CompoundTag tag, LivingEntity owner, HolderLookup.Provider lookup) {
         LOGGER.debug("[Chest Cavity] Reading ChestCavityManager fromTag");
         this.owner = owner;
         if(tag.contains("ChestCavity")){
@@ -111,7 +116,7 @@ public class ChestCavityInstance implements ContainerListener {
             catch(NullPointerException ignored){}
             if (ccTag.contains("Inventory")) {
                 ListTag NbtList = ccTag.getList("Inventory", 10);
-                this.inventory.readTags(NbtList);
+                this.inventory.readTags(NbtList, lookup);
             }
             else if(opened){
                 LOGGER.warn("[Chest Cavity] "+owner.getName().getContents()+"'s Chest Cavity is mangled. It will be replaced");
@@ -131,7 +136,7 @@ public class ChestCavityInstance implements ContainerListener {
                         inventory.removeListener(this);
                     }
                     catch(NullPointerException ignored){}
-                    inventory.readTags(NbtList);
+                    inventory.readTags(NbtList, lookup);
                     inventory.addListener(this);
                 }
             }
@@ -140,6 +145,10 @@ public class ChestCavityInstance implements ContainerListener {
     }
 
     public void toTag(CompoundTag tag) {
+        toTag(tag, null);
+    }
+
+    public void toTag(CompoundTag tag, HolderLookup.Provider lookup) {
         ChestCavity.printOnDebug("Writing ChestCavityManager toTag");
         CompoundTag ccTag = new CompoundTag();
         ccTag.putBoolean("opened", this.opened);
@@ -151,7 +160,7 @@ public class ChestCavityInstance implements ContainerListener {
         ccTag.putFloat("LungRemainder", this.lungRemainder);
         ccTag.putInt("FurnaceProgress", this.furnaceProgress);
         ccTag.putInt("PhotosynthesisProgress", this.photosynthesisProgress);
-        ccTag.put("Inventory", this.inventory.getTags());
+        ccTag.put("Inventory", this.inventory.getTags(lookup));
         tag.put("ChestCavity",ccTag);
     }
 
