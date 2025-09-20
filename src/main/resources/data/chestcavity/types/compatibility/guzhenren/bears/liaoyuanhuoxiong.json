@@ -13,15 +13,15 @@
       "position": 2
     },
     {
-      "item": "chestcavity:animal_lung_fireproof",
+      "item": "chestcavity:fireproof_lung",
       "position": 3
     },
     {
-      "item": "chestcavity:heart_fireproof",
+      "item": "chestcavity:fireproof_heart",
       "position": 4
     },
     {
-      "item": "chestcavity:animal_lung_fireproof",
+      "item": "chestcavity:fireproof_lung",
       "position": 5
     },
     {
@@ -41,11 +41,11 @@
       "position": 10
     },
     {
-      "item": "chestcavity:spleen_fireproof",
+      "item": "chestcavity:fireproof_spleen",
       "position": 11
     },
     {
-      "item": "chestcavity:kidney_fireproof",
+      "item": "chestcavity:fireproof_kidney",
       "position": 12
     },
     {
@@ -53,11 +53,11 @@
       "position": 13
     },
     {
-      "item": "chestcavity:kidney_fireproof",
+      "item": "chestcavity:fireproof_kidney",
       "position": 14
     },
     {
-      "item": "chestcavity:liver_fireproof",
+      "item": "chestcavity:fireproof_liver",
       "position": 15
     },
     {
@@ -77,23 +77,23 @@
       "position": 19
     },
     {
-      "item": "chestcavity:intestine_fireproof",
+      "item": "chestcavity:fireproof_intestine",
       "position": 20
     },
     {
-      "item": "chestcavity:intestine_fireproof",
+      "item": "chestcavity:fireproof_intestine",
       "position": 21
     },
     {
-      "item": "chestcavity:stomach_fireproof",
+      "item": "chestcavity:fireproof_stomach",
       "position": 22
     },
     {
-      "item": "chestcavity:intestine_fireproof",
+      "item": "chestcavity:fireproof_intestine",
       "position": 23
     },
     {
-      "item": "chestcavity:intestine_fireproof",
+      "item": "chestcavity:fireproof_intestine",
       "position": 24
     },
     {
