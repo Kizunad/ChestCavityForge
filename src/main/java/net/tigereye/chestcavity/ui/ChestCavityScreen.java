@@ -5,21 +5,23 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 
-public class ChestCavityScreen extends AbstractContainerScreen<AbstractContainerMenu> {
-    //A path to the gui texture. In this example we use the texture from the dispenser
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/shulker_box.png");
+public class ChestCavityScreen extends AbstractContainerScreen<ChestCavityScreenHandler> {
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
 
-    public ChestCavityScreen(AbstractContainerMenu handler, Inventory inventory, Component title) {
+    public ChestCavityScreen(ChestCavityScreenHandler handler, Inventory inventory, Component title) {
         super(handler, inventory, title);
+        this.imageHeight = 114 + handler.getRows() * 18;
+        this.inventoryLabelY = this.imageHeight - 94;
     }
 
     @Override
     protected void renderBg(GuiGraphics graphics, float delta, int mouseX, int mouseY) {
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
-        graphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
+        int containerHeight = this.menu.getRows() * 18 + 17;
+        graphics.blit(TEXTURE, x, y, 0, 0, imageWidth, containerHeight);
+        graphics.blit(TEXTURE, x, y + containerHeight, 0, 126, imageWidth, 96);
     }
 
     @Override

@@ -25,8 +25,11 @@ public class ChestCavityInventory extends SimpleContainer {
         this.instance = instance;
     }
 
+    private static final int DEFAULT_COLUMNS = 9;
+    private static final int DEFAULT_ROWS = 4;
+
     public ChestCavityInventory() {
-        super(27);
+        super(DEFAULT_COLUMNS * DEFAULT_ROWS);
     }
 
     public ChestCavityInventory(int size,ChestCavityInstance instance) {

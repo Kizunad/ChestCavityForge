@@ -6,7 +6,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCAttachments;
@@ -17,6 +16,10 @@ public class ChestCavityScreenHandler extends AbstractContainerMenu {
     private final ChestCavityInventory inventory;
     private final int size;
     private final int rows;
+
+    public int getRows() {
+        return rows;
+    }
 
     private static ChestCavityInventory getOrCreateChestCavityInventory(Inventory playerInventory){
         Player player = playerInventory.player;
