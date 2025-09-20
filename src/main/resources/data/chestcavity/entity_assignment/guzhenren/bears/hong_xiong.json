@@ -1,5 +1,5 @@
 {
-  "chestcavity": "chestcavity:types/compatibility/guzhenren/elemental_bear.json",
+  "chestcavity": "chestcavity:types/compatibility/guzhenren/bears/hong_xiong.json",
   "entities": [
     "guzhenren:hong_xiong"
   ]

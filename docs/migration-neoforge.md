@@ -6,7 +6,10 @@
 - Added per-entity assignment JSONs in `data/chestcavity/entity_assignment/guzhenren/**` that point each Guzhenren mob to the new cavity definitions, plus refreshed `non_gu_entities.md`.
 - Verified `./gradlew clean compileJava` on the NeoForge toolchain (Gradle 8.8 + Java 21) to confirm the branch still builds after importing the resources.
 
+- Expanded `guzhenren` assignments to cover sheep, cultivators, serpents, insects, and jiangshi entities with per-entity placeholder cavity types to enable future tuning.
+
 ## Follow-up TODOs
 - Hook the new types into gameplay validation (summon each mob and inspect cavity contents) once gameplay-side systems compile for NeoForge.
+- Replace placeholder cavity layouts with lore-faithful organs once gameplay balancing notes are available.
 - Audit mixins and listeners for 1.21.1 API changes (loot contexts, DamageSources, CreativeTab rebuild) and document blockers as they surface.
 - Update docs with results of future smoke tests (data generators, headless server launch) before merging back to `neoforge-1.21.1`.

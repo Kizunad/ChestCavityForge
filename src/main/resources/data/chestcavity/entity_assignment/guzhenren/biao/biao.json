@@ -1,0 +1,6 @@
+{
+  "chestcavity": "chestcavity:types/compatibility/guzhenren/biao/biao.json",
+  "entities": [
+    "guzhenren:biao"
+  ]
+}

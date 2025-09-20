@@ -1,0 +1,108 @@
+{
+  "defaultChestCavity": [
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 0
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 1
+    },
+    {
+      "item": "chestcavity:animal_appendix",
+      "position": 2
+    },
+    {
+      "item": "chestcavity:animal_lung_fireproof",
+      "position": 3
+    },
+    {
+      "item": "chestcavity:heart_fireproof",
+      "position": 4
+    },
+    {
+      "item": "chestcavity:animal_lung_fireproof",
+      "position": 5
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 7
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 8
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 9
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 10
+    },
+    {
+      "item": "chestcavity:spleen_fireproof",
+      "position": 11
+    },
+    {
+      "item": "chestcavity:kidney_fireproof",
+      "position": 12
+    },
+    {
+      "item": "chestcavity:animal_spine",
+      "position": 13
+    },
+    {
+      "item": "chestcavity:kidney_fireproof",
+      "position": 14
+    },
+    {
+      "item": "chestcavity:liver_fireproof",
+      "position": 15
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 16
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 17
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 18
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 19
+    },
+    {
+      "item": "chestcavity:intestine_fireproof",
+      "position": 20
+    },
+    {
+      "item": "chestcavity:intestine_fireproof",
+      "position": 21
+    },
+    {
+      "item": "chestcavity:stomach_fireproof",
+      "position": 22
+    },
+    {
+      "item": "chestcavity:intestine_fireproof",
+      "position": 23
+    },
+    {
+      "item": "chestcavity:intestine_fireproof",
+      "position": 24
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 25
+    },
+    {
+      "item": "chestcavity:brutish_muscle",
+      "position": 26
+    }
+  ]
+}
