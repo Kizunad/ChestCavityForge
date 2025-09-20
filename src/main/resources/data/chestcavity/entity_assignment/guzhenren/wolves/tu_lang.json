@@ -1,0 +1,6 @@
+{
+  "chestcavity": "chestcavity:types/compatibility/guzhenren/storm_wolf.json",
+  "entities": [
+    "guzhenren:tu_lang"
+  ]
+}
