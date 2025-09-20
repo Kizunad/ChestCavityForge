@@ -126,4 +126,10 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 			System.out.println("DEBUG: " + stringToPrint);
 		}
 	}
+
+	public static void printOnDebug(java.util.function.Supplier<String> supplier) {
+		if(DEBUG_MODE) {
+			System.out.println("DEBUG: " + supplier.get());
+		}
+	}
 }

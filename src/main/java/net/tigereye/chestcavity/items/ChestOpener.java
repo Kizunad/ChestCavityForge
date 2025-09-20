@@ -7,7 +7,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -81,14 +80,12 @@ public class ChestOpener extends Item {
 				return true;
 			}
 			else{
-					if(player.level().isClientSide) {
-						if (!target.getItemBySlot(EquipmentSlot.CHEST).isEmpty()) {
-                        player.displayClientMessage(Component.translatable("message.chestcavity.chest_opener.obstructed"), true);
-						player.playNotifySound(SoundEvents.CHAIN_HIT, SoundSource.PLAYERS, .75f, 1);
-					} else {
-                        player.displayClientMessage(Component.translatable("message.chestcavity.chest_opener.healthy"), true);
-						player.playNotifySound(SoundEvents.ARMOR_EQUIP_TURTLE.value(), SoundSource.PLAYERS, .75f, 1);
-					}
+				ChestCavity.printOnDebug(() -> "ChestOpener prevented: target=" + target.getUUID() +
+					" health=" + target.getHealth() + "/" + target.getMaxHealth() +
+					" easeOfAccess=" + cc.getOrganScore(CCOrganScores.EASE_OF_ACCESS));
+				if(player.level().isClientSide) {
+					player.displayClientMessage(Component.translatable("message.chestcavity.chest_opener.healthy"), true);
+					player.playNotifySound(SoundEvents.ARMOR_EQUIP_TURTLE.value(), SoundSource.PLAYERS, .75f, 1);
 				}
 			}
 			return false;

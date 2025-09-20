@@ -7,6 +7,9 @@
 - Verified `./gradlew clean compileJava` on the NeoForge toolchain (Gradle 8.8 + Java 21) to confirm the branch still builds after importing the resources.
 
 - Expanded `guzhenren` assignments to cover sheep, cultivators, serpents, insects, and jiangshi entities with per-entity placeholder cavity types to enable future tuning.
+- Removed the chest-equipment gate from ChestOpener/DefaultChestCavityType so NeoForge builds allow opening armored targets once health or ease-of-access conditions are met.
+- Applied the same chest opener accessibility rule to GeneratedChestCavityType so JSON-defined entities no longer require empty chest slots.
+- Added debug logging to ChestOpener blocked cases to capture UUID/health/ease scores while GG remains in debug mode.
 
 ## Follow-up TODOs
 - Hook the new types into gameplay validation (summon each mob and inspect cavity contents) once gameplay-side systems compile for NeoForge.

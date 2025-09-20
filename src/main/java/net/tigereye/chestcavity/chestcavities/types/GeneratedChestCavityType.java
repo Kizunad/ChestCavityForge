@@ -4,7 +4,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.component.CustomData;
@@ -213,9 +212,8 @@ public class GeneratedChestCavityType implements ChestCavityType {
     public boolean isOpenable(ChestCavityInstance instance){
         boolean weakEnough = instance.owner.getHealth() <= ChestCavity.config.CHEST_OPENER_ABSOLUTE_HEALTH_THRESHOLD
                 || instance.owner.getHealth() <= instance.owner.getMaxHealth()*ChestCavity.config.CHEST_OPENER_FRACTIONAL_HEALTH_THRESHOLD;
-        boolean chestVulnerable = instance.owner.getItemBySlot(EquipmentSlot.CHEST).isEmpty();
         boolean easeOfAccess = instance.getOrganScore(CCOrganScores.EASE_OF_ACCESS) > 0;
-        return chestVulnerable && (easeOfAccess || weakEnough);
+        return easeOfAccess || weakEnough;
     }
 
     @Override
