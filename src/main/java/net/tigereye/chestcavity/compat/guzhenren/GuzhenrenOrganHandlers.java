@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.neoforged.fml.ModList;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang.WuHangOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
@@ -25,6 +26,7 @@ public final class GuzhenrenOrganHandlers {
             return;
         }
         GuzhenrenLinkageManager.getContext(cc);
+        GuDaoOrganRegistry.register(cc, stack);
         WuHangOrganRegistry.register(cc, stack);
     }
 }

@@ -1,0 +1,39 @@
+package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
+
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
+
+/**
+ * Registry for 骨道蛊 items.
+ */
+public final class GuDaoOrganRegistry {
+
+    private static final String MOD_ID = "guzhenren";
+    private static final ResourceLocation BONE_BAMBOO_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
+
+    static {
+        GuDaoOrganEvents.register();
+    }
+
+    private GuDaoOrganRegistry() {
+    }
+
+    public static boolean register(ChestCavityInstance cc, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (itemId == null) {
+            return false;
+        }
+        if (itemId.equals(BONE_BAMBOO_ID)) {
+            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, BoneBambooOrganBehavior.INSTANCE));
+            BoneBambooOrganBehavior.INSTANCE.ensureAttached(cc);
+            return true;
+        }
+        return false;
+    }
+}
