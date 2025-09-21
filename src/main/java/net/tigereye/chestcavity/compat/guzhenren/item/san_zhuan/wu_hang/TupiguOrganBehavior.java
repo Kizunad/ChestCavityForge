@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item;
+package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -12,7 +12,7 @@ import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
- * 土脾蛊：利用慢速 tick 减少开销，在玩家站地时按统一公式消耗真元并回精，附带短跳跃增益。
+ * Tupigu converts zhenyuan into jingli boosts on a slow cadence with a small jump bonus.
  */
 public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
     INSTANCE;

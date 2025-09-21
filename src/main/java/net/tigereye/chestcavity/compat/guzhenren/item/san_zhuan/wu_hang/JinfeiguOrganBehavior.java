@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item;
+package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -11,7 +11,7 @@ import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
- * 金肺蛊：在玩家饱食度充足时，将饱食转化为短期的吸收之心。
+ * Jinfeigu converts surplus hunger into absorption hearts on a slow tick cadence.
  */
 public enum JinfeiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
     INSTANCE;

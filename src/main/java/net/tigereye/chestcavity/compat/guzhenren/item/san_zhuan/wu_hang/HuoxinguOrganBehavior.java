@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item;
+package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -8,7 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganOnFireListener;
 
 /**
- * Handles fire-tick behaviour for the Guzhenren Huoxingu organ.
+ * Handles slow-burning recovery for the Guzhenren Huoxingu organ.
  */
 public enum HuoxinguOrganBehavior implements OrganOnFireListener {
     INSTANCE;

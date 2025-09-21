@@ -1,9 +1,6 @@
-package net.tigereye.chestcavity.compat.guzhenren.item;
+package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
@@ -15,13 +12,12 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.util.NBTWriter;
+import net.tigereye.chestcavity.util.NBTCharge;
 
 /**
  * Shuishengu (水肾蛊)
@@ -43,8 +39,6 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
 
     /** Root NBT key that stores per-item state. */
     private static final String STATE_KEY = "ChestCavityShuishengu";
-    /** Charge counter key within STATE_KEY compound. */
-    private static final String COUNTER_KEY = "Charge";
     /** Base shield capacity; final cap is this times the stack count. */
     private static final int BASE_MAX_CHARGE = 20;
     /** Full-cap damage absorption per stack (hearts); total = DAMAGE_REDUCTION * stackCount. */
@@ -76,7 +70,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         int stackCount = Math.max(1, organ.getCount());
         int effectiveMaxCharge = getEffectiveMaxCharge(stackCount);
 
-        int current = Math.min(getCharge(organ), effectiveMaxCharge);
+        int current = Math.min(NBTCharge.getCharge(organ, STATE_KEY), effectiveMaxCharge);
         if (current >= effectiveMaxCharge) {
             return;
         }
@@ -111,7 +105,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
     /**
      * Mitigates incoming damage by consuming charge.
      * - Smooth consumption model: small damage eats little charge; large damage approaches full-cap usage.
-     * - Always produces splash; adds shield-break sound if shield is fully depleted.
+     * - Always produces splash; adds shield-break sound if the shield is fully depleted.
      */
     @Override
     public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
@@ -122,7 +116,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         int stackCount = Math.max(1, organ.getCount());
         int effectiveMaxCharge = getEffectiveMaxCharge(stackCount);
 
-        int current = Math.min(getCharge(organ), effectiveMaxCharge);
+        int current = Math.min(NBTCharge.getCharge(organ, STATE_KEY), effectiveMaxCharge);
         if (current <= 0) {
             return damage;
         }
@@ -155,15 +149,6 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
 
     /**
      * Maps a damage amount into discrete charge units using an exponential approach function.
-     *
-     * Parameters
-     * - damage: incoming damage (hearts)
-     * - reductionPerFullCharge: maximum hearts reduced when spending full charge for the current stack
-     * - maxCharge: current capacity; result is clamped to [1, maxCharge] when damage > 0
-     *
-     * Behavior
-     * - If damage >= reductionPerFullCharge, consume full charge (cap).
-     * - Else consume round(maxCharge * (1 - exp(-alpha * damage / reductionPerFullCharge))).
      */
     private static int computeShieldCost(float damage, float reductionPerFullCharge, int maxCharge) {
         if (damage >= reductionPerFullCharge) {
@@ -178,28 +163,10 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         return Math.max(1, Math.min(maxCharge, rounded));
     }
 
-    /** Reads current charge from the organ's NBT. */
-    private static int getCharge(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0;
-        }
-        CompoundTag tag = data.copyTag();
-        if (!tag.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return 0;
-        }
-        CompoundTag state = tag.getCompound(STATE_KEY);
-        return state.getInt(COUNTER_KEY);
-    }
-
     /** Writes clamped charge to the organ's NBT for a given stack size. */
     private static void setCharge(ItemStack stack, int value, int stackCount) {
         int clamped = Math.max(0, Math.min(getEffectiveMaxCharge(stackCount), value));
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putInt(COUNTER_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
+        NBTCharge.setCharge(stack, STATE_KEY, clamped);
     }
 
     /** Effective capacity scales with the number of stacked organs. */

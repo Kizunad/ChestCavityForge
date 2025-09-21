@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item;
+package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -6,19 +6,15 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 
 import java.util.OptionalDouble;
 import java.util.Set;
 
 /**
- * 木肝蛊：每秒为玩家补充真元。
- * <p>
- * - 若胸腔内缺少火、金、水、土任一蛊，则先扣除精力再按八折恢复真元；
- * - 若集齐其余四蛊，则直接按全额恢复真元；
- * - 真元恢复量随阶段与转数使用与消耗相同的缩放公式。
+ * Mugangu regenerates zhenyuan each slow tick, with optional jingli cost when the five-element set is incomplete.
  */
 public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
     INSTANCE;
