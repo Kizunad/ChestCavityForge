@@ -15,26 +15,26 @@ import java.util.Optional;
 
 public final class CCScoreboardUpgrades {
 
-    private static final ResourceLocation HOPE_GU_ITEM = ResourceLocation.parse("guzhenren:gucaikongqiao");
+    private static final ResourceLocation KONGQIAO_ITEM = ResourceLocation.parse("guzhenren:gucaikongqiao");
 
-    public static final ScoreboardUpgradeManager.ScoreboardUpgrade KONGQIAO_GU = new ScoreboardUpgradeManager.ScoreboardUpgrade(
-            ChestCavity.id("kongqiao_gu"),
+    public static final ScoreboardUpgradeManager.ScoreboardUpgrade KONGQIAO = new ScoreboardUpgradeManager.ScoreboardUpgrade(
+            ChestCavity.id("kongqiao"),
             "kaiqiao",
             1,
-            CCScoreboardUpgrades::createHopeGuStack,
+            CCScoreboardUpgrades::createKongQiaoStack,
             31,
             true
     );
 
-    public static final List<ScoreboardUpgradeManager.ScoreboardUpgrade> ALL = List.of(KONGQIAO_GU);
+    public static final List<ScoreboardUpgradeManager.ScoreboardUpgrade> ALL = List.of(KONGQIAO);
 
     private CCScoreboardUpgrades() {
     }
 
-    private static ItemStack createHopeGuStack(ChestCavityInstance cc) {
-        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(HOPE_GU_ITEM);
+    private static ItemStack createKongQiaoStack(ChestCavityInstance cc) {
+        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(KONGQIAO_ITEM);
         if (item.isEmpty()) {
-            ChestCavity.LOGGER.warn("Scoreboard upgrade item {} is missing from registry", HOPE_GU_ITEM);
+            ChestCavity.LOGGER.warn("Scoreboard upgrade item {} is missing from registry", KONGQIAO_ITEM);
             return ItemStack.EMPTY;
         }
         ItemStack stack = new ItemStack(item.get());
