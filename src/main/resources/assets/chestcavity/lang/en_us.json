@@ -365,9 +365,5 @@
     "text.autoconfig.chestcavity.option.RATS_MISCHIEF_INTEGRATION": "Rat's Mischief Integration (Restart)",
     "text.autoconfig.chestcavity.option.REQUIEM_INTEGRATION": "Requiem Integration (Restart)",
     "text.autoconfig.chestcavity.option.SMALL_ENDERMEN_INTEGRATION": "Small Endermen Integration (Restart)",
-    "text.autoconfig.chestcavity.option.SNOW_MERCY_INTEGRATION": "Direbats Integration (Restart)",
-    "item.chestcavity.guzhenren_qingsigu": "Azure Silkworm Gu",
-    "item.chestcavity.guzhenren_shuishengu": "Water Kidney Gu",
-    "item.chestcavity.guzhenren_jinfeigu": "Gold Lung Gu",
-    "item.chestcavity.guzhenren_mugangu": "Wood Liver Gu"
+    "text.autoconfig.chestcavity.option.SNOW_MERCY_INTEGRATION": "Direbats Integration (Restart)"
 }
