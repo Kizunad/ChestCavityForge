@@ -30,8 +30,8 @@ public final class GuDaoOrganRegistry {
             return false;
         }
         if (itemId.equals(BONE_BAMBOO_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, BoneBambooOrganBehavior.INSTANCE));
-            BoneBambooOrganBehavior.INSTANCE.ensureAttached(cc);
+            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, GuzhuguOrganBehavior.INSTANCE));
+            GuzhuguOrganBehavior.INSTANCE.ensureAttached(cc);
             return true;
         }
         return false;

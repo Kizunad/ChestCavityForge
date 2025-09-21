@@ -56,7 +56,7 @@ final class GuDaoOrganEvents {
             if (!cc.opened) {
                 return;
             }
-            BoneBambooOrganBehavior.INSTANCE.onBoneMealCatalyst(player, cc);
+            GuzhuguOrganBehavior.INSTANCE.onBoneMealCatalyst(player, cc);
         });
     }
 }

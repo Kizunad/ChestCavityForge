@@ -24,7 +24,7 @@ import java.util.WeakHashMap;
  * Passive: each slow tick adds +5 per organ stack.
  * Active: using bone meal near the player injects +20 per stack, with a 40-tick cooldown.
  */
-public enum BoneBambooOrganBehavior implements OrganSlowTickListener {
+public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
