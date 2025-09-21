@@ -48,7 +48,8 @@ public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTick
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide() || !player.onGround()) {
+        // 修正： 木肝蛊无需触地即可使用被动
+        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
             return;
         }
 
