@@ -5,6 +5,7 @@ ChestCavity (NeoForge 1.21.1) — Guzhenren 扩展与机制概览
 - 数据驱动映射
   - 实体分配：`src/main/resources/data/chestcavity/entity_assignment/guzhenren/` 下提供与蛊真人生态相关的实体到胸腔类型映射。
   - 胸腔类型：`src/main/resources/data/chestcavity/types/compatibility/guzhenren/` 下提供对应的胸腔类型定义与器官配置。
+  - 器官定义：`src/main/resources/data/chestcavity/organs/guzhenren/human/` 记录蛊修专属器官（如空窍）。
 
 - 记分板驱动升级（简称“cc”）
   - 基于 scoreboard 条件为玩家的 cc 注入固定物品/器官。
