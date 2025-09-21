@@ -17,9 +17,9 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
     INSTANCE;
 
-    private static final double BASE_COST = 50.0;
-    private static final double JINGLI_PER_TRIGGER = 1.0;
-    private static final int JUMP_EFFECT_TICKS = 10;
+    private static final double BASE_COST = 400.0;
+    private static final double JINGLI_PER_TRIGGER = 10.0;
+    private static final int JUMP_EFFECT_TICKS = 20;
     private static final int JUMP_AMPLIFIER = 0;
 
     @Override

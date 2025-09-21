@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganOnFireContext;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
 import net.tigereye.chestcavity.listeners.OrganOnHitContext;
 import net.tigereye.chestcavity.listeners.OrganHealContext;
 import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
@@ -41,6 +42,7 @@ public class ChestCavityInstance implements ContainerListener {
     public Map<ResourceLocation,Float> oldOrganScores = new HashMap<>();
     protected Map<ResourceLocation,Float> organScores = new HashMap<>();
     public List<OrganOnHitContext> onHitListeners = new ArrayList<>();
+    public List<OrganIncomingDamageContext> onDamageListeners = new ArrayList<>();
     public List<OrganOnFireContext> onFireListeners = new ArrayList<>();
     public List<OrganHealContext> onHealListeners = new ArrayList<>();
     public List<OrganOnGroundContext> onGroundListeners = new ArrayList<>();

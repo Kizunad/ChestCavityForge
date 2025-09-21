@@ -291,20 +291,42 @@ public final class GuzhenrenResourceBridge {
                 return OptionalDouble.empty();
             }
             double current = currentOpt.getAsDouble();
-            double jieduan = getJieduan().orElse(0.0);
-            double effectiveZhuanshu = Math.max(1.0, getZhuanshu().orElse(1.0));
-            double denominator = Math.pow(2.0, jieduan + effectiveZhuanshu * 4.0) * effectiveZhuanshu * 3.0 / 96.0;
-            double required = baseCost;
-            if (denominator > 0 && Double.isFinite(denominator)) {
-                required = baseCost / denominator;
-            }
+            double required = scaleZhenyuanByCultivation(baseCost);
             if (!Double.isFinite(required) || required <= 0) {
-                required = baseCost;
+                return OptionalDouble.empty();
             }
             if (current < required) {
                 return OptionalDouble.empty();
             }
             return adjustZhenyuan(-required, true);
+        }
+
+        /** 真元补充：按与消耗相同的缩放公式增加真元值。 */
+        public OptionalDouble replenishScaledZhenyuan(double baseAmount, boolean clampToMax) {
+            if (baseAmount <= 0 || !Double.isFinite(baseAmount)) {
+                return OptionalDouble.empty();
+            }
+            OptionalDouble currentOpt = getZhenyuan();
+            if (currentOpt.isEmpty()) {
+                return OptionalDouble.empty();
+            }
+
+            double scaled = scaleZhenyuanByCultivation(baseAmount);
+            if (!Double.isFinite(scaled) || scaled <= 0) {
+                return OptionalDouble.empty();
+            }
+
+            double target = currentOpt.getAsDouble() + scaled;
+            if (clampToMax) {
+                OptionalDouble maxOpt = getMaxZhenyuan();
+                if (maxOpt.isPresent()) {
+                    target = Math.min(target, maxOpt.getAsDouble());
+                }
+            }
+            if (!Double.isFinite(target)) {
+                return OptionalDouble.empty();
+            }
+            return writeDouble(PlayerField.ZHENYUAN, target);
         }
 
         /** 当前真元 */
@@ -355,6 +377,22 @@ public final class GuzhenrenResourceBridge {
         /** 精力上限 */
         public OptionalDouble getMaxJingli() {
             return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_JINGLI);
+        }
+
+        private double scaleZhenyuanByCultivation(double baseAmount) {
+            if (!Double.isFinite(baseAmount) || baseAmount <= 0) {
+                return Double.NaN;
+            }
+            double jieduan = getJieduan().orElse(0.0);
+            double effectiveZhuanshu = Math.max(1.0, getZhuanshu().orElse(1.0));
+            double denominator = Math.pow(2.0, jieduan + effectiveZhuanshu * 4.0) * effectiveZhuanshu * 3.0 / 96.0;
+            if (denominator > 0.0 && Double.isFinite(denominator)) {
+                double scaled = baseAmount / denominator;
+                if (Double.isFinite(scaled) && scaled > 0) {
+                    return scaled;
+                }
+            }
+            return baseAmount;
         }
     }
 }

@@ -403,6 +403,7 @@ public class ChestCavityUtil {
         }
         else {
             cc.onHitListeners.clear();
+            cc.onDamageListeners.clear();
             cc.onFireListeners.clear();
             cc.onHealListeners.clear();
             cc.onGroundListeners.clear();
@@ -422,6 +423,9 @@ public class ChestCavityUtil {
                         );
                         if(slotitem instanceof OrganOnHitListener){
                             cc.onHitListeners.add(new OrganOnHitContext(itemStack,(OrganOnHitListener)slotitem));
+                        }
+                        if(slotitem instanceof OrganIncomingDamageListener){
+                            cc.onDamageListeners.add(new OrganIncomingDamageContext(itemStack,(OrganIncomingDamageListener)slotitem));
                         }
                         if(slotitem instanceof OrganOnFireListener){
                             cc.onFireListeners.add(new OrganOnFireContext(itemStack,(OrganOnFireListener)slotitem));
@@ -598,6 +602,16 @@ public class ChestCavityUtil {
             }
             //this is for organ scores
             //OrganOnHitCallback.EVENT.invoker().onHit(source,cc.owner,target,cc,damage);
+            organUpdate(cc);
+        }
+        return damage;
+    }
+
+    public static float onIncomingDamage(ChestCavityInstance cc, DamageSource source, float damage) {
+        if (cc.opened) {
+            for (OrganIncomingDamageContext ctx : cc.onDamageListeners) {
+                damage = ctx.listener.onIncomingDamage(source, cc.owner, cc, ctx.organ, damage);
+            }
             organUpdate(cc);
         }
         return damage;
