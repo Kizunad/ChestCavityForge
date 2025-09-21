@@ -1,6 +1,6 @@
 {
   "itemID": "guzhenren:shuishengu",
   "organScores": [
-    { "id": "chestcavity:ease_of_access", "value": "0.25" }
+    {"id":"chestcavity:filtration","value": "2"}
   ]
 }

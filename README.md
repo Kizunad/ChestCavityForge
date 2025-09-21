@@ -5,8 +5,10 @@ ChestCavity (NeoForge 1.21.1) — Guzhenren 扩展与机制概览
 Contributors / 贡献者
 ---------------------
 - David Trover — 原作作者（Chest Cavity）
-- BoonelDanForever — 维护与迁移（NeoForge 1.21.1）
+- BoonelDanForever — 维护与迁移
 - 社区贡献者 — Bug 修复、行为扩展与本地化
+- 哈基芊 社区测试者
+- （· _ ·） 社区测试者
 
 - 数据驱动映射
   - 实体分配：`src/main/resources/data/chestcavity/entity_assignment/guzhenren/` 下提供与蛊真人生态相关的实体到胸腔类型映射。

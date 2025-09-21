@@ -1,6 +1,8 @@
 {
   "itemID": "guzhenren:jinfeigu",
   "organScores": [
-    { "id": "chestcavity:ease_of_access", "value": "0.25" }
+    {"id":"chestcavity:breath_recovery","value": "1"},
+    {"id":"chestcavity:breath_capacity","value": "1"},
+    {"id":"chestcavity:endurance","value": "1"}
   ]
 }

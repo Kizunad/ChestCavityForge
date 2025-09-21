@@ -1,6 +1,6 @@
 {
   "itemID": "guzhenren:mugangu",
   "organScores": [
-    { "id": "chestcavity:ease_of_access", "value": "0.25" }
+    {"id":"chestcavity:detoxification","value": "1"}
   ]
 }

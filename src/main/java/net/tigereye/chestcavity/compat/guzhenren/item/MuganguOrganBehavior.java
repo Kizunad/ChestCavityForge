@@ -30,7 +30,7 @@ public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTick
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "shuishengu"),
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "tupigu")
     );
-    private static final double BASE_ZHENYUAN_RESTORE = 2400.0;
+    private static final double BASE_ZHENYUAN_RESTORE = 12000;
     private static final double BASE_JINGLI_COST = 1.0;
     private static final double DISCOUNT_FACTOR = 0.5;
 
