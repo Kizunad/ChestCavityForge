@@ -2,14 +2,118 @@
 
 "item.guzhenren.gu_zhu_gu": "骨竹蛊", 骨竹 - 生长 - 强化 - 持续性 - 加快/(或者x转前唯一充能方法?)其他骨道蛊虫充能 - 使用 真元 (被动增长) / 食用骨粉(催化) (主动)
 
-联动触发器设计草案
-- 主动/被动双通道：SlowTick 等被动触发负责“被动增长”，Activation/ItemUse 负责“主动催化”。
-- LinkageChannel 作为集中状态容器，骨竹蛊在 SlowTick 中读取 channel 值并按指数或线性曲线调整自身/他者充能。
-- 性能约束：若 channel 值、参与蛊数量较大，应缓存上一tick结果并设置最小触发间隔（如 4~10 tick）以避免每tick全量遍历；对无骨道器官的胸腔直接短路返回。
-- 建议提供 decay/cooldown 机制，持续降低 channel，提高扩展蛊虫时的稳定性。
 
+# 🔹 联动触发器系统蓝图
 
+## 1. 核心组件
 
+* **TriggerEndpoint**
+
+  * Passive / Active
+  * 定义触发条件（SlowTick, Damage, ItemUse, CustomSignal …）
+
+* **LinkageChannel**
+
+  * 核心：保存一个数值（double/float）
+  * 提供 API：`get() / set() / adjust()`
+  * 广播更新事件给订阅者（READ / FOLLOW）
+
+* **Policy (可选)**
+
+  * **DecayPolicy**：自动衰减
+  * **ClampPolicy**：上下限截断
+  * **SaturationPolicy**：超过软上限时写入折减
+  ...可拓展
+  * 这些只在需要的 Channel 上挂载
+
+* **TriggerRegistry**
+
+  * 全局注册触发器与通道
+  * `broadcast(event, context)` 调度逻辑
+
+* **ActiveLinkageContext (运行时)**
+
+  * 存放玩家胸腔实例的 Channel 值、冷却表、缓存
+  * 每 tick 处理 decay / 更新 / follow
+
+---
+
+## 2. 执行顺序（每 tick 示例）
+
+1. **Decay 阶段**：先让带有 DecayPolicy 的通道自然回落
+2. **Trigger 执行**：
+
+   * Passive → 按条件自动写入
+   * Active → 根据玩家操作写入
+3. **Policy 修正**：写入时经过 Clamp/Saturation
+4. **值更新**：写入 Channel 容器
+5. **READ/FOLLOW**：订阅的器官读取当前值，调整属性或触发回调
+6. **同步/UI**：显著变化时发送 S2C 包
+
+---
+
+## 3. 数据流图（简化）
+
+```text
+[TriggerEndpoint]
+     │  (触发事件: SlowTick, ItemUse ...)
+     ▼
+ [生成 Δdelta]
+     │
+     ▼
+[LinkageChannel]
+     │
+     ├─> (经过 Policy: Decay, Clamp, Saturation...)
+     ▼
+[最终数值 v]
+     │
+     ├─> READ: 器官根据 v 调整属性
+     ├─> WRITE: 直接修改 v
+     └─> FOLLOW: 数值变化时调用回调
+```
+
+---
+
+## 4. 典型应用示例
+
+* **骨竹蛊 (Bone Bamboo Gu)**
+
+  * Passive: 每秒 +5 → `bone_growth`
+  * Active: 使用骨粉时 +20（40tick 冷却）
+  * Channel: `bone_growth` 挂载 `DecayPolicy + SaturationPolicy`
+  * READ: 读取当前值，指数曲线加速充能
+  * FOLLOW: 数值跳变时刷新「骨甲 buff」
+
+* **血水蛊 (Blood Water Gu)**
+
+  * Channel: `blood_loss` 挂 DecayPolicy（自然止血）
+  * Passive: 受伤时写入 +X
+  * READ: 根据 `blood_loss` 值降低攻击力
+
+---
+
+## 5. 优点
+
+* **轻量核心**：Channel 只管存数和广播
+* **策略化扩展**：特殊规则通过 Policy 插件实现
+* **灵活性高**：简单 Channel = 纯数值；复杂 Channel = 加策略
+* **性能友好**：缓存 + 短路优化 + 最小采样间隔
+
+## 6. 现状记录（2024-12）
+
+- Runtime manager：`compat/guzhenren/linkage/ActiveLinkageContext` & `GuzhenrenLinkageManager` 会在 `ChestCavityUtil` 的 slow tick（20t）阶段最先执行，先跑 Policy（Decay/Clamp/Saturation），再广播 `TriggerType.SLOW_TICK`。
+- 水肾蛊（Shuishengu）在充能/减伤时写入 `guzhenren:linkage/shuishengu_charge`（0~1），供后续 FX/叠加器官读取，当 SlowTick 无法监听时可直接读取该通道。
+- 木肝蛊（Mugangu）会写入：
+  - `guzhenren:linkage/wuhang_completion`：0~1 集齐度；
+  - `guzhenren:linkage/mugangu_regen_rate`：当次慢速回复百分比（带 0.05/s 衰减），用于被动联动的权重输入。
+- SlowTick 监听修复：即便列表为空，也会在 tick=20n 时触发 linkage 执行，避免“无监听”导致的休眠。
+
+### 性能 & 模块化备忘
+
+- 慢速监听的费用：每秒仅一个 `WeakHashMap` 查表 + 若干浮点计算，可承受。建议未来「阅读端蛊」在 slow tick 中取 `LinkageChannel` 决定加速度，而不是每 tick 轮询。
+- 若某些联动需要指数或线性平滑（如 `LinkageChannel` 值驱动充能加速），可通过 Policy 组合实现：`DecayPolicy` 控制回落，`SaturationPolicy` 限制上限，避免每次都算复杂曲线。
+- 主动联动（玩家操作）走 `TriggerEndpoint`，将冷却和广播放在 linkage 层，减少 ItemStack 自己维护定时器的成本。
+- 当检测到性能瓶颈时，可把 slow tick 调整为 40t 或以上级别，只要使用方按 `delta` 或 `tickSpan` 做比例缩放即可。
 
 
 

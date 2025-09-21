@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -14,6 +15,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -37,6 +42,7 @@ import net.tigereye.chestcavity.util.NBTCharge;
 public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, OrganIncomingDamageListener {
     INSTANCE;
 
+    private static final String MOD_ID = "guzhenren";
     /** Root NBT key that stores per-item state. */
     private static final String STATE_KEY = "ChestCavityShuishengu";
     /** Base shield capacity; final cap is this times the stack count. */
@@ -47,6 +53,8 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
     private static final double BASE_ZHENYUAN_COST = 80.0;
     /** Exponential smoothness factor used by computeShieldCost. */
     private static final double SHIELD_ALPHA = 3.0;
+    private static final ResourceLocation CHARGE_CHANNEL_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/shuishengu_charge");
+    private static final ClampPolicy UNIT_CLAMP = new ClampPolicy(0.0, 1.0);
     private static final Component READY_MESSAGE = Component.translatable("message.chestcavity.shuishengu.ready");
 
     @Override
@@ -88,6 +96,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         // Successful payment: advance charge by stack count
         int updated = Math.min(effectiveMaxCharge, current + stackCount);
         setCharge(organ, updated, stackCount);
+        broadcastChargeRatio(cc, updated / (double) effectiveMaxCharge);
 
         if (updated > current) {
             playSound(entity, SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, 0.35f, 1.0f);
@@ -138,6 +147,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
 
         int remaining = Math.max(0, current - cost);
         setCharge(organ, remaining, stackCount);
+        broadcastChargeRatio(cc, effectiveMaxCharge == 0 ? 0.0 : remaining / (double) effectiveMaxCharge);
         boolean shieldBroken = remaining == 0;
         if (shieldBroken) {
             playSound(victim, SoundEvents.SHIELD_BREAK, 0.8f, 1.0f);
@@ -243,5 +253,12 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         if (existing == null || existing.getDuration() <= 30) {
             player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, duration, amplifier, false, false, true));
         }
+    }
+
+    private static void broadcastChargeRatio(ChestCavityInstance cc, double ratio) {
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        LinkageChannel channel = context.lookupChannel(CHARGE_CHANNEL_ID)
+                .orElseGet(() -> context.getOrCreateChannel(CHARGE_CHANNEL_ID).addPolicy(UNIT_CLAMP));
+        channel.set(Math.max(0.0, Math.min(1.0, ratio)));
     }
 }

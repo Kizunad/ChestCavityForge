@@ -34,6 +34,7 @@ import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.*;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenOrganHandlers;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.tigereye.chestcavity.registration.*;
@@ -634,9 +635,12 @@ public class ChestCavityUtil {
                     ctx.listener.onGroundTick(cc.owner, cc, ctx.organ);
                 }
             }
-            if (!cc.onSlowTickListeners.isEmpty() && cc.owner.tickCount % 20 == 0) {
-                for (OrganSlowTickContext ctx : cc.onSlowTickListeners) {
-                    ctx.listener.onSlowTick(cc.owner, cc, ctx.organ);
+            if (cc.owner.tickCount % 20 == 0) {
+                GuzhenrenLinkageManager.tickSlow(cc);
+                if (!cc.onSlowTickListeners.isEmpty()) {
+                    for (OrganSlowTickContext ctx : cc.onSlowTickListeners) {
+                        ctx.listener.onSlowTick(cc.owner, cc, ctx.organ);
+                    }
                 }
             }
             // Apply generic healing contributions once per tick (server-side)

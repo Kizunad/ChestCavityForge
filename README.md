@@ -7,6 +7,7 @@ ChestCavity (NeoForge 1.21.1)
 Chest Cavity 是一个允许实体拥有“胸腔”与“器官分数”的玩法模组。本分支在 1.21.1 + NeoForge 上进行维护，并扩展了与“蛊真人”玩法的联动：新增多种器官的慢速监听（SlowTick）与事件回调、数值折算、以及富有手感的视听表现（音效 + 粒子）。
 
 亮点特性 / Highlights
+- 联动通道系统：`ActiveLinkageContext`+`LinkageChannel` 支持被动/主动触发器、指数平滑与衰减策略，SlowTick 失效时可通过通道直接读写状态。
 - 慢速监听与兼容桥：统一的 SlowTick 与 IncomingDamage 监听管线；通过 GuzhenrenResourceBridge 以反射方式安全读写玩家真元/精力等数据。
 - 木肝蛊（Mugangu）：每秒按修为缩放回复真元；若未集齐其余四蛊，先扣精力再按 0.8 折扣回复。
 - 金肺蛊（Jinfeigu）：满饥饿且当前吸收未达阈值时，消耗饥饿换取 60s 吸收之心，强度随堆叠扩展。

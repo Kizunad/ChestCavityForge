@@ -3,8 +3,9 @@ package net.tigereye.chestcavity.compat.guzhenren;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.neoforged.fml.ModList;
-import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang.WuHangOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 
 /**
  * Compatibility helpers that inject Guzhenren-specific organ behaviour without direct class dependencies.
@@ -23,6 +24,7 @@ public final class GuzhenrenOrganHandlers {
         if (stack.isEmpty() || !ModList.get().isLoaded(MOD_ID)) {
             return;
         }
+        GuzhenrenLinkageManager.getContext(cc);
         WuHangOrganRegistry.register(cc, stack);
     }
 }
