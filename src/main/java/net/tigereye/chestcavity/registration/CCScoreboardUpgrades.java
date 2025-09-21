@@ -17,8 +17,8 @@ public final class CCScoreboardUpgrades {
 
     private static final ResourceLocation HOPE_GU_ITEM = ResourceLocation.parse("guzhenren:gucaikongqiao");
 
-    public static final ScoreboardUpgradeManager.ScoreboardUpgrade HOPE_GU = new ScoreboardUpgradeManager.ScoreboardUpgrade(
-            ChestCavity.id("hope_gu"),
+    public static final ScoreboardUpgradeManager.ScoreboardUpgrade XIWANG_GU = new ScoreboardUpgradeManager.ScoreboardUpgrade(
+            ChestCavity.id("xiwang_gu"),
             "kaiqiao",
             1,
             CCScoreboardUpgrades::createHopeGuStack,
@@ -26,7 +26,7 @@ public final class CCScoreboardUpgrades {
             true
     );
 
-    public static final List<ScoreboardUpgradeManager.ScoreboardUpgrade> ALL = List.of(HOPE_GU);
+    public static final List<ScoreboardUpgradeManager.ScoreboardUpgrade> ALL = List.of(XIWANG_GU);
 
     private CCScoreboardUpgrades() {
     }
