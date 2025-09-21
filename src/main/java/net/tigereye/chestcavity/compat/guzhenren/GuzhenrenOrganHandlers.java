@@ -2,15 +2,14 @@ package net.tigereye.chestcavity.compat.guzhenren;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.listeners.OrganOnFireContext;
-import net.tigereye.chestcavity.listeners.OrganOnFireListener;
+import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
-
-import java.util.OptionalDouble;
+import net.tigereye.chestcavity.compat.guzhenren.item.HuoxinguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.TupiguOrganBehavior;
 
 /**
  * Compatibility helpers that inject Guzhenren-specific organ behaviour without direct class dependencies.
@@ -19,42 +18,7 @@ public final class GuzhenrenOrganHandlers {
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation HUOXINGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huoxingu");
-
-    private static final double HUOXINGU_COST_PER_TICK = 5.0;
-    private static final float HUOXINGU_HEAL_PER_TICK = 1.0f;
-
-    private static final OrganOnFireListener HUOXINGU_FIRE_LISTENER = (entity, cc, organ) -> {
-        if (!(entity instanceof Player player)) {
-            return;
-        }
-        if (entity.level().isClientSide() || !entity.isAlive()) {
-            return;
-        }
-        if (!entity.isOnFire() || player.getHealth() >= player.getMaxHealth()) {
-            return;
-        }
-
-        GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
-            OptionalDouble zhenyuanOpt = handle.readDouble("zhenyuan");
-            if (zhenyuanOpt.isEmpty()) {
-                return;
-            }
-            double available = zhenyuanOpt.getAsDouble();
-            int stackCount = Math.max(1, organ.getCount());
-            double cost = HUOXINGU_COST_PER_TICK * stackCount;
-            if (available < cost) {
-                return;
-            }
-
-            double newValue = available - cost;
-            if (handle.writeDouble("zhenyuan", newValue).isEmpty()) {
-                return;
-            }
-
-            float healAmount = HUOXINGU_HEAL_PER_TICK * stackCount;
-            player.heal(healAmount);
-        });
-    };
+    private static final ResourceLocation TUPIGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tupigu");
 
     private GuzhenrenOrganHandlers() {
     }
@@ -69,12 +33,20 @@ public final class GuzhenrenOrganHandlers {
         }
 
         if (isHuoxingu(stack)) {
-            cc.onFireListeners.add(new OrganOnFireContext(stack, HUOXINGU_FIRE_LISTENER));
+            cc.onFireListeners.add(new OrganOnFireContext(stack, HuoxinguOrganBehavior.INSTANCE));
+        }
+        if (isTupigu(stack)) {
+            cc.onGroundListeners.add(new OrganOnGroundContext(stack, TupiguOrganBehavior.INSTANCE));
         }
     }
 
     private static boolean isHuoxingu(ItemStack stack) {
         ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         return itemId != null && itemId.equals(HUOXINGU_ID);
+    }
+
+    private static boolean isTupigu(ItemStack stack) {
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return itemId != null && itemId.equals(TUPIGU_ID);
     }
 }

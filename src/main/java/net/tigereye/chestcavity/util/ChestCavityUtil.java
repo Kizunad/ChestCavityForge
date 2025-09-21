@@ -405,6 +405,7 @@ public class ChestCavityUtil {
             cc.onHitListeners.clear();
             cc.onFireListeners.clear();
             cc.onHealListeners.clear();
+            cc.onGroundListeners.clear();
             cc.getChestCavityType().loadBaseOrganScores(organScores);
 
             for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
@@ -426,6 +427,9 @@ public class ChestCavityUtil {
                         }
                         if(slotitem instanceof OrganHealListener){
                             cc.onHealListeners.add(new OrganHealContext(itemStack,(OrganHealListener)slotitem));
+                        }
+                        if(slotitem instanceof OrganOnGroundListener){
+                            cc.onGroundListeners.add(new OrganOnGroundContext(itemStack,(OrganOnGroundListener)slotitem));
                         }
                         if (!data.pseudoOrgan) {
                             int compatibility = getCompatibilityLevel(cc,itemStack);
@@ -605,6 +609,11 @@ public class ChestCavityUtil {
             if (cc.owner.isOnFire() && !cc.onFireListeners.isEmpty()) {
                 for (OrganOnFireContext ctx : cc.onFireListeners) {
                     ctx.listener.onFireTick(cc.owner, cc, ctx.organ);
+                }
+            }
+            if (cc.owner.onGround() && !cc.onGroundListeners.isEmpty()) {
+                for (OrganOnGroundContext ctx : cc.onGroundListeners) {
+                    ctx.listener.onGroundTick(cc.owner, cc, ctx.organ);
                 }
             }
             // Apply generic healing contributions once per tick (server-side)

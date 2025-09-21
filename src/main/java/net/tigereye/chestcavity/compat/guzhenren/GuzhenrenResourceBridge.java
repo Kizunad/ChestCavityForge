@@ -17,7 +17,11 @@ import java.util.function.Supplier;
 
 /**
  * Reflection-based bridge for interacting with the Guzhenren mod's player variables attachment.
- * Keeps ChestCavity decoupled from optional dependencies while offering structured access.
+ * <p>
+ * 在不直接依赖蛊真人模组 API 的前提下，提供类型安全的读写接口，便于统一处理真元、阶段、转数等核心字段。
+ * - 初始化阶段通过反射解析 {@code PlayerVariables} 类与字段句柄；
+ * - {@link ResourceHandle} 暴露高层方法（如 {@link ResourceHandle#consumeScaledZhenyuan(double)}），便于调用方按统一公式扣减真元；
+ * - 使用 {@link PlayerField} 枚举缓存反射字段，避免散落的字符串字段名，降低维护风险。
  */
 public final class GuzhenrenResourceBridge {
 
@@ -34,7 +38,25 @@ public final class GuzhenrenResourceBridge {
     private static Supplier<?> playerVariablesSupplier;
     private static Class<?> playerVariablesClass;
     private static Method syncPlayerVariables;
-    private static final Map<String, Field> FIELD_CACHE = new ConcurrentHashMap<>();
+    /**
+     * Mapping of all supported player variable fields. 承载附件字段映射，保证读写时使用固定枚举常量而非裸字符串。
+     */
+    private enum PlayerField {
+        ZHENYUAN("zhenyuan"),
+        MAX_ZHENYUAN("zuida_zhenyuan"),
+        JINGLI("jingli"),
+        MAX_JINGLI("zuida_jingli"),
+        JIEDUAN("jieduan"),
+        ZHUANSHU("zhuanshu");
+
+        private final String fieldName;
+
+        PlayerField(String fieldName) {
+            this.fieldName = fieldName;
+        }
+    }
+
+    private static final Map<PlayerField, Field> FIELD_CACHE = new ConcurrentHashMap<>();
 
     private GuzhenrenResourceBridge() {
     }
@@ -74,6 +96,9 @@ public final class GuzhenrenResourceBridge {
         return Optional.of(new ResourceHandle(player, variables));
     }
 
+    /**
+     * Lazily resolve Guzhenren 的附件类型与字段信息；只执行一次，失败时保持 {@code available=false} 以便调用方判定是否启用兼容逻辑。
+     */
     private static void ensureInitialised() {
         if (attemptedInit) {
             return;
@@ -123,50 +148,56 @@ public final class GuzhenrenResourceBridge {
         return (AttachmentType<Object>) attachmentType;
     }
 
-    private static Optional<Field> resolveField(String fieldName) {
-        if (fieldName == null || fieldName.isEmpty() || playerVariablesClass == null) {
+    private static Optional<Field> resolveField(PlayerField fieldKey) {
+        if (fieldKey == null || playerVariablesClass == null) {
             return Optional.empty();
         }
-        Field cached = FIELD_CACHE.get(fieldName);
+        Field cached = FIELD_CACHE.get(fieldKey);
         if (cached != null) {
             return Optional.of(cached);
         }
         try {
-            Field field = playerVariablesClass.getField(fieldName);
-            FIELD_CACHE.put(fieldName, field);
+            Field field = playerVariablesClass.getField(fieldKey.fieldName);
+            FIELD_CACHE.put(fieldKey, field);
             return Optional.of(field);
         } catch (NoSuchFieldException e) {
-            LOGGER.debug("Guzhenren PlayerVariables missing field '{}'", fieldName);
+            LOGGER.debug("Guzhenren PlayerVariables missing field '{}'", fieldKey.fieldName);
             return Optional.empty();
         }
     }
 
-    private static OptionalDouble readDouble(Object variables, String fieldName) {
-        return resolveField(fieldName).filter(field -> field.getType() == double.class).map(field -> {
+    /**
+     * 利用反射读取指定字段的 double 值。
+     */
+    private static OptionalDouble readDouble(Object variables, PlayerField fieldKey) {
+        return resolveField(fieldKey).filter(field -> field.getType() == double.class).map(field -> {
             try {
                 return OptionalDouble.of(field.getDouble(variables));
             } catch (IllegalAccessException e) {
-                LOGGER.warn("Failed to read Guzhenren field '{}'", fieldName, e);
+                LOGGER.warn("Failed to read Guzhenren field '{}'", fieldKey.fieldName, e);
                 return OptionalDouble.empty();
             }
         }).orElseGet(OptionalDouble::empty);
     }
 
-    private static boolean writeDouble(Object variables, String fieldName, double value) {
-        Optional<Field> fieldOpt = resolveField(fieldName);
+    /**
+     * 利用反射写入指定字段的 double 值。
+     */
+    private static boolean writeDouble(Object variables, PlayerField fieldKey, double value) {
+        Optional<Field> fieldOpt = resolveField(fieldKey);
         if (fieldOpt.isEmpty()) {
             return false;
         }
         Field field = fieldOpt.get();
         if (field.getType() != double.class) {
-            LOGGER.debug("Guzhenren field '{}' is not a double", fieldName);
+            LOGGER.debug("Guzhenren field '{}' is not a double", fieldKey.fieldName);
             return false;
         }
         try {
             field.setDouble(variables, value);
             return true;
         } catch (IllegalAccessException e) {
-            LOGGER.warn("Failed to write Guzhenren field '{}'", fieldName, e);
+            LOGGER.warn("Failed to write Guzhenren field '{}'", fieldKey.fieldName, e);
             return false;
         }
     }
@@ -182,6 +213,9 @@ public final class GuzhenrenResourceBridge {
         }
     }
 
+    /**
+     * 封装对单个玩家附件的读写操作。实例在 {@link #open(Player)} 时创建，并在操作成功后负责触发同步。
+     */
     public static final class ResourceHandle {
         private final Player player;
         private final Object variables;
@@ -191,28 +225,26 @@ public final class GuzhenrenResourceBridge {
             this.variables = variables;
         }
 
-        public boolean hasField(String fieldName) {
-            return resolveField(fieldName).isPresent();
-        }
-
-        public OptionalDouble readDouble(String fieldName) {
-            return GuzhenrenResourceBridge.readDouble(this.variables, fieldName);
-        }
-
-        public OptionalDouble writeDouble(String fieldName, double value) {
+        /**
+         * 写入指定字段并同步到客户端。
+         */
+        public OptionalDouble writeDouble(PlayerField fieldKey, double value) {
             if (!Double.isFinite(value)) {
-                LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldName, value);
+                LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldKey.fieldName, value);
                 return OptionalDouble.empty();
             }
-            if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldName, value)) {
+            if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
                 return OptionalDouble.empty();
             }
             sync(this.player, this.variables);
             return OptionalDouble.of(value);
         }
 
-        public OptionalDouble adjustDouble(String fieldName, double delta, boolean clampZero, String maxFieldName) {
-            OptionalDouble currentOpt = readDouble(fieldName);
+        /**
+         * 在原值基础上加减 {@code delta}，支持下限为 0 与上限裁剪。
+         */
+        public OptionalDouble adjustDouble(PlayerField fieldKey, double delta, boolean clampZero, PlayerField maxFieldKey) {
+            OptionalDouble currentOpt = GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
             if (currentOpt.isEmpty()) {
                 return OptionalDouble.empty();
             }
@@ -221,26 +253,108 @@ public final class GuzhenrenResourceBridge {
             if (clampZero) {
                 result = Math.max(0.0, result);
             }
-            if (maxFieldName != null) {
-                OptionalDouble maxValue = readDouble(maxFieldName);
+            if (maxFieldKey != null) {
+                OptionalDouble maxValue = GuzhenrenResourceBridge.readDouble(this.variables, maxFieldKey);
                 if (maxValue.isPresent()) {
                     result = Math.min(result, maxValue.getAsDouble());
                 }
             }
-            return writeDouble(fieldName, result);
+            return writeDouble(fieldKey, result);
         }
 
-        public OptionalDouble clampToMax(String fieldName, String maxFieldName) {
-            OptionalDouble currentOpt = readDouble(fieldName);
+        /**
+         * 将字段值限制在对应的最大字段之内。
+         */
+        public OptionalDouble clampToMax(PlayerField fieldKey, PlayerField maxFieldKey) {
+            OptionalDouble currentOpt = GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
             if (currentOpt.isEmpty()) {
                 return OptionalDouble.empty();
             }
-            OptionalDouble maxOpt = readDouble(maxFieldName);
+            OptionalDouble maxOpt = GuzhenrenResourceBridge.readDouble(this.variables, maxFieldKey);
             if (maxOpt.isEmpty()) {
                 return currentOpt;
             }
             double clamped = Math.min(currentOpt.getAsDouble(), maxOpt.getAsDouble());
-            return writeDouble(fieldName, clamped);
+            return writeDouble(fieldKey, clamped);
+        }
+
+        /**
+         * 按统一公式扣减真元：{@code baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96)}。
+         * 若附件缺失相关字段，则退化为直接扣 {@code baseCost}。
+         */
+        public OptionalDouble consumeScaledZhenyuan(double baseCost) {
+            if (baseCost <= 0 || !Double.isFinite(baseCost)) {
+                return OptionalDouble.empty();
+            }
+            OptionalDouble currentOpt = getZhenyuan();
+            if (currentOpt.isEmpty()) {
+                return OptionalDouble.empty();
+            }
+            double current = currentOpt.getAsDouble();
+            double jieduan = getJieduan().orElse(0.0);
+            double effectiveZhuanshu = Math.max(1.0, getZhuanshu().orElse(1.0));
+            double denominator = Math.pow(2.0, jieduan + effectiveZhuanshu * 4.0) * effectiveZhuanshu * 3.0 / 96.0;
+            double required = baseCost;
+            if (denominator > 0 && Double.isFinite(denominator)) {
+                required = baseCost / denominator;
+            }
+            if (!Double.isFinite(required) || required <= 0) {
+                required = baseCost;
+            }
+            if (current < required) {
+                return OptionalDouble.empty();
+            }
+            return adjustZhenyuan(-required, true);
+        }
+
+        /** 当前真元 */
+        public OptionalDouble getZhenyuan() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHENYUAN);
+        }
+
+        /** 设置真元 */
+        public OptionalDouble setZhenyuan(double value) {
+            return writeDouble(PlayerField.ZHENYUAN, value);
+        }
+
+        /** 真元增减（可选择限制为非负） */
+        public OptionalDouble adjustZhenyuan(double delta, boolean clampZero) {
+            return adjustDouble(PlayerField.ZHENYUAN, delta, clampZero, null);
+        }
+
+        /** 真元上限 */
+        public OptionalDouble getMaxZhenyuan() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_ZHENYUAN);
+        }
+
+        /** 阶段（阶位） */
+        public OptionalDouble getJieduan() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JIEDUAN);
+        }
+
+        /** 转数 */
+        public OptionalDouble getZhuanshu() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHUANSHU);
+        }
+
+        /** 当前精力 */
+        public OptionalDouble getJingli() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JINGLI);
+        }
+
+        /** 设置精力 */
+        public OptionalDouble setJingli(double value) {
+            return writeDouble(PlayerField.JINGLI, value);
+        }
+
+        /** 精力增减（可选非负、可选上限字段） */
+        public OptionalDouble adjustJingli(double delta, boolean clampZero) {
+            return adjustDouble(PlayerField.JINGLI, delta, clampZero, PlayerField.MAX_JINGLI);
+        }
+
+        /** 精力上限 */
+        public OptionalDouble getMaxJingli() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_JINGLI);
         }
     }
 }
