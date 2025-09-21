@@ -19,6 +19,9 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 
 import java.util.*;
 
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameRules;
+
 public class DefaultChestCavityType implements ChestCavityType {
 
     private Map<ResourceLocation,Float> defaultOrganScores = null;
@@ -204,6 +207,13 @@ public class DefaultChestCavityType implements ChestCavityType {
         if(cc.connectedCrystal != null) {
             cc.connectedCrystal.setBeamTarget(null);
             cc.connectedCrystal = null;
+        }
+        if (playerChestCavity && cc.owner instanceof Player player) {
+            if (player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
+                // Preserve organs entirely when gamerule keepInventory is enabled
+                cc.getChestCavityType().setOrganCompatibility(cc);
+                return;
+            }
         }
         if(cc.opened && !(playerChestCavity && ChestCavity.config.KEEP_CHEST_CAVITY)) {
             ChestCavityUtil.dropUnboundOrgans(cc);

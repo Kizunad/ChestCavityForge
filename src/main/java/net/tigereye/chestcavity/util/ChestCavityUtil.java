@@ -33,6 +33,8 @@ import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.*;
+import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenOrganHandlers;
+import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.tigereye.chestcavity.registration.*;
 
@@ -373,9 +375,14 @@ public class ChestCavityUtil {
         try {
             cc.inventory.removeListener(cc);
         } catch(NullPointerException ignored){}
+        boolean keepInventory = cc.owner instanceof Player player
+                && player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
         for(int i = 0; i < cc.inventory.getContainerSize(); i++){
             ItemStack itemStack = cc.inventory.getItem(i);
             if(itemStack != null && itemStack != ItemStack.EMPTY) {
+                if (keepInventory && OrganRetentionRules.shouldRetain(itemStack)) {
+                    continue;
+                }
                 int compatibility = getCompatibilityLevel(cc,itemStack);
                 if(compatibility < 2){
                     cc.owner.spawnAtLocation(cc.inventory.removeItemNoUpdate(i));
@@ -396,6 +403,8 @@ public class ChestCavityUtil {
         }
         else {
             cc.onHitListeners.clear();
+            cc.onFireListeners.clear();
+            cc.onHealListeners.clear();
             cc.getChestCavityType().loadBaseOrganScores(organScores);
 
             for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
@@ -404,12 +413,19 @@ public class ChestCavityUtil {
                     Item slotitem = itemStack.getItem();
 
                     OrganData data = lookupOrgan(itemStack,cc.getChestCavityType());
+                    GuzhenrenOrganHandlers.registerListeners(cc, itemStack);
                     if (data != null) {
                         data.organScores.forEach((key, value) ->
                                 addOrganScore(key, value * Math.min(((float)itemStack.getCount()) / itemStack.getMaxStackSize(),1),organScores)
                         );
                         if(slotitem instanceof OrganOnHitListener){
                             cc.onHitListeners.add(new OrganOnHitContext(itemStack,(OrganOnHitListener)slotitem));
+                        }
+                        if(slotitem instanceof OrganOnFireListener){
+                            cc.onFireListeners.add(new OrganOnFireContext(itemStack,(OrganOnFireListener)slotitem));
+                        }
+                        if(slotitem instanceof OrganHealListener){
+                            cc.onHealListeners.add(new OrganHealContext(itemStack,(OrganHealListener)slotitem));
                         }
                         if (!data.pseudoOrgan) {
                             int compatibility = getCompatibilityLevel(cc,itemStack);
@@ -542,6 +558,11 @@ public class ChestCavityUtil {
         ChestCavityInstance ccinstance = entity.getChestCavityInstance();
         ccinstance.getChestCavityType().onDeath(ccinstance);
         if(entity instanceof Player playerEntity){
+            boolean keepInventory = playerEntity.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
+            if (keepInventory) {
+                ccinstance.getChestCavityType().setOrganCompatibility(ccinstance);
+                return;
+            }
             if(!ChestCavity.config.KEEP_CHEST_CAVITY) {
                 Map<Integer,ItemStack> organsToKeep = new HashMap<>();
                 for (int i = 0; i < ccinstance.inventory.getContainerSize(); i++) {
@@ -580,6 +601,22 @@ public class ChestCavityUtil {
         }
         if(cc.opened) {
             OrganTickCallback.organTick(cc.owner, cc);
+            // Dispatch per-tick callbacks for organs that react while the owner is burning
+            if (cc.owner.isOnFire() && !cc.onFireListeners.isEmpty()) {
+                for (OrganOnFireContext ctx : cc.onFireListeners) {
+                    ctx.listener.onFireTick(cc.owner, cc, ctx.organ);
+                }
+            }
+            // Apply generic healing contributions once per tick (server-side)
+            if (!cc.owner.level().isClientSide() && !cc.onHealListeners.isEmpty()) {
+                float totalHeal = 0f;
+                for (OrganHealContext ctx : cc.onHealListeners) {
+                    totalHeal += Math.max(0f, ctx.listener.getHealingPerTick(cc.owner, cc, ctx.organ));
+                }
+                if (totalHeal > 0f && cc.owner.getHealth() < cc.owner.getMaxHealth()) {
+                    cc.owner.heal(totalHeal);
+                }
+            }
             organUpdate(cc);
         }
     }

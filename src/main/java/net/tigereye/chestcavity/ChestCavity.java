@@ -22,6 +22,7 @@ import net.tigereye.chestcavity.chestcavities.types.json.GeneratedChestCavityTyp
 import net.tigereye.chestcavity.network.NetworkHandler;
 import net.tigereye.chestcavity.network.ServerEvents;
 import net.tigereye.chestcavity.registration.*;
+import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
@@ -59,6 +60,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		bus.addListener(NetworkHandler::registerCommon);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerRespawn);
+		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerClone);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
 		NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
@@ -82,6 +84,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCStatusEffects.MOB_EFFECTS.register(bus);
 		bus.addListener(CCKeybindings::register);
 		CCTagOrgans.init();
+		OrganRetentionRules.registerNamespace(MODID);
+		OrganRetentionRules.registerNamespace("guzhenren");
 		//CCCommands.register();
 		//CCNetworkingPackets.register();
 		//ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new OrganManager());

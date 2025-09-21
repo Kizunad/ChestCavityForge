@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.network;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -26,6 +27,20 @@ public final class ServerEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             scheduleSync(player, false);
         }
+    }
+
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        if (!(event.getEntity() instanceof ServerPlayer clone)) {
+            return;
+        }
+        ChestCavityInstance original = CCAttachments.getExistingChestCavity(event.getOriginal()).orElse(null);
+        if (original == null) {
+            return;
+        }
+        ChestCavityInstance replacement = CCAttachments.getChestCavity(clone);
+        CompoundTag tag = new CompoundTag();
+        original.toTag(tag, clone.registryAccess());
+        replacement.fromTag(tag, clone, clone.registryAccess());
     }
 
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
