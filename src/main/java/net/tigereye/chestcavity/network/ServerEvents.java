@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
 
 public final class ServerEvents {
 
@@ -62,6 +63,7 @@ public final class ServerEvents {
                 ChestCavityUtil.insertWelfareOrgans(cc);
                 ChestCavityUtil.evaluateChestCavity(cc);
             }
+            ScoreboardUpgradeManager.applyAll(player, cc);
 
             if (includeOrganData) {
                 NetworkHandler.sendOrganData(player);

@@ -4,6 +4,7 @@ package net.tigereye.chestcavity.chestcavities.instance;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
@@ -37,6 +38,7 @@ public class ChestCavityInstance implements ContainerListener {
     protected Map<ResourceLocation,Float> organScores = new HashMap<>();
     public List<OrganOnHitContext> onHitListeners = new ArrayList<>();
     public LinkedList<Consumer<LivingEntity>> projectileQueue = new LinkedList<>();
+    private final Set<ResourceLocation> scoreboardUpgrades = new HashSet<>();
 
     public int heartBleedTimer = 0;
     public int bloodPoisonTimer = 0;
@@ -78,6 +80,18 @@ public class ChestCavityInstance implements ContainerListener {
 
     public float getOldOrganScore(ResourceLocation id) {
         return oldOrganScores.getOrDefault(id, 0f);
+    }
+
+    public boolean hasScoreboardUpgrade(ResourceLocation id) {
+        return scoreboardUpgrades.contains(id);
+    }
+
+    public void addScoreboardUpgrade(ResourceLocation id) {
+        scoreboardUpgrades.add(id);
+    }
+
+    public Set<ResourceLocation> getScoreboardUpgrades() {
+        return Collections.unmodifiableSet(scoreboardUpgrades);
     }
 
     @Override
@@ -123,6 +137,18 @@ public class ChestCavityInstance implements ContainerListener {
                 ChestCavityUtil.generateChestCavityIfOpened(this);
             }
             inventory.addListener(this);
+            if (ccTag.contains("ScoreboardUpgrades", 9)) {
+                scoreboardUpgrades.clear();
+                ListTag upgrades = ccTag.getList("ScoreboardUpgrades", 8);
+                for (int i = 0; i < upgrades.size(); i++) {
+                    String rawId = upgrades.getString(i);
+                    try {
+                        scoreboardUpgrades.add(ResourceLocation.parse(rawId));
+                    } catch (IllegalArgumentException ignored) {
+                        ChestCavity.LOGGER.warn("Ignored invalid scoreboard upgrade id '{}' while loading chest cavity data", rawId);
+                    }
+                }
+            }
         }
         else if(tag.contains("cardinal_components")){
             CompoundTag temp = tag.getCompound("cardinal_components");
@@ -161,6 +187,13 @@ public class ChestCavityInstance implements ContainerListener {
         ccTag.putInt("FurnaceProgress", this.furnaceProgress);
         ccTag.putInt("PhotosynthesisProgress", this.photosynthesisProgress);
         ccTag.put("Inventory", this.inventory.getTags(lookup));
+        if (!scoreboardUpgrades.isEmpty()) {
+            ListTag upgrades = new ListTag();
+            for (ResourceLocation id : scoreboardUpgrades) {
+                upgrades.add(StringTag.valueOf(id.toString()));
+            }
+            ccTag.put("ScoreboardUpgrades", upgrades);
+        }
         tag.put("ChestCavity",ccTag);
     }
 
@@ -187,6 +220,8 @@ public class ChestCavityInstance implements ContainerListener {
         lungRemainder = other.lungRemainder;
         furnaceProgress = other.furnaceProgress;
         connectedCrystal = other.connectedCrystal;
+        scoreboardUpgrades.clear();
+        scoreboardUpgrades.addAll(other.scoreboardUpgrades);
         ChestCavityUtil.evaluateChestCavity(this);
     }
 

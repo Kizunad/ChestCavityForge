@@ -595,6 +595,9 @@ public class ChestCavityUtil {
             generateChestCavityIfOpened(cc);
             cc.inventory.addListener(cc);
         }
+        if (cc.owner instanceof Player player && !player.level().isClientSide()) {
+            ScoreboardUpgradeManager.applyAll(player, cc);
+        }
         return cc.inventory;
     }
 

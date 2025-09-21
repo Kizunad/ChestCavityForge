@@ -10,6 +10,7 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCContainers;
+import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
 
 public class ChestCavityScreenHandler extends AbstractContainerMenu {
 
@@ -46,7 +47,26 @@ public class ChestCavityScreenHandler extends AbstractContainerMenu {
         int m;
         for(n = 0; n < this.rows; ++n) {
             for(m = 0; m < 9 && (n*9)+m < size; ++m) {
-                this.addSlot(new Slot(inventory, m + n * 9, 8 + m * 18, 18 + n * 18));//18 + n * 18));
+                final int slotIndex = m + n * 9;
+                this.addSlot(new Slot(inventory, slotIndex, 8 + m * 18, 18 + n * 18) {
+                    @Override
+                    public boolean mayPickup(Player player) {
+                        ChestCavityInstance instance = inventory.getInstance();
+                        if (instance != null && ScoreboardUpgradeManager.isSlotLocked(instance, slotIndex)) {
+                            return false;
+                        }
+                        return super.mayPickup(player);
+                    }
+
+                    @Override
+                    public boolean mayPlace(ItemStack stack) {
+                        ChestCavityInstance instance = inventory.getInstance();
+                        if (instance != null && ScoreboardUpgradeManager.isSlotLocked(instance, slotIndex)) {
+                            return false;
+                        }
+                        return super.mayPlace(stack);
+                    }
+                });
             }
         }
 
@@ -67,6 +87,12 @@ public class ChestCavityScreenHandler extends AbstractContainerMenu {
         ItemStack newStack = ItemStack.EMPTY;
         Slot slot = this.slots.get(invSlot);
         if (slot != null && slot.hasItem()) {
+            if (slot.container == this.inventory) {
+                ChestCavityInstance instance = inventory.getInstance();
+                if (instance != null && ScoreboardUpgradeManager.isSlotLocked(instance, slot.getSlotIndex())) {
+                    return ItemStack.EMPTY;
+                }
+            }
             ItemStack originalStack = slot.getItem();
             newStack = originalStack.copy();
             if (invSlot < this.inventory.getContainerSize()) {
