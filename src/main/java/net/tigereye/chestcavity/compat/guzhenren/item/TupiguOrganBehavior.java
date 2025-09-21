@@ -9,21 +9,27 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
- * 土脾蛊：站地时恢复精力并给予短暂跳跃增益。
+ * 土脾蛊：利用慢速 tick 减少开销，在玩家站地时按统一公式消耗真元并回精，附带短跳跃增益。
  */
-public enum TupiguOrganBehavior implements OrganOnGroundListener {
+public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
     INSTANCE;
 
     private static final double BASE_COST = 50.0;
-    private static final double JINGLI_PER_TICK = 1.0;
-    private static final int JUMP_EFFECT_TICKS = 10; // 0.5s 每 tick 20ms
+    private static final double JINGLI_PER_TRIGGER = 1.0;
+    private static final int JUMP_EFFECT_TICKS = 10;
     private static final int JUMP_AMPLIFIER = 0;
 
     @Override
     public void onGroundTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        // Work handled in onSlowTick to avoid per tick cost.
+    }
+
+    @Override
+    public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (!(entity instanceof Player player) || entity.level().isClientSide() || !player.onGround()) {
             return;
         }
 
@@ -33,7 +39,8 @@ public enum TupiguOrganBehavior implements OrganOnGroundListener {
             if (handle.consumeScaledZhenyuan(totalCost).isEmpty()) {
                 return;
             }
-            handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
+
+            handle.adjustJingli(JINGLI_PER_TRIGGER * stackCount, true);
 
             MobEffectInstance current = player.getEffect(MobEffects.JUMP);
             if (current == null || current.getDuration() <= JUMP_EFFECT_TICKS / 2) {
