@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 public enum TupiguOrganBehavior implements OrganOnGroundListener {
     INSTANCE;
 
+    private static final double BASE_COST = 50.0;
     private static final double JINGLI_PER_TICK = 1.0;
     private static final int JUMP_EFFECT_TICKS = 10; // 0.5s 每 tick 20ms
     private static final int JUMP_AMPLIFIER = 0;
@@ -26,13 +27,19 @@ public enum TupiguOrganBehavior implements OrganOnGroundListener {
             return;
         }
 
-        GuzhenrenResourceBridge.open(player).ifPresent(handle ->
-                handle.adjustJingli(JINGLI_PER_TICK * Math.max(1, organ.getCount()), true));
+        GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
+            int stackCount = Math.max(1, organ.getCount());
+            double totalCost = BASE_COST * stackCount;
+            if (handle.consumeScaledZhenyuan(totalCost).isEmpty()) {
+                return;
+            }
+            handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
 
-        MobEffectInstance current = player.getEffect(MobEffects.JUMP);
-        if (current == null || current.getDuration() <= JUMP_EFFECT_TICKS / 2) {
-            player.addEffect(new MobEffectInstance(MobEffects.JUMP, JUMP_EFFECT_TICKS, JUMP_AMPLIFIER, false, false, true));
-            player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.1f, 1.1f);
-        }
+            MobEffectInstance current = player.getEffect(MobEffects.JUMP);
+            if (current == null || current.getDuration() <= JUMP_EFFECT_TICKS / 2) {
+                player.addEffect(new MobEffectInstance(MobEffects.JUMP, JUMP_EFFECT_TICKS, JUMP_AMPLIFIER, false, false, true));
+                player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.1f, 1.1f);
+            }
+        });
     }
 }
