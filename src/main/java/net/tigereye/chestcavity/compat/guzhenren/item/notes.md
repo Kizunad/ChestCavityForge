@@ -112,8 +112,11 @@
   - 通道挂 `SaturationPolicy(soft=120, falloff=0.5)`，避免无限暴涨，可被其他骨道蛊读取；
   - Linkage 数值写入胸腔存档，下线重登保留累积进度。
 - 骨枪蛊（Gu Qiang Gu）
-  - 每秒判断 `bone_growth`；若能量 ≥ 10 × 堆叠数则扣除并给予 3s 力量增益（放大随堆叠而增）。
-  - 使用 `configureChannel` 挂接 ClampPolicy，保证能量不会被扣成负数。
+  - 缓存在 `guzhenren:linkage/bone_growth` 的能量并写入 `CustomData[GuQiangCharge]`；额外将层数同步到 `guzhenren:linkage/bone_damage_increase` 供后续联动。
+  - 每获得一次阈值能量（默认 60）触发骨裂与能量嗡鸣音效并点亮骨枪模型；最多叠 10 层。
+  - 命中后清空充能与增伤通道：
+    * 额外附加平滑衰减的物理伤害（base10，封顶 30）。
+    * 施加 `guzhenren:lliuxue` 流血效果，最高 10 级并按叠层平滑递增。
 - SlowTick 监听修复：即便列表为空，也会在 tick=20n 时触发 linkage 执行，避免“无监听”导致的休眠。
 
 ### 性能 & 模块化备忘
@@ -122,6 +125,19 @@
 - 若某些联动需要指数或线性平滑（如 `LinkageChannel` 值驱动充能加速），可通过 Policy 组合实现：`DecayPolicy` 控制回落，`SaturationPolicy` 限制上限，避免每次都算复杂曲线。
 - 主动联动（玩家操作）走 `TriggerEndpoint`，将冷却和广播放在 linkage 层，减少 ItemStack 自己维护定时器的成本。
 - 当检测到性能瓶颈时，可把 slow tick 调整为 40t 或以上级别，只要使用方按 `delta` 或 `tickSpan` 做比例缩放即可。
+
+将 骨枪蛊的效果替换为 NBTCharge ，使用 guzhenren:linkage/bone_growth 充能， 到达 X 点 后，  播放音效    { "name": "guzhenren:bone_crack", "volume": 0.8, "pitch": 1.0 },
+      { "name": "guzhenren:energy_hum", "volume": 0.5, "pitch": 0.9 } 
+      然后Render 骨枪
+On hit 
+特效占位符
+触发  流血
+状态效果命令：/effect give @p guzhenren:lliuxue 30 0
+此效果将持续造成等同于此效果等级乘以2的魔法伤害
+并且 造成 (base = 10) * bone_damage_increasement 点的物理伤害，若有item叠加，按照平滑曲线 
+最终效果递减在(base = 30)点伤害(不影响 bone_damage_increasement 增加最终伤害) ，
+同时 /effect give @p guzhenren:lliuxue 30 0 最大在10级 叠加item increasement递减(平滑曲线)
+
 
 
 

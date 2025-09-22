@@ -4,6 +4,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.listeners.OrganOnHitContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
 
 /**
@@ -37,6 +38,7 @@ public final class GuDaoOrganRegistry {
         }
         if (itemId.equals(BONE_SPEAR_ID)) {
             cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, GuQiangguOrganBehavior.INSTANCE));
+            cc.onHitListeners.add(new OrganOnHitContext(stack, GuQiangguOrganBehavior.INSTANCE));
             GuQiangguOrganBehavior.INSTANCE.ensureAttached(cc);
             return true;
         }

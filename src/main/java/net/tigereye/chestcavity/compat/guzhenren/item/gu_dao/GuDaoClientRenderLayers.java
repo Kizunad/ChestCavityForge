@@ -1,34 +1,26 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
-import net.neoforged.fml.ModList;
+import net.minecraft.client.resources.PlayerSkin;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.tigereye.chestcavity.ChestCavity;
 
-/** Client-side helpers that attach bone dao render layers to player models. */
+@EventBusSubscriber(modid = ChestCavity.MODID, value = Dist.CLIENT)
 public final class GuDaoClientRenderLayers {
 
     private GuDaoClientRenderLayers() {
     }
 
-    public static void register() {
-        if (!ModList.get().isLoaded("guzhenren")) {
-            return;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null) {
-            return;
-        }
-        minecraft.getEntityRenderDispatcher().getSkinMap().forEach((skin, renderer) -> {
-            if (renderer instanceof PlayerRenderer playerRenderer) {
-                attachLayer(playerRenderer);
+    @SubscribeEvent
+    public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for (PlayerSkin.Model skin : event.getSkins()) {
+            PlayerRenderer renderer = event.getSkin(skin);
+            if (renderer != null) {
+                renderer.addLayer(new GuQiangguRenderLayer(renderer));
             }
-        });
-    }
-
-    private static void attachLayer(PlayerRenderer renderer) {
-        if (renderer == null) {
-            return;
         }
-        renderer.addLayer(new GuQiangguRenderLayer(renderer));
     }
 }

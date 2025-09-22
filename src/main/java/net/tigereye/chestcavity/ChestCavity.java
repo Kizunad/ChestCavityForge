@@ -25,7 +25,6 @@ import net.tigereye.chestcavity.registration.*;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -99,7 +98,6 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 	}
 
 	public void doClientStuff(FMLClientSetupEvent event) {
-		event.enqueueWork(GuDaoClientRenderLayers::register);
 	}
 
 	private void registerMenuScreens(RegisterMenuScreensEvent event) {
