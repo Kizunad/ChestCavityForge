@@ -8,7 +8,10 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguO
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
 import net.tigereye.chestcavity.listeners.OrganOnHitContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
+
+import java.util.List;
 
 /**
  * Registry for 骨道蛊 items.
@@ -27,7 +30,7 @@ public final class GuDaoOrganRegistry {
     private GuDaoOrganRegistry() {
     }
 
-    public static boolean register(ChestCavityInstance cc, ItemStack stack) {
+    public static boolean register(ChestCavityInstance cc, ItemStack stack, List<OrganRemovalContext> staleRemovalContexts) {
         if (stack.isEmpty()) {
             return false;
         }
@@ -50,6 +53,7 @@ public final class GuDaoOrganRegistry {
         if (itemId.equals(JADE_BONE_ID)) {
             cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, YuGuguOrganBehavior.INSTANCE));
             YuGuguOrganBehavior.INSTANCE.ensureAttached(cc);
+            YuGuguOrganBehavior.INSTANCE.onEquip(cc, stack, staleRemovalContexts);
             return true;
         }
 

@@ -13,18 +13,22 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
-// 新增 import
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
+
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Base behavior for 玉骨蛊 (YuGuGu):
  */
-public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener {
+public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -57,6 +61,30 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
     /** 最大充能上限 */
     private static final int MAX_CHARGE = 100;
 
+    /** 玉骨蛊提供的最大效率增益。 */
+    private static final double EFFECT_MAX_BONUS = 0.1;
+
+    /** 当无法维持资源时，每次衰减的比例。 */
+    private static final double DECAY_FRACTION = 0.25;
+
+    /**
+     * Called when the stack is evaluated inside the chest cavity.
+     * Registers a removal listener and, on first insert, applies the baseline efficiency bonus.
+     */
+    public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
+        boolean alreadyRegistered = staleRemovalContexts.removeIf(old -> old.organ == organ && old.listener == this);
+        cc.onRemovedListeners.add(new OrganRemovalContext(organ, this));
+        if (alreadyRegistered) {
+            return;
+        }
+
+        int initialCharge = MAX_CHARGE;
+        NBTCharge.setCharge(organ, STATE_KEY, initialCharge);
+        double appliedEffect = computeEffect(initialCharge);
+        applyEffectDelta(cc, appliedEffect);
+        sendEquipMessage(appliedEffect);
+    }
+
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || entity.level().isClientSide()) {
@@ -64,43 +92,49 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         }
 
         int stackCount = Math.max(1, organ.getCount());
+        int currentCharge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
+        double previousEffect = computeEffect(currentCharge);
+
         double totalZhenyuanCost = ZHENYUAN_PER_CHARGE * stackCount;
-        double totalEnergyCost   = ENERGY_PER_CHARGE   * stackCount;
+        double totalEnergyCost = ENERGY_PER_CHARGE * stackCount;
 
-        // 先检查骨道能量通道是否足够
         LinkageChannel boneChannel = ensureChannel(cc, CHANNEL_ID);
-        if (boneChannel.get() < totalEnergyCost) {
-            return; // 能量不足
+        boolean resourcesPaid = false;
+        if (boneChannel.get() >= totalEnergyCost) {
+            var handleOpt = GuzhenrenResourceBridge.open(player);
+            if (handleOpt.isPresent() && handleOpt.get().consumeScaledZhenyuan(totalZhenyuanCost).isPresent()) {
+                resourcesPaid = true;
+
+                boneChannel.adjust(-totalEnergyCost);
+
+                LinkageChannel guDaoEffChannel = ensureChannel(cc, GU_DAO_INCREASE_EFFECT);
+                LinkageChannel tuDaoEffChannel = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
+                double totalEfficiency = (1 + guDaoEffChannel.get()) * (1 + tuDaoEffChannel.get());
+
+                LinkageChannel emeraldChannel = ensureChannel(cc, EMERALD_BONE_GROWTH_CHANNEL);
+                double before = emeraldChannel.get();
+                double gained = totalEfficiency * stackCount;
+                emeraldChannel.adjust(gained);
+
+                sendHarvestMessage(stackCount, before, before + gained, totalZhenyuanCost, totalEnergyCost, computeEffect(MAX_CHARGE));
+            }
         }
 
-        LinkageChannel guDaoEffChannel = ensureChannel(cc, GU_DAO_INCREASE_EFFECT);
-        double guDaoEfficiency = (1 + guDaoEffChannel.get());
-
-        LinkageChannel tuDaoEffChannel = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
-        double tuDaoEfficiency = (1 + tuDaoEffChannel.get());
-
-        double totalEfficiency = guDaoEfficiency * tuDaoEfficiency;
-
-        // 扣真元
-        var handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return; // 没有真元系统
-        }
-        var handle = handleOpt.get();
-        if (handle.consumeScaledZhenyuan(totalZhenyuanCost).isEmpty()) {
-            return; // 真元不足
+        int updatedCharge = resourcesPaid ? MAX_CHARGE : decayCharge(currentCharge);
+        if (updatedCharge != currentCharge) {
+            NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
-        // 扣能量
-        boneChannel.adjust(-totalEnergyCost);
+        double updatedEffect = computeEffect(updatedCharge);
+        double delta = updatedEffect - previousEffect;
+        if (delta != 0.0) {
+            applyEffectDelta(cc, delta);
+        }
 
-        // --- EmeraldBoneGrowthChannel 作为唯一的「充能」来源 ---
-        LinkageChannel emeraldChannel = ensureChannel(cc, EMERALD_BONE_GROWTH_CHANNEL);
-        double before = emeraldChannel.get();
-        double gained = totalEfficiency * stackCount;
-        emeraldChannel.adjust(gained);
-
-        sendDebugMessage(stackCount, before, before + gained, totalZhenyuanCost, totalEnergyCost);
+        if (!resourcesPaid && updatedCharge != currentCharge) {
+            sendDecayMessage(updatedCharge, updatedEffect);
+        }
     }
 
 
@@ -126,6 +160,17 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
                     .addPolicy(SOFT_CAP_POLICY);
     }
 
+    @Override
+    public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        int charge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
+        double effect = computeEffect(charge);
+        if (effect != 0.0) {
+            applyEffectDelta(cc, -effect);
+            sendRemovalMessage(effect);
+        }
+        NBTCharge.setCharge(organ, STATE_KEY, 0);
+    }
+
 
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
@@ -139,12 +184,57 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
 
 
-    private static void sendDebugMessage(int stackCount, double before, double after,
-                                     double consumedZhenyuan, double consumedEnergy) {
-    ChestCavity.LOGGER.info(
-        "[YuGugu] +{} (效率×叠加) EmeraldGrowth {:.1f} -> {:.1f} | 真元消耗={:.1f} | 能量消耗={:.1f}",
-        stackCount, before, after, consumedZhenyuan, consumedEnergy
-    );
-}
+    private static int clampCharge(int value) {
+        return Math.max(0, Math.min(MAX_CHARGE, value));
+    }
 
+    private static int decayCharge(int currentCharge) {
+        if (currentCharge <= 0) {
+            return 0;
+        }
+        int step = Math.max(1, (int) Math.ceil(currentCharge * DECAY_FRACTION));
+        return Math.max(0, currentCharge - step);
+    }
+
+    private static double computeEffect(int charge) {
+        if (charge <= 0) {
+            return 0.0;
+        }
+        double ratio = Math.min(1.0, charge / (double) MAX_CHARGE);
+        return EFFECT_MAX_BONUS * ratio;
+    }
+
+    private static void applyEffectDelta(ChestCavityInstance cc, double delta) {
+        if (delta == 0.0) {
+            return;
+        }
+        LinkageChannel guDao = ensureChannel(cc, GU_DAO_INCREASE_EFFECT);
+        LinkageChannel tuDao = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
+        guDao.adjust(delta);
+        tuDao.adjust(delta);
+    }
+
+    private static void sendEquipMessage(double effect) {
+        ChestCavity.LOGGER.info(String.format(Locale.ROOT, "[YuGugu] equip -> 增效 %.3f", effect));
+    }
+
+    private static void sendHarvestMessage(int stackCount, double before, double after,
+                                           double consumedZhenyuan, double consumedEnergy, double effect) {
+        ChestCavity.LOGGER.info(String.format(
+            Locale.ROOT,
+            "[YuGugu] +%d EmeraldGrowth %.1f -> %.1f | 真元消耗=%.1f | 能量消耗=%.1f | 增效=%.3f",
+            stackCount, before, after, consumedZhenyuan, consumedEnergy, effect
+        ));
+    }
+
+    private static void sendDecayMessage(int updatedCharge, double effect) {
+        ChestCavity.LOGGER.info(String.format(Locale.ROOT,
+            "[YuGugu] 资源不足 -> 衰减 charge=%d (增效 %.3f)",
+            updatedCharge, effect
+        ));
+    }
+
+    private static void sendRemovalMessage(double effect) {
+        ChestCavity.LOGGER.info(String.format(Locale.ROOT, "[YuGugu] removed -> 撤销增效 %.3f", effect));
+    }
 }

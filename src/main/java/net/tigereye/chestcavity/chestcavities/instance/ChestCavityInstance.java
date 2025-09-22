@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
 import net.tigereye.chestcavity.listeners.OrganOnHitContext;
 import net.tigereye.chestcavity.listeners.OrganHealContext;
 import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
@@ -48,6 +49,7 @@ public class ChestCavityInstance implements ContainerListener {
     public List<OrganHealContext> onHealListeners = new ArrayList<>();
     public List<OrganOnGroundContext> onGroundListeners = new ArrayList<>();
     public List<OrganSlowTickContext> onSlowTickListeners = new ArrayList<>();
+    public List<OrganRemovalContext> onRemovedListeners = new ArrayList<>();
     public LinkedList<Consumer<LivingEntity>> projectileQueue = new LinkedList<>();
     private final Set<ResourceLocation> scoreboardUpgrades = new HashSet<>();
 
