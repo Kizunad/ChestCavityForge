@@ -34,11 +34,22 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
     private static final ResourceLocation BONE_GROWTH_CHANNEL = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bone_growth");
     private static final ResourceLocation BLEED_EFFECT_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "lliuxue");
 
+    private static final double SOFT_CAP = 120.0;
+    private static final double FALL_OFF = 0.5;
+    
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
+    private static final SaturationPolicy SOFT_CAP_POLICY = new SaturationPolicy(SOFT_CAP, FALL_OFF);
 
     private static final String STATE_KEY = "GuQiangCharge";
     private static final double ENERGY_PER_CHARGE = 60.0;
     private static final int MAX_CHARGE = 10;
+
+    private static final ResourceLocation EMERALD_BONE_GROWTH_CHANNEL =
+        ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/emerald_bone_growth");
+
+    private static final ResourceLocation GU_DAO_INCREASE_EFFECT =
+        ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/gu_dao_increase_effect");
+
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -46,7 +57,7 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
             return;
         }
 
-        LinkageChannel growth = ensureChannel(cc);
+        LinkageChannel growth = ensureChannel(cc,BONE_GROWTH_CHANNEL);
         int current = NBTCharge.getCharge(organ, STATE_KEY);
         int room = Math.max(0, MAX_CHARGE - current);
         if (room <= 0) {
@@ -68,13 +79,25 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     /** 在注册阶段调用一次，确保通道存在并挂载策略。 */
     public void ensureAttached(ChestCavityInstance cc) {
-        ensureChannel(cc);
+        ensureChannelSoft(cc,BONE_GROWTH_CHANNEL);
+        ensureChannel(cc,EMERALD_BONE_GROWTH_CHANNEL);
+        ensureChannel(cc,GU_DAO_INCREASE_EFFECT);
     }
 
-    private static LinkageChannel ensureChannel(ChestCavityInstance cc) {
+    private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
-        return context.configureChannel(BONE_GROWTH_CHANNEL, channel -> channel.addPolicy(NON_NEGATIVE));
+        return context.getOrCreateChannel(id)
+                    .addPolicy(NON_NEGATIVE);
     }
+
+            // --- 通用初始化 ---
+    private static LinkageChannel ensureChannelSoft(ChestCavityInstance cc, ResourceLocation id) {
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        return context.getOrCreateChannel(id)
+                    .addPolicy(NON_NEGATIVE)
+                    .addPolicy(SOFT_CAP_POLICY);
+    }
+
 
     private static void sendDebugMessage(int gained, int total, double remainingEnergy) {
         ChestCavity.LOGGER.info("[GuQiang] CHARGE +{} -> {} (energy={})", gained, total, String.format("%.1f", remainingEnergy));

@@ -32,10 +32,18 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
     private static final ResourceLocation CHANNEL_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bone_growth");
 
+    private static final ResourceLocation EMERALD_BONE_GROWTH_CHANNEL =
+        ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/emerald_bone_growth");
+    private static final ResourceLocation TU_DAO_INCREASE_EFFECT =
+        ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/tu_dao_increase_effect");
+    private static final ResourceLocation GU_DAO_INCREASE_EFFECT =
+        ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/gu_dao_increase_effect");
+
     private static final double PASSIVE_GAIN = 5.0;
     private static final double ACTIVE_GAIN = 20.0;
     private static final double SOFT_CAP = 120.0;
     private static final double FALL_OFF = 0.5;
+    
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
     private static final SaturationPolicy SOFT_CAP_POLICY = new SaturationPolicy(SOFT_CAP, FALL_OFF);
 
@@ -45,15 +53,24 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
             return;
         }
         int count = Math.max(1, organ.getCount());
-        LinkageChannel channel = ensureChannel(cc);
+
+        LinkageChannel channel = ensureChannel(cc,CHANNEL_ID);
+
+        LinkageChannel guDaoEffChannel = ensureChannel(cc, GU_DAO_INCREASE_EFFECT);
+        double guDaoEfficiency = (1 + guDaoEffChannel.get());
+
         double previous = channel.get();
-        double expected = PASSIVE_GAIN * count;
+        
+        // 一转就不用扣点数了
+        double expected = PASSIVE_GAIN * count * guDaoEfficiency;
+
         double newValue = channel.adjust(expected);
         double actual = newValue - previous;
         if (actual > 0.0) {
             sendDebugMessage((Player) entity, "PASSIVE", actual, newValue);
             handleSoftCapCross((Player) entity, previous, newValue);
         }
+        
     }
 
     /** Triggered when the player uses bone meal; applies the active boost when off cooldown. */
@@ -66,7 +83,7 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
             return false;
         }
 
-        LinkageChannel channel = ensureChannel(cc);
+        LinkageChannel channel = ensureChannel(cc,CHANNEL_ID);
         double previous = channel.get();
         double expected = ACTIVE_GAIN * totalStacks;
         double newValue = channel.adjust(expected);
@@ -83,19 +100,28 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
 
     /** Prepares the linkage channel for this chest cavity (idempotent). */
     public void ensureAttached(ChestCavityInstance cc) {
-        ensureChannel(cc);
+        ensureChannelSoft(cc,CHANNEL_ID);
+        ensureChannelSoft(cc,EMERALD_BONE_GROWTH_CHANNEL);
+        ensureChannel(cc,GU_DAO_INCREASE_EFFECT);
     }
 
     public boolean hasOrgan(ChestCavityInstance cc) {
         return countOrgans(cc) > 0;
     }
 
-    private static LinkageChannel ensureChannel(ChestCavityInstance cc) {
+        // --- 通用初始化 ---
+    private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
-        return context.lookupChannel(CHANNEL_ID)
-                .orElseGet(() -> context.getOrCreateChannel(CHANNEL_ID)
-                        .addPolicy(NON_NEGATIVE)
-                        .addPolicy(SOFT_CAP_POLICY));
+        return context.getOrCreateChannel(id)
+                    .addPolicy(NON_NEGATIVE);
+    }
+
+            // --- 通用初始化 ---
+    private static LinkageChannel ensureChannelSoft(ChestCavityInstance cc, ResourceLocation id) {
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        return context.getOrCreateChannel(id)
+                    .addPolicy(NON_NEGATIVE)
+                    .addPolicy(SOFT_CAP_POLICY);
     }
 
     private static int countOrgans(ChestCavityInstance cc) {

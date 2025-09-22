@@ -15,6 +15,7 @@ import java.util.OptionalDouble;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+
 /**
  * Reflection-based bridge for interacting with the Guzhenren mod's player variables attachment.
  * <p>

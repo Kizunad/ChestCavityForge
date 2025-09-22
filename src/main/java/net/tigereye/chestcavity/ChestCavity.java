@@ -28,6 +28,9 @@ import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+
 @Mod(ChestCavity.MODID)
 public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix organUtil class, possibly update to 4?, add alexs mobs and other mods compat
 
@@ -58,6 +61,10 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		bus.addListener(this::registerMenuScreens);
 		bus.addListener(this::doServerStuff);
 		bus.addListener(NetworkHandler::registerCommon);
+
+		bus.addListener(GuDaoClientRenderLayers::onAddLayers);
+
+
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerRespawn);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerClone);
