@@ -1,19 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
-import net.tigereye.chestcavity.listeners.OrganOnFireContext;
-import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
-import net.tigereye.chestcavity.listeners.OrganRemovalContext;
-import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
-
-import java.util.List;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
- * Centralised registration for the Wu Hang (五行蛊) organ behaviours.
+ * Declarative registration for the Wu Hang (五行蛊) organ behaviours.
  */
 public final class WuHangOrganRegistry {
 
@@ -25,40 +16,35 @@ public final class WuHangOrganRegistry {
     private static final ResourceLocation JINFEIGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jinfeigu");
     private static final ResourceLocation SHUISHENGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "shuishengu");
 
+    static {
+        GuzhenrenLinkageEffectRegistry.registerSingle(HUOXINGU_ID, context ->
+                context.addOnFireListener(HuoxinguOrganBehavior.INSTANCE)
+        );
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(TUPIGU_ID, context -> {
+            context.addOnGroundListener(TupiguOrganBehavior.INSTANCE);
+            context.addSlowTickListener(TupiguOrganBehavior.INSTANCE);
+        });
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(MUGANGU_ID, context ->
+                context.addSlowTickListener(MuganguOrganBehavior.INSTANCE)
+        );
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(JINFEIGU_ID, context ->
+                context.addSlowTickListener(JinfeiguOrganBehavior.INSTANCE)
+        );
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(SHUISHENGU_ID, context -> {
+            context.addSlowTickListener(ShuishenguOrganBehavior.INSTANCE);
+            context.addIncomingDamageListener(ShuishenguOrganBehavior.INSTANCE);
+        });
+    }
+
     private WuHangOrganRegistry() {
     }
 
-    public static boolean register(ChestCavityInstance cc, ItemStack stack, List<OrganRemovalContext> ignoredRemovalContexts) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (itemId == null) {
-            return false;
-        }
-        boolean handled = false;
-        if (itemId.equals(HUOXINGU_ID)) {
-            cc.onFireListeners.add(new OrganOnFireContext(stack, HuoxinguOrganBehavior.INSTANCE));
-            handled = true;
-        }
-        if (itemId.equals(TUPIGU_ID)) {
-            cc.onGroundListeners.add(new OrganOnGroundContext(stack, TupiguOrganBehavior.INSTANCE));
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, TupiguOrganBehavior.INSTANCE));
-            handled = true;
-        }
-        if (itemId.equals(MUGANGU_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, MuganguOrganBehavior.INSTANCE));
-            handled = true;
-        }
-        if (itemId.equals(JINFEIGU_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, JinfeiguOrganBehavior.INSTANCE));
-            handled = true;
-        }
-        if (itemId.equals(SHUISHENGU_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, ShuishenguOrganBehavior.INSTANCE));
-            cc.onDamageListeners.add(new OrganIncomingDamageContext(stack, ShuishenguOrganBehavior.INSTANCE));
-            handled = true;
-        }
-        return handled;
+    /** Forces static initialisation to occur. */
+    public static void bootstrap() {
+        // no-op
     }
 }
