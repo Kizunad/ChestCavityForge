@@ -420,7 +420,7 @@ public class ChestCavityUtil {
                     Item slotitem = itemStack.getItem();
 
                     OrganData data = lookupOrgan(itemStack,cc.getChestCavityType());
-                    GuzhenrenOrganHandlers.registerListeners(cc, itemStack);
+                    GuzhenrenOrganHandlers.registerListeners(cc, itemStack, staleRemovalContexts);
                     if (data != null) {
                         data.organScores.forEach((key, value) ->
                                 addOrganScore(key, value * Math.min(((float)itemStack.getCount()) / itemStack.getMaxStackSize(),1),organScores)

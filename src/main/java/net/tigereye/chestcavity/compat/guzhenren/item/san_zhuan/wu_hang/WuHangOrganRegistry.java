@@ -7,7 +7,10 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
 import net.tigereye.chestcavity.listeners.OrganOnFireContext;
 import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
+
+import java.util.List;
 
 /**
  * Centralised registration for the Wu Hang (五行蛊) organ behaviours.
@@ -25,7 +28,7 @@ public final class WuHangOrganRegistry {
     private WuHangOrganRegistry() {
     }
 
-    public static boolean register(ChestCavityInstance cc, ItemStack stack) {
+    public static boolean register(ChestCavityInstance cc, ItemStack stack, List<OrganRemovalContext> ignoredRemovalContexts) {
         if (stack.isEmpty()) {
             return false;
         }
