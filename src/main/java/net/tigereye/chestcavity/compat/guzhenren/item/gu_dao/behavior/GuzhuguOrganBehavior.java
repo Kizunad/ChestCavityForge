@@ -154,7 +154,8 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         if (player == null || player.level().isClientSide()) {
             return;
         }
-        if (previous < SOFT_CAP && updated >= SOFT_CAP) {
+        // 设定: 100 超过 20 冗余
+        if (previous < (SOFT_CAP-20) && updated >= (SOFT_CAP-20)) {
             playSoftCapEffects(player);
         }
     }
