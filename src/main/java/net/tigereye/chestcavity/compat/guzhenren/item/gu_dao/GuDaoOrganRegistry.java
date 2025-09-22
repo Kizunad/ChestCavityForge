@@ -13,6 +13,7 @@ public final class GuDaoOrganRegistry {
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation BONE_BAMBOO_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
+    private static final ResourceLocation BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_qiang_gu");
 
     static {
         GuDaoOrganEvents.register();
@@ -32,6 +33,11 @@ public final class GuDaoOrganRegistry {
         if (itemId.equals(BONE_BAMBOO_ID)) {
             cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, GuzhuguOrganBehavior.INSTANCE));
             GuzhuguOrganBehavior.INSTANCE.ensureAttached(cc);
+            return true;
+        }
+        if (itemId.equals(BONE_SPEAR_ID)) {
+            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, GuQiangguOrganBehavior.INSTANCE));
+            GuQiangguOrganBehavior.INSTANCE.ensureAttached(cc);
             return true;
         }
         return false;

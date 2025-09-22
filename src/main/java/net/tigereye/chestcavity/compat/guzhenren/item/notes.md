@@ -111,6 +111,9 @@
   - 食用骨粉（无冷却）额外 +20 × 堆叠数；
   - 通道挂 `SaturationPolicy(soft=120, falloff=0.5)`，避免无限暴涨，可被其他骨道蛊读取；
   - Linkage 数值写入胸腔存档，下线重登保留累积进度。
+- 骨枪蛊（Gu Qiang Gu）
+  - 每秒判断 `bone_growth`；若能量 ≥ 10 × 堆叠数则扣除并给予 3s 力量增益（放大随堆叠而增）。
+  - 使用 `configureChannel` 挂接 ClampPolicy，保证能量不会被扣成负数。
 - SlowTick 监听修复：即便列表为空，也会在 tick=20n 时触发 linkage 执行，避免“无监听”导致的休眠。
 
 ### 性能 & 模块化备忘
