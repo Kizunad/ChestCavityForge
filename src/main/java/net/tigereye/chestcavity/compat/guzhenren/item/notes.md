@@ -138,11 +138,27 @@ On hit
 最终效果递减在(base = 30)点伤害(不影响 bone_damage_increasement 增加最终伤害) ，
 同时 /effect give @p guzhenren:lliuxue 30 0 最大在10级 叠加item increasement递减(平滑曲线)
 
+虎骨蛊 "item.guzhenren.hugugu": "虎骨蛊",
 
+- 受到 变化道BIAN_HUA_DAO_INCREASE_EFFECT 力道LI_DAO_INCREASE_EFFECT 骨道GU_DAO_INCREASE_EFFECT 效率增益
+变量:
+- NBT MAX Charge : 20
+- Minimal Damage : 10 
+- Max Return Damage: 50
+- onSlowTick : 如果 未满 0.5 * NBT MAX Charge 附加 玩家 虚弱 缓慢 疲劳 饥饿，并且 回复 0.25点 Charge，并且 尝试消耗 10 精力和 500 BASE 真元 若能够消耗 则 再恢复 0.25点 Charge
+  若 > 0.5 则 每次 onSlowTick 回复 0.1 点，无损耗
+- onIncomingDamage: 若 伤害 < Minimal Damage 则:return 
+  若 伤害 >=  Minimal Damage: 则:
+    (以下是可受到增益变量，药水效果int 四舍五入，若没有备注则都是 BASE 乘SUM(1+INCREASE))
+    对玩家 effect 20(BASE) 点 饱和生命值
+    对玩家 effect 0(BASE+增益INCREASE) 抗性
+    对玩家 effect 1(BASE) 点速度 和跳跃提升
+    以上药水效果时常 1 Minute (BASE)
 
+    将 IncomingDamage 的 entity 击退，并且 反弹 0.5 * Damage Max Return (Damage*(1+SUM(INCREASE)) )
 
-
-
+  
+    
 
 
 
