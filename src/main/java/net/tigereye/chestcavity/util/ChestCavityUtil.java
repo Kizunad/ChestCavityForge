@@ -401,14 +401,17 @@ public class ChestCavityUtil {
             if(cc.getChestCavityType().getDefaultOrganScores() != null) {
                 organScores.putAll(cc.getChestCavityType().getDefaultOrganScores());
             }
+            cc.onRemovedListeners.clear();
         }
         else {
             cc.onHitListeners.clear();
             cc.onDamageListeners.clear();
             cc.onFireListeners.clear();
+            List<OrganRemovalContext> staleRemovalContexts = new ArrayList<>(cc.onRemovedListeners);
             cc.onHealListeners.clear();
             cc.onGroundListeners.clear();
             cc.onSlowTickListeners.clear();
+            cc.onRemovedListeners.clear();
             cc.getChestCavityType().loadBaseOrganScores(organScores);
 
             for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
@@ -417,7 +420,7 @@ public class ChestCavityUtil {
                     Item slotitem = itemStack.getItem();
 
                     OrganData data = lookupOrgan(itemStack,cc.getChestCavityType());
-                    GuzhenrenOrganHandlers.registerListeners(cc, itemStack);
+                    GuzhenrenOrganHandlers.registerListeners(cc, itemStack, staleRemovalContexts);
                     if (data != null) {
                         data.organScores.forEach((key, value) ->
                                 addOrganScore(key, value * Math.min(((float)itemStack.getCount()) / itemStack.getMaxStackSize(),1),organScores)
@@ -440,6 +443,10 @@ public class ChestCavityUtil {
                         if(slotitem instanceof OrganSlowTickListener){
                             cc.onSlowTickListeners.add(new OrganSlowTickContext(itemStack,(OrganSlowTickListener)slotitem));
                         }
+                        if(slotitem instanceof OrganRemovalListener removalListener){
+                            cc.onRemovedListeners.add(new OrganRemovalContext(itemStack, removalListener));
+                            staleRemovalContexts.removeIf(old -> old.organ == itemStack && old.listener == removalListener);
+                        }
                         if (!data.pseudoOrgan) {
                             int compatibility = getCompatibilityLevel(cc,itemStack);
                             if(compatibility < 1){
@@ -448,6 +455,11 @@ public class ChestCavityUtil {
                         }
                     }
 
+                }
+            }
+            if (cc.owner != null) {
+                for (OrganRemovalContext context : staleRemovalContexts) {
+                    context.listener.onRemoved(cc.owner, cc, context.organ);
                 }
             }
         }
