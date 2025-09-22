@@ -12,6 +12,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
+import net.tigereye.chestcavity.network.packets.ChestCavityOrganSlotUpdatePayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePayload;
 import net.tigereye.chestcavity.network.packets.OrganDataPayload;
 
@@ -24,6 +25,7 @@ public final class NetworkHandler {
         registrar.playToServer(ChestCavityHotkeyPayload.TYPE, ChestCavityHotkeyPayload.STREAM_CODEC, ChestCavityHotkeyPayload::handle);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
+        registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
     }
 
 
@@ -37,5 +39,9 @@ public final class NetworkHandler {
             entries.add(new OrganDataPayload.Entry(entry.getKey(), entry.getValue().pseudoOrgan, entry.getValue().organScores));
         }
         player.connection.send(new OrganDataPayload(entries));
+    }
+
+    public static void sendOrganSlotUpdate(ServerPlayer player, ChestCavityOrganSlotUpdatePayload payload) {
+        player.connection.send(payload);
     }
 }

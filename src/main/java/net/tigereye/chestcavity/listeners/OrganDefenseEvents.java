@@ -22,19 +22,33 @@ public final class OrganDefenseEvents {
     @SubscribeEvent
     public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
         LivingEntity victim = event.getEntity();
-        Optional<ChestCavityEntity> chestCavity = ChestCavityEntity.of(victim);
-        if (chestCavity.isEmpty()) {
+        float incoming = event.getAmount();
+        if (incoming <= 0f) {
             return;
         }
 
-        float original = event.getAmount();
-        if (original <= 0f) {
-            return;
+        float modified = incoming;
+
+        if (event.getSource().getEntity() instanceof LivingEntity attacker) {
+            Optional<ChestCavityEntity> attackerCavity = ChestCavityEntity.of(attacker);
+            if (attackerCavity.isPresent()) {
+                float adjusted = ChestCavityUtil.onHit(attackerCavity.get().getChestCavityInstance(), event.getSource(), victim, modified);
+                if (adjusted != modified) {
+                    modified = Math.max(0f, adjusted);
+                }
+            }
         }
 
-        float modified = ChestCavityUtil.onIncomingDamage(chestCavity.get().getChestCavityInstance(), event.getSource(), original);
-        if (modified != original) {
-            event.setAmount(Math.max(0f, modified));
+        Optional<ChestCavityEntity> defender = ChestCavityEntity.of(victim);
+        if (defender.isPresent() && modified > 0f) {
+            float defended = ChestCavityUtil.onIncomingDamage(defender.get().getChestCavityInstance(), event.getSource(), modified);
+            if (defended != modified) {
+                modified = Math.max(0f, defended);
+            }
+        }
+
+        if (modified != incoming) {
+            event.setAmount(modified);
         }
     }
 }

@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.linkage;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
 import java.util.ArrayList;
@@ -167,7 +168,8 @@ public final class ActiveLinkageContext {
     private static ResourceLocation parseId(String raw) {
         try {
             return ResourceLocation.parse(raw);
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException ex) {
+            ChestCavity.LOGGER.warn("Ignoring invalid Guzhenren linkage id '{}' during load", raw, ex);
             return null;
         }
     }

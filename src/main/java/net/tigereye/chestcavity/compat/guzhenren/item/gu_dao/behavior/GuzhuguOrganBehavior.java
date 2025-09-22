@@ -1,9 +1,8 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
+package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -13,6 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -47,10 +47,13 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         int count = Math.max(1, organ.getCount());
         LinkageChannel channel = ensureChannel(cc);
         double previous = channel.get();
-        double delta = PASSIVE_GAIN * count;
-        double newValue = channel.adjust(delta);
-        sendDebugMessage((Player) entity, "PASSIVE", delta, newValue);
-        handleSoftCapCross((Player) entity, previous, newValue);
+        double expected = PASSIVE_GAIN * count;
+        double newValue = channel.adjust(expected);
+        double actual = newValue - previous;
+        if (actual > 0.0) {
+            sendDebugMessage((Player) entity, "PASSIVE", actual, newValue);
+            handleSoftCapCross((Player) entity, previous, newValue);
+        }
     }
 
     /** Triggered when the player uses bone meal; applies the active boost when off cooldown. */
@@ -65,9 +68,14 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
 
         LinkageChannel channel = ensureChannel(cc);
         double previous = channel.get();
-        double delta = ACTIVE_GAIN * totalStacks;
-        double newValue = channel.adjust(delta);
-        sendDebugMessage(player, "ACTIVE", delta, newValue);
+        double expected = ACTIVE_GAIN * totalStacks;
+        double newValue = channel.adjust(expected);
+        double actual = newValue - previous;
+        if (actual <= 0.0) {
+            return false;
+        }
+
+        sendDebugMessage(player, "ACTIVE", actual, newValue);
         playCatalystCue(player.level(), player);
         handleSoftCapCross(player, previous, newValue);
         return true;
@@ -109,13 +117,11 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BONE_BLOCK_PLACE, SoundSource.PLAYERS, 0.6f, 1.2f);
     }
 
-    private static void sendDebugMessage(Player player, String action, double delta, double newValue) {
+    private static void sendDebugMessage(Player player, String action, double actual, double newValue) {
         if (player == null || player.level().isClientSide()) {
             return;
         }
-        Component message = Component.literal(String.format("[Guzhugu] %s +%.1f => %.1f", action, delta, newValue));
-        player.sendSystemMessage(message);
-        player.displayClientMessage(message, false);
+        ChestCavity.LOGGER.info("[Guzhugu] {} +{} -> {}", action, String.format("%.1f", actual), String.format("%.1f", newValue));
     }
 
     private static void handleSoftCapCross(Player player, double previous, double updated) {

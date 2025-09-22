@@ -4,6 +4,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.listeners.OrganOnHitContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
 
