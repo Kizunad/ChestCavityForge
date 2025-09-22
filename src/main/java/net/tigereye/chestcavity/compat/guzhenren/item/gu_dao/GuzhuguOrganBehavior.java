@@ -132,7 +132,8 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.BONE_MEAL_USE, SoundSource.PLAYERS, 0.9f, 1.1f);
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 0.7f, 1.4f);
+                SoundEvents.SKELETON_HURT, SoundSource.PLAYERS, 0.7f, 1.0f);
+
 
         if (level instanceof ServerLevel server) {
             spawnRing(server, player, ParticleTypes.CRIT, 16, 0.8);
