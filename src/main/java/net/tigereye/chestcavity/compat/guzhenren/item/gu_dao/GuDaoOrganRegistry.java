@@ -1,20 +1,14 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
-import net.tigereye.chestcavity.listeners.OrganOnHitContext;
-import net.tigereye.chestcavity.listeners.OrganRemovalContext;
-import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
-
-import java.util.List;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
- * Registry for 骨道蛊 items.
+ * Declarative registry for 骨道蛊 items. Each behaviour is registered through the
+ * {@link GuzhenrenLinkageEffectRegistry} so that listener wiring stays consistent.
  */
 public final class GuDaoOrganRegistry {
 
@@ -25,38 +19,34 @@ public final class GuDaoOrganRegistry {
 
     static {
         GuDaoOrganEvents.register();
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(BONE_BAMBOO_ID, context -> {
+            context.addSlowTickListener(GuzhuguOrganBehavior.INSTANCE);
+            GuzhuguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
+        });
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(BONE_SPEAR_ID, context -> {
+            context.addSlowTickListener(GuQiangguOrganBehavior.INSTANCE);
+            context.addOnHitListener(GuQiangguOrganBehavior.INSTANCE);
+            GuQiangguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
+        });
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(JADE_BONE_ID, context -> {
+            context.addSlowTickListener(YuGuguOrganBehavior.INSTANCE);
+            YuGuguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
+            YuGuguOrganBehavior.INSTANCE.onEquip(
+                    context.chestCavity(),
+                    context.sourceOrgan(),
+                    context.staleRemovalContexts()
+            );
+        });
     }
 
     private GuDaoOrganRegistry() {
     }
 
-    public static boolean register(ChestCavityInstance cc, ItemStack stack, List<OrganRemovalContext> staleRemovalContexts) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (itemId == null) {
-            return false;
-        }
-
-        if (itemId.equals(BONE_BAMBOO_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, GuzhuguOrganBehavior.INSTANCE));
-            GuzhuguOrganBehavior.INSTANCE.ensureAttached(cc);
-            return true;
-        }
-        if (itemId.equals(BONE_SPEAR_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, GuQiangguOrganBehavior.INSTANCE));
-            cc.onHitListeners.add(new OrganOnHitContext(stack, GuQiangguOrganBehavior.INSTANCE));
-            GuQiangguOrganBehavior.INSTANCE.ensureAttached(cc);
-            return true;
-        }
-        if (itemId.equals(JADE_BONE_ID)) {
-            cc.onSlowTickListeners.add(new OrganSlowTickContext(stack, YuGuguOrganBehavior.INSTANCE));
-            YuGuguOrganBehavior.INSTANCE.ensureAttached(cc);
-            YuGuguOrganBehavior.INSTANCE.onEquip(cc, stack, staleRemovalContexts);
-            return true;
-        }
-
-        return false;
+    /** Forces class initialisation so the static registration block runs. */
+    public static void bootstrap() {
+        // no-op
     }
 }

@@ -119,20 +119,25 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
         return damage;
         }
 
+        LinkageChannel guDaoEffChannel = ensureChannel(cc,GU_DAO_INCREASE_EFFECT);
+        double guDaoEfficiency = (1 + guDaoEffChannel.get());
+
             // 消耗 1 点充能（注意下限）
         int updated = Math.max(0, charge - 1);
         NBTCharge.setCharge(organ, STATE_KEY, updated);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
-        applyBleed(target);
-        float result = damage + 10.0f;
-        sendHitDebug(String.format("damage +10 => %.1f (charge=%d)", result, updated));
+        applyBleed(target, guDaoEfficiency);
+        float bonusDamage = (float)(10.0 * guDaoEfficiency);
+        float result = damage + bonusDamage;
+        sendHitDebug(String.format("damage +%.1f => %.1f (charge=%d, efficiency=%.2f)", bonusDamage, result, updated, guDaoEfficiency));
         return result;
     }
 
-    private static void applyBleed(LivingEntity target) {
+    private static void applyBleed(LivingEntity target, double guDaoEfficiency) {
+        int scaledAmplifier = Math.max(0, (int)Math.round(guDaoEfficiency) - 1);
         Optional<Holder.Reference<net.minecraft.world.effect.MobEffect>> holder = BuiltInRegistries.MOB_EFFECT.getHolder(BLEED_EFFECT_ID);
-        holder.ifPresent(effect -> target.addEffect(new MobEffectInstance(effect, 200, 0, false, true, true)));
+        holder.ifPresent(effect -> target.addEffect(new MobEffectInstance(effect, 200, scaledAmplifier, false, true, true)));
     }
 
     private static void sendHitDebug(String message) {

@@ -56,7 +56,7 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
 
         LinkageChannel channel = ensureChannel(cc,CHANNEL_ID);
 
-        LinkageChannel guDaoEffChannel = ensureChannel(cc, GU_DAO_INCREASE_EFFECT);
+        LinkageChannel guDaoEffChannel = ensureChannel(cc,GU_DAO_INCREASE_EFFECT);
         double guDaoEfficiency = (1 + guDaoEffChannel.get());
 
         double previous = channel.get();
@@ -83,9 +83,12 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
             return false;
         }
 
+        LinkageChannel guDaoEffChannel = ensureChannel(cc,GU_DAO_INCREASE_EFFECT);
+        double guDaoEfficiency = (1 + guDaoEffChannel.get());
+
         LinkageChannel channel = ensureChannel(cc,CHANNEL_ID);
         double previous = channel.get();
-        double expected = ACTIVE_GAIN * totalStacks;
+        double expected = ACTIVE_GAIN * totalStacks * guDaoEfficiency;
         double newValue = channel.adjust(expected);
         double actual = newValue - previous;
         if (actual <= 0.0) {
