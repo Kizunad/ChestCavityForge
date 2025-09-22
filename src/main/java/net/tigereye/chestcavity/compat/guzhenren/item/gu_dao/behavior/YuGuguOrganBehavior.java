@@ -55,7 +55,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
     private static final double ZHENYUAN_PER_CHARGE = 500.0;
 
     /** 每 1 点充能需要的能量（比如 linkage 通道里的能量值） */
-    private static final double ENERGY_PER_CHARGE = 50.0;
+    private static final double ENERGY_PER_CHARGE = 20.0;
 
     /** 最大充能上限 */
     private static final int MAX_CHARGE = 100;
@@ -64,7 +64,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
     private static final double EFFECT_MAX_BONUS = 0.1;
 
     /** 当无法维持资源时，每次衰减的比例。 */
-    private static final double DECAY_FRACTION = 0.25;
+    private static final double DECAY_FRACTION = 0.05;
 
     /**
      * Called when the stack is evaluated inside the chest cavity.
