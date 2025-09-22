@@ -23,6 +23,7 @@ import net.tigereye.chestcavity.listeners.OrganHealContext;
 import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -117,9 +118,10 @@ public class ChestCavityInstance implements ContainerListener {
     public void fromTag(CompoundTag tag, LivingEntity owner, HolderLookup.Provider lookup) {
         LOGGER.debug("[Chest Cavity] Reading ChestCavityManager fromTag");
         this.owner = owner;
+        CompoundTag ccTag = null;
         if(tag.contains("ChestCavity")){
             ChestCavity.printOnDebug("Found Save Data");
-            CompoundTag ccTag = tag.getCompound("ChestCavity");
+            ccTag = tag.getCompound("ChestCavity");
             this.opened = ccTag.getBoolean("opened");
             this.heartBleedTimer = ccTag.getInt("HeartTimer");
             this.bloodPoisonTimer = ccTag.getInt("KidneyTimer");
@@ -178,6 +180,9 @@ public class ChestCavityInstance implements ContainerListener {
             }
         }
         ChestCavityUtil.evaluateChestCavity(this);
+        if (ccTag != null) {
+            GuzhenrenLinkageManager.load(this, ccTag);
+        }
     }
 
     public void toTag(CompoundTag tag) {
@@ -204,6 +209,7 @@ public class ChestCavityInstance implements ContainerListener {
             }
             ccTag.put("ScoreboardUpgrades", upgrades);
         }
+        GuzhenrenLinkageManager.save(this, ccTag);
         tag.put("ChestCavity",ccTag);
     }
 

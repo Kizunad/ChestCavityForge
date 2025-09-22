@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -16,13 +17,10 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
-import java.util.Map;
-import java.util.WeakHashMap;
-
 /**
  * Bone Bamboo Gu (骨竹蛊) grows a shared bone_growth linkage channel.
  * Passive: each slow tick adds +5 per organ stack.
- * Active: using bone meal near the player injects +20 per stack, with a 40-tick cooldown.
+ * Active: using bone meal near the player injects +20 per stack.
  */
 public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
     INSTANCE;
@@ -33,13 +31,10 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
 
     private static final double PASSIVE_GAIN = 5.0;
     private static final double ACTIVE_GAIN = 20.0;
-    private static final int ACTIVE_COOLDOWN_TICKS = 40;
     private static final double SOFT_CAP = 120.0;
     private static final double FALL_OFF = 0.5;
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
     private static final SaturationPolicy SOFT_CAP_POLICY = new SaturationPolicy(SOFT_CAP, FALL_OFF);
-
-    private static final Map<ChestCavityInstance, Long> LAST_ACTIVE = new WeakHashMap<>();
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -47,7 +42,10 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
             return;
         }
         int count = Math.max(1, organ.getCount());
-        ensureChannel(cc).adjust(PASSIVE_GAIN * count);
+        LinkageChannel channel = ensureChannel(cc);
+        double delta = PASSIVE_GAIN * count;
+        double newValue = channel.adjust(delta);
+        sendDebugMessage((Player) entity, "PASSIVE", delta, newValue);
     }
 
     /** Triggered when the player uses bone meal; applies the active boost when off cooldown. */
@@ -59,15 +57,11 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         if (totalStacks <= 0) {
             return false;
         }
-        long gameTime = player.level().getGameTime();
-        synchronized (LAST_ACTIVE) {
-            long last = LAST_ACTIVE.getOrDefault(cc, Long.MIN_VALUE);
-            if (gameTime - last < ACTIVE_COOLDOWN_TICKS) {
-                return false;
-            }
-            LAST_ACTIVE.put(cc, gameTime);
-        }
-        ensureChannel(cc).adjust(ACTIVE_GAIN * totalStacks);
+
+        LinkageChannel channel = ensureChannel(cc);
+        double delta = ACTIVE_GAIN * totalStacks;
+        double newValue = channel.adjust(delta);
+        sendDebugMessage(player, "ACTIVE", delta, newValue);
         playCatalystCue(player.level(), player);
         return true;
     }
@@ -106,5 +100,14 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
 
     private static void playCatalystCue(Level level, Player player) {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BONE_BLOCK_PLACE, SoundSource.PLAYERS, 0.6f, 1.2f);
+    }
+
+    private static void sendDebugMessage(Player player, String action, double delta, double newValue) {
+        if (player == null || player.level().isClientSide()) {
+            return;
+        }
+        Component message = Component.literal(String.format("[Guzhugu] %s +%.1f => %.1f", action, delta, newValue));
+        player.sendSystemMessage(message);
+        player.displayClientMessage(message, false);
     }
 }

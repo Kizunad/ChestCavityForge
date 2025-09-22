@@ -108,8 +108,9 @@
   - `guzhenren:linkage/mugangu_regen_rate`：当次慢速回复百分比（带 0.05/s 衰减），用于被动联动的权重输入。
 - 骨竹蛊（Bone Bamboo Gu）驱动 `guzhenren:linkage/bone_growth`：
   - 每秒 +5 × 堆叠数；
-  - 食用骨粉（40t 冷却）额外 +20 × 堆叠数；
-  - 通道挂 `SaturationPolicy(soft=120, falloff=0.5)`，避免无限暴涨，可被其他骨道蛊读取。
+  - 食用骨粉（无冷却）额外 +20 × 堆叠数；
+  - 通道挂 `SaturationPolicy(soft=120, falloff=0.5)`，避免无限暴涨，可被其他骨道蛊读取；
+  - Linkage 数值写入胸腔存档，下线重登保留累积进度。
 - SlowTick 监听修复：即便列表为空，也会在 tick=20n 时触发 linkage 执行，避免“无监听”导致的休眠。
 
 ### 性能 & 模块化备忘
