@@ -23,7 +23,9 @@ import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
 
 import java.util.List;
+
 import java.util.Locale;
+
 
 /**
  * Base behavior for 玉骨蛊 (YuGuGu):
@@ -220,6 +222,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
     private static void sendHarvestMessage(int stackCount, double before, double after,
                                            double consumedZhenyuan, double consumedEnergy, double effect) {
+
         ChestCavity.LOGGER.info(String.format(
             Locale.ROOT,
             "[YuGugu] +%d EmeraldGrowth %.1f -> %.1f | 真元消耗=%.1f | 能量消耗=%.1f | 增效=%.3f",
