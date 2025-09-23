@@ -21,7 +21,6 @@ public final class GuDaoOrganRegistry {
     private static final ResourceLocation SPIRAL_BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "luo_xuan_gu_qiang_gu");
     private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
     private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
-    private static final ResourceLocation JIANJITENG_BLOCK_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jianjiteng");
 
     static {
         GuDaoOrganEvents.register();
