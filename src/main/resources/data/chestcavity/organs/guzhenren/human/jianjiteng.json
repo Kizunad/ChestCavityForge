@@ -1,0 +1,7 @@
+{
+  "itemID": "guzhenren:jianjiteng",
+  "organScores": [
+    {"id":"chestcavity:defense","value": "0.01"},
+    {"id":"chestcavity:nerves","value": "0.01"}
+  ]
+}
