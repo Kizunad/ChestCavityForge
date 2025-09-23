@@ -28,6 +28,7 @@ import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
@@ -62,7 +63,10 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		bus.addListener(this::doServerStuff);
 		bus.addListener(NetworkHandler::registerCommon);
 
-		bus.addListener(GuDaoClientRenderLayers::onAddLayers);
+                if (FMLEnvironment.dist.isClient()) {
+                        bus.addListener(GuDaoClientAbilities::onClientSetup);
+                }
+                bus.addListener(GuDaoClientRenderLayers::onAddLayers);
 
 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
