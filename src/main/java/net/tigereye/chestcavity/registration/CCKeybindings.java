@@ -22,6 +22,10 @@ public class CCKeybindings {
     public static ResourceLocation ATTACK_ABILITIES_ID = ChestCavity.id("attack_abilities");
     public static List<ResourceLocation> ATTACK_ABILITY_LIST = new ArrayList<>();
 
+    public static KeyMapping WOODEN_SHOVEL_TICK_RATE;
+    public static KeyMapping WOODEN_SHOVEL_FREEZE;
+    public static KeyMapping WOODEN_SHOVEL_UNFREEZE;
+
     public static KeyMapping CREEPY;
     public static KeyMapping DRAGON_BREATH;
     public static KeyMapping DRAGON_BOMBS;
@@ -48,6 +52,10 @@ public class CCKeybindings {
         GRAZING = register(event, CCOrganScores.GRAZING, ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_KP_DECIMAL, false);
         SHULKER_BULLETS = register(event, CCOrganScores.SHULKER_BULLETS, ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_KP_DECIMAL, true);
         SILK = register(event, CCOrganScores.SILK, ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_KP_DECIMAL, false);
+
+        WOODEN_SHOVEL_TICK_RATE = registerStandalone(event, "key." + ChestCavity.MODID + ".wooden_shovel_tick_rate", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_H);
+        WOODEN_SHOVEL_FREEZE = registerStandalone(event, "key." + ChestCavity.MODID + ".wooden_shovel_freeze", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_J);
+        WOODEN_SHOVEL_UNFREEZE = registerStandalone(event, "key." + ChestCavity.MODID + ".wooden_shovel_unfreeze", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_K);
     }
 
     private static KeyMapping register(RegisterKeyMappingsEvent event, ResourceLocation id, String category, int defaultKey, boolean isAttack){
@@ -59,6 +67,17 @@ public class CCKeybindings {
         );
         if(isAttack) {ATTACK_ABILITY_LIST.add(id);}
         else {UTILITY_ABILITY_LIST.add(id);}
+        event.register(keyMapping);
+        return keyMapping;
+    }
+
+    private static KeyMapping registerStandalone(RegisterKeyMappingsEvent event, String translationKey, String category, int defaultKey) {
+        KeyMapping keyMapping = new KeyMapping(
+                translationKey,
+                InputConstants.Type.KEYSYM,
+                defaultKey,
+                "category." + ChestCavity.MODID + "." + category
+        );
         event.register(keyMapping);
         return keyMapping;
     }
