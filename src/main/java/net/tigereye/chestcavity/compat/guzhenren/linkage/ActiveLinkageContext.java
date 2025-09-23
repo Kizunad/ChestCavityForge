@@ -25,10 +25,12 @@ public final class ActiveLinkageContext {
     private final ChestCavityInstance chestCavity;
     private final Map<ResourceLocation, LinkageChannel> channels = new LinkedHashMap<>();
     private final EnumMap<TriggerType, List<TriggerEndpoint>> triggers = new EnumMap<>(TriggerType.class);
+    private final IncreaseEffectLedger increaseEffects;
     private CompoundTag deferredLoadData;
 
     ActiveLinkageContext(ChestCavityInstance chestCavity) {
         this.chestCavity = chestCavity;
+        this.increaseEffects = new IncreaseEffectLedger(this);
         if (ChestCavity.LOGGER.isDebugEnabled()) {
             ChestCavity.LOGGER.debug("[Guzhenren] Initialising linkage context backing {}", describeOwner());
         }
@@ -72,6 +74,10 @@ public final class ActiveLinkageContext {
         LinkageChannel channel = getOrCreateChannel(id);
         configurator.accept(channel);
         return channel;
+    }
+
+    public IncreaseEffectLedger increaseEffects() {
+        return increaseEffects;
     }
 
     /** Registers a trigger endpoint to be fired when the matching {@link TriggerType} is broadcast. */

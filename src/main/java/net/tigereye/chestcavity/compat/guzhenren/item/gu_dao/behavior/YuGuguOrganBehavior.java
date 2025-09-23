@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
 import net.tigereye.chestcavity.ChestCavity;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,6 +11,8 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
@@ -31,7 +34,7 @@ import java.util.Locale;
 /**
  * Base behavior for 玉骨蛊 (YuGuGu):
  */
-public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener {
+public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -44,8 +47,6 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/gu_dao_increase_effect");
     private static final ResourceLocation TU_DAO_INCREASE_EFFECT =
         ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/tu_dao_increase_effect");
-
-
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final double SOFT_CAP = 120.0;
@@ -75,6 +76,11 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
      * Registers a removal listener and, on first insert, applies the baseline efficiency bonus.
      */
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
+
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        ledger.registerContributor(organ, this, GU_DAO_INCREASE_EFFECT, TU_DAO_INCREASE_EFFECT);
+      
         int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
         boolean alreadyRegistered = staleRemovalContexts.removeIf(old -> ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, this));
         cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, this));
@@ -85,7 +91,8 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         int initialCharge = MAX_CHARGE;
         NBTCharge.setCharge(organ, STATE_KEY, initialCharge);
         double appliedEffect = computeEffect(initialCharge);
-        applyEffectDelta(cc, appliedEffect);
+        applyEffectDelta(cc, organ, appliedEffect);
+        ledger.verifyAndRebuildIfNeeded();
         sendEquipMessage(appliedEffect);
     }
 
@@ -133,7 +140,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         double updatedEffect = computeEffect(updatedCharge);
         double delta = updatedEffect - previousEffect;
         if (delta != 0.0) {
-            applyEffectDelta(cc, delta);
+            applyEffectDelta(cc, organ, delta);
         }
 
         if (!resourcesPaid && updatedCharge != currentCharge) {
@@ -152,13 +159,22 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         // --- 通用初始化 ---
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
-        return context.getOrCreateChannel(id)
-                    .addPolicy(NON_NEGATIVE);
+        return ensureChannel(context, id);
     }
 
             // --- 通用初始化 ---
     private static LinkageChannel ensureChannelSoft(ChestCavityInstance cc, ResourceLocation id) {
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        return ensureChannelSoft(context, id);
+    }
+
+    private static LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation id) {
+        return context.getOrCreateChannel(id)
+                    .addPolicy(NON_NEGATIVE);
+    }
+
+            // --- 通用初始化 ---
+    private static LinkageChannel ensureChannelSoft(ActiveLinkageContext context, ResourceLocation id) {
         return context.getOrCreateChannel(id)
                     .addPolicy(NON_NEGATIVE)
                     .addPolicy(SOFT_CAP_POLICY);
@@ -169,10 +185,16 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         int charge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
         double effect = computeEffect(charge);
         if (effect != 0.0) {
-            applyEffectDelta(cc, -effect);
+            applyEffectDelta(cc, organ, -effect);
             sendRemovalMessage(effect);
         }
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        ledger.remove(organ, GU_DAO_INCREASE_EFFECT);
+        ledger.remove(organ, TU_DAO_INCREASE_EFFECT);
+        ledger.unregisterContributor(organ);
         NBTCharge.setCharge(organ, STATE_KEY, 0);
+        ledger.verifyAndRebuildIfNeeded();
     }
 
 
@@ -208,14 +230,60 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         return EFFECT_MAX_BONUS * ratio;
     }
 
-    private static void applyEffectDelta(ChestCavityInstance cc, double delta) {
-        if (delta == 0.0) {
+    private static void applyEffectDelta(ChestCavityInstance cc, ItemStack organ, double delta) {
+        if (delta == 0.0 || cc == null) {
             return;
         }
-        LinkageChannel guDao = ensureChannel(cc, GU_DAO_INCREASE_EFFECT);
-        LinkageChannel tuDao = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
-        guDao.adjust(delta);
-        tuDao.adjust(delta);
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        LinkageChannel guDao = ensureChannel(context, GU_DAO_INCREASE_EFFECT);
+        LinkageChannel tuDao = ensureChannel(context, TU_DAO_INCREASE_EFFECT);
+        double guValue = guDao.adjust(delta);
+        double tuValue = tuDao.adjust(delta);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        double guContribution = ledger.adjust(organ, GU_DAO_INCREASE_EFFECT, delta);
+        double tuContribution = ledger.adjust(organ, TU_DAO_INCREASE_EFFECT, delta);
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[YuGugu] 记录增效 Δ{} organ={} count={} -> GU:{} ({}) TU:{} ({})",
+                    String.format(Locale.ROOT, "%.3f", delta),
+                    describeStack(organ),
+                    organ == null ? 0 : Math.max(1, organ.getCount()),
+                    String.format(Locale.ROOT, "%.3f", guValue),
+                    String.format(Locale.ROOT, "%.3f", guContribution),
+                    String.format(Locale.ROOT, "%.3f", tuValue),
+                    String.format(Locale.ROOT, "%.3f", tuContribution)
+            );
+        }
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        int stackCount = Math.max(1, organ.getCount());
+        int charge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
+        double effect = computeEffect(charge);
+        if (effect == 0.0) {
+            registrar.record(GU_DAO_INCREASE_EFFECT, stackCount, 0.0);
+            registrar.record(TU_DAO_INCREASE_EFFECT, stackCount, 0.0);
+            return;
+        }
+        registrar.record(GU_DAO_INCREASE_EFFECT, stackCount, effect);
+        registrar.record(TU_DAO_INCREASE_EFFECT, stackCount, effect);
+    }
+
+    private static String describeStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "<empty>";
+        }
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return id == null ? "<unknown>" : id.toString();
     }
 
     private static void sendEquipMessage(double effect) {
