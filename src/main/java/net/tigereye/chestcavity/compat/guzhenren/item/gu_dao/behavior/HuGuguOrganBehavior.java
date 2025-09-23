@@ -51,7 +51,9 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     private static final int BONUS_RECOVERY_LOW_UNITS = (int)Math.round(0.25 * CHARGE_SCALE);
     private static final int RECOVERY_HIGH_UNITS = (int)Math.round(0.10 * CHARGE_SCALE);
 
+
     private static final double MIN_DAMAGE_THRESHOLD = 10.0;
+
     private static final double BASE_REFLECT_RATIO = 0.5;
     private static final double BASE_MAX_REFLECT = 50.0;
 
@@ -64,7 +66,7 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
 
     private static final double EPSILON = 1.0E-4;
     private static final int DAMAGE_TRIGGER_COST_UNITS = CHARGE_SCALE;
-
+  
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || entity.level().isClientSide()) {
@@ -80,6 +82,7 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         if (currentUnits < HALF_CHARGE_UNITS) {
             applyLowChargeDebuffs(player);
             addedUnits += BASE_RECOVERY_LOW_UNITS;
+
 
             if (tryConsumeLowChargeResources(player)) {
                 addedUnits += BONUS_RECOVERY_LOW_UNITS;
@@ -149,6 +152,7 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         if (damage < MIN_DAMAGE_THRESHOLD) {
             return damage;
         }
+
 
         if (!consumeChargeUnits(cc, organ, DAMAGE_TRIGGER_COST_UNITS)) {
             return damage;
@@ -288,4 +292,5 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         NetworkUtil.sendOrganSlotUpdate(cc, stack);
         return true;
     }
+
 }

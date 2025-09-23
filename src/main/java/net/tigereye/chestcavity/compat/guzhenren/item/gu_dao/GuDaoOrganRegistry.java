@@ -18,7 +18,7 @@ public final class GuDaoOrganRegistry {
     private static final ResourceLocation BONE_BAMBOO_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
     private static final ResourceLocation BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_qiang_gu");
     private static final ResourceLocation SPIRAL_BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "luo_xuan_gu_qiang_gu");
-    private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hu_gu_gu");
+    private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
     private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
 
     static {
@@ -40,7 +40,6 @@ public final class GuDaoOrganRegistry {
             context.addOnHitListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
             LuoXuanGuQiangguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
         });
-
         GuzhenrenLinkageEffectRegistry.registerSingle(TIGER_BONE_ID, context -> {
             context.addSlowTickListener(HuGuguOrganBehavior.INSTANCE);
             context.addIncomingDamageListener(HuGuguOrganBehavior.INSTANCE);

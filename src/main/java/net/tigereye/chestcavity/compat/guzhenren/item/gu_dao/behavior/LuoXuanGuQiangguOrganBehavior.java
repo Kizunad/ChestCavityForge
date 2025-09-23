@@ -14,6 +14,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ArrowItem;
+
+import net.minecraft.world.item.ProjectileWeaponItem;
+
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
@@ -76,7 +79,9 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
             return;
         }
 
+
         if (!tryConsumeRechargeResources(player)) {
+
             return;
         }
 
@@ -97,6 +102,7 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
     }
+
 
     private static boolean tryConsumeRechargeResources(Player player) {
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
@@ -190,7 +196,9 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
         Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.4));
         Vec3 direction = player.getLookAngle().normalize();
 
-        AbstractArrow projectile = ((ArrowItem) Items.ARROW).createArrow(level, new ItemStack(Items.ARROW), player, ItemStack.EMPTY);
+
+        AbstractArrow projectile = ((ArrowItem) Items.ARROW).createArrow(level, new ItemStack(Items.ARROW), player, findCompatibleWeapon(player));
+
         projectile.setSoundEvent(SoundEvents.ARROW_HIT);
         projectile.setBaseDamage(damage);
         projectile.pickup = AbstractArrow.Pickup.DISALLOWED;
@@ -207,6 +215,24 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SKELETON_AMBIENT, SoundSource.PLAYERS, 0.7f, 1.0f);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 1.0f, 1.2f);
         return true;
+    }
+
+    private static ItemStack findCompatibleWeapon(Player player) {
+        ItemStack mainHand = player.getMainHandItem();
+        if (isProjectileWeapon(mainHand)) {
+            return mainHand.copy();
+        }
+
+        ItemStack offHand = player.getOffhandItem();
+        if (isProjectileWeapon(offHand)) {
+            return offHand.copy();
+        }
+
+        return Items.BOW.getDefaultInstance();
+    }
+
+    private static boolean isProjectileWeapon(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof ProjectileWeaponItem;
     }
 
     private static void applyCustomPickupItem(AbstractArrow projectile, ItemStack pickup) {
