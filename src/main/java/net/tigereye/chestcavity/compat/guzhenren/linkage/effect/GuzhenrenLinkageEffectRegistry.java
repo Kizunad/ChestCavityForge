@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.linkage.effect;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 
@@ -44,6 +45,13 @@ public final class GuzhenrenLinkageEffectRegistry {
         synchronized (DEFINITIONS) {
             DEFINITIONS.computeIfAbsent(primaryOrgan, unused -> new ArrayList<>()).add(definition);
         }
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Registered linkage effect for {} with requirements {}",
+                    primaryOrgan,
+                    requirements
+            );
+        }
         return definition;
     }
 
@@ -72,6 +80,9 @@ public final class GuzhenrenLinkageEffectRegistry {
         }
         ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (itemId == null) {
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Unable to resolve item id for stack {} while applying effects", stack);
+            }
             return false;
         }
         List<LinkageEffectDefinition> definitions;
@@ -79,16 +90,39 @@ public final class GuzhenrenLinkageEffectRegistry {
             definitions = DEFINITIONS.get(itemId);
         }
         if (definitions == null || definitions.isEmpty()) {
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] No linkage effects registered for {}", itemId);
+            }
             return false;
+        }
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Applying {} linkage definitions for item {} on cavity {}",
+                    definitions.size(),
+                    itemId,
+                    cc == null || cc.owner == null ? "<unbound>" : cc.owner.getScoreboardName()
+            );
         }
         boolean applied = false;
         for (LinkageEffectDefinition definition : definitions) {
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Evaluating linkage definition {} for {}", definition, itemId);
+            }
             Optional<LinkageEffectContext> contextOpt = definition.createContext(cc, stack, staleRemovalContexts);
             if (contextOpt.isEmpty()) {
+                if (ChestCavity.LOGGER.isTraceEnabled()) {
+                    ChestCavity.LOGGER.trace("[Guzhenren] Requirements not met for linkage definition {} on {}", definition, itemId);
+                }
                 continue;
+            }
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug("[Guzhenren] Executing linkage effect {} for {}", definition.effect(), itemId);
             }
             definition.effect().apply(contextOpt.get());
             applied = true;
+        }
+        if (!applied && ChestCavity.LOGGER.isTraceEnabled()) {
+            ChestCavity.LOGGER.trace("[Guzhenren] No linkage effects executed for {}", itemId);
         }
         return applied;
     }
@@ -144,8 +178,25 @@ public final class GuzhenrenLinkageEffectRegistry {
             for (Map.Entry<ResourceLocation, Integer> requirement : requirements.entrySet()) {
                 int have = presentCounts.getOrDefault(requirement.getKey(), 0);
                 if (have < requirement.getValue()) {
+                    if (ChestCavity.LOGGER.isTraceEnabled()) {
+                        ChestCavity.LOGGER.trace(
+                                "[Guzhenren] Missing requirement {}x{} for {} (found {})",
+                                requirement.getValue(),
+                                requirement.getKey(),
+                                primaryOrgan,
+                                have
+                        );
+                    }
                     return Optional.empty();
                 }
+            }
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug(
+                        "[Guzhenren] Linkage definition for {} matched stacks {} (counts {})",
+                        primaryOrgan,
+                        matchingStacks,
+                        presentCounts
+                );
             }
             return Optional.of(new DefaultLinkageEffectContext(
                     cc,
@@ -155,6 +206,14 @@ public final class GuzhenrenLinkageEffectRegistry {
                     presentCounts,
                     staleRemovalContexts
             ));
+        }
+
+        @Override
+        public String toString() {
+            return "LinkageEffectDefinition{" +
+                    "primary=" + primaryOrgan +
+                    ", requirements=" + requirements +
+                    '}';
         }
     }
 }
