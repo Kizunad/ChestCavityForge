@@ -12,6 +12,8 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
@@ -28,7 +30,7 @@ import java.util.Optional;
  * - 按阈值转换为 Charge 并写入器官 NBT
  * - 参考骨竹蛊的调试播报输出增量
  */
-public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener {
+public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -142,5 +144,15 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     private static void sendHitDebug(String message) {
         ChestCavity.LOGGER.info("[GuQiang] {}", message);
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // GuQianggu does not contribute to INCREASE effects.
     }
 }

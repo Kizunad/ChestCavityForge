@@ -8,13 +8,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
  * Tupigu converts zhenyuan into jingli boosts on a slow cadence with a small jump bonus.
  */
-public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
+public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final double BASE_COST = 400.0;
@@ -48,5 +51,15 @@ public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickL
                 player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.1f, 1.1f);
             }
         });
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // Tupigu does not contribute to INCREASE effects.
     }
 }

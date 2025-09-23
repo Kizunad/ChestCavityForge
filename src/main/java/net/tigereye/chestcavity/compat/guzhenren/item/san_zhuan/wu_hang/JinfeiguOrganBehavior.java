@@ -7,13 +7,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
  * Jinfeigu converts surplus hunger into absorption hearts on a slow tick cadence.
  */
-public enum JinfeiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
+public enum JinfeiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final int FULL_FOOD_LEVEL = 20;
@@ -75,5 +78,15 @@ public enum JinfeiguOrganBehavior implements OrganOnGroundListener, OrganSlowTic
 
     private static float heartsFromAmplifier(int amplifier) {
         return (amplifier + 1) * 2.0f;
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // Jinfeigu does not contribute to INCREASE effects.
     }
 }

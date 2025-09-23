@@ -9,6 +9,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.DecayPolicy;
@@ -21,7 +23,7 @@ import java.util.Set;
 /**
  * Mugangu regenerates zhenyuan each slow tick, with optional jingli cost when the five-element set is incomplete.
  */
-public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener {
+public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -139,5 +141,15 @@ public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTick
         double fraction = Math.min(1.0, missing / max);
         double scaled = baseAmount * (1.0 - Math.exp(-REGEN_ALPHA * fraction));
         return Double.isFinite(scaled) ? Math.max(0.0, scaled) : 0.0;
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // Mugangu does not contribute to INCREASE effects.
     }
 }

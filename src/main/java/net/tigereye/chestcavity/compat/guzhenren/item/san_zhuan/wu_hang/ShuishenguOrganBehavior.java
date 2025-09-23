@@ -17,6 +17,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -39,7 +41,7 @@ import net.tigereye.chestcavity.util.NBTCharge;
  * - Visuals: charging bubbles rising near feet; conduit-power for a subtle water outline; END_ROD/SOUL bursts on full.
  * - Sounds: bubble-column during charge, beacon select on full, splash every mitigation, shield-break on depletion.
  */
-public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, OrganIncomingDamageListener {
+public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, OrganIncomingDamageListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -260,5 +262,15 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         LinkageChannel channel = context.lookupChannel(CHARGE_CHANNEL_ID)
                 .orElseGet(() -> context.getOrCreateChannel(CHARGE_CHANNEL_ID).addPolicy(UNIT_CLAMP));
         channel.set(Math.max(0.0, Math.min(1.0, ratio)));
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // Shuishengu does not contribute to INCREASE effects.
     }
 }

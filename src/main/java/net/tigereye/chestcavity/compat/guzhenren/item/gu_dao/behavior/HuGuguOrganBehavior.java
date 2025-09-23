@@ -17,6 +17,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -30,7 +32,7 @@ import java.util.OptionalDouble;
 /**
  * 虎骨蛊：低蓄能时提供额外回复但施加虚弱，受击时为使用者提供防御增益并反弹伤害。
  */
-public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
+public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -291,6 +293,16 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         setStoredUnits(stack, updated);
         NetworkUtil.sendOrganSlotUpdate(cc, stack);
         return true;
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // HuGugu does not contribute to INCREASE effects.
     }
 
 }
