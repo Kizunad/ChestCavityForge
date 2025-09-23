@@ -47,9 +47,9 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static final double MAX_ALCOHOL = 100.0;
     private static final double ALCOHOL_PER_FEED = 1.0;
-    private static final double HUNGER_COST = 0.5;
+    private static final double HUNGER_COST = 0.1;
     private static final double DRUNK_THRESHOLD = 20.0;
-    private static final double ATTACK_BONUS = 0.2;
+    private static final double ATTACK_BONUS = 1;
     private static final float BASE_DODGE_CHANCE = 0.1f;
     private static final float MIN_DODGE_DISTANCE = 0.5f;
     private static final float MAX_DODGE_DISTANCE = 1.0f;
@@ -281,11 +281,11 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             if (target.isAlliedTo(player)) {
                 continue;
             }
-            target.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 40, 0, false, true, true));
-            target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, true, true));
+            target.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 400, 0, false, true, true));
+            target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400, 0, false, true, true));
         }
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 100, 0, false, true, true));
-        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 100, 0, false, true, true));
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1000, 10, false, true, true));
+        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
     }
 
     private static boolean hasOrgan(ChestCavityInstance cc) {
