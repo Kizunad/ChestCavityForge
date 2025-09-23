@@ -1,18 +1,27 @@
 package net.tigereye.chestcavity.compat.guzhenren;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang.WuHangOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Compatibility helpers that inject Guzhenren-specific organ behaviour without direct class dependencies.
@@ -41,10 +50,13 @@ public final class GuzhenrenOrganHandlers {
                     describeChestCavity(cc)
             );
         }
-        GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         GuDaoOrganRegistry.bootstrap();
         WuHangOrganRegistry.bootstrap();
         GuzhenrenLinkageEffectRegistry.applyEffects(cc, stack, staleRemovalContexts);
+        if (stack.is(Items.WOODEN_SHOVEL)) {
+            displayChannelSnapshot(cc, context);
+        }
     }
 
     private static String describeChestCavity(ChestCavityInstance cc) {
@@ -52,5 +64,34 @@ public final class GuzhenrenOrganHandlers {
             return "<unbound>";
         }
         return cc.owner.getScoreboardName();
+    }
+
+    private static void displayChannelSnapshot(ChestCavityInstance cc, ActiveLinkageContext context) {
+        if (cc == null || context == null) {
+            return;
+        }
+        Map<ResourceLocation, Double> channels = context.snapshotChannels();
+        List<Map.Entry<ResourceLocation, Double>> entries = channels.entrySet().stream()
+                .filter(entry -> MOD_ID.equals(entry.getKey().getNamespace()))
+                .sorted(Map.Entry.comparingByKey(Comparator.comparing(ResourceLocation::toString)))
+                .collect(Collectors.toList());
+        if (entries.isEmpty()) {
+            if (cc.owner instanceof Player player && !player.level().isClientSide()) {
+                player.sendSystemMessage(Component.literal("[compat/guzhenren] No active linkage channels."));
+            } else if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug("[compat/guzhenren] No active linkage channels for {}", describeChestCavity(cc));
+            }
+            return;
+        }
+        String header = String.format(Locale.ROOT, "[compat/guzhenren] Channel snapshot (%d):", entries.size());
+        String body = entries.stream()
+                .map(entry -> String.format(Locale.ROOT, " - %s = %.3f", entry.getKey(), entry.getValue()))
+                .collect(Collectors.joining("\n"));
+        String message = header + "\n" + body;
+        if (cc.owner instanceof Player player && !player.level().isClientSide()) {
+            player.sendSystemMessage(Component.literal(message));
+        } else {
+            ChestCavity.LOGGER.info(message.replace('\n', ' '));
+        }
     }
 }

@@ -76,10 +76,11 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
      * Registers a removal listener and, on first insert, applies the baseline efficiency bonus.
      */
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
+
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.registerContributor(organ, this, GU_DAO_INCREASE_EFFECT, TU_DAO_INCREASE_EFFECT);
-
+      
         int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
         boolean alreadyRegistered = staleRemovalContexts.removeIf(old -> ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, this));
         cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, this));
