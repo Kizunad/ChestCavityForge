@@ -157,7 +157,26 @@ On hit
 
     将 IncomingDamage 的 entity 击退，并且 反弹 0.5 * Damage Max Return (Damage*(1+SUM(INCREASE)) )
 
-  
+
+"item.guzhenren.dianliugu": "电流蛊",
+- 受到 雷道 LEI_DAO_INCREASE_EFFECT 效率增益
+- 变量:
+  - NBTs: 
+    - MAXCHARGE = 10
+    - Damage = 5 * (1+LEI_DAO_INCREASE_EFFECT)
+    - DEBUFF_TICK = 3 * 20 * (1+LEI_DAO_INCREASE_EFFECT) / (1+targetHealth)
+      - DEBUFF:
+        - 
+          target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, DEBUFF_TICK, 10, false, true, true));
+          target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, DEBUFF_TICK, 0, false, true, true));
+  - OnHit 
+    当玩家造成伤害时触发
+    触发后会释放“电流”效果，对攻击者或范围内实体造成附加打击。
+    消耗 1 点 Charge（上限 MAXCHARGE = 10）。
+    粒子效果：
+      - ParticleTypes.ELECTRIC_SPARK
+    音效：
+      - SoundEvents.REDSTONE_TORCH_BURNOUT
     
 
 
