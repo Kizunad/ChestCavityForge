@@ -10,6 +10,7 @@ import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.LeiDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang.WuHangOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
@@ -52,6 +53,7 @@ public final class GuzhenrenOrganHandlers {
         }
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         GuDaoOrganRegistry.bootstrap();
+        LeiDaoOrganRegistry.bootstrap();
         WuHangOrganRegistry.bootstrap();
         GuzhenrenLinkageEffectRegistry.applyEffects(cc, stack, staleRemovalContexts);
         if (stack.is(Items.WOODEN_SHOVEL)) {
