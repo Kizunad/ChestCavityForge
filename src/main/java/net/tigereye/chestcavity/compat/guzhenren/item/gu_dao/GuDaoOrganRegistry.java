@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
 
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.JianjitengOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.HuGuguOrganBehavior;
@@ -55,11 +54,6 @@ public final class GuDaoOrganRegistry {
                     context.sourceOrgan(),
                     context.staleRemovalContexts()
             );
-        });
-
-        GuzhenrenLinkageEffectRegistry.registerSingle(JIANJITENG_BLOCK_ID, context -> {
-            context.addSlowTickListener(JianjitengOrganBehavior.INSTANCE);
-            JianjitengOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
         });
     }
 
