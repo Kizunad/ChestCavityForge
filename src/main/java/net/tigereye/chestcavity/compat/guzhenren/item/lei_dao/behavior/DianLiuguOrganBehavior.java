@@ -18,6 +18,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -29,7 +31,7 @@ import java.util.List;
 /**
  * Behaviour implementation for 电流蛊 (DianLiugu).
  */
-public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener {
+public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -143,6 +145,16 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
         if (level instanceof ServerLevel server) {
             server.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 20, 0.35, 0.4, 0.35, 0.15);
         }
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // DianLiugu does not contribute to INCREASE effects.
     }
 
     private static void arcAdditionalTargets(
