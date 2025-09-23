@@ -51,7 +51,9 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     private static final int BONUS_RECOVERY_LOW_UNITS = (int)Math.round(0.25 * CHARGE_SCALE);
     private static final int RECOVERY_HIGH_UNITS = (int)Math.round(0.10 * CHARGE_SCALE);
 
-    private static final double MIN_DAMAGE_THRESHOLD = 5.0;
+
+    private static final double MIN_DAMAGE_THRESHOLD = 10.0;
+
     private static final double BASE_REFLECT_RATIO = 0.5;
     private static final double BASE_MAX_REFLECT = 50.0;
 
@@ -62,6 +64,9 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
 
     private static final int BASE_BUFF_DURATION = 20 * 60; // 1 minute in ticks
 
+    private static final double EPSILON = 1.0E-4;
+    private static final int DAMAGE_TRIGGER_COST_UNITS = CHARGE_SCALE;
+  
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || entity.level().isClientSide()) {
@@ -78,18 +83,9 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
             applyLowChargeDebuffs(player);
             addedUnits += BASE_RECOVERY_LOW_UNITS;
 
-            Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-            if (handleOpt.isPresent()) {
-                GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-                OptionalDouble jingliResult = handle.adjustJingli(-BASE_JINGLI_COST, true);
-                if (jingliResult.isPresent()) {
-                    OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
-                    if (zhenyuanResult.isPresent()) {
-                        addedUnits += BONUS_RECOVERY_LOW_UNITS;
-                    } else {
-                        handle.adjustJingli(BASE_JINGLI_COST, true);
-                    }
-                }
+
+            if (tryConsumeLowChargeResources(player)) {
+                addedUnits += BONUS_RECOVERY_LOW_UNITS;
             }
         } else {
             addedUnits += RECOVERY_HIGH_UNITS;
@@ -113,12 +109,52 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         player.addEffect(new MobEffectInstance(MobEffects.HUNGER, LOW_CHARGE_DEBUFF_DURATION, 0, true, true));
     }
 
+    private static boolean tryConsumeLowChargeResources(Player player) {
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            return false;
+        }
+        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+
+        OptionalDouble jingliBeforeOpt = handle.getJingli();
+        if (jingliBeforeOpt.isEmpty()) {
+            return false;
+        }
+        double jingliBefore = jingliBeforeOpt.getAsDouble();
+        if (jingliBefore + EPSILON < BASE_JINGLI_COST) {
+            return false;
+        }
+
+        OptionalDouble jingliAfterOpt = handle.adjustJingli(-BASE_JINGLI_COST, true);
+        if (jingliAfterOpt.isEmpty()) {
+            return false;
+        }
+        double jingliAfter = jingliAfterOpt.getAsDouble();
+        if ((jingliBefore - jingliAfter) + EPSILON < BASE_JINGLI_COST) {
+            handle.setJingli(jingliBefore);
+            return false;
+        }
+
+        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
+        if (zhenyuanResult.isPresent()) {
+            return true;
+        }
+
+        handle.setJingli(jingliBefore);
+        return false;
+    }
+
     @Override
     public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
         if (!(victim instanceof Player player) || victim.level().isClientSide()) {
             return damage;
         }
         if (damage < MIN_DAMAGE_THRESHOLD) {
+            return damage;
+        }
+
+
+        if (!consumeChargeUnits(cc, organ, DAMAGE_TRIGGER_COST_UNITS)) {
             return damage;
         }
 
@@ -236,4 +272,25 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         int clamped = Math.max(0, Math.min(MAX_CHARGE_UNITS, units));
         NBTCharge.setCharge(stack, STATE_KEY, clamped);
     }
+
+    private static boolean consumeChargeUnits(ChestCavityInstance cc, ItemStack stack, int costUnits) {
+        if (costUnits <= 0) {
+            return true;
+        }
+
+        int current = getStoredUnits(stack);
+        if (current < costUnits) {
+            return false;
+        }
+
+        int updated = current - costUnits;
+        if (updated == current) {
+            return true;
+        }
+
+        setStoredUnits(stack, updated);
+        NetworkUtil.sendOrganSlotUpdate(cc, stack);
+        return true;
+    }
+
 }

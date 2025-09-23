@@ -14,7 +14,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ArrowItem;
+
 import net.minecraft.world.item.ProjectileWeaponItem;
+
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
@@ -60,6 +62,8 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
     private static final double BASE_PROJECTILE_DAMAGE = 7.0;
     private static final double BASE_PROJECTILE_SPEED = 2.6;
 
+    private static final double EPSILON = 1.0E-4;
+
     static {
         OrganActivationListeners.register(ABILITY_ID, LuoXuanGuQiangguOrganBehavior::activateAbility);
     }
@@ -75,20 +79,9 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
             return;
         }
 
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
 
-        OptionalDouble jingliResult = handle.adjustJingli(-BASE_JINGLI_COST, true);
-        if (jingliResult.isEmpty()) {
-            return;
-        }
+        if (!tryConsumeRechargeResources(player)) {
 
-        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
-        if (zhenyuanResult.isEmpty()) {
-            handle.adjustJingli(BASE_JINGLI_COST, true);
             return;
         }
 
@@ -108,6 +101,42 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
+    }
+
+
+    private static boolean tryConsumeRechargeResources(Player player) {
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            return false;
+        }
+        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+
+        OptionalDouble jingliBeforeOpt = handle.getJingli();
+        if (jingliBeforeOpt.isEmpty()) {
+            return false;
+        }
+        double jingliBefore = jingliBeforeOpt.getAsDouble();
+        if (jingliBefore + EPSILON < BASE_JINGLI_COST) {
+            return false;
+        }
+
+        OptionalDouble jingliAfterOpt = handle.adjustJingli(-BASE_JINGLI_COST, true);
+        if (jingliAfterOpt.isEmpty()) {
+            return false;
+        }
+        double jingliAfter = jingliAfterOpt.getAsDouble();
+        if ((jingliBefore - jingliAfter) + EPSILON < BASE_JINGLI_COST) {
+            handle.setJingli(jingliBefore);
+            return false;
+        }
+
+        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
+        if (zhenyuanResult.isPresent()) {
+            return true;
+        }
+
+        handle.setJingli(jingliBefore);
+        return false;
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -167,7 +196,9 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
         Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.4));
         Vec3 direction = player.getLookAngle().normalize();
 
+
         AbstractArrow projectile = ((ArrowItem) Items.ARROW).createArrow(level, new ItemStack(Items.ARROW), player, findCompatibleWeapon(player));
+
         projectile.setSoundEvent(SoundEvents.ARROW_HIT);
         projectile.setBaseDamage(damage);
         projectile.pickup = AbstractArrow.Pickup.DISALLOWED;
