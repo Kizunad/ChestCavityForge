@@ -372,6 +372,34 @@ public class ChestCavityUtil {
         }
     }
 
+    public static int findOrganSlot(ChestCavityInstance cc, ItemStack organ) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return -1;
+        }
+        for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+            if (cc.inventory.getItem(i) == organ) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static boolean matchesRemovalContext(OrganRemovalContext context, int slotIndex, ItemStack stack, OrganRemovalListener listener) {
+        if (context == null || context.listener != listener) {
+            return false;
+        }
+        if (context.slotIndex >= 0 && slotIndex >= 0) {
+            return context.slotIndex == slotIndex;
+        }
+        if (context.organ == stack) {
+            return true;
+        }
+        if (context.organ != null && stack != null && !context.organ.isEmpty() && !stack.isEmpty()) {
+            return ItemStack.isSameItemSameComponents(context.organ, stack);
+        }
+        return false;
+    }
+
     public static void dropUnboundOrgans(ChestCavityInstance cc) {
         try {
             cc.inventory.removeListener(cc);
@@ -444,12 +472,13 @@ public class ChestCavityUtil {
                             cc.onSlowTickListeners.add(new OrganSlowTickContext(itemStack,(OrganSlowTickListener)slotitem));
                         }
                         if(slotitem instanceof OrganRemovalListener removalListener){
+                            int slotIndex = i;
                             boolean alreadyRegistered = cc.onRemovedListeners.stream()
-                                    .anyMatch(context -> context.organ == itemStack && context.listener == removalListener);
+                                    .anyMatch(context -> matchesRemovalContext(context, slotIndex, itemStack, removalListener));
                             if (!alreadyRegistered) {
-                                cc.onRemovedListeners.add(new OrganRemovalContext(itemStack, removalListener));
+                                cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, itemStack, removalListener));
                             }
-                            staleRemovalContexts.removeIf(old -> old.organ == itemStack && old.listener == removalListener);
+                            staleRemovalContexts.removeIf(old -> matchesRemovalContext(old, slotIndex, itemStack, removalListener));
                         }
                         if (!data.pseudoOrgan) {
                             int compatibility = getCompatibilityLevel(cc,itemStack);
