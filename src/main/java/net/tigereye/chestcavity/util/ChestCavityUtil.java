@@ -397,9 +397,9 @@ public class ChestCavityUtil {
             return true;
         }
 
-        boolean sameItem = context.organ != null && !context.organ.isEmpty()
-                && ItemStack.isSameItemSameComponents(context.organ, stack);
-        if (!sameItem) {
+        boolean sameItemType = context.organ != null && !context.organ.isEmpty()
+                && ItemStack.isSameItem(context.organ, stack);
+        if (!sameItemType) {
             return false;
         }
         if (context.slotIndex >= 0 && slotIndex >= 0) {
