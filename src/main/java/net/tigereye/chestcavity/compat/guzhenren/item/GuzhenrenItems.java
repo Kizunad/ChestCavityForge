@@ -20,14 +20,14 @@ public final class GuzhenrenItems {
     public static final Item WEI_LIAN_HUA_JIAN_ZHI_GU_3 = resolve("wei_lian_hua_jian_zhi_gu_3");
     public static final Item WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU = resolve("weilianhuajinwenjianxiagu");
     public static final Item WEI_LIAN_HUA_JIN_HEN_GU = resolve("weilianhuajinhengu");
-    public static final Item JIANMAI_GU_GUFANG = resolve("jianmaigugufang");
+    public static final Item WEI_LIAN_HUA_JIAN_MAI_GU = resolve("weilianhuajianmaigu");
 
     private static final Item[] JIANDAO_BONUS_ITEMS = new Item[] {
             WEI_LIAN_HUA_JIAN_XIA_GU,
             WEI_LIAN_HUA_JIAN_ZHI_GU_3,
             WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU,
             WEI_LIAN_HUA_JIN_HEN_GU,
-            JIANMAI_GU_GUFANG
+            WEI_LIAN_HUA_JIAN_MAI_GU
     };
 
     private GuzhenrenItems() {
@@ -40,11 +40,11 @@ public final class GuzhenrenItems {
 
     public static Item pickRandomJiandaoBonus(RandomSource random) {
         if (random == null || JIANDAO_BONUS_ITEMS.length == 0) {
-            return JIANMAI_GU_GUFANG;
+            return WEI_LIAN_HUA_JIAN_MAI_GU;
         }
         int index = random.nextInt(JIANDAO_BONUS_ITEMS.length);
         Item selected = JIANDAO_BONUS_ITEMS[index];
-        return selected == Items.AIR ? JIANMAI_GU_GUFANG : selected;
+        return selected == Items.AIR ? WEI_LIAN_HUA_JIAN_MAI_GU : selected;
 
     }
 }

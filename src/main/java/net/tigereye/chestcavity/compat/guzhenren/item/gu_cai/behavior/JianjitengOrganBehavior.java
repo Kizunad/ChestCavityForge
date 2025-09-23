@@ -36,9 +36,9 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
     private static final String MOD_ID = "guzhenren";
 
     private static final String STATE_KEY = "JianjitengCharge";
-    private static final int MAX_CHARGE = 20;
+    private static final int MAX_CHARGE = 30;
 
-    private static final float HEALTH_COST = 0.5f;
+    private static final float HEALTH_COST = 0.1f;
     private static final double ZHENYUAN_COST = 2.0;
 
     // TODO: Reintroduce Jianjiteng linkage energy consumption once a producer exists.
@@ -107,7 +107,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
             NBTCharge.setCharge(organ, STATE_KEY, 0);
             NetworkUtil.sendOrganSlotUpdate(chestCavity, organ);
             dispensePrimaryReward(player);
-            maybeGrantBonus(player);
+            maybeGrantBonus(player, chestCavity);
         } else {
             NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
             NetworkUtil.sendOrganSlotUpdate(chestCavity, organ);
@@ -136,6 +136,9 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
         float current = player.getHealth();
         float updated = Math.max(1.0f, current - HEALTH_COST);
         player.setHealth(updated);
+        player.hurtTime = 0; 
+        player.hurtDuration = 0;
+        player.hurtMarked = false; 
     }
 
 
@@ -149,11 +152,13 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
         }
     }
 
-    private static void maybeGrantBonus(Player player) {
-        if (!hasFullStack(player)) {
+    private static void maybeGrantBonus(Player player, ChestCavityInstance cc) {
+        if (!hasFullStack(player, cc)) {
+            ChestCavity.LOGGER.debug("{} {} 没有满组剑脊藤 -> 不触发额外奖励", LOG_PREFIX, player.getScoreboardName());
             return;
         }
         if (player.getRandom().nextInt(BONUS_ROLL) != 0) {
+            ChestCavity.LOGGER.debug("{} {} 随机检定未通过 -> 不触发额外奖励", LOG_PREFIX, player.getScoreboardName());
             return;
         }
         Item bonusItem = GuzhenrenItems.pickRandomJiandaoBonus(player.getRandom());
@@ -167,12 +172,16 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
         }
     }
 
-    private static boolean hasFullStack(Player player) {
-        for (ItemStack stack : player.getInventory().items) {
-            if (stack.is(GuzhenrenItems.JIANJITENG) && stack.getCount() >= 64) {
+
+    private static boolean hasFullStack(Player player, ChestCavityInstance cc) {
+        for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+            ItemStack stack = cc.inventory.getItem(i);
+            // 这里必须是满堆叠 == 64，不能 >=
+            if (stack.is(GuzhenrenItems.JIANJITENG) && stack.getCount() == 64) {
                 return true;
             }
         }
         return false;
     }
+
 }
