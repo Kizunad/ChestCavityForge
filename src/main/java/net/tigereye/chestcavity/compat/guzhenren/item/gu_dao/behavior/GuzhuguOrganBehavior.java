@@ -20,6 +20,10 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Bone Bamboo Gu (骨竹蛊) grows a shared bone_growth linkage channel.
  * Passive: each slow tick adds +5 per organ stack.
@@ -43,9 +47,14 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
     private static final double ACTIVE_GAIN = 20.0;
     private static final double SOFT_CAP = 120.0;
     private static final double FALL_OFF = 0.5;
-    
+
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
     private static final SaturationPolicy SOFT_CAP_POLICY = new SaturationPolicy(SOFT_CAP, FALL_OFF);
+
+    private static final long PASSIVE_LOG_INTERVAL_TICKS = 20L * 5L;
+    private static final Map<UUID, Double> PASSIVE_GAIN_BUFFER = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> PASSIVE_TICK_BUFFER = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> PASSIVE_LAST_LOG_TICK = new ConcurrentHashMap<>();
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -67,10 +76,12 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         double newValue = channel.adjust(expected);
         double actual = newValue - previous;
         if (actual > 0.0) {
-            sendDebugMessage((Player) entity, "PASSIVE", actual, newValue);
+            recordPassiveGain((Player) entity, actual, newValue);
             handleSoftCapCross((Player) entity, previous, newValue);
+        } else {
+            maybeFlushPassiveBuffer((Player) entity, newValue);
         }
-        
+
     }
 
     /** Triggered when the player uses bone meal; applies the active boost when off cooldown. */
@@ -88,6 +99,7 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
 
         LinkageChannel channel = ensureChannel(cc,CHANNEL_ID);
         double previous = channel.get();
+        flushPassiveDebug(player, previous);
         double expected = ACTIVE_GAIN * totalStacks * guDaoEfficiency;
         double newValue = channel.adjust(expected);
         double actual = newValue - previous;
@@ -95,7 +107,7 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
             return false;
         }
 
-        sendDebugMessage(player, "ACTIVE", actual, newValue);
+        sendDebugMessage(player, "ACTIVE", actual, newValue, 1);
         playCatalystCue(player.level(), player);
         handleSoftCapCross(player, previous, newValue);
         return true;
@@ -146,11 +158,70 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BONE_BLOCK_PLACE, SoundSource.PLAYERS, 0.6f, 1.2f);
     }
 
-    private static void sendDebugMessage(Player player, String action, double actual, double newValue) {
+    private static void sendDebugMessage(Player player, String action, double actual, double newValue, int sampleCount) {
         if (player == null || player.level().isClientSide()) {
             return;
         }
-        ChestCavity.LOGGER.info("[Guzhugu] {} +{} -> {}", action, String.format("%.1f", actual), String.format("%.1f", newValue));
+        String formattedActual = String.format("%.1f", actual);
+        String formattedNewValue = String.format("%.1f", newValue);
+        if (sampleCount > 1) {
+            ChestCavity.LOGGER.info(
+                    "[Guzhugu] {} +{} -> {} ({} ticks aggregated)",
+                    action,
+                    formattedActual,
+                    formattedNewValue,
+                    sampleCount
+            );
+        } else {
+            ChestCavity.LOGGER.info("[Guzhugu] {} +{} -> {}", action, formattedActual, formattedNewValue);
+        }
+    }
+
+    private static void recordPassiveGain(Player player, double delta, double newValue) {
+        UUID id = player.getUUID();
+        long gameTime = player.level().getGameTime();
+        PASSIVE_GAIN_BUFFER.merge(id, delta, Double::sum);
+        PASSIVE_TICK_BUFFER.merge(id, 1, Integer::sum);
+        long last = PASSIVE_LAST_LOG_TICK.getOrDefault(id, Long.MIN_VALUE);
+        if (gameTime - last >= PASSIVE_LOG_INTERVAL_TICKS) {
+            Double totalObj = PASSIVE_GAIN_BUFFER.remove(id);
+            Integer tickObj = PASSIVE_TICK_BUFFER.remove(id);
+            if (totalObj != null && totalObj > 0.0) {
+                int samples = tickObj == null ? 1 : Math.max(1, tickObj);
+                sendDebugMessage(player, "PASSIVE", totalObj, newValue, samples);
+            }
+            PASSIVE_LAST_LOG_TICK.put(id, gameTime);
+        }
+    }
+
+    private static void flushPassiveDebug(Player player, double currentValue) {
+        UUID id = player.getUUID();
+        Double totalObj = PASSIVE_GAIN_BUFFER.remove(id);
+        Integer tickObj = PASSIVE_TICK_BUFFER.remove(id);
+        if (totalObj != null && totalObj > 0.0) {
+            int samples = tickObj == null ? 1 : Math.max(1, tickObj);
+            sendDebugMessage(player, "PASSIVE", totalObj, currentValue, samples);
+        }
+        PASSIVE_LAST_LOG_TICK.put(id, player.level().getGameTime());
+    }
+
+    private static void maybeFlushPassiveBuffer(Player player, double currentValue) {
+        UUID id = player.getUUID();
+        if (!PASSIVE_GAIN_BUFFER.containsKey(id)) {
+            return;
+        }
+        long gameTime = player.level().getGameTime();
+        long last = PASSIVE_LAST_LOG_TICK.getOrDefault(id, Long.MIN_VALUE);
+        if (gameTime - last < PASSIVE_LOG_INTERVAL_TICKS) {
+            return;
+        }
+        Double totalObj = PASSIVE_GAIN_BUFFER.remove(id);
+        Integer tickObj = PASSIVE_TICK_BUFFER.remove(id);
+        if (totalObj != null && totalObj > 0.0) {
+            int samples = tickObj == null ? 1 : Math.max(1, tickObj);
+            sendDebugMessage(player, "PASSIVE", totalObj, currentValue, samples);
+        }
+        PASSIVE_LAST_LOG_TICK.put(id, gameTime);
     }
 
     private static void handleSoftCapCross(Player player, double previous, double updated) {

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.linkage.policy;
 
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -29,6 +30,17 @@ public final class SaturationPolicy implements LinkagePolicy {
             return proposedValue;
         }
         double overshoot = proposedValue - softCap;
-        return softCap + overshoot * falloffMultiplier;
+        double result = softCap + overshoot * falloffMultiplier;
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] SaturationPolicy softened {} -> {} on channel {} (softCap {}, falloff {})",
+                    String.format("%.3f", proposedValue),
+                    String.format("%.3f", result),
+                    channel.id(),
+                    String.format("%.3f", softCap),
+                    String.format("%.3f", falloffMultiplier)
+            );
+        }
+        return result;
     }
 }

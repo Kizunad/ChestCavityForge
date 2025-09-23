@@ -1,8 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.linkage;
 
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -23,7 +24,17 @@ public final class GuzhenrenLinkageManager {
     /** Obtains the linkage context for the provided chest cavity, creating it if missing. */
     public static ActiveLinkageContext getContext(ChestCavityInstance cc) {
         synchronized (CONTEXTS) {
-            return CONTEXTS.computeIfAbsent(cc, ActiveLinkageContext::new);
+            ActiveLinkageContext context = CONTEXTS.get(cc);
+            if (context == null) {
+                context = new ActiveLinkageContext(cc);
+                CONTEXTS.put(cc, context);
+                if (ChestCavity.LOGGER.isDebugEnabled()) {
+                    ChestCavity.LOGGER.debug("[Guzhenren] Created linkage context for {}", describeChestCavity(cc));
+                }
+            } else if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Reusing cached linkage context for {}", describeChestCavity(cc));
+            }
+            return context;
         }
     }
 
@@ -37,7 +48,16 @@ public final class GuzhenrenLinkageManager {
             context = CONTEXTS.get(cc);
         }
         if (context != null) {
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace(
+                        "[Guzhenren] Slow tick dispatch for {} ({} channels)",
+                        describeChestCavity(cc),
+                        context.channelCount()
+                );
+            }
             context.onSlowTick();
+        } else if (ChestCavity.LOGGER.isTraceEnabled()) {
+            ChestCavity.LOGGER.trace("[Guzhenren] Slow tick skipped for {} because no context exists", describeChestCavity(cc));
         }
     }
 
@@ -48,23 +68,57 @@ public final class GuzhenrenLinkageManager {
             context = CONTEXTS.get(cc);
         }
         if (context == null || context.isEmpty()) {
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Clearing linkage data for {} during save", describeChestCavity(cc));
+            }
             ccTag.remove(STORAGE_KEY);
             return;
         }
         CompoundTag data = context.writeToTag();
         if (!data.isEmpty()) {
             ccTag.put(STORAGE_KEY, data);
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug(
+                        "[Guzhenren] Saved {} linkage channels for {}",
+                        data.getAllKeys().size(),
+                        describeChestCavity(cc)
+                );
+            }
         } else {
             ccTag.remove(STORAGE_KEY);
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] No linkage data persisted for {} (empty tag)", describeChestCavity(cc));
+            }
         }
     }
 
     /** Restores linkage channel values from the given chest cavity tag. */
     public static void load(ChestCavityInstance cc, CompoundTag ccTag) {
         if (ccTag == null || !ccTag.contains(STORAGE_KEY)) {
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] No linkage NBT found when loading {}", describeChestCavity(cc));
+            }
             return;
         }
         CompoundTag data = ccTag.getCompound(STORAGE_KEY).copy();
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Loading linkage data for {} ({} keys)",
+                    describeChestCavity(cc),
+                    data.getAllKeys().size()
+            );
+        }
         getContext(cc).readFromTag(data);
+    }
+
+    private static String describeChestCavity(ChestCavityInstance cc) {
+        if (cc == null) {
+            return "<null>";
+        }
+        LivingEntity owner = cc.owner;
+        if (owner == null) {
+            return "<unbound@" + System.identityHashCode(cc) + ">";
+        }
+        return owner.getScoreboardName();
     }
 }

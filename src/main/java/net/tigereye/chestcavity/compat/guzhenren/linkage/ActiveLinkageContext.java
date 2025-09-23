@@ -28,6 +28,9 @@ public final class ActiveLinkageContext {
 
     ActiveLinkageContext(ChestCavityInstance chestCavity) {
         this.chestCavity = chestCavity;
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug("[Guzhenren] Initialising linkage context backing {}", describeOwner());
+        }
     }
 
     /** Returns the owning chest cavity. */
@@ -46,7 +49,12 @@ public final class ActiveLinkageContext {
      */
     public LinkageChannel getOrCreateChannel(ResourceLocation id) {
         flushDeferredLoad();
-        return channels.computeIfAbsent(id, key -> new LinkageChannel(this, key));
+        return channels.computeIfAbsent(id, key -> {
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug("[Guzhenren] Creating linkage channel {} for {}", key, describeOwner());
+            }
+            return new LinkageChannel(this, key);
+        });
     }
 
     /**
@@ -68,10 +76,21 @@ public final class ActiveLinkageContext {
     /** Registers a trigger endpoint to be fired when the matching {@link TriggerType} is broadcast. */
     public void registerTrigger(TriggerEndpoint endpoint) {
         triggers.computeIfAbsent(endpoint.type(), unused -> new ArrayList<>()).add(endpoint);
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Registered {} trigger ({}) for {}",
+                    endpoint.type(),
+                    endpoint.activation(),
+                    describeOwner()
+            );
+        }
     }
 
     /** Broadcasts a trigger manually; primarily used for active triggers. */
     public void broadcast(TriggerType type) {
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug("[Guzhenren] Broadcasting {} trigger for {}", type, describeOwner());
+        }
         fireTriggers(type);
     }
 
@@ -80,6 +99,14 @@ public final class ActiveLinkageContext {
         LivingEntity entity = getEntity();
         if (entity == null || entity.level().isClientSide()) {
             return;
+        }
+        if (ChestCavity.LOGGER.isTraceEnabled()) {
+            ChestCavity.LOGGER.trace(
+                    "[Guzhenren] Slow tick for {} ({} channels, {} trigger types)",
+                    describeOwner(),
+                    channels.size(),
+                    triggers.size()
+            );
         }
         flushDeferredLoad();
         for (LinkageChannel channel : channels.values()) {
@@ -99,7 +126,16 @@ public final class ActiveLinkageContext {
         }
         long gameTime = entity.level().getGameTime();
         for (TriggerEndpoint endpoint : endpoints) {
-            endpoint.tryFire(gameTime, entity, chestCavity, this);
+            boolean fired = endpoint.tryFire(gameTime, entity, chestCavity, this);
+            if (fired && ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug(
+                        "[Guzhenren] Fired {} trigger ({}) for {} at gameTime {}",
+                        endpoint.type(),
+                        endpoint.activation(),
+                        describeOwner(),
+                        gameTime
+                );
+            }
         }
     }
 
@@ -118,6 +154,9 @@ public final class ActiveLinkageContext {
     /** Serialises all channel values into a tag for persistence. */
     CompoundTag writeToTag() {
         if (channels.isEmpty()) {
+            if (ChestCavity.LOGGER.isTraceEnabled() && deferredLoadData != null && !deferredLoadData.isEmpty()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Using deferred linkage data snapshot for {}", describeOwner());
+            }
             return deferredLoadData == null ? new CompoundTag() : deferredLoadData.copy();
         }
         CompoundTag tag = new CompoundTag();
@@ -127,6 +166,13 @@ public final class ActiveLinkageContext {
                 tag.putDouble(id.toString(), value);
             }
         });
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Serialised {} linkage values for {}",
+                    tag.getAllKeys().size(),
+                    describeOwner()
+            );
+        }
         return tag;
     }
 
@@ -143,9 +189,23 @@ public final class ActiveLinkageContext {
                     getOrCreateChannel(id).set(value);
                 }
             });
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug(
+                        "[Guzhenren] Applied {} immediate linkage values for {}",
+                        tag.getAllKeys().size(),
+                        describeOwner()
+                );
+            }
         } else {
             // Delay applying until channels are constructed via organ registration.
             deferredLoadData = tag.copy();
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug(
+                        "[Guzhenren] Deferred application of {} linkage values for {}",
+                        tag.getAllKeys().size(),
+                        describeOwner()
+                );
+            }
         }
     }
 
@@ -163,6 +223,25 @@ public final class ActiveLinkageContext {
                 getOrCreateChannel(id).set(value);
             }
         });
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Flushed deferred linkage data for {} ({} keys)",
+                    describeOwner(),
+                    copy.getAllKeys().size()
+            );
+        }
+    }
+
+    int channelCount() {
+        return channels.size();
+    }
+
+    private String describeOwner() {
+        LivingEntity entity = getEntity();
+        if (entity == null) {
+            return "<unbound@" + System.identityHashCode(chestCavity) + ">";
+        }
+        return entity.getScoreboardName();
     }
 
     private static ResourceLocation parseId(String raw) {

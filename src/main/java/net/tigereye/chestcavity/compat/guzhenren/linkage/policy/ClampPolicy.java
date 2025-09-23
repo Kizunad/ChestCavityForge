@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.linkage.policy;
 
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -23,6 +24,17 @@ public final class ClampPolicy implements LinkagePolicy {
     @Override
     public double apply(LinkageChannel channel, double previousValue, double proposedValue,
                         ActiveLinkageContext context, LivingEntity entity, ChestCavityInstance chestCavity) {
-        return Mth.clamp(proposedValue, min, max);
+        double clamped = Mth.clamp(proposedValue, min, max);
+        if (ChestCavity.LOGGER.isDebugEnabled() && Double.compare(clamped, proposedValue) != 0) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] ClampPolicy {} -> {} on channel {} (range {}-{})",
+                    String.format("%.3f", proposedValue),
+                    String.format("%.3f", clamped),
+                    channel.id(),
+                    String.format("%.3f", min),
+                    String.format("%.3f", max)
+            );
+        }
+        return clamped;
     }
 }

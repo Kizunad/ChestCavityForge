@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.linkage;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
 import java.util.ArrayList;
@@ -44,6 +45,14 @@ public final class LinkageChannel {
         if (Double.compare(previous, processed) != 0) {
             value = processed;
             notifySubscribers(previous);
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug(
+                        "[Guzhenren] Channel {} updated {} -> {}",
+                        id,
+                        String.format("%.3f", previous),
+                        String.format("%.3f", value)
+                );
+            }
         }
         return value;
     }
@@ -53,7 +62,16 @@ public final class LinkageChannel {
         if (delta == 0.0) {
             return value;
         }
-        return set(value + delta);
+        double result = set(value + delta);
+        if (ChestCavity.LOGGER.isTraceEnabled()) {
+            ChestCavity.LOGGER.trace(
+                    "[Guzhenren] Channel {} adjusted by {} (now {})",
+                    id,
+                    String.format("%.3f", delta),
+                    String.format("%.3f", result)
+            );
+        }
+        return result;
     }
 
     /** Invoked by the owning context every slow tick to execute time-based policies. */
@@ -69,6 +87,9 @@ public final class LinkageChannel {
     public LinkageChannel addPolicy(LinkagePolicy policy) {
         if (policy != null && !policies.contains(policy)) {
             policies.add(policy);
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Channel {} attached policy {}", id, policy.getClass().getSimpleName());
+            }
         }
         return this;
     }
@@ -76,6 +97,9 @@ public final class LinkageChannel {
     public LinkageChannel addSubscriber(LinkageSubscriber subscriber) {
         if (subscriber != null && !subscribers.contains(subscriber)) {
             subscribers.add(subscriber);
+            if (ChestCavity.LOGGER.isTraceEnabled()) {
+                ChestCavity.LOGGER.trace("[Guzhenren] Channel {} attached subscriber {}", id, subscriber.getClass().getSimpleName());
+            }
         }
         return this;
     }

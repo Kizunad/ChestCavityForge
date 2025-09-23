@@ -1,7 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.linkage.effect;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
@@ -53,6 +55,14 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
         this.matchingOrgans = Collections.unmodifiableList(matchingOrgans);
         this.linkageContext = GuzhenrenLinkageManager.getContext(chestCavity);
         this.staleRemovalContexts = Objects.requireNonNull(staleRemovalContexts, "staleRemovalContexts");
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[Guzhenren] Constructed effect context for {} via organ {} (requirements {})",
+                    describeChestCavity(chestCavity),
+                    describeStack(sourceOrgan),
+                    requirements
+            );
+        }
     }
 
     @Override
@@ -96,6 +106,7 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onSlowTickListeners.add(new OrganSlowTickContext(organ, listener));
+        logListenerRegistration("slow-tick", organ, listener);
     }
 
     @Override
@@ -104,6 +115,7 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onHitListeners.add(new OrganOnHitContext(organ, listener));
+        logListenerRegistration("on-hit", organ, listener);
     }
 
     @Override
@@ -112,6 +124,7 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onDamageListeners.add(new OrganIncomingDamageContext(organ, listener));
+        logListenerRegistration("incoming-damage", organ, listener);
     }
 
     @Override
@@ -120,6 +133,7 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onFireListeners.add(new OrganOnFireContext(organ, listener));
+        logListenerRegistration("on-fire", organ, listener);
     }
 
     @Override
@@ -128,6 +142,7 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onGroundListeners.add(new OrganOnGroundContext(organ, listener));
+        logListenerRegistration("on-ground", organ, listener);
     }
 
     @Override
@@ -136,6 +151,7 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onHealListeners.add(new OrganHealContext(organ, listener));
+        logListenerRegistration("heal", organ, listener);
     }
 
     @Override
@@ -144,5 +160,33 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
             return;
         }
         chestCavity.onRemovedListeners.add(new OrganRemovalContext(organ, listener));
+        logListenerRegistration("removal", organ, listener);
+    }
+
+    private void logListenerRegistration(String type, ItemStack organ, Object listener) {
+        if (!ChestCavity.LOGGER.isDebugEnabled()) {
+            return;
+        }
+        ChestCavity.LOGGER.debug(
+                "[Guzhenren] Registered {} listener {} for organ {} on {}",
+                type,
+                listener.getClass().getSimpleName(),
+                describeStack(organ),
+                describeChestCavity(chestCavity)
+        );
+    }
+
+    private static String describeStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "<empty>";
+        }
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+    }
+
+    private static String describeChestCavity(ChestCavityInstance cc) {
+        if (cc == null || cc.owner == null) {
+            return "<unbound>";
+        }
+        return cc.owner.getScoreboardName();
     }
 }
