@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -14,6 +15,7 @@ public final class GuzhenrenItems {
     private static final String MOD_ID = "guzhenren";
 
     public static final Item JIANJITENG = resolve("jianjiteng");
+
     public static final Item WEI_LIAN_HUA_JIAN_XIA_GU = resolve("weilianhuajianxiagu");
     public static final Item WEI_LIAN_HUA_JIAN_ZHI_GU_3 = resolve("wei_lian_hua_jian_zhi_gu_3");
     public static final Item WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU = resolve("weilianhuajinwenjianxiagu");
@@ -43,5 +45,6 @@ public final class GuzhenrenItems {
         int index = random.nextInt(JIANDAO_BONUS_ITEMS.length);
         Item selected = JIANDAO_BONUS_ITEMS[index];
         return selected == Items.AIR ? JIANMAI_GU_GUFANG : selected;
+
     }
 }
