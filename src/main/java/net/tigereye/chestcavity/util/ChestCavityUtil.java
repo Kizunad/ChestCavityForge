@@ -444,7 +444,11 @@ public class ChestCavityUtil {
                             cc.onSlowTickListeners.add(new OrganSlowTickContext(itemStack,(OrganSlowTickListener)slotitem));
                         }
                         if(slotitem instanceof OrganRemovalListener removalListener){
-                            cc.onRemovedListeners.add(new OrganRemovalContext(itemStack, removalListener));
+                            boolean alreadyRegistered = cc.onRemovedListeners.stream()
+                                    .anyMatch(context -> context.organ == itemStack && context.listener == removalListener);
+                            if (!alreadyRegistered) {
+                                cc.onRemovedListeners.add(new OrganRemovalContext(itemStack, removalListener));
+                            }
                             staleRemovalContexts.removeIf(old -> old.organ == itemStack && old.listener == removalListener);
                         }
                         if (!data.pseudoOrgan) {
