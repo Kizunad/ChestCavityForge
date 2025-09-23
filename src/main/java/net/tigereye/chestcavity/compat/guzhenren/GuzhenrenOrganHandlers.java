@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -78,10 +79,10 @@ public final class GuzhenrenOrganHandlers {
                 .sorted(Map.Entry.comparingByKey(Comparator.comparing(ResourceLocation::toString)))
                 .collect(Collectors.toList());
         if (entries.isEmpty()) {
-            if (cc.owner instanceof Player player && !player.level().isClientSide()) {
-                player.sendSystemMessage(Component.literal("[compat/guzhenren] No active linkage channels."));
-            } else if (ChestCavity.LOGGER.isDebugEnabled()) {
-                ChestCavity.LOGGER.debug("[compat/guzhenren] No active linkage channels for {}", describeChestCavity(cc));
+            if (!broadcastToPlayer(cc, "[compat/guzhenren] No active linkage channels.")) {
+                if (ChestCavity.LOGGER.isDebugEnabled()) {
+                    ChestCavity.LOGGER.debug("[compat/guzhenren] No active linkage channels for {}", describeChestCavity(cc));
+                }
             }
             return;
         }
@@ -90,10 +91,22 @@ public final class GuzhenrenOrganHandlers {
                 .map(entry -> String.format(Locale.ROOT, " - %s = %.3f", entry.getKey(), entry.getValue()))
                 .collect(Collectors.joining("\n"));
         String message = header + "\n" + body;
-        if (cc.owner instanceof Player player && !player.level().isClientSide()) {
-            player.sendSystemMessage(Component.literal(message));
-        } else {
+        if (!broadcastToPlayer(cc, message)) {
             ChestCavity.LOGGER.info(message.replace('\n', ' '));
         }
+    }
+
+    private static boolean broadcastToPlayer(ChestCavityInstance cc, String message) {
+        if (!(cc.owner instanceof Player player) || player.level().isClientSide()) {
+            return false;
+        }
+
+        if (player instanceof ServerPlayer serverPlayer && serverPlayer.connection == null) {
+            ChestCavity.LOGGER.debug("[compat/guzhenren] Skipping message for {} because the network connection is not ready", describeChestCavity(cc));
+            return false;
+        }
+
+        player.sendSystemMessage(Component.literal(message));
+        return true;
     }
 }
