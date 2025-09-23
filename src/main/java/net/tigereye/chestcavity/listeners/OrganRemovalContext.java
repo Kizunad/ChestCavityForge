@@ -13,10 +13,12 @@ public class OrganRemovalContext {
     public final OrganRemovalListener listener;
 
     public OrganRemovalContext(int slotIndex, ItemStack organ, OrganRemovalListener listener) {
+
         this(slotIndex, organ, organ != null ? organ.getCount() : 0, listener);
     }
 
     public OrganRemovalContext(int slotIndex, ItemStack organ, int stackCount, OrganRemovalListener listener) {
+
         this.slotIndex = slotIndex;
         this.organ = organ;
         this.stackCount = stackCount;

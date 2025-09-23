@@ -385,15 +385,18 @@ public class ChestCavityUtil {
     }
 
     public static boolean matchesRemovalContext(OrganRemovalContext context, int slotIndex, ItemStack stack, OrganRemovalListener listener) {
+
         if (context == null || stack == null || stack.isEmpty() || context.listener != listener) {
             return false;
         }
         if (context.stackCount != stack.getCount()) {
             return false;
+
         }
         if (context.organ == stack) {
             return true;
         }
+
         boolean sameItem = context.organ != null && !context.organ.isEmpty()
                 && ItemStack.isSameItemSameComponents(context.organ, stack);
         if (!sameItem) {
@@ -403,6 +406,7 @@ public class ChestCavityUtil {
             return context.slotIndex == slotIndex;
         }
         return true;
+
     }
 
     public static void dropUnboundOrgans(ChestCavityInstance cc) {
