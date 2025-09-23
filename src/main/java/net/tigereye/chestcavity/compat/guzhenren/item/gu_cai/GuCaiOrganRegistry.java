@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.registry;
+package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.behavior.JianjitengOrganBehavior;
