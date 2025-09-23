@@ -3,6 +3,8 @@
     "death.attack.ccHeartbleed.player": "%2$s witnessed %1$s's sacrifice",
     "death.attack.ccOrganRejection": "%1$s died of medical complications",
     "death.attack.ccOrganRejection.player": "%1$s died of medical complications while fighting %2$s",
+    "death.attack.alcohol_overdose": "%1$s succumbed to alcohol poisoning",
+    "death.attack.alcohol_overdose.player": "%1$s succumbed to alcohol poisoning while fighting %2$s",
     "effect.chestcavity.organ_rejection": "Organ Rejection",
     "effect.chestcavity.arrow_dodge_cooldown": "Arrow Dodge Cooldown",
     "effect.chestcavity.dragon_breath_cooldown": "Dragon Breath Cooldown",
