@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.ChestCavityUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -159,7 +160,9 @@ final class DefaultLinkageEffectContext implements LinkageEffectContext {
         if (listener == null) {
             return;
         }
-        chestCavity.onRemovedListeners.add(new OrganRemovalContext(organ, listener));
+        int slotIndex = ChestCavityUtil.findOrganSlot(chestCavity, organ);
+        chestCavity.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, listener));
+        staleRemovalContexts.removeIf(old -> ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, listener));
         logListenerRegistration("removal", organ, listener);
     }
 
