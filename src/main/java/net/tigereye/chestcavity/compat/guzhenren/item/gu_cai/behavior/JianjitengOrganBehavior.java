@@ -1,9 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.behavior;
 
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-
-import net.minecraft.resources.ResourceLocation;
-
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -45,6 +46,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
 
 
     private static final int BONUS_ROLL = 100;
+    private static final Component BONUS_MESSAGE = Component.translatable("message.guzhenren.jianjiteng.bonus");
     private static final String LOG_PREFIX = "[Jianjiteng]";
 
     @Override
@@ -170,6 +172,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
         } else {
             ChestCavity.LOGGER.info("{} {} 额外奖励 -> 获得 {}", LOG_PREFIX, player.getScoreboardName(), bonusId);
         }
+        celebrateBonus(player);
     }
 
 
@@ -182,6 +185,36 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
             }
         }
         return false;
+    }
+
+    private static void celebrateBonus(Player player) {
+        player.displayClientMessage(BONUS_MESSAGE, true);
+        playBonusSounds(player);
+        spawnBonusParticles(player);
+    }
+
+    private static void playBonusSounds(Player player) {
+        var level = player.level();
+        var source = player.getSoundSource();
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES, source, 0.8f, 0.9f);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.ENDERMAN_TELEPORT, source, 0.35f, 0.6f);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.BEEHIVE_SHEAR, source, 0.6f, 0.8f);
+    }
+
+    private static void spawnBonusParticles(Player player) {
+        if (!(player.level() instanceof ServerLevel server)) {
+            return;
+        }
+        double x = player.getX();
+        double y = player.getY() + player.getBbHeight() * 0.6;
+        double z = player.getZ();
+        server.sendParticles(ParticleTypes.HAPPY_VILLAGER, x, y, z, 10, 0.25, 0.3, 0.25, 0.05);
+        server.sendParticles(ParticleTypes.COMPOSTER, x, y, z, 6, 0.2, 0.2, 0.2, 0.04);
+        server.sendParticles(ParticleTypes.ITEM_SLIME, x, y, z, 8, 0.18, 0.35, 0.18, 0.08);
+        server.sendParticles(ParticleTypes.PORTAL, x, y, z, 16, 0.35, 0.35, 0.35, 0.1);
     }
 
 }
