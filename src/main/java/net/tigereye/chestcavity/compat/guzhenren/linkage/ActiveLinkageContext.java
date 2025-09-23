@@ -7,6 +7,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -234,6 +235,20 @@ public final class ActiveLinkageContext {
 
     int channelCount() {
         return channels.size();
+    }
+
+    /**
+     * Returns an immutable snapshot of all currently tracked linkage channel values.
+     * Deferred data is flushed before producing the snapshot so persisted values are reflected.
+     */
+    public Map<ResourceLocation, Double> snapshotChannels() {
+        flushDeferredLoad();
+        if (channels.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<ResourceLocation, Double> snapshot = new LinkedHashMap<>(channels.size());
+        channels.forEach((id, channel) -> snapshot.put(id, channel.get()));
+        return Collections.unmodifiableMap(snapshot);
     }
 
     private String describeOwner() {
