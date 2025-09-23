@@ -1,6 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.behavior;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+
+import net.minecraft.resources.ResourceLocation;
+
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -9,6 +12,12 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
+
+import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
+
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
@@ -23,12 +32,17 @@ import java.util.Locale;
 public enum JianjitengOrganBehavior implements OrganSlowTickListener {
     INSTANCE;
 
+
+    private static final String MOD_ID = "guzhenren";
+
     private static final String STATE_KEY = "JianjitengCharge";
     private static final int MAX_CHARGE = 20;
 
     private static final float HEALTH_COST = 0.5f;
     private static final double ZHENYUAN_COST = 2.0;
+
     // TODO: Reintroduce Jianjiteng linkage energy consumption once a producer exists.
+
 
     private static final int BONUS_ROLL = 100;
     private static final String LOG_PREFIX = "[Jianjiteng]";
@@ -42,6 +56,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
             return;
         }
 
+
         int currentCharge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
 
         if (!canAffordHealth(player)) {
@@ -50,6 +65,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
             }
             return;
         }
+
 
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isEmpty()) {
@@ -69,16 +85,21 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
 
         drainHealth(player);
 
+
         int updatedCharge = currentCharge + 1;
         if (ChestCavity.LOGGER.isDebugEnabled()) {
             double consumed = zhenyuanResult.getAsDouble();
             ChestCavity.LOGGER.debug(
+
                     "{} {} charge -> {}/{} (消耗真元 {})",
+
                     LOG_PREFIX,
                     player.getScoreboardName(),
                     Math.min(updatedCharge, MAX_CHARGE),
                     MAX_CHARGE,
+
                     String.format(Locale.ROOT, "%.2f", consumed)
+
             );
         }
 
@@ -95,7 +116,9 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
 
     /** Ensures linkage channels exist for the owning chest cavity. */
     public void ensureAttached(ChestCavityInstance chestCavity) {
+
         // Linkage channel gating temporarily disabled until a dedicated producer exists.
+
     }
 
     private static int clampCharge(int rawCharge) {
@@ -114,6 +137,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
         float updated = Math.max(1.0f, current - HEALTH_COST);
         player.setHealth(updated);
     }
+
 
     private static void dispensePrimaryReward(Player player) {
         ItemStack reward = new ItemStack(GuzhenrenItems.JIANJITENG);

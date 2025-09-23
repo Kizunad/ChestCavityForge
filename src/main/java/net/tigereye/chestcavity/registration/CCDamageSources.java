@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.ChestCavity;
 public final class CCDamageSources {
     public static final ResourceKey<DamageType> HEARTBLEED = register("heartbleed");
     public static final ResourceKey<DamageType> ORGAN_REJECTION = register("organ_rejection");
+    public static final ResourceKey<DamageType> ALCOHOL_OVERDOSE = register("alcohol_overdose");
 
     private CCDamageSources() {}
 
@@ -24,5 +25,9 @@ public final class CCDamageSources {
 
     public static DamageSource organRejection(LivingEntity entity) {
         return entity.level().damageSources().source(ORGAN_REJECTION);
+    }
+
+    public static DamageSource alcoholOverdose(LivingEntity entity) {
+        return entity.level().damageSources().source(ALCOHOL_OVERDOSE);
     }
 }

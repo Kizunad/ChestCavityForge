@@ -10,10 +10,11 @@ import net.minecraft.world.item.Items;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.registry.GuCaiOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.GuCaiOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.LeiDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang.WuHangOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
@@ -58,6 +59,7 @@ public final class GuzhenrenOrganHandlers {
         GuDaoOrganRegistry.bootstrap();
         LeiDaoOrganRegistry.bootstrap();
         WuHangOrganRegistry.bootstrap();
+        ShiDaoOrganRegistry.bootstrap();
         GuzhenrenLinkageEffectRegistry.applyEffects(cc, stack, staleRemovalContexts);
         if (stack.is(Items.WOODEN_SHOVEL)) {
             displayChannelSnapshot(cc, context);
