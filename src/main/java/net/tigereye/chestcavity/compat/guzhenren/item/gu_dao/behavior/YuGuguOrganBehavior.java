@@ -2,12 +2,19 @@ package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
 import net.tigereye.chestcavity.ChestCavity;
 
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
@@ -25,6 +32,9 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
+
+import net.minecraft.util.RandomSource;
+import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -70,6 +80,13 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
     /** 当无法维持资源时，每次衰减的比例。 */
     private static final double DECAY_FRACTION = 0.05;
+
+    private static final double YU_GUGU_BEAM_SEGMENT_LENGTH = 0.35;
+    private static final int YU_GUGU_BEAM_MIN_SEGMENTS = 6;
+    private static final DustParticleOptions YU_GUGU_CORE_DUST =
+        new DustParticleOptions(new Vector3f(0.56f, 1.0f, 0.82f), 1.25f);
+    private static final DustParticleOptions YU_GUGU_GILDED_DUST =
+        new DustParticleOptions(new Vector3f(0.94f, 0.86f, 0.44f), 1.1f);
 
     /**
      * Called when the stack is evaluated inside the chest cavity.
@@ -204,10 +221,86 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
             return damage;
         }
 
-        // TODO: 玉骨蛊命中逻辑框架 - 后续实现
+        int charge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
+        if (charge <= 0) {
+            return damage;
+        }
+
+        playYuGuguStrikeEffects(player, target);
         return damage;
     }
 
+
+    private static void playYuGuguStrikeEffects(Player player, LivingEntity target) {
+        Level level = player.level();
+        RandomSource random = level.getRandom();
+
+        float chimePitch = 1.0f + (random.nextFloat() - 0.5f) * 0.2f;
+        float bonePitch = 1.2f + (random.nextFloat() - 0.5f) * 0.15f;
+
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9f, chimePitch);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BONE_BLOCK_BREAK, SoundSource.PLAYERS, 0.6f, bonePitch);
+
+        if (level instanceof ServerLevel server) {
+            Vec3 start = player.getEyePosition();
+            Vec3 endPoint;
+            if (target != null) {
+                endPoint = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+            } else {
+                endPoint = start.add(player.getLookAngle().normalize().scale(2.5));
+            }
+
+            Vec3 direction = endPoint.subtract(start);
+            if (direction.lengthSqr() < 1.0E-4) {
+                direction = player.getLookAngle();
+            }
+            direction = direction.normalize();
+
+            spawnYuGuguStrikeParticles(server, start, endPoint, direction);
+            if (target != null) {
+                spawnYuGuguImpactBurst(server, target);
+            }
+        }
+    }
+
+    private static void spawnYuGuguStrikeParticles(ServerLevel server, Vec3 start, Vec3 end, Vec3 direction) {
+        Vec3 delta = end.subtract(start);
+        double length = delta.length();
+        int segments = Math.max(YU_GUGU_BEAM_MIN_SEGMENTS, (int)Math.ceil(length / YU_GUGU_BEAM_SEGMENT_LENGTH));
+        if (segments <= 0) {
+            segments = YU_GUGU_BEAM_MIN_SEGMENTS;
+        }
+        Vec3 step = delta.scale(1.0 / segments);
+        RandomSource random = server.getRandom();
+
+        for (int i = 0; i <= segments; i++) {
+            Vec3 point = start.add(step.scale(i));
+            server.sendParticles(selectYuGuguDust(random), point.x, point.y, point.z, 1, 0.0, 0.0, 0.0, 0.0);
+            server.sendParticles(ParticleTypes.ENCHANT, point.x, point.y, point.z, 2, 0.04, 0.04, 0.04, 0.0);
+            if (random.nextFloat() < 0.35f) {
+                server.sendParticles(ParticleTypes.END_ROD, point.x, point.y, point.z, 1, direction.x * 0.04, direction.y * 0.04, direction.z * 0.04, 0.02);
+            }
+        }
+    }
+
+    private static void spawnYuGuguImpactBurst(ServerLevel server, LivingEntity target) {
+        Vec3 center = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+        RandomSource random = server.getRandom();
+
+        for (int i = 0; i < 16; i++) {
+            double angle = random.nextDouble() * Math.PI * 2.0;
+            double radius = 0.2 + random.nextDouble() * 0.4;
+            double speed = 0.06 + random.nextDouble() * 0.05;
+            Vec3 velocity = new Vec3(Math.cos(angle) * speed, random.nextDouble() * 0.05, Math.sin(angle) * speed);
+            server.sendParticles(selectYuGuguDust(random), center.x, center.y, center.z, 1, velocity.x, velocity.y, velocity.z, 0.0);
+        }
+
+        server.sendParticles(ParticleTypes.GLOW, center.x, center.y, center.z, 8, 0.15, 0.2, 0.15, 0.01);
+    }
+
+    private static DustParticleOptions selectYuGuguDust(RandomSource random) {
+        return random.nextFloat() < 0.3f ? YU_GUGU_GILDED_DUST : YU_GUGU_CORE_DUST;
+    }
 
 
     private static int clampCharge(int value) {

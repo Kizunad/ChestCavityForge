@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -28,6 +30,9 @@ import net.tigereye.chestcavity.util.NetworkUtil;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
+
+import net.minecraft.util.RandomSource;
+import org.joml.Vector3f;
 
 /**
  * 虎骨蛊：低蓄能时提供额外回复但施加虚弱，受击时为使用者提供防御增益并反弹伤害。
@@ -68,6 +73,17 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
 
     private static final double EPSILON = 1.0E-4;
     private static final int DAMAGE_TRIGGER_COST_UNITS = CHARGE_SCALE;
+
+    private static final double HU_GUGU_CONE_HALF_ANGLE_RADIANS = Math.toRadians(20.0);
+    private static final double HU_GUGU_CONE_MIN_DISTANCE = 0.6;
+    private static final double HU_GUGU_CONE_MAX_DISTANCE = 6.0;
+    private static final int HU_GUGU_CONE_STEPS = 12;
+    private static final DustParticleOptions HU_GUGU_CORE_DUST =
+        new DustParticleOptions(new Vector3f(1.0f, 0.5f, 0.0f), 1.35f);
+    private static final DustParticleOptions HU_GUGU_EDGE_DUST_YELLOW =
+        new DustParticleOptions(new Vector3f(1.0f, 0.8235f, 0.4f), 1.15f);
+    private static final DustParticleOptions HU_GUGU_EDGE_DUST_RED =
+        new DustParticleOptions(new Vector3f(1.0f, 0.25f, 0.0f), 1.2f);
   
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -169,6 +185,8 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
         applySpeed(player, multiplier, duration);
         applyJump(player, multiplier, duration);
 
+        playHuGuguRetaliationCue(player);
+
         reflectDamage(source, victim, damage, multiplier);
         return damage;
     }
@@ -229,7 +247,6 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
 
         knockbackAttacker(victim, attacker, multiplier);
         attacker.hurt(victim.damageSources().thorns(victim), (float)reflectAmount);
-        playRetaliationCue(victim.level(), victim);
     }
 
     private static void knockbackAttacker(LivingEntity victim, LivingEntity attacker, double multiplier) {
@@ -244,11 +261,99 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     }
 
     private static void playRetaliationCue(Level level, LivingEntity victim) {
-        level.playSound(null, victim.getX(), victim.getY(), victim.getZ(), SoundEvents.SKELETON_HURT, SoundSource.PLAYERS, 0.7f, 0.9f);
-        level.playSound(null, victim.getX(), victim.getY(), victim.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 1.0f, 1.0f);
+        level.playSound(
+            null,
+            victim.getX(),
+            victim.getY(),
+            victim.getZ(),
+            SoundEvents.POLAR_BEAR_HURT,
+            SoundSource.PLAYERS,
+            1.2f,
+            0.9f + level.getRandom().nextFloat() * 0.2f
+        );
         if (level instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.CRIT, victim.getX(), victim.getY() + victim.getBbHeight() * 0.5, victim.getZ(), 12, 0.2, 0.2, 0.2, 0.05);
+            spawnHuGuguConeBurst(serverLevel, victim);
         }
+    }
+
+    private static void playHuGuguRetaliationCue(Player player) {
+        playRetaliationCue(player.level(), player);
+    }
+
+    private static void spawnHuGuguConeBurst(ServerLevel serverLevel, LivingEntity victim) {
+        Vec3 forward = victim.getViewVector(1.0F).normalize();
+        if (forward.lengthSqr() < 1.0E-4) {
+            forward = new Vec3(0.0, 0.0, 1.0);
+        }
+
+        Vec3 upReference = Math.abs(forward.y) > 0.95 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
+        Vec3 right = forward.cross(upReference);
+        if (right.lengthSqr() < 1.0E-4) {
+            right = forward.cross(new Vec3(0.0, 0.0, 1.0));
+        }
+        right = right.normalize();
+        Vec3 up = right.cross(forward).normalize();
+
+        Vec3 mouthPosition = victim.getEyePosition().add(0.0, -0.2, 0.0);
+        double distanceStep = (HU_GUGU_CONE_MAX_DISTANCE - HU_GUGU_CONE_MIN_DISTANCE) / HU_GUGU_CONE_STEPS;
+        RandomSource random = serverLevel.getRandom();
+
+        for (int step = 0; step <= HU_GUGU_CONE_STEPS; step++) {
+            double distance = HU_GUGU_CONE_MIN_DISTANCE + step * distanceStep;
+            double radius = Math.tan(HU_GUGU_CONE_HALF_ANGLE_RADIANS) * distance;
+            int particles = Math.max(4, 6 + step * 2);
+
+            for (int i = 0; i < particles; i++) {
+                double angle = random.nextDouble() * Math.PI * 2.0;
+                double radial = radius * Math.sqrt(random.nextDouble());
+                double offsetRight = Math.cos(angle) * radial;
+                double offsetUp = Math.sin(angle) * radial;
+
+                Vec3 radialOffset = right.scale(offsetRight).add(up.scale(offsetUp));
+                Vec3 particlePos = mouthPosition.add(forward.scale(distance)).add(radialOffset);
+
+                double forwardSpeed = 0.02 + random.nextDouble() * 0.04;
+                Vec3 velocity = forward.scale(forwardSpeed)
+                    .add(radialOffset.normalize().scale(0.01 + random.nextDouble() * 0.02));
+
+                serverLevel.sendParticles(
+                    selectHuGuguDust(random),
+                    particlePos.x,
+                    particlePos.y,
+                    particlePos.z,
+                    1,
+                    velocity.x,
+                    velocity.y,
+                    velocity.z,
+                    0.0
+                );
+
+                if (random.nextFloat() < 0.35f) {
+                    serverLevel.sendParticles(
+                        ParticleTypes.FLAME,
+                        particlePos.x,
+                        particlePos.y,
+                        particlePos.z,
+                        1,
+                        velocity.x * 0.5,
+                        velocity.y * 0.5,
+                        velocity.z * 0.5,
+                        0.0
+                    );
+                }
+            }
+        }
+    }
+
+    private static DustParticleOptions selectHuGuguDust(RandomSource random) {
+        float pick = random.nextFloat();
+        if (pick < 0.15f) {
+            return HU_GUGU_EDGE_DUST_RED;
+        }
+        if (pick < 0.45f) {
+            return HU_GUGU_EDGE_DUST_YELLOW;
+        }
+        return HU_GUGU_CORE_DUST;
     }
 
     private static double getIncreaseTotal(ChestCavityInstance cc) {

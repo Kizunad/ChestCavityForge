@@ -19,6 +19,7 @@ import net.minecraft.world.item.ProjectileWeaponItem;
 
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.RandomSource;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
@@ -213,10 +214,77 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
 
         server.addFreshEntity(projectile);
 
-        server.sendParticles(ParticleTypes.END_ROD, origin.x, origin.y, origin.z, 16, 0.1, 0.1, 0.1, 0.05);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SKELETON_AMBIENT, SoundSource.PLAYERS, 0.7f, 1.0f);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 1.0f, 1.2f);
+        playLuoXuanActivationEffects(server, player, origin, direction, multiplier);
         return true;
+    }
+
+    private static void playLuoXuanActivationEffects(ServerLevel server, Player player, Vec3 origin, Vec3 direction, double multiplier) {
+        Level level = player.level();
+        float ambientPitch = 0.95f + (float)Math.max(-0.2, Math.min(0.3, (multiplier - 1.0) * 0.2));
+        float shootPitch = 1.1f + (float)Math.max(-0.3, Math.min(0.3, (multiplier - 1.0) * 0.15));
+
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SKELETON_AMBIENT, SoundSource.PLAYERS, 0.7f, ambientPitch);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 1.0f, shootPitch);
+
+        server.sendParticles(ParticleTypes.END_ROD, origin.x, origin.y, origin.z, 20, 0.15, 0.15, 0.15, 0.05);
+        spawnLuoXuanSpiralTrail(server, origin, direction, multiplier);
+    }
+
+    private static void spawnLuoXuanSpiralTrail(ServerLevel server, Vec3 origin, Vec3 direction, double multiplier) {
+        Vec3 forward = direction.normalize();
+        if (forward.lengthSqr() < 1.0E-4) {
+            forward = new Vec3(0.0, 0.0, 1.0);
+        }
+
+        Vec3 upReference = Math.abs(forward.y) > 0.95 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
+        Vec3 right = forward.cross(upReference);
+        if (right.lengthSqr() < 1.0E-4) {
+            right = forward.cross(new Vec3(0.0, 0.0, 1.0));
+        }
+        right = right.normalize();
+        Vec3 up = right.cross(forward).normalize();
+
+        RandomSource random = server.getRandom();
+        int segments = 18;
+        double distanceStep = 0.35;
+        double baseRadius = 0.2;
+
+        for (int i = 0; i <= segments; i++) {
+            double distance = 0.4 + i * distanceStep;
+            double progress = i / (double)Math.max(1, segments);
+            double radius = baseRadius + progress * 0.35 * Math.max(0.8, multiplier);
+            double swirlAngle = progress * Math.PI * 4.0;
+
+            Vec3 radial = right.scale(Math.cos(swirlAngle) * radius).add(up.scale(Math.sin(swirlAngle) * radius));
+            Vec3 point = origin.add(forward.scale(distance)).add(radial);
+
+            double jitter = 0.01 + random.nextDouble() * 0.015;
+            server.sendParticles(
+                ParticleTypes.CRIT,
+                point.x,
+                point.y,
+                point.z,
+                3,
+                forward.x * jitter,
+                forward.y * jitter,
+                forward.z * jitter,
+                0.01
+            );
+
+            if (random.nextFloat() < 0.2f) {
+                server.sendParticles(
+                    ParticleTypes.SWEEP_ATTACK,
+                    point.x,
+                    point.y,
+                    point.z,
+                    1,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                );
+            }
+        }
     }
 
     private static ItemStack findCompatibleWeapon(Player player) {
