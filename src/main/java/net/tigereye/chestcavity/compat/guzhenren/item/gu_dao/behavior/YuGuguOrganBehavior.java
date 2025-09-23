@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.util.ChestCavityUtil;
 
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
@@ -74,8 +75,9 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
      * Registers a removal listener and, on first insert, applies the baseline efficiency bonus.
      */
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
-        boolean alreadyRegistered = staleRemovalContexts.removeIf(old -> old.organ == organ && old.listener == this);
-        cc.onRemovedListeners.add(new OrganRemovalContext(organ, this));
+        int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
+        boolean alreadyRegistered = staleRemovalContexts.removeIf(old -> ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, this));
+        cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, this));
         if (alreadyRegistered) {
             return;
         }
