@@ -5,12 +5,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.listeners.OrganOnFireListener;
 
 /**
  * Handles slow-burning recovery for the Guzhenren Huoxingu organ.
  */
-public enum HuoxinguOrganBehavior implements OrganOnFireListener {
+public enum HuoxinguOrganBehavior implements OrganOnFireListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final double BASE_COST = 100.0;
@@ -39,5 +42,15 @@ public enum HuoxinguOrganBehavior implements OrganOnFireListener {
                 player.heal(healAmount);
             }
         });
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // Huoxingu does not contribute to INCREASE effects.
     }
 }

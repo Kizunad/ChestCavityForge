@@ -24,6 +24,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
@@ -38,7 +40,7 @@ import java.util.OptionalDouble;
 /**
  * Behaviour for 螺旋骨枪蛊. Handles slow tick recharging and active projectile firing.
  */
-public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener {
+public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -256,5 +258,15 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
         return damage;
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // LuoXuanGuQianggu does not contribute to INCREASE effects.
     }
 }

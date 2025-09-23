@@ -15,6 +15,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
@@ -29,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Passive: each slow tick adds +5 per organ stack.
  * Active: using bone meal near the player injects +20 per stack.
  */
-public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
+public enum GuzhuguOrganBehavior implements OrganSlowTickListener, IncreaseEffectContributor {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -268,5 +270,15 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener {
                     0.0, 0.02, 0.0,
                     0.0);
         }
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        // Guzhugu does not contribute to INCREASE effects.
     }
 }
