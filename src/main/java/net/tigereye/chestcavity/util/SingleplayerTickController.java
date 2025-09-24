@@ -1,11 +1,9 @@
 package net.tigereye.chestcavity.util;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.server.IntegratedServer;
-import net.tigereye.chestcavity.ChestCavity;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.loading.FMLEnvironment;
-
-import java.util.Optional;
+import net.tigereye.chestcavity.ChestCavity;
 
 /**
  * Provides a safe entry point for manipulating tick behaviour while running
@@ -25,6 +23,7 @@ import java.util.Optional;
 public final class SingleplayerTickController {
 
     private static final float MIN_TICK_RATE = 0.05F;
+    private static final SingleplayerTickHandler HANDLER = initializeHandler();
 
     private SingleplayerTickController() {
     }
@@ -41,23 +40,7 @@ public final class SingleplayerTickController {
      * operation was carried out, otherwise {@code false}.
      */
     public static boolean apply(Float targetTickRate, Boolean pauseState) {
-        Optional<IntegratedServer> optionalServer = getActiveIntegratedServer();
-        if (optionalServer.isEmpty()) {
-            return false;
-        }
-
-        IntegratedServer server = optionalServer.get();
-        boolean applied = false;
-
-        if (targetTickRate != null) {
-            applied |= setTickRateInternal(server, targetTickRate);
-        }
-
-        if (pauseState != null) {
-            applied |= setPauseInternal(server, pauseState);
-        }
-
-        return applied;
+        return HANDLER.apply(targetTickRate, pauseState);
     }
 
     /**
@@ -76,51 +59,86 @@ public final class SingleplayerTickController {
         return apply(null, paused);
     }
 
-    private static Optional<IntegratedServer> getActiveIntegratedServer() {
+    private static SingleplayerTickHandler initializeHandler() {
         if (!FMLEnvironment.dist.isClient()) {
-            return Optional.empty();
+            return SingleplayerTickHandler.NO_OP;
         }
 
-        return Optional.ofNullable(ClientAccess.getIntegratedServer());
+        try {
+            Class<?> implClass = Class.forName("net.tigereye.chestcavity.util.SingleplayerTickController$ClientActions");
+            return (SingleplayerTickHandler) implClass.getDeclaredConstructor().newInstance();
+        } catch (ClassNotFoundException ignored) {
+            return SingleplayerTickHandler.NO_OP;
+        } catch (ReflectiveOperationException exception) {
+            ChestCavity.LOGGER.error("Failed to initialise singleplayer tick controller", exception);
+            return SingleplayerTickHandler.NO_OP;
+        }
     }
 
-    private static boolean setTickRateInternal(IntegratedServer server, float targetTickRate) {
-        if (!Float.isFinite(targetTickRate)) {
-            ChestCavity.LOGGER.warn("Ignoring non-finite tick rate value: {}", targetTickRate);
-            return false;
-        }
+    private interface SingleplayerTickHandler {
+        SingleplayerTickHandler NO_OP = (targetTickRate, pauseState) -> false;
 
-        float sanitized = Math.max(MIN_TICK_RATE, targetTickRate);
-        if (sanitized != targetTickRate) {
-            ChestCavity.LOGGER.debug("Clamped tick rate {} to minimum supported value {}", targetTickRate, sanitized);
-        }
-
-        server.tickRateManager().setTickRate(sanitized);
-        return true;
+        boolean apply(Float targetTickRate, Boolean pauseState);
     }
 
-    private static boolean setPauseInternal(IntegratedServer server, boolean pauseState) {
-        boolean frozen = server.tickRateManager().isFrozen();
-        if (frozen == pauseState) {
-            return false;
+    @OnlyIn(Dist.CLIENT)
+    private static final class ClientActions implements SingleplayerTickHandler {
+
+        private ClientActions() {
         }
 
-        server.tickRateManager().setFrozen(pauseState);
-        return true;
-    }
+        @Override
+        public boolean apply(Float targetTickRate, Boolean pauseState) {
+            net.minecraft.client.server.IntegratedServer server = getActiveIntegratedServer();
+            if (server == null) {
+                return false;
+            }
 
-    private static final class ClientAccess {
+            boolean applied = false;
 
-        private ClientAccess() {
+            if (targetTickRate != null) {
+                applied |= setTickRateInternal(server, targetTickRate);
+            }
+
+            if (pauseState != null) {
+                applied |= setPauseInternal(server, pauseState);
+            }
+
+            return applied;
         }
 
-        private static IntegratedServer getIntegratedServer() {
-            Minecraft minecraft = Minecraft.getInstance();
+        private static net.minecraft.client.server.IntegratedServer getActiveIntegratedServer() {
+            net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
             if (minecraft == null || !minecraft.hasSingleplayerServer()) {
                 return null;
             }
 
             return minecraft.getSingleplayerServer();
+        }
+
+        private static boolean setTickRateInternal(net.minecraft.client.server.IntegratedServer server, float targetTickRate) {
+            if (!Float.isFinite(targetTickRate)) {
+                ChestCavity.LOGGER.warn("Ignoring non-finite tick rate value: {}", targetTickRate);
+                return false;
+            }
+
+            float sanitized = Math.max(MIN_TICK_RATE, targetTickRate);
+            if (sanitized != targetTickRate) {
+                ChestCavity.LOGGER.debug("Clamped tick rate {} to minimum supported value {}", targetTickRate, sanitized);
+            }
+
+            server.tickRateManager().setTickRate(sanitized);
+            return true;
+        }
+
+        private static boolean setPauseInternal(net.minecraft.client.server.IntegratedServer server, boolean pauseState) {
+            boolean frozen = server.tickRateManager().isFrozen();
+            if (frozen == pauseState) {
+                return false;
+            }
+
+            server.tickRateManager().setFrozen(pauseState);
+            return true;
         }
     }
 }
