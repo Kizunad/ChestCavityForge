@@ -15,6 +15,7 @@ public final class GuzhenrenItems {
     private static final String MOD_ID = "guzhenren";
 
     public static final Item JIANJITENG = resolve("jianjiteng");
+    public static final Item CHOU_PI_GU = resolve("chou_pi_gu");
 
     public static final Item WEI_LIAN_HUA_JIAN_XIA_GU = resolve("weilianhuajianxiagu");
     public static final Item WEI_LIAN_HUA_JIAN_ZHI_GU_3 = resolve("wei_lian_hua_jian_zhi_gu_3");

@@ -9,5 +9,8 @@
   "text.chestcavity.wooden_shovel.unavailable": "仅在单机模式下可以控制刻速。",
   "death.attack.chestcavity.alcohol_overdose": "%1$s 醉死沙场君莫笑",
   "death.attack.chestcavity.alcohol_overdose.player": "%1$s 与 %2$s 交锋时醉死沙场君莫笑",
-  "message.guzhenren.jianjiteng.bonus": "剑脊藤颤动不休，藤骨间孕出一只蛊虫……"
+  "message.guzhenren.jianjiteng.bonus": "剑脊藤颤动不休，藤骨间孕出一只蛊虫……",
+  "message.guzhenren.chou_pi_gu.uncomfortable": "你感觉到肚子有点不舒服……",
+  "message.guzhenren.chou_pi_gu.stench": "一股恶臭弥漫开来！",
+  "message.guzhenren.chou_pi_gu.odor_broadcast": "%s 放出了一股腥臭的气味！"
 }
