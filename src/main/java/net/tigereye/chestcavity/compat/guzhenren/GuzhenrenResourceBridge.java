@@ -47,17 +47,186 @@ public final class GuzhenrenResourceBridge {
      * Mapping of all supported player variable fields. 承载附件字段映射，保证读写时使用固定枚举常量而非裸字符串。
      */
     private enum PlayerField {
-        ZHENYUAN("zhenyuan"),
-        MAX_ZHENYUAN("zuida_zhenyuan"),
-        JINGLI("jingli"),
-        MAX_JINGLI("zuida_jingli"),
-        JIEDUAN("jieduan"),
-        ZHUANSHU("zhuanshu");
+        ZHENYUAN("zhenyuan", "真元"),
+        MAX_ZHENYUAN("zuida_zhenyuan", "最大真元"),
+        GU_FANG("GuFang", "蛊方ID"),
+        GUSHI_XIULIAN_JINDU("gushi_xiulian_jindu", "蛊师所需修炼进度"),
+        GUSHI_XIULIAN_DANGQIAN("gushi_xiulian_dangqian", "蛊师当前修炼进度"),
+        ZHUANSHU("zhuanshu", "境界转数"),
+        JIEDUAN("jieduan", "小境界阶段"),
+        KONGQIAO("kongqiao", "空窍品阶"),
+        BENMINGGU("benminggu", "本命蛊"),
+        DI_YU("di_yu", "地域"),
+        SHOUYUAN("shouyuan", "寿元"),
+        JINGLI("jingli", "精力"),
+        MAX_JINGLI("zuida_jingli", "最大精力", "zuida_jingli"),
+        TIZHI("tizhi", "体质"),
+        XINGBIE("xingbie", "性别"),
+        HUNPO("hunpo", "魂魄"),
+        MAX_HUNPO("zuida_hunpo", "最大魂魄"),
+        NIANTOU("niantou", "念头"),
+        MAX_NIANTOU("niantou_zhida", "最大念头", "niantou_zuida"),
+        RENQI("renqi", "人气"),
+        QIYUN("qiyun", "气运"),
+        DAODE("daode", "道德"),
+        LIANGU_JINDU("LianGuJinDu", "炼蛊进度"),
+        DAOHEN_JINDAO("daohen_jindao", "金道道痕"),
+        DAOHEN_SHUIDAO("daohen_shuidao", "水道道痕"),
+        DAOHEN_MUDAO("daohen_mudao", "木道道痕"),
+        DAOHEN_YANDAO("daohen_yandao", "炎道道痕"),
+        DAOHEN_TUDAO("daohen_tudao", "土道道痕"),
+        DAOHEN_FENGDAO("daohen_fengdao", "风道道痕"),
+        DAOHEN_GUANGDAO("daohen_guangdao", "光道道痕"),
+        DAOHEN_ANDAO("daohen_andao", "暗道道痕"),
+        DAOHEN_LEIDAO("daohen_leidao", "雷道道痕"),
+        DAOHEN_DUDAO("daohen_dudao", "毒道道痕"),
+        DAOHEN_YUDAO("daohen_yudao", "宇道道痕"),
+        DAOHEN_ZHOUDAO("dahen_zhoudao", "宙道道痕", "daohen_zhoudao"),
+        DAOHEN_RENDAO("dahen_rendao", "人道道痕", "daohen_rendao"),
+        DAOHEN_TIANDAO("dahen_tiandao", "天道道痕", "daohen_tiandao"),
+        DAOHEN_BINGXUE("daohen_bingxuedao", "冰雪道痕", "daohen_bingxue"),
+        DAOHEN_QIDAO("dahen_qidao", "气道道痕", "daohen_qidao"),
+        DAOHEN_NUDAO("dahen_nudao", "奴道道痕", "daohen_nudao"),
+        DAOHEN_ZHIDAO("dahen_zhidao", "智道道痕", "daohen_zhidao"),
+        DAOHEN_XINGDAO("dahen_xingdao", "星道道痕", "daohen_xingdao"),
+        DAOHEN_ZHENDAO("dahen_zhendao", "阵道道痕", "daohen_zhendao"),
+        DAOHEN_YINGDAO("daohen_yingdao", "影道道痕"),
+        DAOHEN_LVDAO("daohen_lvdao", "律道道痕"),
+        DAOHEN_LIANDAO("dahen_liandao", "炼道道痕", "daohen_liandao"),
+        DAOHEN_LIDAO("daohen_lidao", "力道道痕"),
+        DAOHEN_SHIDAO("daohen_shidao", "食道道痕"),
+        DAOHEN_HUADAO("daohen_huadao", "画道道痕"),
+        DAOHEN_TOUDAO("daohen_toudao", "偷道道痕"),
+        DAOHEN_YUNDAO("daohen_yundao", "运道道痕"),
+        DAOHEN_YUNDAO_CLOUD("daohen_yundao2", "云道道痕", "daohen_yundao", "daohen_yundao_cloud"),
+        DAOHEN_XINDAO("daohen_xindao", "信道道痕"),
+        DAOHEN_YINDAO("daohen_yindao", "音道道痕"),
+        DAOHEN_GUDAO("daohen_gudao", "骨道道痕"),
+        DAOHEN_XUDAO("daohen_xudao", "虚道道痕"),
+        DAOHEN_JINDAO_FORBIDDEN("daohen_jindao2", "禁道道痕", "daohen_jindao", "daohen_jindao_forbidden"),
+        DAOHEN_JIANDAO("daohen_jiandao", "剑道道痕"),
+        DAOHEN_DAODAO("daohen_daodao", "刀道道痕"),
+        DAOHEN_HUNDAO("daohen_hundao", "魂道道痕"),
+        DAOHEN_DANDAO("daohen_dandao", "丹道道痕"),
+        DAOHEN_XUEDAO("daohen_xuedao", "血道道痕"),
+        DAOHEN_HUANDAO("daohen_huandao", "幻道道痕"),
+        DAOHEN_YUEDAO("daohen_yuedao", "月道道痕"),
+        DAOHEN_MENGDAO("daohen_mengdao", "梦道道痕"),
+        DAOHEN_BINGDAO("daohen_bingdao", "兵道道痕"),
+        DAOHEN_BIANHUADAO("daohen_bianhuadao", "变化道道痕"),
+        LIUPAI_JINDAO("liupai_jindao", "金道流派经验"),
+        LIUPAI_SHUIDAO("liupai_shuidao", "水道流派经验"),
+        LIUPAI_MUDAO("liupai_mudao", "木道流派经验"),
+        LIUPAI_YANDAO("liupai_yandao", "炎道流派经验"),
+        LIUPAI_TUDAO("liupai_tudao", "土道流派经验"),
+        LIUPAI_FENGDAO("liupai_fengdao", "风道流派经验"),
+        LIUPAI_GUANGDAO("liupai_guangdao", "光道流派经验"),
+        LIUPAI_ANDAO("liupai_andao", "暗道流派经验"),
+        LIUPAI_LEIDAO("liupai_leidao", "雷道流派经验"),
+        LIUPAI_DUDAO("liupai_dudao", "毒道流派经验"),
+        LIUPAI_YUDAO("liupai_yudao", "宇道流派经验"),
+        LIUPAI_ZHOUDAO("liupai_zhoudao", "宙道流派经验"),
+        LIUPAI_RENDAO("liupai_rendao", "人道流派经验"),
+        LIUPAI_TIANDAO("liupai_tiandao", "天道流派经验"),
+        LIUPAI_BINGXUEDAO("liupai_bingxuedao", "冰雪流派经验"),
+        LIUPAI_QIDAO("liupai_qidao", "气道流派经验"),
+        LIUPAI_NUDAO("liupai_nudao", "奴道流派经验"),
+        LIUPAI_ZHIDAO("liupai_zhidao", "智道流派经验"),
+        LIUPAI_XINGDAO("liupai_xingdao", "星道流派经验"),
+        LIUPAI_ZHENDAO("liupai_zhendao", "阵道流派经验"),
+        LIUPAI_YINGDAO("liupai_yingdao", "影道流派经验"),
+        LIUPAI_LVDAO("liupai_lvdao", "律道流派经验"),
+        LIUPAI_LIANDAO("liupai_liandao", "炼道流派经验"),
+        LIUPAI_LIDAO("liupai_lidao", "力道流派经验"),
+        LIUPAI_SHIDAO("liupai_shidao", "食道流派经验"),
+        LIUPAI_HUADAO("liupai_huadao", "画道流派经验"),
+        LIUPAI_TOUDAO("liupai_toudao", "偷道流派经验"),
+        LIUPAI_YUNDAO("liupai_yundao", "运道流派经验"),
+        LIUPAI_YUNDAO_CLOUD("liupai_yundao2", "云道流派经验", "liupai_yundao", "liupai_yundao_cloud"),
+        LIUPAI_XINDAO("liupai_xindao", "信道流派经验"),
+        LIUPAI_YINDAO("liupai_yindao", "音道流派经验"),
+        LIUPAI_GUDAO("Liupai_gudao", "骨道流派经验", "liupai_gudao"),
+        LIUPAI_XUDAO("liupai_xudao", "虚道流派经验"),
+        LIUPAI_JINDAO_FORBIDDEN("liupai_jindao2", "禁道流派经验", "liupai_jindao", "liupai_jindao_forbidden"),
+        LIUPAI_JIANDAO("liupai_jiandao", "剑道流派经验"),
+        LIUPAI_DAODAO("liupai_daodao", "刀道流派经验"),
+        LIUPAI_HUNDAO("liupai_hundao", "魂道流派经验"),
+        LIUPAI_DANDAO("liupai_dandao", "丹道流派经验"),
+        LIUPAI_XUEDAO("liupai_xuedao", "血道流派经验"),
+        LIUPAI_HUANDAO("liupai_huandao", "幻道流派经验"),
+        LIUPAI_YUEDAO("liupai_yuedao", "月道流派经验"),
+        LIUPAI_MENGDAO("liupai_mengdao", "梦道流派经验"),
+        LIUPAI_BINGDAO("liupai_bingdao", "兵道流派经验"),
+        LIUPAI_BIANHUADAO("liupai_bianhuadao", "变化道流派经验");
+
+        private static final Map<String, PlayerField> BY_ALIAS = new ConcurrentHashMap<>();
+        private static final Map<String, PlayerField> BY_DOC_LABEL = new ConcurrentHashMap<>();
 
         private final String fieldName;
+        private final String docLabel;
+        private final Set<String> aliases;
 
-        PlayerField(String fieldName) {
+        static {
+            for (PlayerField field : values()) {
+                for (String alias : field.aliases) {
+                    PlayerField existing = BY_ALIAS.putIfAbsent(alias, field);
+                    if (existing != null && existing != field) {
+                        LOGGER.debug("Duplicate Guzhenren alias '{}' maps to {} and {}", alias, existing.displayName(), field.displayName());
+                    }
+                }
+                if (field.docLabel != null && !field.docLabel.isBlank()) {
+                    PlayerField existing = BY_DOC_LABEL.putIfAbsent(field.docLabel, field);
+                    if (existing != null && existing != field) {
+                        LOGGER.debug("Duplicate Guzhenren doc label '{}' maps to {} and {}", field.docLabel, existing.displayName(), field.displayName());
+                    }
+                }
+            }
+        }
+
+        PlayerField(String fieldName, String docLabel, String... extraAliases) {
             this.fieldName = fieldName;
+            this.docLabel = docLabel;
+            Set<String> aliasSet = new LinkedHashSet<>();
+            aliasSet.add(fieldName);
+            if (extraAliases != null) {
+                for (String alias : extraAliases) {
+                    if (alias != null && !alias.isBlank()) {
+                        aliasSet.add(alias);
+                    }
+                }
+            }
+            this.aliases = Collections.unmodifiableSet(aliasSet);
+        }
+
+        String fieldName() {
+            return fieldName;
+        }
+
+        String displayName() {
+            return docLabel == null || docLabel.isBlank() ? fieldName : docLabel + " (" + fieldName + ")";
+        }
+
+        Optional<String> docLabel() {
+            return Optional.ofNullable(docLabel);
+        }
+
+        static Optional<PlayerField> fromIdentifier(String identifier) {
+            if (identifier == null || identifier.isBlank()) {
+                return Optional.empty();
+            }
+            PlayerField byAlias = BY_ALIAS.get(identifier);
+            if (byAlias != null) {
+                return Optional.of(byAlias);
+            }
+            PlayerField byLabel = BY_DOC_LABEL.get(identifier);
+            if (byLabel != null) {
+                return Optional.of(byLabel);
+            }
+            try {
+                return Optional.of(PlayerField.valueOf(identifier.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
+                return Optional.empty();
+            }
         }
     }
 
@@ -162,11 +331,11 @@ public final class GuzhenrenResourceBridge {
             return Optional.of(cached);
         }
         try {
-            Field field = playerVariablesClass.getField(fieldKey.fieldName);
+            Field field = playerVariablesClass.getField(fieldKey.fieldName());
             FIELD_CACHE.put(fieldKey, field);
             return Optional.of(field);
         } catch (NoSuchFieldException e) {
-            LOGGER.debug("Guzhenren PlayerVariables missing field '{}'", fieldKey.fieldName);
+            LOGGER.debug("Guzhenren PlayerVariables missing field '{}'", fieldKey.displayName());
             return Optional.empty();
         }
     }
@@ -179,7 +348,7 @@ public final class GuzhenrenResourceBridge {
             try {
                 return OptionalDouble.of(field.getDouble(variables));
             } catch (IllegalAccessException e) {
-                LOGGER.warn("Failed to read Guzhenren field '{}'", fieldKey.fieldName, e);
+                LOGGER.warn("Failed to read Guzhenren field '{}'", fieldKey.displayName(), e);
                 return OptionalDouble.empty();
             }
         }).orElseGet(OptionalDouble::empty);
@@ -195,14 +364,14 @@ public final class GuzhenrenResourceBridge {
         }
         Field field = fieldOpt.get();
         if (field.getType() != double.class) {
-            LOGGER.debug("Guzhenren field '{}' is not a double", fieldKey.fieldName);
+            LOGGER.debug("Guzhenren field '{}' is not a double", fieldKey.displayName());
             return false;
         }
         try {
             field.setDouble(variables, value);
             return true;
         } catch (IllegalAccessException e) {
-            LOGGER.warn("Failed to write Guzhenren field '{}'", fieldKey.fieldName, e);
+            LOGGER.warn("Failed to write Guzhenren field '{}'", fieldKey.displayName(), e);
             return false;
         }
     }
@@ -230,19 +399,33 @@ public final class GuzhenrenResourceBridge {
             this.variables = variables;
         }
 
+        public OptionalDouble read(PlayerField fieldKey) {
+            return GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
+        }
+
+        public OptionalDouble read(String identifier) {
+            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+            return field.isPresent() ? read(field.get()) : OptionalDouble.empty();
+        }
+
         /**
          * 写入指定字段并同步到客户端。
          */
         public OptionalDouble writeDouble(PlayerField fieldKey, double value) {
             if (!Double.isFinite(value)) {
-                LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldKey.fieldName, value);
-                return OptionalDouble.empty();
-            }
+            LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldKey.displayName(), value);
+            return OptionalDouble.empty();
+        }
             if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
                 return OptionalDouble.empty();
             }
             sync(this.player, this.variables);
             return OptionalDouble.of(value);
+        }
+
+        public OptionalDouble writeDouble(String identifier, double value) {
+            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+            return field.isPresent() ? writeDouble(field.get(), value) : OptionalDouble.empty();
         }
 
         /**
@@ -267,6 +450,22 @@ public final class GuzhenrenResourceBridge {
             return writeDouble(fieldKey, result);
         }
 
+        public OptionalDouble adjustDouble(String identifier, double delta, boolean clampZero) {
+            return adjustDouble(identifier, delta, clampZero, null);
+        }
+
+        public OptionalDouble adjustDouble(String identifier, double delta, boolean clampZero, String maxIdentifier) {
+            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+            if (field.isEmpty()) {
+                return OptionalDouble.empty();
+            }
+            PlayerField maxField = null;
+            if (maxIdentifier != null && !maxIdentifier.isBlank()) {
+                maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
+            }
+            return adjustDouble(field.get(), delta, clampZero, maxField);
+        }
+
         /**
          * 将字段值限制在对应的最大字段之内。
          */
@@ -281,6 +480,15 @@ public final class GuzhenrenResourceBridge {
             }
             double clamped = Math.min(currentOpt.getAsDouble(), maxOpt.getAsDouble());
             return writeDouble(fieldKey, clamped);
+        }
+
+        public OptionalDouble clampToMax(String identifier, String maxIdentifier) {
+            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+            if (field.isEmpty()) {
+                return OptionalDouble.empty();
+            }
+            PlayerField maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
+            return clampToMax(field.get(), maxField);
         }
 
         /**
