@@ -16,6 +16,7 @@ public final class XueDaoOrganRegistry {
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation TIE_XUE_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu");
+    private static final ResourceLocation XIE_DI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_di_gu");
 
     private static final ResourceLocation XIE_YAN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_yan_gu");
 
@@ -33,6 +34,7 @@ public final class XueDaoOrganRegistry {
                     context.staleRemovalContexts()
             );
         });
+
 
 
         GuzhenrenLinkageEffectRegistry.registerSingle(XIE_YAN_GU_ID, context -> {
