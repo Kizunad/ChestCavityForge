@@ -4,7 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.TiexueguOrganBehavior;
 
 
-import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueFeiguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieyanguOrganBehavior;
 
@@ -44,10 +44,10 @@ public final class XueDaoOrganRegistry {
 
 
         GuzhenrenLinkageEffectRegistry.registerSingle(XUE_FEI_GU_ID, context -> {
-            context.addSlowTickListener(XueFeiguOrganBehavior.INSTANCE);
-            context.addRemovalListener(XueFeiguOrganBehavior.INSTANCE);
-            XueFeiguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-            XueFeiguOrganBehavior.INSTANCE.onEquip(
+            context.addSlowTickListener(XieFeiguOrganBehavior.INSTANCE);
+            context.addRemovalListener(XieFeiguOrganBehavior.INSTANCE);
+            XieFeiguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
+            XieFeiguOrganBehavior.INSTANCE.onEquip(
                     context.chestCavity(),
                     context.sourceOrgan(),
                     context.staleRemovalContexts()
