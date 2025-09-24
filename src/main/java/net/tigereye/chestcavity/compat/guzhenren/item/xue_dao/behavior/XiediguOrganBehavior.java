@@ -13,6 +13,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -411,9 +412,10 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         float startingAbsorption = target.getAbsorptionAmount();
 
         target.invulnerableTime = 0;
-        target.hurt(source == null
+        DamageSource damageSource = source == null
                 ? target.damageSources().generic()
-                : target.damageSources().playerAttack(source), amount);
+                : target.damageSources().playerAttack(source);
+        target.hurt(damageSource, amount);
         target.invulnerableTime = 0;
 
         float remaining = amount;
@@ -426,7 +428,17 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             if (remaining > 0.0f) {
                 float targetHealth = Math.max(0.0f, startingHealth - remaining);
                 if (target.getHealth() > targetHealth) {
-                    target.setHealth(targetHealth);
+                    if (targetHealth <= 0.0f) {
+                        target.setHealth(0.0f);
+                        if (!target.level().isClientSide()) {
+                            DamageSource deathSource = source == null
+                                    ? target.damageSources().genericKill()
+                                    : target.damageSources().playerAttack(source);
+                            target.die(deathSource);
+                        }
+                    } else {
+                        target.setHealth(targetHealth);
+                    }
                 }
             }
             target.hurtTime = 0;
