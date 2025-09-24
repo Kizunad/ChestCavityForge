@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
 @Mod(ChestCavity.MODID)
@@ -67,6 +68,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
     if (FMLEnvironment.dist.isClient()) {
             bus.addListener(GuDaoClientAbilities::onClientSetup);
             bus.addListener(ShiDaoClientAbilities::onClientSetup);
+            bus.addListener(MuDaoClientAbilities::onClientSetup);
     }
 
     bus.addListener(GuDaoClientRenderLayers::onAddLayers);
