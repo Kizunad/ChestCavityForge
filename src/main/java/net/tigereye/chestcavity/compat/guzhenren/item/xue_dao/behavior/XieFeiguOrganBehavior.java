@@ -45,9 +45,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Behaviour implementation for 血肺蛊 (Xue Fei Gu).
+ * Behaviour implementation for 血肺蛊 (Xie Fei Gu).
  */
-public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener {
+public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -58,7 +58,7 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private static final String STATE_KEY = "XueFeigu";
+    private static final String STATE_KEY = "XieFeigu";
     private static final String MODE_KEY = "Mode";
     private static final String SLOT_KEY = "Slot";
     private static final String COOLDOWN_KEY = "Cooldown";
@@ -98,7 +98,7 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             Component.literal("血肺蛊失衡，心肺衰竭！");
 
     static {
-        OrganActivationListeners.register(ABILITY_ID, XueFeiguOrganBehavior::activateAbility);
+        OrganActivationListeners.register(ABILITY_ID, XieFeiguOrganBehavior::activateAbility);
     }
 
     public void ensureAttached(ChestCavityInstance cc) {
@@ -212,7 +212,7 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     }
 
     private static ResourceLocation movementModifierId(int slotIndex) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/xue_fei_speed_" + slotIndex);
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/xie_fei_speed_" + slotIndex);
     }
 
     private static void applyRapidBreathModifier(Player player, ItemStack organ, int slotIndex, double healthRatio) {
@@ -239,7 +239,7 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     }
 
     private static ResourceLocation rapidBreathModifierId(int slotIndex) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/xue_fei_rapid_breath_" + slotIndex);
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/xie_fei_rapid_breath_" + slotIndex);
     }
 
     private static void replaceModifier(AttributeInstance attribute, ResourceLocation id, AttributeModifier modifier) {
@@ -606,7 +606,7 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             return;
         }
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("[Xue Fei Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
+            LOGGER.debug("[Xie Fei Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
         }
     }
 
