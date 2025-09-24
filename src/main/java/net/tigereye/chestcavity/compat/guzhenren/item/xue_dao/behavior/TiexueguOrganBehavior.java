@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,8 +33,10 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
+import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -46,6 +49,8 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu");
     private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect");
+
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -289,11 +294,13 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     private static void writeTimer(ItemStack stack, int value) {
         int clamped = Math.max(0, value);
+        int previous = readTimer(stack);
         NBTWriter.updateCustomData(stack, tag -> {
             CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
             state.putInt(TIMER_KEY, clamped);
             tag.put(STATE_KEY, state);
         });
+        logNbtChange(stack, TIMER_KEY, previous, clamped);
     }
 
     private static double readEffect(ItemStack stack) {
@@ -314,11 +321,13 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     private static void writeEffect(ItemStack stack, double value) {
         double clamped = Math.max(0.0, value);
+        double previous = readEffect(stack);
         NBTWriter.updateCustomData(stack, tag -> {
             CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
             state.putDouble(EFFECT_KEY, clamped);
             tag.put(STATE_KEY, state);
         });
+        logNbtChange(stack, EFFECT_KEY, previous, clamped);
     }
 
     private static int initialTimer(ChestCavityInstance cc) {
@@ -329,5 +338,22 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             }
         }
         return TRIGGER_INTERVAL_SLOW_TICKS;
+    }
+
+    private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
+        if (Objects.equals(oldValue, newValue)) {
+            return;
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[Tie Xue Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
+        }
+    }
+
+    private static String describeStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "<empty>";
+        }
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return stack.getCount() + "x " + id;
     }
 }

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -38,9 +39,11 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -54,6 +57,8 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_di_gu");
     public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_di_gu_detonate");
 
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect");
     private static final ResourceLocation BLEED_EFFECT_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "lliuxue");
@@ -64,6 +69,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     private static final String TIMER_KEY = "Timer";
     private static final String STORED_KEY = "StoredDrops";
     private static final String DRY_KEY = "Dry";
+    private static final String ANNOUNCED_KEY = "Announced";
 
     private static final int GENERATION_INTERVAL_SLOW_TICKS = 10;
     private static final int DRY_RETRY_INTERVAL_SLOW_TICKS = 1;
@@ -121,7 +127,10 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         writeDry(organ, false);
 
         if (!alreadyRegistered && cc.owner instanceof Player player && !player.level().isClientSide()) {
-            player.sendSystemMessage(EQUIP_MESSAGE);
+            if (!readEquipMessageShown(organ)) {
+                player.sendSystemMessage(EQUIP_MESSAGE);
+                writeEquipMessageShown(organ, true);
+            }
         }
     }
 
@@ -189,6 +198,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         writeTimer(organ, 0);
         writeStoredDrops(organ, 0);
         writeDry(organ, false);
+        writeEquipMessageShown(organ, false);
         if (entity instanceof Player player) {
             player.removeEffect(MobEffects.WEAKNESS);
         }
@@ -386,25 +396,26 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         float startingAbsorption = player.getAbsorptionAmount();
 
         player.invulnerableTime = 0;
-        player.hurt(player.damageSources().generic(), amount);
+        boolean applied = player.hurt(player.damageSources().generic(), amount);
         player.invulnerableTime = 0;
 
-        float remaining = amount;
-        float absorptionConsumed = Math.min(startingAbsorption, remaining);
-        remaining -= absorptionConsumed;
-        float targetAbsorption = Math.max(0.0f, startingAbsorption - amount);
-
-        if (!player.isDeadOrDying()) {
-            player.setAbsorptionAmount(targetAbsorption);
-            if (remaining > 0.0f) {
-                float targetHealth = Math.max(0.0f, startingHealth - remaining);
-                if (player.getHealth() > targetHealth) {
-                    player.setHealth(targetHealth);
-                }
-            }
-            player.hurtTime = 0;
-            player.hurtDuration = 0;
+        if (player.isDeadOrDying()) {
+            return;
         }
+
+        float absorptionConsumed = Math.min(startingAbsorption, amount);
+        float expectedAbsorption = Math.max(0.0f, startingAbsorption - absorptionConsumed);
+        float expectedHealth = Math.max(0.0f, startingHealth - (amount - absorptionConsumed));
+
+        if (!applied || player.getAbsorptionAmount() != expectedAbsorption) {
+            player.setAbsorptionAmount(expectedAbsorption);
+        }
+        if (!applied || player.getHealth() > expectedHealth) {
+            player.setHealth(expectedHealth);
+        }
+
+        player.hurtTime = 0;
+        player.hurtDuration = 0;
     }
 
     private static void applyTrueDamage(Player source, LivingEntity target, float amount) {
@@ -493,11 +504,13 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
 
     private static void writeTimer(ItemStack stack, int value) {
         int clamped = Math.max(0, value);
+        int previous = readTimer(stack);
         NBTWriter.updateCustomData(stack, tag -> {
             CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
             state.putInt(TIMER_KEY, clamped);
             tag.put(STATE_KEY, state);
         });
+        logNbtChange(stack, TIMER_KEY, previous, clamped);
     }
 
     private static int readStoredDrops(ItemStack stack) {
@@ -515,11 +528,13 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
 
     private static void writeStoredDrops(ItemStack stack, int value) {
         int clamped = Math.max(0, value);
+        int previous = readStoredDrops(stack);
         NBTWriter.updateCustomData(stack, tag -> {
             CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
             state.putInt(STORED_KEY, clamped);
             tag.put(STATE_KEY, state);
         });
+        logNbtChange(stack, STORED_KEY, previous, clamped);
     }
 
     private static boolean readDry(ItemStack stack) {
@@ -536,11 +551,36 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     }
 
     private static void writeDry(ItemStack stack, boolean dry) {
+        boolean previous = readDry(stack);
         NBTWriter.updateCustomData(stack, tag -> {
             CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
             state.putBoolean(DRY_KEY, dry);
             tag.put(STATE_KEY, state);
         });
+        logNbtChange(stack, DRY_KEY, previous, dry);
+    }
+
+    private static boolean readEquipMessageShown(ItemStack stack) {
+        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+        if (data == null) {
+            return false;
+        }
+        CompoundTag tag = data.copyTag();
+        if (!tag.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
+            return false;
+        }
+        CompoundTag state = tag.getCompound(STATE_KEY);
+        return state.getBoolean(ANNOUNCED_KEY);
+    }
+
+    private static void writeEquipMessageShown(ItemStack stack, boolean value) {
+        boolean previous = readEquipMessageShown(stack);
+        NBTWriter.updateCustomData(stack, tag -> {
+            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
+            state.putBoolean(ANNOUNCED_KEY, value);
+            tag.put(STATE_KEY, state);
+        });
+        logNbtChange(stack, ANNOUNCED_KEY, previous, value);
     }
 
     private static void schedule(ServerLevel level, Runnable runnable, int delayTicks) {
@@ -549,5 +589,22 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             return;
         }
         level.getServer().execute(() -> schedule(level, runnable, delayTicks - 1));
+    }
+
+    private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
+        if (Objects.equals(oldValue, newValue)) {
+            return;
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[Xie Di Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
+        }
+    }
+
+    private static String describeStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "<empty>";
+        }
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return stack.getCount() + "x " + id;
     }
 }

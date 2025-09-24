@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -37,6 +38,7 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
+import org.slf4j.Logger;
 
 import java.util.HashSet;
 import java.util.List;
@@ -54,6 +56,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_yan_gu");
     private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect");
+
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -344,11 +348,30 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static void writeTimer(ItemStack stack, int value) {
         int clamped = Math.max(0, value);
+        int previous = readTimer(stack);
         NBTWriter.updateCustomData(stack, tag -> {
             CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ?
                     tag.getCompound(STATE_KEY) : new CompoundTag();
             state.putInt(TIMER_KEY, clamped);
             tag.put(STATE_KEY, state);
         });
+        logNbtChange(stack, TIMER_KEY, previous, clamped);
+    }
+
+    private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
+        if (Objects.equals(oldValue, newValue)) {
+            return;
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[Xie Yan Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
+        }
+    }
+
+    private static String describeStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "<empty>";
+        }
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return stack.getCount() + "x " + id;
     }
 }
