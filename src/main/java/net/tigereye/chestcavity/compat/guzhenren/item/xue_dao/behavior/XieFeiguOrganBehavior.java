@@ -84,11 +84,11 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     private static final int COOLDOWN_TICKS = 200; // 10 seconds
 
-    private static final int FOG_DURATION_SECONDS = 5;
+    private static final int FOG_DURATION_SECONDS = 8;
     private static final double FOG_RADIUS = 6.0;
     private static final float FOG_DAMAGE = 4.0f;
     private static final int BLINDNESS_DURATION_TICKS = 60;
-    private static final int POISON_DURATION_TICKS = 80;
+    private static final int POISON_DURATION_TICKS = 160;
     private static final int FOG_PARTICLE_COUNT = 120;
 
     private static final DustParticleOptions BLOOD_DUST =
@@ -416,9 +416,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             applyFogDamage(level, player, target, fogDamage);
         }
 
-        if (!player.isDeadOrDying() && player.distanceToSqr(center) <= FOG_RADIUS * FOG_RADIUS) {
-            applySelfRecovery(player);
-        }
+        // Poison fog no longer grants the caster recovery; only enemies are affected.
     }
 
     private static void applyFogDamage(ServerLevel level, Player player, LivingEntity target, float amount) {
@@ -428,16 +426,6 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         target.invulnerableTime = 0;
         target.hurt(level.damageSources().magic(), amount);
         target.invulnerableTime = 0;
-    }
-
-    private static void applySelfRecovery(Player player) {
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isPresent()) {
-            GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-            handle.replenishScaledZhenyuan(ZHENYUAN_COST, true);
-            handle.adjustJingli(ZHENYUAN_COST, true);
-        }
-        player.heal(4.0f);
     }
 
     private static double resolveIncreaseMultiplier(ChestCavityInstance cc) {
