@@ -7,6 +7,7 @@
   "text.chestcavity.wooden_shovel.freeze": "集成服务器刻已冻结",
   "text.chestcavity.wooden_shovel.unfreeze": "集成服务器刻已恢复",
   "text.chestcavity.wooden_shovel.unavailable": "仅在单机模式下可以控制刻速。",
-  "death.attack.alcohol_overdose": "%1$s 醉死沙场君莫笑",
-  "death.attack.alcohol_overdose.player": "%1$s 与 %2$s 交锋时醉死沙场君莫笑"
+  "death.attack.chestcavity.alcohol_overdose": "%1$s 醉死沙场君莫笑",
+  "death.attack.chestcavity.alcohol_overdose.player": "%1$s 与 %2$s 交锋时醉死沙场君莫笑",
+  "message.guzhenren.jianjiteng.bonus": "剑脊藤颤动不休，藤骨间孕出一只蛊虫……"
 }

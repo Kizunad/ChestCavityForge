@@ -284,7 +284,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             target.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 400, 0, false, true, true));
             target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400, 0, false, true, true));
         }
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1000, 10, false, true, true));
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1000, 3, false, true, true));
         player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
     }
 

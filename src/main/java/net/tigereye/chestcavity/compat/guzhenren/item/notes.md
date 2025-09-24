@@ -222,3 +222,149 @@ On hit
 
   - 用松骨蛊对怪物释放后，data get entity <目标> ActiveEffects 可看到 guzhenren:songgu
   - 观察其生命会持续快速掉并出现减速，同时非玩家目标的最大生命值会被持续降低
+
+
+镰刀蛊（器官设定）
+
+类型：器官（ATTACK ABILITIES 主动技能）
+
+触发方式：玩家按下快捷键释放
+
+动作表现：
+
+玩家原地蓄力 3 tick（~0.15s），此时刀光开始闪现（用粒子 & 音效提示）。
+
+蓄力结束后，向前方释放一道“刀光波动”，穿过路径中的敌人，延迟判定伤害。
+
+命中区域敌人被击退并短暂“击倒”（效果类似 击退 + 矿车/雪傀儡的短暂停顿）。
+
+若前方存在 3×3 方块区域（如草、木、土），会被直接切断破坏（模拟刀光破坏力）。
+
+数值设定：
+
+消耗：大量真元 + 精力
+
+伤害：30 × (1+剑道EFFECT INCREASE) × (1+金道EFFECT INCREASE)
+
+冷却：约 8–12 秒（避免滥用）
+
+✨ 视觉特效（粒子）
+
+利用 原版粒子系统 来模拟刀光：
+
+蓄力阶段
+
+end_rod 粒子在玩家身体周围螺旋环绕（白色光点，类似聚气感）。
+
+sweep_attack 粒子缓缓出现，提示即将斩击。
+
+刀光释放
+
+sweep_attack 大量刷屏，拉出一道白色/银色的弧形轨迹（原版剑挥击特效）。
+
+搭配 crit 与 crit_magic 粒子，表现出锋锐与灵气溢散。
+
+若命中方块 → 在破坏位置生成 block_crack 粒子（对应方块材质碎裂效果）。
+
+余韵特效
+
+刀光经过区域残留 smoke 或 poof，像空气被撕裂。
+
+偶尔 flash 粒子爆闪（类似闪电残光）。
+
+🔊 音效设计
+
+原版音效组合即可打造震撼感：
+
+蓄力时
+
+item.trident.return（低沉嗡鸣）
+
+block.beacon.activate（聚气感）
+
+斩击瞬间
+
+entity.player.attack.sweep（原版横斩音效）
+
+叠加 entity.lightning_bolt.thunder 的低音部分（削弱音量）
+
+block.anvil.break（短促金属破碎声，强调锋锐）
+
+命中反馈
+
+entity.generic.explode 的弱版本（命中范围爆裂感）
+
+方块破坏时，自动触发该方块的 block.break 音效。
+
+💡 扩展创意
+
+斩击残影：刀光方向短暂生成一个“虚影”实体（仅客户端渲染，不交互），看起来像残留的斩痕。
+
+🕒 时间轴流程
+Tick 0（按键触发瞬间）
+
+扣除真元 & 精力（立刻支付消耗）。
+
+播放 蓄力起手音效：
+
+item.trident.return（低沉能量声）
+
+block.beacon.activate（聚气感）
+
+在玩家周身生成环绕粒子：
+
+end_rod → 细碎白光，围绕身体旋转。
+
+crit_magic → 随机星点。
+
+Tick 2（蓄力完成 → 刀光显现阶段）
+
+播放刀光“出鞘”特效：
+
+大量 sweep_attack 粒子朝前方拉伸，形成一条虚影斩击线。
+
+flash 粒子一瞬间爆闪（刀光闪现）。
+
+播放音效：
+
+entity.player.attack.sweep（横斩声）
+
+叠加小音量的 entity.blaze.shoot（急促能量声）。
+
+此时还不结算伤害/破坏，只是展示！
+
+Tick 5（延迟爆发 → 真正命中）
+
+在刀光路径上判定敌人：
+
+造成伤害 = 30 × (1+剑道EFFECT INCREASE) × (1+金道EFFECT INCREASE)
+
+附带 slowness II (1s) + weakness I (1s)（模拟被“击倒”）。
+
+检查前方 3×3 区域的方块：
+
+若是草、土、木等软块 → 直接破坏并掉落。
+
+若是石头/矿石 → 不掉落，仅生成 block_crack 粒子 + 方块 break 音效。
+
+播放音效：
+
+block.anvil.break（金属碎裂感）
+
+entity.generic.explode（弱爆炸声，增强冲击感）。
+
+粒子效果：
+
+block_crack（根据破坏方块材质生成碎片）。
+
+poof / smoke（空气被撕开）。
+
+crit 粒子沿刀光残影随机闪烁。
+
+⚡ 演出总结
+
+Tick 0 → 玩家起手 → 聚气音效 + 光点环绕。
+
+Tick 2 → 刀光显影 → 播放横斩特效（但无伤害）。
+
+Tick 5 → 真正伤害 + 方块破坏 → 粒子爆裂 + 金属爆音。

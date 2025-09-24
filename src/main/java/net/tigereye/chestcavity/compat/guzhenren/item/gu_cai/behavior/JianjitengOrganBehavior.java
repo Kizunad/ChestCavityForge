@@ -37,7 +37,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
     private static final String MOD_ID = "guzhenren";
 
     private static final String STATE_KEY = "JianjitengCharge";
-    private static final int MAX_CHARGE = 30;
+    private static final int MAX_CHARGE = 100;
 
     private static final float HEALTH_COST = 0.1f;
     private static final double ZHENYUAN_COST = 2.0;
