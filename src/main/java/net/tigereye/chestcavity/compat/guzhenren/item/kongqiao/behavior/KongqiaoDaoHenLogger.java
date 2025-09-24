@@ -9,15 +9,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.client.Minecraft;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenPayloadListener;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /**
  * Listens for Guzhenren player variable syncs and logs Dao Hen changes.
@@ -27,6 +31,19 @@ public final class KongqiaoDaoHenLogger implements GuzhenrenPayloadListener {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final double EPSILON = 1.0e-4;
     private static final String LOG_PREFIX = "[compat/guzhenren][kongqiao]";
+    private static final String MOD_ID = "guzhenren";
+    private static final double DAO_HEN_TO_INCREASE_RATIO = 1.0 / 1000.0;
+    private static final Map<String, ResourceLocation> DAO_HEN_CHANNELS = Map.ofEntries(
+            Map.entry("gudao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/gu_dao_increase_effect")),
+            Map.entry("tudao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/tu_dao_increase_effect")),
+            Map.entry("dudao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/du_dao_increase_effect")),
+            Map.entry("lidao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/li_dao_increase_effect")),
+            Map.entry("leidao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/lei_dao_increase_effect")),
+            Map.entry("xuedao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect")),
+            Map.entry("jindao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/jin_dao_increase_effect")),
+            Map.entry("jiandao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/jian_dao_increase_effect")),
+            Map.entry("bianhuadao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bian_hua_dao_increase_effect"))
+    );
 
     private static final KongqiaoDaoHenLogger INSTANCE = new KongqiaoDaoHenLogger();
     private static final AtomicBoolean INITIALISED = new AtomicBoolean(false);
@@ -78,6 +95,7 @@ public final class KongqiaoDaoHenLogger implements GuzhenrenPayloadListener {
             LOGGER.debug("{} previous snapshot found ({} keys); computing delta", LOG_PREFIX, previous.size());
             logDiff(player, previous, tracked);
         }
+        seedIncreaseEffects(player, tracked);
         lastSnapshots.put(playerId, Collections.unmodifiableMap(new HashMap<>(tracked)));
         LOGGER.debug("{} snapshot cached for player {} ({} tracked keys)", LOG_PREFIX, player.getScoreboardName(), tracked.size());
     }
@@ -154,5 +172,57 @@ public final class KongqiaoDaoHenLogger implements GuzhenrenPayloadListener {
 
     private static String format(double value) {
         return String.format(Locale.ROOT, "%.3f", value);
+    }
+
+    private static void seedIncreaseEffects(Player player, Map<String, Double> daoHenValues) {
+        if (player == null || daoHenValues == null || daoHenValues.isEmpty()) {
+            return;
+        }
+        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).ifPresent(cc -> {
+            var context = GuzhenrenLinkageManager.getContext(cc);
+            daoHenValues.forEach((rawKey, rawValue) -> {
+                if (rawValue == null || Math.abs(rawValue) < EPSILON) {
+                    return;
+                }
+                ResourceLocation channelId = resolveIncreaseChannel(rawKey);
+                if (channelId == null) {
+                    LOGGER.trace("{} skipping DaoHen key {} (no mapped increase effect)", LOG_PREFIX, rawKey);
+                    return;
+                }
+                LinkageChannel channel = context.getOrCreateChannel(channelId);
+                double converted = rawValue * DAO_HEN_TO_INCREASE_RATIO;
+                double previous = channel.get();
+                if (Math.abs(previous - converted) <= EPSILON) {
+                    return;
+                }
+                channel.set(converted);
+                LOGGER.debug("{} seeded {} with {} (raw DaoHen {} -> increase {})", LOG_PREFIX, channelId, format(converted),
+                        format(rawValue), format(converted));
+            });
+        });
+    }
+
+    private static ResourceLocation resolveIncreaseChannel(String rawKey) {
+        if (rawKey == null || rawKey.isBlank()) {
+            return null;
+        }
+        String normalised = rawKey.toLowerCase(Locale.ROOT);
+        if (normalised.startsWith("daohen_")) {
+            normalised = normalised.substring("daohen_".length());
+        } else if (normalised.startsWith("dahen_")) {
+            normalised = normalised.substring("dahen_".length());
+        }
+        if (normalised.isEmpty()) {
+            return null;
+        }
+        normalised = normalised.replace("_", "");
+        // Handle aliases that append numeric suffixes such as daohen_jindao2
+        while (!normalised.isEmpty() && Character.isDigit(normalised.charAt(normalised.length() - 1))) {
+            normalised = normalised.substring(0, normalised.length() - 1);
+        }
+        if (normalised.isEmpty()) {
+            return null;
+        }
+        return DAO_HEN_CHANNELS.get(normalised);
     }
 }
