@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -145,7 +146,8 @@ public final class GuzhenrenNetworkBridge {
                     return;
                 }
                 LOGGER.trace("[compat/guzhenren][network] payload received for {}", player.getScoreboardName());
-                dispatch(player);
+                // Ensure we execute on the client main thread to avoid data races
+                Minecraft.getInstance().execute(() -> dispatch(player));
             }
         };
 
