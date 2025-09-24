@@ -18,10 +18,10 @@ public final class XueDaoClientAbilities {
 
         if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(XueFeiguOrganBehavior.ABILITY_ID)) {
             CCKeybindings.ATTACK_ABILITY_LIST.add(XueFeiguOrganBehavior.ABILITY_ID);
-
+        }
         if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(XiediguOrganBehavior.ABILITY_ID)) {
             CCKeybindings.ATTACK_ABILITY_LIST.add(XiediguOrganBehavior.ABILITY_ID);
 
         }
-    }
+    }  
 }
