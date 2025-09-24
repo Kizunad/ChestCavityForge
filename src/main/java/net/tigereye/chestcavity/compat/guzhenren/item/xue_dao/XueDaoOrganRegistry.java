@@ -20,7 +20,7 @@ public final class XueDaoOrganRegistry {
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation TIE_XUE_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu");
 
-    private static final ResourceLocation XUE_FEI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xue_fei_gu");
+    private static final ResourceLocation XUE_FEI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_fei_gu");
 
     private static final ResourceLocation XIE_DI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_di_gu");
 

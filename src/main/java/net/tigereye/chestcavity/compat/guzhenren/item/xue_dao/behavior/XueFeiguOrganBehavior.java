@@ -51,7 +51,7 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
-    private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xue_fei_gu");
+    private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_fei_gu");
     private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect");
     public static final ResourceLocation ABILITY_ID = ORGAN_ID;
@@ -137,15 +137,6 @@ public enum XueFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || entity.level().isClientSide()) {
             return;
-        }
-        if (cc == null || organ == null || organ.isEmpty()) {
-            return;
-        }
-        if (!organ.is(GuzhenrenItems.XUE_FEI_GU)) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());
-            if (!ORGAN_ID.equals(id)) {
-                return;
-            }
         }
 
         int storedSlot = readSlot(organ);
