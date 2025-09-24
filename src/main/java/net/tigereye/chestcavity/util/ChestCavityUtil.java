@@ -692,7 +692,8 @@ public class ChestCavityUtil {
             if (cc.owner.tickCount % 20 == 0) {
                 GuzhenrenLinkageManager.tickSlow(cc);
                 if (!cc.onSlowTickListeners.isEmpty()) {
-                    for (OrganSlowTickContext ctx : cc.onSlowTickListeners) {
+                    List<OrganSlowTickContext> snapshot = List.copyOf(cc.onSlowTickListeners);
+                    for (OrganSlowTickContext ctx : snapshot) {
                         ctx.listener.onSlowTick(cc.owner, cc, ctx.organ);
                     }
                 }
