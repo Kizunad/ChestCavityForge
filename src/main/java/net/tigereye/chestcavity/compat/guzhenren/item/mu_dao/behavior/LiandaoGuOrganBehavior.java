@@ -61,7 +61,7 @@ public enum LiandaoGuOrganBehavior {
     private static final double BASE_ZHENYUAN_COST = 120.0;
     private static final double BASE_JINGLI_COST = 80.0;
 
-    private static final int CHARGE_DURATION_TICKS = 3;
+    private static final int CHARGE_DURATION_TICKS = 20;
     private static final int RELEASE_TELEGRAPH_TICKS = 5;
     private static final int MIN_COOLDOWN_TICKS = 160; // 8 seconds
     private static final int COOLDOWN_VARIANCE_TICKS = 80; // +0-80 ticks (8-12s window)
@@ -74,6 +74,44 @@ public enum LiandaoGuOrganBehavior {
     private static final int EFFECT_DURATION_TICKS = 20; // 1 second
 
     private static final double EPSILON = 1.0E-4;
+
+        // 顶部常量区 —— 新增两个角度来控制刀光倾斜/斜切
+    private static final double SLASH_PITCH_DEG = -25.0; // 负值=朝下斜 “/”，正值=朝上斜 “\”
+    private static final double SLASH_ROLL_DEG  = 35.0;  // 绕forward的滚转，决定刀光条带的“歪斜感”
+
+
+        // 工具方法 —— 基于 forward 生成 right / upLocal，避免正上/正下奇异
+    private static class Basis {
+        final Vec3 f;  // forward (单位向量)
+        final Vec3 r;  // right    (单位向量)
+        final Vec3 u;  // upLocal  (单位向量，垂直于 f 和 r)
+        Basis(Vec3 f, Vec3 r, Vec3 u){ this.f=f; this.r=r; this.u=u; }
+    }
+
+    private static Basis makeBasis(Vec3 forward) { // NEW
+        Vec3 f = forward.normalize();
+        // 与世界Up接近平行时，选一个备用Up避免叉积退化
+        Vec3 worldUp = Math.abs(f.y) > 0.95 ? new Vec3(0, 0, 1) : new Vec3(0, 1, 0);
+        Vec3 r = f.cross(worldUp);
+        if (r.lengthSqr() < EPSILON) r = new Vec3(1,0,0);
+        r = r.normalize();
+        Vec3 u = r.cross(f).normalize();
+        return new Basis(f, r, u);
+    }
+
+        // 把俯仰和滚转角应用到方向上 —— 产生“斜向主轴 dir”与“宽度轴 wAxis”
+    private static Vec3 computeSlashDir(Basis b, double pitchDeg) { // NEW
+        double a = Math.toRadians(pitchDeg);
+        // 在 forward 与 upLocal 张成的平面内旋转
+        return b.f.scale(Math.cos(a)).add(b.u.scale(Math.sin(a))).normalize();
+    }
+
+    private static Vec3 computeWidthAxis(Basis b, double rollDeg) { // NEW
+        double g = Math.toRadians(rollDeg);
+        // 宽度方向在 right 与 upLocal 张成的平面内再“歪”一点
+        return b.r.scale(Math.cos(g)).add(b.u.scale(Math.sin(g))).normalize();
+    }
+
 
     static {
         OrganActivationListeners.register(ABILITY_ID, LiandaoGuOrganBehavior::activateAbility);
@@ -130,29 +168,34 @@ public enum LiandaoGuOrganBehavior {
         double damageAmount = BASE_DAMAGE * totalMultiplier;
 
         Vec3 origin = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
+
+ 
+
         Vec3 look = player.getLookAngle();
         Vec3 fallback = player.getForward();
         Vec3 baseForward = look.lengthSqr() < EPSILON ? fallback : look;
         Vec3 forward = baseForward.lengthSqr() < EPSILON
                 ? new Vec3(0.0, 0.0, 1.0)
                 : baseForward.normalize();
+
+                // NEW: 建立局部基并求“斜向主轴”和“宽度轴”
+        Basis basis = makeBasis(forward);
+        Vec3 dir   = computeSlashDir(basis, SLASH_PITCH_DEG);
+        Vec3 wAxis = computeWidthAxis(basis, SLASH_ROLL_DEG);
+
+        // 上移一格，再往前推出一格
+        Vec3 shiftedOrigin = origin.add(0.0, 1.0, 0.0).add(dir.scale(1.0));
         playChargeStartEffects(serverLevel, player);
         spawnChargeParticles(serverLevel, player, 0);
         schedule(serverLevel, () -> spawnChargeParticles(serverLevel, player, 1), 1);
         schedule(serverLevel, () -> spawnChargeParticles(serverLevel, player, 2), 2);
 
-        Vec3 telegraphOrigin = origin.add(forward.scale(0.6));
-        schedule(serverLevel, () -> playTelegraph(serverLevel, telegraphOrigin, forward), CHARGE_DURATION_TICKS);
+        Vec3 telegraphOrigin = shiftedOrigin.add(dir.scale(0.6)); // 用 dir 而不是 forward
+        schedule(serverLevel, () -> playTelegraph(serverLevel, telegraphOrigin, dir, wAxis), CHARGE_DURATION_TICKS);
 
-        Vec3 impactCenter = origin.add(forward.scale(WAVE_LENGTH * 0.75));
+        Vec3 impactCenter = shiftedOrigin.add(dir.scale(WAVE_LENGTH * 0.75));
         schedule(serverLevel, () -> applyBladeWave(
-                serverLevel,
-                player,
-                cc,
-                origin,
-                forward,
-                damageAmount,
-                impactCenter
+                serverLevel, player, cc, origin, dir, wAxis, damageAmount, impactCenter
         ), RELEASE_TELEGRAPH_TICKS);
     }
 
@@ -173,7 +216,7 @@ public enum LiandaoGuOrganBehavior {
         double centerZ = player.getZ();
         RandomSource random = player.getRandom();
         double radius = 0.6 + stage * 0.1;
-        for (int i = 0; i < 12; i++) {
+        /*for (int i = 0; i < 12; i++) {
             double angle = (i / 12.0) * Mth.TWO_PI + random.nextDouble() * 0.2;
             double offsetX = Math.cos(angle) * radius;
             double offsetZ = Math.sin(angle) * radius;
@@ -188,75 +231,83 @@ public enum LiandaoGuOrganBehavior {
                     0.0,
                     0.0
             );
-        }
+        }*/
         serverLevel.sendParticles(ParticleTypes.ENCHANT, centerX, centerY, centerZ, 6, 0.2, 0.25, 0.2, 0.01);
     }
 
-    private static void playTelegraph(ServerLevel serverLevel, Vec3 origin, Vec3 forward) {
-        if (forward.lengthSqr() < EPSILON) {
-            return;
-        }
-        serverLevel.playSound(null, origin.x, origin.y, origin.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0f, 1.0f);
-        serverLevel.playSound(null, origin.x, origin.y, origin.z, SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.5f, 1.4f);
-        serverLevel.playSound(null, origin.x, origin.y, origin.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.3f, 1.6f);
+    private static void playTelegraph(ServerLevel s, Vec3 origin, Vec3 dir, Vec3 wAxis) { // CHANGED
+        if (dir.lengthSqr() < EPSILON) return;
 
-        int segments = 18;
+        s.playSound(null, origin.x, origin.y, origin.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0f, 1.0f);
+        s.playSound(null, origin.x, origin.y, origin.z, SoundEvents.BLAZE_SHOOT,          SoundSource.PLAYERS, 0.5f, 1.4f);
+        s.playSound(null, origin.x, origin.y, origin.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.3f, 1.6f);
+
+        int segments = 22;
+        int stripes  = 3; // 横向“条带”层数，营造可见刀面
+        double halfW = WAVE_HALF_WIDTH * 0.9;
+
         for (int i = 0; i <= segments; i++) {
             double t = i / (double) segments;
-            Vec3 point = origin.add(forward.scale(t * WAVE_LENGTH));
-            serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, point.x, point.y, point.z, 3, 0.1, 0.05, 0.1, 0.0);
-            if (i % 3 == 0) {
-                serverLevel.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 2, 0.2, 0.2, 0.2, 0.01);
+            Vec3 center = origin.add(dir.scale(t * WAVE_LENGTH));
+
+            for (int k = -stripes; k <= stripes; k++) {
+                double w = (k / (double) stripes) * halfW;
+                Vec3 p = center.add(wAxis.scale(w));
+                s.sendParticles(ParticleTypes.SWEEP_ATTACK, p.x, p.y, p.z, 1, 0.04, 0.02, 0.04, 0.0);
+                if (i % 2 == 0) {
+                    s.sendParticles(ParticleTypes.CRIT, p.x, p.y, p.z, 1, 0.06, 0.04, 0.06, 0.01);
+                }
             }
         }
-        serverLevel.sendParticles(ParticleTypes.FLASH, origin.x + forward.x * 0.5, origin.y, origin.z + forward.z * 0.5, 1, 0.0, 0.0, 0.0, 0.0);
+        Vec3 flash = origin.add(dir.scale(0.5));
+        s.sendParticles(ParticleTypes.FLASH, flash.x, flash.y, flash.z, 1, 0, 0, 0, 0);
     }
-
     private static void applyBladeWave(
-            ServerLevel serverLevel,
-            Player player,
-            ChestCavityInstance cc,
-            Vec3 origin,
-            Vec3 forward,
-            double damageAmount,
-            Vec3 impactCenter
-    ) {
-        if (!player.isAlive()) {
-            return;
-        }
-        AABB hitbox = new AABB(origin, origin.add(forward.scale(WAVE_LENGTH))).inflate(WAVE_HALF_WIDTH, WAVE_HALF_HEIGHT, WAVE_HALF_WIDTH);
-        List<LivingEntity> targets = serverLevel.getEntitiesOfClass(LivingEntity.class, hitbox, entity -> entity != player && entity.isAlive());
-        for (LivingEntity target : targets) {
-            float appliedDamage = (float) damageAmount;
-            if (appliedDamage > 0.0f) {
-                target.hurt(player.damageSources().playerAttack(player), appliedDamage);
-            }
-            target.knockback(KNOCKBACK_FORCE, -forward.x, -forward.z);
-            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, EFFECT_DURATION_TICKS, 1, false, true, true));
-            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, EFFECT_DURATION_TICKS, 0, false, true, true));
-            serverLevel.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY(0.5), target.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
-        }
+        ServerLevel s, Player player, ChestCavityInstance cc,
+        Vec3 origin, Vec3 dir, Vec3 wAxis, double damageAmount, Vec3 impactCenter) { // CHANGED
 
-        serverLevel.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.ANVIL_BREAK, SoundSource.PLAYERS, 0.7f, 1.1f);
-        serverLevel.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.6f, 1.2f);
+    if (!player.isAlive()) return;
 
-        spawnResidualParticles(serverLevel, origin, forward);
-        affectBlocks(serverLevel, player);
+    AABB hitbox = new AABB(origin, origin.add(dir.scale(WAVE_LENGTH)))
+            .inflate(WAVE_HALF_WIDTH, WAVE_HALF_HEIGHT, WAVE_HALF_WIDTH);
+
+    List<LivingEntity> targets = s.getEntitiesOfClass(LivingEntity.class, hitbox,
+            e -> e != player && e.isAlive());
+
+    for (LivingEntity t : targets) {
+        float dmg = (float)damageAmount;
+        if (dmg > 0) t.hurt(player.damageSources().playerAttack(player), dmg);
+        t.knockback(KNOCKBACK_FORCE, -dir.x, -dir.z); // 用斜向 knockback
+        t.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, EFFECT_DURATION_TICKS, 1, false, true, true));
+        t.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,          EFFECT_DURATION_TICKS, 0, false, true, true));
+        s.sendParticles(ParticleTypes.CRIT, t.getX(), t.getY(0.5), t.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
     }
 
-    private static void spawnResidualParticles(ServerLevel serverLevel, Vec3 origin, Vec3 forward) {
-        Vec3 end = origin.add(forward.scale(WAVE_LENGTH));
-        for (int i = 0; i < 24; i++) {
-            double t = serverLevel.getRandom().nextDouble();
-            Vec3 point = origin.add(forward.scale(t * WAVE_LENGTH));
-            serverLevel.sendParticles(ParticleTypes.SMOKE, point.x, point.y, point.z, 1, 0.1, 0.1, 0.1, 0.01);
-            serverLevel.sendParticles(ParticleTypes.POOF, point.x, point.y, point.z, 1, 0.15, 0.05, 0.15, 0.02);
-            if (serverLevel.getRandom().nextInt(5) == 0) {
-                serverLevel.sendParticles(ParticleTypes.FLASH, point.x, point.y + 0.1, point.z, 1, 0.0, 0.0, 0.0, 0.0);
+    s.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.ANVIL_BREAK,     SoundSource.PLAYERS, 0.7f, 1.1f);
+    s.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.6f, 1.2f);
+
+    spawnResidualParticles(s, origin, dir, wAxis); // 余晖粒子也用斜向
+    affectBlocksAlongSlash(s, origin, dir, wAxis, player);
+}
+
+    private static void spawnResidualParticles(ServerLevel s, Vec3 origin, Vec3 dir, Vec3 wAxis) { // CHANGED
+        Vec3 end = origin.add(dir.scale(WAVE_LENGTH));
+        RandomSource rnd = s.getRandom();
+
+        for (int i = 0; i < 28; i++) {
+            double t = rnd.nextDouble();
+            double w = (rnd.nextDouble() * 2 - 1) * (WAVE_HALF_WIDTH * 0.8);
+            Vec3 p = origin.add(dir.scale(t * WAVE_LENGTH)).add(wAxis.scale(w));
+
+            s.sendParticles(ParticleTypes.SMOKE, p.x, p.y, p.z, 1, 0.08, 0.06, 0.08, 0.01);
+            s.sendParticles(ParticleTypes.POOF,  p.x, p.y, p.z, 1, 0.12, 0.04, 0.12, 0.02);
+            if (rnd.nextInt(5) == 0) {
+                s.sendParticles(ParticleTypes.FLASH, p.x, p.y + 0.08, p.z, 1, 0, 0, 0, 0);
             }
         }
-        serverLevel.sendParticles(ParticleTypes.CRIT, end.x, end.y, end.z, 12, 0.4, 0.4, 0.4, 0.05);
+        s.sendParticles(ParticleTypes.CRIT, end.x, end.y, end.z, 12, 0.35, 0.35, 0.35, 0.05);
     }
+
 
     private static void affectBlocks(ServerLevel serverLevel, Player player) {
         Direction facing = player.getDirection();
@@ -274,6 +325,22 @@ public enum LiandaoGuOrganBehavior {
         }
     }
 
+    private static void affectBlocksAlongSlash(ServerLevel s, Vec3 origin, Vec3 dir, Vec3 wAxis, Player player) { // OPTIONAL
+    // 取靠近玩家前方 2.5 格处作为切割带中心线
+    Vec3 base = origin.add(dir.scale(2.5));
+    // 沿 wAxis 采样 [-1,0,1] 三列，沿 dir 向前 [0,1,2] 三段，并在竖直方向 y 偏移 [0,1,2]
+    for (int w = -1; w <= 1; w++) {
+        for (int step = 0; step <= 2; step++) {
+            Vec3 line = base.add(dir.scale(step)).add(wAxis.scale(w));
+            BlockPos pos = BlockPos.containing(line);
+            for (int dy = 0; dy < 3; dy++) {
+                processBlock(s, player, pos.above(dy));
+            }
+        }
+    }
+}
+
+
     private static void processBlock(ServerLevel serverLevel, Player player, BlockPos pos) {
         BlockState state = serverLevel.getBlockState(pos);
         if (state.isAir()) {
@@ -284,6 +351,11 @@ public enum LiandaoGuOrganBehavior {
             serverLevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, state), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.25, 0.25, 0.25, 0.1);
         } else {
             serverLevel.playSound(null, pos, state.getSoundType().getHitSound(), SoundSource.PLAYERS, 0.5f, 1.1f);
+                        // 额外的金属"叮"声
+            serverLevel.playSound(null, pos,
+                    SoundEvents.NETHERITE_BLOCK_HIT, // 也可以换成 NETHERITE_BLOCK_HIT
+                    SoundSource.PLAYERS, 0.3f, 0.8f);
+
             serverLevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, state), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 12, 0.2, 0.2, 0.2, 0.05);
         }
     }
