@@ -9,13 +9,16 @@ import org.apache.logging.log4j.Logger;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -210,6 +213,10 @@ public final class GuzhenrenResourceBridge {
             return Optional.ofNullable(docLabel);
         }
 
+        String docLabelRaw() {
+            return docLabel;
+        }
+
         static Optional<PlayerField> fromIdentifier(String identifier) {
             if (identifier == null || identifier.isBlank()) {
                 return Optional.empty();
@@ -228,6 +235,20 @@ public final class GuzhenrenResourceBridge {
                 return Optional.empty();
             }
         }
+    }
+
+    public static Optional<String> resolveCanonicalFieldName(String identifier) {
+        return PlayerField.fromIdentifier(identifier).map(PlayerField::fieldName);
+    }
+
+    public static Optional<String> documentationLabel(String identifier) {
+        return PlayerField.fromIdentifier(identifier).flatMap(PlayerField::docLabel);
+    }
+
+    public static Set<String> canonicalFieldNames() {
+        return Arrays.stream(PlayerField.values())
+                .map(PlayerField::fieldName)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static final Map<PlayerField, Field> FIELD_CACHE = new ConcurrentHashMap<>();
@@ -413,9 +434,9 @@ public final class GuzhenrenResourceBridge {
          */
         public OptionalDouble writeDouble(PlayerField fieldKey, double value) {
             if (!Double.isFinite(value)) {
-            LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldKey.displayName(), value);
-            return OptionalDouble.empty();
-        }
+                LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldKey.displayName(), value);
+                return OptionalDouble.empty();
+            }
             if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
                 return OptionalDouble.empty();
             }
@@ -489,6 +510,20 @@ public final class GuzhenrenResourceBridge {
             }
             PlayerField maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
             return clampToMax(field.get(), maxField);
+        }
+
+        /**
+         * Builds an immutable snapshot of every known Guzhenren variable keyed by its canonical field name.
+         */
+        public Map<String, Double> snapshotAll() {
+            Map<String, Double> values = new LinkedHashMap<>();
+            for (PlayerField field : PlayerField.values()) {
+                OptionalDouble valueOpt = GuzhenrenResourceBridge.readDouble(this.variables, field);
+                if (valueOpt.isPresent()) {
+                    values.put(field.fieldName(), valueOpt.getAsDouble());
+                }
+            }
+            return Collections.unmodifiableMap(values);
         }
 
         /**

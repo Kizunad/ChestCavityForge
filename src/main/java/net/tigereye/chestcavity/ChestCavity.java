@@ -6,6 +6,7 @@ import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -36,6 +37,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilit
 
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenNetworkBridge;
+import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
 
 @Mod(ChestCavity.MODID)
 public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix organUtil class, possibly update to 4?, add alexs mobs and other mods compat
@@ -108,6 +111,10 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCTagOrgans.init();
 		OrganRetentionRules.registerNamespace(MODID);
 		OrganRetentionRules.registerNamespace("guzhenren");
+		if (ModList.get().isLoaded("guzhenren")) {
+			KongqiaoOrganRegistry.bootstrap();
+			GuzhenrenNetworkBridge.bootstrap();
+		}
 		//CCCommands.register();
 		//CCNetworkingPackets.register();
 		//ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new OrganManager());

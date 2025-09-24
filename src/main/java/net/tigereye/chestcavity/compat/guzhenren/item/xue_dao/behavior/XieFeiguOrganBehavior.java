@@ -357,37 +357,46 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
         GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
         return handle.consumeScaledZhenyuan(ZHENYUAN_COST).isPresent();
-    }
-
-    private static boolean applyHealthCost(Player player, float amount) {
-        if (player == null || amount <= 0.0f) {
-            return true;
-        }
-        float startingHealth = player.getHealth();
-        float startingAbsorption = player.getAbsorptionAmount();
-
-        player.invulnerableTime = 0;
-        player.hurt(player.damageSources().magic(), amount);
-        player.invulnerableTime = 0;
-
-        float remaining = amount;
-        float absorbed = Math.min(startingAbsorption, remaining);
-        remaining -= absorbed;
-        float targetAbsorption = Math.max(0.0f, startingAbsorption - amount);
-
-        if (!player.isDeadOrDying()) {
-            player.setAbsorptionAmount(targetAbsorption);
-            if (remaining > 0.0f) {
-                float targetHealth = Math.max(0.0f, startingHealth - remaining);
-                if (player.getHealth() > targetHealth) {
-                    player.setHealth(targetHealth);
-                }
             }
-            player.hurtTime = 0;
-            player.hurtDuration = 0;
+        private static boolean applyHealthCost(Player player, float amount) {
+            if (player == null || amount <= 0.0f) {
+                return true;
+            }
+
+            float health = player.getHealth();
+            float absorption = player.getAbsorptionAmount();
+
+            float remaining = amount;
+
+            // 先扣护盾
+            if (absorption > 0.0f) {
+                float absorbed = Math.min(absorption, remaining);
+                player.setAbsorptionAmount(absorption - absorbed);
+                remaining -= absorbed;
+            }
+
+            // 再扣血
+            if (remaining > 0.0f) {
+                float newHealth = Math.max(0.0f, health - remaining);
+                player.setHealth(newHealth);
+            }
+
+            // 播放一次“受伤”反馈（音效+粒子），但不再调用 hurt()
+            // 避免被其他模组拦截或覆盖
+            if (!player.level().isClientSide()) {
+                player.level().playSound(
+                    null,
+                    player.getX(), player.getY(), player.getZ(),
+                    net.minecraft.sounds.SoundEvents.PLAYER_HURT,
+                    net.minecraft.sounds.SoundSource.PLAYERS,
+                    0.8f,
+                    1.0f + player.getRandom().nextFloat() * 0.3f
+                );
+            }
+
+            return !player.isDeadOrDying();
         }
-        return !player.isDeadOrDying();
-    }
+
 
     private static void playBloodFogCue(ServerLevel server, Player player) {
         RandomSource random = player.getRandom();
