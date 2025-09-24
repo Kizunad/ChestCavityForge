@@ -105,6 +105,9 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
+        if (!matchesOrgan(organ)) {
+            return;
+        }
 
         int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
         boolean alreadyRegistered = staleRemovalContexts.removeIf(old ->
