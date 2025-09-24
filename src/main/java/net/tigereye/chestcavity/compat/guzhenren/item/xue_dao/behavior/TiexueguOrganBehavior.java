@@ -54,7 +54,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     private static final String EFFECT_KEY = "Effect";
 
     private static final int TRIGGER_INTERVAL_SLOW_TICKS = 60;
-    private static final float HEALTH_DRAIN_PER_STACK = 10.0f;
+    private static final float HEALTH_DRAIN_PER_STACK = 5.0f;
     private static final double BASE_EFFICIENCY_MIN = 0.5;
     private static final double BASE_EFFICIENCY_MAX = 1.0;
     private static final double EFFICIENCY_INCREMENT = 0.1;
