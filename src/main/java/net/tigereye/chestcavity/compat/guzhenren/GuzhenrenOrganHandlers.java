@@ -10,6 +10,7 @@ import net.minecraft.world.item.Items;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.DuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.GuCaiOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.LeiDaoOrganRegistry;
@@ -57,6 +58,7 @@ public final class GuzhenrenOrganHandlers {
         }
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         GuCaiOrganRegistry.bootstrap();
+        DuDaoOrganRegistry.bootstrap();
         GuDaoOrganRegistry.bootstrap();
         LeiDaoOrganRegistry.bootstrap();
         MuDaoOrganRegistry.bootstrap();
