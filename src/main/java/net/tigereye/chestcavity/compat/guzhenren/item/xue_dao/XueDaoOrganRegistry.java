@@ -20,7 +20,6 @@ public final class XueDaoOrganRegistry {
 
     private static final ResourceLocation XIE_YAN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_yan_gu");
 
-    private static final ResourceLocation XIE_DI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_di_gu");
 
 
     static {
@@ -35,14 +34,17 @@ public final class XueDaoOrganRegistry {
             );
         });
 
-
-
         GuzhenrenLinkageEffectRegistry.registerSingle(XIE_YAN_GU_ID, context -> {
             context.addSlowTickListener(XieyanguOrganBehavior.INSTANCE);
             context.addOnHitListener(XieyanguOrganBehavior.INSTANCE);
             context.addRemovalListener(XieyanguOrganBehavior.INSTANCE);
             XieyanguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
             XieyanguOrganBehavior.INSTANCE.onEquip(
+                    context.chestCavity(),
+                    context.sourceOrgan(),
+                    context.staleRemovalContexts()
+            );
+        });
 
         GuzhenrenLinkageEffectRegistry.registerSingle(XIE_DI_GU_ID, context -> {
             context.addSlowTickListener(XiediguOrganBehavior.INSTANCE);
