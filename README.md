@@ -29,6 +29,7 @@ Contributors / 贡献者
 - 社区贡献者 — Bug 修复、行为扩展与本地化
 - 哈基芊 社区测试者
 - （· _ ·） 社区测试者
+- 炎阳之末 提供了给玩家参考的文档
 
 - 数据驱动映射
   - 实体分配：`src/main/resources/data/chestcavity/entity_assignment/guzhenren/` 下提供与蛊真人生态相关的实体到胸腔类型映射。
