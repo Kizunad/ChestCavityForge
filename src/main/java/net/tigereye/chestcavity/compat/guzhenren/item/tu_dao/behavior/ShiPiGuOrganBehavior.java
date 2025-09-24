@@ -106,7 +106,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         }
 
         if (charge > 0) {
-            applyResistance(player, cc, charge);
+            applyAbsorption(player, cc, charge);
         }
     }
 
@@ -149,7 +149,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
     }
 
-    private static void applyResistance(Player player, ChestCavityInstance cc, int charge) {
+    private static void applyAbsorption(Player player, ChestCavityInstance cc, int charge) {
         double ratio = Math.max(0.0, (double) charge / (double) MAX_CHARGE);
         int baseLevel = charge > 0 ? Math.max(1, (int) Math.round(ratio)) : 0;
         LinkageChannel increaseChannel = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
@@ -157,7 +157,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         double scaledLevel = baseLevel * increaseTotal;
         int finalLevel = Math.max(1, (int) Math.round(scaledLevel));
         int amplifier = Math.max(0, finalLevel - 1);
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, RESIST_EFFECT_DURATION, amplifier, true, true));
+        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, RESIST_EFFECT_DURATION, amplifier, true, true));
     }
 
     private static void playRechargeCue(Player player) {
