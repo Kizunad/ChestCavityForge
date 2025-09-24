@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao;
 
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueFeiguOrganBehavior;
 import net.tigereye.chestcavity.registration.CCKeybindings;
 
