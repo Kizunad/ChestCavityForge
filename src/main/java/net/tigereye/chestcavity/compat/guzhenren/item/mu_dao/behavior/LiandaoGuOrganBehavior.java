@@ -59,7 +59,7 @@ public enum LiandaoGuOrganBehavior {
 
     private static final double BASE_DAMAGE = 30.0;
     private static final double BASE_ZHENYUAN_COST = 120.0;
-    private static final double BASE_JINGLI_COST = 80.0;
+    private static final double BASE_JINGLI_COST = 30.0;
 
     private static final int CHARGE_DURATION_TICKS = 20;
     private static final int RELEASE_TELEGRAPH_TICKS = 5;
