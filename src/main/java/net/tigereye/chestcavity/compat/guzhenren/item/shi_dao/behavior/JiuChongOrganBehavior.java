@@ -79,15 +79,15 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
         LinkageChannel channel = ensureAlcoholChannel(cc);
         if (entity instanceof Player player) {
-            handlePlayerSlowTick(player, organ, channel);
+            handlePlayer(player, organ, channel);
             return;
         }
-        handleNonPlayer(entity, channel);
+        handleNonPlayer(entity, organ, channel);
     }
 
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (attacker == null || attacker.level().isClientSide()) {
+        if (attacker == null || attacker.level().isClientSide() || cc == null) {
             return damage;
         }
         LinkageChannel channel = ensureAlcoholChannel(cc);
@@ -107,7 +107,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     @Override
     public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (victim == null || victim.level().isClientSide()) {
+        if (victim == null || victim.level().isClientSide() || cc == null) {
             return damage;
         }
         LinkageChannel channel = ensureAlcoholChannel(cc);
@@ -135,6 +135,16 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         double multiplier = 1.0;
         if (victim instanceof Player player && isManiaActive(player, player.level().getGameTime())) {
             multiplier *= MANIA_DAMAGE_MULTIPLIER;
+        }
+        // 非玩家在受击时有 1/10 概率释放随机吐息（需酒精充足，否则不触发，不扣血）。
+        if (!(victim instanceof Player)) {
+            if (alcohol >= BREATH_COST) {
+                RandomSource random = victim.getRandom();
+                if (random.nextInt(10) == 0) {
+                    channel.adjust(-BREATH_COST);
+                    performDrunkenBreath(victim);
+                }
+            }
         }
         return (float) (damage * multiplier);
     }
@@ -187,9 +197,8 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (gameTime - last < REGEN_INTERVAL_TICKS) {
             return;
         }
-        if (!tryConsumeHealth(player, REGEN_COST)) {
-            return;
-        }
+        // Consume from alcohol channel instead of HP for players
+        channel.adjust(-REGEN_COST);
         player.heal(REGEN_HEAL_AMOUNT);
         Level level = player.level();
         RandomSource random = player.getRandom();
@@ -266,7 +275,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         user.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
     }
 
-    private static void handlePlayerSlowTick(Player player, ItemStack organ, LinkageChannel channel) {
+    private static void handlePlayer(Player player, ItemStack organ, LinkageChannel channel) {
         long gameTime = player.level().getGameTime();
         double previousAlcohol = channel.get();
         int stackCount = organ == null ? 1 : Math.max(1, organ.getCount());
@@ -281,22 +290,19 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
         handleManiaLoop(player, gameTime);
         tryDrunkenRegeneration(player, channel, gameTime);
-        tryRandomBreath(player, channel);
+        // 玩家不触发随机吐息（主动技仅限玩家手动触发；随机吐息是生物替代方案）
     }
 
-    private static void handleNonPlayer(LivingEntity entity, LinkageChannel channel) {
+    private static void handleNonPlayer(LivingEntity entity, ItemStack organ, LinkageChannel channel) {
+        // 随机吐息仅在 OnIncomingDamage 中判定；这里仅以 0.25 效率缓慢恢复酒精。
         if (entity == null || channel == null || !entity.isAlive()) {
             return;
         }
-        double alcohol = channel.get();
-        if (alcohol < BREATH_COST) {
-            double missing = BREATH_COST - alcohol;
-            if (!tryConsumeHealth(entity, missing)) {
-                return;
-            }
-            channel.adjust(missing);
+        int stacks = organ == null ? 1 : Math.max(1, organ.getCount());
+        double recovered = ALCOHOL_PER_FEED * stacks * 0.25;
+        if (recovered > 0) {
+            channel.adjust(recovered);
         }
-        tryRandomBreath(entity, channel);
     }
 
     private static void tryRandomBreath(LivingEntity entity, LinkageChannel channel) {
@@ -310,9 +316,8 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (random.nextInt(10) != 0) {
             return;
         }
-        if (!tryConsumeHealth(entity, BREATH_COST)) {
-            return;
-        }
+        // Spend alcohol resource; non-player alcohol is topped up via HP earlier if needed
+        channel.adjust(-BREATH_COST);
         performDrunkenBreath(entity);
     }
 

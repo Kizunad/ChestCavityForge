@@ -112,7 +112,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             ItemStack organ,
             float damage
     ) {
-        if (!(victim instanceof Player player) || player.level().isClientSide()) {
+        if (victim == null || victim.level().isClientSide()) {
             return damage;
         }
         if (cc == null || organ == null || organ.isEmpty()) {
@@ -125,9 +125,13 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             }
         }
 
-        RandomSource random = player.getRandom();
+        // 仅非玩家在受击时以 1/10 概率触发
+        if (victim instanceof Player) {
+            return damage;
+        }
+        RandomSource random = victim.getRandom();
         if (random.nextFloat() < AUTO_TRIGGER_CHANCE) {
-            tryAutoActivateAbility(player, cc);
+            activateAbilityNonPlayer(victim, cc, organ);
         }
         return damage;
     }
@@ -166,61 +170,61 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
 
         int storedSlot = readSlot(organ);
         int slotIndex = resolveSlotIndex(cc, organ);
         if (slotIndex >= 0 && storedSlot != slotIndex) {
-            removeMovementModifier(player, storedSlot);
-            removeRapidBreathModifier(player, storedSlot);
+            removeMovementModifier(entity, storedSlot);
+            removeRapidBreathModifier(entity, storedSlot);
             writeSlot(organ, slotIndex);
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
-        double maxHealth = player.getMaxHealth();
-        double healthRatio = maxHealth <= 0.0 ? 0.0 : player.getHealth() / maxHealth;
+        double maxHealth = entity.getMaxHealth();
+        double healthRatio = maxHealth <= 0.0 ? 0.0 : entity.getHealth() / maxHealth;
 
-        applyOxygenSupport(player, healthRatio);
-        applyMovementModifier(player, organ, slotIndex, healthRatio);
-        applyRapidBreathModifier(player, organ, slotIndex, healthRatio);
-        applyHungerPenalties(player, healthRatio);
+        applyOxygenSupport(entity, healthRatio);
+        applyMovementModifier(entity, organ, slotIndex, healthRatio);
+        applyRapidBreathModifier(entity, organ, slotIndex, healthRatio);
+        if (entity instanceof Player player) {
+            applyHungerPenalties(player, healthRatio);
+        }
 
         int mode = determineMode(healthRatio);
         if (mode != readMode(organ)) {
             writeMode(organ, mode);
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
-            playPassiveCue(player, mode);
+            playPassiveCue(entity, mode);
         }
     }
 
     @Override
     public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (entity instanceof Player player) {
-            int slotIndex = readSlot(organ);
-            removeMovementModifier(player, slotIndex);
-            removeRapidBreathModifier(player, slotIndex);
-        }
+        int slotIndex = readSlot(organ);
+        removeMovementModifier(entity, slotIndex);
+        removeRapidBreathModifier(entity, slotIndex);
         writeMode(organ, MODE_NEUTRAL);
         writeSlot(organ, -1);
         writeCooldown(organ, 0L);
     }
 
-    private static void applyOxygenSupport(Player player, double healthRatio) {
-        if (player == null || player.level().isClientSide()) {
+    private static void applyOxygenSupport(LivingEntity entity, double healthRatio) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (healthRatio <= OXYGEN_THRESHOLD) {
             return;
         }
-        if (player.getAirSupply() < player.getMaxAirSupply()) {
-            player.setAirSupply(player.getMaxAirSupply());
+        if (entity.getAirSupply() < entity.getMaxAirSupply()) {
+            entity.setAirSupply(entity.getMaxAirSupply());
         }
     }
 
-    private static void applyMovementModifier(Player player, ItemStack organ, int slotIndex, double healthRatio) {
-        AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+    private static void applyMovementModifier(LivingEntity entity, ItemStack organ, int slotIndex, double healthRatio) {
+        AttributeInstance attribute = entity.getAttribute(Attributes.MOVEMENT_SPEED);
         if (attribute == null || slotIndex < 0) {
             return;
         }
@@ -234,8 +238,8 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
     }
 
-    private static void removeMovementModifier(Player player, int slotIndex) {
-        AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+    private static void removeMovementModifier(LivingEntity entity, int slotIndex) {
+        AttributeInstance attribute = entity.getAttribute(Attributes.MOVEMENT_SPEED);
         if (attribute == null || slotIndex < 0) {
             return;
         }
@@ -246,8 +250,8 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/xie_fei_speed_" + slotIndex);
     }
 
-    private static void applyRapidBreathModifier(Player player, ItemStack organ, int slotIndex, double healthRatio) {
-        AttributeInstance attribute = player.getAttribute(Attributes.ATTACK_SPEED);
+    private static void applyRapidBreathModifier(LivingEntity entity, ItemStack organ, int slotIndex, double healthRatio) {
+        AttributeInstance attribute = entity.getAttribute(Attributes.ATTACK_SPEED);
         if (attribute == null || slotIndex < 0) {
             return;
         }
@@ -261,8 +265,8 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
     }
 
-    private static void removeRapidBreathModifier(Player player, int slotIndex) {
-        AttributeInstance attribute = player.getAttribute(Attributes.ATTACK_SPEED);
+    private static void removeRapidBreathModifier(LivingEntity entity, int slotIndex) {
+        AttributeInstance attribute = entity.getAttribute(Attributes.ATTACK_SPEED);
         if (attribute == null || slotIndex < 0) {
             return;
         }
@@ -298,19 +302,19 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return MODE_NEUTRAL;
     }
 
-    private static void playPassiveCue(Player player, int mode) {
-        Level level = player.level();
+    private static void playPassiveCue(LivingEntity entity, int mode) {
+        Level level = entity.level();
         if (level == null) {
             return;
         }
-        RandomSource random = level.getRandom();
+        RandomSource random = entity.getRandom();
         SoundSource source = SoundSource.PLAYERS;
         if (mode == MODE_HIGH) {
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, source, 0.8f, 0.9f + random.nextFloat() * 0.2f);
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_BREATH, source, 0.6f, 0.8f + random.nextFloat() * 0.4f);
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.WARDEN_HEARTBEAT, source, 0.8f, 0.9f + random.nextFloat() * 0.2f);
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_BREATH, source, 0.6f, 0.8f + random.nextFloat() * 0.4f);
         } else if (mode == MODE_LOW) {
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, source, 1.0f, 0.75f + random.nextFloat() * 0.15f);
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_BREATH, source, 0.9f, 0.6f + random.nextFloat() * 0.2f);
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.WARDEN_HEARTBEAT, source, 1.0f, 0.75f + random.nextFloat() * 0.15f);
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_BREATH, source, 0.9f, 0.6f + random.nextFloat() * 0.2f);
         }
     }
 
@@ -378,6 +382,38 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         OrganActivationListeners.activate(ABILITY_ID, cc);
     }
 
+    // 非玩家触发版本：不收取资源，仅检查冷却与计算效果，复用雾脉冲逻辑
+    private static void activateAbilityNonPlayer(LivingEntity user, ChestCavityInstance cc, ItemStack organ) {
+        if (user == null || cc == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        Level level = user.level();
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+        long gameTime = level.getGameTime();
+        long nextAllowed = readCooldown(organ);
+        if (nextAllowed > gameTime) {
+            return;
+        }
+
+        writeCooldown(organ, gameTime + COOLDOWN_TICKS);
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+
+        Vec3 center = user.position().add(0.0, user.getBbHeight() * 0.5, 0.0);
+        boolean hasPoison = hasPoisonOrgan(cc);
+        final double increaseMultiplier = resolveIncreaseMultiplier(cc);
+        final float fogDamage = (float) (FOG_DAMAGE * increaseMultiplier);
+
+        playBloodFogCue(server, user);
+        spawnFogParticles(server, center, FOG_PARTICLE_COUNT);
+
+        for (int pulse = 0; pulse < FOG_DURATION_SECONDS; pulse++) {
+            final int tickDelay = pulse * 20;
+            schedule(server, () -> applyFogPulse(server, user, cc, center, hasPoison, fogDamage), tickDelay);
+        }
+    }
+
     private static void triggerHeartFailure(Player player) {
         if (player.level().isClientSide()) {
             return;
@@ -422,14 +458,14 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     }
 
 
-    private static void playBloodFogCue(ServerLevel server, Player player) {
+    private static void playBloodFogCue(ServerLevel server, LivingEntity player) {
         RandomSource random = player.getRandom();
         SoundSource source = SoundSource.PLAYERS;
         server.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_HURT, source, 0.9f, 0.7f + random.nextFloat() * 0.3f);
         server.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PHANTOM_FLAP, source, 0.6f, 0.8f + random.nextFloat() * 0.2f);
     }
 
-    private static void applyFogPulse(ServerLevel level, Player player, ChestCavityInstance cc, Vec3 center, boolean hasPoison, float fogDamage) {
+    private static void applyFogPulse(ServerLevel level, LivingEntity player, ChestCavityInstance cc, Vec3 center, boolean hasPoison, float fogDamage) {
         if (!player.isAlive()) {
             return;
         }
@@ -452,7 +488,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         // Poison fog no longer grants the caster recovery; only enemies are affected.
     }
 
-    private static void applyFogDamage(ServerLevel level, Player player, LivingEntity target, float amount) {
+    private static void applyFogDamage(ServerLevel level, LivingEntity player, LivingEntity target, float amount) {
         if (amount <= 0.0f) {
             return;
         }

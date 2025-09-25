@@ -40,6 +40,14 @@ import net.minecraft.world.item.component.CustomData;
 
 /**
  * Behaviour implementation for 石皮蛊 (Shi Pi Gu).
+ *
+ * Notes:
+ * - Works for both players and mobs (LivingEntity) on the server side.
+ * - Players simply receive the timed absorption and damage mitigation; no
+ *   Guzhenren resource (zhenyuan/jingli) cost is applied by this organ.
+ * - Mobs do not have Guzhenren resources. Per request, an embedded
+ *   non‑player handler is provided at the bottom of this file to convert any
+ *   future Tu Dao costs into health (HP) at 100:1.
  */
 public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
     INSTANCE;
@@ -67,7 +75,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (cc == null) {
@@ -86,7 +94,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
                 charge = Math.min(MAX_CHARGE, charge + 1);
                 chargeChanged = true;
                 timerChanged = true;
-                playRechargeCue(player);
+                playRechargeCue(entity);
             } else {
                 timerChanged = true;
             }
@@ -106,13 +114,13 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         }
 
         if (charge > 0) {
-            applyAbsorption(player, cc, charge);
+            applyAbsorption(entity, cc, charge);
         }
     }
 
     @Override
     public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (!(victim instanceof Player player) || victim.level().isClientSide()) {
+        if (victim == null || victim.level().isClientSide()) {
             return damage;
         }
         if (cc == null) {
@@ -121,8 +129,8 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
 
         int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
         if (charge <= 0) {
-            playDamageCue(player.level(), player, false);
-            spawnDamageParticles(player.level(), player);
+            playDamageCue(victim.level(), victim, false);
+            spawnDamageParticles(victim.level(), victim);
             return damage;
         }
 
@@ -133,10 +141,10 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
-        Level level = player.level();
-        dropCobblestone(level, player);
-        playDamageCue(level, player, true);
-        spawnDamageParticles(level, player);
+        Level level = victim.level();
+        dropCobblestone(level, victim);
+        playDamageCue(level, victim, true);
+        spawnDamageParticles(level, victim);
 
         return damage;
     }
@@ -149,7 +157,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
     }
 
-    private static void applyAbsorption(Player player, ChestCavityInstance cc, int charge) {
+    private static void applyAbsorption(LivingEntity entity, ChestCavityInstance cc, int charge) {
         double ratio = Math.max(0.0, (double) charge / (double) MAX_CHARGE);
         int baseLevel = charge > 0 ? Math.max(1, (int) Math.round(ratio)) : 0;
         LinkageChannel increaseChannel = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
@@ -157,25 +165,25 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         double scaledLevel = baseLevel * increaseTotal;
         int finalLevel = Math.max(1, (int) Math.round(scaledLevel));
         int amplifier = Math.max(0, finalLevel - 1);
-        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, RESIST_EFFECT_DURATION, amplifier, true, true));
+        entity.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, RESIST_EFFECT_DURATION, amplifier, true, true));
     }
 
-    private static void playRechargeCue(Player player) {
-        Level level = player.level();
+    private static void playRechargeCue(LivingEntity entity) {
+        Level level = entity.level();
         RandomSource random = level.getRandom();
         float pitch = 0.8f + random.nextFloat() * 0.2f;
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 0.5f, pitch);
+        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 0.5f, pitch);
     }
 
-    private static void dropCobblestone(Level level, Player player) {
+    private static void dropCobblestone(Level level, LivingEntity entity) {
         if (!(level instanceof ServerLevel server)) {
             return;
         }
         RandomSource random = server.getRandom();
-        Vec3 center = player.position();
+        Vec3 center = entity.position();
         double offsetX = (random.nextDouble() - 0.5) * 0.6;
         double offsetZ = (random.nextDouble() - 0.5) * 0.6;
-        ItemEntity item = new ItemEntity(server, center.x + offsetX, player.getY(0.5), center.z + offsetZ, new ItemStack(Items.COBBLESTONE));
+        ItemEntity item = new ItemEntity(server, center.x + offsetX, entity.getY(0.5), center.z + offsetZ, new ItemStack(Items.COBBLESTONE));
         double motionX = (random.nextDouble() - 0.5) * 0.2;
         double motionY = 0.25 + random.nextDouble() * 0.1;
         double motionZ = (random.nextDouble() - 0.5) * 0.2;
@@ -186,25 +194,25 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         server.playSound(null, item.getX(), item.getY(), item.getZ(), SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 0.8f, pitch);
     }
 
-    private static void playDamageCue(Level level, Player player, boolean consumedCharge) {
+    private static void playDamageCue(Level level, LivingEntity entity, boolean consumedCharge) {
         RandomSource random = level.getRandom();
         float hurtPitch = 0.9f + random.nextFloat() * 0.2f;
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 0.9f, hurtPitch);
+        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 0.9f, hurtPitch);
         float gravelPitch = 0.8f + random.nextFloat() * 0.2f;
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GRAVEL_BREAK, SoundSource.PLAYERS, 0.7f, gravelPitch);
+        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.GRAVEL_BREAK, SoundSource.PLAYERS, 0.7f, gravelPitch);
         if (!consumedCharge) {
             return;
         }
         // Stone break handled in dropCobblestone when charge was consumed.
     }
 
-    private static void spawnDamageParticles(Level level, Player player) {
+    private static void spawnDamageParticles(Level level, LivingEntity entity) {
         if (!(level instanceof ServerLevel server)) {
             return;
         }
         RandomSource random = server.getRandom();
         int blockCount = Mth.nextInt(random, BLOCK_PARTICLE_MIN, BLOCK_PARTICLE_MAX);
-        Vec3 center = player.position().add(0.0, 0.8, 0.0);
+        Vec3 center = entity.position().add(0.0, 0.8, 0.0);
         server.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, COBBLESTONE_STATE),
                 center.x,
                 center.y,
@@ -223,6 +231,68 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
                 0.3,
                 0.5,
                 0.05);
+    }
+
+    /**
+     * Embedded non-player handler for Tu Dao style health fallback.
+     *
+     * Why this exists here (instead of using a shared helper):
+     * - The user asked for TuDaoNonPlayerHandler to be embedded into the
+     *   organ behavior to ensure logic is self-contained and remains stable
+     *   even if external helpers change.
+     * - Mobs lack Guzhenren attachments (no zhenyuan/jingli). When this
+     *   organ (or future Tu Dao logic) requires a resource payment, convert
+     *   the resource total to HP at a fixed 100:1 ratio and drain after
+     *   absorption, without outright killing the entity.
+     *
+     * Usage:
+     *   EmbeddedTuDaoNonPlayerHandler.payWithHealth(entity, zhenyuanBaseCost, jingliBaseCost)
+     *
+     * Threading:
+     * - Call from the server thread only (no client mutations).
+     */
+    private static final class EmbeddedTuDaoNonPlayerHandler {
+        private static final double DEFAULT_RATIO = 100.0;
+        private static final float EPS = 1.0E-4f;
+
+        static boolean payWithHealth(LivingEntity entity, double zhenyuanCost, double jingliCost) {
+            if (entity == null || !entity.isAlive()) {
+                return false;
+            }
+            double total = Math.max(0.0, zhenyuanCost) + Math.max(0.0, jingliCost);
+            if (!Double.isFinite(total) || total <= 0.0) {
+                return true;
+            }
+            float healthCost = (float)(total / DEFAULT_RATIO);
+            if (!Float.isFinite(healthCost) || healthCost <= 0.0f) {
+                return false;
+            }
+            float startingHealth = entity.getHealth();
+            float startingAbsorption = Math.max(0.0f, entity.getAbsorptionAmount());
+            float available = startingHealth + startingAbsorption;
+            if (available <= healthCost + EPS) {
+                return false;
+            }
+            entity.invulnerableTime = 0;
+            entity.hurt(entity.damageSources().generic(), healthCost);
+            entity.invulnerableTime = 0;
+            float remaining = healthCost;
+            float absorbed = Math.min(startingAbsorption, remaining);
+            remaining -= absorbed;
+            if (!entity.isDeadOrDying()) {
+                float targetAbs = Math.max(0.0f, startingAbsorption - absorbed);
+                entity.setAbsorptionAmount(targetAbs);
+                if (remaining > 0.0f) {
+                    float targetHp = Math.max(0.0f, startingHealth - remaining);
+                    if (entity.getHealth() > targetHp) {
+                        entity.setHealth(targetHp);
+                    }
+                }
+                entity.hurtTime = 0;
+                entity.hurtDuration = 0;
+            }
+            return true;
+        }
     }
 
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {

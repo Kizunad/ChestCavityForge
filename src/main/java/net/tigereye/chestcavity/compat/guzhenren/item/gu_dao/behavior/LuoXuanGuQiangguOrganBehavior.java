@@ -32,6 +32,8 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
@@ -41,7 +43,7 @@ import java.util.OptionalDouble;
 /**
  * Behaviour for 螺旋骨枪蛊. Handles slow tick recharging and active projectile firing.
  */
-public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, IncreaseEffectContributor {
+public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitListener, IncreaseEffectContributor, OrganIncomingDamageListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -73,7 +75,7 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
 
@@ -82,9 +84,14 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
             return;
         }
 
-
-        if (!tryConsumeRechargeResources(player)) {
-
+        boolean paid;
+        if (entity instanceof Player player) {
+            paid = tryConsumeRechargeResources(player);
+        } else {
+            // 非玩家：使用 Helper 购买 1 点充能（允许生命值替代）
+            paid = GuzhenrenResourceCostHelper.consumeWithFallback(entity, BASE_ZHENYUAN_COST, BASE_JINGLI_COST).succeeded();
+        }
+        if (!paid) {
             return;
         }
 
@@ -92,7 +99,9 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
         if (updated != currentCharge) {
             NBTCharge.setCharge(organ, STATE_KEY, updated);
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
-            ChestCavity.LOGGER.info("[LuoXuanGuQiangGu] recharge -> {}/{}", updated, MAX_CHARGE);
+            if (entity instanceof Player) {
+                ChestCavity.LOGGER.info("[LuoXuanGuQiangGu] recharge -> {}/{}", updated, MAX_CHARGE);
+            }
         }
     }
 
@@ -188,7 +197,12 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
     }
 
     private static boolean fireProjectile(Player player, double multiplier) {
-        Level level = player.level();
+        // 转发到通用实现
+        return fireProjectile(player, player.getEyePosition().add(player.getLookAngle().scale(0.4)), player.getLookAngle().normalize(), multiplier);
+    }
+
+    private static boolean fireProjectile(LivingEntity user, Vec3 origin, Vec3 direction, double multiplier) {
+        Level level = user.level();
         if (!(level instanceof ServerLevel server)) {
             return false;
         }
@@ -196,11 +210,12 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
         double speed = BASE_PROJECTILE_SPEED * multiplier;
         double damage = BASE_PROJECTILE_DAMAGE * multiplier;
 
-        Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.4));
-        Vec3 direction = player.getLookAngle().normalize();
-
-
-        AbstractArrow projectile = ((ArrowItem) Items.ARROW).createArrow(level, new ItemStack(Items.ARROW), player, findCompatibleWeapon(player));
+        AbstractArrow projectile;
+        if (user instanceof Player p) {
+            projectile = ((ArrowItem) Items.ARROW).createArrow(level, new ItemStack(Items.ARROW), p, findCompatibleWeapon(p));
+        } else {
+            projectile = ((ArrowItem) Items.ARROW).createArrow(level, new ItemStack(Items.ARROW), user, Items.BOW.getDefaultInstance());
+        }
 
         projectile.setSoundEvent(SoundEvents.ARROW_HIT);
         projectile.setBaseDamage(damage);
@@ -214,11 +229,11 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
 
         server.addFreshEntity(projectile);
 
-        playLuoXuanActivationEffects(server, player, origin, direction, multiplier);
+        playLuoXuanActivationEffects(server, user, origin, direction, multiplier);
         return true;
     }
 
-    private static void playLuoXuanActivationEffects(ServerLevel server, Player player, Vec3 origin, Vec3 direction, double multiplier) {
+    private static void playLuoXuanActivationEffects(ServerLevel server, LivingEntity player, Vec3 origin, Vec3 direction, double multiplier) {
         Level level = player.level();
         float ambientPitch = 0.95f + (float)Math.max(-0.2, Math.min(0.3, (multiplier - 1.0) * 0.2));
         float shootPitch = 1.1f + (float)Math.max(-0.3, Math.min(0.3, (multiplier - 1.0) * 0.15));
@@ -325,6 +340,60 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
 
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
+        return damage;
+    }
+
+    @Override
+    public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
+        if (victim == null || victim.level().isClientSide()) {
+            return damage;
+        }
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return damage;
+        }
+        // 玩家受伤不触发自动发射，仅限非玩家
+        if (victim instanceof Player) {
+            return damage;
+        }
+        int currentCharge = Math.max(0, Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY)));
+        if (currentCharge <= 0) {
+            return damage;
+        }
+        RandomSource random = victim.getRandom();
+        if (random.nextInt(10) != 0) {
+            return damage;
+        }
+
+        // 方向：受击者 -> 攻击者
+        Vec3 origin = victim.getEyePosition().add(0.0, -0.2, 0.0);
+        Vec3 forward;
+        LivingEntity attacker = null;
+        if (source != null) {
+            if (source.getEntity() instanceof LivingEntity le) attacker = le;
+            else if (source.getDirectEntity() instanceof LivingEntity le2) attacker = le2;
+        }
+        if (attacker != null) {
+            forward = attacker.position().add(0.0, attacker.getBbHeight() * 0.5, 0.0).subtract(origin).normalize();
+        } else {
+            forward = victim.getLookAngle().normalize();
+        }
+        if (forward.lengthSqr() < EPSILON) {
+            forward = new Vec3(0.0, 0.0, 1.0);
+        }
+
+        double guDaoEfficiency = 1.0 + ensureChannel(cc, GU_DAO_INCREASE_EFFECT).get();
+        double liDaoEfficiency = 1.0 + ensureChannel(cc, LI_DAO_INCREASE_EFFECT).get();
+        double multiplier = Math.max(0.0, guDaoEfficiency * liDaoEfficiency);
+
+        if (!fireProjectile(victim, origin, forward, multiplier)) {
+            return damage;
+        }
+
+        int updated = Math.max(0, currentCharge - 1);
+        if (updated != currentCharge) {
+            NBTCharge.setCharge(organ, STATE_KEY, updated);
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        }
         return damage;
     }
 

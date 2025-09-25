@@ -163,14 +163,16 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return;
         }
 
-        if (!(entity instanceof Player player)) {
-            LOGGER.info("{} [slow-tick] EXIT owner={} reason=non_player_skip", LOG_PREFIX, ownerName);
+        if (entity instanceof Player player) {
+            decrementAndTriggerDrain(player, cc, organ);
+            updateFocusState(player, cc);
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=success_player", LOG_PREFIX, ownerName);
             return;
         }
 
-        decrementAndTriggerDrain(player, cc, organ);
-        updateFocusState(player, cc);
-        LOGGER.info("{} [slow-tick] EXIT owner={} reason=success", LOG_PREFIX, ownerName);
+        // Non-player path: apply periodic health drain scaled by linkage, no focus handling.
+        decrementAndTriggerDrain(entity, cc, organ);
+        LOGGER.info("{} [slow-tick] EXIT owner={} reason=success_non_player", LOG_PREFIX, ownerName);
     }
 
     @Override
@@ -230,6 +232,17 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             writeTimer(organ, timer - 1);
         } else {
             triggerHealthDrain(player, cc);
+            writeTimer(organ, HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
+        }
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    }
+
+    private void decrementAndTriggerDrain(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        int timer = Math.max(0, readTimer(organ));
+        if (timer > 0) {
+            writeTimer(organ, timer - 1);
+        } else {
+            triggerHealthDrainNonPlayer(entity, cc);
             writeTimer(organ, HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
         }
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
@@ -352,6 +365,34 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
 
         playDrainCues(player.level(), player);
+    }
+
+    private void triggerHealthDrainNonPlayer(LivingEntity entity, ChestCavityInstance cc) {
+        if (entity == null || cc == null) {
+            return;
+        }
+        double increase = 1.0 + Math.max(0.0, ensureChannel(GuzhenrenLinkageManager.getContext(cc)).get());
+        float damage = (float) (1.0 / Math.max(increase, 1.0));
+        if (damage <= 0.0f) {
+            return;
+        }
+
+        float startingHealth = entity.getHealth();
+        float startingAbsorption = entity.getAbsorptionAmount();
+
+        entity.invulnerableTime = 0;
+        entity.hurt(entity.damageSources().generic(), damage);
+        entity.invulnerableTime = 0;
+
+        if (!entity.isDeadOrDying()) {
+            float targetAbsorption = Math.max(0.0f, startingAbsorption - damage);
+            entity.setAbsorptionAmount(targetAbsorption);
+            if (entity.getHealth() > startingHealth - damage) {
+                entity.setHealth(Math.max(0.0f, startingHealth - damage));
+            }
+            entity.hurtTime = 0;
+            entity.hurtDuration = 0;
+        }
     }
 
     private void updateFocusState(Player player, ChestCavityInstance cc) {

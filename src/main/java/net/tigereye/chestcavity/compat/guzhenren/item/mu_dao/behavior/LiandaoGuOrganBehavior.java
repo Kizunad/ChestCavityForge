@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
@@ -44,7 +45,7 @@ import java.util.OptionalDouble;
  * Active behaviour for 镰刀蛊. Handles resource consumption, cooldown management
  * and the delayed blade wave attack sequence.
  */
-public enum LiandaoGuOrganBehavior implements OrganSlowTickListener {
+public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -127,16 +128,8 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener {
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (entity == null || entity.level().isClientSide()) {
-            return;
-        }
-        if (organ == null || organ.isEmpty()) {
-            return;
-        }
-        if (entity instanceof Player) {
-            return;
-        }
-        handleNonPlayerSlowTick(entity, cc, organ);
+        // 镰刀蛊没有需要恢复的点数，仅使用冷却；慢速心跳不触发行为。
+        return;
     }
 
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
@@ -216,63 +209,70 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener {
         ), RELEASE_TELEGRAPH_TICKS);
     }
 
-    private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (cc == null) {
-            return;
-        }
-        Level level = entity.level();
-        if (!(level instanceof ServerLevel server)) {
-            return;
-        }
+    private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) { }
 
+    @Override
+    public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
+        if (victim == null || victim.level().isClientSide() || cc == null || organ == null || organ.isEmpty()) {
+            return damage;
+        }
+        // 玩家受击不触发镰刀蛊的被动释放，直接退出
+        if (victim instanceof Player) {
+            return damage;
+        }
+        Level level = victim.level();
+        if (!(level instanceof ServerLevel server)) {
+            return damage;
+        }
         long gameTime = server.getGameTime();
         long nextAllowed = readCooldown(organ);
         if (nextAllowed > gameTime) {
-            return;
+            return damage;
         }
-
-        RandomSource random = entity.getRandom();
+        RandomSource random = victim.getRandom();
         if (random.nextInt(10) != 0) {
-            return;
+            return damage;
         }
 
-        GuzhenrenResourceCostHelper.ConsumptionResult result = GuzhenrenResourceCostHelper.consumeWithFallback(
-                entity,
-                BASE_ZHENYUAN_COST,
-                BASE_JINGLI_COST
-        );
-        if (!result.succeeded()) {
-            return;
+        // 计算从受击者指向攻击者的方向
+        LivingEntity attacker = null;
+        if (source != null) {
+            if (source.getEntity() instanceof LivingEntity le) {
+                attacker = le;
+            } else if (source.getDirectEntity() instanceof LivingEntity le2) {
+                attacker = le2;
+            }
+        }
+        Vec3 origin = victim.position().add(0.0, victim.getBbHeight() * 0.5, 0.0);
+        Vec3 forward;
+        if (attacker != null) {
+            forward = attacker.position().subtract(origin).normalize();
+        } else {
+            forward = victim.getLookAngle();
+        }
+        if (forward.lengthSqr() < EPSILON) {
+            forward = new Vec3(0.0, 0.0, 1.0);
         }
 
-        int cooldown = MIN_COOLDOWN_TICKS;
-        if (COOLDOWN_VARIANCE_TICKS > 0) {
-            cooldown += random.nextInt(COOLDOWN_VARIANCE_TICKS + 1);
-        }
-        writeCooldown(organ, gameTime + cooldown);
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
-
+        // 伤害倍率：剑道与金道联动
         double swordMultiplier = 1.0 + ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
         double metalMultiplier = 1.0 + ensureChannel(cc, JIN_DAO_INCREASE_EFFECT).get();
         double totalMultiplier = Math.max(0.0, swordMultiplier * metalMultiplier);
         double damageAmount = BASE_DAMAGE * totalMultiplier;
 
-        Vec3 origin = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
-        Vec3 look = entity.getLookAngle();
-        Vec3 fallback = entity.getForward();
-        Vec3 baseForward = look.lengthSqr() < EPSILON ? fallback : look;
-        Vec3 forward = baseForward.lengthSqr() < EPSILON
-                ? new Vec3(0.0, 0.0, 1.0)
-                : baseForward.normalize();
-
         Basis basis = makeBasis(forward);
-        Vec3 dir = computeSlashDir(basis, SLASH_PITCH_DEG);
+        Vec3 dir   = computeSlashDir(basis, SLASH_PITCH_DEG);
         Vec3 wAxis = computeWidthAxis(basis, SLASH_ROLL_DEG);
+        Vec3 impactCenter = origin.add(dir.scale(WAVE_LENGTH * 0.75));
 
-        Vec3 shiftedOrigin = origin.add(0.0, 1.0, 0.0).add(dir.scale(1.0));
-        Vec3 impactCenter = shiftedOrigin.add(dir.scale(WAVE_LENGTH * 0.75));
+        // 写入冷却并同步
+        int cooldown = MIN_COOLDOWN_TICKS + (COOLDOWN_VARIANCE_TICKS > 0 ? random.nextInt(COOLDOWN_VARIANCE_TICKS + 1) : 0);
+        writeCooldown(organ, gameTime + cooldown);
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
-        applyBladeWave(server, entity, cc, origin, dir, wAxis, damageAmount, impactCenter);
+        // 立即释放刀光，指向攻击者
+        applyBladeWave(server, victim, cc, origin, dir, wAxis, damageAmount, impactCenter);
+        return damage;
     }
 
     private static void playChargeStartEffects(ServerLevel serverLevel, Player player) {

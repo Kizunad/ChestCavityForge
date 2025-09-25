@@ -37,6 +37,7 @@ public final class GuDaoOrganRegistry {
         GuzhenrenLinkageEffectRegistry.registerSingle(SPIRAL_BONE_SPEAR_ID, context -> {
             context.addSlowTickListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
             context.addOnHitListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
+            context.addIncomingDamageListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
             LuoXuanGuQiangguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
         });
         GuzhenrenLinkageEffectRegistry.registerSingle(TIGER_BONE_ID, context -> {

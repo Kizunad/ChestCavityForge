@@ -14,6 +14,7 @@ public final class MuDaoOrganRegistry {
 
     static {
         GuzhenrenLinkageEffectRegistry.registerSingle(LIANDAO_GU_ID, context -> {
+            context.addIncomingDamageListener(LiandaoGuOrganBehavior.INSTANCE);
             LiandaoGuOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
         });
     }

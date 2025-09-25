@@ -56,7 +56,7 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
 
@@ -108,7 +108,7 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
+        if (attacker == null || attacker.level().isClientSide()) {
             return damage;
         }
 

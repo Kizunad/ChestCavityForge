@@ -110,7 +110,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (cc == null || organ == null || organ.isEmpty()) {
@@ -129,7 +129,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             return;
         }
 
-        triggerEffect(player, cc, organ);
+        triggerEffect(entity, cc, organ);
         writeTimer(organ, TRIGGER_INTERVAL_SLOW_TICKS);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
@@ -174,14 +174,14 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         ensureChannel(GuzhenrenLinkageManager.getContext(cc));
     }
 
-    private void triggerEffect(Player player, ChestCavityInstance cc, ItemStack organ) {
+    private void triggerEffect(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         int stackCount = Math.max(1, organ.getCount());
         float drainAmount = HEALTH_DRAIN_PER_STACK * stackCount;
-        if (!applyHealthDrain(player, drainAmount)) {
-            handleFailedDrain(player, cc, organ, stackCount);
+        if (!applyHealthDrain(entity, drainAmount)) {
+            handleFailedDrain(entity, cc, organ, stackCount);
             return;
         }
-        if (player.isDeadOrDying()) {
+        if (entity.isDeadOrDying()) {
             return;
         }
 
@@ -197,14 +197,16 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         LinkageChannel channel = ensureChannel(context);
         double efficiency = 1.0 + Math.max(0.0, channel.get());
 
-        applyResourceRecovery(player, efficiency);
-        playTriggerCues(player);
-        if (!player.level().isClientSide()) {
+        if (entity instanceof Player player) {
+            applyResourceRecovery(player, efficiency);
+        }
+        playTriggerCues(entity);
+        if (entity instanceof Player player && !player.level().isClientSide()) {
             player.sendSystemMessage(DRAIN_MESSAGE);
         }
     }
 
-    private static boolean applyHealthDrain(Player player, float amount) {
+    private static boolean applyHealthDrain(LivingEntity player, float amount) {
         if (player == null || amount <= 0.0f) {
             return true;
         }
@@ -254,18 +256,18 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         handle.adjustJingli(jingliGain, true);
     }
 
-    private static void playTriggerCues(Player player) {
-        Level level = player.level();
+    private static void playTriggerCues(LivingEntity entity) {
+        Level level = entity.level();
         RandomSource random = level.getRandom();
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.9f, 0.8f + random.nextFloat() * 0.2f);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 0.6f, 0.9f + random.nextFloat() * 0.2f);
+        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.9f, 0.8f + random.nextFloat() * 0.2f);
+        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 0.6f, 0.9f + random.nextFloat() * 0.2f);
         if (level instanceof ServerLevel server) {
-            spawnTriggerParticles(server, player);
+            spawnTriggerParticles(server, entity);
         }
     }
 
-    private static void spawnTriggerParticles(ServerLevel server, Player player) {
-        Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
+    private static void spawnTriggerParticles(ServerLevel server, LivingEntity entity) {
+        Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
         server.sendParticles(ParticleTypes.DAMAGE_INDICATOR, center.x, center.y, center.z,
                 DAMAGE_PARTICLE_COUNT, 0.35, 0.45, 0.35, 0.25);
         server.sendParticles(BLOOD_DUST, center.x, center.y, center.z,
@@ -369,7 +371,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return TRIGGER_INTERVAL_SLOW_TICKS;
     }
 
-    private void handleFailedDrain(Player player, ChestCavityInstance cc, ItemStack organ, int stackCount) {
+    private void handleFailedDrain(LivingEntity player, ChestCavityInstance cc, ItemStack organ, int stackCount) {
         double previousEffect = readEffect(organ);
         double targetEffect = computeDecayTarget(previousEffect, stackCount);
         double delta = targetEffect - previousEffect;
@@ -377,12 +379,12 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             applyEffectDelta(cc, organ, delta);
         }
         writeEffect(organ, targetEffect);
-        if (!player.level().isClientSide()) {
-            player.sendSystemMessage(STARVED_MESSAGE);
+        if (player instanceof Player p && !p.level().isClientSide()) {
+            p.sendSystemMessage(STARVED_MESSAGE);
         }
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("[Tie Xue Gu] Drain failed for {} (stackCount={}, available={}, required={})",
-                    player.getScoreboardName(),
+                    player.getName().getString(),
                     stackCount,
                     player.getHealth() + player.getAbsorptionAmount(),
                     HEALTH_DRAIN_PER_STACK * stackCount);

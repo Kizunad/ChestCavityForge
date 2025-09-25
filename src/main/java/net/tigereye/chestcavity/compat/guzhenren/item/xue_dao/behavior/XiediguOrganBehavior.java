@@ -108,7 +108,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             ItemStack organ,
             float damage
     ) {
-        if (!(victim instanceof Player player) || player.level().isClientSide()) {
+        if (victim == null || victim.level().isClientSide()) {
             return damage;
         }
         if (cc == null || organ == null || organ.isEmpty()) {
@@ -118,9 +118,14 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             return damage;
         }
 
-        RandomSource random = player.getRandom();
+        // 仅非玩家在受击时以 1/10 概率触发主动技
+        if (victim instanceof Player) {
+            return damage;
+        }
+
+        RandomSource random = victim.getRandom();
         if (random.nextFloat() < AUTO_TRIGGER_CHANCE) {
-            tryAutoActivateAbility(player, cc);
+            tryAutoActivateAbility(victim, cc);
         }
         return damage;
     }
@@ -163,7 +168,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (!matchesOrgan(organ)) {
@@ -189,12 +194,12 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
                 timer = GENERATION_INTERVAL_SLOW_TICKS;
             }
         } else if (timer <= 0) {
-            if (canAffordBlood(player, drainCost)) {
-                applyHealthDrain(player, drainCost);
-                if (!player.isDeadOrDying()) {
+            if (canAffordBlood(entity, drainCost)) {
+                applyHealthDrain(entity, drainCost);
+                if (!entity.isDeadOrDying()) {
                     stored = Math.min(capacity, stored + 1);
                     writeStoredDrops(organ, stored);
-                    spawnBleedGenerationEffects(player, stored, stackCount);
+                    spawnBleedGenerationEffects(entity, stored, stackCount);
                     dirty = true;
                     dry = false;
                     timer = GENERATION_INTERVAL_SLOW_TICKS;
@@ -217,7 +222,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
-        handleDryState(player, dry, wasDry);
+        handleDryState(entity, dry, wasDry);
     }
 
     @Override
@@ -226,59 +231,53 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         writeStoredDrops(organ, 0);
         writeDry(organ, false);
         writeEquipMessageShown(organ, false);
-        if (entity instanceof Player player) {
-            player.removeEffect(MobEffects.WEAKNESS);
-        }
+        entity.removeEffect(MobEffects.WEAKNESS);
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-        if (!(entity instanceof Player player) || player.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide() || cc == null) {
             return;
         }
-        if (cc == null) {
-            return;
-        }
-
         ItemStack organ = findOrgan(cc);
         if (organ.isEmpty()) {
             return;
         }
-
         int stackCount = Math.max(1, organ.getCount());
         int capacity = capacityFor(stackCount);
         int stored = clampStoredDrops(organ, capacity);
         if (stored <= 0) {
             return;
         }
-
-        Level level = player.level();
+        Level level = entity.level();
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
 
         double efficiency = computeXueDaoMultiplier(cc);
-        List<LivingEntity> targets = gatherTargets(player, serverLevel, DETONATION_RADIUS);
+        List<LivingEntity> targets = gatherTargets(entity, serverLevel, DETONATION_RADIUS);
         if (!targets.isEmpty()) {
-            float damage = (float) (DETONATION_DAMAGE_PER_DROP * stored * efficiency);
+            float dmg = (float) (DETONATION_DAMAGE_PER_DROP * stored * efficiency);
             for (LivingEntity target : targets) {
-                applyTrueDamage(player, target, damage);
+                applyTrueDamage(entity, target, dmg);
             }
-            scheduleBleedTicks(serverLevel, player, targets, stored, efficiency);
+            scheduleBleedTicks(serverLevel, entity, targets, stored, efficiency);
             applyBleedEffect(targets, stored, efficiency);
         }
 
-        applyRecovery(player, stored);
-        playDetonationCues(serverLevel, player, stored);
+        if (entity instanceof Player player) {
+            applyRecovery(player, stored);
+        }
+        playDetonationCues(serverLevel, entity, stored);
 
         writeStoredDrops(organ, 0);
         writeDry(organ, false);
         writeTimer(organ, GENERATION_INTERVAL_SLOW_TICKS);
-        player.removeEffect(MobEffects.WEAKNESS);
+        entity.removeEffect(MobEffects.WEAKNESS);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
-    private static void tryAutoActivateAbility(Player player, ChestCavityInstance cc) {
-        if (player == null || cc == null || player.level().isClientSide()) {
+    private static void tryAutoActivateAbility(LivingEntity entity, ChestCavityInstance cc) {
+        if (entity == null || cc == null || entity.level().isClientSide()) {
             return;
         }
         OrganActivationListeners.activate(ABILITY_ID, cc);
@@ -299,10 +298,10 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         return DROP_CAPACITY_PER_STACK * Math.max(1, stackCount);
     }
 
-    private static List<LivingEntity> gatherTargets(Player player, ServerLevel level, double radius) {
-        AABB area = player.getBoundingBox().inflate(radius);
+    private static List<LivingEntity> gatherTargets(LivingEntity user, ServerLevel level, double radius) {
+        AABB area = user.getBoundingBox().inflate(radius);
         return level.getEntitiesOfClass(LivingEntity.class, area, target ->
-                target != player && target.isAlive() && !target.isAlliedTo(player));
+                target != user && target.isAlive() && !target.isAlliedTo(user));
     }
 
     private static double computeXueDaoMultiplier(ChestCavityInstance cc) {
@@ -325,21 +324,21 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         }
     }
 
-    private static void playDetonationCues(ServerLevel server, Player player, int drops) {
-        Level level = player.level();
-        RandomSource random = player.getRandom();
+    private static void playDetonationCues(ServerLevel server, LivingEntity user, int drops) {
+        Level level = user.level();
+        RandomSource random = user.getRandom();
         float volume = Mth.clamp(0.6f + drops * 0.15f, 0.6f, 2.0f);
         float pitch = Mth.clamp(0.8f - drops * 0.05f + random.nextFloat() * 0.1f, 0.3f, 1.0f);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, volume, pitch);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.8f, 0.55f + random.nextFloat() * 0.1f);
+        level.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, volume, pitch);
+        level.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.8f, 0.55f + random.nextFloat() * 0.1f);
 
-        Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.6, 0.0);
+        Vec3 center = user.position().add(0.0, user.getBbHeight() * 0.6, 0.0);
         int mistCount = 24 + drops * 16;
         server.sendParticles(BLOOD_MIST, center.x, center.y, center.z, mistCount, 0.6, 0.9, 0.6, 0.2);
         server.sendParticles(ParticleTypes.SONIC_BOOM, center.x, center.y, center.z, Math.min(6, drops), 0.15, 0.15, 0.15, 0.02);
     }
 
-    private static void scheduleBleedTicks(ServerLevel server, Player player, List<LivingEntity> victims, int drops, double efficiency) {
+    private static void scheduleBleedTicks(ServerLevel server, LivingEntity user, List<LivingEntity> victims, int drops, double efficiency) {
         if (victims.isEmpty() || drops <= 0) {
             return;
         }
@@ -354,8 +353,8 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             int delay = second * TICKS_PER_SECOND;
             schedule(server, () -> {
                 for (LivingEntity target : targets) {
-                    if (target.isAlive() && !target.isAlliedTo(player)) {
-                        applyTrueDamage(player, target, (float) perSecond);
+                    if (target.isAlive() && !target.isAlliedTo(user)) {
+                        applyTrueDamage(user, target, (float) perSecond);
                     }
                 }
             }, delay);
@@ -382,47 +381,45 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         }
     }
 
-    private static void spawnBleedGenerationEffects(Player player, int stored, int stackCount) {
-        Level level = player.level();
+    private static void spawnBleedGenerationEffects(LivingEntity entity, int stored, int stackCount) {
+        Level level = entity.level();
         if (!(level instanceof ServerLevel server)) {
             return;
         }
-        Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
+        Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
         int count = 8 + stored + stackCount * 2;
         server.sendParticles(BLOOD_MIST, center.x, center.y, center.z, count, 0.25, 0.4, 0.25, 0.05);
         server.sendParticles(ParticleTypes.DRIPPING_DRIPSTONE_LAVA, center.x, center.y, center.z, Math.min(6, stored), 0.05, 0.35, 0.05, 0.01);
     }
 
-    private static void handleDryState(Player player, boolean dry, boolean wasDry) {
-        if (player == null) {
+    private static void handleDryState(LivingEntity entity, boolean dry, boolean wasDry) {
+        if (entity == null) {
             return;
         }
         if (dry) {
-            player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, WEAKNESS_DURATION_TICKS, 1, false, true, true));
-            if (!wasDry) {
-                playDrynessCues(player);
-            }
+            entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, WEAKNESS_DURATION_TICKS, 1, false, true, true));
+            if (!wasDry) { playDrynessCues(entity); }
         } else if (wasDry) {
-            player.removeEffect(MobEffects.WEAKNESS);
+            entity.removeEffect(MobEffects.WEAKNESS);
         }
     }
 
-    private static void playDrynessCues(Player player) {
-        Level level = player.level();
-        RandomSource random = player.getRandom();
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.7f, 0.45f + random.nextFloat() * 0.1f);
+    private static void playDrynessCues(LivingEntity entity) {
+        Level level = entity.level();
+        RandomSource random = entity.getRandom();
+        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.7f, 0.45f + random.nextFloat() * 0.1f);
         if (level instanceof ServerLevel server) {
-            Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
+            Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
             server.sendParticles(ParticleTypes.SMOKE, center.x, center.y, center.z, DRY_SMOKE_COUNT, 0.3, 0.4, 0.3, 0.01);
         }
     }
 
-    private static boolean canAffordBlood(Player player, float cost) {
+    private static boolean canAffordBlood(LivingEntity player, float cost) {
         float healthPool = player.getHealth() + player.getAbsorptionAmount();
         return healthPool > cost;
     }
 
-    private static void applyHealthDrain(Player player, float amount) {
+    private static void applyHealthDrain(LivingEntity player, float amount) {
         if (player == null || amount <= 0.0f) {
             return;
         }
@@ -452,7 +449,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         player.hurtDuration = 0;
     }
 
-    private static void applyTrueDamage(Player source, LivingEntity target, float amount) {
+    private static void applyTrueDamage(LivingEntity source, LivingEntity target, float amount) {
         if (target == null || amount <= 0.0f) {
             return;
         }
@@ -460,9 +457,14 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         float startingAbsorption = target.getAbsorptionAmount();
 
         target.invulnerableTime = 0;
-        DamageSource damageSource = source == null
-                ? target.damageSources().generic()
-                : target.damageSources().playerAttack(source);
+        DamageSource damageSource;
+        if (source instanceof Player p) {
+            damageSource = target.damageSources().playerAttack(p);
+        } else if (source instanceof net.minecraft.world.entity.Mob mob) {
+            damageSource = target.damageSources().mobAttack(mob);
+        } else {
+            damageSource = target.damageSources().generic();
+        }
         target.hurt(damageSource, amount);
         target.invulnerableTime = 0;
 
@@ -479,9 +481,14 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
                     if (targetHealth <= 0.0f) {
                         target.setHealth(0.0f);
                         if (!target.level().isClientSide()) {
-                            DamageSource deathSource = source == null
-                                    ? target.damageSources().genericKill()
-                                    : target.damageSources().playerAttack(source);
+                            DamageSource deathSource;
+                            if (source instanceof Player p) {
+                                deathSource = target.damageSources().playerAttack(p);
+                            } else if (source instanceof net.minecraft.world.entity.Mob mob) {
+                                deathSource = target.damageSources().mobAttack(mob);
+                            } else {
+                                deathSource = target.damageSources().genericKill();
+                            }
                             target.die(deathSource);
                         }
                     } else {

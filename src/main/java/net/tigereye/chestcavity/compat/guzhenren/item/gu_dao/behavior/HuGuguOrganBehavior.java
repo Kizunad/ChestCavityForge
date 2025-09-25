@@ -85,7 +85,7 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
   
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
 
@@ -96,12 +96,15 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
 
         int addedUnits = 0;
         if (currentUnits < HALF_CHARGE_UNITS) {
-            applyLowChargeDebuffs(player);
-            addedUnits += BASE_RECOVERY_LOW_UNITS;
-
-
-            if (tryConsumeLowChargeResources(player)) {
-                addedUnits += BONUS_RECOVERY_LOW_UNITS;
+            if (entity instanceof Player player) {
+                applyLowChargeDebuffs(player);
+                addedUnits += BASE_RECOVERY_LOW_UNITS;
+                if (tryConsumeLowChargeResources(player)) {
+                    addedUnits += BONUS_RECOVERY_LOW_UNITS;
+                }
+            } else {
+                // 非玩家不施加减益，也不支付资源，只进行基础恢复
+                addedUnits += BASE_RECOVERY_LOW_UNITS;
             }
         } else {
             addedUnits += RECOVERY_HIGH_UNITS;

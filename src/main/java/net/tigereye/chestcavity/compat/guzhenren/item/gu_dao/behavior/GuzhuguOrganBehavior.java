@@ -60,7 +60,7 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener, IncreaseEffec
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         int count = Math.max(1, organ.getCount());
@@ -77,11 +77,13 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener, IncreaseEffec
 
         double newValue = channel.adjust(expected);
         double actual = newValue - previous;
-        if (actual > 0.0) {
-            recordPassiveGain((Player) entity, actual, newValue);
-            handleSoftCapCross((Player) entity, previous, newValue);
-        } else {
-            maybeFlushPassiveBuffer((Player) entity, newValue);
+        if (entity instanceof Player player) {
+            if (actual > 0.0) {
+                recordPassiveGain(player, actual, newValue);
+                handleSoftCapCross(player, previous, newValue);
+            } else {
+                maybeFlushPassiveBuffer(player, newValue);
+            }
         }
 
     }
