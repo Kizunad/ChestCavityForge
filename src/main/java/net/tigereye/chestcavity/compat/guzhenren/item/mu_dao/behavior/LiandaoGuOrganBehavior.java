@@ -13,6 +13,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -30,6 +31,8 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
@@ -41,7 +44,7 @@ import java.util.OptionalDouble;
  * Active behaviour for 镰刀蛊. Handles resource consumption, cooldown management
  * and the delayed blade wave attack sequence.
  */
-public enum LiandaoGuOrganBehavior {
+public enum LiandaoGuOrganBehavior implements OrganSlowTickListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -122,6 +125,20 @@ public enum LiandaoGuOrganBehavior {
         ensureChannel(cc, JIN_DAO_INCREASE_EFFECT);
     }
 
+    @Override
+    public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (entity == null || entity.level().isClientSide()) {
+            return;
+        }
+        if (organ == null || organ.isEmpty()) {
+            return;
+        }
+        if (entity instanceof Player) {
+            return;
+        }
+        handleNonPlayerSlowTick(entity, cc, organ);
+    }
+
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
         ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
         return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
@@ -199,6 +216,65 @@ public enum LiandaoGuOrganBehavior {
         ), RELEASE_TELEGRAPH_TICKS);
     }
 
+    private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (cc == null) {
+            return;
+        }
+        Level level = entity.level();
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+
+        long gameTime = server.getGameTime();
+        long nextAllowed = readCooldown(organ);
+        if (nextAllowed > gameTime) {
+            return;
+        }
+
+        RandomSource random = entity.getRandom();
+        if (random.nextInt(10) != 0) {
+            return;
+        }
+
+        GuzhenrenResourceCostHelper.ConsumptionResult result = GuzhenrenResourceCostHelper.consumeWithFallback(
+                entity,
+                BASE_ZHENYUAN_COST,
+                BASE_JINGLI_COST
+        );
+        if (!result.succeeded()) {
+            return;
+        }
+
+        int cooldown = MIN_COOLDOWN_TICKS;
+        if (COOLDOWN_VARIANCE_TICKS > 0) {
+            cooldown += random.nextInt(COOLDOWN_VARIANCE_TICKS + 1);
+        }
+        writeCooldown(organ, gameTime + cooldown);
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+
+        double swordMultiplier = 1.0 + ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
+        double metalMultiplier = 1.0 + ensureChannel(cc, JIN_DAO_INCREASE_EFFECT).get();
+        double totalMultiplier = Math.max(0.0, swordMultiplier * metalMultiplier);
+        double damageAmount = BASE_DAMAGE * totalMultiplier;
+
+        Vec3 origin = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
+        Vec3 look = entity.getLookAngle();
+        Vec3 fallback = entity.getForward();
+        Vec3 baseForward = look.lengthSqr() < EPSILON ? fallback : look;
+        Vec3 forward = baseForward.lengthSqr() < EPSILON
+                ? new Vec3(0.0, 0.0, 1.0)
+                : baseForward.normalize();
+
+        Basis basis = makeBasis(forward);
+        Vec3 dir = computeSlashDir(basis, SLASH_PITCH_DEG);
+        Vec3 wAxis = computeWidthAxis(basis, SLASH_ROLL_DEG);
+
+        Vec3 shiftedOrigin = origin.add(0.0, 1.0, 0.0).add(dir.scale(1.0));
+        Vec3 impactCenter = shiftedOrigin.add(dir.scale(WAVE_LENGTH * 0.75));
+
+        applyBladeWave(server, entity, cc, origin, dir, wAxis, damageAmount, impactCenter);
+    }
+
     private static void playChargeStartEffects(ServerLevel serverLevel, Player player) {
         double x = player.getX();
         double y = player.getY(0.5);
@@ -263,32 +339,51 @@ public enum LiandaoGuOrganBehavior {
         s.sendParticles(ParticleTypes.FLASH, flash.x, flash.y, flash.z, 1, 0, 0, 0, 0);
     }
     private static void applyBladeWave(
-        ServerLevel s, Player player, ChestCavityInstance cc,
-        Vec3 origin, Vec3 dir, Vec3 wAxis, double damageAmount, Vec3 impactCenter) { // CHANGED
+            ServerLevel server,
+            LivingEntity user,
+            ChestCavityInstance cc,
+            Vec3 origin,
+            Vec3 dir,
+            Vec3 wAxis,
+            double damageAmount,
+            Vec3 impactCenter
+    ) { // CHANGED
 
-    if (!player.isAlive()) return;
+        if (user == null || !user.isAlive()) {
+            return;
+        }
 
-    AABB hitbox = new AABB(origin, origin.add(dir.scale(WAVE_LENGTH)))
-            .inflate(WAVE_HALF_WIDTH, WAVE_HALF_HEIGHT, WAVE_HALF_WIDTH);
+        AABB hitbox = new AABB(origin, origin.add(dir.scale(WAVE_LENGTH)))
+                .inflate(WAVE_HALF_WIDTH, WAVE_HALF_HEIGHT, WAVE_HALF_WIDTH);
 
-    List<LivingEntity> targets = s.getEntitiesOfClass(LivingEntity.class, hitbox,
-            e -> e != player && e.isAlive());
+        List<LivingEntity> targets = server.getEntitiesOfClass(LivingEntity.class, hitbox,
+                e -> e != user && e.isAlive());
 
-    for (LivingEntity t : targets) {
-        float dmg = (float)damageAmount;
-        if (dmg > 0) t.hurt(player.damageSources().playerAttack(player), dmg);
-        t.knockback(KNOCKBACK_FORCE, -dir.x, -dir.z); // 用斜向 knockback
-        t.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, EFFECT_DURATION_TICKS, 1, false, true, true));
-        t.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,          EFFECT_DURATION_TICKS, 0, false, true, true));
-        s.sendParticles(ParticleTypes.CRIT, t.getX(), t.getY(0.5), t.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
+        DamageSource damageSource = createBladeDamageSource(user);
+        for (LivingEntity target : targets) {
+            float dmg = (float) damageAmount;
+            if (dmg > 0) {
+                target.hurt(damageSource, dmg);
+            }
+            target.knockback(KNOCKBACK_FORCE, -dir.x, -dir.z); // 用斜向 knockback
+            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, EFFECT_DURATION_TICKS, 1, false, true, true));
+            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, EFFECT_DURATION_TICKS, 0, false, true, true));
+            server.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY(0.5), target.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
+        }
+
+        server.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.ANVIL_BREAK, SoundSource.PLAYERS, 0.7f, 1.1f);
+        server.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.6f, 1.2f);
+
+        spawnResidualParticles(server, origin, dir, wAxis); // 余晖粒子也用斜向
+        affectBlocksAlongSlash(server, origin, dir, wAxis, user);
     }
 
-    s.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.ANVIL_BREAK,     SoundSource.PLAYERS, 0.7f, 1.1f);
-    s.playSound(null, impactCenter.x, impactCenter.y, impactCenter.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.6f, 1.2f);
-
-    spawnResidualParticles(s, origin, dir, wAxis); // 余晖粒子也用斜向
-    affectBlocksAlongSlash(s, origin, dir, wAxis, player);
-}
+    private static DamageSource createBladeDamageSource(LivingEntity user) {
+        if (user instanceof Player player) {
+            return player.damageSources().playerAttack(player);
+        }
+        return user.damageSources().mobAttack(user);
+    }
 
     private static void spawnResidualParticles(ServerLevel s, Vec3 origin, Vec3 dir, Vec3 wAxis) { // CHANGED
         Vec3 end = origin.add(dir.scale(WAVE_LENGTH));
@@ -325,20 +420,23 @@ public enum LiandaoGuOrganBehavior {
         }
     }
 
-    private static void affectBlocksAlongSlash(ServerLevel s, Vec3 origin, Vec3 dir, Vec3 wAxis, Player player) { // OPTIONAL
-    // 取靠近玩家前方 2.5 格处作为切割带中心线
-    Vec3 base = origin.add(dir.scale(2.5));
-    // 沿 wAxis 采样 [-1,0,1] 三列，沿 dir 向前 [0,1,2] 三段，并在竖直方向 y 偏移 [0,1,2]
-    for (int w = -1; w <= 1; w++) {
-        for (int step = 0; step <= 2; step++) {
-            Vec3 line = base.add(dir.scale(step)).add(wAxis.scale(w));
-            BlockPos pos = BlockPos.containing(line);
-            for (int dy = 0; dy < 3; dy++) {
-                processBlock(s, player, pos.above(dy));
+    private static void affectBlocksAlongSlash(ServerLevel s, Vec3 origin, Vec3 dir, Vec3 wAxis, LivingEntity user) { // OPTIONAL
+        if (!(user instanceof Player player)) {
+            return;
+        }
+        // 取靠近玩家前方 2.5 格处作为切割带中心线
+        Vec3 base = origin.add(dir.scale(2.5));
+        // 沿 wAxis 采样 [-1,0,1] 三列，沿 dir 向前 [0,1,2] 三段，并在竖直方向 y 偏移 [0,1,2]
+        for (int w = -1; w <= 1; w++) {
+            for (int step = 0; step <= 2; step++) {
+                Vec3 line = base.add(dir.scale(step)).add(wAxis.scale(w));
+                BlockPos pos = BlockPos.containing(line);
+                for (int dy = 0; dy < 3; dy++) {
+                    processBlock(s, player, pos.above(dy));
+                }
             }
         }
     }
-}
 
 
     private static void processBlock(ServerLevel serverLevel, Player player, BlockPos pos) {
