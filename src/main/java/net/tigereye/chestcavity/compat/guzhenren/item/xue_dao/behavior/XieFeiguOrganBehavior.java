@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,12 +26,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -47,7 +48,7 @@ import java.util.Optional;
 /**
  * Behaviour implementation for 血肺蛊 (Xie Fei Gu).
  */
-public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener {
+public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener, OrganIncomingDamageListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -79,8 +80,10 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     private static final float HEALTH_COST = 10.0f;
     private static final double ZHENYUAN_COST = 20.0;
+    private static final double RESOURCE_TO_HEALTH_RATIO = 100.0;
     private static final float NEAR_DEATH_THRESHOLD = 4.0f;
     private static final double HEART_FAILURE_CHANCE = 0.35;
+    private static final float AUTO_TRIGGER_CHANCE = 0.1f;
 
     private static final int COOLDOWN_TICKS = 200; // 10 seconds
 
@@ -99,6 +102,34 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     static {
         OrganActivationListeners.register(ABILITY_ID, XieFeiguOrganBehavior::activateAbility);
+    }
+
+    @Override
+    public float onIncomingDamage(
+            DamageSource source,
+            LivingEntity victim,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
+        if (!(victim instanceof Player player) || player.level().isClientSide()) {
+            return damage;
+        }
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return damage;
+        }
+        if (!organ.is(GuzhenrenItems.XUE_FEI_GU)) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());
+            if (!ORGAN_ID.equals(id)) {
+                return damage;
+            }
+        }
+
+        RandomSource random = player.getRandom();
+        if (random.nextFloat() < AUTO_TRIGGER_CHANCE) {
+            tryAutoActivateAbility(player, cc);
+        }
+        return damage;
     }
 
     public void ensureAttached(ChestCavityInstance cc) {
@@ -313,12 +344,10 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             return;
         }
 
-        if (!tryConsumeZhenyuan(player)) {
-            return;
-        }
-
         final float adjustedHealthCost = (float) (HEALTH_COST / increaseMultiplier);
-        if (!applyHealthCost(player, adjustedHealthCost)) {
+        final float resourceHealthCost = (float) (ZHENYUAN_COST / RESOURCE_TO_HEALTH_RATIO);
+        final float totalHealthCost = adjustedHealthCost + resourceHealthCost;
+        if (!applyHealthCost(player, totalHealthCost)) {
             return;
         }
 
@@ -342,6 +371,13 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
     }
 
+    private static void tryAutoActivateAbility(Player player, ChestCavityInstance cc) {
+        if (player == null || cc == null || player.level().isClientSide()) {
+            return;
+        }
+        OrganActivationListeners.activate(ABILITY_ID, cc);
+    }
+
     private static void triggerHeartFailure(Player player) {
         if (player.level().isClientSide()) {
             return;
@@ -350,52 +386,40 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         player.hurt(player.damageSources().magic(), player.getHealth() + player.getAbsorptionAmount() + 10.0f);
     }
 
-    private static boolean tryConsumeZhenyuan(Player player) {
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return false;
+    private static boolean applyHealthCost(Player player, float amount) {
+        if (player == null || amount <= 0.0f) {
+            return true;
         }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        return handle.consumeScaledZhenyuan(ZHENYUAN_COST).isPresent();
-            }
-        private static boolean applyHealthCost(Player player, float amount) {
-            if (player == null || amount <= 0.0f) {
-                return true;
-            }
 
-            float health = player.getHealth();
-            float absorption = player.getAbsorptionAmount();
+        float health = player.getHealth();
+        float absorption = player.getAbsorptionAmount();
 
-            float remaining = amount;
+        float remaining = amount;
 
-            // 先扣护盾
-            if (absorption > 0.0f) {
-                float absorbed = Math.min(absorption, remaining);
-                player.setAbsorptionAmount(absorption - absorbed);
-                remaining -= absorbed;
-            }
+        if (absorption > 0.0f) {
+            float absorbed = Math.min(absorption, remaining);
+            player.setAbsorptionAmount(absorption - absorbed);
+            remaining -= absorbed;
+        }
 
-            // 再扣血
-            if (remaining > 0.0f) {
-                float newHealth = Math.max(0.0f, health - remaining);
-                player.setHealth(newHealth);
-            }
+        if (remaining > 0.0f) {
+            float newHealth = Math.max(0.0f, health - remaining);
+            player.setHealth(newHealth);
+        }
 
-            // 播放一次“受伤”反馈（音效+粒子），但不再调用 hurt()
-            // 避免被其他模组拦截或覆盖
-            if (!player.level().isClientSide()) {
-                player.level().playSound(
+        if (!player.level().isClientSide()) {
+            player.level().playSound(
                     null,
                     player.getX(), player.getY(), player.getZ(),
                     net.minecraft.sounds.SoundEvents.PLAYER_HURT,
                     net.minecraft.sounds.SoundSource.PLAYERS,
                     0.8f,
                     1.0f + player.getRandom().nextFloat() * 0.3f
-                );
-            }
-
-            return !player.isDeadOrDying();
+            );
         }
+
+        return !player.isDeadOrDying();
+    }
 
 
     private static void playBloodFogCue(ServerLevel server, Player player) {

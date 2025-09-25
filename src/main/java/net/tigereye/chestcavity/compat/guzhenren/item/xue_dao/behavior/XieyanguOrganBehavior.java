@@ -68,6 +68,9 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static final int HEALTH_DRAIN_INTERVAL_SLOW_TICKS = 60; // once per minute
     private static final float BASE_CRIT_MULTIPLIER = 1.5f;
+    private static final double NON_PLAYER_BASE_ZHENYUAN_COST = 20.0;
+    private static final double NON_PLAYER_BASE_JINGLI_COST = 10.0;
+    private static final double RESOURCE_TO_HEALTH_RATIO = 100.0;
     private static final int BLOOD_TRAIL_DURATION_TICKS = 200; // 10 seconds
     private static final float FOCUS_THRESHOLD_RATIO = 0.3f;
     private static final float FOCUS_ATTACK_SPEED_BONUS = 0.2f;
@@ -240,54 +243,85 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             ItemStack organ,
             float damage
     ) {
-        // Entry log with maximal context
-        final String attackerName = attacker == null ? "<null>" : attacker.getName().getString();
-        final String targetName = target == null ? "<null>" : target.getName().getString();
-        final ResourceLocation organId = (organ == null || organ.isEmpty()) ? null : BuiltInRegistries.ITEM.getKey(organ.getItem());
-        final String srcMsg = source == null ? "<null>" : source.type().msgId();
         final Entity direct = source == null ? null : source.getDirectEntity();
-        LOGGER.info("{} [placeholder] onHit(non-player) ENTER attacker={}, target={}, organ={}, src={}, direct={} damage={}",
-                LOG_PREFIX, attackerName, targetName, organId, srcMsg, direct == null ? "<null>" : direct.getName().getString(), damage);
-
-        // Early outs with reasons
-        if (attacker == null) {
-            LOGGER.info("{} EXIT reason=attacker_null return={} ", LOG_PREFIX, damage);
+        if (attacker == null || attacker.level().isClientSide()) {
             return damage;
         }
-        if (attacker.level().isClientSide()) {
-            LOGGER.info("{} EXIT reason=client_side return={}", LOG_PREFIX, damage);
+        if (target == null || !attacker.isAlive()) {
             return damage;
         }
-        if (target == null) {
-            LOGGER.info("{} EXIT reason=target_null return={}", LOG_PREFIX, damage);
+        if (cc == null || !cc.opened) {
             return damage;
         }
-        if (cc == null) {
-            LOGGER.info("{} EXIT reason=chest_cavity_null return={}", LOG_PREFIX, damage);
+        if (organ == null || organ.isEmpty() || !isTargetOrgan(organ)) {
             return damage;
         }
-        if (!cc.opened) {
-            LOGGER.info("{} EXIT reason=chest_cavity_closed owner={} return={}", LOG_PREFIX,
-                    cc.owner == null ? "<null>" : cc.owner.getName().getString(), damage);
+        if (damage <= 0.0f || !Float.isFinite(damage)) {
             return damage;
         }
-        if (organ == null || organ.isEmpty()) {
-            LOGGER.info("{} EXIT reason=organ_empty return={}", LOG_PREFIX, damage);
-            return damage;
-        }
-        if (!isTargetOrgan(organ)) {
-            LOGGER.info("{} EXIT reason=not_xie_yan_gu organ={} return={}", LOG_PREFIX, organId, damage);
-            return damage;
-        }
-
-        // For visibility: note the direct vs attacker for future melee-only checks
         if (direct != attacker) {
-            LOGGER.info("{} note=indirect_damage direct!=attacker (keeping damage unchanged)", LOG_PREFIX);
+            return damage;
         }
 
-        // Placeholder end: no amplification yet
-        LOGGER.info("{} EXIT reason=placeholder_noop return={} ", LOG_PREFIX, damage);
-        return damage;
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        if (context == null) {
+            return damage;
+        }
+        LinkageChannel channel = ensureChannel(context);
+        double effectBonus = Math.max(0.0, channel.get());
+        int stackCount = Math.max(1, organ.getCount());
+        double scaling = stackCount * (1.0 + effectBonus);
+
+        double zhenyuanCost = NON_PLAYER_BASE_ZHENYUAN_COST * scaling;
+        double jingliCost = NON_PLAYER_BASE_JINGLI_COST * scaling;
+        double combinedCost = zhenyuanCost + jingliCost;
+        float healthCost = (float) Math.max(0.0, combinedCost / RESOURCE_TO_HEALTH_RATIO);
+
+        if (!drainHealth(attacker, healthCost)) {
+            return damage;
+        }
+
+        float multiplier = (float) (BASE_CRIT_MULTIPLIER + effectBonus);
+        float scaled = damage * multiplier;
+
+        playCriticalCues(attacker.level(), target);
+        XieyanguTrailHandler.applyTrail(target, BLOOD_TRAIL_DURATION_TICKS);
+        return scaled;
+    }
+
+    private static boolean drainHealth(LivingEntity entity, float amount) {
+        if (entity == null || amount <= 0.0f) {
+            return true;
+        }
+        float startingHealth = entity.getHealth();
+        float startingAbsorption = entity.getAbsorptionAmount();
+        float available = startingHealth + startingAbsorption;
+        if (!Float.isFinite(amount) || amount <= 0.0f || available <= amount + 1.0E-4f) {
+            return false;
+        }
+
+        entity.invulnerableTime = 0;
+        entity.hurt(entity.damageSources().generic(), amount);
+        entity.invulnerableTime = 0;
+
+        float remaining = amount;
+        float absorptionConsumed = Math.min(startingAbsorption, remaining);
+        remaining -= absorptionConsumed;
+        float targetAbsorption = Math.max(0.0f, startingAbsorption - amount);
+
+        if (!entity.isDeadOrDying()) {
+            entity.setAbsorptionAmount(targetAbsorption);
+            if (remaining > 0.0f) {
+                float targetHealth = Math.max(0.0f, startingHealth - remaining);
+                if (entity.getHealth() > targetHealth) {
+                    entity.setHealth(targetHealth);
+                }
+            }
+            entity.hurtTime = 0;
+            entity.hurtDuration = 0;
+        }
+
+        return true;
     }
 
     private void triggerHealthDrain(Player player, ChestCavityInstance cc) {
@@ -368,7 +402,16 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     private static void playCriticalCues(Player player, LivingEntity target) {
-        Level level = player.level();
+        if (player == null) {
+            return;
+        }
+        playCriticalCues(player.level(), target);
+    }
+
+    private static void playCriticalCues(Level level, LivingEntity target) {
+        if (level == null || target == null) {
+            return;
+        }
         RandomSource random = level.getRandom();
         double x = target.getX();
         double y = target.getY(0.5);

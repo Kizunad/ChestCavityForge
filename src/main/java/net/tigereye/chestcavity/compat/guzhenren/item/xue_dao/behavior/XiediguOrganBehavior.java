@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -50,7 +51,7 @@ import java.util.stream.Collectors;
 /**
  * Behaviour implementation for 血滴蛊 (Xie Di Gu).
  */
-public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener {
+public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener, OrganIncomingDamageListener {
     INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
@@ -93,9 +94,35 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
 
     private static final Component EQUIP_MESSAGE =
             Component.translatable("message.guzhenren.xie_di_gu.on_equip");
+    private static final float AUTO_TRIGGER_CHANCE = 0.1f;
 
     static {
         OrganActivationListeners.register(ABILITY_ID, XiediguOrganBehavior::activateAbility);
+    }
+
+    @Override
+    public float onIncomingDamage(
+            DamageSource source,
+            LivingEntity victim,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
+        if (!(victim instanceof Player player) || player.level().isClientSide()) {
+            return damage;
+        }
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return damage;
+        }
+        if (!matchesOrgan(organ)) {
+            return damage;
+        }
+
+        RandomSource random = player.getRandom();
+        if (random.nextFloat() < AUTO_TRIGGER_CHANCE) {
+            tryAutoActivateAbility(player, cc);
+        }
+        return damage;
     }
 
     /** Ensures the linkage channel exists for this cavity. */
@@ -248,6 +275,13 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         writeTimer(organ, GENERATION_INTERVAL_SLOW_TICKS);
         player.removeEffect(MobEffects.WEAKNESS);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    }
+
+    private static void tryAutoActivateAbility(Player player, ChestCavityInstance cc) {
+        if (player == null || cc == null || player.level().isClientSide()) {
+            return;
+        }
+        OrganActivationListeners.activate(ABILITY_ID, cc);
     }
 
     private static boolean matchesOrgan(ItemStack organ) {
