@@ -568,6 +568,20 @@ public final class GuzhenrenResourceBridge {
             return adjustZhenyuan(-required, true);
         }
 
+        /**
+         * Calculates the scaled zhenyuan requirement without mutating the attachment.
+         */
+        public OptionalDouble estimateScaledZhenyuanCost(double baseCost) {
+            if (baseCost <= 0 || !Double.isFinite(baseCost)) {
+                return OptionalDouble.of(0.0);
+            }
+            double scaled = scaleZhenyuanByCultivation(baseCost);
+            if (!Double.isFinite(scaled) || scaled <= 0) {
+                return OptionalDouble.empty();
+            }
+            return OptionalDouble.of(scaled);
+        }
+
         /** 真元补充：按与消耗相同的缩放公式增加真元值。 */
         public OptionalDouble replenishScaledZhenyuan(double baseAmount, boolean clampToMax) {
             if (baseAmount <= 0 || !Double.isFinite(baseAmount)) {
