@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren;
 
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.tigereye.chestcavity.ChestCavity;
@@ -274,21 +275,37 @@ public final class GuzhenrenResourceBridge {
         if (player == null) {
             return Optional.empty();
         }
+        Optional<Object> variables = fetchVariables(player);
+        if (variables.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new ResourceHandle(player, variables.get()));
+    }
+
+    public static Optional<Object> fetchVariables(Entity entity) {
+        if (entity == null) {
+            return Optional.empty();
+        }
         AttachmentType<Object> attachmentType = resolveAttachmentType();
         if (attachmentType == null) {
             return Optional.empty();
         }
         Object variables;
         try {
-            variables = player.getData(attachmentType);
+            variables = entity.getData(attachmentType);
         } catch (Throwable throwable) {
-            LOGGER.warn("Failed to access Guzhenren player attachment for {}", player.getScoreboardName(), throwable);
+            LOGGER.warn("Failed to access Guzhenren attachment for {}", entity.getName().getString(), throwable);
             return Optional.empty();
         }
         if (variables == null) {
             return Optional.empty();
         }
-        return Optional.of(new ResourceHandle(player, variables));
+        return Optional.of(variables);
+    }
+
+    public static Optional<Class<?>> getPlayerVariablesClass() {
+        ensureInitialised();
+        return Optional.ofNullable(playerVariablesClass);
     }
 
     /**
@@ -397,14 +414,16 @@ public final class GuzhenrenResourceBridge {
         }
     }
 
-    private static void sync(Player player, Object variables) {
-        if (player == null || player.level().isClientSide() || syncPlayerVariables == null) {
-            return;
+    public static boolean syncEntity(Entity entity, Object variables) {
+        if (entity == null || entity.level().isClientSide() || syncPlayerVariables == null) {
+            return false;
         }
         try {
-            syncPlayerVariables.invoke(variables, player);
+            syncPlayerVariables.invoke(variables, entity);
+            return true;
         } catch (IllegalAccessException | InvocationTargetException e) {
-            LOGGER.warn("Failed to sync Guzhenren player variables for {}", player.getScoreboardName(), e);
+            LOGGER.warn("Failed to sync Guzhenren player variables for {}", entity.getName().getString(), e);
+            return false;
         }
     }
 
@@ -440,7 +459,7 @@ public final class GuzhenrenResourceBridge {
             if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
                 return OptionalDouble.empty();
             }
-            sync(this.player, this.variables);
+            syncEntity(this.player, this.variables);
             return OptionalDouble.of(value);
         }
 
