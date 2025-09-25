@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.TuDaoNonPlayerHandler;
+import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
@@ -62,6 +62,8 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     private static final double BASE_MAX_REFLECT = 50.0;
 
     private static final double BASE_JINGLI_COST = 10.0;
+
+    private static final double RESOURCE_EPSILON = 1.0E-4;
     private static final double BASE_ZHENYUAN_COST = 500.0;
 
     private static final int LOW_CHARGE_DEBUFF_DURATION = 60; // 3 seconds refresh per slow tick
@@ -124,7 +126,35 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     }
 
     private static boolean tryConsumeLowChargeResources(Player player) {
-        return TuDaoNonPlayerHandler.handleNonPlayer(player, BASE_ZHENYUAN_COST, BASE_JINGLI_COST);
+        var handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            return false;
+        }
+
+        var handle = handleOpt.get();
+
+        var jingliBeforeOpt = handle.getJingli();
+        if (jingliBeforeOpt.isEmpty()) {
+            return false;
+        }
+
+        double jingliBefore = jingliBeforeOpt.getAsDouble();
+        if (!Double.isFinite(jingliBefore) || jingliBefore + RESOURCE_EPSILON < BASE_JINGLI_COST) {
+            return false;
+        }
+
+        var jingliAfterOpt = handle.adjustJingli(-BASE_JINGLI_COST, true);
+        if (jingliAfterOpt.isEmpty()) {
+            return false;
+        }
+
+        var zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
+        if (zhenyuanResult.isPresent()) {
+            return true;
+        }
+
+        handle.adjustJingli(BASE_JINGLI_COST, true);
+        return false;
     }
 
     @Override
