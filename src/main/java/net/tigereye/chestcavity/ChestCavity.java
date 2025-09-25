@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
@@ -72,6 +73,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		bus.addListener(NetworkHandler::registerCommon);
 
     if (FMLEnvironment.dist.isClient()) {
+            bus.addListener(Abilities::onClientSetup);
             bus.addListener(GuDaoClientAbilities::onClientSetup);
             bus.addListener(MuDaoClientAbilities::onClientSetup);
 
