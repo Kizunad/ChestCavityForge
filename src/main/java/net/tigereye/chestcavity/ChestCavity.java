@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
+import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombClient;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
@@ -80,6 +81,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
             bus.addListener(ShiDaoClientAbilities::onClientSetup);
 
             bus.addListener(XueDaoClientAbilities::onClientSetup);
+            bus.addListener(BloodBoneBombClient::onRegisterRenderers);
     }
 
     bus.addListener(GuDaoClientRenderLayers::onAddLayers);
@@ -104,6 +106,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCAttachments.ATTACHMENT_TYPES.register(bus);
 		CCContainers.MENU_TYPES.register(bus);
 		CCItems.ITEMS.register(bus);
+		CCEntities.ENTITY_TYPES.register(bus);
 		CCRecipes.RECIPE_SERIALIZERS.register(bus);
 		CCRecipes.RECIPE_TYPES.register(bus);
 		CCEnchantments.ENCHANTMENTS.register(bus);

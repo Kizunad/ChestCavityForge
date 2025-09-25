@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb;
 
 import com.google.common.collect.ImmutableSet;
-import net.minecraft.core.Holder;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -12,18 +11,13 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
@@ -36,19 +30,15 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 /**
  * Runtime implementation of the Bloodbone Bomb active organ ability.
- * Handles the 10 second channel, resource payments and the simulated
- * projectile that is spawned on completion.
+ * Handles the 10 second channel, resource payments and spawns the
+ * dedicated projectile entity on completion.
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class BloodBoneBombAbility {
@@ -73,7 +63,8 @@ public final class BloodBoneBombAbility {
             ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/xue_dao_increase_effect");
     private static final ResourceLocation GU_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/gu_dao_increase_effect");
-    private static final ResourceLocation BLEED_EFFECT_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "lliuxue");
+    static final ResourceLocation BLEED_EFFECT_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "lliuxue");
+    static final ResourceLocation RENDER_ITEM_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "gu_qiang");
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -84,19 +75,13 @@ public final class BloodBoneBombAbility {
     private static final double JINGLI_COST = 10.0;
 
     private static final double PROJECTILE_SPEED = 3.75;
-    private static final int PROJECTILE_LIFETIME = 60;
-    private static final double PROJECTILE_RADIUS = 0.4;
 
     private static final DustParticleOptions BLOOD_SWIRL =
             new DustParticleOptions(new Vector3f(0.82f, 0.07f, 0.09f), 1.0f);
     private static final DustParticleOptions BONE_GLINT =
             new DustParticleOptions(new Vector3f(0.92f, 0.88f, 0.78f), 0.8f);
-    private static final DustParticleOptions PROJECTILE_TRAIL =
-            new DustParticleOptions(new Vector3f(0.78f, 0.04f, 0.08f), 1.2f);
 
     private static final Map<UUID, ChargeState> ACTIVE_CHARGES = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final List<ProjectileState> ACTIVE_PROJECTILES = new ArrayList<>();
-    private static final Map<ServerLevel, Long> LAST_PROJECTILE_TICK = new WeakHashMap<>();
 
     private BloodBoneBombAbility() {
     }
@@ -129,37 +114,12 @@ public final class BloodBoneBombAbility {
 
     @SubscribeEvent
     public static void onEntityTick(EntityTickEvent.Post event) {
-        if (!(event.getEntity().level() instanceof ServerLevel server)) {
-            return;
-        }
-        tickProjectiles(server);
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
         ChargeState state = ACTIVE_CHARGES.get(player.getUUID());
         if (state != null) {
             tickCharge(player, state);
-        }
-    }
-
-
-    private static void tickProjectiles(ServerLevel level) {
-        long gameTime = level.getGameTime();
-        Long lastTick = LAST_PROJECTILE_TICK.get(level);
-        if (lastTick != null && lastTick >= gameTime) {
-            return;
-        }
-        LAST_PROJECTILE_TICK.put(level, gameTime);
-
-        Iterator<ProjectileState> iterator = ACTIVE_PROJECTILES.iterator();
-        while (iterator.hasNext()) {
-            ProjectileState state = iterator.next();
-            if (state.level != level) {
-                continue;
-            }
-            if (!state.tick()) {
-                iterator.remove();
-            }
         }
     }
 
@@ -280,11 +240,21 @@ public final class BloodBoneBombAbility {
         Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.4));
         Vec3 velocity = player.getLookAngle().normalize().scale(PROJECTILE_SPEED);
 
-        ACTIVE_PROJECTILES.add(new ProjectileState(level, player.getUUID(), origin, velocity, damage, multiplier));
+        BoneGunProjectile projectile = new BoneGunProjectile(level, player, createProjectileStack());
+        projectile.configurePayload((float) damage, multiplier);
+        projectile.setPos(origin);
+        projectile.shoot(velocity.x, velocity.y, velocity.z, (float) PROJECTILE_SPEED, 0.0f);
+        level.addFreshEntity(projectile);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.1f, 0.7f + player.getRandom().nextFloat() * 0.2f);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 0.6f, 0.5f);
         level.gameEvent(player, GameEvent.EXPLODE, player.blockPosition());
         spawnProjectileIgnition(level, origin, velocity);
+    }
+
+    private static ItemStack createProjectileStack() {
+        return BuiltInRegistries.ITEM.getOptional(RENDER_ITEM_ID)
+                .map(ItemStack::new)
+                .orElse(ItemStack.EMPTY);
     }
 
     private static LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation id) {
@@ -380,7 +350,7 @@ public final class BloodBoneBombAbility {
         return false;
     }
 
-    private static void applyTrueDamage(ServerPlayer source, LivingEntity target, float amount) {
+    static void applyTrueDamage(ServerPlayer source, LivingEntity target, float amount) {
         if (target == null || amount <= 0.0f) {
             return;
         }
@@ -419,107 +389,5 @@ public final class BloodBoneBombAbility {
         }
     }
 
-    private static final class ProjectileState {
-        private final ServerLevel level;
-        private final UUID ownerId;
-        private Vec3 position;
-        private final Vec3 velocity;
-        private final double damage;
-        private final double multiplier;
-        private int age;
 
-        private ProjectileState(ServerLevel level, UUID ownerId, Vec3 position, Vec3 velocity, double damage, double multiplier) {
-            this.level = level;
-            this.ownerId = ownerId;
-            this.position = position;
-            this.velocity = velocity;
-            this.damage = damage;
-            this.multiplier = multiplier;
-        }
-
-        private boolean tick() {
-            age++;
-            if (age > PROJECTILE_LIFETIME) {
-                spawnFade();
-                return false;
-            }
-            Vec3 nextPos = position.add(velocity);
-
-            HitResult blockHit = level.clip(new ClipContext(position, nextPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-            if (blockHit.getType() != HitResult.Type.MISS) {
-                Vec3 impact = blockHit.getLocation();
-                onImpact(null, impact);
-                return false;
-            }
-
-            LivingEntity victim = findHitEntity(position, nextPos);
-            if (victim != null) {
-                Vec3 impact = victim.position().add(0.0, victim.getBbHeight() * 0.5, 0.0);
-                onImpact(victim, impact);
-                return false;
-            }
-
-            spawnTrail(nextPos);
-            position = nextPos;
-            return true;
-        }
-
-        private LivingEntity findHitEntity(Vec3 start, Vec3 end) {
-            AABB box = new AABB(start, end).inflate(PROJECTILE_RADIUS);
-            List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, box, entity -> entity.isAlive() && !entity.getUUID().equals(ownerId));
-            LivingEntity closest = null;
-            double closestDistance = Double.MAX_VALUE;
-            for (LivingEntity entity : entities) {
-                Optional<Vec3> clip = entity.getBoundingBox().inflate(0.2).clip(start, end);
-                if (clip.isEmpty()) {
-                    continue;
-                }
-                double distance = clip.get().distanceToSqr(start);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closest = entity;
-                }
-            }
-            return closest;
-        }
-
-        private void onImpact(LivingEntity victim, Vec3 impact) {
-            level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.6f, 1.2f);
-            level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BONE_BLOCK_BREAK, SoundSource.PLAYERS, 0.8f, 0.6f);
-            level.sendParticles(ParticleTypes.CRIMSON_SPORE, impact.x, impact.y, impact.z, 60, 0.4, 0.4, 0.4, 0.08);
-            level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, impact.x, impact.y, impact.z, 1, 0.0, 0.0, 0.0, 0.0);
-
-            if (victim != null) {
-                ServerPlayer owner = level.getServer().getPlayerList().getPlayer(ownerId);
-                applyTrueDamage(owner, victim, (float) damage);
-                applyStatusEffects(victim, multiplier);
-            }
-        }
-
-        private void spawnTrail(Vec3 nextPos) {
-            Vec3 mid = position.add(nextPos).scale(0.5);
-            level.sendParticles(PROJECTILE_TRAIL, mid.x, mid.y, mid.z, 4, 0.05, 0.05, 0.05, 0.02);
-        }
-
-        private void spawnFade() {
-            level.sendParticles(ParticleTypes.SMOKE, position.x, position.y, position.z, 12, 0.2, 0.2, 0.2, 0.01);
-        }
-
-        private void applyStatusEffects(LivingEntity target, double multiplier) {
-            int bleedAmplifier = scaledAmplifier(1, multiplier);
-            int slowAmplifier = scaledAmplifier(2, multiplier);
-            int weakAmplifier = scaledAmplifier(1, multiplier);
-
-            int duration = 100;
-            Optional<? extends Holder<MobEffect>> bleedOpt = BuiltInRegistries.MOB_EFFECT.getHolder(BLEED_EFFECT_ID);
-            bleedOpt.ifPresent(holder -> target.addEffect(new MobEffectInstance(holder, duration, bleedAmplifier, false, true, true)));
-            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, duration, slowAmplifier, false, true, true));
-            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, weakAmplifier, false, true, true));
-        }
-
-        private int scaledAmplifier(int baseLevel, double multiplier) {
-            double scaled = Math.max(1.0, baseLevel * multiplier);
-            return Math.max(0, (int) Math.floor(scaled) - 1);
-        }
-    }
 }

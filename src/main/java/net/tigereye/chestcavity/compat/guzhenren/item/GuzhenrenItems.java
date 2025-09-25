@@ -20,7 +20,7 @@ public final class GuzhenrenItems {
     public static final Item XUE_FEI_GU = resolve("xie_fei_gu");
     public static final Item XIE_DI_GU = resolve("xie_di_gu");
     public static final Item XIE_YAN_GU = resolve("xie_yan_gu");
-
+    public static final Item GU_QIANG = resolve("gu_qiang");
 
     public static final Item WEI_LIAN_HUA_JIAN_XIA_GU = resolve("weilianhuajianxiagu");
     public static final Item WEI_LIAN_HUA_JIAN_ZHI_GU_3 = resolve("wei_lian_hua_jian_zhi_gu_3");
