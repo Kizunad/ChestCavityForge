@@ -59,6 +59,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    private static final String LOG_PREFIX = "[compat/guzhenren][xue_dao]";
+
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final String STATE_KEY = "Xieyangu";
@@ -140,7 +142,10 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             ItemStack organ,
             float damage
     ) {
-        if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
+        if (!(attacker instanceof Player player)) {
+            return handleNonPlayerAttack(source, attacker, target, cc, organ, damage);
+        }
+        if (attacker.level().isClientSide()) {
             return damage;
         }
         if (target == null || cc == null || organ == null || organ.isEmpty()) {
@@ -188,6 +193,64 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             writeTimer(organ, HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
         }
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    }
+
+    private float handleNonPlayerAttack(
+            DamageSource source,
+            LivingEntity attacker,
+            LivingEntity target,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
+        // Entry log with maximal context
+        final String attackerName = attacker == null ? "<null>" : attacker.getName().getString();
+        final String targetName = target == null ? "<null>" : target.getName().getString();
+        final ResourceLocation organId = (organ == null || organ.isEmpty()) ? null : BuiltInRegistries.ITEM.getKey(organ.getItem());
+        final String srcMsg = source == null ? "<null>" : source.type().msgId();
+        final Entity direct = source == null ? null : source.getDirectEntity();
+        LOGGER.info("{} [placeholder] onHit(non-player) ENTER attacker={}, target={}, organ={}, src={}, direct={} damage={}",
+                LOG_PREFIX, attackerName, targetName, organId, srcMsg, direct == null ? "<null>" : direct.getName().getString(), damage);
+
+        // Early outs with reasons
+        if (attacker == null) {
+            LOGGER.info("{} EXIT reason=attacker_null return={} ", LOG_PREFIX, damage);
+            return damage;
+        }
+        if (attacker.level().isClientSide()) {
+            LOGGER.info("{} EXIT reason=client_side return={}", LOG_PREFIX, damage);
+            return damage;
+        }
+        if (target == null) {
+            LOGGER.info("{} EXIT reason=target_null return={}", LOG_PREFIX, damage);
+            return damage;
+        }
+        if (cc == null) {
+            LOGGER.info("{} EXIT reason=chest_cavity_null return={}", LOG_PREFIX, damage);
+            return damage;
+        }
+        if (!cc.opened) {
+            LOGGER.info("{} EXIT reason=chest_cavity_closed owner={} return={}", LOG_PREFIX,
+                    cc.owner == null ? "<null>" : cc.owner.getName().getString(), damage);
+            return damage;
+        }
+        if (organ == null || organ.isEmpty()) {
+            LOGGER.info("{} EXIT reason=organ_empty return={}", LOG_PREFIX, damage);
+            return damage;
+        }
+        if (!isTargetOrgan(organ)) {
+            LOGGER.info("{} EXIT reason=not_xie_yan_gu organ={} return={}", LOG_PREFIX, organId, damage);
+            return damage;
+        }
+
+        // For visibility: note the direct vs attacker for future melee-only checks
+        if (direct != attacker) {
+            LOGGER.info("{} note=indirect_damage direct!=attacker (keeping damage unchanged)", LOG_PREFIX);
+        }
+
+        // Placeholder end: no amplification yet
+        LOGGER.info("{} EXIT reason=placeholder_noop return={} ", LOG_PREFIX, damage);
+        return damage;
     }
 
     private void triggerHealthDrain(Player player, ChestCavityInstance cc) {
