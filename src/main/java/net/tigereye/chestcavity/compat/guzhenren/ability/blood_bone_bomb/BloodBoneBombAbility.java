@@ -142,6 +142,7 @@ public final class BloodBoneBombAbility {
         }
     }
 
+
     private static void tickProjectiles(ServerLevel level) {
         long gameTime = level.getGameTime();
         Long lastTick = LAST_PROJECTILE_TICK.get(level);

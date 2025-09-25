@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombAbility;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.registration.CCKeybindings;
+import net.tigereye.chestcavity.registration.CCOrganScores;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -16,12 +17,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class Abilities {
 
-    private static final String MOD_ID = "guzhenren";
     private static final AtomicBoolean INSTALLED = new AtomicBoolean(false);
 
-    /** Identifier for the combined Blood/Bone offensive ability. */
-    public static final ResourceLocation BLOOD_BONE_BOMB =
-            ResourceLocation.fromNamespaceAndPath(MOD_ID, "blood_bone_bomb");
+    /** Identifier shared with the Dragon Bombs hotkey so the dedicated binding triggers the ability. */
+    public static final ResourceLocation BLOOD_BONE_BOMB = CCOrganScores.DRAGON_BOMBS;
 
     private Abilities() {
     }
@@ -40,9 +39,7 @@ public final class Abilities {
      * Hooks client keybinding metadata so the Blood Bone Bomb can be activated from the hotkey.
      */
     public static void onClientSetup(FMLClientSetupEvent event) {
-        if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(BLOOD_BONE_BOMB)) {
-            CCKeybindings.ATTACK_ABILITY_LIST.add(BLOOD_BONE_BOMB);
-        }
+        CCKeybindings.ATTACK_ABILITY_LIST.removeIf(BLOOD_BONE_BOMB::equals);
     }
 
     private static void activateBloodBoneBomb(LivingEntity entity, ChestCavityInstance chestCavity) {
