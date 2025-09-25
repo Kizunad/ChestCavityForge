@@ -115,5 +115,7 @@ public class CCConfig implements ConfigData {
     public boolean BEWITCHMENT_INTEGRATION = true;
     @ConfigEntry.Category("integration")
     public boolean BIOME_MAKEOVER_INTEGRATION = true;
+    @ConfigEntry.Category("integration")
+    public boolean GUZHENREN_NUDAO_LOGGING = true;
 
 }

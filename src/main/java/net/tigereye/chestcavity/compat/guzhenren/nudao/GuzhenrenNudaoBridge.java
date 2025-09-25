@@ -100,22 +100,34 @@ public final class GuzhenrenNudaoBridge {
             }
             attemptedInit = true;
             if (!GuzhenrenResourceBridge.isAvailable()) {
-                LOGGER.debug("{} Skipping Nudao bridge initialisation: resource bridge unavailable", LOG_PREFIX);
+                if (verboseLoggingEnabled()) {
+                    LOGGER.debug("{} Skipping Nudao bridge initialisation: resource bridge unavailable", LOG_PREFIX);
+                }
                 return;
             }
             Optional<Class<?>> clazzOpt = GuzhenrenResourceBridge.getPlayerVariablesClass();
             if (clazzOpt.isEmpty()) {
-                LOGGER.warn("{} Unable to resolve Guzhenren PlayerVariables class; Nudao bridge disabled", LOG_PREFIX);
+
+                if (verboseLoggingEnabled()) {
+                    LOGGER.warn("{} Unable to resolve Guzhenren PlayerVariables class; Nudao bridge disabled", LOG_PREFIX);
+                }
+
                 return;
             }
             playerVariablesClass = clazzOpt.get();
             initialiseFields();
             available = validateFields();
             if (available) {
-                LOGGER.info("{} Nudao bridge initialised ({} slot pairs, owner field present={})", LOG_PREFIX,
-                        SLOT_COUNT, ownerField != null);
+
+                if (verboseLoggingEnabled()) {
+                    LOGGER.info("{} Nudao bridge initialised ({} slot pairs, owner field present={})", LOG_PREFIX,
+                            SLOT_COUNT, ownerField != null);
+                }
             } else {
-                LOGGER.warn("{} Nudao bridge disabled due to missing required fields", LOG_PREFIX);
+                if (verboseLoggingEnabled()) {
+                    LOGGER.warn("{} Nudao bridge disabled due to missing required fields", LOG_PREFIX);
+                }
+
             }
         }
     }
@@ -140,16 +152,25 @@ public final class GuzhenrenNudaoBridge {
         }
         for (int i = 0; i < SLOT_COUNT; i++) {
             if (SLOT_COST_FIELDS[i] == null || SLOT_SPECIES_FIELDS[i] == null) {
-                LOGGER.warn("{} Missing Nudao slot fields for index {}", LOG_PREFIX, i + 1);
+                if (verboseLoggingEnabled()) {
+                    LOGGER.warn("{} Missing Nudao slot fields for index {}", LOG_PREFIX, i + 1);
+                }
+
                 return false;
             }
         }
         if (slotCountField == null) {
-            LOGGER.warn("{} Missing Nudao slot count field '{}'", LOG_PREFIX, FIELD_SLOT_COUNT);
+
+            if (verboseLoggingEnabled()) {
+                LOGGER.warn("{} Missing Nudao slot count field '{}'", LOG_PREFIX, FIELD_SLOT_COUNT);
+            }
             return false;
         }
         if (ownerField == null) {
-            LOGGER.warn("{} Missing Nudao owner field '{}'; subject handles will be unavailable", LOG_PREFIX, FIELD_OWNER);
+            if (verboseLoggingEnabled()) {
+                LOGGER.warn("{} Missing Nudao owner field '{}'; subject handles will be unavailable", LOG_PREFIX, FIELD_OWNER);
+            }
+
         }
         return true;
     }
@@ -163,10 +184,13 @@ public final class GuzhenrenNudaoBridge {
             field.setAccessible(true);
             return field;
         } catch (NoSuchFieldException e) {
-            if (required) {
-                LOGGER.warn("{} PlayerVariables missing required field '{}'", LOG_PREFIX, name);
-            } else {
-                LOGGER.debug("{} PlayerVariables missing optional field '{}'", LOG_PREFIX, name);
+            if (verboseLoggingEnabled()) {
+                if (required) {
+                    LOGGER.warn("{} PlayerVariables missing required field '{}'", LOG_PREFIX, name);
+                } else {
+                    LOGGER.debug("{} PlayerVariables missing optional field '{}'", LOG_PREFIX, name);
+                }
+
             }
             return null;
         }
@@ -187,9 +211,14 @@ public final class GuzhenrenNudaoBridge {
             } else if (type == long.class) {
                 return OptionalDouble.of(field.getLong(variables));
             }
-            LOGGER.debug("{} Field '{}' is not numeric (found {})", LOG_PREFIX, field.getName(), type.getName());
+            if (verboseLoggingEnabled()) {
+                LOGGER.debug("{} Field '{}' is not numeric (found {})", LOG_PREFIX, field.getName(), type.getName());
+            }
         } catch (IllegalAccessException e) {
-            LOGGER.warn("{} Failed to read Nudao field '{}'", LOG_PREFIX, field.getName(), e);
+            if (verboseLoggingEnabled()) {
+                LOGGER.warn("{} Failed to read Nudao field '{}'", LOG_PREFIX, field.getName(), e);
+            }
+
         }
         return OptionalDouble.empty();
     }
@@ -225,9 +254,14 @@ public final class GuzhenrenNudaoBridge {
                 field.setLong(variables, Math.round(value));
                 return true;
             }
-            LOGGER.debug("{} Field '{}' is not numeric (found {})", LOG_PREFIX, field.getName(), type.getName());
+            if (verboseLoggingEnabled()) {
+                LOGGER.debug("{} Field '{}' is not numeric (found {})", LOG_PREFIX, field.getName(), type.getName());
+            }
         } catch (IllegalAccessException e) {
-            LOGGER.warn("{} Failed to write Nudao field '{}'", LOG_PREFIX, field.getName(), e);
+            if (verboseLoggingEnabled()) {
+                LOGGER.warn("{} Failed to write Nudao field '{}'", LOG_PREFIX, field.getName(), e);
+            }
+
         }
         return false;
     }
@@ -237,7 +271,10 @@ public final class GuzhenrenNudaoBridge {
             return Optional.empty();
         }
         if (field.getType() != String.class) {
-            LOGGER.debug("{} Field '{}' is not a string (found {})", LOG_PREFIX, field.getName(), field.getType().getName());
+            if (verboseLoggingEnabled()) {
+                LOGGER.debug("{} Field '{}' is not a string (found {})", LOG_PREFIX, field.getName(), field.getType().getName());
+            }
+
             return Optional.empty();
         }
         try {
@@ -246,7 +283,10 @@ public final class GuzhenrenNudaoBridge {
                 return Optional.of(string);
             }
         } catch (IllegalAccessException e) {
-            LOGGER.warn("{} Failed to read Nudao string field '{}'", LOG_PREFIX, field.getName(), e);
+            if (verboseLoggingEnabled()) {
+                LOGGER.warn("{} Failed to read Nudao string field '{}'", LOG_PREFIX, field.getName(), e);
+            }
+
         }
         return Optional.empty();
     }
@@ -256,14 +296,20 @@ public final class GuzhenrenNudaoBridge {
             return false;
         }
         if (field.getType() != String.class) {
-            LOGGER.debug("{} Field '{}' is not a string (found {})", LOG_PREFIX, field.getName(), field.getType().getName());
+            if (verboseLoggingEnabled()) {
+                LOGGER.debug("{} Field '{}' is not a string (found {})", LOG_PREFIX, field.getName(), field.getType().getName());
+            }
+
             return false;
         }
         try {
             field.set(variables, value);
             return true;
         } catch (IllegalAccessException e) {
-            LOGGER.warn("{} Failed to write Nudao string field '{}'", LOG_PREFIX, field.getName(), e);
+            if (verboseLoggingEnabled()) {
+                LOGGER.warn("{} Failed to write Nudao string field '{}'", LOG_PREFIX, field.getName(), e);
+            }
+
             return false;
         }
     }
@@ -271,6 +317,11 @@ public final class GuzhenrenNudaoBridge {
     private static boolean isValidSlot(int index) {
         return index >= 1 && index <= SLOT_COUNT;
     }
+
+    private static boolean verboseLoggingEnabled() {
+        return ChestCavity.config == null || ChestCavity.config.GUZHENREN_NUDAO_LOGGING;
+    }
+
 
     /** Lightweight immutable representation of a Nudao slot entry. */
     public record NudaoSlotState(int index, double soulCost, int speciesIndex) {
@@ -397,6 +448,36 @@ public final class GuzhenrenNudaoBridge {
         public OptionalDouble getMaxHunpo() {
             return readNumber(maxHunpoField, variables);
         }
+
+        public double sumSoulCost() {
+            double total = 0.0;
+            for (int i = 1; i <= SLOT_COUNT; i++) {
+                Optional<NudaoSlotState> slotOpt = getSlot(i);
+                if (slotOpt.isPresent()) {
+                    NudaoSlotState state = slotOpt.get().sanitised();
+                    total += state.soulCost();
+                }
+            }
+            return total;
+        }
+
+        public boolean canOccupy(double additionalCost) {
+            if (!Double.isFinite(additionalCost)) {
+                return false;
+            }
+            double cost = Math.max(0.0, additionalCost);
+            OptionalDouble maxHunpoOpt = getMaxHunpo();
+            if (maxHunpoOpt.isEmpty()) {
+                return true;
+            }
+            double maxHunpo = maxHunpoOpt.getAsDouble();
+            if (!Double.isFinite(maxHunpo)) {
+                return true;
+            }
+            double occupied = sumSoulCost();
+            return occupied + cost <= maxHunpo + EPSILON;
+        }
+
 
         public boolean setSlot(int index, NudaoSlotState state, boolean adjustCount) {
             if (!isValidSlot(index) || state == null) {
