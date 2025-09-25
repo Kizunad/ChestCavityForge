@@ -50,20 +50,45 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (cc == null) {
             return;
         }
+        if (entity instanceof Player) {
+            handlePlayerSlowTick(cc, organ);
+            return;
+        }
+        handleNonPlayerSlowTick(entity, cc, organ);
+    }
 
+    private void handlePlayerSlowTick(ChestCavityInstance cc, ItemStack organ) {
         int currentCharge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
         if (currentCharge >= MAX_CHARGE) {
             return;
         }
 
         double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
-        int gained = Math.max(1, (int)Math.floor(efficiency));
+        int gained = Math.max(1, (int) Math.floor(efficiency));
+        int updatedCharge = Math.min(MAX_CHARGE, currentCharge + gained);
+        if (updatedCharge != currentCharge) {
+            NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        }
+    }
+
+    private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (organ == null || organ.isEmpty()) {
+            return;
+        }
+        int currentCharge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        if (currentCharge >= MAX_CHARGE) {
+            return;
+        }
+
+        double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
+        int gained = Math.max(1, (int) Math.floor(efficiency));
         int updatedCharge = Math.min(MAX_CHARGE, currentCharge + gained);
         if (updatedCharge != currentCharge) {
             NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
@@ -80,13 +105,27 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
             ItemStack organ,
             float damage
     ) {
-        if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
+        if (attacker == null || attacker.level().isClientSide()) {
             return damage;
         }
         if (target == null || cc == null) {
             return damage;
         }
 
+        if (attacker instanceof Player player) {
+            return handlePlayerAttack(player, source, target, cc, organ, damage);
+        }
+        return handleNonPlayerAttack(attacker, source, target, cc, organ, damage);
+    }
+
+    private float handlePlayerAttack(
+            Player player,
+            DamageSource source,
+            LivingEntity target,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
         int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
         if (charge <= 0) {
             return damage;
@@ -104,6 +143,38 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
         applyDebuff(target, efficiency);
         playActivationEffects(player.level(), target);
         arcAdditionalTargets(player, target, source, bonusDamage * (float)AOE_DAMAGE_RATIO);
+
+        return damage + bonusDamage;
+    }
+
+    private float handleNonPlayerAttack(
+            LivingEntity attacker,
+            DamageSource source,
+            LivingEntity target,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
+        if (organ == null || organ.isEmpty()) {
+            return damage;
+        }
+
+        int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        if (charge <= 0) {
+            return damage;
+        }
+
+        double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
+        int updated = Math.max(0, charge - 1);
+        if (updated != charge) {
+            NBTCharge.setCharge(organ, STATE_KEY, updated);
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        }
+
+        float bonusDamage = (float) (BASE_DAMAGE * efficiency);
+        applyDebuff(target, efficiency);
+        playActivationEffects(attacker.level(), target);
+        arcAdditionalTargets(attacker, target, source, bonusDamage * (float) AOE_DAMAGE_RATIO);
 
         return damage + bonusDamage;
     }
@@ -158,28 +229,30 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
     }
 
     private static void arcAdditionalTargets(
-            Player player,
+            LivingEntity attacker,
             LivingEntity primary,
             DamageSource source,
             float aoeDamage
     ) {
-        if (player == null || primary == null) {
+        if (attacker == null || primary == null) {
             return;
         }
         if (aoeDamage <= 0.0f) {
             return;
         }
-        Level level = player.level();
+        Level level = attacker.level();
         if (!(level instanceof ServerLevel server)) {
             return;
         }
         AABB area = primary.getBoundingBox().inflate(AOE_RADIUS);
         List<LivingEntity> victims = server.getEntitiesOfClass(LivingEntity.class, area, entity ->
-                entity != null && entity.isAlive() && entity != primary && entity != player);
+                entity != null && entity.isAlive() && entity != primary && entity != attacker);
         if (victims.isEmpty()) {
             return;
         }
-        DamageSource chainSource = source != null ? source : player.damageSources().indirectMagic(player, player);
+        DamageSource chainSource = source != null
+                ? source
+                : attacker.damageSources().indirectMagic(attacker, attacker);
         for (LivingEntity victim : victims) {
             victim.hurt(chainSource, aoeDamage);
             server.sendParticles(

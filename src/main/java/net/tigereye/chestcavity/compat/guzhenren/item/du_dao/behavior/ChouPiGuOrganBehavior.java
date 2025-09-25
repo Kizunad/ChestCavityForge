@@ -79,7 +79,11 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity.level().isClientSide()) {
+            return;
+        }
+        if (!(entity instanceof Player player)) {
+            handleNonPlayerSlowTick(entity, cc, organ);
             return;
         }
         if (!player.isAlive()) {
@@ -104,19 +108,64 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
     }
 
-    @Override
-    public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (!(victim instanceof Player player) || victim.level().isClientSide()) {
-            return damage;
+    private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (entity == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        if (!entity.isAlive()) {
+            return;
         }
 
-        RandomSource random = player.getRandom();
+        RandomSource random = entity.getRandom();
+        int remaining = Math.max(0, NBTCharge.getCharge(organ, STATE_KEY));
+        if (remaining <= 0) {
+            setNextInterval(cc, organ, randomInterval(random));
+            return;
+        }
+
+        int updated = Math.max(0, remaining - SLOW_TICK_STEP);
+        if (updated > 0) {
+            setNextInterval(cc, organ, updated);
+            return;
+        }
+
+        if (!releaseGas(entity, cc, organ, TriggerCause.RANDOM)) {
+            setNextInterval(cc, organ, randomInterval(random));
+        }
+    }
+
+    @Override
+    public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
+        if (victim.level().isClientSide()) {
+            return damage;
+        }
+        if (victim instanceof Player player) {
+            RandomSource random = player.getRandom();
+            double increase = Math.max(0.0, getPoisonIncrease(cc));
+            double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
+            if (random.nextDouble() < Math.min(1.0, chance)) {
+                releaseGas(player, cc, organ, TriggerCause.DAMAGE);
+            }
+            return damage;
+        }
+        handleNonPlayerDamage(victim, cc, organ);
+        return damage;
+    }
+
+    private void handleNonPlayerDamage(LivingEntity victim, ChestCavityInstance cc, ItemStack organ) {
+        if (victim == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        if (!victim.isAlive()) {
+            return;
+        }
+
+        RandomSource random = victim.getRandom();
         double increase = Math.max(0.0, getPoisonIncrease(cc));
         double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
         if (random.nextDouble() < Math.min(1.0, chance)) {
-            releaseGas(player, cc, organ, TriggerCause.DAMAGE);
+            releaseGas(victim, cc, organ, TriggerCause.DAMAGE);
         }
-        return damage;
     }
 
     public void onFoodConsumed(Player player, ChestCavityInstance cc, ItemStack food, double baseChance) {
@@ -145,42 +194,45 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         ensurePoisonChannel(cc);
     }
 
-    private boolean releaseGas(Player player, ChestCavityInstance cc, ItemStack organ, TriggerCause cause) {
-        Level level = player.level();
+    private boolean releaseGas(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, TriggerCause cause) {
+        if (entity == null) {
+            return false;
+        }
+        Level level = entity.level();
         if (!(level instanceof ServerLevel server)) {
             return false;
         }
 
-        RandomSource random = player.getRandom();
-        performEffects(server, player, cc, organ, random, cause);
+        RandomSource random = entity.getRandom();
+        performEffects(server, entity, cc, organ, random, cause);
         setNextInterval(cc, organ, randomInterval(random));
         return true;
     }
 
-    private void performEffects(ServerLevel level, Player player, ChestCavityInstance cc, ItemStack organ, RandomSource random, TriggerCause cause) {
-        playSounds(level, player, random);
-        spawnParticles(level, player, random);
-        broadcastMessages(level, player, random, cause);
-        applyDebuffs(level, player, cc, organ, random);
-        maybeDebuffSelf(player, cc, organ, random);
-        panicNearbyCreatures(level, player, random);
-        maybeSummonAttractedCreature(level, player, random);
+    private void performEffects(ServerLevel level, LivingEntity entity, ChestCavityInstance cc, ItemStack organ, RandomSource random, TriggerCause cause) {
+        playSounds(level, entity, random);
+        spawnParticles(level, entity, random);
+        broadcastMessages(level, entity, random, cause);
+        applyDebuffs(level, entity, cc, organ, random);
+        maybeDebuffSelf(entity, cc, organ, random);
+        panicNearbyCreatures(level, entity, random);
+        maybeSummonAttractedCreature(level, entity, random);
     }
 
-    private static void playSounds(Level level, Player player, RandomSource random) {
-        double x = player.getX();
-        double y = player.getY();
-        double z = player.getZ();
+    private static void playSounds(Level level, LivingEntity entity, RandomSource random) {
+        double x = entity.getX();
+        double y = entity.getY();
+        double z = entity.getZ();
         float puffPitch = 0.65f + random.nextFloat() * 0.15f;
         float squishPitch = 0.5f + random.nextFloat() * 0.2f;
         level.playSound(null, x, y, z, SoundEvents.PUFFER_FISH_BLOW_UP, SoundSource.PLAYERS, 0.9f, puffPitch);
         level.playSound(null, x, y, z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.6f, squishPitch);
     }
 
-    private static void spawnParticles(ServerLevel level, Player player, RandomSource random) {
-        Vec3 look = player.getLookAngle();
+    private static void spawnParticles(ServerLevel level, LivingEntity entity, RandomSource random) {
+        Vec3 look = entity.getLookAngle();
         Vec3 back = look.normalize().scale(-PARTICLE_BACK_OFFSET);
-        Vec3 base = player.position().add(back).add(0.0, PARTICLE_VERTICAL_OFFSET, 0.0);
+        Vec3 base = entity.position().add(back).add(0.0, PARTICLE_VERTICAL_OFFSET, 0.0);
         Vec3 lateral = new Vec3(look.z, 0.0, -look.x);
         if (lateral.lengthSqr() < 1.0E-4) {
             lateral = new Vec3(1.0, 0.0, 0.0);
@@ -198,7 +250,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         level.sendParticles(ParticleTypes.SNEEZE, base.x, base.y, base.z, PARTICLE_SNEEZE_COUNT, 0.35, 0.15, 0.35, 0.01);
     }
 
-    private static void broadcastMessages(ServerLevel level, Player player, RandomSource random, TriggerCause cause) {
+    private static void broadcastMessages(ServerLevel level, LivingEntity entity, RandomSource random, TriggerCause cause) {
+        if (!(entity instanceof Player player)) {
+            return;
+        }
         Component selfMessage = random.nextBoolean()
                 ? Component.translatable("message.guzhenren.chou_pi_gu.uncomfortable")
                 : Component.translatable("message.guzhenren.chou_pi_gu.stench");
@@ -216,14 +271,14 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
     }
 
-    private void applyDebuffs(ServerLevel level, Player player, ChestCavityInstance cc, ItemStack organ, RandomSource random) {
+    private void applyDebuffs(ServerLevel level, LivingEntity entity, ChestCavityInstance cc, ItemStack organ, RandomSource random) {
         int stackCount = Math.max(1, organ.getCount());
         int duration = Math.max(20, stackCount * 40);
         int poisonAmplifier = Math.max(0, Mth.floor(getPoisonIncrease(cc)));
 
-        AABB area = player.getBoundingBox().inflate(EFFECT_RADIUS);
-        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, entity ->
-                entity != null && entity.isAlive() && entity != player);
+        AABB area = entity.getBoundingBox().inflate(EFFECT_RADIUS);
+        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, candidate ->
+                candidate != null && candidate.isAlive() && candidate != entity);
         for (LivingEntity victim : victims) {
             victim.addEffect(new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
             victim.addEffect(new MobEffectInstance(MobEffects.WITHER, duration, 0, false, true, true));
@@ -232,25 +287,25 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
     }
 
-    private void maybeDebuffSelf(Player player, ChestCavityInstance cc, ItemStack organ, RandomSource random) {
+    private void maybeDebuffSelf(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, RandomSource random) {
         if (random.nextDouble() >= SELF_DEBUFF_CHANCE) {
             return;
         }
         int stackCount = Math.max(1, organ.getCount());
         int duration = Math.max(20, stackCount * 40);
         int poisonAmplifier = Math.max(0, Mth.floor(getPoisonIncrease(cc)));
-        player.addEffect(new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
-        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, false, true, true));
+        entity.addEffect(new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
+        entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, false, true, true));
     }
 
-    private void panicNearbyCreatures(ServerLevel level, Player player, RandomSource random) {
-        AABB area = player.getBoundingBox().inflate(PANIC_DISTANCE);
+    private void panicNearbyCreatures(ServerLevel level, LivingEntity entity, RandomSource random) {
+        AABB area = entity.getBoundingBox().inflate(PANIC_DISTANCE);
         List<PathfinderMob> mobs = level.getEntitiesOfClass(PathfinderMob.class, area, mob ->
-                mob != null && mob.isAlive() && mob.distanceToSqr(player) <= PANIC_DISTANCE * PANIC_DISTANCE
+                mob != null && mob.isAlive() && mob.distanceToSqr(entity) <= PANIC_DISTANCE * PANIC_DISTANCE
                         && (mob instanceof Animal || mob instanceof AbstractVillager));
-        Vec3 playerPos = player.position();
+        Vec3 entityPos = entity.position();
         for (PathfinderMob mob : mobs) {
-            Vec3 away = mob.position().subtract(playerPos);
+            Vec3 away = mob.position().subtract(entityPos);
             if (away.lengthSqr() < 1.0E-4) {
                 away = new Vec3(random.nextDouble() - 0.5, 0.0, random.nextDouble() - 0.5);
             }
@@ -259,7 +314,7 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
     }
 
-    private void maybeSummonAttractedCreature(ServerLevel level, Player player, RandomSource random) {
+    private void maybeSummonAttractedCreature(ServerLevel level, LivingEntity entity, RandomSource random) {
         if (random.nextDouble() >= ATTRACT_CHANCE || ATTRACTABLE_ENTITIES.length == 0) {
             return;
         }
@@ -269,21 +324,21 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             return;
         }
 
-        Vec3 spawnPos = findSpawnPosition(level, player, random);
+        Vec3 spawnPos = findSpawnPosition(level, entity, random);
         if (spawnPos == null) {
             return;
         }
 
-        Entity entity = type.create(level);
-        if (entity == null) {
+        Entity spawned = type.create(level);
+        if (spawned == null) {
             return;
         }
-        entity.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, random.nextFloat() * 360.0f, 0.0f);
-        level.addFreshEntity(entity);
+        spawned.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, random.nextFloat() * 360.0f, 0.0f);
+        level.addFreshEntity(spawned);
     }
 
-    private static Vec3 findSpawnPosition(ServerLevel level, Player player, RandomSource random) {
-        Vec3 origin = player.position();
+    private static Vec3 findSpawnPosition(ServerLevel level, LivingEntity entity, RandomSource random) {
+        Vec3 origin = entity.position();
         for (int attempt = 0; attempt < 5; attempt++) {
             double distance = 2.5 + random.nextDouble() * 2.5;
             double angle = random.nextDouble() * Math.PI * 2.0;
