@@ -26,7 +26,7 @@ import java.util.function.BiConsumer;
 
 public class OrganActivationListeners {
 
-    private static Map<ResourceLocation, BiConsumer<LivingEntity,ChestCavityInstance>> abilityIDMap = new HashMap<>();
+    private static Map<ResourceLocation, List<BiConsumer<LivingEntity,ChestCavityInstance>>> abilityIDMap = new HashMap<>();
     public static void register(){
         register(CCOrganScores.CREEPY, OrganActivationListeners::ActivateCreepy);
         register(CCOrganScores.DRAGON_BREATH, OrganActivationListeners::ActivateDragonBreath);
@@ -41,11 +41,13 @@ public class OrganActivationListeners {
         register(CCOrganScores.SILK, OrganActivationListeners::ActivateSilk);
     }
     public static void register(ResourceLocation id,BiConsumer<LivingEntity,ChestCavityInstance> ability){
-        abilityIDMap.put(id,ability);
+        abilityIDMap.computeIfAbsent(id, ignored -> new ArrayList<>()).add(ability);
     }
     public static boolean activate(ResourceLocation id, ChestCavityInstance cc){
         if(abilityIDMap.containsKey(id)) {
-            abilityIDMap.get(id).accept(cc.owner,cc);
+            for (BiConsumer<LivingEntity, ChestCavityInstance> ability : abilityIDMap.get(id)) {
+                ability.accept(cc.owner,cc);
+            }
             return true;
         }
         else{
