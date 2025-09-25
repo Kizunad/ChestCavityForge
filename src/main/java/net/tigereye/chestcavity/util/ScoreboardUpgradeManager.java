@@ -60,11 +60,12 @@ public final class ScoreboardUpgradeManager {
             ChestCavity.LOGGER.warn("Scoreboard upgrade {} could not generate item stack", upgrade.id());
             return;
         }
-        cc.addScoreboardUpgrade(upgrade.id());
-        if (cc.inventory.getItem(upgrade.slotIndex()).isEmpty()) {
-            cc.inventory.setItem(upgrade.slotIndex(), generated.copy());
-            cc.inventory.setChanged();
+        if (!cc.inventory.getItem(upgrade.slotIndex()).isEmpty()) {
+            return;
         }
+        cc.addScoreboardUpgrade(upgrade.id());
+        cc.inventory.setItem(upgrade.slotIndex(), generated.copy());
+        cc.inventory.setChanged();
     }
 
     private static boolean meetsScoreRequirement(Player player, ScoreboardUpgrade upgrade) {
