@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.TuDaoNonPlayerHandler;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
@@ -27,9 +27,6 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
-
-import java.util.Optional;
-import java.util.OptionalDouble;
 
 import net.minecraft.util.RandomSource;
 import org.joml.Vector3f;
@@ -71,7 +68,6 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
 
     private static final int BASE_BUFF_DURATION = 20 * 60; // 1 minute in ticks
 
-    private static final double EPSILON = 1.0E-4;
     private static final int DAMAGE_TRIGGER_COST_UNITS = CHARGE_SCALE;
 
     private static final double HU_GUGU_CONE_HALF_ANGLE_RADIANS = Math.toRadians(20.0);
@@ -128,38 +124,7 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     }
 
     private static boolean tryConsumeLowChargeResources(Player player) {
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return false;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-
-        OptionalDouble jingliBeforeOpt = handle.getJingli();
-        if (jingliBeforeOpt.isEmpty()) {
-            return false;
-        }
-        double jingliBefore = jingliBeforeOpt.getAsDouble();
-        if (jingliBefore + EPSILON < BASE_JINGLI_COST) {
-            return false;
-        }
-
-        OptionalDouble jingliAfterOpt = handle.adjustJingli(-BASE_JINGLI_COST, true);
-        if (jingliAfterOpt.isEmpty()) {
-            return false;
-        }
-        double jingliAfter = jingliAfterOpt.getAsDouble();
-        if ((jingliBefore - jingliAfter) + EPSILON < BASE_JINGLI_COST) {
-            handle.setJingli(jingliBefore);
-            return false;
-        }
-
-        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
-        if (zhenyuanResult.isPresent()) {
-            return true;
-        }
-
-        handle.setJingli(jingliBefore);
-        return false;
+        return TuDaoNonPlayerHandler.handleNonPlayer(player, BASE_ZHENYUAN_COST, BASE_JINGLI_COST);
     }
 
     @Override
