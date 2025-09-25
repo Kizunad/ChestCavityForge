@@ -107,15 +107,18 @@ public final class GuzhenrenNudaoBridge {
             }
             Optional<Class<?>> clazzOpt = GuzhenrenResourceBridge.getPlayerVariablesClass();
             if (clazzOpt.isEmpty()) {
+
                 if (verboseLoggingEnabled()) {
                     LOGGER.warn("{} Unable to resolve Guzhenren PlayerVariables class; Nudao bridge disabled", LOG_PREFIX);
                 }
+
                 return;
             }
             playerVariablesClass = clazzOpt.get();
             initialiseFields();
             available = validateFields();
             if (available) {
+
                 if (verboseLoggingEnabled()) {
                     LOGGER.info("{} Nudao bridge initialised ({} slot pairs, owner field present={})", LOG_PREFIX,
                             SLOT_COUNT, ownerField != null);
@@ -124,6 +127,7 @@ public final class GuzhenrenNudaoBridge {
                 if (verboseLoggingEnabled()) {
                     LOGGER.warn("{} Nudao bridge disabled due to missing required fields", LOG_PREFIX);
                 }
+
             }
         }
     }
@@ -151,10 +155,12 @@ public final class GuzhenrenNudaoBridge {
                 if (verboseLoggingEnabled()) {
                     LOGGER.warn("{} Missing Nudao slot fields for index {}", LOG_PREFIX, i + 1);
                 }
+
                 return false;
             }
         }
         if (slotCountField == null) {
+
             if (verboseLoggingEnabled()) {
                 LOGGER.warn("{} Missing Nudao slot count field '{}'", LOG_PREFIX, FIELD_SLOT_COUNT);
             }
@@ -164,6 +170,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.warn("{} Missing Nudao owner field '{}'; subject handles will be unavailable", LOG_PREFIX, FIELD_OWNER);
             }
+
         }
         return true;
     }
@@ -183,6 +190,7 @@ public final class GuzhenrenNudaoBridge {
                 } else {
                     LOGGER.debug("{} PlayerVariables missing optional field '{}'", LOG_PREFIX, name);
                 }
+
             }
             return null;
         }
@@ -210,6 +218,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.warn("{} Failed to read Nudao field '{}'", LOG_PREFIX, field.getName(), e);
             }
+
         }
         return OptionalDouble.empty();
     }
@@ -252,6 +261,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.warn("{} Failed to write Nudao field '{}'", LOG_PREFIX, field.getName(), e);
             }
+
         }
         return false;
     }
@@ -264,6 +274,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.debug("{} Field '{}' is not a string (found {})", LOG_PREFIX, field.getName(), field.getType().getName());
             }
+
             return Optional.empty();
         }
         try {
@@ -275,6 +286,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.warn("{} Failed to read Nudao string field '{}'", LOG_PREFIX, field.getName(), e);
             }
+
         }
         return Optional.empty();
     }
@@ -287,6 +299,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.debug("{} Field '{}' is not a string (found {})", LOG_PREFIX, field.getName(), field.getType().getName());
             }
+
             return false;
         }
         try {
@@ -296,6 +309,7 @@ public final class GuzhenrenNudaoBridge {
             if (verboseLoggingEnabled()) {
                 LOGGER.warn("{} Failed to write Nudao string field '{}'", LOG_PREFIX, field.getName(), e);
             }
+
             return false;
         }
     }
@@ -307,6 +321,7 @@ public final class GuzhenrenNudaoBridge {
     private static boolean verboseLoggingEnabled() {
         return ChestCavity.config == null || ChestCavity.config.GUZHENREN_NUDAO_LOGGING;
     }
+
 
     /** Lightweight immutable representation of a Nudao slot entry. */
     public record NudaoSlotState(int index, double soulCost, int speciesIndex) {
@@ -462,6 +477,7 @@ public final class GuzhenrenNudaoBridge {
             double occupied = sumSoulCost();
             return occupied + cost <= maxHunpo + EPSILON;
         }
+
 
         public boolean setSlot(int index, NudaoSlotState state, boolean adjustCount) {
             if (!isValidSlot(index) || state == null) {
