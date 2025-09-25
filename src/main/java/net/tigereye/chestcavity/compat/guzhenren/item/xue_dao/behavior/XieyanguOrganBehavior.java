@@ -119,18 +119,55 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        String ownerName = entity == null ? "<null>" : entity.getName().getString();
+        ResourceLocation organId = organ == null || organ.isEmpty()
+                ? null
+                : BuiltInRegistries.ITEM.getKey(organ.getItem());
+
+        if (entity == null) {
+            LOGGER.info("{} [slow-tick] EXIT owner=<null> reason=entity_null", LOG_PREFIX);
             return;
         }
-        if (cc == null || organ == null || organ.isEmpty()) {
+
+        LOGGER.info(
+                "{} [slow-tick] ENTER owner={} type={} side={} organ={} cc_opened={}",
+                LOG_PREFIX,
+                ownerName,
+                entity.getType().builtInRegistryHolder().key().location(),
+                entity.level().isClientSide() ? "client" : "server",
+                organId,
+                cc != null && cc.opened
+        );
+
+        if (entity.level().isClientSide()) {
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=client_side", LOG_PREFIX, ownerName);
+            return;
+        }
+        if (cc == null) {
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=chest_cavity_null", LOG_PREFIX, ownerName);
+            return;
+        }
+        if (!cc.opened) {
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=chest_cavity_closed", LOG_PREFIX, ownerName);
+            return;
+        }
+        if (organ == null || organ.isEmpty()) {
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=organ_empty", LOG_PREFIX, ownerName);
             return;
         }
         if (!isTargetOrgan(organ)) {
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=not_xie_yan_gu organ={}", LOG_PREFIX, ownerName, organId);
+            return;
+        }
+
+        if (!(entity instanceof Player player)) {
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=non_player_skip", LOG_PREFIX, ownerName);
             return;
         }
 
         decrementAndTriggerDrain(player, cc, organ);
         updateFocusState(player, cc);
+        LOGGER.info("{} [slow-tick] EXIT owner={} reason=success", LOG_PREFIX, ownerName);
     }
 
     @Override
