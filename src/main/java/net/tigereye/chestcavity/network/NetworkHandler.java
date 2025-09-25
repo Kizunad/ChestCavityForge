@@ -11,6 +11,8 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior.DaoHenBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityOrganSlotUpdatePayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePayload;
@@ -23,6 +25,7 @@ public final class NetworkHandler {
     public static void registerCommon(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToServer(ChestCavityHotkeyPayload.TYPE, ChestCavityHotkeyPayload.STREAM_CODEC, ChestCavityHotkeyPayload::handle);
+        registrar.playToServer(KongqiaoDaoHenSeedPayload.TYPE, KongqiaoDaoHenSeedPayload.STREAM_CODEC, DaoHenBehavior::handleSeedPayload);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);

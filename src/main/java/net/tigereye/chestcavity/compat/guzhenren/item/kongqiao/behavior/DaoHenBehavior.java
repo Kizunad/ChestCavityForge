@@ -2,8 +2,13 @@ package net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -12,7 +17,9 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenPayloadListener;
+import net.tigereye.chestcavity.compat.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -74,27 +81,23 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
             Map.entry("bianhuadao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bian_hua_dao_increase_effect"))
     );
 
-    private static final AtomicBoolean INITIALISED = new AtomicBoolean(false);
-    private static final Map<UUID, Map<String, Double>> lastSnapshots = new ConcurrentHashMap<>();
+    private static final AtomicBoolean CLIENT_INITIALISED = new AtomicBoolean(false);
+    private static final Map<UUID, Map<String, Double>> CLIENT_SNAPSHOTS = new ConcurrentHashMap<>();
     private static final int POLL_INTERVAL_TICKS = 20; // ~1s at 20 TPS
-    private static int tickCounter = 0;
+    private static int clientTickCounter = 0;
 
     private static final DaoHenBehavior INSTANCE = new DaoHenBehavior();
 
     private DaoHenBehavior() {}
 
     public static void bootstrap() {
-        LOGGER.debug("{} DaoHenBehavior bootstrap (dist={}, initialised={})", LOG_PREFIX, FMLEnvironment.dist, INITIALISED.get());
-        if (!FMLEnvironment.dist.isClient()) {
-            LOGGER.debug("{} abort bootstrap: non-client dist", LOG_PREFIX);
-            return;
-        }
-        if (INITIALISED.compareAndSet(false, true)) {
+        LOGGER.debug("{} DaoHenBehavior bootstrap (dist={}, clientInit={})", LOG_PREFIX,
+                FMLEnvironment.dist, CLIENT_INITIALISED.get());
+
+        if (FMLEnvironment.dist.isClient() && CLIENT_INITIALISED.compareAndSet(false, true)) {
             GuzhenrenNetworkBridge.registerListener(INSTANCE);
             NeoForge.EVENT_BUS.addListener(DaoHenBehavior::onClientTick);
-            LOGGER.info("{} DaoHenBehavior initialised (listener + 1s polling)", LOG_PREFIX);
-        } else {
-            LOGGER.debug("{} bootstrap skipped: already initialised", LOG_PREFIX);
+            LOGGER.info("{} DaoHenBehavior client hooks initialised (listener + 1s polling)", LOG_PREFIX);
         }
     }
 
@@ -107,20 +110,12 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
         if (tracked.isEmpty()) {
             return;
         }
-        UUID playerId = player.getUUID();
-        Map<String, Double> previous = lastSnapshots.get(playerId);
-        if (previous == null) {
-            logInitialSnapshot(player, tracked);
-        } else {
-            logDiff(player, previous, tracked);
-        }
-        seedIncreaseEffects(player, tracked);
-        lastSnapshots.put(playerId, Collections.unmodifiableMap(new HashMap<>(tracked)));
+        processSnapshot(player, tracked, CLIENT_SNAPSHOTS, true);
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void onClientTick(ClientTickEvent.Post event) {
-        if (!FMLEnvironment.dist.isClient()) return;
-        if (++tickCounter % POLL_INTERVAL_TICKS != 0) return;
+        if (++clientTickCounter % POLL_INTERVAL_TICKS != 0) return;
         final Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null || mc.level == null) return;
         var player = mc.player;
@@ -129,13 +124,7 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
             if (snapshot.isEmpty()) return;
             var tracked = filterDaoHen(snapshot);
             if (tracked.isEmpty()) return;
-            var previous = lastSnapshots.get(player.getUUID());
-            if (previous == null) {
-                logInitialSnapshot(player, tracked);
-            } else {
-                logDiff(player, previous, tracked);
-            }
-            lastSnapshots.put(player.getUUID(), Collections.unmodifiableMap(new HashMap<>(tracked)));
+            processSnapshot(player, tracked, CLIENT_SNAPSHOTS, true);
         });
     }
 
@@ -148,6 +137,114 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
             }
         }
         return filtered;
+    }
+
+    private static void processSnapshot(Player player, Map<String, Double> tracked,
+                                        Map<UUID, Map<String, Double>> cache, boolean logChanges) {
+        UUID playerId = player.getUUID();
+        Map<String, Double> previous = cache.get(playerId);
+        if (logChanges) {
+            if (previous == null) {
+                logInitialSnapshot(player, tracked);
+            } else {
+                logDiff(player, previous, tracked);
+            }
+        }
+        seedIncreaseEffects(player, tracked);
+        cache.put(playerId, Collections.unmodifiableMap(new HashMap<>(tracked)));
+    }
+
+    private static void seedIncreaseEffects(Player player, Map<String, Double> daoHenValues) {
+        if (player == null || daoHenValues == null || daoHenValues.isEmpty()) {
+            return;
+        }
+        Map<ResourceLocation, Double> seeds = new LinkedHashMap<>();
+        daoHenValues.forEach((rawKey, rawValue) -> {
+            if (rawValue == null || Math.abs(rawValue) < EPSILON) {
+                return;
+            }
+            ResourceLocation channelId = resolveIncreaseChannel(rawKey);
+            if (channelId == null) {
+                LOGGER.trace("{} skipping DaoHen key {} (no mapped increase effect)", LOG_PREFIX, rawKey);
+                return;
+            }
+            double converted = rawValue * DAO_HEN_TO_INCREASE_RATIO;
+            seeds.put(channelId, converted);
+        });
+        if (seeds.isEmpty()) {
+            return;
+        }
+        applyChannelSeeds(player, seeds);
+        if (player.level().isClientSide() && player instanceof LocalPlayer localPlayer) {
+            sendSeedUpdate(localPlayer, seeds);
+        }
+    }
+
+    private static ResourceLocation resolveIncreaseChannel(String rawKey) {
+        if (rawKey == null || rawKey.isBlank()) {
+            return null;
+        }
+        String normalised = rawKey.toLowerCase(Locale.ROOT);
+        if (normalised.startsWith("daohen_")) {
+            normalised = normalised.substring("daohen_".length());
+        } else if (normalised.startsWith("dahen_")) {
+            normalised = normalised.substring("dahen_".length());
+        }
+        if (normalised.isEmpty()) {
+            return null;
+        }
+        normalised = normalised.replace("_", "");
+        while (!normalised.isEmpty() && Character.isDigit(normalised.charAt(normalised.length() - 1))) {
+            normalised = normalised.substring(0, normalised.length() - 1);
+        }
+        if (normalised.isEmpty()) {
+            return null;
+        }
+        return DAO_HEN_CHANNELS.get(normalised);
+    }
+
+    private static void applyChannelSeeds(Player player, Map<ResourceLocation, Double> seeds) {
+        if (player == null || seeds == null || seeds.isEmpty()) {
+            return;
+        }
+        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).ifPresent(cc -> {
+            var context = GuzhenrenLinkageManager.getContext(cc);
+            seeds.forEach((channelId, value) -> {
+                if (channelId == null) {
+                    return;
+                }
+                LinkageChannel channel = context.getOrCreateChannel(channelId);
+                double previous = channel.get();
+                if (Math.abs(previous - value) <= EPSILON) {
+                    return;
+                }
+                channel.set(value);
+                LOGGER.debug("{} seeded {} with {} (Δ {})", LOG_PREFIX, channelId, format(value), format(value - previous));
+            });
+        });
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private static void sendSeedUpdate(LocalPlayer player, Map<ResourceLocation, Double> seeds) {
+        if (player == null || player.connection == null || seeds == null || seeds.isEmpty()) {
+            return;
+        }
+        player.connection.send(new KongqiaoDaoHenSeedPayload(Map.copyOf(seeds)));
+    }
+
+    public static void handleSeedPayload(KongqiaoDaoHenSeedPayload payload, IPayloadContext context) {
+        if (context.flow() != PacketFlow.SERVERBOUND) {
+            return;
+        }
+        Player player = context.player();
+        if (!(player instanceof ServerPlayer)) {
+            return;
+        }
+        Map<ResourceLocation, Double> seeds = payload.seeds();
+        if (seeds == null || seeds.isEmpty()) {
+            return;
+        }
+        context.enqueueWork(() -> applyChannelSeeds(player, seeds));
     }
 
     private static void logInitialSnapshot(Player player, Map<String, Double> values) {
@@ -177,56 +274,5 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
 
     private static String format(double value) {
         return String.format(Locale.ROOT, "%.3f", value);
-    }
-
-    private static void seedIncreaseEffects(Player player, Map<String, Double> daoHenValues) {
-        if (player == null || daoHenValues == null || daoHenValues.isEmpty()) {
-            return;
-        }
-        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).ifPresent(cc -> {
-            var context = GuzhenrenLinkageManager.getContext(cc);
-            daoHenValues.forEach((rawKey, rawValue) -> {
-                if (rawValue == null || Math.abs(rawValue) < EPSILON) {
-                    return;
-                }
-                ResourceLocation channelId = resolveIncreaseChannel(rawKey);
-                if (channelId == null) {
-                    LOGGER.trace("{} skipping DaoHen key {} (no mapped increase effect)", LOG_PREFIX, rawKey);
-                    return;
-                }
-                LinkageChannel channel = context.getOrCreateChannel(channelId);
-                double converted = rawValue * DAO_HEN_TO_INCREASE_RATIO;
-                double previous = channel.get();
-                if (Math.abs(previous - converted) <= EPSILON) {
-                    return;
-                }
-                channel.set(converted);
-                LOGGER.debug("{} seeded {} with {} (raw DaoHen {} -> increase {})", LOG_PREFIX, channelId, format(converted),
-                        format(rawValue), format(converted));
-            });
-        });
-    }
-
-    private static ResourceLocation resolveIncreaseChannel(String rawKey) {
-        if (rawKey == null || rawKey.isBlank()) {
-            return null;
-        }
-        String normalised = rawKey.toLowerCase(Locale.ROOT);
-        if (normalised.startsWith("daohen_")) {
-            normalised = normalised.substring("daohen_".length());
-        } else if (normalised.startsWith("dahen_")) {
-            normalised = normalised.substring("dahen_".length());
-        }
-        if (normalised.isEmpty()) {
-            return null;
-        }
-        normalised = normalised.replace("_", "");
-        while (!normalised.isEmpty() && Character.isDigit(normalised.charAt(normalised.length() - 1))) {
-            normalised = normalised.substring(0, normalised.length() - 1);
-        }
-        if (normalised.isEmpty()) {
-            return null;
-        }
-        return DAO_HEN_CHANNELS.get(normalised);
     }
 }
