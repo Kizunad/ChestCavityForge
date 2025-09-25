@@ -283,8 +283,16 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     private static void handleNonPlayer(LivingEntity entity, LinkageChannel channel) {
-        if (entity == null || !entity.isAlive()) {
+        if (entity == null || channel == null || !entity.isAlive()) {
             return;
+        }
+        double alcohol = channel.get();
+        if (alcohol < BREATH_COST) {
+            double missing = BREATH_COST - alcohol;
+            if (!tryConsumeHealth(entity, missing)) {
+                return;
+            }
+            channel.adjust(missing);
         }
         tryRandomBreath(entity, channel);
     }
