@@ -59,6 +59,8 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final float REGEN_HEAL_AMOUNT = 2.0f;
     private static final long REGEN_INTERVAL_TICKS = 40L;
 
+    private static final float HEALTH_EPSILON = 1.0E-4f;
+
     private static final long MANIA_DURATION_TICKS = 20L * 20L;
     private static final float MANIA_DAMAGE_MULTIPLIER = 2.0f;
 
@@ -319,14 +321,37 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return false;
         }
         float healthCost = (float) (resourceCost / 100.0);
-        if (healthCost <= 0.0f) {
+        if (!Float.isFinite(healthCost) || healthCost <= HEALTH_EPSILON) {
             return true;
         }
+
         float currentHealth = entity.getHealth();
-        if (currentHealth <= healthCost) {
+        float absorption = Math.max(0.0f, entity.getAbsorptionAmount());
+        float available = currentHealth + absorption;
+        if (available - healthCost <= HEALTH_EPSILON) {
             return false;
         }
-        entity.setHealth(currentHealth - healthCost);
+
+        float targetAbsorption = Math.max(0.0f, absorption - healthCost);
+        float targetHealth = currentHealth;
+        if (healthCost > absorption) {
+            float remaining = healthCost - absorption;
+            targetHealth = Math.max(0.0f, currentHealth - remaining);
+        }
+
+        entity.invulnerableTime = 0;
+        entity.hurt(entity.damageSources().generic(), healthCost);
+        entity.invulnerableTime = 0;
+
+        if (!entity.isDeadOrDying()) {
+            entity.setAbsorptionAmount(targetAbsorption);
+            if (entity.getHealth() > targetHealth) {
+                entity.setHealth(targetHealth);
+            }
+            entity.hurtTime = 0;
+            entity.hurtDuration = 0;
+        }
+
         return true;
     }
 
