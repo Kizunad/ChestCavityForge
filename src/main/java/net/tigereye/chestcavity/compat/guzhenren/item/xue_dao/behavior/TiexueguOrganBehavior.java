@@ -281,6 +281,9 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
 
     private static double computeDecayTarget(double previousEffect, int stackCount) {
         double baseline = baselineEffect(stackCount);
+        if (previousEffect <= baseline) {
+            return previousEffect;
+        }
         double decayed = Math.max(baseline, previousEffect - EFFICIENCY_INCREMENT);
         return Math.min(BASE_EFFICIENCY_MAX, decayed);
     }
