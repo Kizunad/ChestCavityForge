@@ -369,3 +369,61 @@ Tick 2 → 刀光显影 → 播放横斩特效（但无伤害）。
 
 Tick 5 → 真正伤害 + 方块破坏 → 粒子爆裂 + 金属爆音。
 
+核心实现逻辑                                                                                                       
+                                                                                                                   
+- 变量载体：使用玩家与部分实体上挂载的附件数据 GuzhenrenModVariables.PlayerVariables，字段包含奴道相关状态。       
+    - 示例字段：                                                                                                   
+        - 玩家侧：nudaolanwei_1..10（每个“栏位”的魂魄占用/成本）、nudaolanwei_1_1..10_1（每栏位绑定的物种索引）、  
+nudaoshuliang（当前奴道数量）、zuida_hunpo（魂魄上限）、nudaolanwei（当前选择栏位）、以及 GUI 选择标记、升级等。   
+            - 参见 decompile/9_9decompile/cfr/src/net/guzhenren/network/GuzhenrenModVariables.java:1113 和同文件附 
+近字段读写、克隆、同步。                                                                                           
+        - 被奴役实体侧：nudaozhuren（记录主人的名字字符串），以及可选的nudaoxingji等给养/加成参数。                
+            - 参见 decompile/9_9decompile/cfr/src/net/guzhenren/network/GuzhenrenModVariables.java:1154            
+- 驾驭/招安入口：                                                                                                  
+    - 多个“命中实体”流程在 Procedure 中汇聚到 NuDaoXProcedure（X=1..10），它们根据目标实体类型设置玩家的对应栏位“绑定物种索引”和“成本”（魂魄占用），并同步变量：                                                                              - 例：decompile/9_9decompile/cfr/src/net/guzhenren/procedures/NuDao1Procedure.java                             - 具体招安判定逻辑（检查数量上限与魂魄余量、设置主人并驯服、占用栏位、调用 NuDaoXProcedure）：                         - decompile/9_9decompile/cfr/src/net/guzhenren/procedures/HuYan4DangDanSheWuJiZhongShiTiShiProcedure.java: 
+taming 前置检查 -> 写 entity 的 nudaozhuren -> 若目标是 TamableAnimal 则 tame(owner) -> 在玩家未占用的栏位中写入   
+nudaolanwei = slotIndex 并调用对应 NuDaoXProcedure.execute 将 nudaolanwei_slot 与 nudaolanwei_slot_1 写入。        
+    - 这些流程多由技能/投掷物命中时触发，或由 GUI 的按钮消息触发：                                                 
+        - GUI 容器与按钮消息路由：decompile/9_9decompile/cfr/src/net/guzhenren/world/inventory/NuDaoGuiMenu.java、 
+decompile/9_9decompile/cfr/src/net/guzhenren/network/NuDaoGuiButtonMessage.java                                    
+- 实际“控制/追随”的落地：                                                                                          
+    - 目标实体如果本身是 TamableAnimal，就直接走原生的主人相关 AI 目标（FollowOwnerGoal 等）。你能在多种自定义实体 
+类里看到这些 goal：                                                                                                
+        - 例如 decompile/9_9decompile/cfr/src/net/guzhenren/entity/YuanyuelinEntity.java:181、183 使用             
+OwnerHurtByTargetGoal/FollowOwnerGoal                                                                              
+        - decompile/9_9decompile/cfr/src/net/guzhenren/entity/WangYiEntity.java:183 添加 FollowOwnerGoal           
+    - 因为写入了 entity 侧 nudaozhuren，即便实体不是 TamableAnimal，也可被其它流程读这个字段作自定义加成或行为判断 
+（该模式在多处 Procedure 对 entity.getData(PlayerVariables) 的访问中可见）。                                       
+                                                                                                                   
+在模组外能否读取/更改？如何加增益？                                                                                
+                                                                                                                   
+- 读取/写入位置（服务端/客户端皆可，注意同步）：                                                                   
+    - 任何一侧都可通过附件 API 访问：vars = (GuzhenrenModVariables.PlayerVariables)                                
+entity.getData(GuzhenrenModVariables.PLAYER_VARIABLES);                                                            
+        - 玩家：读写 nudaolanwei_*、nudaolanwei_*_1、nudaoshuliang、zuida_hunpo 等。                               
+        - 被奴役生物：读写 nudaozhuren、nudaoxingji 等。                                                           
+    - 写入后用 vars.syncPlayerVariables(entity) 进行同步（该方法在同文件已实现序列化 + 网络同步）。                
+- 监听变动（客户端高性能方式）：                                                                                   
+    - guzhenren 会在“玩家变量同步”时发送 payload（player_variables_sync 之类；你现有的桥接层已在监听）。最佳实践是 
+在客户端监听该 payload，然后把影响（如联动通道、HUD）派发到主线程执行，避免网络线程直接改游戏状态。                
+    - 我们已在 ChestCavityForge 侧实现了 GuzhenrenNetworkBridge 和 Dao痕监听（onPlayerVariablesSynced），你可以复用同样的桥接监听来读取奴道字段并驱动外部增益。                                                                       - 写增益/状态：                                                                                                    
+    - 外部 mod 读取到 entity 侧 nudaozhuren == 某玩家名 或者检查 entity instanceof TamableAnimal &&                
+((TamableAnimal)entity).isTame() 且 owner 匹配，即可施加额外属性/药水/AI 逻辑。                                    
+    - 若需要改变“绑定物种”和“魂魄成本”，可直接写玩家的 nudaolanwei_slot_1 和 nudaolanwei_slot，并相应调整          
+nudaoshuliang；但这会绕过原 mod 的流程，建议遵循其 Procedure 的入口（例如模拟调用对应 NuDaoXProcedure），或按其判定规则更新并调用 syncPlayerVariables。
+    - 若需要“释放”/“清空”某栏位，参考 GUI 的清除与繁殖按钮对应的 Procedure（decompile/…/                           
+NuDaoQingChuProcedure.java、NuDaoFanZhiProcedure.java）来对齐其内部字段。                                          
+                                                                                                                   
+可供直接复用的参考点                                                                                               
+                                                                                                                   
+- 玩家/实体变量结构与同步：decompile/9_9decompile/cfr/src/net/guzhenren/network/GuzhenrenModVariables.java:1000+ 起
+- 招安流程（写 owner、tame、占用栏位）：decompile/9_9decompile/cfr/src/net/guzhenren/procedures/                   HuYan4DangDanSheWuJiZhongShiTiShiProcedure.java                                                                    
+- 各栏位“物种索引/成本”写入：decompile/9_9decompile/cfr/src/net/guzhenren/procedures/NuDao1Procedure.java 等       
+- GUI 按钮到 Procedure 派发：decompile/9_9decompile/cfr/src/net/guzhenren/network/NuDaoGuiButtonMessage.java:86    
+                                                                                                                   
+注意事项                                                                                                           
+                                                                                                                   
+- 同步线程安全：任何由网络监听回调触发的写操作需要切回客户端主线程执行（Minecraft.getInstance().execute），避免在  
+Netty 线程直接改联动通道/世界状态。                                                                                
+- 兼容性：不是所有目标都实现 TamableAnimal；此类目标仅依赖 nudaozhuren 的读写与自定义 AI/加成，需在外部逻辑自行    
+处理。
