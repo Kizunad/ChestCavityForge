@@ -22,7 +22,6 @@ import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenCombatUtil;
-import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -41,8 +40,6 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jiu_chong");
-    public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jiu_chong_breath");
-
     private static final ResourceLocation ALCOHOL_CHANNEL = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/jiu_chong_alcohol");
 
     private static final double MAX_ALCOHOL = 100.0;
@@ -70,35 +67,20 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final Map<UUID, Long> MANIA_EXPIRY = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_REGEN_TICK = new ConcurrentHashMap<>();
 
-    static {
-        OrganActivationListeners.register(ABILITY_ID, JiuChongOrganBehavior::activateAbility);
-    }
-
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (!hasOrgan(cc)) {
             return;
         }
         LinkageChannel channel = ensureAlcoholChannel(cc);
-        double previousAlcohol = channel.get();
-        int stackCount = Math.max(1, organ.getCount());
-        int gained = convertHungerToAlcohol(player, stackCount);
-        double newAlcohol = previousAlcohol;
-        if (gained > 0) {
-            newAlcohol = channel.adjust(ALCOHOL_PER_FEED * gained);
-            long gameTime = player.level().getGameTime();
-            if (previousAlcohol < MAX_ALCOHOL && newAlcohol >= MAX_ALCOHOL) {
-                triggerMania(player, gameTime);
-            } else if (newAlcohol >= MAX_ALCOHOL && isManiaActive(player, gameTime)) {
-                player.hurt(CCDamageSources.alcoholOverdose(player), gained);
-            }
+        if (entity instanceof Player player) {
+            handlePlayerSlowTick(player, organ, channel);
+            return;
         }
-        long gameTime = player.level().getGameTime();
-        handleManiaLoop(player, gameTime);
-        tryDrunkenRegeneration(player, channel, gameTime);
+        handleNonPlayer(entity, channel);
     }
 
     @Override
@@ -203,7 +185,9 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (gameTime - last < REGEN_INTERVAL_TICKS) {
             return;
         }
-        channel.adjust(-REGEN_COST);
+        if (!tryConsumeHealth(player, REGEN_COST)) {
+            return;
+        }
         player.heal(REGEN_HEAL_AMOUNT);
         Level level = player.level();
         RandomSource random = player.getRandom();
@@ -256,36 +240,86 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         return true;
     }
 
-    private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+    private static void performDrunkenBreath(LivingEntity user) {
+        if (user == null) {
             return;
         }
-        if (!hasOrgan(cc)) {
-            return;
-        }
-        LinkageChannel channel = ensureAlcoholChannel(cc);
-        if (channel.get() < BREATH_COST) {
-            return;
-        }
-        channel.adjust(-BREATH_COST);
-        Level level = player.level();
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.8f, 1.2f);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.8f, 0.8f);
+        Level level = user.level();
+        level.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.8f, 1.2f);
+        level.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.8f, 0.8f);
         if (level instanceof ServerLevel server) {
-            server.sendParticles(ParticleTypes.POOF, player.getX(), player.getY() + 0.8, player.getZ(), 12, 0.4, 0.3, 0.4, 0.02);
-            server.sendParticles(ParticleTypes.DRAGON_BREATH, player.getX(), player.getY() + 0.6, player.getZ(), 16, 0.5, 0.2, 0.5, 0.01);
+            server.sendParticles(ParticleTypes.POOF, user.getX(), user.getY() + 0.8, user.getZ(), 12, 0.4, 0.3, 0.4, 0.02);
+            server.sendParticles(ParticleTypes.DRAGON_BREATH, user.getX(), user.getY() + 0.6, user.getZ(), 16, 0.5, 0.2, 0.5, 0.01);
         }
-        AABB area = player.getBoundingBox().inflate(4.0);
-        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, target -> target != player && target.isAlive());
+        AABB area = user.getBoundingBox().inflate(4.0);
+        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, target -> target != user && target.isAlive());
         for (LivingEntity target : victims) {
-            if (target.isAlliedTo(player)) {
+            if (target.isAlliedTo(user)) {
                 continue;
             }
             target.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 400, 0, false, true, true));
             target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400, 0, false, true, true));
         }
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1000, 3, false, true, true));
-        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
+        user.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1000, 3, false, true, true));
+        user.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
+    }
+
+    private static void handlePlayerSlowTick(Player player, ItemStack organ, LinkageChannel channel) {
+        long gameTime = player.level().getGameTime();
+        double previousAlcohol = channel.get();
+        int stackCount = organ == null ? 1 : Math.max(1, organ.getCount());
+        int gained = convertHungerToAlcohol(player, stackCount);
+        if (gained > 0) {
+            double newAlcohol = channel.adjust(ALCOHOL_PER_FEED * gained);
+            if (previousAlcohol < MAX_ALCOHOL && newAlcohol >= MAX_ALCOHOL) {
+                triggerMania(player, gameTime);
+            } else if (newAlcohol >= MAX_ALCOHOL && isManiaActive(player, gameTime)) {
+                player.hurt(CCDamageSources.alcoholOverdose(player), gained);
+            }
+        }
+        handleManiaLoop(player, gameTime);
+        tryDrunkenRegeneration(player, channel, gameTime);
+        tryRandomBreath(player, channel);
+    }
+
+    private static void handleNonPlayer(LivingEntity entity, LinkageChannel channel) {
+        if (entity == null || !entity.isAlive()) {
+            return;
+        }
+        tryRandomBreath(entity, channel);
+    }
+
+    private static void tryRandomBreath(LivingEntity entity, LinkageChannel channel) {
+        if (entity == null || channel == null) {
+            return;
+        }
+        if (channel.get() < BREATH_COST) {
+            return;
+        }
+        RandomSource random = entity.getRandom();
+        if (random.nextInt(10) != 0) {
+            return;
+        }
+        if (!tryConsumeHealth(entity, BREATH_COST)) {
+            return;
+        }
+        performDrunkenBreath(entity);
+    }
+
+    private static boolean tryConsumeHealth(LivingEntity entity, double resourceCost) {
+        if (entity == null) {
+            return false;
+        }
+        float healthCost = (float) (resourceCost / 100.0);
+        if (healthCost <= 0.0f) {
+            return true;
+        }
+        float currentHealth = entity.getHealth();
+        if (currentHealth <= healthCost) {
+            return false;
+        }
+        entity.setHealth(currentHealth - healthCost);
+        return true;
     }
 
     private static boolean hasOrgan(ChestCavityInstance cc) {
