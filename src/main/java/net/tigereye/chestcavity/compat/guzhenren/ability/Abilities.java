@@ -5,6 +5,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombAbility;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.registration.CCKeybindings;
 
@@ -48,5 +49,6 @@ public final class Abilities {
         if (ChestCavity.LOGGER.isDebugEnabled()) {
             ChestCavity.LOGGER.debug("[Guzhenren] Blood Bone Bomb ability triggered for {}", entity);
         }
+        BloodBoneBombAbility.tryActivate(entity, chestCavity);
     }
 }
