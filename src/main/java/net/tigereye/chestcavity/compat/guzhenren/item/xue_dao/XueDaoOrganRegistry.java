@@ -45,6 +45,7 @@ public final class XueDaoOrganRegistry {
 
         GuzhenrenLinkageEffectRegistry.registerSingle(XUE_FEI_GU_ID, context -> {
             context.addSlowTickListener(XieFeiguOrganBehavior.INSTANCE);
+            context.addIncomingDamageListener(XieFeiguOrganBehavior.INSTANCE);
             context.addRemovalListener(XieFeiguOrganBehavior.INSTANCE);
             XieFeiguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
             XieFeiguOrganBehavior.INSTANCE.onEquip(
@@ -70,6 +71,7 @@ public final class XueDaoOrganRegistry {
 
         GuzhenrenLinkageEffectRegistry.registerSingle(XIE_DI_GU_ID, context -> {
             context.addSlowTickListener(XiediguOrganBehavior.INSTANCE);
+            context.addIncomingDamageListener(XiediguOrganBehavior.INSTANCE);
             context.addRemovalListener(XiediguOrganBehavior.INSTANCE);
             XiediguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
             XiediguOrganBehavior.INSTANCE.onEquip(
