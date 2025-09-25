@@ -6,6 +6,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -65,14 +66,17 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     private static final double EFFICIENCY_INCREMENT = 0.1;
     private static final double ZHENYUAN_BASE = 10.0;
     private static final double JINGLI_BASE = 5.0;
+    private static final float MINIMUM_HEALTH_RESERVE = 1.0f;
 
     private static final int DAMAGE_PARTICLE_COUNT = 24;
     private static final int BLOOD_PARTICLE_COUNT = 32;
     private static final DustParticleOptions BLOOD_DUST =
             new DustParticleOptions(new Vector3f(0.8f, 0.05f, 0.05f), 1.0f);
 
-    private static final net.minecraft.network.chat.Component DRAIN_MESSAGE =
-            net.minecraft.network.chat.Component.literal("铁血蛊吸食了你的鲜血，化为力量流入体内。");
+    private static final Component DRAIN_MESSAGE =
+            Component.literal("铁血蛊吸食了你的鲜血，化为力量流入体内。");
+    private static final Component STARVED_MESSAGE =
+            Component.literal("你的血量不足，铁血蛊暂时沉寂。");
 
     /**
      * Invoked when the organ is evaluated inside a chest cavity to ensure bookkeeping is initialised once.
@@ -173,13 +177,16 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     private void triggerEffect(Player player, ChestCavityInstance cc, ItemStack organ) {
         int stackCount = Math.max(1, organ.getCount());
         float drainAmount = HEALTH_DRAIN_PER_STACK * stackCount;
-        applyHealthDrain(player, drainAmount);
+        if (!applyHealthDrain(player, drainAmount)) {
+            handleFailedDrain(player, cc, organ, stackCount);
+            return;
+        }
         if (player.isDeadOrDying()) {
             return;
         }
 
         double previousEffect = readEffect(organ);
-        double newEffect = computeEfficiencyBonus(stackCount);
+        double newEffect = computeEfficiencyBonus(previousEffect, stackCount);
         double delta = newEffect - previousEffect;
         if (delta != 0.0) {
             applyEffectDelta(cc, organ, delta);
@@ -197,12 +204,17 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
     }
 
-    private static void applyHealthDrain(Player player, float amount) {
+    private static boolean applyHealthDrain(Player player, float amount) {
         if (player == null || amount <= 0.0f) {
-            return;
+            return true;
         }
+
         float startingHealth = player.getHealth();
         float startingAbsorption = player.getAbsorptionAmount();
+        float available = startingHealth + startingAbsorption;
+        if (available - amount < MINIMUM_HEALTH_RESERVE) {
+            return false;
+        }
 
         player.invulnerableTime = 0;
         player.hurt(player.damageSources().generic(), amount);
@@ -211,7 +223,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         float remaining = amount;
         float absorptionConsumed = Math.min(startingAbsorption, remaining);
         remaining -= absorptionConsumed;
-        float targetAbsorption = Math.max(0.0f, startingAbsorption - amount);
+        float targetAbsorption = Math.max(0.0f, startingAbsorption - absorptionConsumed);
 
         if (!player.isDeadOrDying()) {
             player.setAbsorptionAmount(targetAbsorption);
@@ -224,6 +236,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             player.hurtTime = 0;
             player.hurtDuration = 0;
         }
+        return !player.isDeadOrDying();
     }
 
     private static void applyResourceRecovery(Player player, double efficiencyMultiplier) {
@@ -259,10 +272,26 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
                 BLOOD_PARTICLE_COUNT, 0.4, 0.55, 0.4, 0.0);
     }
 
-    private static double computeEfficiencyBonus(int stackCount) {
+    private static double computeEfficiencyBonus(double previousEffect, int stackCount) {
+        double baseline = baselineEffect(stackCount);
+        double raised = Math.max(previousEffect, baseline);
+        double increased = raised + EFFICIENCY_INCREMENT;
+        return Math.min(BASE_EFFICIENCY_MAX, increased);
+    }
+
+    private static double computeDecayTarget(double previousEffect, int stackCount) {
+        double baseline = baselineEffect(stackCount);
+        if (previousEffect <= baseline) {
+            return previousEffect;
+        }
+        double decayed = Math.max(baseline, previousEffect - EFFICIENCY_INCREMENT);
+        return Math.min(BASE_EFFICIENCY_MAX, decayed);
+    }
+
+    private static double baselineEffect(int stackCount) {
         int stacks = Math.max(1, stackCount);
-        double bonus = BASE_EFFICIENCY_MIN + (stacks - 1) * EFFICIENCY_INCREMENT;
-        return Math.min(BASE_EFFICIENCY_MAX, bonus);
+        double baseline = BASE_EFFICIENCY_MIN + (stacks - 1) * EFFICIENCY_INCREMENT;
+        return Math.min(BASE_EFFICIENCY_MAX, baseline);
     }
 
     private static LinkageChannel ensureChannel(ActiveLinkageContext context) {
@@ -338,6 +367,26 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             }
         }
         return TRIGGER_INTERVAL_SLOW_TICKS;
+    }
+
+    private void handleFailedDrain(Player player, ChestCavityInstance cc, ItemStack organ, int stackCount) {
+        double previousEffect = readEffect(organ);
+        double targetEffect = computeDecayTarget(previousEffect, stackCount);
+        double delta = targetEffect - previousEffect;
+        if (delta != 0.0) {
+            applyEffectDelta(cc, organ, delta);
+        }
+        writeEffect(organ, targetEffect);
+        if (!player.level().isClientSide()) {
+            player.sendSystemMessage(STARVED_MESSAGE);
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[Tie Xue Gu] Drain failed for {} (stackCount={}, available={}, required={})",
+                    player.getScoreboardName(),
+                    stackCount,
+                    player.getHealth() + player.getAbsorptionAmount(),
+                    HEALTH_DRAIN_PER_STACK * stackCount);
+        }
     }
 
     private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
