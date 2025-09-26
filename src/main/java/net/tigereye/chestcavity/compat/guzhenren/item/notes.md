@@ -427,3 +427,26 @@ NuDaoQingChuProcedure.java、NuDaoFanZhiProcedure.java）来对齐其内部字�
 Netty 线程直接改联动通道/世界状态。                                                                                
 - 兼容性：不是所有目标都实现 TamableAnimal；此类目标仅依赖 nudaozhuren 的读写与自定义 AI/加成，需在外部逻辑自行    
 处理。
+
+剑影蛊 (item.guzhenren.jian_ying_gu) 
+BASE_DAMAGE 100
+COST_ZHENYUAN 2000
+JINGLI 50
+被动效果
+当玩家使用近战攻击命中时，会额外生成一道“剑影”虚拟攻击。(消耗 10% * COST_ZHENYUAN)
+剑影造成 40% 基础DAMAGE，并继承剑道 INCREASE_EFFECT 的加成。
+剑影会无视护甲
+若短时间内（≤2s）连续攻击，剑影伤害逐渐衰减到最低 15% 基础 DAMAGE , 并继承剑道 INCREASE_EFFECT 的加成。
+影随步:
+若是 玩家 攻击 产生暴击时 有 10%几率产生 "残影"
+残影为玩家皮肤，并且半透明，偏暗色
+残影会在 1s 内模仿一次基础斩击，对附近敌人造成微弱的溅射伤害。
+主动技能（快捷键释放）
+剑影分身：[寻路逻辑，先寻找最近的敌对entity，然后若是没有则执行守护指令] [快捷键使用 CCKeybindings.ATTACK_ABILITY_LIST]
+消耗：200% ZHENYUAN + 100% JINGLI
+效果：召唤 2–3 个“剑影分身”，持续 5s。
+分身会自动模仿玩家的近战攻击，但造成 25% DAMAGE。
+分身命中敌人时，附带 1s 缓慢III效果。
+冷却：20s
+风险代价
+长时间战斗会迅速消耗真元与体力。      
