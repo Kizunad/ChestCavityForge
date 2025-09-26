@@ -10,8 +10,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -21,6 +19,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -76,11 +75,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     private static final double AFTERIMAGE_DAMAGE_RATIO = 0.20;
     private static final double AFTERIMAGE_RADIUS = 3.0;
 
-    private static final int SLOW_DURATION_TICKS = 20;
-    private static final int SLOW_AMPLIFIER = 2; // Level III (0-indexed)
-
     private static final Map<UUID, SwordShadowState> SWORD_STATES = new ConcurrentHashMap<>();
-    private static final Map<UUID, CloneState> CLONE_STATES = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> COOLDOWNS = new ConcurrentHashMap<>();
     private static final List<AfterimageTask> AFTERIMAGES = Collections.synchronizedList(new ArrayList<>());
 
@@ -117,11 +112,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
             applyTrueDamage(player, target, (float) passiveDamage);
         }
 
-        double cloneDamage = triggerClones(player, target, efficiency);
-        if (cloneDamage > 0.0) {
-            applyTrueDamage(player, target, (float) cloneDamage);
-            applySlow(target);
-        }
+        commandClones(player, target);
 
         trySpawnAfterimage(player, target, source);
 
@@ -149,27 +140,6 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
                 AFTERIMAGES.remove(task);
             }
         }
-
-        List<UUID> expired = new ArrayList<>();
-        for (Map.Entry<UUID, CloneState> entry : CLONE_STATES.entrySet()) {
-            CloneState state = entry.getValue();
-            if (state.expiresAt >= gameTime) {
-                continue;
-            }
-            Player player = level.getPlayerByUUID(entry.getKey());
-            if (player != null) {
-                playCloneVanishEffects(level, player);
-            }
-            expired.add(entry.getKey());
-        }
-        expired.forEach(CLONE_STATES::remove);
-    }
-
-    private static void playCloneVanishEffects(ServerLevel level, Player player) {
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6f, 0.9f);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 0.4f, 1.4f);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY(0.5), player.getZ(), 10, 0.4, 0.4, 0.4, 0.02);
-        level.sendParticles(ParticleTypes.PORTAL, player.getX(), player.getY(0.5), player.getZ(), 12, 0.4, 0.6, 0.4, 0.2);
     }
 
     private static boolean executeAfterimage(ServerLevel level, AfterimageTask task) {
@@ -253,37 +223,24 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         return BASE_DAMAGE * multiplier * efficiency;
     }
 
-    private static double triggerClones(Player player, LivingEntity target, double efficiency) {
-        CloneState state = CLONE_STATES.get(player.getUUID());
-        if (state == null) {
-            return 0.0;
+    private static void commandClones(Player player, LivingEntity target) {
+        if (!(player.level() instanceof ServerLevel server)) {
+            return;
         }
-        if (player.level().getGameTime() > state.expiresAt) {
-            CLONE_STATES.remove(player.getUUID());
-            return 0.0;
+        List<SwordShadowClone> clones = server.getEntitiesOfClass(
+                SwordShadowClone.class,
+                player.getBoundingBox().inflate(16.0, 6.0, 16.0),
+                clone -> clone.isOwnedBy(player)
+        );
+        for (SwordShadowClone clone : clones) {
+            clone.commandStrike(target);
         }
-        if (state.count <= 0) {
-            return 0.0;
-        }
-        double damagePerClone = BASE_DAMAGE * CLONE_DAMAGE_RATIO * efficiency;
-        Level level = player.level();
-        PlayerSkinUtil.SkinSnapshot tint = state.tint;
-        for (int i = 0; i < state.count; i++) {
-            Vec3 offset = randomOffset(player.getRandom());
-            Vec3 origin = player.position().add(offset);
-            SingleSwordProjectile.spawn(level, player, origin, target.position().add(0, target.getBbHeight() * 0.5, 0), tint);
-        }
-        return damagePerClone * state.count;
     }
 
     private static Vec3 randomOffset(RandomSource random) {
         double radius = 1.2 + random.nextDouble() * 0.4;
         double angle = random.nextDouble() * Math.PI * 2.0;
         return new Vec3(Math.cos(angle) * radius, 0.2, Math.sin(angle) * radius);
-    }
-
-    private static void applySlow(LivingEntity target) {
-        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, SLOW_DURATION_TICKS, SLOW_AMPLIFIER, false, true, true));
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -319,19 +276,33 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         }
 
         int clones = 2 + player.getRandom().nextInt(2);
-        CloneState state = new CloneState();
-        state.count = clones;
-        state.expiresAt = now + CLONE_DURATION_TICKS;
-        state.tint = PlayerSkinUtil.withTint(PlayerSkinUtil.capture(player), 0.05f, 0.05f, 0.1f, 0.55f);
-        CLONE_STATES.put(player.getUUID(), state);
-        COOLDOWNS.put(player.getUUID(), now);
+        double efficiency = 1.0;
+        if (cc != null) {
+            efficiency += ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
+        }
 
         Level level = player.level();
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ILLUSIONER_PREPARE_MIRROR, SoundSource.PLAYERS, 0.8f, 0.6f);
-        if (level instanceof ServerLevel server) {
-            server.sendParticles(ParticleTypes.PORTAL, player.getX(), player.getY(0.5), player.getZ(), 30, 0.4, 0.6, 0.4, 0.2);
-            server.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY(0.4), player.getZ(), 20, 0.35, 0.35, 0.35, 0.01);
+        if (!(level instanceof ServerLevel server)) {
+            return;
         }
+
+        PlayerSkinUtil.SkinSnapshot tint = PlayerSkinUtil.withTint(PlayerSkinUtil.capture(player), 0.05f, 0.05f, 0.1f, 0.55f);
+        float cloneDamage = (float) (BASE_DAMAGE * CLONE_DAMAGE_RATIO * efficiency);
+        RandomSource random = player.getRandom();
+        for (int i = 0; i < clones; i++) {
+            Vec3 offset = randomOffset(random);
+            Vec3 spawnPos = player.position().add(offset);
+            SwordShadowClone clone = SwordShadowClone.spawn(server, player, spawnPos, tint, cloneDamage);
+            if (clone != null) {
+                clone.setLifetime(CLONE_DURATION_TICKS);
+            }
+        }
+
+        COOLDOWNS.put(player.getUUID(), now);
+
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ILLUSIONER_PREPARE_MIRROR, SoundSource.PLAYERS, 0.8f, 0.6f);
+        server.sendParticles(ParticleTypes.PORTAL, player.getX(), player.getY(0.5), player.getZ(), 30, 0.4, 0.6, 0.4, 0.2);
+        server.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY(0.4), player.getZ(), 20, 0.35, 0.35, 0.35, 0.01);
     }
 
     private static boolean hasOrgan(ChestCavityInstance cc) {
@@ -373,7 +344,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         return airborne && strongSwing && descending && !player.isSprinting();
     }
 
-    private static void applyTrueDamage(Player player, LivingEntity target, float amount) {
+    public static void applyTrueDamage(Player player, LivingEntity target, float amount) {
         if (target == null || amount <= 0.0f) {
             return;
         }
@@ -403,12 +374,6 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     private static final class SwordShadowState {
         private long lastTriggerTick;
         private float lastMultiplier = PASSIVE_INITIAL_MULTIPLIER;
-    }
-
-    private static final class CloneState {
-        private int count;
-        private long expiresAt;
-        private PlayerSkinUtil.SkinSnapshot tint;
     }
 
     private record AfterimageTask(

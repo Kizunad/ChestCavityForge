@@ -57,7 +57,7 @@ public class SingleSwordProjectile extends Entity {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(COLOR, 0x80222233);
+        builder.define(COLOR, 0x60202030);
     }
 
     @Override

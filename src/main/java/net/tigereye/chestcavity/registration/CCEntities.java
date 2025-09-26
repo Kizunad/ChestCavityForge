@@ -8,6 +8,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BoneGunProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 
 /**
  * Centralised entity type registration for the Chest Cavity mod.
@@ -35,4 +36,12 @@ public final class CCEntities {
                     .clientTrackingRange(64)
                     .updateInterval(1)
                     .build(ChestCavity.MODID + ":single_sword_projectile"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<SwordShadowClone>> SWORD_SHADOW_CLONE =
+            ENTITY_TYPES.register("sword_shadow_clone", () -> EntityType.Builder
+                    .<SwordShadowClone>of(SwordShadowClone::new, MobCategory.MISC)
+                    .sized(0.6f, 1.8f)
+                    .clientTrackingRange(48)
+                    .updateInterval(2)
+                    .build(ChestCavity.MODID + ":sword_shadow_clone"));
 }
