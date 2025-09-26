@@ -36,6 +36,7 @@ import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBo
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoEntityAttributes;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JianYingGuEvents;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
@@ -75,6 +76,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		bus.addListener(this::registerMenuScreens);
 		bus.addListener(this::doServerStuff);
 		bus.addListener(NetworkHandler::registerCommon);
+        // Mod lifecycle listeners for Guzhenren Jian Dao entities
+        bus.addListener(JiandaoEntityAttributes::onAttributeCreation);
 
     if (FMLEnvironment.dist.isClient()) {
             bus.addListener(Abilities::onClientSetup);

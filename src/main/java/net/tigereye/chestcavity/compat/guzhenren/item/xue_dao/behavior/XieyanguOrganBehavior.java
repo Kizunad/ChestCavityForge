@@ -26,6 +26,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -39,6 +40,9 @@ import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
+
+import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
 
 import java.util.HashSet;
 import java.util.List;
@@ -203,7 +207,12 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
 
-        float scaled = damage * BASE_CRIT_MULTIPLIER;
+        CriticalHitEvent critEvent = CommonHooks.fireCriticalHit(player, target, true, BASE_CRIT_MULTIPLIER);
+        float scaled = damage;
+        if (critEvent != null && critEvent.isCriticalHit()) {
+            scaled = damage * critEvent.getDamageMultiplier();
+            JianYingGuOrganBehavior.markExternalCrit(player);
+        }
         playCriticalCues(player, target);
         XieyanguTrailHandler.applyTrail(target, BLOOD_TRAIL_DURATION_TICKS);
         return scaled;

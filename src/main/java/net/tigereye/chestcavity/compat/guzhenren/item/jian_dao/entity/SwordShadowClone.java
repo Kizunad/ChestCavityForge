@@ -21,9 +21,12 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.util.PlayerSkinUtil;
@@ -180,12 +183,16 @@ public class SwordShadowClone extends PathfinderMob {
         attackCooldown = ATTACK_COOLDOWN_TICKS;
         this.swing(InteractionHand.MAIN_HAND);
         if (skinTint != null) {
+            ItemStack display = resolveDisplayStack(owner);
+            Vec3 anchor = swordAnchor();
+            Vec3 tip = swordTip(anchor);
             SingleSwordProjectile.spawn(
                     this.level(),
                     owner,
-                    this.position().add(0, this.getBbHeight() * 0.6, 0),
-                    target.position().add(0, target.getBbHeight() * 0.5, 0),
-                    skinTint
+                    anchor,
+                    tip,
+                    skinTint,
+                    display
             );
         }
         JianYingGuOrganBehavior.applyTrueDamage(owner, target, damage);
@@ -373,5 +380,35 @@ public class SwordShadowClone extends PathfinderMob {
                 .add(Attributes.MAX_HEALTH, 1.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.35)
                 .add(Attributes.ATTACK_DAMAGE, 1.0);
+    }
+
+    private static ItemStack resolveDisplayStack(Player owner) {
+        ItemStack main = owner.getMainHandItem();
+        if (!main.isEmpty()) {
+            return main.copy();
+        }
+        ItemStack off = owner.getOffhandItem();
+        if (!off.isEmpty()) {
+            return off.copy();
+        }
+        if (GuzhenrenItems.XIE_NING_JIAN != Items.AIR) {
+            return new ItemStack(GuzhenrenItems.XIE_NING_JIAN);
+        }
+        return SingleSwordProjectile.defaultDisplayItem();
+    }
+
+    private Vec3 swordAnchor() {
+        return this.position().add(0.0, this.getBbHeight() * 0.6, 0.0);
+    }
+
+    private Vec3 swordTip(Vec3 anchor) {
+        Vec3 look = this.getLookAngle();
+        if (look.lengthSqr() < 1.0E-4) {
+            look = Vec3.directionFromRotation(this.getXRot(), this.getYRot());
+        }
+        if (look.lengthSqr() < 1.0E-4) {
+            look = new Vec3(0.0, 0.0, 1.0);
+        }
+        return anchor.add(look.normalize().scale(2.0));
     }
 }

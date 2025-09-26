@@ -10,6 +10,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.Objects;
@@ -112,8 +114,8 @@ public final class PlayerSkinUtil {
                     .map(JsonElement::getAsString)
                     .orElse(null);
             ResourceLocation texture = null;
-            if (url != null && !url.isBlank()) {
-                texture = urlToResource(url);
+            if (url != null && url.isBlank()) {
+                url = null;
             }
             return new SkinPayload(texture, model == null ? null : model.toLowerCase(Locale.ROOT), url);
         } catch (IllegalArgumentException ignored) {
@@ -125,11 +127,44 @@ public final class PlayerSkinUtil {
         if (url == null || url.isBlank()) {
             return null;
         }
-        String normalised = url.replace("https://textures.minecraft.net/texture/", "");
-        if (normalised.isBlank()) {
-            return null;
+        String s = url.trim();
+        // Strip known prefixes (both http and https)
+        s = s.replaceFirst("^https?://textures\\.minecraft\\.net/texture/", "");
+        // If still looks like a URL/path, reduce to last segment
+        int hashIdx = s.lastIndexOf('/') + 1;
+        if (hashIdx > 0 && hashIdx < s.length()) {
+            s = s.substring(hashIdx);
         }
-        return ResourceLocation.fromNamespaceAndPath("guzhenren", "skins/" + normalised);
+        // Drop query/fragment if any
+        int q = s.indexOf('?');
+        if (q >= 0) s = s.substring(0, q);
+        int h = s.indexOf('#');
+        if (h >= 0) s = s.substring(0, h);
+        s = s.toLowerCase(Locale.ROOT);
+
+        // Validate allowed chars; Mojang texture IDs are hex. If invalid/empty, hash the URL.
+        if (s.isBlank() || !s.matches("[a-z0-9._-]+")) {
+            s = sha1Hex(url);
+        }
+        return ResourceLocation.fromNamespaceAndPath("guzhenren", "skins/" + s);
+    }
+
+    private static String sha1Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+                sb.append(Character.forDigit(b & 0xF, 16));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // Extremely unlikely; fallback to a sanitized base64
+            String base = Base64.getUrlEncoder().withoutPadding().encodeToString(input.getBytes(StandardCharsets.UTF_8));
+            // Reduce to allowed chars (url-safe base64 already ok), just lowercase to be safe
+            return base.toLowerCase(Locale.ROOT);
+        }
     }
 
     private record SkinPayload(ResourceLocation texture, String model, String url) {
@@ -159,4 +194,3 @@ public final class PlayerSkinUtil {
         }
     }
 }
-
