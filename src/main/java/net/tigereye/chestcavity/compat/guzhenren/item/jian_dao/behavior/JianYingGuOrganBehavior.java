@@ -18,8 +18,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
@@ -31,6 +30,7 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -278,8 +278,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         if (!offHand.isEmpty()) {
             return offHand.copy();
         }
-        if (GuzhenrenItems.XIE_NING_JIAN != net.minecraft.world.item.Items.AIR) {
-            return new ItemStack(GuzhenrenItems.XIE_NING_JIAN);
+        if (CCItems.GUZHENREN_XIE_NING_JIAN != net.minecraft.world.item.Items.AIR) {
+            return new ItemStack(CCItems.GUZHENREN_XIE_NING_JIAN);
         }
         return SingleSwordProjectile.defaultDisplayItem();
     }

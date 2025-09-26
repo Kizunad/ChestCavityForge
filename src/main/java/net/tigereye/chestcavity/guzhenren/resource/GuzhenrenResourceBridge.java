@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren;
+package net.tigereye.chestcavity.guzhenren.resource;
 
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;

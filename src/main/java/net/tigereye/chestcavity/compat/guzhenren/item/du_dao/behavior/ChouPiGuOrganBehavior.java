@@ -27,7 +27,6 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -36,6 +35,7 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.List;
 
@@ -177,7 +177,7 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         int size = cc.inventory.getContainerSize();
         for (int i = 0; i < size; i++) {
             ItemStack organ = cc.inventory.getItem(i);
-            if (organ == null || organ.isEmpty() || !organ.is(GuzhenrenItems.CHOU_PI_GU)) {
+            if (organ == null || organ.isEmpty() || !organ.is(CCItems.GUZHENREN_CHOU_PI_GU)) {
                 continue;
             }
             if (random.nextDouble() < chance) {

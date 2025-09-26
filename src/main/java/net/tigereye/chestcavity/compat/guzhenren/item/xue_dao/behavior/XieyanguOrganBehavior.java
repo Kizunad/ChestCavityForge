@@ -26,7 +26,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
@@ -42,6 +41,7 @@ import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.nudao.GuzhenrenNudaoBridge;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
@@ -539,7 +539,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return false;
         }
         Item item = stack.getItem();
-        if (item == GuzhenrenItems.XIE_YAN_GU) {
+        if (item == CCItems.GUZHENREN_XIE_YAN_GU) {
             return true;
         }
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);

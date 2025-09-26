@@ -20,8 +20,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.registration.CCEntities;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import org.joml.Vector3f;
 
@@ -58,7 +58,7 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
 
     @Override
     protected Item getDefaultItem() {
-        return GuzhenrenItems.GU_QIANG;
+        return CCItems.GUZHENREN_GU_QIANG;
     }
 
     @Override

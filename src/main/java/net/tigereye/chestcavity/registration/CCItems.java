@@ -1,6 +1,9 @@
 package net.tigereye.chestcavity.registration;
 
 import net.minecraft.world.food.Foods;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.*;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -12,11 +15,45 @@ import net.tigereye.chestcavity.items.VenomGland;
 public class CCItems {
 	public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ChestCavity.MODID);
 
-
 	public static final Item.Properties CHEST_OPENER_PROPERTIES = new Item.Properties().stacksTo(1);
 	public static final Item.Properties FOOD_ITEM_PROPERTIES = new Item.Properties().stacksTo(64);
 
 	public static final DeferredItem<Item> CHEST_OPENER = ITEMS.register("chest_opener", ChestOpener::new);
+	public static final Item GUZHENREN_JIANJITENG = resolveExternalItem("guzhenren", "jianjiteng");
+	public static final Item GUZHENREN_CHOU_PI_GU = resolveExternalItem("guzhenren", "chou_pi_gu");
+	public static final Item GUZHENREN_TIE_XUE_GU = resolveExternalItem("guzhenren", "tiexuegu");
+	public static final Item GUZHENREN_XUE_FEI_GU = resolveExternalItem("guzhenren", "xie_fei_gu");
+	public static final Item GUZHENREN_XIE_DI_GU = resolveExternalItem("guzhenren", "xie_di_gu");
+	public static final Item GUZHENREN_XIE_YAN_GU = resolveExternalItem("guzhenren", "xie_yan_gu");
+	public static final Item GUZHENREN_LING_XIAN_GU = resolveExternalItem("guzhenren", "ling_xian_gu");
+	public static final Item GUZHENREN_XIE_NING_JIAN = resolveExternalItem("guzhenren", "xie_ning_jian");
+	public static final Item GUZHENREN_QING_LAN_PO_GU_JIAN = resolveExternalItem("guzhenren", "qinglanpogujian");
+	public static final Item GUZHENREN_WEI_LIAN_HUA_JIAN_XIA_GU = resolveExternalItem("guzhenren", "weilianhuajianxiagu");
+	public static final Item GUZHENREN_WEI_LIAN_HUA_JIAN_ZHI_GU_3 = resolveExternalItem("guzhenren", "wei_lian_hua_jian_zhi_gu_3");
+	public static final Item GUZHENREN_WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU = resolveExternalItem("guzhenren", "weilianhuajinwenjianxiagu");
+	public static final Item GUZHENREN_WEI_LIAN_HUA_JIN_HEN_GU = resolveExternalItem("guzhenren", "weilianhuajinhengu");
+	public static final Item GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU = resolveExternalItem("guzhenren", "weilianhuajianmaigu");
+	public static final Item GUZHENREN_JIAN_YING_GU = resolveExternalItem("guzhenren", "jian_ying_gu");
+	public static final Item GUZHENREN_GU_QIANG = resolveExternalItem("guzhenren", "gu_qiang");
+	public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
+
+	private static final Item[] GUZHENREN_JIANDAO_BONUS_ITEMS = new Item[] {
+		GUZHENREN_WEI_LIAN_HUA_JIAN_XIA_GU,
+		GUZHENREN_WEI_LIAN_HUA_JIAN_ZHI_GU_3,
+		GUZHENREN_WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU,
+		GUZHENREN_WEI_LIAN_HUA_JIN_HEN_GU,
+		GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU
+	};
+
+	public static Item pickRandomGuzhenrenJiandaoBonus(RandomSource random) {
+		if (random == null || GUZHENREN_JIANDAO_BONUS_ITEMS.length == 0) {
+			return GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU;
+		}
+		int index = random.nextInt(GUZHENREN_JIANDAO_BONUS_ITEMS.length);
+		Item selected = GUZHENREN_JIANDAO_BONUS_ITEMS[index];
+		return selected == Items.AIR ? GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU : selected;
+	}
+
 	public static final DeferredItem<Item> WOODEN_CLEAVER = ITEMS.register("wooden_cleaver", () -> new SwordItem(Tiers.WOOD, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.WOOD, 6.0F, -3.2F))));
 	public static final DeferredItem<Item> GOLD_CLEAVER = ITEMS.register("gold_cleaver", () -> new SwordItem(Tiers.GOLD, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.GOLD, 6.0F, -3.0F))));
 	public static final DeferredItem<Item> STONE_CLEAVER = ITEMS.register("stone_cleaver", () -> new SwordItem(Tiers.STONE, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.STONE, 7.0F, -3.2F))));
@@ -219,4 +256,9 @@ public class CCItems {
 
 	public static final DeferredItem<Item> CUD = ITEMS.register("cud", () -> new Item(FOOD_ITEM_PROPERTIES.food(CCFoodComponents.CUD_FOOD_COMPONENT)));
 	public static final DeferredItem<Item> FURNACE_POWER = ITEMS.register("furnace_power", () -> new Item(FOOD_ITEM_PROPERTIES.food(CCFoodComponents.FURNACE_POWER_FOOD_COMPONENT)));
+
+	private static Item resolveExternalItem(String namespace, String path) {
+		Item item = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath(namespace, path));
+		return item == null ? Items.AIR : item;
+	}
 }

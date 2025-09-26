@@ -20,10 +20,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.registration.CCEntities;
 import org.joml.Vector3f;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.UUID;
 
@@ -211,7 +211,7 @@ public class SingleSwordProjectile extends Entity {
     }
 
     private static Item defaultSwordItem() {
-        Item sword = GuzhenrenItems.XIE_NING_JIAN;
+        Item sword = CCItems.GUZHENREN_XIE_NING_JIAN;
         return sword == Items.AIR ? Items.IRON_SWORD : sword;
     }
 

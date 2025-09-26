@@ -5,7 +5,7 @@ import java.util.OptionalDouble;
 
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.Event;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 public final class GuzhenrenPlayerVariablesSyncedEvent extends Event {
 

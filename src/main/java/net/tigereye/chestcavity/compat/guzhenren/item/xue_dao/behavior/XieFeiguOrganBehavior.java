@@ -26,7 +26,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -40,6 +39,7 @@ import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.List;
 import java.util.Objects;
@@ -118,7 +118,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || organ == null || organ.isEmpty()) {
             return damage;
         }
-        if (!organ.is(GuzhenrenItems.XUE_FEI_GU)) {
+        if (!organ.is(CCItems.GUZHENREN_XUE_FEI_GU)) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());
             if (!ORGAN_ID.equals(id)) {
                 return damage;
@@ -150,7 +150,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
-        if (!organ.is(GuzhenrenItems.XUE_FEI_GU)) {
+        if (!organ.is(CCItems.GUZHENREN_XUE_FEI_GU)) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());
             if (!ORGAN_ID.equals(id)) {
                 return;
@@ -562,7 +562,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             if (stack.isEmpty()) {
                 continue;
             }
-            if (stack.is(GuzhenrenItems.CHOU_PI_GU)) {
+            if (stack.is(CCItems.GUZHENREN_CHOU_PI_GU)) {
                 return true;
             }
         }

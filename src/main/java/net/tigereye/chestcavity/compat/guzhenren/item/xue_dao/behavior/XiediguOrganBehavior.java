@@ -25,8 +25,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
@@ -41,6 +40,7 @@ import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -287,7 +287,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         if (organ == null || organ.isEmpty()) {
             return false;
         }
-        if (organ.is(GuzhenrenItems.XIE_DI_GU)) {
+        if (organ.is(CCItems.GUZHENREN_XIE_DI_GU)) {
             return true;
         }
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());

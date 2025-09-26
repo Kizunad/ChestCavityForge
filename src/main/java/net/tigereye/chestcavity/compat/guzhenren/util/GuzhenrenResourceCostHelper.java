@@ -3,8 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.util;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge.ResourceHandle;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 
 import java.util.Objects;
 import java.util.OptionalDouble;

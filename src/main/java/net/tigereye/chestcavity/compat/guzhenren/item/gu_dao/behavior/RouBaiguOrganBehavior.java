@@ -25,7 +25,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
@@ -487,8 +487,19 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
                 state.putString(TARGET_ITEM_KEY, targetItemId);
                 state.putInt(PROGRESS_KEY, progress);
                 state.putInt(WORK_TIMER_KEY, workTimer);
+            } else {
+                state.remove(TARGET_SLOT_KEY);
+                state.remove(TARGET_ITEM_KEY);
+                state.remove(PROGRESS_KEY);
+                state.remove(WORK_TIMER_KEY);
             }
-            writeState(organ, updated -> updated.merge(state));
+            CompoundTag snapshot = state.copy();
+            writeState(organ, updated -> {
+                for (String key : new ArrayList<>(updated.getAllKeys())) {
+                    updated.remove(key);
+                }
+                updated.merge(snapshot);
+            });
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
     }

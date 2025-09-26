@@ -11,8 +11,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
@@ -145,7 +145,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
 
 
     private static void dispensePrimaryReward(Player player) {
-        ItemStack reward = new ItemStack(GuzhenrenItems.JIANJITENG);
+        ItemStack reward = new ItemStack(CCItems.GUZHENREN_JIANJITENG);
         if (!player.addItem(reward)) {
             player.drop(reward, false);
             ChestCavity.LOGGER.info("{} {} 完成充能 -> 掉落剑脊藤", LOG_PREFIX, player.getScoreboardName());
@@ -163,7 +163,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
             ChestCavity.LOGGER.debug("{} {} 随机检定未通过 -> 不触发额外奖励", LOG_PREFIX, player.getScoreboardName());
             return;
         }
-        Item bonusItem = GuzhenrenItems.pickRandomJiandaoBonus(player.getRandom());
+        Item bonusItem = CCItems.pickRandomGuzhenrenJiandaoBonus(player.getRandom());
         String bonusId = BuiltInRegistries.ITEM.getKey(bonusItem).toString();
         ItemStack bonus = new ItemStack(bonusItem);
         if (!player.addItem(bonus)) {
@@ -180,7 +180,7 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
         for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
             ItemStack stack = cc.inventory.getItem(i);
             // 这里必须是满堆叠 == 64，不能 >=
-            if (stack.is(GuzhenrenItems.JIANJITENG) && stack.getCount() == 64) {
+            if (stack.is(CCItems.GUZHENREN_JIANJITENG) && stack.getCount() == 64) {
                 return true;
             }
         }

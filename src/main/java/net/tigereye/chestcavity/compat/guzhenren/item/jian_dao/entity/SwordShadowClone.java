@@ -26,12 +26,12 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.GuzhenrenItems;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.registration.CCItems;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -391,8 +391,8 @@ public class SwordShadowClone extends PathfinderMob {
         if (!off.isEmpty()) {
             return off.copy();
         }
-        if (GuzhenrenItems.XIE_NING_JIAN != Items.AIR) {
-            return new ItemStack(GuzhenrenItems.XIE_NING_JIAN);
+        if (CCItems.GUZHENREN_XIE_NING_JIAN != Items.AIR) {
+            return new ItemStack(CCItems.GUZHENREN_XIE_NING_JIAN);
         }
         return SingleSwordProjectile.defaultDisplayItem();
     }
