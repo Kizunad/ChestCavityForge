@@ -7,7 +7,6 @@
 - Any tool installation or environment-variable changes that could pollute the system must be expressed through Nix (e.g., via `flake.nix` devShell updates).
 - Upstreams: `origin` = personal fork, `upstream` = BoonelDanForever/ChestCavityForge.
 - In NeoForge 21.x the mod event bus is injected via the mod constructor (`public ChestCavity(IEventBus bus)`); `FMLJavaModLoadingContext` is gone.
-- 总结时(用户对话): 用中文总结当前完成了什么，然后还剩下什么需要处理的问题 
 
 ## First actions when you arrive
 - Run `ls -a` in `/home/kiz/Code/java` to confirm you're in the repo root and discover key files.

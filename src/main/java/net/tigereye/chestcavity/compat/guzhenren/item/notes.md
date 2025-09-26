@@ -496,3 +496,4 @@ COST_HUNGER
 音效：僵尸咬合声 (entity.zombie.attack_iron_door) 混合骨裂声 (entity.skeleton.hurt)
 撕咬失败时：
 嘴型蛊虫发出“咔哒”声，但不展开。
+
