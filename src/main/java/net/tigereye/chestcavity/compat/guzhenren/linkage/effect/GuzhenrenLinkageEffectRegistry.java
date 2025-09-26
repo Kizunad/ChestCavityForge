@@ -73,7 +73,9 @@ public final class GuzhenrenLinkageEffectRegistry {
     public static boolean applyEffects(
             ChestCavityInstance cc,
             ItemStack stack,
-            List<OrganRemovalContext> staleRemovalContexts
+            List<OrganRemovalContext> staleRemovalContexts,
+            Map<ResourceLocation, Integer> cachedCounts,
+            Map<ResourceLocation, List<ItemStack>> cachedStacks
     ) {
         if (cc == null || stack == null || stack.isEmpty()) {
             return false;
@@ -108,7 +110,13 @@ public final class GuzhenrenLinkageEffectRegistry {
             if (ChestCavity.LOGGER.isTraceEnabled()) {
                 ChestCavity.LOGGER.trace("[Guzhenren] Evaluating linkage definition {} for {}", definition, itemId);
             }
-            Optional<LinkageEffectContext> contextOpt = definition.createContext(cc, stack, staleRemovalContexts);
+            Optional<LinkageEffectContext> contextOpt = definition.createContext(
+                    cc,
+                    stack,
+                    staleRemovalContexts,
+                    cachedCounts,
+                    cachedStacks
+            );
             if (contextOpt.isEmpty()) {
                 if (ChestCavity.LOGGER.isTraceEnabled()) {
                     ChestCavity.LOGGER.trace("[Guzhenren] Requirements not met for linkage definition {} on {}", definition, itemId);
@@ -156,24 +164,39 @@ public final class GuzhenrenLinkageEffectRegistry {
         private Optional<LinkageEffectContext> createContext(
                 ChestCavityInstance cc,
                 ItemStack sourceOrgan,
-                List<OrganRemovalContext> staleRemovalContexts
+                List<OrganRemovalContext> staleRemovalContexts,
+                Map<ResourceLocation, Integer> cachedCounts,
+                Map<ResourceLocation, List<ItemStack>> cachedStacks
         ) {
             if (cc == null || sourceOrgan == null || sourceOrgan.isEmpty()) {
                 return Optional.empty();
             }
             Map<ResourceLocation, Integer> presentCounts = new HashMap<>();
             List<ItemStack> matchingStacks = new ArrayList<>();
-            for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
-                ItemStack slotStack = cc.inventory.getItem(i);
-                if (slotStack == null || slotStack.isEmpty()) {
-                    continue;
+            if (cachedCounts != null && cachedStacks != null) {
+                for (ResourceLocation requirementId : requirements.keySet()) {
+                    int count = cachedCounts.getOrDefault(requirementId, 0);
+                    if (count > 0) {
+                        presentCounts.put(requirementId, count);
+                        List<ItemStack> stacks = cachedStacks.get(requirementId);
+                        if (stacks != null && !stacks.isEmpty()) {
+                            matchingStacks.addAll(stacks);
+                        }
+                    }
                 }
-                ResourceLocation id = BuiltInRegistries.ITEM.getKey(slotStack.getItem());
-                if (id == null || !requirements.containsKey(id)) {
-                    continue;
+            } else {
+                for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+                    ItemStack slotStack = cc.inventory.getItem(i);
+                    if (slotStack == null || slotStack.isEmpty()) {
+                        continue;
+                    }
+                    ResourceLocation id = BuiltInRegistries.ITEM.getKey(slotStack.getItem());
+                    if (id == null || !requirements.containsKey(id)) {
+                        continue;
+                    }
+                    matchingStacks.add(slotStack);
+                    presentCounts.merge(id, Math.max(1, slotStack.getCount()), Integer::sum);
                 }
-                matchingStacks.add(slotStack);
-                presentCounts.merge(id, Math.max(1, slotStack.getCount()), Integer::sum);
             }
             for (Map.Entry<ResourceLocation, Integer> requirement : requirements.entrySet()) {
                 int have = presentCounts.getOrDefault(requirement.getKey(), 0);

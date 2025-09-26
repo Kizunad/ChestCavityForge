@@ -48,7 +48,13 @@ public final class GuzhenrenOrganHandlers {
         OrganRetentionRules.registerNamespace(MOD_ID);
     }
 
-    public static void registerListeners(ChestCavityInstance cc, ItemStack stack, List<OrganRemovalContext> staleRemovalContexts) {
+    public static void registerListeners(
+            ChestCavityInstance cc,
+            ItemStack stack,
+            List<OrganRemovalContext> staleRemovalContexts,
+            Map<ResourceLocation, Integer> cachedCounts,
+            Map<ResourceLocation, List<ItemStack>> cachedStacks
+    ) {
         if (stack.isEmpty() || !ModList.get().isLoaded(MOD_ID)) {
             if (ChestCavity.LOGGER.isDebugEnabled() && !stack.isEmpty()) {
                 ChestCavity.LOGGER.debug("[Guzhenren] Skipping listener registration for {} because the mod is not loaded", stack);
@@ -76,7 +82,13 @@ public final class GuzhenrenOrganHandlers {
         WuHangOrganRegistry.bootstrap();
         ShiDaoOrganRegistry.bootstrap();
         JiandaoOrganRegistry.bootstrap();
-        GuzhenrenLinkageEffectRegistry.applyEffects(cc, stack, staleRemovalContexts);
+        GuzhenrenLinkageEffectRegistry.applyEffects(
+                cc,
+                stack,
+                staleRemovalContexts,
+                cachedCounts,
+                cachedStacks
+        );
         if (stack.is(Items.WOODEN_SHOVEL)) {
             displayChannelSnapshot(cc, context);
         }
