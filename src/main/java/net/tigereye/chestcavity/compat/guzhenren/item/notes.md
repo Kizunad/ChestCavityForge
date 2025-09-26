@@ -450,3 +450,49 @@ JINGLI 50
 冷却：20s
 风险代价
 长时间战斗会迅速消耗真元与体力。      
+
+
+ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/gu_dao
+名称
+"item.guzhenren.rou_bai_gu": "肉白骨"
+器官（骨道 + 嘴型蛊虫，攻击类辅助）
+变量:
+HEAL
+COST_ZHENYUAN
+COST_JINGLI
+COST_HUNGER
+被动效果
+回血强化：
+  - 玩家生命恢复速度提高 +50%（类似于再生效果，但不显示药水图标）。
+  - 当玩家处于非战斗状态 5s 以上时，回血效率进一步翻倍。
+原生器官修复:
+  - 逐步修复玩家胸腔中“缺少的原版器官”（例如心脏、肺、肾脏等）。
+  - 修复逻辑：
+    - 每 180s，随机选择一个缺少的原版器官（非蛊虫器官）[当前标准玩家器官ChestCavityForge/src/main/resources/data/chestcavity/types/humanoids/player.json]
+    - 若有了选择 则每 2 * 60s 消耗 100% COST_HUNGER 20% COST_ZHENYUAN  20% COST_JINGLI，恢复 10 点点数
+    - 若点数 大于等于 100 则恢复器官
+    - 若 2 * 60s 到了，但是玩家 HUNGER < 100% COST_HUNGER，则会随机变异成一个 原版非玩家器官 [ChestCavityForge/src/main/resources/data/chestcavity/organs]
+视觉与表现
+粒子：细小的 红色肉丝粒子 缠绕胸腔，并逐渐消散。
+音效：轻微的“骨骼咔咔声 + 血液流动声”。
+在修复器官时，会短暂播放 绿色十字粒子（类似治疗药水效果）。
+撕咬攻击:
+  - 触发条件: 
+    - 玩家近战攻击敌方，或每隔一定冷却（如 5s）有概率 (10%) 发动。
+    - 敌人与玩家的距离 ≤ 10 格。
+    - 敌人不是无实体/虚体单位（避免对盔甲架、幽灵类无效对象触发）。
+  - 判定逻辑:
+    - 闪避机制：敌方有概率（如 25%）闪避撕咬。
+    - 盔甲判定：
+        - 取敌方护甲值 vs 玩家本体 + SUM(INCREASE_EFFECT)：
+          - 如果 敌方护甲值 < 玩家 * SUM(INCREASE_EFFECT) → 撕咬生效。
+          - 如果 敌方护甲值 ≥ 玩家 * SUM(INCREASE_EFFECT) → 嘴巴不展开，撕咬不生效。
+  - 效果（撕咬成功时）:
+    - 撕咬造成吸血效果，回复 敌方总血量的 1%（真实伤害吸收，不受护甲影响，若超过玩家血量上限则转化为3分钟的饱和生命值）。
+    - 撕咬伴随小范围血液粒子与“肉块撕裂声”。
+    - 撕咬不会额外消耗真元，但 每次触发会让饱食度 -0.5（吞食消化血肉代价）。
+撕咬成功时：
+粒子：红色液体飞溅 + 微小肉块（类似 SLIME 变色 红色粒子）
+音效：僵尸咬合声 (entity.zombie.attack_iron_door) 混合骨裂声 (entity.skeleton.hurt)
+撕咬失败时：
+嘴型蛊虫发出“咔哒”声，但不展开。
