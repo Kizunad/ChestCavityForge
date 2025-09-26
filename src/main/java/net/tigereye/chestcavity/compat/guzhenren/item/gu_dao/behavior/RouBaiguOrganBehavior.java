@@ -297,6 +297,10 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
                 if (!hungerAvailable) {
                     mutateOrganSlot(player, cc, targetSlot);
                     resetRestorationState(state);
+                    targetSlot = -1;
+                    targetItemId = "";
+                    progress = 0;
+                    workTimer = 0;
                     selectionCooldown = RESTORATION_SELECTION_INTERVAL_SECONDS;
                     dirty = true;
                 } else if (consumeRestorationResources(player, boneChannel)) {
@@ -308,6 +312,10 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
                     if (progress >= RESTORATION_REQUIRED_PROGRESS) {
                         restoreOrgan(player, cc, targetSlot, targetItemId);
                         resetRestorationState(state);
+                        targetSlot = -1;
+                        targetItemId = "";
+                        progress = 0;
+                        workTimer = 0;
                         selectionCooldown = RESTORATION_SELECTION_INTERVAL_SECONDS;
                         dirty = true;
                     }
