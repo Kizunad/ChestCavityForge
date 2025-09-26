@@ -12,6 +12,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -38,6 +39,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.nudao.GuzhenrenNudaoBridge;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 
@@ -47,6 +49,7 @@ import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -152,10 +155,6 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
         if (cc == null) {
             LOGGER.info("{} [slow-tick] EXIT owner={} reason=chest_cavity_null", LOG_PREFIX, ownerName);
-            return;
-        }
-        if (!cc.opened) {
-            LOGGER.info("{} [slow-tick] EXIT owner={} reason=chest_cavity_closed", LOG_PREFIX, ownerName);
             return;
         }
         if (organ == null || organ.isEmpty()) {
@@ -272,7 +271,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (target == null || !attacker.isAlive()) {
             return damage;
         }
-        if (cc == null || !cc.opened) {
+        if (cc == null) {
             return damage;
         }
         if (organ == null || organ.isEmpty() || !isTargetOrgan(organ)) {
@@ -306,9 +305,36 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         float multiplier = (float) (BASE_CRIT_MULTIPLIER + effectBonus);
         float scaled = damage * multiplier;
 
+        resolveOwningPlayer(attacker, source).ifPresent(JianYingGuOrganBehavior::markExternalCrit);
+
         playCriticalCues(attacker.level(), target);
         XieyanguTrailHandler.applyTrail(target, BLOOD_TRAIL_DURATION_TICKS);
         return scaled;
+    }
+
+    private Optional<Player> resolveOwningPlayer(LivingEntity attacker, DamageSource source) {
+        if (source != null) {
+            Entity owner = source.getEntity();
+            if (owner instanceof Player player) {
+                return Optional.of(player);
+            }
+        }
+        if (attacker instanceof OwnableEntity ownable) {
+            Entity owner = ownable.getOwner();
+            if (owner instanceof Player player) {
+                return Optional.of(player);
+            }
+        }
+        Entity controller = attacker == null ? null : attacker.getControllingPassenger();
+        if (controller instanceof Player player) {
+            return Optional.of(player);
+        }
+        if (attacker != null && !attacker.level().isClientSide() && attacker.level() instanceof ServerLevel server) {
+            return GuzhenrenNudaoBridge.openSubject(attacker)
+                    .flatMap(handle -> handle.getOwnerName()
+                            .map(name -> server.getServer().getPlayerList().getPlayerByName(name)));
+        }
+        return Optional.empty();
     }
 
     private static boolean drainHealth(LivingEntity entity, float amount) {
