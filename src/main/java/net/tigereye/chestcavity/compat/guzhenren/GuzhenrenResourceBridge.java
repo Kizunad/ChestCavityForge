@@ -68,6 +68,8 @@ public final class GuzhenrenResourceBridge {
         XINGBIE("xingbie", "性别"),
         HUNPO("hunpo", "魂魄"),
         MAX_HUNPO("zuida_hunpo", "最大魂魄"),
+        HUNPO_STABILITY("hunpo_kangxing", "魂魄抗性", "魂魄稳定度", "hunpo_stability"),
+        MAX_HUNPO_STABILITY("hunpo_kangxing_shangxian", "魂魄抗性上限", "魂魄稳定度上限", "hunpo_stability_max"),
         NIANTOU("niantou", "念头"),
         MAX_NIANTOU("niantou_zhida", "最大念头", "niantou_zuida"),
         RENQI("renqi", "人气"),
@@ -658,6 +660,36 @@ public final class GuzhenrenResourceBridge {
         /** 精力上限 */
         public OptionalDouble getMaxJingli() {
             return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_JINGLI);
+        }
+
+        /** 魂魄稳定度（当前值） */
+        public OptionalDouble getHunpoStability() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.HUNPO_STABILITY);
+        }
+
+        /** 设置魂魄稳定度 */
+        public OptionalDouble setHunpoStability(double value) {
+            return writeDouble(PlayerField.HUNPO_STABILITY, value);
+        }
+
+        /** 魂魄稳定度增减（可选非负，自动对齐上限） */
+        public OptionalDouble adjustHunpoStability(double delta, boolean clampZero) {
+            return adjustDouble(PlayerField.HUNPO_STABILITY, delta, clampZero, PlayerField.MAX_HUNPO_STABILITY);
+        }
+
+        /** 魂魄稳定度上限 */
+        public OptionalDouble getMaxHunpoStability() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_HUNPO_STABILITY);
+        }
+
+        /** 设置魂魄稳定度上限 */
+        public OptionalDouble setMaxHunpoStability(double value) {
+            return writeDouble(PlayerField.MAX_HUNPO_STABILITY, value);
+        }
+
+        /** 将魂魄稳定度限制在对应上限内 */
+        public OptionalDouble clampHunpoStabilityToMax() {
+            return clampToMax(PlayerField.HUNPO_STABILITY, PlayerField.MAX_HUNPO_STABILITY);
         }
 
         private double scaleZhenyuanByCultivation(double baseAmount) {
