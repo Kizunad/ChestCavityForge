@@ -28,6 +28,7 @@ public final class GuzhenrenItems {
     public static final Item WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU = resolve("weilianhuajinwenjianxiagu");
     public static final Item WEI_LIAN_HUA_JIN_HEN_GU = resolve("weilianhuajinhengu");
     public static final Item WEI_LIAN_HUA_JIAN_MAI_GU = resolve("weilianhuajianmaigu");
+    public static final Item JIAN_YING_GU = resolve("jian_ying_gu");
 
     private static final Item[] JIANDAO_BONUS_ITEMS = new Item[] {
             WEI_LIAN_HUA_JIAN_XIA_GU,

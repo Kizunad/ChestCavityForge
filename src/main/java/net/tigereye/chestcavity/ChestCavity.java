@@ -34,6 +34,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilitie
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombClient;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
 
@@ -79,9 +81,10 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
             bus.addListener(MuDaoClientAbilities::onClientSetup);
 
             bus.addListener(ShiDaoClientAbilities::onClientSetup);
-
+            bus.addListener(JiandaoClientAbilities::onClientSetup);
             bus.addListener(XueDaoClientAbilities::onClientSetup);
             bus.addListener(BloodBoneBombClient::onRegisterRenderers);
+            bus.addListener(JiandaoClientRenderers::onRegisterRenderers);
     }
 
     bus.addListener(GuDaoClientRenderLayers::onAddLayers);
