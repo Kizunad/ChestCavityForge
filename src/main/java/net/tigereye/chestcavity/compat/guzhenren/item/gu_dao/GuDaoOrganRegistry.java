@@ -5,6 +5,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguO
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.HuGuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
 import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
@@ -20,6 +21,7 @@ public final class GuDaoOrganRegistry {
     private static final ResourceLocation SPIRAL_BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "luo_xuan_gu_qiang_gu");
     private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
     private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
+    private static final ResourceLocation ROU_BAI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "rou_bai_gu");
     static {
         GuDaoOrganEvents.register();
 
@@ -54,6 +56,12 @@ public final class GuDaoOrganRegistry {
                     context.sourceOrgan(),
                     context.staleRemovalContexts()
             );
+        });
+
+        GuzhenrenLinkageEffectRegistry.registerSingle(ROU_BAI_GU_ID, context -> {
+            context.addSlowTickListener(RouBaiguOrganBehavior.INSTANCE);
+            context.addOnHitListener(RouBaiguOrganBehavior.INSTANCE);
+            RouBaiguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
         });
     }
 
