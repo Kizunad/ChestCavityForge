@@ -127,57 +127,96 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             ItemStack organ,
             float damage
     ) {
-        if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
+        if (attacker == null || attacker.level().isClientSide()) {
             return damage;
         }
         if (!(target instanceof LivingEntity victim) || !victim.isAlive()) {
             return damage;
         }
-        if (player.distanceToSqr(victim) > BITE_MAX_DISTANCE_SQR) {
-            return damage;
+
+        // Delegate to specialised handlers so that player and mob attackers can share the organ.
+        if (attacker instanceof Player player) {
+            return handlePlayerHit(player, victim, cc, organ, damage);
         }
-        if (victim instanceof Player victimPlayer && (victimPlayer.isCreative() || victimPlayer.isSpectator())) {
+        return handleNonPlayerHit(attacker, victim, cc, organ, damage);
+    }
+
+    /**
+     * Handles Rou Bai Gu's bite when the attacker is a player.
+     */
+    private float handlePlayerHit(
+            Player player,
+            LivingEntity victim,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
+        if (!isEligibleVictim(victim) || !isWithinBiteRange(player, victim)) {
             return damage;
         }
 
         CompoundTag state = readState(organ);
-        int lastBiteTick = state.getInt(LAST_BITE_TICK_KEY);
         int now = player.tickCount;
-        if (now - lastBiteTick < BITE_COOLDOWN_TICKS) {
+        if (!isCooldownReady(state, now) || !shouldTriggerBite(player)) {
             return damage;
         }
 
-        if (player.getRandom().nextDouble() > BITE_TRIGGER_CHANCE) {
-            return damage;
-        }
-
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
-        LinkageChannel guChannel = ensureChannel(context, GU_DAO_INCREASE_EFFECT);
-        LinkageChannel xueChannel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
-        double increaseSum = computeIncreaseSum(guChannel, xueChannel);
-
-        double dodgeChance = Math.min(0.95, 0.5 / Math.max(0.5, increaseSum));
-        if (player.getRandom().nextDouble() < dodgeChance) {
+        double increaseSum = resolveIncreaseSum(cc);
+        if (wasDodged(player, increaseSum)) {
             playBiteFailure(player);
-            writeState(organ, tag -> tag.putInt(LAST_BITE_TICK_KEY, now));
+            stampLastBiteTick(organ, now);
             return damage;
         }
-
-        double playerArmor = Math.max(0.0, player.getArmorValue());
-        double threshold = playerArmor + increaseSum;
-        double targetArmor = Math.max(0.0, victim.getArmorValue());
-        if (targetArmor >= threshold) {
+        if (!hasArmorAdvantage(player, victim, increaseSum)) {
             playBiteFailure(player);
-            writeState(organ, tag -> tag.putInt(LAST_BITE_TICK_KEY, now));
+            stampLastBiteTick(organ, now);
             return damage;
         }
 
-        float healAmount = (float)(victim.getMaxHealth() * HEAL_RATIO * increaseSum);
+        float healAmount = calculateBiteHealing(victim, increaseSum);
         applyBiteHealing(player, healAmount);
-        player.getFoodData().addExhaustion((float)(COST_HUNGER * 0.2f));
-
+        applyPlayerExhaustion(player);
         playBiteSuccess(player, victim);
-        writeState(organ, tag -> tag.putInt(LAST_BITE_TICK_KEY, now));
+        stampLastBiteTick(organ, now);
+        return damage;
+    }
+
+    /**
+     * Handles Rou Bai Gu's bite when the attacker is a non-player mob.
+     */
+    private float handleNonPlayerHit(
+            LivingEntity attacker,
+            LivingEntity victim,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            float damage
+    ) {
+        if (!isEligibleVictim(victim) || !isWithinBiteRange(attacker, victim)) {
+            return damage;
+        }
+
+        CompoundTag state = readState(organ);
+        int now = attacker.tickCount;
+        if (!isCooldownReady(state, now) || !shouldTriggerBite(attacker)) {
+            return damage;
+        }
+
+        double increaseSum = resolveIncreaseSum(cc);
+        if (wasDodged(attacker, increaseSum)) {
+            playBiteFailure(attacker);
+            stampLastBiteTick(organ, now);
+            return damage;
+        }
+        if (!hasArmorAdvantage(attacker, victim, increaseSum)) {
+            playBiteFailure(attacker);
+            stampLastBiteTick(organ, now);
+            return damage;
+        }
+
+        float healAmount = calculateBiteHealing(victim, increaseSum);
+        attacker.heal(healAmount);
+        playBiteSuccess(attacker, victim);
+        stampLastBiteTick(organ, now);
         return damage;
     }
 
@@ -204,6 +243,121 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         ensureSoftChannel(context, BONE_GROWTH_CHANNEL);
         ensureChannel(context, GU_DAO_INCREASE_EFFECT);
         ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
+    }
+
+    /**
+     * Validates whether the intended victim can be affected by Rou Bai Gu's bite.
+     */
+    private static boolean isEligibleVictim(LivingEntity victim) {
+        if (victim == null || !victim.isAlive()) {
+            return false;
+        }
+        if (victim instanceof Player victimPlayer) {
+            return !(victimPlayer.isCreative() || victimPlayer.isSpectator());
+        }
+        return true;
+    }
+
+    /**
+     * Checks if the victim is within the allowed melee distance for the bite to trigger.
+     */
+    private static boolean isWithinBiteRange(LivingEntity attacker, LivingEntity victim) {
+        return attacker != null && victim != null && attacker.distanceToSqr(victim) <= BITE_MAX_DISTANCE_SQR;
+    }
+
+    /**
+     * Ensures the bite cooldown has elapsed before allowing another trigger.
+     */
+    private static boolean isCooldownReady(CompoundTag state, int currentTick) {
+        int lastTick = state.getInt(LAST_BITE_TICK_KEY);
+        return currentTick - lastTick >= BITE_COOLDOWN_TICKS;
+    }
+
+    /**
+     * Applies the shared trigger chance for both players and mobs.
+     */
+    private static boolean shouldTriggerBite(LivingEntity attacker) {
+        return attacker.getRandom().nextDouble() <= BITE_TRIGGER_CHANCE;
+    }
+
+    /**
+     * Resolves the total linkage-based increase for Rou Bai Gu calculations, ensuring channels exist.
+     */
+    private static double resolveIncreaseSum(ChestCavityInstance cc) {
+        if (cc == null) {
+            return 2.0; // Base efficiency when linkage data is unavailable.
+        }
+        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        LinkageChannel guChannel = ensureChannel(context, GU_DAO_INCREASE_EFFECT);
+        LinkageChannel xueChannel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
+        return computeIncreaseSum(guChannel, xueChannel);
+    }
+
+    /**
+     * Executes the dodge roll that can negate Rou Bai Gu's bite.
+     */
+    private static boolean wasDodged(LivingEntity attacker, double increaseSum) {
+        double dodgeChance = Math.min(0.95, 0.5 / Math.max(0.5, increaseSum));
+        return attacker.getRandom().nextDouble() < dodgeChance;
+    }
+
+    /**
+     * Verifies the attacker has sufficient armour advantage to pierce the victim.
+     */
+    private static boolean hasArmorAdvantage(LivingEntity attacker, LivingEntity victim, double increaseSum) {
+        double attackerArmor = Math.max(0.0, attacker.getArmorValue());
+        double threshold = attackerArmor + increaseSum;
+        double targetArmor = Math.max(0.0, victim.getArmorValue());
+        return targetArmor < threshold;
+    }
+
+    /**
+     * Computes how much health is restored when a bite succeeds.
+     */
+    private static float calculateBiteHealing(LivingEntity victim, double increaseSum) {
+        return (float)(victim.getMaxHealth() * HEAL_RATIO * increaseSum);
+    }
+
+    /**
+     * Applies the stamina tax associated with the bite for player attackers.
+     */
+    private static void applyPlayerExhaustion(Player player) {
+        player.getFoodData().addExhaustion((float)(COST_HUNGER * 0.2f));
+    }
+
+    /**
+     * Records the tick when the bite last succeeded or was blocked, enforcing cooldown.
+     */
+    private static void stampLastBiteTick(ItemStack organ, int tick) {
+        writeState(organ, tag -> tag.putInt(LAST_BITE_TICK_KEY, tick));
+    }
+
+    /**
+     * Plays the bite failure cue for both player and non-player attackers.
+     */
+    private static void playBiteFailure(LivingEntity attacker) {
+        if (attacker instanceof Player player) {
+            playBiteFailure(player);
+            return;
+        }
+        Level level = attacker.level();
+        level.playSound(null, attacker.blockPosition(), SoundEvents.SKELETON_STEP, SoundSource.HOSTILE, 0.5f, 1.6f);
+    }
+
+    /**
+     * Plays the bite success cue for both player and non-player attackers.
+     */
+    private static void playBiteSuccess(LivingEntity attacker, LivingEntity target) {
+        if (attacker instanceof Player player) {
+            playBiteSuccess(player, target);
+            return;
+        }
+        Level level = attacker.level();
+        level.playSound(null, target.blockPosition(), SoundEvents.ZOMBIE_ATTACK_IRON_DOOR, SoundSource.HOSTILE, 1.0f, 0.9f);
+        level.playSound(null, target.blockPosition(), SoundEvents.SKELETON_HURT, SoundSource.HOSTILE, 0.6f, 1.2f);
+        if (level instanceof ServerLevel server) {
+            spawnBloodSpray(server, target);
+        }
     }
 
     private static void applyDigestiveGrowth(Player player, LinkageChannel boneChannel, double efficiency) {
