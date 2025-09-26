@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.util;
 
 
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -451,13 +452,33 @@ public class ChestCavityUtil {
             cc.onRemovedListeners.clear();
             cc.getChestCavityType().loadBaseOrganScores(organScores);
 
+            Map<ResourceLocation, Integer> organCounts = new HashMap<>();
+            Map<ResourceLocation, List<ItemStack>> organStacksById = new HashMap<>();
+            for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+                ItemStack itemStack = cc.inventory.getItem(i);
+                if (itemStack != null && itemStack != ItemStack.EMPTY) {
+                    ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(itemStack.getItem());
+                    if (itemId != null) {
+                        organCounts.merge(itemId, Math.max(1, itemStack.getCount()), Integer::sum);
+                        organStacksById
+                                .computeIfAbsent(itemId, unused -> new ArrayList<>())
+                                .add(itemStack);
+                    }
+                }
+            }
+
             for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
                 ItemStack itemStack = cc.inventory.getItem(i);
                 if (itemStack != null && itemStack != ItemStack.EMPTY) {
                     Item slotitem = itemStack.getItem();
-
                     OrganData data = lookupOrgan(itemStack,cc.getChestCavityType());
-                    GuzhenrenOrganHandlers.registerListeners(cc, itemStack, staleRemovalContexts);
+                    GuzhenrenOrganHandlers.registerListeners(
+                            cc,
+                            itemStack,
+                            staleRemovalContexts,
+                            organCounts,
+                            organStacksById
+                    );
                     if (data != null) {
                         data.organScores.forEach((key, value) ->
                                 addOrganScore(key, value * Math.min(((float)itemStack.getCount()) / itemStack.getMaxStackSize(),1),organScores)
