@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.guscript.registry;
 
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.Action;
@@ -47,7 +49,12 @@ public final class GuScriptRegistry {
         return Collections.unmodifiableSet(LEAVES.keySet());
     }
 
-    public record LeafDefinition(String name, Set<String> tags, List<Action> actions) {
+    public record LeafDefinition(String name, Multiset<String> tags, List<Action> actions) {
+        public LeafDefinition {
+            tags = tags == null ? ImmutableMultiset.of() : ImmutableMultiset.copyOf(tags);
+            actions = actions == null ? List.of() : List.copyOf(actions);
+        }
+
         public LeafGuNode toNode() {
             return new LeafGuNode(name, tags, actions);
         }

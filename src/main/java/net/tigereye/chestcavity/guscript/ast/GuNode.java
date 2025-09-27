@@ -1,8 +1,10 @@
 package net.tigereye.chestcavity.guscript.ast;
 
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
+
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Base interface for GuScript AST nodes.
@@ -12,7 +14,7 @@ public sealed interface GuNode permits LeafGuNode, OperatorGuNode {
 
     String name();
 
-    Set<String> tags();
+    Multiset<String> tags();
 
     List<Action> actions();
 
@@ -28,8 +30,8 @@ public sealed interface GuNode permits LeafGuNode, OperatorGuNode {
         return kind() == GuNodeKind.COMPOSITE;
     }
 
-    default Set<String> immutableTags() {
-        return Collections.unmodifiableSet(tags());
+    default Multiset<String> immutableTags() {
+        return ImmutableMultiset.copyOf(tags());
     }
 
     default List<Action> immutableActions() {

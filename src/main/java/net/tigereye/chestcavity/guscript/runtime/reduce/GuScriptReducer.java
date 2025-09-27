@@ -1,5 +1,9 @@
 package net.tigereye.chestcavity.guscript.runtime.reduce;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
 import net.tigereye.chestcavity.guscript.ast.GuNodeKind;
@@ -8,10 +12,8 @@ import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -96,7 +98,7 @@ public final class GuScriptReducer {
             return Optional.empty();
         }
         ApplicationCandidate[] best = new ApplicationCandidate[1];
-        search(pool, rule, failures, 0, -1, new ArrayList<>(), new HashMap<>(), candidate -> {
+        search(pool, rule, failures, 0, -1, new ArrayList<>(), HashMultiset.create(), candidate -> {
             if (best[0] == null || candidate.isBetterThan(best[0])) {
                 best[0] = candidate;
             }
@@ -106,10 +108,10 @@ public final class GuScriptReducer {
 
     private static void search(List<GuNode> pool, ReactionRule rule, Set<FailureKey> failures,
                                int depth, int lastIndex, List<Integer> indices,
-                               Map<String, Integer> tagCounts, Consumer<ApplicationCandidate> acceptor) {
+                               Multiset<String> tagCounts, Consumer<ApplicationCandidate> acceptor) {
         if (depth == rule.arity()) {
             List<GuNode> selected = indices.stream().map(pool::get).toList();
-            if (!coversRequired(tagCounts, rule.requiredTagCounts())) {
+            if (!coversRequired(tagCounts, rule.requiredTags())) {
                 return;
             }
             if (containsInhibitor(tagCounts, rule.inhibitors())) {
@@ -120,7 +122,7 @@ public final class GuScriptReducer {
                 return;
             }
             ApplicationCandidate candidate = new ApplicationCandidate(rule, new ArrayList<>(indices), selected,
-                    Map.copyOf(tagCounts), coverageScore(tagCounts, rule));
+                    ImmutableMultiset.copyOf(tagCounts), coverageScore(tagCounts, rule));
             acceptor.accept(candidate);
             return;
         }
@@ -128,39 +130,34 @@ public final class GuScriptReducer {
         for (int i = lastIndex + 1; i <= pool.size() - (rule.arity() - depth); i++) {
             GuNode node = pool.get(i);
             indices.add(i);
-            Map<String, Integer> nextCounts = new HashMap<>(tagCounts);
-            node.tags().forEach(tag -> nextCounts.merge(tag, 1, Integer::sum));
+            Multiset<String> nextCounts = HashMultiset.create(tagCounts);
+            nextCounts.addAll(node.tags());
             search(pool, rule, failures, depth + 1, i, indices, nextCounts, acceptor);
             indices.remove(indices.size() - 1);
         }
     }
 
-    private static boolean coversRequired(Map<String, Integer> tagCounts, Map<String, Integer> requiredCounts) {
-        for (Map.Entry<String, Integer> entry : requiredCounts.entrySet()) {
-            if (tagCounts.getOrDefault(entry.getKey(), 0) < entry.getValue()) {
-                return false;
-            }
-        }
-        return true;
+    private static boolean coversRequired(Multiset<String> tagCounts, Multiset<String> requiredCounts) {
+        return Multisets.containsOccurrences(tagCounts, requiredCounts);
     }
 
-    private static boolean containsInhibitor(Map<String, Integer> tagCounts, Set<String> inhibitors) {
+    private static boolean containsInhibitor(Multiset<String> tagCounts, Set<String> inhibitors) {
         for (String inhibitor : inhibitors) {
-            if (tagCounts.containsKey(inhibitor)) {
+            if (tagCounts.contains(inhibitor)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static int coverageScore(Map<String, Integer> counts, ReactionRule rule) {
+    private static int coverageScore(Multiset<String> counts, ReactionRule rule) {
         int score = 0;
-        if (rule.requiredTagCounts().isEmpty()) {
-            return counts.values().stream().mapToInt(Integer::intValue).sum();
+        if (rule.requiredTags().isEmpty()) {
+            return counts.size();
         }
-        for (Map.Entry<String, Integer> entry : rule.requiredTagCounts().entrySet()) {
-            int have = counts.getOrDefault(entry.getKey(), 0);
-            score += Math.min(have, entry.getValue());
+        for (Multiset.Entry<String> entry : rule.requiredTags().entrySet()) {
+            int have = counts.count(entry.getElement());
+            score += Math.min(have, entry.getCount());
         }
         return score;
     }
@@ -184,7 +181,7 @@ public final class GuScriptReducer {
     }
 
     private record ApplicationCandidate(ReactionRule rule, List<Integer> selectedIndices,
-                                        List<GuNode> selectedNodes, Map<String, Integer> tagCounts,
+                                        List<GuNode> selectedNodes, ImmutableMultiset<String> tagCounts,
                                         int coverageScore) {
         boolean isBetterThan(ApplicationCandidate other) {
             if (coverageScore != other.coverageScore) {
