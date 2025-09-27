@@ -3,9 +3,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -15,7 +12,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
@@ -29,21 +25,22 @@ import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.util.ChestCavityUtil;
-import net.tigereye.chestcavity.util.NBTWriter;
-import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Behaviour implementation for 铁血蛊 (Tie Xue Gu).
  */
-public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener, IncreaseEffectContributor {
-    INSTANCE;
+public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener, OrganRemovalListener, IncreaseEffectContributor {
+    public static final TiexueguOrganBehavior INSTANCE = new TiexueguOrganBehavior();
+
+    private TiexueguOrganBehavior() {
+    }
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu");
@@ -51,6 +48,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect");
 
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String LOG_PREFIX = "[Tie Xue Gu]";
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -84,27 +82,28 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
+        if (!matchesOrgan(organ, CCItems.GUZHENREN_TIE_XUE_GU, ORGAN_ID)) {
+            return;
+        }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.registerContributor(organ, this, XUE_DAO_INCREASE_EFFECT);
 
-        int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
-        boolean alreadyRegistered = staleRemovalContexts.removeIf(old ->
-                ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, this));
-        cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, this));
-        if (alreadyRegistered) {
+        RemovalRegistration registration = registerRemovalHook(cc, organ, this, staleRemovalContexts);
+        if (registration.alreadyRegistered()) {
             return;
         }
 
-        double storedEffect = readEffect(organ);
+        OrganState state = organState(organ, STATE_KEY);
+        double storedEffect = state.getDouble(EFFECT_KEY, 0.0);
         if (storedEffect > 0.0) {
             applyEffectDelta(cc, organ, storedEffect);
         }
-        if (readTimer(organ) <= 0) {
-            int initial = initialTimer(cc);
-            writeTimer(organ, initial);
+        if (state.getInt(TIMER_KEY, 0) <= 0) {
+            var change = state.setInt(TIMER_KEY, initialTimer(cc), value -> Math.max(0, value), 0);
+            logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
         }
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        sendSlotUpdate(cc, organ);
     }
 
     @Override
@@ -115,27 +114,28 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
-        if (!organ.is(CCItems.GUZHENREN_TIE_XUE_GU)) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());
-            if (!ORGAN_ID.equals(id)) {
-                return;
-            }
-        }
-
-        int timer = Math.max(0, readTimer(organ));
-        if (timer > 0) {
-            writeTimer(organ, timer - 1);
+        if (!matchesOrgan(organ, CCItems.GUZHENREN_TIE_XUE_GU, ORGAN_ID)) {
             return;
         }
 
-        triggerEffect(entity, cc, organ);
-        writeTimer(organ, TRIGGER_INTERVAL_SLOW_TICKS);
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        OrganState state = organState(organ, STATE_KEY);
+        int timer = Math.max(0, state.getInt(TIMER_KEY, 0));
+        if (timer > 0) {
+            var change = state.setInt(TIMER_KEY, timer - 1, value -> Math.max(0, value), 0);
+            logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
+            return;
+        }
+
+        triggerEffect(entity, cc, organ, state);
+        var change = state.setInt(TIMER_KEY, TRIGGER_INTERVAL_SLOW_TICKS, value -> Math.max(0, value), 0);
+        logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
+        sendSlotUpdate(cc, organ);
     }
 
     @Override
     public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        double storedEffect = readEffect(organ);
+        OrganState state = organState(organ, STATE_KEY);
+        double storedEffect = state.getDouble(EFFECT_KEY, 0.0);
         if (storedEffect != 0.0 && cc != null) {
             applyEffectDelta(cc, organ, -storedEffect);
         }
@@ -146,8 +146,10 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             ledger.unregisterContributor(organ);
             ledger.verifyAndRebuildIfNeeded();
         }
-        writeEffect(organ, 0.0);
-        writeTimer(organ, 0);
+        var effectChange = state.setDouble(EFFECT_KEY, 0.0, value -> Math.max(0.0, value), 0.0);
+        var timerChange = state.setInt(TIMER_KEY, 0, value -> Math.max(0, value), 0);
+        logStateChange(LOGGER, LOG_PREFIX, organ, EFFECT_KEY, effectChange);
+        logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, timerChange);
     }
 
     @Override
@@ -161,7 +163,8 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             return;
         }
         int stackCount = Math.max(1, organ.getCount());
-        double effect = readEffect(organ);
+        OrganState state = organState(organ, STATE_KEY);
+        double effect = state.getDouble(EFFECT_KEY, 0.0);
         registrar.record(XUE_DAO_INCREASE_EFFECT, stackCount, effect);
     }
 
@@ -170,30 +173,31 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null) {
             return;
         }
-        ensureChannel(LinkageManager.getContext(cc));
+        ensureIncreaseChannel(LinkageManager.getContext(cc));
     }
 
-    private void triggerEffect(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+    private void triggerEffect(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state) {
         int stackCount = Math.max(1, organ.getCount());
         float drainAmount = HEALTH_DRAIN_PER_STACK * stackCount;
         if (!applyHealthDrain(entity, drainAmount)) {
-            handleFailedDrain(entity, cc, organ, stackCount);
+            handleFailedDrain(entity, cc, organ, state, stackCount);
             return;
         }
         if (entity.isDeadOrDying()) {
             return;
         }
 
-        double previousEffect = readEffect(organ);
+        double previousEffect = state.getDouble(EFFECT_KEY, 0.0);
         double newEffect = computeEfficiencyBonus(previousEffect, stackCount);
         double delta = newEffect - previousEffect;
         if (delta != 0.0) {
             applyEffectDelta(cc, organ, delta);
         }
-        writeEffect(organ, newEffect);
+        var effectChange = state.setDouble(EFFECT_KEY, newEffect, value -> Math.max(0.0, value), 0.0);
+        logStateChange(LOGGER, LOG_PREFIX, organ, EFFECT_KEY, effectChange);
 
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = ensureChannel(context);
+        LinkageChannel channel = ensureIncreaseChannel(context);
         double efficiency = 1.0 + Math.max(0.0, channel.get());
 
         if (entity instanceof Player player) {
@@ -266,69 +270,24 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return Math.min(BASE_EFFICIENCY_MAX, baseline);
     }
 
-    private static LinkageChannel ensureChannel(ActiveLinkageContext context) {
-        return context.getOrCreateChannel(XUE_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
+    private LinkageChannel ensureIncreaseChannel(ActiveLinkageContext context) {
+        LinkageChannel channel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
+        if (channel != null) {
+            channel.addPolicy(NON_NEGATIVE);
+        }
+        return channel;
     }
 
-    private static void applyEffectDelta(ChestCavityInstance cc, ItemStack organ, double delta) {
+    private void applyEffectDelta(ChestCavityInstance cc, ItemStack organ, double delta) {
         if (cc == null || delta == 0.0) {
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = ensureChannel(context);
-        channel.adjust(delta);
+        LinkageChannel channel = ensureIncreaseChannel(context);
+        if (channel != null) {
+            channel.adjust(delta);
+        }
         context.increaseEffects().adjust(organ, XUE_DAO_INCREASE_EFFECT, delta);
-    }
-
-    private static int readTimer(ItemStack stack) {
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return 0;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        return state.getInt(TIMER_KEY);
-    }
-
-    private static void writeTimer(ItemStack stack, int value) {
-        int clamped = Math.max(0, value);
-        int previous = readTimer(stack);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putInt(TIMER_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
-        logNbtChange(stack, TIMER_KEY, previous, clamped);
-    }
-
-    private static double readEffect(ItemStack stack) {
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0.0;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return 0.0;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        if (!state.contains(EFFECT_KEY, Tag.TAG_DOUBLE)) {
-            return 0.0;
-        }
-        return state.getDouble(EFFECT_KEY);
-    }
-
-    private static void writeEffect(ItemStack stack, double value) {
-        double clamped = Math.max(0.0, value);
-        double previous = readEffect(stack);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putDouble(EFFECT_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
-        logNbtChange(stack, EFFECT_KEY, previous, clamped);
     }
 
     private static int initialTimer(ChestCavityInstance cc) {
@@ -341,40 +300,25 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return TRIGGER_INTERVAL_SLOW_TICKS;
     }
 
-    private void handleFailedDrain(LivingEntity player, ChestCavityInstance cc, ItemStack organ, int stackCount) {
-        double previousEffect = readEffect(organ);
+    private void handleFailedDrain(LivingEntity player, ChestCavityInstance cc, ItemStack organ, OrganState state, int stackCount) {
+        double previousEffect = state.getDouble(EFFECT_KEY, 0.0);
         double targetEffect = computeDecayTarget(previousEffect, stackCount);
         double delta = targetEffect - previousEffect;
         if (delta != 0.0) {
             applyEffectDelta(cc, organ, delta);
         }
-        writeEffect(organ, targetEffect);
+        var effectChange = state.setDouble(EFFECT_KEY, targetEffect, value -> Math.max(0.0, value), 0.0);
+        logStateChange(LOGGER, LOG_PREFIX, organ, EFFECT_KEY, effectChange);
         if (player instanceof Player p && !p.level().isClientSide()) {
             p.sendSystemMessage(STARVED_MESSAGE);
         }
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("[Tie Xue Gu] Drain failed for {} (stackCount={}, available={}, required={})",
+            LOGGER.debug("{} Drain failed for {} (stackCount={}, available={}, required={})",
+                    LOG_PREFIX,
                     player.getName().getString(),
                     stackCount,
                     player.getHealth() + player.getAbsorptionAmount(),
                     HEALTH_DRAIN_PER_STACK * stackCount);
         }
-    }
-
-    private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
-        if (Objects.equals(oldValue, newValue)) {
-            return;
-        }
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("[Tie Xue Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
-        }
-    }
-
-    private static String describeStack(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return "<empty>";
-        }
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        return stack.getCount() + "x " + id;
     }
 }
