@@ -30,24 +30,7 @@ import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
-import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombClient;
-import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoEntityAttributes;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JianYingGuEvents;
-
-import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
-
-import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
-import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
-import net.tigereye.chestcavity.guscript.GuScriptModule;
-import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
+import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
 
 @Mod(ChestCavity.MODID)
 public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix organUtil class, possibly update to 4?, add alexs mobs and other mods compat
@@ -78,25 +61,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		bus.addListener(this::doClientStuff);
 		bus.addListener(this::registerMenuScreens);
 		bus.addListener(this::doServerStuff);
-		bus.addListener(NetworkHandler::registerCommon);
-        // Mod lifecycle listeners for Guzhenren Jian Dao entities
-        bus.addListener(JiandaoEntityAttributes::onAttributeCreation);
-
-    if (FMLEnvironment.dist.isClient()) {
-            bus.addListener(Abilities::onClientSetup);
-            bus.addListener(GuDaoClientAbilities::onClientSetup);
-            bus.addListener(MuDaoClientAbilities::onClientSetup);
-
-            bus.addListener(ShiDaoClientAbilities::onClientSetup);
-            bus.addListener(JiandaoClientAbilities::onClientSetup);
-            bus.addListener(XueDaoClientAbilities::onClientSetup);
-            bus.addListener(BloodBoneBombClient::onRegisterRenderers);
-            bus.addListener(JiandaoClientRenderers::onRegisterRenderers);
-    }
-
-    if (FMLEnvironment.dist.isClient()) {
-            bus.addListener(GuDaoClientRenderLayers::onAddLayers);
-        }
+        bus.addListener(NetworkHandler::registerCommon);
 
 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
@@ -105,10 +70,9 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
                 NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
                 NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
-                NeoForge.EVENT_BUS.addListener(JianYingGuEvents::onServerTick);
-		if (FMLEnvironment.dist.isClient()) {
-			NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
-		}
+                if (FMLEnvironment.dist.isClient()) {
+                        NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
+                }
 
 		AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
@@ -127,13 +91,11 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCStatusEffects.MOB_EFFECTS.register(bus);
 		bus.addListener(CCKeybindings::register);
 		CCTagOrgans.init();
-		OrganRetentionRules.registerNamespace(MODID);
-		OrganRetentionRules.registerNamespace("guzhenren");
-		if (ModList.get().isLoaded("guzhenren")) {
-			KongqiaoOrganRegistry.bootstrap();
-			GuzhenrenNetworkBridge.bootstrap();
-			GuScriptModule.bootstrap();
-		}
+                OrganRetentionRules.registerNamespace(MODID);
+                OrganRetentionRules.registerNamespace("guzhenren");
+                if (ModList.get().isLoaded("guzhenren")) {
+                        GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
+                }
 		//CCCommands.register();
 		//CCNetworkingPackets.register();
 		//ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new OrganManager());
