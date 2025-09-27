@@ -59,6 +59,12 @@ The top-level package highlights the AST and UI folders explicitly while still a
 - Reactive nodes subscribe to context updates (linkage/resource deltas, target changes) via a lightweight observer API. When those values change, dependent nodes mark cached results dirty so only affected branches re-evaluate.
 - Compilation caches structural metadata (listener graphs, node indices) so repeated triggers reuse existing node instances while swapping in fresh execution context.
 
+### AST Reduction Model
+- `guscript/ast` 提供封装的 `GuNode` 层级（`LeafGuNode`、`OperatorGuNode`）和 `GuNodeKind`，反应总是构建包含原子子节点的运算符树，而非平铺产物列表。
+- `ReactionRule`（位于 `guscript/runtime`）将每条反应建模为运算符：定义 `arity`、所需/禁用标签以及 `ReactionOperator`，返回新的父节点并保留参与的 children。
+- `GuScriptReducer` 穷举候选组合，按覆盖度→优先级挑选最佳反应，将子节点替换为父节点，最终得到一个或多个根节点构成的 AST。
+- `GuScriptReducerDebug.logDemo()` 演示 (骨+血)+爆发 → 血骨爆裂枪 的归约流程，方便 UI、脚本编辑器或单元测试复用。
+
 ## UI Subsystem
 
 - `GuScriptMenu` mirrors ChestCavity's container: it accepts a `PageLayout`, calculates `imageHeight` using `rows`, and instantiates `Slot` objects for each item slot. Pages share one menu instance at a time; switching pages closes and reopens the container with the new layout.
