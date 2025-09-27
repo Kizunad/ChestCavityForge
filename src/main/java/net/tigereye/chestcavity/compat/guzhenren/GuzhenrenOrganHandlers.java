@@ -7,22 +7,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.DuDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.GuCaiOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.LeiDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang.WuHangOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.TuDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.ShuiDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoOrganRegistry;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
@@ -55,10 +41,7 @@ public final class GuzhenrenOrganHandlers {
             Map<ResourceLocation, Integer> cachedCounts,
             Map<ResourceLocation, List<ItemStack>> cachedStacks
     ) {
-        if (stack.isEmpty() || !ModList.get().isLoaded(MOD_ID)) {
-            if (ChestCavity.LOGGER.isDebugEnabled() && !stack.isEmpty()) {
-                ChestCavity.LOGGER.debug("[Guzhenren] Skipping listener registration for {} because the mod is not loaded", stack);
-            }
+        if (stack.isEmpty()) {
             return;
         }
         if (ChestCavity.LOGGER.isDebugEnabled()) {
@@ -69,19 +52,6 @@ public final class GuzhenrenOrganHandlers {
             );
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        Abilities.bootstrap();
-        GuCaiOrganRegistry.bootstrap();
-        DuDaoOrganRegistry.bootstrap();
-        GuDaoOrganRegistry.bootstrap();
-        LeiDaoOrganRegistry.bootstrap();
-        KongqiaoOrganRegistry.bootstrap();
-        MuDaoOrganRegistry.bootstrap();
-        TuDaoOrganRegistry.bootstrap();
-        ShuiDaoOrganRegistry.bootstrap();
-        XueDaoOrganRegistry.bootstrap();
-        WuHangOrganRegistry.bootstrap();
-        ShiDaoOrganRegistry.bootstrap();
-        JiandaoOrganRegistry.bootstrap();
         GuzhenrenLinkageEffectRegistry.applyEffects(
                 cc,
                 stack,
