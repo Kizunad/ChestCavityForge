@@ -42,7 +42,9 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
         int bindingButtonHeight = Math.max(1, ui.bindingButtonHeightPx);
         int bindingStackHeight = bindingButtonHeight * 2 + bindingSpacing;
         int bindingTopPadding = Math.max(ui.minTopGutterPx, (int) Math.round(slotSize * ui.bindingTopPaddingSlots));
-        int bindingBaseY = this.topPos - bindingTopPadding - bindingStackHeight;
+        int bindingBaseY = this.topPos - bindingTopPadding - bindingStackHeight + ui.bindingVerticalOffsetPx;
+        int maxBindingBaseY = this.topPos - bindingStackHeight - ui.minTopGutterPx;
+        bindingBaseY = Math.min(bindingBaseY, maxBindingBaseY);
 
         int rightPadding = Math.max(ui.minHorizontalGutterPx, (int) Math.round(slotSize * ui.bindingRightPaddingSlots));
         int bindingButtonWidth = (int) Math.round(this.imageWidth * ui.bindingButtonWidthFraction);
@@ -77,7 +79,7 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
         if (maxPageButtonX < minPageButtonX) {
             maxPageButtonX = minPageButtonX;
         }
-        int pageButtonX = Mth.clamp(preferredPageButtonX, minPageButtonX, maxPageButtonX);
+        int pageButtonX = Mth.clamp(preferredPageButtonX + ui.pageButtonHorizontalOffsetPx, minPageButtonX, maxPageButtonX);
 
         int pageButtonTopPadding = Math.max(ui.minTopGutterPx, (int) Math.round(slotSize * ui.pageButtonTopPaddingSlots));
         int pageButtonY = this.topPos - pageButtonTopPadding - this.navButtonHeight;
