@@ -7,6 +7,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.ui.ChestCavityScreenHandler;
+import net.tigereye.chestcavity.guscript.ui.GuScriptMenu;
 
 public class CCContainers {
     public static final DeferredRegister<MenuType<?>> MENU_TYPES = DeferredRegister.create(Registries.MENU, ChestCavity.MODID);
@@ -14,6 +15,10 @@ public class CCContainers {
     public static final DeferredHolder<MenuType<?>, MenuType<ChestCavityScreenHandler>> CHEST_CAVITY_SCREEN_HANDLER = MENU_TYPES.register(
             "chest_cavity_screen",
             () -> new MenuType<>(ChestCavityScreenHandler::new, FeatureFlags.VANILLA_SET)
+    );
+    public static final DeferredHolder<MenuType<?>, MenuType<GuScriptMenu>> GUSCRIPT_MENU = MENU_TYPES.register(
+            "guscript_menu",
+            () -> new MenuType<>(GuScriptMenu::new, FeatureFlags.VANILLA_SET)
     );
 
 }

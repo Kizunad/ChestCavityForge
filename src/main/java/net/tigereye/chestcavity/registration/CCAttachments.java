@@ -11,6 +11,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
+import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 
 import java.util.Optional;
 
@@ -22,6 +23,11 @@ public final class CCAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<ChestCavityInstance>> CHEST_CAVITY =
             ATTACHMENT_TYPES.register("chest_cavity", () -> AttachmentType.builder(CCAttachments::createInstance)
                     .serialize(new ChestCavitySerializer())
+                    .build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<GuScriptAttachment>> GUSCRIPT =
+            ATTACHMENT_TYPES.register("guscript", () -> AttachmentType.builder(GuScriptAttachment::create)
+                    .serialize(new GuScriptAttachment.Serializer())
                     .build());
 
     private CCAttachments() {
@@ -40,6 +46,14 @@ public final class CCAttachments {
 
     public static Optional<ChestCavityInstance> getExistingChestCavity(LivingEntity entity) {
         return entity.getExistingData(CHEST_CAVITY.get());
+    }
+
+    public static GuScriptAttachment getGuScript(LivingEntity entity) {
+        return entity.getData(GUSCRIPT.get());
+    }
+
+    public static Optional<GuScriptAttachment> getExistingGuScript(LivingEntity entity) {
+        return entity.getExistingData(GUSCRIPT.get());
     }
 
     private static class ChestCavitySerializer implements IAttachmentSerializer<CompoundTag, ChestCavityInstance> {

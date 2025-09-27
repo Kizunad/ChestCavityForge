@@ -13,6 +13,8 @@ import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCKeybindings;
+import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.util.SingleplayerTickController;
 
@@ -24,6 +26,13 @@ public class KeybindingClientListeners {
 
     public static void onClientTick(ClientTickEvent.Post event){
         Player player = Minecraft.getInstance().player;
+        while(CCKeybindings.GUSCRIPT_OPEN != null && CCKeybindings.GUSCRIPT_OPEN.consumeClick()) {
+            if (player != null) {
+                ChestCavity.LOGGER.info("[GuScript] Sending open request from client");
+                sendOpenRequest();
+            }
+        }
+
         while(CCKeybindings.UTILITY_ABILITIES != null && CCKeybindings.UTILITY_ABILITIES.consumeClick()) {
             if(player != null) {
                 for(ResourceLocation i : CCKeybindings.UTILITY_ABILITY_LIST) {
@@ -123,6 +132,13 @@ public class KeybindingClientListeners {
             }
         }
         return false;
+    }
+
+    private static void sendOpenRequest() {
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection != null) {
+            connection.send(new GuScriptOpenPayload());
+        }
     }
 
     private static void sendHotkeyToServer(ChestCavityHotkeyPayload payload) {

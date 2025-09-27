@@ -1,19 +1,13 @@
 package net.tigereye.chestcavity.registration;
 
+import net.minecraft.world.food.Foods;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.food.Foods;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.Tiers;
-import net.neoforged.neoforge.registries.DeferredItem;
+import net.minecraft.world.item.*;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredItem;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.items.ChestOpener;
-import net.tigereye.chestcavity.items.CreeperAppendix;
-import net.tigereye.chestcavity.items.VenomGland;
 import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.items.CreeperAppendix;
 import net.tigereye.chestcavity.items.VenomGland;
@@ -24,11 +18,6 @@ public class CCItems {
 	public static final Item.Properties CHEST_OPENER_PROPERTIES = new Item.Properties().stacksTo(1);
 	public static final Item.Properties FOOD_ITEM_PROPERTIES = new Item.Properties().stacksTo(64);
 
-	/**
-	 * External Guzhenren item handles. These resolve the upstream mod
-	 * at runtime so ChestCavity can treat the items as first-class content
-	 * without registering duplicates.
-	 */
 	public static final DeferredItem<Item> CHEST_OPENER = ITEMS.register("chest_opener", ChestOpener::new);
 
 	// -- 蛊材

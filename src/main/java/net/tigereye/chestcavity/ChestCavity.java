@@ -25,6 +25,7 @@ import net.tigereye.chestcavity.network.ServerEvents;
 import net.tigereye.chestcavity.registration.*;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
+import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -144,6 +145,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 
 	private void registerMenuScreens(RegisterMenuScreensEvent event) {
 		event.register(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), ChestCavityScreen::new);
+		event.register(CCContainers.GUSCRIPT_MENU.get(), GuScriptScreen::new);
 	}
 
 	public void doServerStuff(FMLDedicatedServerSetupEvent event) {
