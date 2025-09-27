@@ -1,0 +1,8 @@
+{
+  "item": "minecraft:bone",
+  "name": "骨蛊",
+  "tags": ["骨"],
+  "actions": [
+    { "id": "consume.health", "amount": 2 }
+  ]
+}

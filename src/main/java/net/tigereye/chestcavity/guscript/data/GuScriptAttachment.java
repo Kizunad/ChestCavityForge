@@ -1,8 +1,9 @@
 package net.tigereye.chestcavity.guscript.data;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
@@ -11,24 +12,76 @@ import net.neoforged.neoforge.attachment.IAttachmentHolder;
 import net.neoforged.neoforge.attachment.IAttachmentSerializer;
 import net.tigereye.chestcavity.ChestCavity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * Stores the serialized state for GuScript inventory data.
- * Provides a single row of item slots plus an additional binding slot.
+ * Stores the serialized state for GuScript notebook pages and exposes the active page as a Container.
  */
 public class GuScriptAttachment implements Container {
     public static final int ITEM_SLOT_COUNT = 9;
     public static final int BINDING_SLOT_INDEX = 9;
     public static final int TOTAL_SLOTS = ITEM_SLOT_COUNT + 1;
+    private static final int DEFAULT_ROWS = 1;
 
-    private final NonNullList<ItemStack> items = NonNullList.withSize(TOTAL_SLOTS, ItemStack.EMPTY);
+    private final List<GuScriptPageState> pages = new ArrayList<>();
+    private int currentPage;
     private boolean changed;
-    private BindingTarget bindingTarget = BindingTarget.KEYBIND;
-    private ListenerType listenerType = ListenerType.ON_HIT;
+    private final int rows;
 
     public static GuScriptAttachment create(IAttachmentHolder holder) {
-        return new GuScriptAttachment();
+        return new GuScriptAttachment(DEFAULT_ROWS);
+    }
+
+    public GuScriptAttachment(int rows) {
+        this.rows = rows;
+        this.currentPage = 0;
+        ensurePageExists(0);
+    }
+
+    private void ensurePageExists(int index) {
+        while (pages.size() <= index) {
+            pages.add(new GuScriptPageState(rows));
+        }
+    }
+
+    public GuScriptPageState activePage() {
+        ensurePageExists(currentPage);
+        return pages.get(currentPage);
+    }
+
+    public List<GuScriptPageState> pages() {
+        return pages;
+    }
+
+    public int getPageCount() {
+        return pages.size();
+    }
+
+    public int getCurrentPageIndex() {
+        return currentPage;
+    }
+
+    public void setCurrentPage(int index) {
+        if (index < 0) {
+            index = 0;
+        }
+        if (index >= pages.size()) {
+            index = pages.size() - 1;
+        }
+        if (index != currentPage) {
+            currentPage = index;
+            setChanged();
+        }
+    }
+
+    public GuScriptPageState addPage() {
+        GuScriptPageState page = new GuScriptPageState(rows);
+        page.setTitle("Page " + (pages.size() + 1));
+        pages.add(page);
+        setChanged();
+        return page;
     }
 
     @Override
@@ -38,23 +91,22 @@ public class GuScriptAttachment implements Container {
 
     @Override
     public boolean isEmpty() {
-        for (ItemStack stack : items) {
-            if (!stack.isEmpty()) {
-                return false;
-            }
-        }
-        return true;
+        return activePage().items().stream().allMatch(ItemStack::isEmpty);
     }
 
     @Override
     public ItemStack getItem(int slot) {
-        return slot >= 0 && slot < items.size() ? items.get(slot) : ItemStack.EMPTY;
+        if (slot < 0 || slot >= TOTAL_SLOTS) {
+            return ItemStack.EMPTY;
+        }
+        return activePage().items().get(slot);
     }
 
     @Override
     public ItemStack removeItem(int slot, int amount) {
-        ItemStack result = ContainerHelper.removeItem(items, slot, amount);
+        ItemStack result = ContainerHelper.removeItem(activePage().items(), slot, amount);
         if (!result.isEmpty()) {
+            activePage().markDirty();
             setChanged();
             ChestCavity.LOGGER.debug("[GuScript] Removed {} items from slot {}", amount, slot);
         }
@@ -63,8 +115,9 @@ public class GuScriptAttachment implements Container {
 
     @Override
     public ItemStack removeItemNoUpdate(int slot) {
-        ItemStack stack = ContainerHelper.takeItem(items, slot);
+        ItemStack stack = ContainerHelper.takeItem(activePage().items(), slot);
         if (!stack.isEmpty()) {
+            activePage().markDirty();
             setChanged();
             ChestCavity.LOGGER.debug("[GuScript] Cleared slot {} via removeItemNoUpdate", slot);
         }
@@ -73,18 +126,19 @@ public class GuScriptAttachment implements Container {
 
     @Override
     public void setItem(int slot, ItemStack stack) {
-        if (slot < 0 || slot >= items.size()) {
+        if (slot < 0 || slot >= TOTAL_SLOTS) {
             return;
         }
-        ItemStack previous = items.get(slot);
-        items.set(slot, stack);
+        ItemStack previous = activePage().items().get(slot);
+        activePage().items().set(slot, stack);
         if (!stack.isEmpty() && stack.getCount() > getMaxStackSize()) {
             stack.setCount(getMaxStackSize());
         }
         if (!ItemStack.matches(previous, stack)) {
             ChestCavity.LOGGER.debug("[GuScript] Slot {} updated: {} -> {}", slot, describe(previous), describe(stack));
+            activePage().markDirty();
+            setChanged();
         }
-        setChanged();
     }
 
     @Override
@@ -115,27 +169,91 @@ public class GuScriptAttachment implements Container {
 
     @Override
     public void clearContent() {
-        for (int i = 0; i < items.size(); i++) {
-            items.set(i, ItemStack.EMPTY);
-        }
+        activePage().items().replaceAll(stack -> ItemStack.EMPTY);
+        activePage().markDirty();
         setChanged();
     }
 
+    public BindingTarget getBindingTarget() {
+        return activePage().bindingTarget();
+    }
+
+    public ListenerType getListenerType() {
+        return activePage().listenerType();
+    }
+
+    public void setBindingTarget(BindingTarget target) {
+        activePage().setBindingTarget(target);
+        setChanged();
+    }
+
+    public void cycleBindingTarget() {
+        setBindingTarget(getBindingTarget().next());
+    }
+
+    public void setListenerType(ListenerType type) {
+        activePage().setListenerType(type);
+        setChanged();
+    }
+
+    public void cycleListenerType() {
+        setListenerType(getListenerType().next());
+    }
+
+    public boolean consumePageDirtyFlag() {
+        return activePage().consumeDirtyFlag();
+    }
+
+    public int currentInventorySignature() {
+        return activePage().inventorySignature();
+    }
+
+    public void updateInventorySignature(int signature) {
+        activePage().setInventorySignature(signature);
+    }
+
+    public GuScriptProgramCache getCompiledProgram() {
+        return activePage().compiledProgram();
+    }
+
+    public void setCompiledProgram(GuScriptProgramCache cache) {
+        activePage().setCompiledProgram(cache);
+    }
+
+    public long getLastListenerTrigger(ListenerType type) {
+        return activePage().getLastListenerTrigger(type);
+    }
+
+    public void setLastListenerTrigger(ListenerType type, long gameTime) {
+        activePage().setLastListenerTrigger(type, gameTime);
+    }
+
     public void load(CompoundTag tag, HolderLookup.Provider provider) {
-        ContainerHelper.loadAllItems(tag, items, provider);
-        if (tag.contains("BindingTarget")) {
-            bindingTarget = BindingTarget.fromSerializedName(tag.getString("BindingTarget"));
+        pages.clear();
+        int rows = tag.contains("Rows") ? tag.getInt("Rows") : DEFAULT_ROWS;
+        int current = tag.contains("CurrentPage") ? tag.getInt("CurrentPage") : 0;
+        ListTag list = tag.getList("Pages", Tag.TAG_COMPOUND);
+        if (list.isEmpty()) {
+            pages.add(new GuScriptPageState(rows));
+        } else {
+            for (Tag element : list) {
+                CompoundTag pageTag = (CompoundTag) element;
+                pages.add(GuScriptPageState.load(pageTag, provider, rows));
+            }
         }
-        if (tag.contains("ListenerType")) {
-            listenerType = ListenerType.fromSerializedName(tag.getString("ListenerType"));
-        }
+        this.currentPage = Math.max(0, Math.min(current, pages.size() - 1));
+        this.changed = true;
     }
 
     public CompoundTag save(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
-        ContainerHelper.saveAllItems(tag, items, provider);
-        tag.putString("BindingTarget", bindingTarget.getSerializedName());
-        tag.putString("ListenerType", listenerType.getSerializedName());
+        ListTag list = new ListTag();
+        for (GuScriptPageState page : pages) {
+            list.add(page.save(provider));
+        }
+        tag.put("Pages", list);
+        tag.putInt("CurrentPage", currentPage);
+        tag.putInt("Rows", rows);
         return tag;
     }
 
@@ -144,44 +262,6 @@ public class GuScriptAttachment implements Container {
             return "empty";
         }
         return Objects.toString(stack.getItem().builtInRegistryHolder().key().location()) + " x" + stack.getCount();
-    }
-
-    public BindingTarget getBindingTarget() {
-        return bindingTarget;
-    }
-
-    public ListenerType getListenerType() {
-        return listenerType;
-    }
-
-    public void setBindingTarget(BindingTarget target) {
-        if (target == null) {
-            target = BindingTarget.KEYBIND;
-        }
-        if (this.bindingTarget != target) {
-            ChestCavity.LOGGER.debug("[GuScript] Binding target updated: {} -> {}", this.bindingTarget, target);
-            this.bindingTarget = target;
-            setChanged();
-        }
-    }
-
-    public void cycleBindingTarget() {
-        setBindingTarget(bindingTarget.next());
-    }
-
-    public void setListenerType(ListenerType type) {
-        if (type == null) {
-            type = ListenerType.ON_HIT;
-        }
-        if (this.listenerType != type) {
-            ChestCavity.LOGGER.debug("[GuScript] Listener type updated: {} -> {}", this.listenerType, type);
-            this.listenerType = type;
-            setChanged();
-        }
-    }
-
-    public void cycleListenerType() {
-        setListenerType(listenerType.next());
     }
 
     public static class Serializer implements IAttachmentSerializer<CompoundTag, GuScriptAttachment> {

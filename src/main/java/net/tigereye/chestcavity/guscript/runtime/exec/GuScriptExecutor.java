@@ -1,0 +1,35 @@
+package net.tigereye.chestcavity.guscript.runtime.exec;
+
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.guscript.data.BindingTarget;
+import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
+import net.tigereye.chestcavity.guscript.data.GuScriptProgramCache;
+import net.tigereye.chestcavity.guscript.data.ListenerType;
+import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
+
+/**
+ * Executes compiled GuScript programs for a player.
+ */
+public final class GuScriptExecutor {
+
+    private static final GuScriptRuntime RUNTIME = new GuScriptRuntime();
+
+    private GuScriptExecutor() {
+    }
+
+    public static void trigger(ServerPlayer player, LivingEntity target, GuScriptAttachment attachment) {
+        if (player == null || attachment == null) {
+            return;
+        }
+        GuScriptProgramCache cache = GuScriptCompiler.compileIfNeeded(attachment, player.level().getGameTime());
+        if (cache.roots().isEmpty()) {
+            ChestCavity.LOGGER.debug("[GuScript] No compiled roots to execute for {}", player.getGameProfile().getName());
+            return;
+        }
+        DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, target == null ? player : target);
+        DefaultGuScriptContext context = new DefaultGuScriptContext(player, target == null ? player : target, bridge);
+        RUNTIME.executeAll(cache.roots(), context);
+    }
+}

@@ -1,0 +1,8 @@
+{
+  "item": "minecraft:gunpowder",
+  "name": "爆发蛊",
+  "tags": ["爆发"],
+  "actions": [
+    { "id": "modifier.damage_multiplier", "amount": 0.5 }
+  ]
+}

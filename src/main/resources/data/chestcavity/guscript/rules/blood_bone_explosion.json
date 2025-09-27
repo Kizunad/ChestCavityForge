@@ -1,0 +1,17 @@
+{
+  "arity": 2,
+  "priority": 40,
+  "required": {
+    "核心": 1,
+    "爆发": 1
+  },
+  "result": {
+    "name": "血骨爆裂枪",
+    "operator_id": "chestcavity:blood_bone_explosion",
+    "kind": "composite",
+    "tags": ["杀招"],
+    "actions": [
+      { "id": "emit.projectile", "projectileId": "minecraft:arrow", "damage": 6.0 }
+    ]
+  }
+}

@@ -1,6 +1,8 @@
 package net.tigereye.chestcavity.guscript.runtime.action;
 
 import com.google.gson.JsonObject;
+import net.tigereye.chestcavity.guscript.actions.AddDamageMultiplierAction;
+import net.tigereye.chestcavity.guscript.actions.AddFlatDamageAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
@@ -32,6 +34,8 @@ public final class ActionRegistry {
                 json.get("projectileId").getAsString(),
                 json.get("damage").getAsDouble()
         ));
+        register(AddDamageMultiplierAction.ID, json -> new AddDamageMultiplierAction(json.get("amount").getAsDouble()));
+        register(AddFlatDamageAction.ID, json -> new AddFlatDamageAction(json.get("amount").getAsDouble()));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {

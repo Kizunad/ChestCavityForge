@@ -24,6 +24,8 @@ public class GuScriptMenu extends AbstractContainerMenu {
     private static final int SLOT_SIZE = 18;
     private int bindingTargetOrdinal = BindingTarget.KEYBIND.ordinal();
     private int listenerTypeOrdinal = ListenerType.ON_HIT.ordinal();
+    private int pageIndex;
+    private int pageCount = 1;
 
     public GuScriptMenu(int syncId, Inventory inventory) {
         this(syncId, inventory, resolveContainer(inventory.player));
@@ -91,6 +93,30 @@ public class GuScriptMenu extends AbstractContainerMenu {
                 listenerTypeOrdinal = value;
             }
         });
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return pageIndex;
+            }
+
+            @Override
+            public void set(int value) {
+                pageIndex = value;
+            }
+        });
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return pageCount;
+            }
+
+            @Override
+            public void set(int value) {
+                pageCount = value;
+            }
+        });
     }
 
     public int getRows() {
@@ -137,6 +163,18 @@ public class GuScriptMenu extends AbstractContainerMenu {
         }
     }
 
+    @Override
+    public void slotsChanged(Container container) {
+        super.slotsChanged(container);
+        if (container instanceof GuScriptAttachment attachment && attachment.consumeChangedFlag()) {
+            bindingTargetOrdinal = attachment.getBindingTarget().ordinal();
+            listenerTypeOrdinal = attachment.getListenerType().ordinal();
+            pageIndex = attachment.getCurrentPageIndex();
+            pageCount = attachment.getPageCount();
+            broadcastChanges();
+        }
+    }
+
     private static class BindingSlot extends Slot {
         public BindingSlot(Container container, int index, int xPosition, int yPosition) {
             super(container, index, xPosition, yPosition);
@@ -152,6 +190,8 @@ public class GuScriptMenu extends AbstractContainerMenu {
         if (container instanceof GuScriptAttachment attachment) {
             bindingTargetOrdinal = attachment.getBindingTarget().ordinal();
             listenerTypeOrdinal = attachment.getListenerType().ordinal();
+            pageIndex = attachment.getCurrentPageIndex();
+            pageCount = attachment.getPageCount();
         }
     }
 
@@ -166,6 +206,16 @@ public class GuScriptMenu extends AbstractContainerMenu {
     public void syncFromAttachment(GuScriptAttachment attachment) {
         bindingTargetOrdinal = attachment.getBindingTarget().ordinal();
         listenerTypeOrdinal = attachment.getListenerType().ordinal();
+        pageIndex = attachment.getCurrentPageIndex();
+        pageCount = attachment.getPageCount();
         broadcastChanges();
+    }
+
+    public int getPageIndex() {
+        return pageIndex;
+    }
+
+    public int getPageCount() {
+        return pageCount;
     }
 }

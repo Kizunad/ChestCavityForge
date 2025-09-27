@@ -1,0 +1,17 @@
+{
+  "arity": 2,
+  "priority": 50,
+  "required": {
+    "骨": 1,
+    "血": 1
+  },
+  "result": {
+    "name": "血骨核心",
+    "operator_id": "chestcavity:blood_bone_core",
+    "kind": "operator",
+    "tags": ["核心"],
+    "actions": [
+      { "id": "modifier.damage_multiplier", "amount": 0.5 }
+    ]
+  }
+}

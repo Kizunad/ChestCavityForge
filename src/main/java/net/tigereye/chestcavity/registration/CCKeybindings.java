@@ -38,6 +38,7 @@ public class CCKeybindings {
     public static KeyMapping SHULKER_BULLETS;
     public static KeyMapping SILK;
     public static KeyMapping GUSCRIPT_OPEN;
+    public static KeyMapping GUSCRIPT_EXECUTE;
 
     public static void register(RegisterKeyMappingsEvent event){
         UTILITY_ABILITIES = register(event, UTILITY_ABILITIES_ID, ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_V, false);
@@ -56,6 +57,7 @@ public class CCKeybindings {
 
         WOODEN_SHOVEL_TICK_RATE = registerStandalone(event, "key." + ChestCavity.MODID + ".wooden_shovel_tick_rate", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_H);
         GUSCRIPT_OPEN = registerStandalone(event, "key." + ChestCavity.MODID + ".guscript_open", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_G);
+        GUSCRIPT_EXECUTE = registerStandalone(event, "key." + ChestCavity.MODID + ".guscript_execute", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_B);
         WOODEN_SHOVEL_FREEZE = registerStandalone(event, "key." + ChestCavity.MODID + ".wooden_shovel_freeze", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_J);
         WOODEN_SHOVEL_UNFREEZE = registerStandalone(event, "key." + ChestCavity.MODID + ".wooden_shovel_unfreeze", ORGAN_ABILITY_KEY_CATEGORY, GLFW.GLFW_KEY_K);
     }

@@ -16,11 +16,11 @@ import net.tigereye.chestcavity.guscript.ast.GuNodeKind;
 import net.tigereye.chestcavity.guscript.ast.LeafGuNode;
 import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
+import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptRuntime;
 import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
-import net.tigereye.chestcavity.guscript.runtime.exec.SimpleGuScriptContext;
 
 import java.util.List;
 import java.util.Set;
@@ -76,7 +76,7 @@ public final class GuScriptCommands {
         }
 
         DefaultGuScriptExecutionBridge bridge = DefaultGuScriptExecutionBridge.forPlayer(player);
-        GuScriptContext context = new SimpleGuScriptContext(player, player, bridge);
+        GuScriptContext context = new DefaultGuScriptContext(player, player, bridge);
         GuScriptRuntime runtime = new GuScriptRuntime();
         runtime.executeAll(result.roots(), context);
 

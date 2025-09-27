@@ -3,8 +3,8 @@ package net.tigereye.chestcavity.guscript.actions;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 
-public record EmitProjectileAction(String projectileId, double damage) implements Action {
-    public static final String ID = "emit.projectile";
+public record AddDamageMultiplierAction(double multiplier) implements Action {
+    public static final String ID = "modifier.damage_multiplier";
 
     @Override
     public String id() {
@@ -13,12 +13,11 @@ public record EmitProjectileAction(String projectileId, double damage) implement
 
     @Override
     public String description() {
-        return "发射 " + projectileId + " (伤害 " + damage + ")";
+        return "伤害倍率 +" + multiplier;
     }
 
     @Override
     public void execute(GuScriptContext context) {
-        double finalDamage = context.applyDamageModifiers(damage);
-        context.bridge().emitProjectile(projectileId, finalDamage);
+        context.addDamageMultiplier(multiplier);
     }
 }

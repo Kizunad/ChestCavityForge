@@ -10,6 +10,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
+import net.tigereye.chestcavity.guscript.network.packets.GuScriptTriggerPayload;
+import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCKeybindings;
@@ -30,6 +32,11 @@ public class KeybindingClientListeners {
             if (player != null) {
                 ChestCavity.LOGGER.info("[GuScript] Sending open request from client");
                 sendOpenRequest();
+            }
+        }
+        while (CCKeybindings.GUSCRIPT_EXECUTE != null && CCKeybindings.GUSCRIPT_EXECUTE.consumeClick()) {
+            if (player != null) {
+                sendTriggerRequest();
             }
         }
 
@@ -139,6 +146,19 @@ public class KeybindingClientListeners {
         if (connection != null) {
             connection.send(new GuScriptOpenPayload());
         }
+    }
+
+    private static void sendTriggerRequest() {
+        var minecraft = Minecraft.getInstance();
+        var connection = minecraft.getConnection();
+        if (connection == null) {
+            return;
+        }
+        int pageIndex = -1;
+        if (minecraft.screen instanceof GuScriptScreen screen) {
+            pageIndex = screen.getMenu().getPageIndex();
+        }
+        connection.send(new GuScriptTriggerPayload(pageIndex));
     }
 
     private static void sendHotkeyToServer(ChestCavityHotkeyPayload payload) {

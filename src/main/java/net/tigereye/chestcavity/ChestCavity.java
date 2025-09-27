@@ -27,6 +27,9 @@ import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
+import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
+import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
+import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptListenerHooks;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -71,11 +74,13 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerRespawn);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerClone);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
-                NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
-                NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
-                if (FMLEnvironment.dist.isClient()) {
-                        NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
-                }
+		NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
+		NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
+		NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onLivingDamage);
+		NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onPlayerTick);
+		if (FMLEnvironment.dist.isClient()) {
+			NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
+		}
 
 		AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
@@ -134,6 +139,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		event.addListener(new OrganManager());
 		event.addListener(new GeneratedChestCavityTypeManager());
 		event.addListener(new GeneratedChestCavityAssignmentManager());
+		event.addListener(new GuScriptLeafLoader());
+		event.addListener(new GuScriptRuleLoader());
 	}
 
 	public static boolean isDebugMode() {
