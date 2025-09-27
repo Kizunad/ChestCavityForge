@@ -6,6 +6,7 @@ import net.tigereye.chestcavity.guscript.ast.GuNode;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Simple interpreter executing GuScript AST nodes depth-first.
@@ -23,6 +24,19 @@ public final class GuScriptRuntime {
             return;
         }
         for (GuNode root : roots) {
+            execute(root, context);
+        }
+    }
+
+    public void executeAll(List<GuNode> roots, Supplier<GuScriptContext> contextFactory) {
+        if (roots == null || roots.isEmpty() || contextFactory == null) {
+            return;
+        }
+        for (GuNode root : roots) {
+            GuScriptContext context = contextFactory.get();
+            if (context == null) {
+                continue;
+            }
             execute(root, context);
         }
     }
