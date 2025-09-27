@@ -4,8 +4,6 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -21,7 +19,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -31,25 +28,27 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
-import net.tigereye.chestcavity.util.NBTWriter;
-import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
  * Behaviour implementation for 血肺蛊 (Xie Fei Gu).
  */
-public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemovalListener, OrganIncomingDamageListener {
-    INSTANCE;
+public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener, OrganRemovalListener, OrganIncomingDamageListener {
+    public static final XieFeiguOrganBehavior INSTANCE = new XieFeiguOrganBehavior();
+
+    private XieFeiguOrganBehavior() {
+    }
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_fei_gu");
@@ -58,6 +57,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     public static final ResourceLocation ABILITY_ID = ORGAN_ID;
 
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String LOG_PREFIX = "[Xie Fei Gu]";
 
     private static final String STATE_KEY = "XieFeigu";
     private static final String MODE_KEY = "Mode";
@@ -150,20 +150,18 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
-        if (!organ.is(CCItems.GUZHENREN_XUE_FEI_GU)) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(organ.getItem());
-            if (!ORGAN_ID.equals(id)) {
-                return;
-            }
+        if (!matchesOrgan(organ, CCItems.GUZHENREN_XUE_FEI_GU, ORGAN_ID)) {
+            return;
         }
-        int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
-        boolean alreadyRegistered = staleRemovalContexts.removeIf(old ->
-                ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, this));
-        cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, this));
-        if (!alreadyRegistered) {
-            if (readSlot(organ) != slotIndex) {
-                writeSlot(organ, slotIndex);
-                NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        RemovalRegistration registration = registerRemovalHook(cc, organ, this, staleRemovalContexts);
+        if (!registration.alreadyRegistered()) {
+            OrganState state = organState(organ, STATE_KEY);
+            if (state.getInt(SLOT_KEY, -1) != registration.slotIndex()) {
+                var change = state.setInt(SLOT_KEY, registration.slotIndex(), value -> Math.max(-1, value), -1);
+                logStateChange(LOGGER, LOG_PREFIX, organ, SLOT_KEY, change);
+                if (change.changed()) {
+                    sendSlotUpdate(cc, organ);
+                }
             }
         }
     }
@@ -179,8 +177,10 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (slotIndex >= 0 && storedSlot != slotIndex) {
             removeMovementModifier(entity, storedSlot);
             removeRapidBreathModifier(entity, storedSlot);
-            writeSlot(organ, slotIndex);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            var change = writeSlot(organ, slotIndex);
+            if (change.changed()) {
+                sendSlotUpdate(cc, organ);
+            }
         }
 
         double maxHealth = entity.getMaxHealth();
@@ -196,7 +196,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         int mode = determineMode(healthRatio);
         if (mode != readMode(organ)) {
             writeMode(organ, mode);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            sendSlotUpdate(cc, organ);
             playPassiveCue(entity, mode);
         }
     }
@@ -336,7 +336,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
 
         long gameTime = level.getGameTime();
-        long nextAllowed = readCooldown(organ);
+        long nextAllowed = INSTANCE.readCooldown(organ);
         if (nextAllowed > gameTime) {
             return;
         }
@@ -359,8 +359,8 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             return;
         }
 
-        writeCooldown(organ, gameTime + COOLDOWN_TICKS);
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        INSTANCE.writeCooldown(organ, gameTime + COOLDOWN_TICKS);
+        INSTANCE.sendSlotUpdate(cc, organ);
 
         Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
         boolean hasPoison = hasPoisonOrgan(cc);
@@ -392,13 +392,13 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             return;
         }
         long gameTime = level.getGameTime();
-        long nextAllowed = readCooldown(organ);
+        long nextAllowed = INSTANCE.readCooldown(organ);
         if (nextAllowed > gameTime) {
             return;
         }
 
-        writeCooldown(organ, gameTime + COOLDOWN_TICKS);
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        INSTANCE.writeCooldown(organ, gameTime + COOLDOWN_TICKS);
+        INSTANCE.sendSlotUpdate(cc, organ);
 
         Vec3 center = user.position().add(0.0, user.getBbHeight() * 0.5, 0.0);
         boolean hasPoison = hasPoisonOrgan(cc);
@@ -569,7 +569,7 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return false;
     }
 
-    private static int resolveSlotIndex(ChestCavityInstance cc, ItemStack organ) {
+    private int resolveSlotIndex(ChestCavityInstance cc, ItemStack organ) {
         int stored = readSlot(organ);
         if (stored >= 0) {
             return stored;
@@ -580,98 +580,35 @@ public enum XieFeiguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         return ChestCavityUtil.findOrganSlot(cc, organ);
     }
 
-    private static int readMode(ItemStack stack) {
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return MODE_NEUTRAL;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return MODE_NEUTRAL;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        return state.getInt(MODE_KEY);
+    private OrganState state(ItemStack stack) {
+        return organState(stack, STATE_KEY);
     }
 
-    private static void writeMode(ItemStack stack, int mode) {
-        int clamped = Math.max(0, mode);
-        int previous = readMode(stack);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putInt(MODE_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
-        logNbtChange(stack, MODE_KEY, previous, clamped);
+    private int readMode(ItemStack stack) {
+        return state(stack).getInt(MODE_KEY, MODE_NEUTRAL);
     }
 
-    private static int readSlot(ItemStack stack) {
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return -1;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return -1;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        if (!state.contains(SLOT_KEY, Tag.TAG_INT)) {
-            return -1;
-        }
-        return state.getInt(SLOT_KEY);
+    private void writeMode(ItemStack stack, int mode) {
+        var change = state(stack).setInt(MODE_KEY, mode, value -> Math.max(0, Math.min(MODE_LOW, value)), MODE_NEUTRAL);
+        logStateChange(LOGGER, LOG_PREFIX, stack, MODE_KEY, change);
     }
 
-    private static void writeSlot(ItemStack stack, int slot) {
-        int clamped = Math.max(-1, slot);
-        int previous = readSlot(stack);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putInt(SLOT_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
-        logNbtChange(stack, SLOT_KEY, previous, clamped);
+    private int readSlot(ItemStack stack) {
+        return state(stack).getInt(SLOT_KEY, -1);
     }
 
-    private static long readCooldown(ItemStack stack) {
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0L;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return 0L;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        if (!state.contains(COOLDOWN_KEY, Tag.TAG_LONG)) {
-            return 0L;
-        }
-        return state.getLong(COOLDOWN_KEY);
+    private OrganState.Change<Integer> writeSlot(ItemStack stack, int slot) {
+        var change = state(stack).setInt(SLOT_KEY, slot, value -> value < 0 ? -1 : value, -1);
+        logStateChange(LOGGER, LOG_PREFIX, stack, SLOT_KEY, change);
+        return change;
     }
 
-    private static void writeCooldown(ItemStack stack, long value) {
-        long clamped = Math.max(0L, value);
-        long previous = readCooldown(stack);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putLong(COOLDOWN_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
-        logNbtChange(stack, COOLDOWN_KEY, previous, clamped);
+    private long readCooldown(ItemStack stack) {
+        return state(stack).getLong(COOLDOWN_KEY, 0L);
     }
 
-    private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
-        if (Objects.equals(oldValue, newValue)) {
-            return;
-        }
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("[Xie Fei Gu] Updated {} for {} from {} to {}", key, describeStack(stack), oldValue, newValue);
-        }
-    }
-
-    private static String describeStack(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return "<empty>";
-        }
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        return stack.getCount() + "x " + id;
+    private void writeCooldown(ItemStack stack, long value) {
+        var change = state(stack).setLong(COOLDOWN_KEY, value, v -> Math.max(0L, v), 0L);
+        logStateChange(LOGGER, LOG_PREFIX, stack, COOLDOWN_KEY, change);
     }
 }

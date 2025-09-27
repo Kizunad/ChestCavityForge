@@ -48,7 +48,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
 import net.tigereye.chestcavity.guscript.GuScriptModule;
-import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenModule;
+import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
 
 
 @Mod(ChestCavity.MODID)
@@ -112,8 +112,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCTagOrgans.init();
 		OrganRetentionRules.registerNamespace(MODID);
 		OrganRetentionRules.registerNamespace("guzhenren");
-		if (ModList.get().isLoaded("guzhenren")) {
-                        GuzhenrenModule.bootstrap();
+                if (ModList.get().isLoaded("guzhenren")) {
+                        GuzhenrenIntegrationModule.bootstrap();
 			GuzhenrenNetworkBridge.bootstrap();
 			GuScriptModule.bootstrap();
 		}

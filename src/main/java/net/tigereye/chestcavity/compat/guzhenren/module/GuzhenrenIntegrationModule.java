@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 /**
  * Module entry point that wires up all Guzhenren organ integrations in the legacy order.
  */
-public final class GuzhenrenModule {
+public final class GuzhenrenIntegrationModule {
 
     private static final List<Supplier<List<OrganIntegrationSpec>>> SPEC_SUPPLIERS = List.of(
             GuCaiOrganRegistry::specs,
@@ -45,7 +45,7 @@ public final class GuzhenrenModule {
     private static boolean initialised;
     private static List<ResourceLocation> registrationOrder = List.of();
 
-    private GuzhenrenModule() {
+    private GuzhenrenIntegrationModule() {
     }
 
     public static synchronized void bootstrap() {
