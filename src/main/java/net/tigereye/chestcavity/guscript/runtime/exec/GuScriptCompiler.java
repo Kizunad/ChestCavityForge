@@ -38,7 +38,8 @@ public final class GuScriptCompiler {
         }
 
         List<LeafGuNode> leaves = new ArrayList<>();
-        for (int i = 0; i < GuScriptAttachment.ITEM_SLOT_COUNT; i++) {
+        int bindingSlot = page.items().size() - 1;
+        for (int i = 0; i < bindingSlot; i++) {
             ItemStack stack = page.items().get(i);
             if (stack.isEmpty()) {
                 continue;
@@ -65,7 +66,8 @@ public final class GuScriptCompiler {
 
     private static int computeSignature(GuScriptPageState page) {
         int hash = 1;
-        for (int i = 0; i < GuScriptAttachment.TOTAL_SLOTS; i++) {
+        int bindingSlot = page.items().size() - 1;
+        for (int i = 0; i < bindingSlot; i++) {
             ItemStack stack = page.items().get(i);
             if (stack.isEmpty()) {
                 hash = 31 * hash;
