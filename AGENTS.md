@@ -31,6 +31,28 @@
 - **Bug: multiple kill moves on shared trigger execute only one**
   - Scenario: same GuScript page stores several fully reduced “杀招” nodes with identical trigger (e.g., keybind or listener). Currently `GuScriptExecutor`/`GuScriptRuntime` only fires the first result; later roots never cast. Investigate `GuScriptCompiler` + `GuScriptRuntime.executeAll` to ensure every compiled root invokes its actions without being short-circuited.
   - Notes from CLI review: compiler now iterates all page slots (minus binding slot) when building leaf list. Verify reducer isn’t collapsing siblings or returning mixed leaf remnants. Add regression coverage once fixed.
+  - User retest (post-commit 8c6ea456): still only one projectile emitted when two kill moves share the keybind. Need additional instrumentation/logging to confirm cache root count vs. runtime dispatch.
+
+### Multi-trigger emits one projectile — probable causes (analysis only)
+- Context reuse across roots: If `GuScriptRuntime.executeAll` uses a single `GuScriptContext` instance for multiple roots, state mutations (damage multipliers, cooldown flags, resource failures) can suppress later casts. Mitigation: switch to a `Supplier<GuScriptContext>` factory to create a fresh context per root (see upstream change pattern in 8c6ea456 and unit test strategy).
+- Reduction output is singular: Rules or inventory composition may yield only one composite root (the second “kill move” might be just a leaf/operator without `emit.projectile`). Add debug to print reduced root count, kinds, and names to corroborate expectations.
+- Stale program cache: `GuScriptProgramCache` might return outdated `roots()` if signature hashing misses some slots or metadata. Confirm signature covers all item slots (excluding the binding slot) and binding/listener selections; force recompilation on page dirty to compare.
+- Bridge gating on client: `DefaultGuScriptExecutionBridge.emitProjectile` early-returns on client. Ensure execution runs strictly on server (it should), and log side/context per root.
+- Keybind plumbing only sends one trigger: Client sends one payload by design; server must iterate all compiled roots. Instrument `GuScriptExecutor.trigger` to log `roots.size()` and “executing N/total” per root.
+
+### Proposed diagnostics (to implement by web Codex)
+- Add INFO logs:
+  - After compilation: page index, `roots.size()`, list of `root.kind()` + `root.name()`.
+  - During execution: per-root context creation (unique id), server/client side, and action dispatch counts (e.g., how many `emit.projectile`).
+- Add a focused unit test mirroring 8c6ea456’s approach: verify two composites produce two projectile emissions and independent context creation counts.
+
+### Implementation checklist (branch: `feature/guscript-multi-trigger-fix`)
+1) Update `GuScriptRuntime` to include `executeAll(List<GuNode>, Supplier<GuScriptContext>)` and refactor callers to use a context supplier.
+2) In `GuScriptExecutor.trigger`, pass a supplier that constructs a new `DefaultGuScriptContext`/`DefaultGuScriptExecutionBridge` per root.
+3) Add the diagnostics above and remove/guard them behind debug flags if needed.
+
+### UI spacing tweak (branch: `feature/guscript-ui-spacing-tweak`)
+- Shift page navigation button row left by 10 px; shift trigger/listener button stack down by 10 px. Keep proportional spacing and min gutters intact; update defaults or layout math accordingly.
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
   - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
