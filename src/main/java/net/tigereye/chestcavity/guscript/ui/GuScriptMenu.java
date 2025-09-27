@@ -2,15 +2,18 @@ package net.tigereye.chestcavity.guscript.ui;
 
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
-import net.tigereye.chestcavity.registration.CCAttachments;
-import net.tigereye.chestcavity.registration.CCContainers;
-import net.tigereye.chestcavity.ChestCavity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.guscript.data.BindingTarget;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
+import net.tigereye.chestcavity.guscript.data.ListenerType;
+import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.registration.CCContainers;
 
 public class GuScriptMenu extends AbstractContainerMenu {
     private final Container container;
@@ -19,6 +22,8 @@ public class GuScriptMenu extends AbstractContainerMenu {
     private static final int PLAYER_INV_Y_BASE = 103;
     private static final int HOTBAR_Y_BASE = 161;
     private static final int SLOT_SIZE = 18;
+    private int bindingTargetOrdinal = BindingTarget.KEYBIND.ordinal();
+    private int listenerTypeOrdinal = ListenerType.ON_HIT.ordinal();
 
     public GuScriptMenu(int syncId, Inventory inventory) {
         this(syncId, inventory, resolveContainer(inventory.player));
@@ -39,6 +44,7 @@ public class GuScriptMenu extends AbstractContainerMenu {
     public GuScriptMenu(int syncId, Inventory inventory, Container container) {
         super(CCContainers.GUSCRIPT_MENU.get(), syncId);
         this.container = container;
+        readAttachmentState(container);
         Player owner = inventory.player;
         if (owner != null) {
             container.startOpen(owner);
@@ -61,6 +67,30 @@ public class GuScriptMenu extends AbstractContainerMenu {
         for (i = 0; i < 9; ++i) {
             addSlot(new Slot(inventory, i, 8 + i * SLOT_SIZE, HOTBAR_Y_BASE + verticalOffset));
         }
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return bindingTargetOrdinal;
+            }
+
+            @Override
+            public void set(int value) {
+                bindingTargetOrdinal = value;
+            }
+        });
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return listenerTypeOrdinal;
+            }
+
+            @Override
+            public void set(int value) {
+                listenerTypeOrdinal = value;
+            }
+        });
     }
 
     public int getRows() {
@@ -116,5 +146,26 @@ public class GuScriptMenu extends AbstractContainerMenu {
         public boolean mayPlace(ItemStack stack) {
             return true;
         }
+    }
+
+    private void readAttachmentState(Container container) {
+        if (container instanceof GuScriptAttachment attachment) {
+            bindingTargetOrdinal = attachment.getBindingTarget().ordinal();
+            listenerTypeOrdinal = attachment.getListenerType().ordinal();
+        }
+    }
+
+    public BindingTarget getBindingTarget() {
+        return BindingTarget.fromOrdinal(bindingTargetOrdinal);
+    }
+
+    public ListenerType getListenerType() {
+        return ListenerType.fromOrdinal(listenerTypeOrdinal);
+    }
+
+    public void syncFromAttachment(GuScriptAttachment attachment) {
+        bindingTargetOrdinal = attachment.getBindingTarget().ordinal();
+        listenerTypeOrdinal = attachment.getListenerType().ordinal();
+        broadcastChanges();
     }
 }

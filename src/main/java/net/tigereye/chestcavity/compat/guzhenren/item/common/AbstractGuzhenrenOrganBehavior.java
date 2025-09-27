@@ -76,6 +76,7 @@ public abstract class AbstractGuzhenrenOrganBehavior {
             cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, listener));
         }
         return new RemovalRegistration(slotIndex, restoredFromStale || presentInCurrentList);
+
     }
 
     protected LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation channelId) {

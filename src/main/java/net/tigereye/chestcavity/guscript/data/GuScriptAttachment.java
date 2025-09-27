@@ -24,6 +24,8 @@ public class GuScriptAttachment implements Container {
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(TOTAL_SLOTS, ItemStack.EMPTY);
     private boolean changed;
+    private BindingTarget bindingTarget = BindingTarget.KEYBIND;
+    private ListenerType listenerType = ListenerType.ON_HIT;
 
     public static GuScriptAttachment create(IAttachmentHolder holder) {
         return new GuScriptAttachment();
@@ -121,11 +123,19 @@ public class GuScriptAttachment implements Container {
 
     public void load(CompoundTag tag, HolderLookup.Provider provider) {
         ContainerHelper.loadAllItems(tag, items, provider);
+        if (tag.contains("BindingTarget")) {
+            bindingTarget = BindingTarget.fromSerializedName(tag.getString("BindingTarget"));
+        }
+        if (tag.contains("ListenerType")) {
+            listenerType = ListenerType.fromSerializedName(tag.getString("ListenerType"));
+        }
     }
 
     public CompoundTag save(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
         ContainerHelper.saveAllItems(tag, items, provider);
+        tag.putString("BindingTarget", bindingTarget.getSerializedName());
+        tag.putString("ListenerType", listenerType.getSerializedName());
         return tag;
     }
 
@@ -134,6 +144,44 @@ public class GuScriptAttachment implements Container {
             return "empty";
         }
         return Objects.toString(stack.getItem().builtInRegistryHolder().key().location()) + " x" + stack.getCount();
+    }
+
+    public BindingTarget getBindingTarget() {
+        return bindingTarget;
+    }
+
+    public ListenerType getListenerType() {
+        return listenerType;
+    }
+
+    public void setBindingTarget(BindingTarget target) {
+        if (target == null) {
+            target = BindingTarget.KEYBIND;
+        }
+        if (this.bindingTarget != target) {
+            ChestCavity.LOGGER.debug("[GuScript] Binding target updated: {} -> {}", this.bindingTarget, target);
+            this.bindingTarget = target;
+            setChanged();
+        }
+    }
+
+    public void cycleBindingTarget() {
+        setBindingTarget(bindingTarget.next());
+    }
+
+    public void setListenerType(ListenerType type) {
+        if (type == null) {
+            type = ListenerType.ON_HIT;
+        }
+        if (this.listenerType != type) {
+            ChestCavity.LOGGER.debug("[GuScript] Listener type updated: {} -> {}", this.listenerType, type);
+            this.listenerType = type;
+            setChanged();
+        }
+    }
+
+    public void cycleListenerType() {
+        setListenerType(listenerType.next());
     }
 
     public static class Serializer implements IAttachmentSerializer<CompoundTag, GuScriptAttachment> {
