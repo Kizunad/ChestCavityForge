@@ -106,6 +106,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
                 NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
                 NeoForge.EVENT_BUS.addListener(JianYingGuEvents::onServerTick);
+		// Register GuScript debug/demo commands
+		NeoForge.EVENT_BUS.addListener(GuScriptCommands::register);
 		if (FMLEnvironment.dist.isClient()) {
 			NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
 		}
