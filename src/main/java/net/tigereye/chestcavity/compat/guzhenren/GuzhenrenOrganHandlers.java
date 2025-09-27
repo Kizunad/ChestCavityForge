@@ -11,7 +11,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
 import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
-import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenModule;
+import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
 
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -58,7 +58,7 @@ public final class GuzhenrenOrganHandlers {
         ActiveLinkageContext context = LinkageManager.getContext(cc);
 
         Abilities.bootstrap();
-        GuzhenrenModule.bootstrap();
+        GuzhenrenIntegrationModule.bootstrap();
 
         GuzhenrenLinkageEffectRegistry.applyEffects(
                 cc,
