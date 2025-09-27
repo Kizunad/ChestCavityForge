@@ -136,6 +136,8 @@ public class CCConfig implements ConfigData {
         @ConfigEntry.Gui.Tooltip
         public int minBindingButtonWidthPx = 88;
         @ConfigEntry.Gui.Tooltip
+        public int bindingVerticalOffsetPx = 10;
+        @ConfigEntry.Gui.Tooltip
         public int minTopGutterPx = 6;
         @ConfigEntry.Gui.Tooltip
         public int minHorizontalGutterPx = 4;
@@ -153,6 +155,8 @@ public class CCConfig implements ConfigData {
         public double pageButtonHorizontalSpacingSlots = 0.2D;
         @ConfigEntry.Gui.Tooltip
         public int minPageButtonSpacingPx = 4;
+        @ConfigEntry.Gui.Tooltip
+        public int pageButtonHorizontalOffsetPx = -10;
     }
 
 }
