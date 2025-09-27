@@ -98,8 +98,17 @@ dependencies {
     testImplementation files("libs/gzr.jar")
     testImplementation files("libs/Pehkui-3.8.3+1.21-neoforge.jar")
 
+    testImplementation 'com.google.guava:guava:33.3.1-jre'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+
 
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
+}
+
+test {
+    useJUnitPlatform()
+    classpath += sourceSets.main.runtimeClasspath
 }
 
 processResources {
