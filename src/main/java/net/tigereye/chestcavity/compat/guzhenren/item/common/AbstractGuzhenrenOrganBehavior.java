@@ -57,18 +57,26 @@ public abstract class AbstractGuzhenrenOrganBehavior {
             return RemovalRegistration.EMPTY;
         }
         int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
+        boolean restoredFromStale = false;
         if (staleRemovalContexts != null) {
-            staleRemovalContexts.removeIf(
-                    old -> ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, listener)
-            );
+            for (int i = 0; i < staleRemovalContexts.size(); ) {
+                OrganRemovalContext old = staleRemovalContexts.get(i);
+                if (ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, listener)) {
+                    staleRemovalContexts.remove(i);
+                    restoredFromStale = true;
+                    continue;
+                }
+                i++;
+            }
         }
 
-        boolean alreadyRegistered = cc.onRemovedListeners.stream()
+        boolean presentInCurrentList = cc.onRemovedListeners.stream()
                 .anyMatch(existing -> ChestCavityUtil.matchesRemovalContext(existing, slotIndex, organ, listener));
-        if (!alreadyRegistered) {
+        if (!presentInCurrentList) {
             cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, listener));
         }
-        return new RemovalRegistration(slotIndex, alreadyRegistered);
+        return new RemovalRegistration(slotIndex, restoredFromStale || presentInCurrentList);
+
     }
 
     protected LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation channelId) {
