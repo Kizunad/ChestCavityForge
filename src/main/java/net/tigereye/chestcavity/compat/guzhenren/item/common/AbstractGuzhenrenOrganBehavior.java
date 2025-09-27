@@ -57,13 +57,17 @@ public abstract class AbstractGuzhenrenOrganBehavior {
             return RemovalRegistration.EMPTY;
         }
         int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
-        boolean alreadyRegistered = false;
         if (staleRemovalContexts != null) {
-            alreadyRegistered = staleRemovalContexts.removeIf(
+            staleRemovalContexts.removeIf(
                     old -> ChestCavityUtil.matchesRemovalContext(old, slotIndex, organ, listener)
             );
         }
-        cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, listener));
+
+        boolean alreadyRegistered = cc.onRemovedListeners.stream()
+                .anyMatch(existing -> ChestCavityUtil.matchesRemovalContext(existing, slotIndex, organ, listener));
+        if (!alreadyRegistered) {
+            cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, listener));
+        }
         return new RemovalRegistration(slotIndex, alreadyRegistered);
     }
 
