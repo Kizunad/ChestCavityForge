@@ -118,4 +118,41 @@ public class CCConfig implements ConfigData {
     @ConfigEntry.Category("integration")
     public boolean GUZHENREN_NUDAO_LOGGING = true;
 
+    @ConfigEntry.Category("guscript_ui")
+    @ConfigEntry.Gui.CollapsibleObject
+    public GuScriptUIConfig GUSCRIPT_UI = new GuScriptUIConfig();
+
+    public static class GuScriptUIConfig {
+        @ConfigEntry.Gui.Tooltip
+        public double bindingRightPaddingSlots = 0.5D;
+        @ConfigEntry.Gui.Tooltip
+        public double bindingTopPaddingSlots = 1.5D;
+        @ConfigEntry.Gui.Tooltip
+        public double bindingVerticalSpacingSlots = 0.35D;
+        @ConfigEntry.Gui.Tooltip
+        public double bindingButtonWidthFraction = 0.56D;
+        @ConfigEntry.Gui.Tooltip
+        public int bindingButtonHeightPx = 20;
+        @ConfigEntry.Gui.Tooltip
+        public int minBindingButtonWidthPx = 88;
+        @ConfigEntry.Gui.Tooltip
+        public int minTopGutterPx = 6;
+        @ConfigEntry.Gui.Tooltip
+        public int minHorizontalGutterPx = 4;
+        @ConfigEntry.Gui.Tooltip
+        public int minBindingSpacingPx = 4;
+        @ConfigEntry.Gui.Tooltip
+        public int pageButtonWidthPx = 20;
+        @ConfigEntry.Gui.Tooltip
+        public int pageButtonHeightPx = 20;
+        @ConfigEntry.Gui.Tooltip
+        public double pageButtonLeftPaddingSlots = 0.5D;
+        @ConfigEntry.Gui.Tooltip
+        public double pageButtonTopPaddingSlots = 0.9D;
+        @ConfigEntry.Gui.Tooltip
+        public double pageButtonHorizontalSpacingSlots = 0.2D;
+        @ConfigEntry.Gui.Tooltip
+        public int minPageButtonSpacingPx = 4;
+    }
+
 }

@@ -79,6 +79,16 @@ The top-level package highlights the AST and UI folders explicitly while still a
 - Item insertion uses vanilla slot mechanics. Special binding slots use custom `Slot` subclasses that either block items or accept token items that stand in for listeners.
 - Each page exposes一个“模拟”按钮：运行脚本于模拟上下文（无伤害/消耗），并在 UI 上逐步展示执行路径，便于迭代。
 
+### UI configuration knobs
+
+The responsive layout parameters for `GuScriptScreen` live inside the new `guscript_ui` block of `CCConfig`. They are saved to the standard `config/chestcavity.json` file, so downstream packs can rebalance spacing without recompiling the mod.
+
+- `bindingRightPaddingSlots`, `bindingTopPaddingSlots`, `bindingVerticalSpacingSlots`, and `bindingButtonWidthFraction` scale the listener/binding buttons relative to the slot grid.
+- `bindingButtonHeightPx`, `minBindingButtonWidthPx`, `minTopGutterPx`, `minHorizontalGutterPx`, and `minBindingSpacingPx` provide hard floors that keep controls readable on narrow screens.
+- `pageButtonWidthPx`, `pageButtonHeightPx`, `pageButtonLeftPaddingSlots`, `pageButtonTopPaddingSlots`, `pageButtonHorizontalSpacingSlots`, and `minPageButtonSpacingPx` control the page navigation row.
+
+Tweaking these values automatically updates button placement the next time the UI opens, ensuring the gutter between controls and the inventory rows stays intact across aspect ratios.
+
 ## Listener & Keybind Integration
 
 - `ListenerBindingDefinition` enumerates supported trigger types: `ORGAN_SLOW_TICK`, `ORGAN_ON_HIT`, `ORGAN_ON_DAMAGE`, `CLIENT_KEY`, etc. Each definition stores optional filters (organ id, player state) parsed from the UI.
