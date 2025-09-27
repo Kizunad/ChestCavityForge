@@ -47,7 +47,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
 import net.tigereye.chestcavity.guscript.GuScriptModule;
-import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenModule;
 
 @Mod(ChestCavity.MODID)
 public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix organUtil class, possibly update to 4?, add alexs mobs and other mods compat
@@ -130,7 +130,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		OrganRetentionRules.registerNamespace(MODID);
 		OrganRetentionRules.registerNamespace("guzhenren");
 		if (ModList.get().isLoaded("guzhenren")) {
-			KongqiaoOrganRegistry.bootstrap();
+                        GuzhenrenModule.bootstrap();
 			GuzhenrenNetworkBridge.bootstrap();
 			GuScriptModule.bootstrap();
 		}
