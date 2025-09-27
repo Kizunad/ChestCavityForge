@@ -6,6 +6,7 @@ import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -20,6 +21,7 @@ import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
+@GameTestHolder(ChestCavity.MODID)
 public class OrganItemGameTests {
 
     @GameTest(templateNamespace = ChestCavity.MODID, template = "empty")

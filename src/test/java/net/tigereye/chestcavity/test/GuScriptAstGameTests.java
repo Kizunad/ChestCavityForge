@@ -1,5 +1,9 @@
 package net.tigereye.chestcavity.test;
 
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.tigereye.chestcavity.ChestCavity;
+
+@GameTestHolder(ChestCavity.MODID)
 public final class GuScriptAstGameTests {
     private GuScriptAstGameTests() {
     }
