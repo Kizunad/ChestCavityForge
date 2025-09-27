@@ -21,6 +21,22 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+## 2025-10-XX Coordination mandate (CLI agent only)
+- The CLI agent acts purely as coordinator/analyst: observe repository state, capture requirements, and run read-only validation (e.g., builds/tests). Authoring or modifying feature code/config outside of `AGENTS.md` is prohibited.
+- Record each user request, design intent, and blocking issue in this file so downstream web Codex agents receive accurate marching orders.
+- When implementation work is needed, hand the task back to the user (or designated relay) with a clear TODO summary instead of editing source files directly.
+- If an instruction would require code changes beyond documentation/notes, pause and request the user to route it to the web Codex worker.
+
+## 2025-10-XX Pending tasks handoff (requires web Codex implementation)
+- **Bug: multiple kill moves on shared trigger execute only one**
+  - Scenario: same GuScript page stores several fully reduced “杀招” nodes with identical trigger (e.g., keybind or listener). Currently `GuScriptExecutor`/`GuScriptRuntime` only fires the first result; later roots never cast. Investigate `GuScriptCompiler` + `GuScriptRuntime.executeAll` to ensure every compiled root invokes its actions without being short-circuited.
+  - Notes from CLI review: compiler now iterates all page slots (minus binding slot) when building leaf list. Verify reducer isn’t collapsing siblings or returning mixed leaf remnants. Add regression coverage once fixed.
+- **UI spacing upgrade**
+  - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
+  - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
+- **Branching guideline**
+  - When dispatching multiple tasks to web Codex, create dedicated git branches per task (e.g., `feature/guscript-multi-trigger-fix`, `feature/guscript-ui-spacing`) and ensure PRs remain isolated. Merge sequencing and rebases must be coordinated by the user relay.
+
 ## Staying aligned with the goal
 - Focus on stability and feature parity on NeoForge 1.21.1.
 - If you get blocked, record what you tried and why it failed before yielding control.
