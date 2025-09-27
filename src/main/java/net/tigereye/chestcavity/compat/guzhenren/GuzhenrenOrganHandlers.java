@@ -7,11 +7,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+
 import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenModule;
+
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
@@ -44,10 +45,7 @@ public final class GuzhenrenOrganHandlers {
             Map<ResourceLocation, Integer> cachedCounts,
             Map<ResourceLocation, List<ItemStack>> cachedStacks
     ) {
-        if (stack.isEmpty() || !ModList.get().isLoaded(MOD_ID)) {
-            if (ChestCavity.LOGGER.isDebugEnabled() && !stack.isEmpty()) {
-                ChestCavity.LOGGER.debug("[Guzhenren] Skipping listener registration for {} because the mod is not loaded", stack);
-            }
+        if (stack.isEmpty()) {
             return;
         }
         if (ChestCavity.LOGGER.isDebugEnabled()) {
@@ -58,8 +56,10 @@ public final class GuzhenrenOrganHandlers {
             );
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
+
         Abilities.bootstrap();
         GuzhenrenModule.bootstrap();
+
         GuzhenrenLinkageEffectRegistry.applyEffects(
                 cc,
                 stack,

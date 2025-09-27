@@ -19,7 +19,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
@@ -38,7 +38,6 @@ import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Behaviour implementation for 铁血蛊 (Tie Xue Gu).
@@ -207,53 +206,24 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
     }
 
     private static boolean applyHealthDrain(LivingEntity player, float amount) {
-        if (player == null || amount <= 0.0f) {
-            return true;
-        }
-
-        float startingHealth = player.getHealth();
-        float startingAbsorption = player.getAbsorptionAmount();
-        float available = startingHealth + startingAbsorption;
-        if (available - amount < MINIMUM_HEALTH_RESERVE) {
-            return false;
-        }
-
-        player.invulnerableTime = 0;
-        player.hurt(player.damageSources().generic(), amount);
-        player.invulnerableTime = 0;
-
-        float remaining = amount;
-        float absorptionConsumed = Math.min(startingAbsorption, remaining);
-        remaining -= absorptionConsumed;
-        float targetAbsorption = Math.max(0.0f, startingAbsorption - absorptionConsumed);
-
-        if (!player.isDeadOrDying()) {
-            player.setAbsorptionAmount(targetAbsorption);
-            if (remaining > 0.0f) {
-                float targetHealth = Math.max(0.0f, startingHealth - remaining);
-                if (player.getHealth() > targetHealth) {
-                    player.setHealth(targetHealth);
-                }
-            }
-            player.hurtTime = 0;
-            player.hurtDuration = 0;
-        }
-        return !player.isDeadOrDying();
+        return GuzhenrenResourceCostHelper.drainHealth(
+                player,
+                amount,
+                MINIMUM_HEALTH_RESERVE,
+                player == null ? null : player.damageSources().generic()
+        );
     }
 
     private static void applyResourceRecovery(Player player, double efficiencyMultiplier) {
         if (player == null || efficiencyMultiplier <= 0.0) {
             return;
         }
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
         double zhenyuanGain = ZHENYUAN_BASE * efficiencyMultiplier;
         double jingliGain = JINGLI_BASE * efficiencyMultiplier;
-        handle.replenishScaledZhenyuan(zhenyuanGain, true);
-        handle.adjustJingli(jingliGain, true);
+        GuzhenrenResourceCostHelper.withHandle(player, handle -> {
+            handle.replenishScaledZhenyuan(zhenyuanGain, true);
+            handle.adjustJingli(jingliGain, true);
+        });
     }
 
     private static void playTriggerCues(LivingEntity entity) {

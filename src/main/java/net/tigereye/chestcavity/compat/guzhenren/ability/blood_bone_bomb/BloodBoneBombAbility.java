@@ -24,6 +24,8 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -32,7 +34,6 @@ import org.joml.Vector3f;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.UUID;
 
 /**
@@ -154,77 +155,14 @@ public final class BloodBoneBombAbility {
     }
 
     private static boolean payChargeCosts(ServerPlayer player, ChargeState state) {
-        if (player.getHealth() + player.getAbsorptionAmount() <= HEALTH_COST) {
+        ConsumptionResult result = GuzhenrenResourceCostHelper.consumeStrict(player, ZHENYUAN_COST, JINGLI_COST);
+        if (!result.succeeded()) {
             return false;
         }
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
+        if (!GuzhenrenResourceCostHelper.drainHealth(player, HEALTH_COST, player.damageSources().generic())) {
+            GuzhenrenResourceCostHelper.refund(player, result);
             return false;
         }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-
-        OptionalDouble zhenBeforeOpt = handle.getZhenyuan();
-        OptionalDouble jingliBeforeOpt = handle.getJingli();
-        if (zhenBeforeOpt.isEmpty() || jingliBeforeOpt.isEmpty()) {
-            return false;
-        }
-        double zhenBefore = zhenBeforeOpt.getAsDouble();
-        double jingliBefore = jingliBeforeOpt.getAsDouble();
-        if (jingliBefore + 1.0E-6 < JINGLI_COST) {
-            return false;
-        }
-
-        OptionalDouble zhenAfterOpt = handle.consumeScaledZhenyuan(ZHENYUAN_COST);
-        if (zhenAfterOpt.isEmpty()) {
-            return false;
-        }
-        double zhenAfter = zhenAfterOpt.getAsDouble();
-        double consumedZhenyuan = zhenBefore - zhenAfter;
-
-        OptionalDouble jingliAfterOpt = handle.adjustJingli(-JINGLI_COST, true);
-        if (jingliAfterOpt.isEmpty()) {
-            handle.adjustZhenyuan(consumedZhenyuan, true);
-            return false;
-        }
-        double jingliAfter = jingliAfterOpt.getAsDouble();
-        if ((jingliBefore - jingliAfter) + 1.0E-5 < JINGLI_COST) {
-            handle.adjustZhenyuan(consumedZhenyuan, true);
-            handle.setJingli(jingliBefore);
-            return false;
-        }
-
-        if (!drainHealth(player, HEALTH_COST)) {
-            handle.adjustZhenyuan(consumedZhenyuan, true);
-            handle.setJingli(jingliBefore);
-            return false;
-        }
-
-        return true;
-    }
-
-    private static boolean drainHealth(ServerPlayer player, float amount) {
-        if (amount <= 0.0f) {
-            return true;
-        }
-        float startingHealth = player.getHealth();
-        float startingAbsorption = player.getAbsorptionAmount();
-        if (startingHealth + startingAbsorption <= amount) {
-            return false;
-        }
-        player.invulnerableTime = 0;
-        DamageSource source = player.damageSources().generic();
-        player.hurt(source, amount);
-        player.invulnerableTime = 0;
-
-        float remaining = amount;
-        float absorptionConsumed = Math.min(startingAbsorption, remaining);
-        remaining -= absorptionConsumed;
-        player.setAbsorptionAmount(Math.max(0.0f, startingAbsorption - absorptionConsumed));
-        if (remaining > 0.0f && player.getHealth() > startingHealth - remaining) {
-            player.setHealth(Math.max(0.0f, startingHealth - remaining));
-        }
-        player.hurtTime = 0;
-        player.hurtDuration = 0;
         return true;
     }
 
