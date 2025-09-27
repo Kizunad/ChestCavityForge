@@ -29,8 +29,9 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
 
         int buttonWidth = 98;
         int offset = 4;
-        int rightX = this.leftPos + this.imageWidth - offset;
-        int baseY = this.topPos - 24;
+        int slotSize = 18;
+        int rightX = this.leftPos + this.imageWidth - offset - slotSize;
+        int baseY = this.topPos - 24 - slotSize - slotSize / 2;
 
         bindingTargetButton = addRenderableWidget(Button.builder(Component.empty(), button -> sendToggle(GuScriptBindingTogglePayload.Operation.TOGGLE_TARGET))
                 .bounds(rightX - buttonWidth, baseY, buttonWidth, 20)
