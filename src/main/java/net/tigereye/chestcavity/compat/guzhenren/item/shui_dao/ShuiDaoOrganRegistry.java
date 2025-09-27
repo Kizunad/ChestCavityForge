@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior.LingXianguOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Registry wiring for 水道（Shui Dao） organs.

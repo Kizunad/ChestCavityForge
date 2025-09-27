@@ -7,7 +7,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.HuGuguOrga
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Declarative registry for 骨道蛊 items. Each behaviour is registered through the

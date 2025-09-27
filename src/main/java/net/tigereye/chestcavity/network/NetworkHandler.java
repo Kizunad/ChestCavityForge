@@ -12,7 +12,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior.DaoHenBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
+import net.tigereye.chestcavity.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityOrganSlotUpdatePayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePayload;

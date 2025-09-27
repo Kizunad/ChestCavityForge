@@ -7,13 +7,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.DecayPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.policy.DecayPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
@@ -57,7 +57,7 @@ public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTick
 
         GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
             int stackCount = Math.max(1, organ.getCount());
-            ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+            ActiveLinkageContext context = LinkageManager.getContext(cc);
 
             LinkageChannel completionChannel = context.lookupChannel(COMPLETION_CHANNEL_ID)
                     .orElseGet(() -> context.getOrCreateChannel(COMPLETION_CHANNEL_ID).addPolicy(UNIT_CLAMP));

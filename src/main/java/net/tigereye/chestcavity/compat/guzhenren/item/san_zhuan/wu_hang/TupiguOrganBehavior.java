@@ -8,9 +8,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 

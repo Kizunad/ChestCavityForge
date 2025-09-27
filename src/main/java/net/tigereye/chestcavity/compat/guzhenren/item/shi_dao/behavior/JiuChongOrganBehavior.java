@@ -17,11 +17,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
-import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenCombatUtil;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.util.CombatUtil;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -95,7 +95,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         double multiplier = 1.0;
         if (alcohol >= DRUNK_THRESHOLD) {
             multiplier += ATTACK_BONUS;
-            GuzhenrenCombatUtil.applyRandomAttackOffset(attacker, ATTACK_YAW_RANGE, ATTACK_PITCH_RANGE, alcohol / MAX_ALCOHOL);
+            CombatUtil.applyRandomAttackOffset(attacker, ATTACK_YAW_RANGE, ATTACK_PITCH_RANGE, alcohol / MAX_ALCOHOL);
         }
         if (attacker instanceof Player player) {
             if (isManiaActive(player, player.level().getGameTime())) {
@@ -118,7 +118,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             float chance = Math.min(1.0f, BASE_DODGE_CHANCE * stacks);
             if (victim.getRandom().nextFloat() < chance) {
                 LivingEntity attacker = source.getEntity() instanceof LivingEntity living ? living : null;
-                dodged = GuzhenrenCombatUtil.performShortDodge(
+                dodged = CombatUtil.performShortDodge(
                         victim,
                         attacker,
                         MIN_DODGE_DISTANCE,
@@ -154,7 +154,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     private static LinkageChannel ensureAlcoholChannel(ChestCavityInstance cc) {
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         return context.getOrCreateChannel(ALCOHOL_CHANNEL).addPolicy(ALCOHOL_CLAMP);
     }
 

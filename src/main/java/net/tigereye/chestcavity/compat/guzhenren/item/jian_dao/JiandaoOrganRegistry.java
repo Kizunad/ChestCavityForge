@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Declarative registry for sword-path organs.

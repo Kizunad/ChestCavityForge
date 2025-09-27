@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.behavior.JianjitengOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Declarative registry for 蛊材（Gu Cai）organ behaviours.

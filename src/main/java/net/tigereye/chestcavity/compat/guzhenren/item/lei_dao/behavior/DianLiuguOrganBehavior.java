@@ -15,12 +15,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
@@ -188,7 +188,7 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
     }
 
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
     }
 

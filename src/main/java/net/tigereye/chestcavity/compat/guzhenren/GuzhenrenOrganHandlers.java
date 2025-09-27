@@ -23,9 +23,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.TuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.ShuiDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoOrganRegistry;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 
@@ -68,7 +68,7 @@ public final class GuzhenrenOrganHandlers {
                     describeChestCavity(cc)
             );
         }
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         Abilities.bootstrap();
         GuCaiOrganRegistry.bootstrap();
         DuDaoOrganRegistry.bootstrap();

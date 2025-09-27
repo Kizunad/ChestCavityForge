@@ -24,10 +24,10 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import org.joml.Vector3f;
 
 import java.util.Map;
@@ -230,7 +230,7 @@ public final class BloodBoneBombAbility {
 
     private static void launchProjectile(ServerPlayer player, ChargeState state) {
         ServerLevel level = player.serverLevel();
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(state.chestCavity);
+        ActiveLinkageContext context = LinkageManager.getContext(state.chestCavity);
         double liIncrease = ensureChannel(context, LI_DAO_INCREASE_EFFECT).get();
         double xueIncrease = ensureChannel(context, XUE_DAO_INCREASE_EFFECT).get();
         double guIncrease = ensureChannel(context, GU_DAO_INCREASE_EFFECT).get();

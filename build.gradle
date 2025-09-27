@@ -10,8 +10,14 @@ group = mod_group_id
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url = 'https://maven.neoforged.net/releases' }
-    maven { url = 'https://maven.shedaniel.me/' }
+    // NeoForge 官方
+    maven { url = "https://maven.neoforged.net/releases" }
+
+    // Cloth Config
+    maven { url = "https://maven.shedaniel.me" }
+
+    // GeckoLib
+    maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven" }
 }
 
 base {
@@ -73,7 +79,21 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 dependencies {
-    implementation "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    // ===== Cloth Config (强依赖，运行必需) =====
+    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    runtimeOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    testImplementation "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+
+    // ==== 仅测试用的前置 ====
+    testImplementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:4.7.3"
+
+    // 本地 jar（AttributeFix、PlayerAnimator）
+    testImplementation files("libs/attributefix-neoforge-1.21.1-21.1.2.jar")
+    testImplementation files("libs/player-animation-lib-forge-2.0.1+1.21.1.jar")
+    testImplementation files("libs/gzr.jar")
+    testImplementation files("libs/Pehkui-3.8.3+1.21-neoforge.jar")
+
+
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
 }
 

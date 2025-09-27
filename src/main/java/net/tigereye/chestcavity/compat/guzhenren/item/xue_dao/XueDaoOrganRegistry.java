@@ -10,7 +10,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieyanguO
 
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Registry wiring for 血道（Xue Dao） organs.

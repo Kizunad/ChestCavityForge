@@ -27,10 +27,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -38,7 +38,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
-import net.tigereye.chestcavity.compat.guzhenren.nudao.GuzhenrenNudaoBridge;
+import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
@@ -231,7 +231,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (cc == null) {
             return;
         }
-        ensureChannel(GuzhenrenLinkageManager.getContext(cc));
+        ensureChannel(LinkageManager.getContext(cc));
     }
 
     private void decrementAndTriggerDrain(Player player, ChestCavityInstance cc, ItemStack organ) {
@@ -284,7 +284,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
 
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         if (context == null) {
             return damage;
         }
@@ -376,7 +376,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (player == null || cc == null) {
             return;
         }
-        double increase = 1.0 + Math.max(0.0, ensureChannel(GuzhenrenLinkageManager.getContext(cc)).get());
+        double increase = 1.0 + Math.max(0.0, ensureChannel(LinkageManager.getContext(cc)).get());
         float damage = (float) (1.0 / Math.max(increase, 1.0));
         if (damage <= 0.0f) {
             return;
@@ -406,7 +406,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (entity == null || cc == null) {
             return;
         }
-        double increase = 1.0 + Math.max(0.0, ensureChannel(GuzhenrenLinkageManager.getContext(cc)).get());
+        double increase = 1.0 + Math.max(0.0, ensureChannel(LinkageManager.getContext(cc)).get());
         float damage = (float) (1.0 / Math.max(increase, 1.0));
         if (damage <= 0.0f) {
             return;

@@ -35,7 +35,7 @@ import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.*;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenOrganHandlers;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.tigereye.chestcavity.registration.*;
@@ -711,7 +711,7 @@ public class ChestCavityUtil {
                 }
             }
             if (cc.owner.tickCount % 20 == 0) {
-                GuzhenrenLinkageManager.tickSlow(cc);
+                LinkageManager.tickSlow(cc);
                 if (!cc.onSlowTickListeners.isEmpty()) {
                     List<OrganSlowTickContext> snapshot = List.copyOf(cc.onSlowTickListeners);
                     for (OrganSlowTickContext ctx : snapshot) {

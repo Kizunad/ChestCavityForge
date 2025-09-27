@@ -28,7 +28,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
-import net.tigereye.chestcavity.compat.guzhenren.util.PlayerSkinUtil;
+import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.registration.CCItems;

@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Declarative registration for the Wu Hang (五行蛊) organ behaviours.

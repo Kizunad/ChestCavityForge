@@ -1,13 +1,19 @@
 package net.tigereye.chestcavity.registration;
 
-import net.minecraft.world.food.Foods;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.*;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraft.world.food.Foods;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.Tiers;
 import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.items.ChestOpener;
+import net.tigereye.chestcavity.items.CreeperAppendix;
+import net.tigereye.chestcavity.items.VenomGland;
 import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.items.CreeperAppendix;
 import net.tigereye.chestcavity.items.VenomGland;
@@ -18,25 +24,46 @@ public class CCItems {
 	public static final Item.Properties CHEST_OPENER_PROPERTIES = new Item.Properties().stacksTo(1);
 	public static final Item.Properties FOOD_ITEM_PROPERTIES = new Item.Properties().stacksTo(64);
 
+	/**
+	 * External Guzhenren item handles. These resolve the upstream mod
+	 * at runtime so ChestCavity can treat the items as first-class content
+	 * without registering duplicates.
+	 */
 	public static final DeferredItem<Item> CHEST_OPENER = ITEMS.register("chest_opener", ChestOpener::new);
+
+	// -- 蛊材
 	public static final Item GUZHENREN_JIANJITENG = resolveExternalItem("guzhenren", "jianjiteng");
+
+	// -- 毒道
 	public static final Item GUZHENREN_CHOU_PI_GU = resolveExternalItem("guzhenren", "chou_pi_gu");
+
+	// -- 血道
 	public static final Item GUZHENREN_TIE_XUE_GU = resolveExternalItem("guzhenren", "tiexuegu");
 	public static final Item GUZHENREN_XUE_FEI_GU = resolveExternalItem("guzhenren", "xie_fei_gu");
 	public static final Item GUZHENREN_XIE_DI_GU = resolveExternalItem("guzhenren", "xie_di_gu");
 	public static final Item GUZHENREN_XIE_YAN_GU = resolveExternalItem("guzhenren", "xie_yan_gu");
+
+	// -- 水道
 	public static final Item GUZHENREN_LING_XIAN_GU = resolveExternalItem("guzhenren", "ling_xian_gu");
+
+	// -- 剑道
+	public static final Item GUZHENREN_JIAN_YING_GU = resolveExternalItem("guzhenren", "jian_ying_gu");
+
+	// -- 骨道
+	public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
+
+	// -- 模型类 item
+	public static final Item GUZHENREN_GU_QIANG = resolveExternalItem("guzhenren", "gu_qiang");
 	public static final Item GUZHENREN_XIE_NING_JIAN = resolveExternalItem("guzhenren", "xie_ning_jian");
-	public static final Item GUZHENREN_QING_LAN_PO_GU_JIAN = resolveExternalItem("guzhenren", "qinglanpogujian");
+
+	// -- 未炼化 蛊虫
 	public static final Item GUZHENREN_WEI_LIAN_HUA_JIAN_XIA_GU = resolveExternalItem("guzhenren", "weilianhuajianxiagu");
 	public static final Item GUZHENREN_WEI_LIAN_HUA_JIAN_ZHI_GU_3 = resolveExternalItem("guzhenren", "wei_lian_hua_jian_zhi_gu_3");
 	public static final Item GUZHENREN_WEI_LIAN_HUA_JIN_WEN_JIAN_XIA_GU = resolveExternalItem("guzhenren", "weilianhuajinwenjianxiagu");
 	public static final Item GUZHENREN_WEI_LIAN_HUA_JIN_HEN_GU = resolveExternalItem("guzhenren", "weilianhuajinhengu");
 	public static final Item GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU = resolveExternalItem("guzhenren", "weilianhuajianmaigu");
-	public static final Item GUZHENREN_JIAN_YING_GU = resolveExternalItem("guzhenren", "jian_ying_gu");
-	public static final Item GUZHENREN_GU_QIANG = resolveExternalItem("guzhenren", "gu_qiang");
-	public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
 
+	// 待移除 - 不应该在items中
 	private static final Item[] GUZHENREN_JIANDAO_BONUS_ITEMS = new Item[] {
 		GUZHENREN_WEI_LIAN_HUA_JIAN_XIA_GU,
 		GUZHENREN_WEI_LIAN_HUA_JIAN_ZHI_GU_3,
@@ -45,6 +72,10 @@ public class CCItems {
 		GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU
 	};
 
+	// 待移除
+	public static final Item GUZHENREN_QING_LAN_PO_GU_JIAN = resolveExternalItem("guzhenren", "qinglanpogujian");
+
+	// 待移除 - 不应该在items中
 	public static Item pickRandomGuzhenrenJiandaoBonus(RandomSource random) {
 		if (random == null || GUZHENREN_JIANDAO_BONUS_ITEMS.length == 0) {
 			return GUZHENREN_WEI_LIAN_HUA_JIAN_MAI_GU;

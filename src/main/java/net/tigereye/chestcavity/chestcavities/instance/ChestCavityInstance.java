@@ -24,7 +24,7 @@ import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -183,7 +183,7 @@ public class ChestCavityInstance implements ContainerListener {
         }
         ChestCavityUtil.evaluateChestCavity(this);
         if (ccTag != null) {
-            GuzhenrenLinkageManager.load(this, ccTag);
+            LinkageManager.load(this, ccTag);
         }
     }
 
@@ -211,7 +211,7 @@ public class ChestCavityInstance implements ContainerListener {
             }
             ccTag.put("ScoreboardUpgrades", upgrades);
         }
-        GuzhenrenLinkageManager.save(this, ccTag);
+        LinkageManager.save(this, ccTag);
         tag.put("ChestCavity",ccTag);
     }
 

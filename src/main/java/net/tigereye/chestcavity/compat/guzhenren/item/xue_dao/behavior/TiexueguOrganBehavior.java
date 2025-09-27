@@ -20,12 +20,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -85,7 +85,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.registerContributor(organ, this, XUE_DAO_INCREASE_EFFECT);
 
@@ -141,7 +141,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
             applyEffectDelta(cc, organ, -storedEffect);
         }
         if (cc != null) {
-            ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+            ActiveLinkageContext context = LinkageManager.getContext(cc);
             IncreaseEffectLedger ledger = context.increaseEffects();
             ledger.remove(organ, XUE_DAO_INCREASE_EFFECT);
             ledger.unregisterContributor(organ);
@@ -171,7 +171,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null) {
             return;
         }
-        ensureChannel(GuzhenrenLinkageManager.getContext(cc));
+        ensureChannel(LinkageManager.getContext(cc));
     }
 
     private void triggerEffect(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -193,7 +193,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         }
         writeEffect(organ, newEffect);
 
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel channel = ensureChannel(context);
         double efficiency = 1.0 + Math.max(0.0, channel.get());
 
@@ -304,7 +304,7 @@ public enum TiexueguOrganBehavior implements OrganSlowTickListener, OrganRemoval
         if (cc == null || delta == 0.0) {
             return;
         }
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel channel = ensureChannel(context);
         channel.adjust(delta);
         context.increaseEffects().adjust(organ, XUE_DAO_INCREASE_EFFECT, delta);

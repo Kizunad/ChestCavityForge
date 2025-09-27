@@ -13,13 +13,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.policy.SaturationPolicy;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 import java.util.Map;
@@ -130,14 +130,14 @@ public enum GuzhuguOrganBehavior implements OrganSlowTickListener, IncreaseEffec
 
         // --- 通用初始化 ---
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         return context.getOrCreateChannel(id)
                     .addPolicy(NON_NEGATIVE);
     }
 
             // --- 通用初始化 ---
     private static LinkageChannel ensureChannelSoft(ChestCavityInstance cc, ResourceLocation id) {
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         return context.getOrCreateChannel(id)
                     .addPolicy(NON_NEGATIVE)
                     .addPolicy(SOFT_CAP_POLICY);

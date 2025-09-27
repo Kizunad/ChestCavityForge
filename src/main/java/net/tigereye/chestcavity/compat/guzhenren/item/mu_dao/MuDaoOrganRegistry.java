@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.mu_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Registry wiring for 木道（Mu Dao） organs such as the 镰刀蛊.

@@ -13,11 +13,11 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenNetworkBridge;
-import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenPayloadListener;
-import net.tigereye.chestcavity.compat.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
+import net.tigereye.chestcavity.guzhenren.network.GuzhenrenPayloadListener;
+import net.tigereye.chestcavity.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.slf4j.Logger;
@@ -208,7 +208,7 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
             return;
         }
         ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).ifPresent(cc -> {
-            var context = GuzhenrenLinkageManager.getContext(cc);
+            var context = LinkageManager.getContext(cc);
             seeds.forEach((channelId, value) -> {
                 if (channelId == null) {
                     return;

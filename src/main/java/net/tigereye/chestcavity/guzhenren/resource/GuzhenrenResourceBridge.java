@@ -25,12 +25,16 @@ import java.util.function.Supplier;
 
 
 /**
- * Reflection-based bridge for interacting with the Guzhenren mod's player variables attachment.
+ * Reflection-based bridge for interacting with the Guzhenren mod's player
+ * variables attachment.
  * <p>
  * 在不直接依赖蛊真人模组 API 的前提下，提供类型安全的读写接口，便于统一处理真元、阶段、转数等核心字段。
  * - 初始化阶段通过反射解析 {@code PlayerVariables} 类与字段句柄；
  * - {@link ResourceHandle} 暴露高层方法（如 {@link ResourceHandle#consumeScaledZhenyuan(double)}），便于调用方按统一公式扣减真元；
  * - 使用 {@link PlayerField} 枚举缓存反射字段，避免散落的字符串字段名，降低维护风险。
+ * <p>
+ * Relocated from the legacy compat namespace so ChestCavity Forge treats
+ * Guzhenren resources as first-class integration entry points.
  */
 public final class GuzhenrenResourceBridge {
 

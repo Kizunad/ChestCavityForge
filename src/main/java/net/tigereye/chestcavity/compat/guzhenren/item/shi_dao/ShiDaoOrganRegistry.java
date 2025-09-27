@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.shi_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.behavior.JiuChongOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Registry wiring for 食道（Shi Dao） organs such as the 酒虫.

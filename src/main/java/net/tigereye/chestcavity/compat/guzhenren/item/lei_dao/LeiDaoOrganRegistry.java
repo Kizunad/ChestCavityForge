@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.lei_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.DianLiuguOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Declarative registry for 雷道（Lei Dao）organ behaviours.

@@ -43,7 +43,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilit
 
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.tigereye.chestcavity.compat.guzhenren.network.GuzhenrenNetworkBridge;
+import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
 
 @Mod(ChestCavity.MODID)

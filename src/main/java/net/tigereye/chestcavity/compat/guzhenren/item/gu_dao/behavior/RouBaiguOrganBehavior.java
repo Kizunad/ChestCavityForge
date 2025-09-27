@@ -26,13 +26,13 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.GuzhenrenLinkageManager;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.LinkageChannel;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.ClampPolicy;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.policy.SaturationPolicy;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.linkage.policy.SaturationPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
@@ -107,7 +107,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return;
         }
 
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel boneChannel = ensureSoftChannel(context, BONE_GROWTH_CHANNEL);
         LinkageChannel guChannel = ensureChannel(context, GU_DAO_INCREASE_EFFECT);
         LinkageChannel xueChannel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
@@ -239,7 +239,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (cc == null) {
             return;
         }
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         ensureSoftChannel(context, BONE_GROWTH_CHANNEL);
         ensureChannel(context, GU_DAO_INCREASE_EFFECT);
         ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
@@ -287,7 +287,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (cc == null) {
             return 2.0; // Base efficiency when linkage data is unavailable.
         }
-        ActiveLinkageContext context = GuzhenrenLinkageManager.getContext(cc);
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel guChannel = ensureChannel(context, GU_DAO_INCREASE_EFFECT);
         LinkageChannel xueChannel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
         return computeIncreaseSum(guChannel, xueChannel);

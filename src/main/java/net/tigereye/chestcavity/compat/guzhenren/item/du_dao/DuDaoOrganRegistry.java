@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.du_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.behavior.ChouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 
 /**
  * Declarative registration for 毒道蛊 (Du Dao) organ behaviours.
