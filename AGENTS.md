@@ -34,6 +34,10 @@
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
   - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
+- **UI tweak request (2025-10-XX)**
+  - Adjust GuScript page navigation buttons to shift 10 px further left.
+  - Move trigger/listener buttons 10 px downward relative to current position.
+  - Keep alignment responsive after offsets; update config defaults or layout math accordingly.
 - **Branching guideline**
   - When dispatching multiple tasks to web Codex, create dedicated git branches per task (e.g., `feature/guscript-multi-trigger-fix`, `feature/guscript-ui-spacing`) and ensure PRs remain isolated. Merge sequencing and rebases must be coordinated by the user relay.
 
