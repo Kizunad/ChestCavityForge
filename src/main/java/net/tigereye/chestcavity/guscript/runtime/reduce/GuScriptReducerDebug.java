@@ -1,6 +1,9 @@
-package net.tigereye.chestcavity.guscript.runtime;
+package net.tigereye.chestcavity.guscript.runtime.reduce;
 
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
+import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
+import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
 import net.tigereye.chestcavity.guscript.ast.GuNodeKind;
@@ -20,9 +23,9 @@ public final class GuScriptReducerDebug {
     private GuScriptReducerDebug() {}
 
     public static void logDemo() {
-        GuNode bone = new LeafGuNode("骨蛊", Set.of("骨"), List.of(new Action("stab", "穿刺")));
-        GuNode blood = new LeafGuNode("血蛊", Set.of("血"), List.of(new Action("bleed", "流血")));
-        GuNode burst = new LeafGuNode("爆发蛊", Set.of("爆发"), List.of(new Action("burst", "爆裂")));
+        GuNode bone = new LeafGuNode("骨蛊", Set.of("骨"), List.of(new ConsumeHealthAction(2)));
+        GuNode blood = new LeafGuNode("血蛊", Set.of("血"), List.of(new ConsumeZhenyuanAction(3)));
+        GuNode burst = new LeafGuNode("爆发蛊", Set.of("爆发"), List.of(new EmitProjectileAction("explosion_shard", 6.0)));
 
         ReactionRule bloodBoneCore = ReactionRule.builder("blood_bone_core")
                 .arity(2)
@@ -37,7 +40,8 @@ public final class GuScriptReducerDebug {
                 .requiredTags(Set.of("核心", "爆发"))
                 .priority(5)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨爆裂枪", GuNodeKind.COMPOSITE,
-                        unionTags(inputs, "杀招"), List.of(new Action("explode", "爆裂冲击")), inputs))
+                        unionTags(inputs, "杀招"),
+                        List.of(new EmitProjectileAction("blood_burst", 12.0)), inputs))
                 .build();
 
         GuScriptReducer reducer = new GuScriptReducer();

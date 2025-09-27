@@ -50,6 +50,7 @@ The top-level package highlights the AST and UI folders explicitly while still a
 ## AST Subsystem
 
 - AST exposes immutable node objects implementing `GuScriptNode`. Common node types:
+  - 节点的 `actions` 使用强类型接口 `Action`；各实现（例如 `ConsumeZhenyuanAction`、`EmitProjectileAction`）通过 `execute(GuScriptContext)` 与桥接层交互，`ActionRegistry` 负责 JSON/NBT 反序列化到具体类型。
   - control flow (`SequenceNode`, `ConditionalNode`, `LoopNode`),
   - actions (`EmitProjectileNode`, `ConsumeResourceNode`, `ApplyEffectNode`),
   - queries (`ReadResourceNode`, `CheckOrganNode`, `LinkageValueNode`).
@@ -60,6 +61,7 @@ The top-level package highlights the AST and UI folders explicitly while still a
 - Compilation caches structural metadata (listener graphs, node indices) so repeated triggers reuse existing node instances while swapping in fresh execution context.
 
 ### AST Reduction Model
+  - 执行阶段通过 `GuScriptExecutionBridge` 接入 Guzhenren 资源与实体行为，默认实现 `DefaultGuScriptExecutionBridge` 会扣真元、伤血并按实体注册表发射投射物；行动注册在 `GuScriptModule.bootstrap()` 中统一初始化。
 - `guscript/ast` 提供封装的 `GuNode` 层级（`LeafGuNode`、`OperatorGuNode`）和 `GuNodeKind`，反应总是构建包含原子子节点的运算符树，而非平铺产物列表。
 - `ReactionRule`（位于 `guscript/runtime`）将每条反应建模为运算符：定义 `arity`、所需/禁用标签以及 `ReactionOperator`，返回新的父节点并保留参与的 children。
 - `GuScriptReducer` 穷举候选组合，按覆盖度→优先级挑选最佳反应，将子节点替换为父节点，最终得到一个或多个根节点构成的 AST。

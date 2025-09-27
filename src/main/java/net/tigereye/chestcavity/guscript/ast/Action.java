@@ -1,14 +1,18 @@
 package net.tigereye.chestcavity.guscript.ast;
 
+import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
+
 /**
- * Describes an atomic action that a node can execute when the AST is interpreted.
- * Actions are lightweight identifiers with an optional description for UI/debug use.
+ * Represents an executable action attached to a GuScript node.
  */
-public record Action(String id, String description) {
-    public Action {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("Action id must be non-empty");
-        }
-        description = description == null ? "" : description;
-    }
+public interface Action {
+
+    /** Stable identifier used for registry/serialization. */
+    String id();
+
+    /** Human-readable description for UI/debug. */
+    String description();
+
+    /** Execute the action within the provided runtime context. */
+    void execute(GuScriptContext context);
 }

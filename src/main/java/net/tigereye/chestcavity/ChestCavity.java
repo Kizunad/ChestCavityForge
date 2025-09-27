@@ -45,6 +45,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilit
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
+import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
+import net.tigereye.chestcavity.guscript.GuScriptModule;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
 
 @Mod(ChestCavity.MODID)
@@ -92,7 +94,9 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
             bus.addListener(JiandaoClientRenderers::onRegisterRenderers);
     }
 
-    bus.addListener(GuDaoClientRenderLayers::onAddLayers);
+    if (FMLEnvironment.dist.isClient()) {
+            bus.addListener(GuDaoClientRenderLayers::onAddLayers);
+        }
 
 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
@@ -128,6 +132,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		if (ModList.get().isLoaded("guzhenren")) {
 			KongqiaoOrganRegistry.bootstrap();
 			GuzhenrenNetworkBridge.bootstrap();
+			GuScriptModule.bootstrap();
 		}
 		//CCCommands.register();
 		//CCNetworkingPackets.register();

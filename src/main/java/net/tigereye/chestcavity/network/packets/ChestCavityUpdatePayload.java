@@ -3,7 +3,6 @@ package net.tigereye.chestcavity.network.packets;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -45,11 +44,13 @@ public record ChestCavityUpdatePayload(boolean open, Map<ResourceLocation, Float
 
     public static void handle(ChestCavityUpdatePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (Minecraft.getInstance().cameraEntity instanceof LivingEntity living) {
-                var instance = CCAttachments.getChestCavity(living);
-                instance.opened = payload.open;
-                instance.setOrganScores(payload.organScores);
+            var entity = context.player();
+            if (!(entity instanceof LivingEntity living)) {
+                return;
             }
+            var instance = CCAttachments.getChestCavity(living);
+            instance.opened = payload.open;
+            instance.setOrganScores(payload.organScores);
         });
     }
 }

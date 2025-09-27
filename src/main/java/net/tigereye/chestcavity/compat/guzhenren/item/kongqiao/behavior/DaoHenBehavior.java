@@ -1,38 +1,27 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
-import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
-import net.tigereye.chestcavity.guzhenren.network.GuzhenrenPayloadListener;
-import net.tigereye.chestcavity.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
-import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.tigereye.chestcavity.linkage.LinkageManager;
 import org.slf4j.Logger;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Dedicated DaoHen behaviour: listens to Guzhenren payloads and performs 1s client polling
- * to detect and log DaoHen value changes. Covers both "daohen_*" and upstream-typo "dahen_*".
+ * Shared DaoHen utilities. Client-specific listeners live in {@link DaoHenClientBehavior}.
  */
-public final class DaoHenBehavior implements GuzhenrenPayloadListener {
-    private static final Logger LOGGER = LogUtils.getLogger();
-    private static final String LOG_PREFIX = "[compat/guzhenren][kongqiao]";
+public final class DaoHenBehavior {
+    static final Logger LOGGER = LogUtils.getLogger();
+    static final String LOG_PREFIX = "[compat/guzhenren][kongqiao]";
     private static final String MOD_ID = "guzhenren";
     private static final double EPSILON = 1.0e-4;
     private static final double DAO_HEN_TO_INCREASE_RATIO = 1.0 / 1000.0;
@@ -81,54 +70,20 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
             Map.entry("bianhuadao", ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bian_hua_dao_increase_effect"))
     );
 
-    private static final AtomicBoolean CLIENT_INITIALISED = new AtomicBoolean(false);
-    private static final Map<UUID, Map<String, Double>> CLIENT_SNAPSHOTS = new ConcurrentHashMap<>();
-    private static final int POLL_INTERVAL_TICKS = 20; // ~1s at 20 TPS
-    private static int clientTickCounter = 0;
-
-    private static final DaoHenBehavior INSTANCE = new DaoHenBehavior();
-
-    private DaoHenBehavior() {}
+    private DaoHenBehavior() {
+    }
 
     public static void bootstrap() {
-        LOGGER.debug("{} DaoHenBehavior bootstrap (dist={}, clientInit={})", LOG_PREFIX,
-                FMLEnvironment.dist, CLIENT_INITIALISED.get());
-
-        if (FMLEnvironment.dist.isClient() && CLIENT_INITIALISED.compareAndSet(false, true)) {
-            GuzhenrenNetworkBridge.registerListener(INSTANCE);
-            NeoForge.EVENT_BUS.addListener(DaoHenBehavior::onClientTick);
-            LOGGER.info("{} DaoHenBehavior client hooks initialised (listener + 1s polling)", LOG_PREFIX);
-        }
-    }
-
-    @Override
-    public void onPlayerVariablesSynced(Player player, GuzhenrenResourceBridge.ResourceHandle handle, Map<String, Double> snapshot) {
-        if (player == null || snapshot == null || snapshot.isEmpty()) {
+        var dist = FMLEnvironment.dist;
+        LOGGER.debug("{} DaoHenBehavior bootstrap request (dist={})", LOG_PREFIX, dist);
+        if (!dist.isClient()) {
+            LOGGER.debug("{} DaoHenBehavior bootstrap skipped: non-client dist", LOG_PREFIX);
             return;
         }
-        Map<String, Double> tracked = filterDaoHen(snapshot);
-        if (tracked.isEmpty()) {
-            return;
-        }
-        processSnapshot(player, tracked, CLIENT_SNAPSHOTS, true);
+        DaoHenClientBehavior.bootstrap();
     }
 
-    @OnlyIn(Dist.CLIENT)
-    private static void onClientTick(ClientTickEvent.Post event) {
-        if (++clientTickCounter % POLL_INTERVAL_TICKS != 0) return;
-        final Minecraft mc = Minecraft.getInstance();
-        if (mc == null || mc.player == null || mc.level == null) return;
-        var player = mc.player;
-        GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
-            var snapshot = handle.snapshotAll();
-            if (snapshot.isEmpty()) return;
-            var tracked = filterDaoHen(snapshot);
-            if (tracked.isEmpty()) return;
-            processSnapshot(player, tracked, CLIENT_SNAPSHOTS, true);
-        });
-    }
-
-    private static Map<String, Double> filterDaoHen(Map<String, Double> snapshot) {
+    static Map<String, Double> filterDaoHen(Map<String, Double> snapshot) {
         Map<String, Double> filtered = new HashMap<>();
         for (Map.Entry<String, Double> entry : snapshot.entrySet()) {
             String key = entry.getKey();
@@ -139,8 +94,8 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
         return filtered;
     }
 
-    private static void processSnapshot(Player player, Map<String, Double> tracked,
-                                        Map<UUID, Map<String, Double>> cache, boolean logChanges) {
+    static void processSnapshot(Player player, Map<String, Double> tracked,
+                                 Map<UUID, Map<String, Double>> cache, boolean logChanges) {
         UUID playerId = player.getUUID();
         Map<String, Double> previous = cache.get(playerId);
         if (logChanges) {
@@ -154,7 +109,7 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
         cache.put(playerId, Collections.unmodifiableMap(new HashMap<>(tracked)));
     }
 
-    private static void seedIncreaseEffects(Player player, Map<String, Double> daoHenValues) {
+    static void seedIncreaseEffects(Player player, Map<String, Double> daoHenValues) {
         if (player == null || daoHenValues == null || daoHenValues.isEmpty()) {
             return;
         }
@@ -174,10 +129,7 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
         if (seeds.isEmpty()) {
             return;
         }
-        applyChannelSeeds(player, seeds);
-        if (player.level().isClientSide() && player instanceof LocalPlayer localPlayer) {
-            sendSeedUpdate(localPlayer, seeds);
-        }
+        DaoHenSeedHandler.applyChannelSeeds(player, seeds);
     }
 
     private static ResourceLocation resolveIncreaseChannel(String rawKey) {
@@ -201,50 +153,6 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
             return null;
         }
         return DAO_HEN_CHANNELS.get(normalised);
-    }
-
-    private static void applyChannelSeeds(Player player, Map<ResourceLocation, Double> seeds) {
-        if (player == null || seeds == null || seeds.isEmpty()) {
-            return;
-        }
-        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).ifPresent(cc -> {
-            var context = LinkageManager.getContext(cc);
-            seeds.forEach((channelId, value) -> {
-                if (channelId == null) {
-                    return;
-                }
-                LinkageChannel channel = context.getOrCreateChannel(channelId);
-                double previous = channel.get();
-                if (Math.abs(previous - value) <= EPSILON) {
-                    return;
-                }
-                channel.set(value);
-                LOGGER.debug("{} seeded {} with {} (Δ {})", LOG_PREFIX, channelId, format(value), format(value - previous));
-            });
-        });
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private static void sendSeedUpdate(LocalPlayer player, Map<ResourceLocation, Double> seeds) {
-        if (player == null || player.connection == null || seeds == null || seeds.isEmpty()) {
-            return;
-        }
-        player.connection.send(new KongqiaoDaoHenSeedPayload(Map.copyOf(seeds)));
-    }
-
-    public static void handleSeedPayload(KongqiaoDaoHenSeedPayload payload, IPayloadContext context) {
-        if (context.flow() != PacketFlow.SERVERBOUND) {
-            return;
-        }
-        Player player = context.player();
-        if (!(player instanceof ServerPlayer)) {
-            return;
-        }
-        Map<ResourceLocation, Double> seeds = payload.seeds();
-        if (seeds == null || seeds.isEmpty()) {
-            return;
-        }
-        context.enqueueWork(() -> applyChannelSeeds(player, seeds));
     }
 
     private static void logInitialSnapshot(Player player, Map<String, Double> values) {
@@ -272,7 +180,7 @@ public final class DaoHenBehavior implements GuzhenrenPayloadListener {
         }
     }
 
-    private static String format(double value) {
+    static String format(double value) {
         return String.format(Locale.ROOT, "%.3f", value);
     }
 }

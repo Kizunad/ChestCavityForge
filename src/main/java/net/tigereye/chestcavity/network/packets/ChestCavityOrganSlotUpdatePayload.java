@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.network.packets;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
@@ -40,15 +40,14 @@ public record ChestCavityOrganSlotUpdatePayload(int slot, ItemStack stack) imple
 
     public static void handle(ChestCavityOrganSlotUpdatePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.player == null) {
+            Player player = context.player();
+            if (player == null) {
                 return;
             }
-            ChestCavityInstance cc = CCAttachments.getChestCavity(minecraft.player);
+            ChestCavityInstance cc = CCAttachments.getChestCavity(player);
             if (payload.slot < 0 || payload.slot >= cc.inventory.getContainerSize()) {
                 return;
             }
-
             ItemStack incoming = payload.stack.copy();
             cc.inventory.setItem(payload.slot, incoming);
         });
