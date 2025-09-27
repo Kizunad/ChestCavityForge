@@ -1,13 +1,17 @@
 package net.tigereye.chestcavity.guzhenren.util;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
+import org.slf4j.Logger;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.function.Consumer;
 
 /**
  * Centralised helper for consuming Guzhenren resources. Prefers draining
@@ -18,10 +22,39 @@ import java.util.OptionalDouble;
  */
 public final class GuzhenrenResourceCostHelper {
 
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final double DEFAULT_RESOURCE_TO_HEALTH_RATIO = 100.0;
     private static final float EPSILON = 1.0E-4f;
 
+    private static volatile boolean debugEnabled = Boolean.getBoolean("chestcavity.guzhenren.resources.debug");
+
     private GuzhenrenResourceCostHelper() {
+    }
+
+    /** Enables or disables debug level logging for helper operations. */
+    public static void setDebugEnabled(boolean enabled) {
+        debugEnabled = enabled;
+    }
+
+    /** Returns whether debug level logging is currently enabled. */
+    public static boolean isDebugEnabled() {
+        return debugEnabled;
+    }
+
+    /** Executes the provided consumer if the player exposes a Guzhenren resource handle. */
+    public static boolean withHandle(Player player, Consumer<ResourceHandle> consumer) {
+        Objects.requireNonNull(consumer, "consumer");
+        if (player == null) {
+            debug("withHandle called with null player");
+            return false;
+        }
+        Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            debug("withHandle could not acquire handle for {}", player.getName().getString());
+            return false;
+        }
+        consumer.accept(handleOpt.get());
+        return true;
     }
 
     public static ConsumptionResult consumeStrict(LivingEntity entity, double baseZhenyuanCost, double baseJingliCost) {
@@ -65,54 +98,23 @@ public final class GuzhenrenResourceCostHelper {
             double ratio,
             boolean allowHealthFallback
     ) {
-        ResourceHandle handle = GuzhenrenResourceBridge.open(player).orElse(null);
-        if (handle != null) {
-            double zhenyuanRequired = 0.0;
-            if (zhenyuanCost > 0.0) {
-                OptionalDouble zhenyuanRequiredOpt = handle.estimateScaledZhenyuanCost(zhenyuanCost);
-                if (zhenyuanRequiredOpt.isEmpty()) {
-                    return ConsumptionResult.failure(FailureReason.NON_FINITE_COST);
+        Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isPresent()) {
+            ResourceHandle handle = handleOpt.get();
+            try (ResourceTransaction transaction = new ResourceTransaction(player, handle)) {
+                FailureReason failure = transaction.spendZhenyuan(zhenyuanCost);
+                if (failure != null) {
+                    return ConsumptionResult.failure(failure);
                 }
-                zhenyuanRequired = zhenyuanRequiredOpt.getAsDouble();
-                OptionalDouble zhenyuanCurrentOpt = handle.getZhenyuan();
-                if (zhenyuanCurrentOpt.isEmpty()) {
-                    return ConsumptionResult.failure(FailureReason.ATTACHMENT_MISSING_FIELD);
+                failure = transaction.spendJingli(jingliCost);
+                if (failure != null) {
+                    return ConsumptionResult.failure(failure);
                 }
-                double available = zhenyuanCurrentOpt.getAsDouble();
-                if (!Double.isFinite(available) || available + EPSILON < zhenyuanRequired) {
-                    return ConsumptionResult.failure(FailureReason.INSUFFICIENT_ZHENYUAN);
-                }
+                ConsumptionResult result = transaction.commit();
+                debug("consumeForPlayer succeeded for {}: zhenyuanSpent={}, jingliSpent={}",
+                        player.getName().getString(), result.zhenyuanSpent(), result.jingliSpent());
+                return result;
             }
-
-            double jingliRequired = Math.max(0.0, jingliCost);
-            if (jingliRequired > 0.0) {
-                OptionalDouble jingliCurrentOpt = handle.getJingli();
-                if (jingliCurrentOpt.isEmpty()) {
-                    return ConsumptionResult.failure(FailureReason.ATTACHMENT_MISSING_FIELD);
-                }
-                double availableJingli = jingliCurrentOpt.getAsDouble();
-                if (!Double.isFinite(availableJingli) || availableJingli + EPSILON < jingliRequired) {
-                    return ConsumptionResult.failure(FailureReason.INSUFFICIENT_JINGLI);
-                }
-            }
-            double zhenyuanSpent = 0.0;
-            if (zhenyuanRequired > 0.0) {
-                zhenyuanSpent = zhenyuanRequired;
-                if (handle.adjustZhenyuan(-zhenyuanSpent, true).isEmpty()) {
-                    return ConsumptionResult.failure(FailureReason.INSUFFICIENT_ZHENYUAN);
-                }
-            }
-
-            if (jingliCost > 0.0) {
-                if (handle.adjustJingli(-jingliCost, true).isEmpty()) {
-                    if (zhenyuanSpent > 0.0) {
-                        handle.adjustZhenyuan(zhenyuanSpent, true);
-                    }
-                    return ConsumptionResult.failure(FailureReason.INSUFFICIENT_JINGLI);
-                }
-            }
-
-            return ConsumptionResult.successWithResources(zhenyuanSpent, jingliCost);
         }
 
         if (!allowHealthFallback) {
@@ -134,33 +136,9 @@ public final class GuzhenrenResourceCostHelper {
             return ConsumptionResult.failure(FailureReason.NON_FINITE_COST);
         }
 
-        float startingHealth = entity.getHealth();
-        float startingAbsorption = Math.max(0.0f, entity.getAbsorptionAmount());
-        float available = startingHealth + startingAbsorption;
-        if (available <= healthCost + EPSILON) {
+        boolean drained = drainHealth(entity, healthCost, EPSILON, entity.damageSources().generic());
+        if (!drained) {
             return ConsumptionResult.failure(FailureReason.INSUFFICIENT_HEALTH);
-        }
-
-        entity.invulnerableTime = 0;
-        DamageSource damageSource = entity.damageSources().generic();
-        entity.hurt(damageSource, healthCost);
-        entity.invulnerableTime = 0;
-
-        float remaining = healthCost;
-        float absorptionConsumed = Math.min(startingAbsorption, remaining);
-        remaining -= absorptionConsumed;
-        float targetAbsorption = Math.max(0.0f, startingAbsorption - absorptionConsumed);
-
-        if (!entity.isDeadOrDying()) {
-            entity.setAbsorptionAmount(targetAbsorption);
-            if (remaining > 0.0f) {
-                float targetHealth = Math.max(0.0f, startingHealth - remaining);
-                if (entity.getHealth() > targetHealth) {
-                    entity.setHealth(targetHealth);
-                }
-            }
-            entity.hurtTime = 0;
-            entity.hurtDuration = 0;
         }
 
         return ConsumptionResult.successWithHealth(healthCost);
@@ -206,6 +184,185 @@ public final class GuzhenrenResourceCostHelper {
         public static ConsumptionResult failure(FailureReason reason) {
             Objects.requireNonNull(reason, "reason");
             return new ConsumptionResult(false, 0.0, 0.0, 0.0f, null, reason);
+        }
+    }
+
+    /** Attempts to refund the provided resource consumption back to the player. */
+    public static boolean refund(Player player, ConsumptionResult result) {
+        if (player == null || result == null) {
+            return false;
+        }
+        if (result.mode() != Mode.PLAYER_RESOURCES) {
+            return true;
+        }
+        final boolean[] success = {true};
+        boolean executed = withHandle(player, handle -> {
+            if (result.zhenyuanSpent() > 0.0) {
+                success[0] &= handle.adjustZhenyuan(result.zhenyuanSpent(), true).isPresent();
+            }
+            if (result.jingliSpent() > 0.0) {
+                success[0] &= handle.adjustJingli(result.jingliSpent(), true).isPresent();
+            }
+            debug("Refunded resources for {}: zhenyuan={}, jingli={}",
+                    player.getName().getString(), result.zhenyuanSpent(), result.jingliSpent());
+        });
+        return executed && success[0];
+    }
+
+    /** Drains health and absorption while maintaining vanilla rollback guarantees. */
+    public static boolean drainHealth(LivingEntity entity, float amount, float minimumReserve, DamageSource source) {
+        if (entity == null || amount <= 0.0f) {
+            return true;
+        }
+        float startingHealth = entity.getHealth();
+        float startingAbsorption = Math.max(0.0f, entity.getAbsorptionAmount());
+        float available = startingHealth + startingAbsorption;
+        float reserve = Math.max(0.0f, minimumReserve);
+        float postDrain = available - amount;
+        if (reserve > 0.0f) {
+            if (postDrain < reserve) {
+                debug("Health drain rejected for {} (available={}, amount={}, reserve={})",
+                        entity.getName().getString(), available, amount, reserve);
+                return false;
+            }
+        } else if (postDrain <= 0.0f) {
+            debug("Health drain rejected for {} (available={}, amount={}, reserve={})",
+                    entity.getName().getString(), available, amount, reserve);
+            return false;
+        }
+
+        entity.invulnerableTime = 0;
+        DamageSource appliedSource = source == null ? entity.damageSources().generic() : source;
+        entity.hurt(appliedSource, amount);
+        entity.invulnerableTime = 0;
+
+        float remaining = amount;
+        float absorptionConsumed = Math.min(startingAbsorption, remaining);
+        remaining -= absorptionConsumed;
+        float targetAbsorption = Math.max(0.0f, startingAbsorption - absorptionConsumed);
+
+        if (!entity.isDeadOrDying()) {
+            entity.setAbsorptionAmount(targetAbsorption);
+            if (remaining > 0.0f) {
+                float targetHealth = Math.max(0.0f, startingHealth - remaining);
+                if (entity.getHealth() > targetHealth) {
+                    entity.setHealth(targetHealth);
+                }
+            }
+            entity.hurtTime = 0;
+            entity.hurtDuration = 0;
+        }
+
+        debug("Drained health for {}: amount={}, remainingHealth={}, remainingAbsorption={}",
+                entity.getName().getString(), amount, entity.getHealth(), entity.getAbsorptionAmount());
+        return true;
+    }
+
+    public static boolean drainHealth(LivingEntity entity, float amount, DamageSource source) {
+        return drainHealth(entity, amount, 0.0f, source);
+    }
+
+    public static boolean drainHealth(LivingEntity entity, float amount) {
+        return drainHealth(entity, amount, 0.0f, entity == null ? null : entity.damageSources().generic());
+    }
+
+    private static void debug(String message, Object... args) {
+        if (debugEnabled) {
+            LOGGER.debug(message, args);
+        }
+    }
+
+    private static final class ResourceTransaction implements AutoCloseable {
+        private final Player player;
+        private final ResourceHandle handle;
+        private double zhenyuanSpent;
+        private double jingliSpent;
+        private boolean committed;
+
+        private ResourceTransaction(Player player, ResourceHandle handle) {
+            this.player = player;
+            this.handle = handle;
+        }
+
+        private FailureReason spendZhenyuan(double baseCost) {
+            double cost = sanitiseCost(baseCost);
+            if (cost <= 0.0) {
+                return null;
+            }
+            OptionalDouble beforeOpt = handle.getZhenyuan();
+            if (beforeOpt.isEmpty()) {
+                return FailureReason.ATTACHMENT_MISSING_FIELD;
+            }
+            double before = beforeOpt.getAsDouble();
+            if (!Double.isFinite(before)) {
+                return FailureReason.NON_FINITE_COST;
+            }
+            OptionalDouble afterOpt = handle.consumeScaledZhenyuan(cost);
+            if (afterOpt.isEmpty()) {
+                return FailureReason.INSUFFICIENT_ZHENYUAN;
+            }
+            double after = afterOpt.getAsDouble();
+            double spent = before - after;
+            if (!(Double.isFinite(spent) && spent > 0.0)) {
+                return FailureReason.INSUFFICIENT_ZHENYUAN;
+            }
+            zhenyuanSpent += spent;
+            debug("{} consumed zhenyuan: baseCost={}, spent={}, remaining={}",
+                    player.getName().getString(), cost, spent, after);
+            return null;
+        }
+
+        private FailureReason spendJingli(double baseCost) {
+            double cost = sanitiseCost(baseCost);
+            if (cost <= 0.0) {
+                return null;
+            }
+            OptionalDouble beforeOpt = handle.getJingli();
+            if (beforeOpt.isEmpty()) {
+                return FailureReason.ATTACHMENT_MISSING_FIELD;
+            }
+            double before = beforeOpt.getAsDouble();
+            if (!Double.isFinite(before) || before + EPSILON < cost) {
+                return FailureReason.INSUFFICIENT_JINGLI;
+            }
+            OptionalDouble afterOpt = handle.adjustJingli(-cost, true);
+            if (afterOpt.isEmpty()) {
+                return FailureReason.INSUFFICIENT_JINGLI;
+            }
+            double after = afterOpt.getAsDouble();
+            double spent = before - after;
+            if (!(Double.isFinite(spent) && spent >= cost - EPSILON)) {
+                return FailureReason.INSUFFICIENT_JINGLI;
+            }
+            jingliSpent += spent;
+            debug("{} consumed jingli: cost={}, spent={}, remaining={}",
+                    player.getName().getString(), cost, spent, after);
+            return null;
+        }
+
+        private ConsumptionResult commit() {
+            committed = true;
+            return ConsumptionResult.successWithResources(zhenyuanSpent, jingliSpent);
+        }
+
+        @Override
+        public void close() {
+            if (!committed) {
+                rollback();
+            }
+        }
+
+        private void rollback() {
+            if (zhenyuanSpent > 0.0) {
+                handle.adjustZhenyuan(zhenyuanSpent, true);
+            }
+            if (jingliSpent > 0.0) {
+                handle.adjustJingli(jingliSpent, true);
+            }
+            if (zhenyuanSpent > 0.0 || jingliSpent > 0.0) {
+                debug("Rolled back transaction for {} (zhenyuan={}, jingli={})",
+                        player.getName().getString(), zhenyuanSpent, jingliSpent);
+            }
         }
     }
 }

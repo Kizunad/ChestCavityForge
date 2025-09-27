@@ -19,7 +19,8 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -29,8 +30,6 @@ import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
 
-import java.util.Optional;
-import java.util.OptionalDouble;
 
 /**
  * Behaviour for 灵涎蛊 (Ling Xian Gu).
@@ -176,14 +175,19 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         if (!canHeal(entity, healAmount)) {
             return false;
         }
+        ConsumptionResult payment = null;
         if (player != null) {
             double cost = BASE_NORMAL_ZHENYUAN_COST * stackCount;
-            if (!spendZhenyuan(player, cost)) {
+            payment = GuzhenrenResourceCostHelper.consumeStrict(player, cost, 0.0);
+            if (!payment.succeeded()) {
                 return false;
             }
         }
         float healed = applyHealing(entity, healAmount);
         if (healed <= 0.0f) {
+            if (player != null && payment != null) {
+                GuzhenrenResourceCostHelper.refund(player, payment);
+            }
             return false;
         }
         boolean isPlayer = player != null;
@@ -198,14 +202,19 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         if (!canHeal(entity, healAmount)) {
             return false;
         }
+        ConsumptionResult payment = null;
         if (player != null) {
             double cost = BASE_STRESS_ZHENYUAN_COST * stackCount;
-            if (!spendZhenyuan(player, cost)) {
+            payment = GuzhenrenResourceCostHelper.consumeStrict(player, cost, 0.0);
+            if (!payment.succeeded()) {
                 return false;
             }
         }
         float healed = applyHealing(entity, healAmount);
         if (healed <= 0.0f) {
+            if (player != null && payment != null) {
+                GuzhenrenResourceCostHelper.refund(player, payment);
+            }
             return false;
         }
         boolean isPlayer = player != null;
@@ -213,19 +222,6 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         playHealingSound(entity, isPlayer, true);
         applyWeakness(entity, isPlayer);
         return true;
-    }
-
-    private static boolean spendZhenyuan(Player player, double baseCost) {
-        if (player == null) {
-            return false;
-        }
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return false;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        OptionalDouble result = handle.consumeScaledZhenyuan(baseCost);
-        return result.isPresent();
     }
 
     private static boolean shouldTriggerBaseline(LivingEntity entity) {
