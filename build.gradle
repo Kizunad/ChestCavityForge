@@ -78,6 +78,11 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+tasks.named('compileTestJava', JavaCompile).configure {
+    classpath = classpath.plus(tasks.named('compileJava', JavaCompile).get().classpath)
+    options.annotationProcessorPath = tasks.named('compileJava', JavaCompile).get().options.annotationProcessorPath
+}
+
 dependencies {
     // ===== Cloth Config (强依赖，运行必需) =====
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
