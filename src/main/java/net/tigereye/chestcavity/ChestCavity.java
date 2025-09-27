@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
 
 
+
 @Mod(ChestCavity.MODID)
 public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix organUtil class, possibly update to 4?, add alexs mobs and other mods compat
 
@@ -93,10 +94,11 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCStatusEffects.MOB_EFFECTS.register(bus);
 		bus.addListener(CCKeybindings::register);
 		CCTagOrgans.init();
-                OrganRetentionRules.registerNamespace(MODID);
-                if (ModList.get().isLoaded("guzhenren")) {
-                        GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
-                }
+    OrganRetentionRules.registerNamespace(MODID);
+    if (ModList.get().isLoaded("guzhenren")) {
+            GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
+    }
+
 
 		//CCCommands.register();
 		//CCNetworkingPackets.register();

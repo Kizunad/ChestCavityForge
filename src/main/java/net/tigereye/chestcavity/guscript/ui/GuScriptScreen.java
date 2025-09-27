@@ -1,13 +1,20 @@
 package net.tigereye.chestcavity.guscript.ui;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.tigereye.chestcavity.guscript.data.BindingTarget;
+import net.tigereye.chestcavity.guscript.data.ListenerType;
+import net.tigereye.chestcavity.guscript.network.packets.GuScriptBindingTogglePayload;
 
 public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
     private static final ResourceLocation BACKGROUND = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
+
+    private Button bindingTargetButton;
+    private Button listenerButton;
 
     public GuScriptScreen(GuScriptMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -19,6 +26,21 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
     protected void init() {
         super.init();
         this.titleLabelX = (this.imageWidth - this.font.width(this.title)) / 2;
+
+        int buttonWidth = 98;
+        int offset = 4;
+        int rightX = this.leftPos + this.imageWidth - offset;
+        int baseY = this.topPos - 24;
+
+        bindingTargetButton = addRenderableWidget(Button.builder(Component.empty(), button -> sendToggle(GuScriptBindingTogglePayload.Operation.TOGGLE_TARGET))
+                .bounds(rightX - buttonWidth, baseY, buttonWidth, 20)
+                .build());
+
+        listenerButton = addRenderableWidget(Button.builder(Component.empty(), button -> sendToggle(GuScriptBindingTogglePayload.Operation.CYCLE_LISTENER))
+                .bounds(rightX - buttonWidth, baseY + 22, buttonWidth, 20)
+                .build());
+
+        updateButtonStates();
     }
 
     @Override
@@ -37,4 +59,38 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
         renderTooltip(graphics, mouseX, mouseY);
     }
 
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        BindingTarget bindingTarget = this.menu.getBindingTarget();
+        ListenerType listenerType = this.menu.getListenerType();
+
+        if (bindingTargetButton != null) {
+            bindingTargetButton.setMessage(bindingTarget.label());
+        }
+
+        if (listenerButton != null) {
+            listenerButton.setMessage(listenerType.label());
+            listenerButton.active = bindingTarget == BindingTarget.LISTENER;
+        }
+    }
+
+    private void sendToggle(GuScriptBindingTogglePayload.Operation operation) {
+        if (operation == GuScriptBindingTogglePayload.Operation.CYCLE_LISTENER
+                && this.menu.getBindingTarget() != BindingTarget.LISTENER) {
+            return;
+        }
+        if (minecraft == null) {
+            return;
+        }
+        var connection = minecraft.getConnection();
+        if (connection == null) {
+            return;
+        }
+        connection.send(new GuScriptBindingTogglePayload(operation));
+    }
 }
