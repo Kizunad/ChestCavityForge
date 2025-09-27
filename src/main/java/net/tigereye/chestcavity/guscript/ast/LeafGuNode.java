@@ -1,24 +1,25 @@
 package net.tigereye.chestcavity.guscript.ast;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Leaf node representing an individual Gu (蛊虫) with intrinsic tags and actions.
  */
 public final class LeafGuNode implements GuNode {
     private final String name;
-    private final Set<String> tags;
+    private final Multiset<String> tags;
     private final List<Action> actions;
 
-    public LeafGuNode(String name, Set<String> tags, List<Action> actions) {
+    public LeafGuNode(String name, Multiset<String> tags, List<Action> actions) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Leaf node must have a name");
         }
         this.name = name;
-        this.tags = tags == null ? new HashSet<>() : new HashSet<>(tags);
+        this.tags = tags == null ? HashMultiset.create() : HashMultiset.create(tags);
         this.actions = actions == null ? new ArrayList<>() : new ArrayList<>(actions);
     }
 
@@ -28,7 +29,7 @@ public final class LeafGuNode implements GuNode {
     }
 
     @Override
-    public Set<String> tags() {
+    public Multiset<String> tags() {
         return tags;
     }
 

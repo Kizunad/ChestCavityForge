@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.guscript.registry;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -77,7 +79,7 @@ public final class GuScriptRuleLoader extends SimpleJsonResourceReloadListener {
         String operatorId = result.has("operator_id") ? result.get("operator_id").getAsString() : id.toString();
         GuNodeKind kind = result.has("kind") ? parseKind(result.get("kind").getAsString()) : GuNodeKind.OPERATOR;
 
-        Set<String> tags = new HashSet<>();
+        Multiset<String> tags = HashMultiset.create();
         if (result.has("tags")) {
             JsonArray arr = result.getAsJsonArray("tags");
             for (JsonElement el : arr) {

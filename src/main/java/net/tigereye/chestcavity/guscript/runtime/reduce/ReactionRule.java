@@ -1,9 +1,11 @@
 package net.tigereye.chestcavity.guscript.runtime.reduce;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +19,7 @@ import java.util.function.Predicate;
  */
 public final class ReactionRule {
     private final String id;
-    private final Map<String, Integer> requiredTagCounts;
+    private final ImmutableMultiset<String> requiredTags;
     private final Set<String> inhibitors;
     private final int priority;
     private final int arity;
@@ -26,7 +28,7 @@ public final class ReactionRule {
 
     private ReactionRule(Builder builder) {
         this.id = builder.id;
-        this.requiredTagCounts = Collections.unmodifiableMap(new HashMap<>(builder.requiredTagCounts));
+        this.requiredTags = ImmutableMultiset.copyOf(builder.requiredTags);
         this.inhibitors = Collections.unmodifiableSet(new HashSet<>(builder.inhibitors));
         this.priority = builder.priority;
         this.arity = builder.arity;
@@ -38,8 +40,8 @@ public final class ReactionRule {
         return id;
     }
 
-    public Map<String, Integer> requiredTagCounts() {
-        return requiredTagCounts;
+    public ImmutableMultiset<String> requiredTags() {
+        return requiredTags;
     }
 
     public Set<String> inhibitors() {
@@ -72,7 +74,7 @@ public final class ReactionRule {
     public String toString() {
         return "ReactionRule{" +
                 "id='" + id + '\'' +
-                ", requiredTagCounts=" + requiredTagCounts +
+                ", requiredTags=" + requiredTags +
                 ", inhibitors=" + inhibitors +
                 ", priority=" + priority +
                 ", arity=" + arity +
@@ -85,7 +87,7 @@ public final class ReactionRule {
 
     public static final class Builder {
         private final String id;
-        private final Map<String, Integer> requiredTagCounts = new HashMap<>();
+        private final Multiset<String> requiredTags = HashMultiset.create();
         private final Set<String> inhibitors = new HashSet<>();
         private int priority = 0;
         private int arity = 2;
@@ -113,6 +115,13 @@ public final class ReactionRule {
             return this;
         }
 
+        public Builder requiredTags(Multiset<String> tags) {
+            if (tags != null) {
+                tags.forEachEntry(this::requireTag);
+            }
+            return this;
+        }
+
         public Builder requireTag(String tag) {
             return requireTag(tag, 1);
         }
@@ -124,7 +133,7 @@ public final class ReactionRule {
             if (count <= 0) {
                 throw new IllegalArgumentException("Tag count must be positive");
             }
-            this.requiredTagCounts.merge(tag, count, Integer::sum);
+            this.requiredTags.add(tag, count);
             return this;
         }
 

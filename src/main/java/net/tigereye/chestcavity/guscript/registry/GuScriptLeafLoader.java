@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.guscript.registry;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -16,10 +18,8 @@ import net.tigereye.chestcavity.guscript.runtime.action.ActionRegistry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Loads leaf definitions that map items to GuScript leaf nodes.
@@ -40,7 +40,7 @@ public final class GuScriptLeafLoader extends SimpleJsonResourceReloadListener {
                 JsonObject json = element.getAsJsonObject();
                 ResourceLocation itemId = ResourceLocation.parse(GsonHelper.getAsString(json, "item"));
                 String name = GsonHelper.getAsString(json, "name", itemId.toString());
-                Set<String> tags = new HashSet<>();
+                Multiset<String> tags = HashMultiset.create();
                 if (json.has("tags")) {
                     for (JsonElement tag : json.getAsJsonArray("tags")) {
                         tags.add(tag.getAsString());

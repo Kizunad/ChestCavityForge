@@ -1,5 +1,8 @@
 package net.tigereye.chestcavity.guscript.runtime.reduce;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
@@ -11,9 +14,7 @@ import net.tigereye.chestcavity.guscript.ast.LeafGuNode;
 import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Developer-only helper that demonstrates the AST reduction pipeline with sample data.
@@ -23,13 +24,13 @@ public final class GuScriptReducerDebug {
     private GuScriptReducerDebug() {}
 
     public static void logDemo() {
-        GuNode bone = new LeafGuNode("骨蛊", Set.of("骨"), List.of(new ConsumeHealthAction(2)));
-        GuNode blood = new LeafGuNode("血蛊", Set.of("血"), List.of(new ConsumeZhenyuanAction(3)));
-        GuNode burst = new LeafGuNode("爆发蛊", Set.of("爆发"), List.of(new EmitProjectileAction("explosion_shard", 6.0)));
+        GuNode bone = new LeafGuNode("骨蛊", ImmutableMultiset.of("骨"), List.of(new ConsumeHealthAction(2)));
+        GuNode blood = new LeafGuNode("血蛊", ImmutableMultiset.of("血"), List.of(new ConsumeZhenyuanAction(3)));
+        GuNode burst = new LeafGuNode("爆发蛊", ImmutableMultiset.of("爆发"), List.of(new EmitProjectileAction("explosion_shard", 6.0)));
 
         ReactionRule bloodBoneCore = ReactionRule.builder("blood_bone_core")
                 .arity(2)
-                .requiredTags(Set.of("骨", "血"))
+                .requiredTags(ImmutableMultiset.of("骨", "血"))
                 .priority(10)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨核心", GuNodeKind.OPERATOR,
                         unionTags(inputs, "核心"), List.of(), inputs))
@@ -37,7 +38,7 @@ public final class GuScriptReducerDebug {
 
         ReactionRule explosiveLance = ReactionRule.builder("blood_bone_explosion")
                 .arity(2)
-                .requiredTags(Set.of("核心", "爆发"))
+                .requiredTags(ImmutableMultiset.of("核心", "爆发"))
                 .priority(5)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨爆裂枪", GuNodeKind.COMPOSITE,
                         unionTags(inputs, "杀招"),
@@ -54,8 +55,8 @@ public final class GuScriptReducerDebug {
         }
     }
 
-    private static Set<String> unionTags(List<GuNode> nodes, String extra) {
-        Set<String> merged = new HashSet<>();
+    private static Multiset<String> unionTags(List<GuNode> nodes, String extra) {
+        Multiset<String> merged = HashMultiset.create();
         for (GuNode node : nodes) {
             merged.addAll(node.tags());
         }

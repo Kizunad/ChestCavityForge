@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.command;
 
+import com.google.common.collect.ImmutableMultiset;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -18,12 +19,11 @@ import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
-import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptRuntime;
+import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
 
 import java.util.List;
-import java.util.Set;
 
 public final class GuScriptCommands {
 
@@ -48,24 +48,24 @@ public final class GuScriptCommands {
 
         GuScriptModule.bootstrap();
 
-        GuNode bone = new LeafGuNode("骨蛊", Set.of("骨"), List.of(new ConsumeHealthAction(2)));
-        GuNode blood = new LeafGuNode("血蛊", Set.of("血"), List.of(new ConsumeZhenyuanAction(5)));
-        GuNode burst = new LeafGuNode("爆发蛊", Set.of("爆发"), List.of(new EmitProjectileAction("minecraft:arrow", 4.0)));
+        GuNode bone = new LeafGuNode("骨蛊", ImmutableMultiset.of("骨"), List.of(new ConsumeHealthAction(2)));
+        GuNode blood = new LeafGuNode("血蛊", ImmutableMultiset.of("血"), List.of(new ConsumeZhenyuanAction(5)));
+        GuNode burst = new LeafGuNode("爆发蛊", ImmutableMultiset.of("爆发"), List.of(new EmitProjectileAction("minecraft:arrow", 4.0)));
 
         ReactionRule bloodBoneCore = ReactionRule.builder("blood_bone_core")
                 .arity(2)
-                .requiredTags(Set.of("骨", "血"))
+                .requiredTags(ImmutableMultiset.of("骨", "血"))
                 .priority(10)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨核心", GuNodeKind.OPERATOR,
-                        Set.of("核心"), List.of(), inputs))
+                        ImmutableMultiset.of("核心"), List.of(), inputs))
                 .build();
 
         ReactionRule explosiveLance = ReactionRule.builder("blood_bone_explosion")
                 .arity(2)
-                .requiredTags(Set.of("核心", "爆发"))
+                .requiredTags(ImmutableMultiset.of("核心", "爆发"))
                 .priority(5)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨爆裂枪", GuNodeKind.COMPOSITE,
-                        Set.of("杀招"), List.of(), inputs))
+                        ImmutableMultiset.of("杀招"), List.of(), inputs))
                 .build();
 
         GuScriptReducer reducer = new GuScriptReducer();
