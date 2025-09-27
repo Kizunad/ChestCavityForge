@@ -9,6 +9,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+
+import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
+import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenModule;
+
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
@@ -52,6 +56,10 @@ public final class GuzhenrenOrganHandlers {
             );
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
+
+        Abilities.bootstrap();
+        GuzhenrenModule.bootstrap();
+
         GuzhenrenLinkageEffectRegistry.applyEffects(
                 cc,
                 stack,

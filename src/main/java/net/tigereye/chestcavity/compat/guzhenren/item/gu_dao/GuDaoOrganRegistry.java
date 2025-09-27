@@ -7,7 +7,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.HuGuguOrga
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
-import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
+
+import java.util.List;
 
 /**
  * Declarative registry for 骨道蛊 items. Each behaviour is registered through the
@@ -22,54 +24,48 @@ public final class GuDaoOrganRegistry {
     private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
     private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
     private static final ResourceLocation ROU_BAI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "rou_bai_gu");
+    private static final List<OrganIntegrationSpec> SPECS;
+
     static {
         GuDaoOrganEvents.register();
-
-        GuzhenrenLinkageEffectRegistry.registerSingle(BONE_BAMBOO_ID, context -> {
-            context.addSlowTickListener(GuzhuguOrganBehavior.INSTANCE);
-            GuzhuguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-        });
-
-        GuzhenrenLinkageEffectRegistry.registerSingle(BONE_SPEAR_ID, context -> {
-            context.addSlowTickListener(GuQiangguOrganBehavior.INSTANCE);
-            context.addOnHitListener(GuQiangguOrganBehavior.INSTANCE);
-            GuQiangguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-        });
-
-        GuzhenrenLinkageEffectRegistry.registerSingle(SPIRAL_BONE_SPEAR_ID, context -> {
-            context.addSlowTickListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
-            context.addOnHitListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
-            context.addIncomingDamageListener(LuoXuanGuQiangguOrganBehavior.INSTANCE);
-            LuoXuanGuQiangguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-        });
-        GuzhenrenLinkageEffectRegistry.registerSingle(TIGER_BONE_ID, context -> {
-            context.addSlowTickListener(HuGuguOrganBehavior.INSTANCE);
-            context.addIncomingDamageListener(HuGuguOrganBehavior.INSTANCE);
-            HuGuguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-        });
-
-        GuzhenrenLinkageEffectRegistry.registerSingle(JADE_BONE_ID, context -> {
-            context.addSlowTickListener(YuGuguOrganBehavior.INSTANCE);
-            YuGuguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-            YuGuguOrganBehavior.INSTANCE.onEquip(
-                    context.chestCavity(),
-                    context.sourceOrgan(),
-                    context.staleRemovalContexts()
-            );
-        });
-
-        GuzhenrenLinkageEffectRegistry.registerSingle(ROU_BAI_GU_ID, context -> {
-            context.addSlowTickListener(RouBaiguOrganBehavior.INSTANCE);
-            context.addOnHitListener(RouBaiguOrganBehavior.INSTANCE);
-            RouBaiguOrganBehavior.INSTANCE.ensureAttached(context.chestCavity());
-        });
+        SPECS = List.of(
+                OrganIntegrationSpec.builder(BONE_BAMBOO_ID)
+                        .addSlowTickListener(GuzhuguOrganBehavior.INSTANCE)
+                        .ensureAttached(GuzhuguOrganBehavior.INSTANCE::ensureAttached)
+                        .build(),
+                OrganIntegrationSpec.builder(BONE_SPEAR_ID)
+                        .addSlowTickListener(GuQiangguOrganBehavior.INSTANCE)
+                        .addOnHitListener(GuQiangguOrganBehavior.INSTANCE)
+                        .ensureAttached(GuQiangguOrganBehavior.INSTANCE::ensureAttached)
+                        .build(),
+                OrganIntegrationSpec.builder(SPIRAL_BONE_SPEAR_ID)
+                        .addSlowTickListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
+                        .addOnHitListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
+                        .addIncomingDamageListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
+                        .ensureAttached(LuoXuanGuQiangguOrganBehavior.INSTANCE::ensureAttached)
+                        .build(),
+                OrganIntegrationSpec.builder(TIGER_BONE_ID)
+                        .addSlowTickListener(HuGuguOrganBehavior.INSTANCE)
+                        .addIncomingDamageListener(HuGuguOrganBehavior.INSTANCE)
+                        .ensureAttached(HuGuguOrganBehavior.INSTANCE::ensureAttached)
+                        .build(),
+                OrganIntegrationSpec.builder(JADE_BONE_ID)
+                        .addSlowTickListener(YuGuguOrganBehavior.INSTANCE)
+                        .ensureAttached(YuGuguOrganBehavior.INSTANCE::ensureAttached)
+                        .onEquip(YuGuguOrganBehavior.INSTANCE::onEquip)
+                        .build(),
+                OrganIntegrationSpec.builder(ROU_BAI_GU_ID)
+                        .addSlowTickListener(RouBaiguOrganBehavior.INSTANCE)
+                        .addOnHitListener(RouBaiguOrganBehavior.INSTANCE)
+                        .ensureAttached(RouBaiguOrganBehavior.INSTANCE::ensureAttached)
+                        .build()
+        );
     }
 
     private GuDaoOrganRegistry() {
     }
 
-    /** Forces class initialisation so the static registration block runs. */
-    public static void bootstrap() {
-        // no-op
+    public static List<OrganIntegrationSpec> specs() {
+        return SPECS;
     }
 }
