@@ -57,6 +57,7 @@ public abstract class AbstractGuzhenrenOrganBehavior {
             return RemovalRegistration.EMPTY;
         }
         int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
+
         boolean restoredFromStale = false;
         if (staleRemovalContexts != null) {
             for (int i = 0; i < staleRemovalContexts.size(); ) {
@@ -76,7 +77,6 @@ public abstract class AbstractGuzhenrenOrganBehavior {
             cc.onRemovedListeners.add(new OrganRemovalContext(slotIndex, organ, listener));
         }
         return new RemovalRegistration(slotIndex, restoredFromStale || presentInCurrentList);
-
     }
 
     protected LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation channelId) {

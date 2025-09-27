@@ -31,24 +31,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 
-import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
-import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombClient;
-import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoEntityAttributes;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JianYingGuEvents;
+import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
-
-import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
-import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
-import net.tigereye.chestcavity.guscript.GuScriptModule;
-import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
 
 
 @Mod(ChestCavity.MODID)
@@ -110,13 +94,11 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCStatusEffects.MOB_EFFECTS.register(bus);
 		bus.addListener(CCKeybindings::register);
 		CCTagOrgans.init();
-		OrganRetentionRules.registerNamespace(MODID);
-		OrganRetentionRules.registerNamespace("guzhenren");
-                if (ModList.get().isLoaded("guzhenren")) {
-                        GuzhenrenIntegrationModule.bootstrap();
-			GuzhenrenNetworkBridge.bootstrap();
-			GuScriptModule.bootstrap();
-		}
+    OrganRetentionRules.registerNamespace(MODID);
+    if (ModList.get().isLoaded("guzhenren")) {
+            GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
+    }
+
 
 		//CCCommands.register();
 		//CCNetworkingPackets.register();
