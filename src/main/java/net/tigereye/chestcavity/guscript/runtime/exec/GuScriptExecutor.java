@@ -28,6 +28,14 @@ public final class GuScriptExecutor {
             ChestCavity.LOGGER.debug("[GuScript] No compiled roots to execute for {}", player.getGameProfile().getName());
             return;
         }
+        ChestCavity.LOGGER.info(
+                "[GuScript] Trigger dispatch for {}: {} roots -> {}",
+                player.getGameProfile().getName(),
+                cache.roots().size(),
+                cache.roots().stream()
+                        .map(root -> root.kind() + ":" + root.name())
+                        .toList()
+        );
         RUNTIME.executeAll(cache.roots(), () -> {
             DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, target == null ? player : target);
             return new DefaultGuScriptContext(player, target == null ? player : target, bridge);

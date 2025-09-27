@@ -55,6 +55,23 @@ public final class GuScriptCompiler {
             List<ReactionRule> rules = GuScriptRegistry.reactionRules();
             GuScriptReducer.ReductionResult result = REDUCER.reduce(new ArrayList<>(leaves), rules);
             roots.addAll(result.roots());
+            ChestCavity.LOGGER.info(
+                    "[GuScript] Compiled page {} (binding={}, listener={}) -> {} roots: {}",
+                    attachment.getCurrentPageIndex(),
+                    page.bindingTarget(),
+                    page.listenerType(),
+                    roots.size(),
+                    roots.stream()
+                            .map(node -> node.kind() + ":" + node.name())
+                            .toList()
+            );
+        } else {
+            ChestCavity.LOGGER.info(
+                    "[GuScript] Compiled page {} (binding={}, listener={}) -> empty root set",
+                    attachment.getCurrentPageIndex(),
+                    page.bindingTarget(),
+                    page.listenerType()
+            );
         }
 
         GuScriptProgramCache program = new GuScriptProgramCache(roots, signature, gameTime);
