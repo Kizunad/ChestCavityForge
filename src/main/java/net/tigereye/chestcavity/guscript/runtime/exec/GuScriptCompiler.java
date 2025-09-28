@@ -30,7 +30,18 @@ public final class GuScriptCompiler {
     }
 
     public static GuScriptProgramCache compileIfNeeded(GuScriptAttachment attachment, long gameTime) {
-        GuScriptPageState page = attachment.activePage();
+        return compilePageIfNeeded(attachment, attachment.activePage(), attachment.getCurrentPageIndex(), gameTime);
+    }
+
+    public static GuScriptProgramCache compilePageIfNeeded(
+            GuScriptAttachment attachment,
+            GuScriptPageState page,
+            int pageIndex,
+            long gameTime
+    ) {
+        if (attachment == null || page == null) {
+            return new GuScriptProgramCache(List.of(), 0, gameTime);
+        }
         int signature = computeSignature(page);
         GuScriptProgramCache cached = page.compiledProgram();
         if (cached != null && cached.inventorySignature() == signature && !page.consumeDirtyFlag()) {
@@ -57,7 +68,7 @@ public final class GuScriptCompiler {
             roots.addAll(result.roots());
             ChestCavity.LOGGER.info(
                     "[GuScript] Compiled page {} (binding={}, listener={}) -> {} roots: {}",
-                    attachment.getCurrentPageIndex(),
+                    pageIndex,
                     page.bindingTarget(),
                     page.listenerType(),
                     roots.size(),
@@ -68,7 +79,7 @@ public final class GuScriptCompiler {
         } else {
             ChestCavity.LOGGER.info(
                     "[GuScript] Compiled page {} (binding={}, listener={}) -> empty root set",
-                    attachment.getCurrentPageIndex(),
+                    pageIndex,
                     page.bindingTarget(),
                     page.listenerType()
             );

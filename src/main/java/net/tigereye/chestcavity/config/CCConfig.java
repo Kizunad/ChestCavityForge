@@ -122,6 +122,10 @@ public class CCConfig implements ConfigData {
     @ConfigEntry.Gui.CollapsibleObject
     public GuScriptUIConfig GUSCRIPT_UI = new GuScriptUIConfig();
 
+    @ConfigEntry.Category("guscript_execution")
+    @ConfigEntry.Gui.CollapsibleObject
+    public GuScriptExecutionConfig GUSCRIPT_EXECUTION = new GuScriptExecutionConfig();
+
     public static class GuScriptUIConfig {
         @ConfigEntry.Gui.Tooltip
         public double bindingRightPaddingSlots = 0.5D;
@@ -159,6 +163,13 @@ public class CCConfig implements ConfigData {
         public int pageButtonHorizontalOffsetPx = -50;
         @ConfigEntry.Gui.Tooltip
         public int pageInfoBelowNavSpacingPx = 6;
+    }
+
+    public static class GuScriptExecutionConfig {
+        @ConfigEntry.Gui.Tooltip
+        public int maxKeybindPagesPerTrigger = 16;
+        @ConfigEntry.Gui.Tooltip
+        public int maxKeybindRootsPerTrigger = 64;
     }
 
 }

@@ -36,7 +36,7 @@ public record GuScriptTriggerPayload(int pageIndex) implements CustomPacketPaylo
             if (payload.pageIndex >= 0) {
                 attachment.setCurrentPage(payload.pageIndex);
             }
-            GuScriptExecutor.trigger(player, player, attachment);
+            GuScriptExecutor.triggerKeybind(player, player, attachment);
         });
     }
 }
