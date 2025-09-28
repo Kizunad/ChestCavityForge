@@ -55,7 +55,7 @@ The top-level package highlights the AST and UI folders explicitly while still a
   - actions (`EmitProjectileNode`, `ConsumeResourceNode`, `ApplyEffectNode`),
   - queries (`ReadResourceNode`, `CheckOrganNode`, `LinkageValueNode`).
 - `GuScriptParser` produces ASTs from JSON/NBT resources placed under `data/chestcavity/guscript/scripts/`. Manual editing in the UI will emit the same format to attachment storage.
-- `GuScriptCompiler` folds the AST into executable `GuScriptProgram` objects with validated resource requirements and pre-bound references to `GuScriptBridge`. Compilation happens server-side; client uses lightweight summaries for UI preview.
+- `GuScriptCompiler` folds the AST into executable `GuScriptProgram` objects with validated resource requirements and pre-bound references to `GuScriptBridge`. Compilation happens server-side; client uses lightweight summaries for UI preview. When a page slot holds an `ItemStack` with a count > 1, the compiler multiplies the leaf's tag multiset by that count so reaction rules requiring repeated tags can match a single stacked item.
 - Validation errors feed back to the UI via dedicated sync packets so players know why a script fails to arm.
 - Reactive nodes subscribe to context updates (linkage/resource deltas, target changes) via a lightweight observer API. When those values change, dependent nodes mark cached results dirty so only affected branches re-evaluate.
 - Compilation caches structural metadata (listener graphs, node indices) so repeated triggers reuse existing node instances while swapping in fresh execution context.

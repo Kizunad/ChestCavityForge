@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.runtime.exec;
 
+import com.google.common.collect.HashMultiset;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
@@ -58,7 +59,7 @@ public final class GuScriptCompiler {
             }
             ResourceLocation itemId = stack.getItem().builtInRegistryHolder().key().location();
             GuScriptRegistry.leaf(itemId).ifPresentOrElse(def -> {
-                leaves.add(def.toNode());
+                leaves.add(toScaledLeaf(def, stack.getCount()));
             }, () -> ChestCavity.LOGGER.debug("[GuScript] No leaf definition for item {}", itemId));
         }
 
@@ -91,6 +92,13 @@ public final class GuScriptCompiler {
         page.setInventorySignature(signature);
         page.consumeDirtyFlag();
         return program;
+    }
+
+    static LeafGuNode toScaledLeaf(GuScriptRegistry.LeafDefinition definition, int count) {
+        int scaledCount = Math.max(1, count);
+        HashMultiset<String> scaledTags = HashMultiset.create();
+        definition.tags().forEachEntry((tag, tagCount) -> scaledTags.add(tag, tagCount * scaledCount));
+        return new LeafGuNode(definition.name(), scaledTags, definition.actions());
     }
 
     private static int computeSignature(GuScriptPageState page) {
