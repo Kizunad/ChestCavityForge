@@ -3,9 +3,12 @@ package net.tigereye.chestcavity.guscript.runtime.exec;
 import com.google.common.collect.ImmutableMultiset;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.guscript.actions.AddDamageMultiplierAction;
+import net.tigereye.chestcavity.guscript.actions.AddFlatDamageAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
+import net.tigereye.chestcavity.guscript.actions.ExportFlatModifierAction;
+import net.tigereye.chestcavity.guscript.actions.ExportMultiplierModifierAction;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
 import net.tigereye.chestcavity.guscript.ast.GuNodeKind;
 import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
@@ -138,6 +141,122 @@ class GuScriptRuntimeTest {
         assertTrue(contextsCreated.get() >= 2, "Each root should request a context");
     }
 
+    @Test
+    void executionSession_exportsStackAcrossRoots() {
+        ExecutionSession session = new ExecutionSession(5.0D, 50.0D);
+        GuScriptRuntime runtime = new GuScriptRuntime();
+        CaptureDamageAction capture = new CaptureDamageAction(10.0D);
+
+        OperatorGuNode first = new OperatorGuNode(
+                "test:first",
+                "First",
+                GuNodeKind.COMPOSITE,
+                ImmutableMultiset.of(),
+                List.of(new AddDamageMultiplierAction(0.5D)),
+                List.of(),
+                0,
+                true,
+                false
+        );
+
+        OperatorGuNode second = new OperatorGuNode(
+                "test:second",
+                "Second",
+                GuNodeKind.COMPOSITE,
+                ImmutableMultiset.of(),
+                List.of(new AddDamageMultiplierAction(0.25D), capture),
+                List.of(),
+                1,
+                false,
+                false
+        );
+
+        List<GuNode> sorted = GuScriptExecutor.sortRootsForSession(List.of(second, first));
+        // expect first order 0 root before order 1 regardless of insertion order
+        assertEquals(List.of(first, second), sorted);
+
+        for (GuNode node : sorted) {
+            DefaultGuScriptContext context = new DefaultGuScriptContext(null, null, new RecordingBridge(), session);
+            if (node instanceof OperatorGuNode operator) {
+                context.enableModifierExports(operator.exportMultiplier(), operator.exportFlat());
+            }
+            runtime.execute(node, context);
+            session.exportMultiplier(context.exportedMultiplierDelta());
+            session.exportFlat(context.exportedFlatDelta());
+        }
+
+        assertEquals(0.5D, session.currentMultiplier(), 1.0E-6, "First root exports should seed multiplier");
+        assertEquals(0.0D, session.currentFlat(), 1.0E-6, "No flat exports expected");
+        assertEquals(17.5D, capture.capturedDamage(), 1.0E-6, "Second root should see seeded multiplier before its own delta");
+    }
+
+    @Test
+    void executionSession_ordersAndClampsExports() {
+        ExecutionSession session = new ExecutionSession(0.5D, 6.0D);
+        GuScriptRuntime runtime = new GuScriptRuntime();
+
+        OperatorGuNode lateMultiplier = new OperatorGuNode(
+                "test:late",
+                "Late",
+                GuNodeKind.COMPOSITE,
+                ImmutableMultiset.of(),
+                List.of(new AddDamageMultiplierAction(0.3D)),
+                List.of(),
+                2,
+                true,
+                false
+        );
+
+        OperatorGuNode earlyExports = new OperatorGuNode(
+                "test:early",
+                "Early",
+                GuNodeKind.COMPOSITE,
+                ImmutableMultiset.of(),
+                List.of(new ExportMultiplierModifierAction(0.6D), new ExportFlatModifierAction(5.0D)),
+                List.of(),
+                0,
+                false,
+                false
+        );
+
+        RecordModifiersAction captureIntermediate = new RecordModifiersAction();
+        OperatorGuNode middleFlat = new OperatorGuNode(
+                "test:middle",
+                "Middle",
+                GuNodeKind.COMPOSITE,
+                ImmutableMultiset.of(),
+                List.of(captureIntermediate, new AddFlatDamageAction(4.0D)),
+                List.of(),
+                1,
+                false,
+                true
+        );
+
+        List<GuNode> sorted = GuScriptExecutor.sortRootsForSession(List.of(lateMultiplier, earlyExports, middleFlat));
+        assertEquals(List.of(earlyExports, middleFlat, lateMultiplier), sorted, "Roots should sort by declared order");
+
+        for (GuNode node : sorted) {
+            DefaultGuScriptContext context = new DefaultGuScriptContext(null, null, new RecordingBridge(), session);
+            if (node instanceof OperatorGuNode operator) {
+                context.enableModifierExports(operator.exportMultiplier(), operator.exportFlat());
+            }
+            runtime.execute(node, context);
+            double deltaMultiplier = context.exportedMultiplierDelta();
+            double deltaFlat = context.exportedFlatDelta();
+            if (deltaMultiplier != 0.0D) {
+                session.exportMultiplier(deltaMultiplier);
+            }
+            if (deltaFlat != 0.0D) {
+                session.exportFlat(deltaFlat);
+            }
+        }
+
+        assertEquals(0.5D, session.currentMultiplier(), 1.0E-6, "Multiplier exports should clamp to cap");
+        assertEquals(6.0D, session.currentFlat(), 1.0E-6, "Flat exports should clamp to cap");
+        assertEquals(0.5D, captureIntermediate.multiplier(), 1.0E-6, "Middle root should see seeded multiplier from early root");
+        assertEquals(5.0D, captureIntermediate.flat(), 1.0E-6, "Middle root should see seeded flat damage from early root");
+    }
+
     private static final class RecordingBridge implements GuScriptExecutionBridge {
         final AtomicInteger zhenyuan = new AtomicInteger();
         final AtomicInteger health = new AtomicInteger();
@@ -200,6 +319,63 @@ class GuScriptRuntimeTest {
 
         @Override
         public double flatDamageBonus() {
+            return flat;
+        }
+    }
+
+    private static final class CaptureDamageAction implements net.tigereye.chestcavity.guscript.ast.Action {
+        private final double baseDamage;
+        private double captured;
+
+        private CaptureDamageAction(double baseDamage) {
+            this.baseDamage = baseDamage;
+        }
+
+        @Override
+        public String id() {
+            return "test.capture";
+        }
+
+        @Override
+        public String description() {
+            return "capture";
+        }
+
+        @Override
+        public void execute(GuScriptContext context) {
+            captured = context.applyDamageModifiers(baseDamage);
+        }
+
+        double capturedDamage() {
+            return captured;
+        }
+    }
+
+    private static final class RecordModifiersAction implements net.tigereye.chestcavity.guscript.ast.Action {
+        private double multiplier;
+        private double flat;
+
+        @Override
+        public String id() {
+            return "test.record_modifiers";
+        }
+
+        @Override
+        public String description() {
+            return "record";
+        }
+
+        @Override
+        public void execute(GuScriptContext context) {
+            multiplier = context.damageMultiplier();
+            flat = context.flatDamageBonus();
+        }
+
+        double multiplier() {
+            return multiplier;
+        }
+
+        double flat() {
             return flat;
         }
     }

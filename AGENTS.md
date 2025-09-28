@@ -245,7 +245,7 @@ Acceptance
 - Given roots with orders 0/1/2, exports from earlier roots deterministically affect later roots’ final damage; unit tests cover 2-root and 3-root cases; caps prevent runaway.
 
 Status
-- Pending.
+- Completed (session-scoped modifier exports with ordered execution, config caps, and 2-root/3-root unit coverage).
 
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
