@@ -14,7 +14,8 @@ import java.util.Optional;
 public final class FlowInstance {
 
     private final FlowProgram program;
-    private final Player performer;
+    private Player performer;
+
     private final LivingEntity target;
     private final FlowController controller;
     private FlowState state;
@@ -142,5 +143,10 @@ public final class FlowInstance {
 
     private Optional<FlowStateDefinition> definition() {
         return program.definition(state);
+    }
+    void rebindPerformer(Player performer) {
+        if (performer != null) {
+            this.performer = performer;
+        }
     }
 }

@@ -15,7 +15,7 @@ import java.util.Objects;
  */
 public final class FlowController {
 
-    private final ServerPlayer performer;
+    private ServerPlayer performer;
     private final Map<String, Long> cooldowns = new java.util.HashMap<>();
     private FlowInstance instance;
 
@@ -26,6 +26,17 @@ public final class FlowController {
     public ServerPlayer performer() {
         return performer;
     }
+
+    public void updatePerformer(ServerPlayer performer) {
+        if (performer == null || this.performer == performer) {
+            return;
+        }
+        this.performer = performer;
+        if (instance != null) {
+            instance.rebindPerformer(performer);
+        }
+    }
+
 
     public boolean isRunning() {
         return instance != null && !instance.isFinished();

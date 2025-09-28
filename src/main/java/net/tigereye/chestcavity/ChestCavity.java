@@ -34,6 +34,7 @@ import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptListenerHooks;
 import net.tigereye.chestcavity.guscript.runtime.flow.GuScriptFlowEvents;
+
 import net.tigereye.chestcavity.guscript.registry.FxDefinitionLoader;
 import net.tigereye.chestcavity.guscript.fx.client.FxClientHooks;
 import org.apache.logging.log4j.LogManager;
@@ -149,6 +150,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 	}
 
 	private void registerReloadListeners(AddReloadListenerEvent event) {
+
           event.addListener(new OrganManager());
           event.addListener(new GeneratedChestCavityTypeManager());
           event.addListener(new GeneratedChestCavityAssignmentManager());

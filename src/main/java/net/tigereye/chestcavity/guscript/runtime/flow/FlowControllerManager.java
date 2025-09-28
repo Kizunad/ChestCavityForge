@@ -3,6 +3,8 @@ package net.tigereye.chestcavity.guscript.runtime.flow;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Map;
+import java.util.Objects;
+
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,7 +19,15 @@ public final class FlowControllerManager {
     }
 
     public static FlowController get(ServerPlayer player) {
-        return CONTROLLERS.computeIfAbsent(player.getUUID(), uuid -> new FlowController(player));
+        Objects.requireNonNull(player, "player");
+        return CONTROLLERS.compute(player.getUUID(), (uuid, controller) -> {
+            if (controller == null) {
+                return new FlowController(player);
+            }
+            controller.updatePerformer(player);
+            return controller;
+        });
+
     }
 
     public static void remove(ServerPlayer player) {
