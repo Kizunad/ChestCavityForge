@@ -36,9 +36,10 @@ public final class GuScriptExecutor {
                         .map(root -> root.kind() + ":" + root.name())
                         .toList()
         );
-        RUNTIME.executeAll(cache.roots(), () -> {
-            DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, target == null ? player : target);
-            return new DefaultGuScriptContext(player, target == null ? player : target, bridge);
+        RUNTIME.executeAll(cache.roots(), index -> {
+            LivingEntity actualTarget = target == null ? player : target;
+            DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, actualTarget, index);
+            return new DefaultGuScriptContext(player, actualTarget, bridge);
         });
     }
 }

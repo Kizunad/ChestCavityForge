@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 /**
@@ -43,18 +44,24 @@ public final class GuScriptRuntime {
     }
 
     public void executeAll(List<GuNode> roots, Supplier<GuScriptContext> contextFactory) {
+        if (contextFactory == null) {
+            return;
+        }
+        executeAll(roots, index -> contextFactory.get());
+    }
+
+    public void executeAll(List<GuNode> roots, IntFunction<GuScriptContext> contextFactory) {
         if (roots == null || roots.isEmpty() || contextFactory == null) {
             return;
         }
-        int index = 0;
-        for (GuNode root : roots) {
-            GuScriptContext context = contextFactory.get();
+        for (int index = 0; index < roots.size(); index++) {
+            GuNode root = roots.get(index);
+            GuScriptContext context = contextFactory.apply(index);
             if (context == null) {
                 ChestCavity.LOGGER.warn("[GuScript] Context factory returned null for root {} (index {})", root.name(), index);
-                index++;
                 continue;
             }
-            ExecutionTrace trace = ExecutionTrace.dedicatedContext(root, index++);
+            ExecutionTrace trace = ExecutionTrace.dedicatedContext(root, index);
             long contextId = CONTEXT_IDS.incrementAndGet();
             trace.onContextAcquired(context, contextId);
             executeNode(root, context, 0, trace);
