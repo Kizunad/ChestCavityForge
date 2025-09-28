@@ -1,10 +1,17 @@
 package net.tigereye.chestcavity.guscript.runtime.flow.actions;
 
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.monster.Enemy;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
@@ -12,10 +19,12 @@ import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BloodBoneBombAbility;
-
+import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 /**
@@ -174,6 +183,341 @@ public final class FlowActions {
 
             @Override
             public String describe() { return "explode(" + p + ")"; }
+        };
+    }
+
+    public static FlowEdgeAction applyAttributeModifier(ResourceLocation attributeId, ResourceLocation modifierKey, AttributeModifier.Operation operation, double amount) {
+        if (attributeId == null || modifierKey == null || operation == null || amount == 0.0D) {
+            return describe(() -> "apply_attribute(nop)");
+        }
+        double sanitized = amount;
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                Holder.Reference<net.minecraft.world.entity.ai.attributes.Attribute> attribute = BuiltInRegistries.ATTRIBUTE.getHolder(attributeId).orElse(null);
+                if (attribute == null) {
+                    ChestCavity.LOGGER.warn("[Flow] Unknown attribute {} in apply_attribute", attributeId);
+                    return;
+                }
+                AttributeInstance instance = performer.getAttribute(attribute);
+                if (instance == null) {
+                    return;
+                }
+                instance.removeModifier(modifierKey);
+                AttributeModifier modifier = new AttributeModifier(modifierKey, sanitized, operation);
+                instance.addTransientModifier(modifier);
+            }
+
+            @Override
+            public String describe() {
+                return "apply_attribute(" + attributeId + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction removeAttributeModifier(ResourceLocation attributeId, ResourceLocation modifierKey) {
+        if (attributeId == null || modifierKey == null) {
+            return describe(() -> "remove_attribute(nop)");
+        }
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                Holder.Reference<net.minecraft.world.entity.ai.attributes.Attribute> attribute = BuiltInRegistries.ATTRIBUTE.getHolder(attributeId).orElse(null);
+                if (attribute == null) {
+                    return;
+                }
+                AttributeInstance instance = performer.getAttribute(attribute);
+                if (instance == null) {
+                    return;
+                }
+                instance.removeModifier(modifierKey);
+            }
+
+            @Override
+            public String describe() {
+                return "remove_attribute(" + attributeId + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction areaEffect(ResourceLocation effectId, int duration, int amplifier, double radius, String radiusVariable, boolean hostilesOnly, boolean includeSelf, boolean showParticles, boolean showIcon) {
+        int actualDuration = Math.max(1, duration);
+        double defaultRadius = Math.max(0.5D, radius);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || effectId == null) {
+                    return;
+                }
+                var holderOpt = BuiltInRegistries.MOB_EFFECT.getHolder(effectId);
+                if (holderOpt.isEmpty()) {
+                    ChestCavity.LOGGER.warn("[Flow] Unknown effect {} in area_effect", effectId);
+                    return;
+                }
+                if (!(performer.level() instanceof ServerLevel level)) {
+                    return;
+                }
+                double resolvedRadius = defaultRadius;
+                if (controller != null && radiusVariable != null) {
+                    resolvedRadius = Math.max(0.5D, controller.getDouble(radiusVariable, defaultRadius));
+                }
+                Vec3 origin = performer.position();
+                AABB box = new AABB(origin, origin).inflate(resolvedRadius);
+                var effect = holderOpt.get();
+                List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, box, entity -> entity.isAlive() && (includeSelf || entity != performer));
+                for (LivingEntity entity : entities) {
+                    if (hostilesOnly && !(entity instanceof Enemy)) {
+                        continue;
+                    }
+                    entity.addEffect(new MobEffectInstance(effect, actualDuration, Math.max(0, amplifier), false, showParticles, showIcon));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "area_effect(" + effectId + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction dampenProjectiles(double radius, String radiusVariable, double factor, int capPerTick) {
+        double defaultRadius = Math.max(0.5D, radius);
+        double actualFactor = Math.max(0.0D, factor);
+        int cap = Math.max(1, capPerTick);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || !(performer.level() instanceof ServerLevel level)) {
+                    return;
+                }
+                double resolvedRadius = defaultRadius;
+                if (controller != null && radiusVariable != null) {
+                    resolvedRadius = Math.max(0.5D, controller.getDouble(radiusVariable, defaultRadius));
+                }
+                Vec3 origin = performer.position();
+                AABB box = new AABB(origin, origin).inflate(resolvedRadius);
+                int remaining = cap;
+                for (AbstractArrow arrow : level.getEntitiesOfClass(AbstractArrow.class, box, entity -> entity.isAlive())) {
+                    dampenVelocity(arrow);
+                    if (--remaining <= 0) {
+                        return;
+                    }
+                }
+                if (remaining <= 0) {
+                    return;
+                }
+                for (ThrowableProjectile projectile : level.getEntitiesOfClass(ThrowableProjectile.class, box, entity -> entity.isAlive())) {
+                    dampenVelocity(projectile);
+                    if (--remaining <= 0) {
+                        return;
+                    }
+                }
+            }
+
+            private void dampenVelocity(AbstractArrow arrow) {
+                Vec3 motion = arrow.getDeltaMovement();
+                Vec3 scaled = motion.scale(actualFactor);
+                arrow.setDeltaMovement(scaled);
+                arrow.hasImpulse = true;
+            }
+
+            private void dampenVelocity(ThrowableProjectile projectile) {
+                Vec3 motion = projectile.getDeltaMovement();
+                projectile.setDeltaMovement(motion.scale(actualFactor));
+            }
+
+            @Override
+            public String describe() {
+                return "dampen_projectiles(radius=" + defaultRadius + ", factor=" + actualFactor + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction highlightHostiles(double radius, String radiusVariable, int durationTicks) {
+        double defaultRadius = Math.max(0.5D, radius);
+        int duration = Math.max(1, durationTicks);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || !(performer.level() instanceof ServerLevel level)) {
+                    return;
+                }
+                double resolvedRadius = defaultRadius;
+                if (controller != null && radiusVariable != null) {
+                    resolvedRadius = Math.max(0.5D, controller.getDouble(radiusVariable, defaultRadius));
+                }
+                Vec3 origin = performer.position();
+                AABB box = new AABB(origin, origin).inflate(resolvedRadius);
+                List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, box, entity -> entity instanceof Enemy && entity.isAlive());
+                for (LivingEntity hostile : entities) {
+                    hostile.addEffect(new MobEffectInstance(MobEffects.GLOWING, duration, 0, false, false, false));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "highlight_hostiles(radius=" + defaultRadius + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction setVariable(String name, double value, boolean asDouble) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || name == null) {
+                    return;
+                }
+                if (asDouble) {
+                    controller.setDouble(name, value);
+                } else {
+                    controller.setLong(name, (long) Math.round(value));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "set_variable(" + name + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction addVariable(String name, double delta, boolean asDouble) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || name == null) {
+                    return;
+                }
+                if (asDouble) {
+                    controller.addDouble(name, delta);
+                } else {
+                    controller.addLong(name, (long) Math.round(delta));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "add_variable(" + name + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction addVariableFromVariable(String targetName, String sourceName, double scale, boolean asDouble) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || targetName == null || sourceName == null) {
+                    return;
+                }
+                double delta = controller.getDouble(sourceName, 0.0D) * scale;
+                if (asDouble) {
+                    controller.addDouble(targetName, delta);
+                } else {
+                    controller.addLong(targetName, Math.round(delta));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "add_variable_from_variable(" + sourceName + " -> " + targetName + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction clampVariable(String name, double min, double max, boolean asDouble) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || name == null) {
+                    return;
+                }
+                if (asDouble) {
+                    controller.clampDouble(name, min, max);
+                } else {
+                    controller.clampLong(name, (long) Math.floor(min), (long) Math.ceil(max));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "clamp_variable(" + name + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction setVariableFromParam(String paramKey, String variableName, double defaultValue) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || variableName == null || paramKey == null) {
+                    return;
+                }
+                double value = controller.resolveFlowParamAsDouble(paramKey, defaultValue);
+                controller.setDouble(variableName, value);
+            }
+
+            @Override
+            public String describe() {
+                return "set_variable_from_param(" + paramKey + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction copyVariable(String sourceName, String targetName, double scale, double offset, boolean asDouble) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || sourceName == null || targetName == null) {
+                    return;
+                }
+                double value = controller.getDouble(sourceName, 0.0D) * scale + offset;
+                if (asDouble) {
+                    controller.setDouble(targetName, value);
+                } else {
+                    controller.setLong(targetName, Math.round(value));
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "copy_variable(" + sourceName + " -> " + targetName + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction emitFx(String fxId, float baseIntensity, String variableName, double defaultScale) {
+        ResourceLocation fx = fxId == null ? null : ResourceLocation.tryParse(fxId);
+        if (fx == null) {
+            return describe(() -> "emit_fx(nop)");
+        }
+        float baseline = Math.max(0.0F, baseIntensity);
+        double fallback = defaultScale;
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                DefaultGuScriptExecutionBridge bridge = DefaultGuScriptExecutionBridge.forPlayer(performer);
+                double scale = fallback;
+                if (controller != null && variableName != null) {
+                    scale = controller.getDouble(variableName, fallback);
+                }
+                float intensity = (float) Mth.clamp(baseline * scale, 0.0D, 16.0D);
+                bridge.playFx(fx, new FxEventParameters(Vec3.ZERO, Vec3.ZERO, intensity));
+            }
+
+            @Override
+            public String describe() {
+                return "emit_fx(" + fx + ")";
+            }
         };
     }
 

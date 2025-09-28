@@ -280,7 +280,7 @@ public final class GuScriptExecutor {
                 if (program.isPresent()) {
                     double timeScale = parseTimeScale(flowParams);
                     FlowControllerManager.get(performer)
-                            .start(program.get(), target, timeScale, performer.level().getGameTime());
+                            .start(program.get(), target, timeScale, flowParams, performer.level().getGameTime());
                     ChestCavity.LOGGER.info(
                             "[GuScript] Root {}#{} started flow {} (source={}, timeScale={}, params={})",
                             root.name(),

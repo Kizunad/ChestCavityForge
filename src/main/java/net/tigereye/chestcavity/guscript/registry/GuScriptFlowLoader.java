@@ -26,7 +26,10 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 /**
  * Loads flow programs from data packs.
@@ -133,6 +136,16 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
             case "cooldown" -> FlowGuards.cooldownReady(GsonHelper.getAsString(json, "key"));
             case "health_min" -> FlowGuards.healthAtLeast(GsonHelper.getAsDouble(json, "minimum"));
             case "health_below" -> FlowGuards.healthBelow(GsonHelper.getAsDouble(json, "maximum"));
+            case "variable_at_most" -> FlowGuards.variableAtMost(
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsDouble(json, "maximum"),
+                    !json.has("value_type") || !GsonHelper.getAsString(json, "value_type").equalsIgnoreCase("long")
+            );
+            case "variable_at_least" -> FlowGuards.variableAtLeast(
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsDouble(json, "minimum"),
+                    !json.has("value_type") || !GsonHelper.getAsString(json, "value_type").equalsIgnoreCase("long")
+            );
             default -> throw new IllegalArgumentException("Unknown flow guard type: " + type);
         };
     }
@@ -153,6 +166,78 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
             case "explode" -> FlowActions.explode((float) GsonHelper.getAsDouble(json, "power"));
             case "set_cooldown" -> FlowActions.setCooldown(GsonHelper.getAsString(json, "key"), GsonHelper.getAsLong(json, "ticks"));
             case "trigger_actions" -> FlowActions.runActions(parseActions(json));
+            case "apply_attribute" -> FlowActions.applyAttributeModifier(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "attribute")),
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "modifier")),
+                    parseOperation(GsonHelper.getAsString(json, "operation")),
+                    GsonHelper.getAsDouble(json, "amount")
+            );
+            case "remove_attribute" -> FlowActions.removeAttributeModifier(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "attribute")),
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "modifier"))
+            );
+            case "area_effect" -> FlowActions.areaEffect(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "id")),
+                    GsonHelper.getAsInt(json, "duration"),
+                    GsonHelper.getAsInt(json, "amplifier", 0),
+                    GsonHelper.getAsDouble(json, "radius"),
+                    json.has("radius_variable") ? GsonHelper.getAsString(json, "radius_variable") : null,
+                    GsonHelper.getAsBoolean(json, "hostiles_only", true),
+                    GsonHelper.getAsBoolean(json, "include_self", false),
+                    GsonHelper.getAsBoolean(json, "show_particles", false),
+                    GsonHelper.getAsBoolean(json, "show_icon", false)
+            );
+            case "dampen_projectiles" -> FlowActions.dampenProjectiles(
+                    GsonHelper.getAsDouble(json, "radius"),
+                    json.has("radius_variable") ? GsonHelper.getAsString(json, "radius_variable") : null,
+                    GsonHelper.getAsDouble(json, "factor"),
+                    GsonHelper.getAsInt(json, "cap", 8)
+            );
+            case "highlight_hostiles" -> FlowActions.highlightHostiles(
+                    GsonHelper.getAsDouble(json, "radius"),
+                    json.has("radius_variable") ? GsonHelper.getAsString(json, "radius_variable") : null,
+                    GsonHelper.getAsInt(json, "duration")
+            );
+            case "set_variable" -> FlowActions.setVariable(
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsDouble(json, "value"),
+                    parseVariableIsDouble(json)
+            );
+            case "add_variable" -> FlowActions.addVariable(
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsDouble(json, "value"),
+                    parseVariableIsDouble(json)
+            );
+            case "add_variable_from_variable" -> FlowActions.addVariableFromVariable(
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsString(json, "source"),
+                    GsonHelper.getAsDouble(json, "scale", 1.0D),
+                    parseVariableIsDouble(json)
+            );
+            case "clamp_variable" -> FlowActions.clampVariable(
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsDouble(json, "min", Double.NEGATIVE_INFINITY),
+                    GsonHelper.getAsDouble(json, "max", Double.POSITIVE_INFINITY),
+                    parseVariableIsDouble(json)
+            );
+            case "set_variable_from_param" -> FlowActions.setVariableFromParam(
+                    GsonHelper.getAsString(json, "param"),
+                    GsonHelper.getAsString(json, "name"),
+                    GsonHelper.getAsDouble(json, "default", 0.0D)
+            );
+            case "copy_variable" -> FlowActions.copyVariable(
+                    GsonHelper.getAsString(json, "from"),
+                    GsonHelper.getAsString(json, "to"),
+                    GsonHelper.getAsDouble(json, "scale", 1.0D),
+                    GsonHelper.getAsDouble(json, "offset", 0.0D),
+                    parseVariableIsDouble(json)
+            );
+            case "emit_fx" -> FlowActions.emitFx(
+                    GsonHelper.getAsString(json, "fx"),
+                    GsonHelper.getAsFloat(json, "base_intensity", 1.0F),
+                    json.has("scale_variable") ? GsonHelper.getAsString(json, "scale_variable") : null,
+                    GsonHelper.getAsDouble(json, "default_scale", 1.0D)
+            );
             default -> throw new IllegalArgumentException("Unknown flow action type: " + type);
         };
     }
@@ -165,6 +250,24 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
             }
         }
         return actions;
+    }
+
+    private static AttributeModifier.Operation parseOperation(String raw) {
+        if (raw == null) {
+            return AttributeModifier.Operation.ADD_VALUE;
+        }
+        String normalized = raw.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "ADD_VALUE", "ADDITION", "ADD" -> AttributeModifier.Operation.ADD_VALUE;
+            case "MULTIPLY_BASE", "MULTIPLY_BASELINE", "BASE_MULTIPLY", "ADD_MULTIPLIED_BASE" -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+            case "MULTIPLY_TOTAL", "TOTAL_MULTIPLY", "ADD_MULTIPLIED_TOTAL" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+            default -> AttributeModifier.Operation.ADD_VALUE;
+        };
+    }
+
+    private static boolean parseVariableIsDouble(JsonObject json) {
+        String type = GsonHelper.getAsString(json, "value_type", "double");
+        return !type.equalsIgnoreCase("long") && !type.equalsIgnoreCase("int");
     }
 
     private static void ensureRequiredStates(Map<FlowState, FlowStateDefinition> definitions, ResourceLocation id) {
