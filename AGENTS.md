@@ -219,6 +219,34 @@ Acceptance
 Status
 - Completed (keybind trigger aggregates all keybind pages per press with page/root limits and logging in place).
 
+## Cross-root Damage Stacking (ordered, per-trigger)
+
+Branch
+- `feature/guscript-session-stacking`
+
+Goal
+- Support ordered stacking of damage modifiers across multiple roots within a single trigger dispatch: earlier roots may export modifiers that seed later roots’ contexts.
+
+Design
+- ExecutionSession (server-only): cumulativeMultiplier, cumulativeFlat, with caps.
+- Ordering: optional `order` (int) field on composite roots (via rule result JSON). Sort asc; stable tiebreaker by rule/name.
+- Export semantics:
+  - Actions: `export.modifier.multiplier {amount}` and `export.modifier.flat {amount}` write directly into the session.
+  - Optional node flags: `export_modifiers: {"multiplier": true, "flat": false}` to export net deltas from the root after execution.
+
+Implementation steps
+1) `GuScriptExecutor.trigger`: build session; sort roots by `order`; per root: seed context with session → execute → collect exported → clamp+accumulate.
+2) `DefaultGuScriptContext`: track added multipliers/flats and expose exported values or support explicit export marks.
+3) `ActionRegistry`: register `export.modifier.multiplier` and `export.modifier.flat`.
+4) Rule loader: parse `order` and `export_modifiers` (optional) from result JSON.
+5) Add INFO logs for ordering and exported values per root; add caps in config.
+
+Acceptance
+- Given roots with orders 0/1/2, exports from earlier roots deterministically affect later roots’ final damage; unit tests cover 2-root and 3-root cases; caps prevent runaway.
+
+Status
+- Pending.
+
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
   - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
