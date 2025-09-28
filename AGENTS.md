@@ -21,6 +21,105 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+### 2025-09-28 FX loading change (client-only)
+- Decision: Load GuScript FX definitions on the client only to reduce server overhead and avoid client/server resource pack mismatch.
+- What changed:
+  - Removed server reload registration for `FxDefinitionLoader` in `ChestCavity.java:registerReloadListeners`.
+  - Kept client registration via `RegisterClientReloadListenersEvent`.
+  - Relocated FX JSONs from `data/chestcavity/guscript/fx/*.json` to `assets/chestcavity/guscript/fx/*.json` so client reload can find them.
+- File references:
+  - ChestCavityForge/src/main/java/net/tigereye/chestcavity/ChestCavity.java
+  - ChestCavityForge/src/main/resources/assets/chestcavity/guscript/fx/*.json
+- Guidance:
+  - Add new FX under `assets/chestcavity/guscript/fx/`. Do not place FX JSONs under `data/` unless we add a server→client sync pipeline.
+  - If we later need server datapack‑driven FX, implement an S2C sync payload and remove the client loader for FX to avoid double sources.
+
+### Next branches and priorities (handoff)
+1) `feature/guscript-flow-modules` (P1)
+   - Implement Flow core MVP (Idle/Charging/Charged/Releasing/Cooldown/Cancel), loader for `data/chestcavity/guscript/flows/*.json`, server tick controller + light S2C mirror.
+   - Acceptance: demo charge→release works; cooldown enforced; logs present.
+2) `feature/guscript-ability-relocation-phase2` (P2)
+   - Switch registrations/imports to `net.tigereye.chestcavity.guscript.ability.guzhenren`; remove deprecated shims.
+   - Validate abilities still trigger and render.
+3) `feature/guscript-ordering-tests` (P2)
+   - Add tests to confirm unordered roots retain compilation order and ordered roots only reposition themselves.
+4) `feature/guscript-keybind-aggregate-tests` (P2)
+   - Add tests for multi-page keybind aggregation caps and ordering; ensure all eligible pages/roots execute.
+5) `feature/guscript-ui-gutter` (P3)
+   - Finalize responsive spacing with a configurable minimum gutter; verify no overlap at varied GUI scales.
+
+### Validation checklist (post-FX move)
+- Client logs show FX definitions loaded (>0). Search: "[GuScript] Loaded .* FX definitions".
+- Trigger an `emit.fx` action; ensure no "unknown FX id" warnings and visuals/sounds play.
+- Dedicated server starts without any FX loader logs or CNFE.
+
+## 2025-09-28 Flow inputs, selection, and state→FX (Web Codex TODOs)
+
+Goal
+- 1) Bind client keys for flow inputs (RELEASE/CANCEL)
+- 2) Let scripts/pages choose `flow_id` instead of a hardcoded demo
+- 3) Add direct state→FX hooks with a minimal test case
+
+Branches (create separately to avoid conflicts)
+- `feature/flow-input-keybinds` — client input mapping + payload wiring
+- `feature/guscript-flow-selection` — per-root/page `flow_id` selection (fallback to immediate)
+- `feature/flow-state-fx-and-tests` — state→FX linkage and minimal tests
+
+1) Flow input keybindings (RELEASE/CANCEL)
+- Scope
+  - Add client keys and send `FlowInputPayload` on key events.
+  - Optional: map key-up of `GUSCRIPT_EXECUTE` (B) → RELEASE; map `C` → CANCEL.
+- Files
+  - Client: `src/main/java/net/tigereye/chestcavity/listeners/KeybindingClientListeners.java`
+  - Keys: `src/main/java/net/tigereye/chestcavity/registration/CCKeybindings.java`
+  - Network: already present `FlowInputPayload`/`NetworkHandler`
+- Steps
+  - Register two mappings: `guscript_release` (key-up of B) and `guscript_cancel` (e.g., C).
+  - In client tick, when released or pressed, send `new FlowInputPayload(FlowInput.RELEASE|CANCEL)`.
+  - Ensure no classloading on server (client-only code guarded by event distro).
+- Acceptance
+  - Press/hold B starts flow (existing). Releasing B sends RELEASE and transitions from CHARGED→RELEASING if guards pass.
+  - Pressing C cancels a running flow (CHARGING/CHARGED→CANCEL→COOLDOWN path in demo JSON).
+
+2) Per-script/page `flow_id` selection (removes hardcoding)
+- Scope
+  - Allow a reduced operator/root (or page binding) to specify `flow_id` and optional params.
+  - Executor: if a root has `flow_id`, start that flow; if missing, immediate execution.
+- Files
+  - Runtime: `src/main/java/net/tigereye/chestcavity/guscript/runtime/exec/GuScriptExecutor.java`
+  - AST/operator: extend `OperatorGuNode` to carry optional `flow_id`/`flow_params` (codec/loader as needed)
+  - Rule loader/compiler: where operator metadata is built (ensure JSON can carry `flow_id`)
+- Steps
+  - Add optional `flow_id` (ResourceLocation) to operator metadata.
+  - In `GuScriptExecutor.executeRootsWithSession`, detect `flow_id` and call `FlowControllerManager.get(player).start(program, target, time)`; skip immediate actions when flow is used.
+  - Log fallback when `flow_id` missing or not found.
+- Acceptance
+  - A page with two roots: one with `flow_id` uses flow timeline; the other executes immediately. Both behave as expected when pressing B.
+
+3) State→FX linkage + minimal tests
+- Scope
+  - Data-driven FX bundles when entering states and/or on transitions.
+  - Minimal tests for guard/cooldown and state progress.
+- Files
+  - Loader: `src/main/java/net/tigereye/chestcavity/guscript/registry/GuScriptFlowLoader.java`
+  - Runtime client: `src/main/java/net/tigereye/chestcavity/guscript/runtime/flow/client/GuScriptClientFlows.java`
+  - FX: reuse `emit.fx` via S2C payloads; add a small dispatcher call on client mirror when state changes.
+  - Tests: `src/test/java/net/tigereye/chestcavity/guscript/runtime/flow/*` (unit tests)
+- Steps
+  - Extend flow state JSON to allow `enter_fx: ["namespace:id", ...]` (and optionally `update_fx`).
+  - GuScriptFlowLoader: parse and store `enter_fx` bundles into `FlowStateDefinition`.
+  - Server: on state change, include FX ids in FlowSyncPayload or broadcast a dedicated FxEventPayload from server (preferred client-only: emit via client when mirror updated to avoid server imports).
+  - Client: `GuScriptClientFlows` resolves FX ids and calls `FxClientDispatcher.play` for each bundle with reasonable context (origin/look from player).
+  - Tests (minimal): verify guard passes/blocks; verify cooldown timestamp logic; simulate a sequence of triggers to assert state ordering.
+- Acceptance
+  - Demo flow plays a sound/particle burst on CHARGED enter and on RELEASING enter.
+  - Tests pass; client shows FX without server CNFE.
+
+Notes
+- Keep client/server separation strict. No client imports in common/loader code paths.
+- Preserve backward compatibility: flows optional; scripts without `flow_id` execute immediately.
+- Update this file after merging each branch with status and any follow-ups.
+
 ### 2025-09-28 Test compile failure after merge (Web Codex TODO)
 - Symptom: `./gradlew test` fails during `compileTestJava`.
 - Error:
