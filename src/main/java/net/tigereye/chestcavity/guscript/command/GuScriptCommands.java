@@ -18,7 +18,6 @@ import net.tigereye.chestcavity.guscript.ast.LeafGuNode;
 import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
-import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptRuntime;
 import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
@@ -75,10 +74,9 @@ public final class GuScriptCommands {
             return 0;
         }
 
-        DefaultGuScriptExecutionBridge bridge = DefaultGuScriptExecutionBridge.forPlayer(player);
-        GuScriptContext context = new DefaultGuScriptContext(player, player, bridge);
         GuScriptRuntime runtime = new GuScriptRuntime();
-        runtime.executeAll(result.roots(), context);
+        runtime.executeAll(result.roots(), index ->
+                new DefaultGuScriptContext(player, player, new DefaultGuScriptExecutionBridge(player, player, index)));
 
         source.sendSuccess(() -> Component.literal("已执行 GuScript 示例，生成 " + result.roots().size() + " 个根节点"), true);
         return result.roots().size();

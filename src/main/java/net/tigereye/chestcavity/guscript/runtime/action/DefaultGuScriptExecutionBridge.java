@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptExecutionBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Default bridge implementation delegating to GuzhenrenResourceBridge and vanilla helpers.
@@ -24,14 +25,25 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
 
     private final Player performer;
     private final LivingEntity target;
+    private final int rootIndex;
+    private static final AtomicLong PROJECTILE_SEQUENCE = new AtomicLong();
 
     public DefaultGuScriptExecutionBridge(Player performer, LivingEntity target) {
+        this(performer, target, 0);
+    }
+
+    public DefaultGuScriptExecutionBridge(Player performer, LivingEntity target, int rootIndex) {
         this.performer = performer;
         this.target = target;
+        this.rootIndex = rootIndex;
     }
 
     public static DefaultGuScriptExecutionBridge forPlayer(Player performer) {
-        return new DefaultGuScriptExecutionBridge(performer, performer);
+        return new DefaultGuScriptExecutionBridge(performer, performer, 0);
+    }
+
+    public static DefaultGuScriptExecutionBridge forPlayer(Player performer, int rootIndex) {
+        return new DefaultGuScriptExecutionBridge(performer, performer, rootIndex);
     }
 
     @Override
@@ -92,18 +104,49 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
         }
 
         Vec3 look = performer.getLookAngle();
-        entity.moveTo(performer.getX(), performer.getEyeY() - 0.2, performer.getZ(), performer.getYRot(), performer.getXRot());
+        float yawOffset = (float) (0.05F * rootIndex);
+        double cos = Math.cos(yawOffset);
+        double sin = Math.sin(yawOffset);
+        Vec3 adjustedLook = new Vec3(
+                look.x * cos - look.z * sin,
+                look.y,
+                look.x * sin + look.z * cos
+        ).normalize();
+
+        Vec3 spawn = new Vec3(performer.getX(), performer.getEyeY() - 0.2, performer.getZ());
+        double lateralOffset = 0.05D * rootIndex;
+        if (Math.abs(lateralOffset) > 1.0E-4) {
+            Vec3 lateral = new Vec3(-adjustedLook.z, 0.0, adjustedLook.x);
+            if (lateral.lengthSqr() > 1.0E-6) {
+                lateral = lateral.normalize().scale(lateralOffset);
+                spawn = spawn.add(lateral);
+            }
+        }
+
+        float yawDegrees = performer.getYRot() + (float) Math.toDegrees(yawOffset);
+        entity.moveTo(spawn.x, spawn.y, spawn.z, yawDegrees, performer.getXRot());
 
         if (entity instanceof Projectile projectile) {
             projectile.setOwner(performer);
-            projectile.shoot(look.x, look.y, look.z, 1.5F, 0.0F);
+            projectile.shoot(adjustedLook.x, adjustedLook.y, adjustedLook.z, 1.5F, 0.0F);
             if (projectile instanceof AbstractArrow arrow) {
                 arrow.setBaseDamage(damage);
             }
         } else {
-            entity.setDeltaMovement(look.scale(1.5));
+            entity.setDeltaMovement(adjustedLook.scale(1.5));
         }
 
+        long sequence = PROJECTILE_SEQUENCE.incrementAndGet();
+        ChestCavity.LOGGER.info(
+                "[GuScript] Projectile #{} emitted for root {}: id={} damage={} spawn=({},{},{})",
+                sequence,
+                rootIndex,
+                id,
+                damage,
+                String.format("%.3f", spawn.x),
+                String.format("%.3f", spawn.y),
+                String.format("%.3f", spawn.z)
+        );
         level.addFreshEntity(entity);
     }
 }
