@@ -68,6 +68,28 @@ Branches (create separately to avoid conflicts)
 - `feature/guscript-flow-selection` — per-root/page `flow_id` selection (fallback to immediate)
 - `feature/flow-state-fx-and-tests` — state→FX linkage and minimal tests
 
+### 2025-09-28 Tests status and how to run
+- Current status: full test suite passes locally.
+- Commands:
+  - Compile only: `cd ChestCavityForge && ./gradlew -g .gradle-home compileJava`
+  - Run tests: `cd ChestCavityForge && ./gradlew -g .gradle-home test`
+- Flow toggle and tests:
+  - By default `enableFlows=false`; tests exercise the immediate-execution path.
+  - If adding flow-dependent tests later, either enable via config fixture or keep such tests guarded/skipped when flows are disabled.
+
+### Immediate next actions (flows remain disabled)
+- Tests (ordering/aggregation): ensure coverage for
+  - Unordered roots preserve compilation order; ordered roots reposition themselves only.
+  - Multi-page keybind aggregation executes all eligible roots once and respects caps.
+- UI polish (no-flow mode):
+  - Hide/disable any flow-related UI affordances when `enableFlows=false`.
+  - Verify minimum gutters across GUI scales; keep page text clear of buttons.
+- Logging and config:
+  - Gate INFO-level hot-path logs behind a debug flag; keep FX/execute logs concise.
+  - Expose caps (pages/roots per trigger) in config and document defaults.
+- Optional DX:
+  - Add a lightweight `/guscript run [page]` command for headless/dedicated testing of immediate execution.
+
 1) Flow input keybindings (RELEASE/CANCEL)
 - Scope
   - Add client keys and send `FlowInputPayload` on key events.
@@ -186,10 +208,35 @@ Branching
   - Create new packages/classes and add shims in old package annotated `@Deprecated` forwarding to new implementations.
   - Keep all registrations and event subscriptions wired through old package to avoid ripple changes.
   - Compile + run validation.
-- Phase 2 (cutover): `feature/guscript-ability-relocation-phase2`
+- Phase 2 (cutover + decomposition): `feature/guscript-ability-relocation-phase2`
   - Update all call sites/registrations/imports to new package.
   - Remove deprecated shims; clean imports.
-  - Final compile + in-game smoke test.
+  - Decompose abilities into two concerns:
+    - Damage/logic (server): pure gameplay actions (damage calc, status, projectiles) implemented via GuScript actions or dedicated server utilities.
+    - FX/visuals (client): particles/sounds/trails implemented via the GuScript FX registry and `emit.fx` payloads.
+  - Final compile + in‑game smoke test.
+
+Decomposition details
+- Server (damage/logic)
+  - Package: `net.tigereye.chestcavity.guscript.ability.guzhenren.logic`
+  - Use/extend existing GuScript actions: `emit.projectile`, `modifier.damage_multiplier`, `apply.status`, etc.
+  - Add small utilities for damage number composition if needed (reuse ExecutionSession stacking where applicable).
+- Client (FX/visuals)
+  - Package: `net.tigereye.chestcavity.guscript.ability.guzhenren.fx` (client-only classes guarded by Dist).
+  - Drive visuals with data under `assets/chestcavity/guscript/fx/*.json` and play via `FxClientDispatcher`.
+  - No client imports from server/common code paths.
+
+Cutover steps
+1) Replace imports from `compat.guzhenren.ability.*` to `guscript.ability.guzhenren.*` across codebase.
+2) Remove deprecated shims created in Phase 1.
+3) Split any mixed classes into logic vs FX packages; keep server actions free of client imports.
+4) Ensure registrations (events, renderers, keybindings) reference the new packages; client-only subscribers annotated with `@EventBusSubscriber(value = Dist.CLIENT)`.
+5) Build and smoke test in-game: hotkey triggers still function; damage/effects both fire; no CNFE on dedicated server.
+
+Acceptance criteria
+- All ability triggers build and run from the new `guscript.ability.guzhenren` packages.
+- Damage logic executes on server; FX plays only on clients; no cross-dist classloading.
+- No deprecated shims remain; `rg` for old package returns no usages.
 
 Status (2025-10-XX)
 - Phase 1 completed (per user confirmation). Proceed to Phase 2 cutover after parallel branches below are merged or rebased.
