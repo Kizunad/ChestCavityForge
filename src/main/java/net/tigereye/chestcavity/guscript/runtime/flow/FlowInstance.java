@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.runtime.flow;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -143,6 +144,10 @@ public final class FlowInstance {
 
     private Optional<FlowStateDefinition> definition() {
         return program.definition(state);
+    }
+
+    public List<ResourceLocation> enterFx() {
+        return definition().map(FlowStateDefinition::enterFx).orElse(List.of());
     }
     void rebindPerformer(Player performer) {
         if (performer != null) {

@@ -23,6 +23,10 @@ public final class FlowController {
         this.performer = Objects.requireNonNull(performer, "performer");
     }
 
+    FlowController() {
+        this.performer = null;
+    }
+
     public ServerPlayer performer() {
         return performer;
     }

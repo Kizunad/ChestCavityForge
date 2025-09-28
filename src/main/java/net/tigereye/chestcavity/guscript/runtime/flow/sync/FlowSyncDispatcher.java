@@ -22,7 +22,8 @@ public final class FlowSyncDispatcher {
                 instance.program().id(),
                 instance.state(),
                 instance.stateEnteredGameTime(),
-                instance.ticksInState()
+                instance.ticksInState(),
+                instance.enterFx()
         ));
     }
 
@@ -35,7 +36,8 @@ public final class FlowSyncDispatcher {
                 instance.program().id(),
                 instance.state(),
                 instance.stateEnteredGameTime(),
-                instance.ticksInState()
+                instance.ticksInState(),
+                instance.enterFx()
         ));
     }
 }
