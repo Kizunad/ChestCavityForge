@@ -40,6 +40,9 @@
 - Bridge gating on client: `DefaultGuScriptExecutionBridge.emitProjectile` early-returns on client. Ensure execution runs strictly on server (it should), and log side/context per root.
 - Keybind plumbing only sends one trigger: Client sends one payload by design; server must iterate all compiled roots. Instrument `GuScriptExecutor.trigger` to log `roots.size()` and “executing N/total” per root.
 
+Status
+- Branch `feature/guscript-multi-trigger-fix`: Completed (roots on the current page now all execute; fresh context per root; logs present).
+
 ### Proposed diagnostics (to implement by web Codex)
 - Add INFO logs:
   - After compilation: page index, `roots.size()`, list of `root.kind()` + `root.name()`.
@@ -53,6 +56,9 @@
 
 ### UI spacing tweak (branch: `feature/guscript-ui-spacing-tweak`)
 - Shift page navigation button row left by 10 px; shift trigger/listener button stack down by 10 px. Keep proportional spacing and min gutters intact; update defaults or layout math accordingly.
+
+Status
+- Completed (merged via UI spacing PRs: configurable spacing, button offsets, and page info spacing). Visual overlap resolved per user verification.
 
 ### Relocate Guzhenren abilities into GuScript module
 
@@ -194,6 +200,25 @@ Risks & mitigations
 - Desync: include `gameTime` or monotonic tick in sync payloads; clamp client visuals to server state。
 - Performance: cap max concurrent flow instances per entity; pool FX spawners；expose config。
 - UX: add HUD hints for charge progress later; not in MVP。
+
+## Keybind multi-page dispatch (new)
+
+Goal
+- When multiple notebook pages are set to Keybind mode, a single key press should trigger all eligible pages, not only the active page.
+
+Design outline
+- Server-side on `GuScriptTriggerPayload`: iterate all `GuScriptAttachment.pages()` whose `bindingTarget==KEYBIND`, compile (or use cache) and execute their roots (respect per-page order, then per-root order if cross-root stacking is enabled).
+- Safeguards: per-trigger caps on total pages and roots executed; aggregate logs: `pages=X, roots=Y`.
+
+Branch
+- `feature/guscript-keybind-aggregate`
+
+Acceptance
+- Pressing the key once triggers every Keybind page; logs enumerate all pages and composite roots executed; performance caps prevent runaway execution.
+
+Status
+- Pending.
+
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
   - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
