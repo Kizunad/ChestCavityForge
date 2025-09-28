@@ -5,6 +5,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
+import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 import net.tigereye.chestcavity.guscript.data.BindingTarget;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.guscript.data.GuScriptPageState;
@@ -14,6 +15,7 @@ import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecution
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Executes compiled GuScript programs for a player.
@@ -23,6 +25,8 @@ public final class GuScriptExecutor {
     private static final GuScriptRuntime RUNTIME = new GuScriptRuntime();
     private static final int DEFAULT_MAX_KEYBIND_PAGES = 16;
     private static final int DEFAULT_MAX_KEYBIND_ROOTS = 64;
+    private static final double DEFAULT_SESSION_MULTIPLIER_CAP = 5.0D;
+    private static final double DEFAULT_SESSION_FLAT_CAP = 20.0D;
 
     private GuScriptExecutor() {
     }
@@ -52,12 +56,16 @@ public final class GuScriptExecutor {
                         .toList()
         );
         LivingEntity actualTarget = target == null ? player : target;
-        AtomicInteger rootIndex = new AtomicInteger();
-        RUNTIME.executeAll(cache.roots(), () -> {
-            int index = rootIndex.getAndIncrement();
-            DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, actualTarget, index);
-            return new DefaultGuScriptContext(player, actualTarget, bridge);
-        });
+        CCConfig.GuScriptExecutionConfig executionConfig = ChestCavity.config != null
+                ? ChestCavity.config.GUSCRIPT_EXECUTION
+                : null;
+        ExecutionSession session = new ExecutionSession(
+                executionConfig != null ? executionConfig.maxCumulativeMultiplier : DEFAULT_SESSION_MULTIPLIER_CAP,
+                executionConfig != null ? executionConfig.maxCumulativeFlat : DEFAULT_SESSION_FLAT_CAP
+        );
+        List<GuNode> sortedRoots = sortRootsForSession(cache.roots());
+        logRootOrdering(player, pageIndex, sortedRoots);
+        executeRootsWithSession(sortedRoots, player, actualTarget, session);
     }
 
     public static void triggerKeybind(ServerPlayer player, LivingEntity target, GuScriptAttachment attachment) {
@@ -180,11 +188,134 @@ public final class GuScriptExecutor {
         }
 
         LivingEntity actualTarget = target == null ? player : target;
-        AtomicInteger rootIndex = new AtomicInteger();
-        RUNTIME.executeAll(aggregatedRoots, () -> {
-            int index = rootIndex.getAndIncrement();
-            DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, actualTarget, index);
-            return new DefaultGuScriptContext(player, actualTarget, bridge);
+        ExecutionSession session = new ExecutionSession(
+                executionConfig != null ? executionConfig.maxCumulativeMultiplier : DEFAULT_SESSION_MULTIPLIER_CAP,
+                executionConfig != null ? executionConfig.maxCumulativeFlat : DEFAULT_SESSION_FLAT_CAP
+        );
+        List<GuNode> sortedRoots = sortRootsForSession(aggregatedRoots);
+        logRootOrdering(player, -1, sortedRoots);
+        executeRootsWithSession(sortedRoots, player, actualTarget, session);
+    }
+
+    static List<GuNode> sortRootsForSession(List<GuNode> roots) {
+        if (roots == null || roots.isEmpty()) {
+            return List.of();
+        }
+        List<OrderedRoot> ordered = new ArrayList<>(roots.size());
+        for (int i = 0; i < roots.size(); i++) {
+            GuNode node = roots.get(i);
+            ordered.add(new OrderedRoot(node, i));
+        }
+        ordered.sort((left, right) -> {
+            int leftOrder = left.order();
+            int rightOrder = right.order();
+            boolean leftUnordered = leftOrder == Integer.MAX_VALUE;
+            boolean rightUnordered = rightOrder == Integer.MAX_VALUE;
+            if (leftUnordered && rightUnordered) {
+                return 0;
+            }
+            if (leftOrder != rightOrder) {
+                return Integer.compare(leftOrder, rightOrder);
+            }
+            int ruleComparison = left.ruleId().compareTo(right.ruleId());
+            if (ruleComparison != 0) {
+                return ruleComparison;
+            }
+            int nameComparison = left.name().compareTo(right.name());
+            if (nameComparison != 0) {
+                return nameComparison;
+            }
+            return Integer.compare(left.originalIndex(), right.originalIndex());
         });
+        return ordered.stream().map(OrderedRoot::node).toList();
+    }
+
+    private static void executeRootsWithSession(List<GuNode> roots, ServerPlayer performer, LivingEntity target, ExecutionSession session) {
+        if (roots.isEmpty()) {
+            return;
+        }
+        AtomicInteger rootIndex = new AtomicInteger();
+        for (GuNode root : roots) {
+            int index = rootIndex.getAndIncrement();
+            DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(performer, target, index);
+            DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge, session);
+            if (root instanceof OperatorGuNode operator) {
+                context.enableModifierExports(operator.exportMultiplier(), operator.exportFlat());
+            }
+            double beforeMultiplier = session.currentMultiplier();
+            double beforeFlat = session.currentFlat();
+            RUNTIME.execute(root, context);
+            double deltaMultiplier = context.exportedMultiplierDelta();
+            double deltaFlat = context.exportedFlatDelta();
+            if (deltaMultiplier != 0.0D) {
+                session.exportMultiplier(deltaMultiplier);
+            }
+            if (deltaFlat != 0.0D) {
+                session.exportFlat(deltaFlat);
+            }
+            double afterMultiplier = session.currentMultiplier();
+            double afterFlat = session.currentFlat();
+            ChestCavity.LOGGER.info(
+                    "[GuScript] Root {}#{} exported modifiers: delta(multiplier={}, flat={}), direct(multiplier={}, flat={}). Session {} -> {} / {} -> {}",
+                    root.name(),
+                    index,
+                    formatDouble(deltaMultiplier),
+                    formatDouble(deltaFlat),
+                    formatDouble(context.directExportedMultiplier()),
+                    formatDouble(context.directExportedFlat()),
+                    formatDouble(beforeMultiplier),
+                    formatDouble(afterMultiplier),
+                    formatDouble(beforeFlat),
+                    formatDouble(afterFlat)
+            );
+        }
+    }
+
+    private static void logRootOrdering(ServerPlayer player, int pageIndex, List<GuNode> roots) {
+        if (roots.isEmpty()) {
+            return;
+        }
+        String descriptor = roots.stream()
+                .map(root -> {
+                    OrderedRoot wrapper = new OrderedRoot(root, 0);
+                    return wrapper.name() + "[order=" + (wrapper.order() == Integer.MAX_VALUE ? "∞" : wrapper.order()) + ",rule=" + wrapper.ruleId() + "]";
+                })
+                .collect(Collectors.joining(", "));
+        ChestCavity.LOGGER.info(
+                "[GuScript] Ordered execution for {}{}: {}",
+                player.getGameProfile().getName(),
+                pageIndex >= 0 ? " page " + pageIndex : " keybind aggregation",
+                descriptor
+        );
+    }
+
+    private static String formatDouble(double value) {
+        if (value == 0.0D) {
+            return "0";
+        }
+        if (Double.isInfinite(value)) {
+            return value > 0 ? "+∞" : "-∞";
+        }
+        return String.format("%.3f", value);
+    }
+
+    private record OrderedRoot(GuNode node, int originalIndex) {
+        int order() {
+            if (node instanceof OperatorGuNode operator) {
+                return operator.executionOrder().orElse(Integer.MAX_VALUE);
+            }
+            return Integer.MAX_VALUE;
+        }
+
+        String ruleId() {
+            if (node instanceof OperatorGuNode operator) {
+                return operator.operatorId();
+            }
+            return node.kind().name();
+        }
+
+        String name() {
+            return node.name();
+        }
     }
 }

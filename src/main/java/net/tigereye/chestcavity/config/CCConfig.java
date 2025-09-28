@@ -170,6 +170,10 @@ public class CCConfig implements ConfigData {
         public int maxKeybindPagesPerTrigger = 16;
         @ConfigEntry.Gui.Tooltip
         public int maxKeybindRootsPerTrigger = 64;
+        @ConfigEntry.Gui.Tooltip
+        public double maxCumulativeMultiplier = 5.0D;
+        @ConfigEntry.Gui.Tooltip
+        public double maxCumulativeFlat = 20.0D;
     }
 
 }

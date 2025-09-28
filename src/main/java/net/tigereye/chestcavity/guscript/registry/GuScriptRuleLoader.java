@@ -95,12 +95,17 @@ public final class GuScriptRuleLoader extends SimpleJsonResourceReloadListener {
             }
         }
 
+        final Integer order = result.has("order") ? result.get("order").getAsInt() : null;
+        final JsonObject exports = result.has("export_modifiers") ? result.getAsJsonObject("export_modifiers") : null;
+        final boolean exportMultiplier = exports != null && exports.has("multiplier") && exports.get("multiplier").getAsBoolean();
+        final boolean exportFlat = exports != null && exports.has("flat") && exports.get("flat").getAsBoolean();
+
         return ReactionRule.builder(id.toString())
                 .arity(arity)
                 .priority(priority)
                 .requiredTags(required)
                 .inhibitors(inhibitors)
-                .operator((ruleId, inputs) -> new OperatorGuNode(operatorId, name, kind, tags, actions, inputs))
+                .operator((ruleId, inputs) -> new OperatorGuNode(operatorId, name, kind, tags, actions, inputs, order, exportMultiplier, exportFlat))
                 .build();
     }
 
