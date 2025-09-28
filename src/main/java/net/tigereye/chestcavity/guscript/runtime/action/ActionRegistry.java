@@ -1,14 +1,18 @@
 package net.tigereye.chestcavity.guscript.runtime.action;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.tigereye.chestcavity.guscript.actions.AddDamageMultiplierAction;
 import net.tigereye.chestcavity.guscript.actions.AddFlatDamageAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
+import net.tigereye.chestcavity.guscript.actions.TriggerFxAction;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.actions.ExportFlatModifierAction;
 import net.tigereye.chestcavity.guscript.actions.ExportMultiplierModifierAction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +44,12 @@ public final class ActionRegistry {
         register(AddFlatDamageAction.ID, json -> new AddFlatDamageAction(json.get("amount").getAsDouble()));
         register(ExportMultiplierModifierAction.ID, json -> new ExportMultiplierModifierAction(json.get("amount").getAsDouble()));
         register(ExportFlatModifierAction.ID, json -> new ExportFlatModifierAction(json.get("amount").getAsDouble()));
+        register(TriggerFxAction.ID, json -> TriggerFxAction.from(
+                ResourceLocation.parse(json.get("fxId").getAsString()),
+                readVec3(json, "originOffset"),
+                readVec3(json, "targetOffset"),
+                json.has("intensity") ? json.get("intensity").getAsFloat() : 1.0F
+        ));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {
@@ -56,5 +66,19 @@ public final class ActionRegistry {
             throw new IllegalArgumentException("Unknown action id: " + id);
         }
         return factory.apply(json);
+    }
+
+    private static Vec3 readVec3(JsonObject json, String key) {
+        if (!json.has(key)) {
+            return Vec3.ZERO;
+        }
+        JsonArray array = json.getAsJsonArray(key);
+        if (array == null || array.size() == 0) {
+            return Vec3.ZERO;
+        }
+        double x = array.size() > 0 ? array.get(0).getAsDouble() : 0.0D;
+        double y = array.size() > 1 ? array.get(1).getAsDouble() : 0.0D;
+        double z = array.size() > 2 ? array.get(2).getAsDouble() : 0.0D;
+        return new Vec3(x, y, z);
     }
 }

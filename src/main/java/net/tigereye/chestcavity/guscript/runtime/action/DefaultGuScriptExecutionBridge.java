@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.guscript.runtime.action;
 
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -12,8 +11,13 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptExecutionBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
+import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -148,5 +152,60 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
                 String.format("%.3f", spawn.z)
         );
         level.addFreshEntity(entity);
+    }
+
+    @Override
+    public void playFx(ResourceLocation fxId, FxEventParameters parameters) {
+        if (fxId == null) {
+            return;
+        }
+        if (!(performer instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ServerLevel level = serverPlayer.serverLevel();
+        FxEventParameters actual = parameters == null ? FxEventParameters.DEFAULT : parameters;
+        Vec3 origin = center(performer).add(actual.originOffset());
+        Vec3 look = performer.getLookAngle();
+        Vec3 fallbackDirection = look;
+        Vec3 targetPosition = null;
+        int targetId = -1;
+        if (target != null) {
+            targetPosition = center(target).add(actual.targetOffset());
+            targetId = target.getId();
+        }
+        FxEventPayload payload = new FxEventPayload(
+                fxId,
+                origin.x,
+                origin.y,
+                origin.z,
+                (float) fallbackDirection.x,
+                (float) fallbackDirection.y,
+                (float) fallbackDirection.z,
+                (float) look.x,
+                (float) look.y,
+                (float) look.z,
+                actual.intensity(),
+                targetPosition != null,
+                targetPosition != null ? targetPosition.x : 0.0D,
+                targetPosition != null ? targetPosition.y : 0.0D,
+                targetPosition != null ? targetPosition.z : 0.0D,
+                serverPlayer.getId(),
+                targetId
+        );
+        broadcastFx(level, serverPlayer, origin, payload);
+    }
+
+    private static Vec3 center(LivingEntity entity) {
+        return new Vec3(entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ());
+    }
+
+    private static void broadcastFx(ServerLevel level, ServerPlayer source, Vec3 origin, FxEventPayload payload) {
+        double radius = 64.0D;
+        double radiusSq = radius * radius;
+        for (ServerPlayer viewer : level.players()) {
+            if (viewer == source || viewer.distanceToSqr(origin) <= radiusSq) {
+                viewer.connection.send(payload);
+            }
+        }
     }
 }
