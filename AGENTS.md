@@ -55,6 +55,9 @@
 
 ## 2025-09-28 Flow inputs, selection, and state→FX (Web Codex TODOs)
 
+Temporary decision
+- Flows are disabled by default to follow the original immediate-execution path. Toggle via config: `CCConfig -> GUSCRIPT_EXECUTION -> enableFlows`.
+
 Goal
 - 1) Bind client keys for flow inputs (RELEASE/CANCEL)
 - 2) Let scripts/pages choose `flow_id` instead of a hardcoded demo

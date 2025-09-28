@@ -255,6 +255,7 @@ public final class GuScriptExecutor {
             return;
         }
         Map<String, String> safeDefaultFlowParams = defaultFlowParams == null ? Map.of() : defaultFlowParams;
+        boolean flowsEnabled = ChestCavity.config != null && ChestCavity.config.GUSCRIPT_EXECUTION.enableFlows;
         boolean defaultFlowConsumed = false;
         AtomicInteger rootIndex = new AtomicInteger();
         for (GuNode root : roots) {
@@ -262,7 +263,7 @@ public final class GuScriptExecutor {
             ResourceLocation flowToStart = null;
             Map<String, String> flowParams = Map.of();
             boolean flowFromPage = false;
-            if (root instanceof OperatorGuNode operator) {
+            if (flowsEnabled && root instanceof OperatorGuNode operator) {
                 if (operator.flowId().isPresent()) {
                     flowToStart = operator.flowId().get();
                     flowParams = operator.flowParams();
@@ -273,7 +274,7 @@ public final class GuScriptExecutor {
                     defaultFlowConsumed = true;
                 }
             }
-            if (flowToStart != null) {
+            if (flowsEnabled && flowToStart != null) {
                 String source = flowFromPage ? "page" : "operator";
                 var program = FlowProgramRegistry.get(flowToStart);
                 if (program.isPresent()) {
@@ -288,7 +289,7 @@ public final class GuScriptExecutor {
                             flowParams.isEmpty() ? "{}" : flowParams
                     );
                     continue;
-                } else {
+                } else if (flowsEnabled) {
                     ChestCavity.LOGGER.warn(
                             "[GuScript] Root {}#{} referenced unknown flow {} (source={}). Falling back to immediate execution.",
                             root.name(),

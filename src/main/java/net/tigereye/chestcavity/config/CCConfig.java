@@ -174,6 +174,8 @@ public class CCConfig implements ConfigData {
         public double maxCumulativeMultiplier = 5.0D;
         @ConfigEntry.Gui.Tooltip
         public double maxCumulativeFlat = 20.0D;
+        @ConfigEntry.Gui.Tooltip
+        public boolean enableFlows = false; // toggle flow integration; when false, all roots execute immediately
     }
 
 }
