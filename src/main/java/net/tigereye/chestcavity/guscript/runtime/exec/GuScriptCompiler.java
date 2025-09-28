@@ -60,7 +60,7 @@ public final class GuScriptCompiler {
             ResourceLocation itemId = stack.getItem().builtInRegistryHolder().key().location();
             GuScriptRegistry.leaf(itemId).ifPresentOrElse(def -> {
                 leaves.add(toScaledLeaf(def, stack.getCount()));
-            }, () -> ChestCavity.LOGGER.debug("[GuScript] No leaf definition for item {}", itemId));
+            }, () -> ChestCavity.LOGGER.warn("[GuScript] No leaf definition for item {}", itemId));
         }
 
         List<GuNode> roots = new ArrayList<>();
