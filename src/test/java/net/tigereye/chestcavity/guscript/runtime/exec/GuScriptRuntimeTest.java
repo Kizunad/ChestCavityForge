@@ -276,6 +276,11 @@ class GuScriptRuntimeTest {
         public void emitProjectile(String projectileId, double damage) {
             projectiles.incrementAndGet();
         }
+
+        @Override
+        public void playFx(net.minecraft.resources.ResourceLocation fxId, net.tigereye.chestcavity.guscript.fx.FxEventParameters parameters) {
+            // no-op for tests
+        }
     }
 
     private static final class RecordingContext implements GuScriptContext {
