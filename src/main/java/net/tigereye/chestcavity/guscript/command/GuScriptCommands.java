@@ -2,13 +2,26 @@ package net.tigereye.chestcavity.guscript.command;
 
 import com.google.common.collect.ImmutableMultiset;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.FloatArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.coordinates.Vec3Argument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.guscript.GuScriptModule;
+import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
@@ -22,7 +35,10 @@ import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptRuntime;
 import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class GuScriptCommands {
@@ -33,7 +49,113 @@ public final class GuScriptCommands {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("guscript")
                 .requires(stack -> stack.hasPermission(2))
-                .then(Commands.literal("run").executes(GuScriptCommands::runDemo)));
+                .then(Commands.literal("run").executes(GuScriptCommands::runDemo))
+                .then(Commands.literal("fx")
+                        .then(Commands.literal("play")
+                                .then(Commands.argument("id", ResourceLocationArgument.id())
+                                        .suggests(GuScriptCommands::suggestFxIds)
+                                        .executes(ctx -> playFxHere(ctx, DEFAULT_INTENSITY))
+                                        .then(Commands.argument("intensity", FloatArgumentType.floatArg(0.0F, 16.0F))
+                                                .executes(ctx -> playFxHere(ctx, FloatArgumentType.getFloat(ctx, "intensity"))))))
+                        .then(Commands.literal("play_at")
+                                .then(Commands.argument("id", ResourceLocationArgument.id())
+                                        .suggests(GuScriptCommands::suggestFxIds)
+                                        .then(Commands.argument("pos", Vec3Argument.vec3())
+                                                .executes(ctx -> playFxAt(ctx, DEFAULT_INTENSITY))
+                                                .then(Commands.argument("intensity", FloatArgumentType.floatArg(0.0F, 16.0F))
+                                                        .executes(ctx -> playFxAt(ctx, FloatArgumentType.getFloat(ctx, "intensity")))))))
+                        .then(Commands.literal("list")
+                                .executes(ctx -> listFx(ctx, ""))
+                                .then(Commands.argument("filter", StringArgumentType.word())
+                                        .executes(ctx -> listFx(ctx, StringArgumentType.getString(ctx, "filter")))))));
+    }
+
+    private static final float DEFAULT_INTENSITY = 1.0F;
+
+    private static final List<ResourceLocation> BUILTIN_FX_IDS = List.of(
+            ResourceLocation.parse("chestcavity:time_accel_enter"),
+            ResourceLocation.parse("chestcavity:time_accel_loop"),
+            ResourceLocation.parse("chestcavity:time_accel_exit"),
+            ResourceLocation.parse("chestcavity:mind_thoughts_orbit"),
+            ResourceLocation.parse("chestcavity:mind_thoughts_pulse")
+    );
+
+    private static final List<String> BUILTIN_FX_ID_STRINGS = BUILTIN_FX_IDS.stream()
+            .map(ResourceLocation::toString)
+            .sorted()
+            .toList();
+
+    private static CompletableFuture<Suggestions> suggestFxIds(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(BUILTIN_FX_ID_STRINGS, builder);
+    }
+
+    private static int playFxHere(CommandContext<CommandSourceStack> ctx, float intensity) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer performer;
+        try {
+            performer = source.getPlayerOrException();
+        } catch (CommandSyntaxException e) {
+            source.sendFailure(Component.literal("需要玩家执行该命令"));
+            return 0;
+        }
+
+        ResourceLocation fxId = ResourceLocationArgument.getId(ctx, "id");
+        float clampedIntensity = clampIntensity(intensity);
+        AbilityFxDispatcher.play(performer, fxId, Vec3.ZERO, clampedIntensity);
+        source.sendSuccess(() -> Component.literal("已在玩家位置播放 FX " + fxId + "（强度 " + clampedIntensity + "）。若客户端缺少该 FX 定义，则不会看到任何效果"), false);
+        return 1;
+    }
+
+    private static int playFxAt(CommandContext<CommandSourceStack> ctx, float intensity) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer performer;
+        try {
+            performer = source.getPlayerOrException();
+        } catch (CommandSyntaxException e) {
+            source.sendFailure(Component.literal("需要玩家执行该命令"));
+            return 0;
+        }
+
+        ResourceLocation fxId = ResourceLocationArgument.getId(ctx, "id");
+        Vec3 position = Vec3Argument.getVec3(ctx, "pos");
+        Vec3 look = performer.getLookAngle();
+        ServerLevel level = performer.serverLevel();
+        float clampedIntensity = clampIntensity(intensity);
+        AbilityFxDispatcher.play(level, fxId, position, look, look, performer, null, clampedIntensity);
+        source.sendSuccess(() -> Component.literal("已在 " + formatVec(position) + " 播放 FX " + fxId + "（强度 " + clampedIntensity + "）。若客户端缺少该 FX 定义，则不会看到任何效果"), false);
+        return 1;
+    }
+
+    private static float clampIntensity(float intensity) {
+        if (intensity < 0.0F) {
+            return 0.0F;
+        }
+        if (intensity > 16.0F) {
+            return 16.0F;
+        }
+        return intensity;
+    }
+
+    private static int listFx(CommandContext<CommandSourceStack> ctx, String rawFilter) {
+        String filter = rawFilter == null ? "" : rawFilter.trim().toLowerCase(Locale.ROOT);
+        List<String> matches = BUILTIN_FX_IDS.stream()
+                .map(ResourceLocation::toString)
+                .filter(id -> filter.isEmpty() || id.startsWith(filter))
+                .sorted(Comparator.naturalOrder())
+                .toList();
+
+        if (matches.isEmpty()) {
+            ctx.getSource().sendFailure(Component.literal("未找到匹配的 FX ID" + (filter.isEmpty() ? "" : "（前缀：" + filter + "）")));
+            return 0;
+        }
+
+        ctx.getSource().sendSuccess(() -> Component.literal("已知 FX（" + matches.size() + "）:"), false);
+        matches.forEach(id -> ctx.getSource().sendSuccess(() -> Component.literal(" - " + id), false));
+        return matches.size();
+    }
+
+    private static String formatVec(Vec3 vec) {
+        return String.format(Locale.ROOT, "(%.2f, %.2f, %.2f)", vec.x, vec.y, vec.z);
     }
 
     private static int runDemo(CommandContext<CommandSourceStack> ctx) {
