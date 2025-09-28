@@ -27,9 +27,11 @@ import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
+import net.tigereye.chestcavity.guscript.registry.GuScriptFlowLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptListenerHooks;
+import net.tigereye.chestcavity.guscript.runtime.flow.GuScriptFlowEvents;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -77,7 +79,9 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
 		NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
 		NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onLivingDamage);
-		NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onPlayerTick);
+                NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onPlayerTick);
+                NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onServerTick);
+                NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
 		if (FMLEnvironment.dist.isClient()) {
 			NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
 		}
@@ -139,8 +143,9 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		event.addListener(new OrganManager());
 		event.addListener(new GeneratedChestCavityTypeManager());
 		event.addListener(new GeneratedChestCavityAssignmentManager());
-		event.addListener(new GuScriptLeafLoader());
-		event.addListener(new GuScriptRuleLoader());
+                event.addListener(new GuScriptLeafLoader());
+                event.addListener(new GuScriptRuleLoader());
+                event.addListener(new GuScriptFlowLoader());
 	}
 
 	public static boolean isDebugMode() {
