@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
@@ -64,7 +65,7 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
         double stoneBalance = normaliseBalance(cc, organ, effectiveCap);
 
         if (ratio < LOW_ZHENYUAN_RATIO - EPSILON) {
-            attemptReplenish(player, cc, organ, handle, currentZhenyuan, stoneBalance);
+            attemptReplenish(player, cc, organ, handle, currentZhenyuan, maxZhenyuan, stoneBalance);
         } else if (ratio > HIGH_ZHENYUAN_RATIO + EPSILON) {
             attemptAbsorb(player, cc, organ, handle, currentZhenyuan, stoneBalance, effectiveCap);
         } else {
@@ -101,6 +102,7 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
             ItemStack organ,
             GuzhenrenResourceBridge.ResourceHandle handle,
             double currentZhenyuan,
+            double maxZhenyuan,
             double stoneBalance
     ) {
         if (stoneBalance <= EPSILON) {
@@ -108,37 +110,81 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
             return;
         }
 
-        double baseToReplenish = Math.min(BASE_REPLENISH_PER_SEC, stoneBalance);
-        if (baseToReplenish <= EPSILON) {
-            debug("{} {} 计算补给基数过低 -> {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(baseToReplenish));
+        double missing = Math.max(0.0, maxZhenyuan - currentZhenyuan);
+        if (missing <= EPSILON) {
+            debug("{} {} 真元接近或达到上限，跳过补充", LOG_PREFIX, player.getScoreboardName());
             return;
         }
 
-        if (!YuanLaoGuHelper.consume(organ, baseToReplenish)) {
+        double amountToReplenish = Math.min(BASE_REPLENISH_PER_SEC, stoneBalance);
+        amountToReplenish = Math.min(amountToReplenish, missing);
+        if (amountToReplenish <= EPSILON) {
+            debug("{} {} 计算补给量过低 -> {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(amountToReplenish));
+            return;
+        }
+
+        if (!YuanLaoGuHelper.consume(organ, amountToReplenish)) {
             debug("{} {} 元石扣除失败，余额={}", LOG_PREFIX, player.getScoreboardName(), formatDouble(stoneBalance));
             return;
         }
 
-        OptionalDouble result = handle.replenishScaledZhenyuan(baseToReplenish, true);
+        double spentFromOrgan = amountToReplenish;
+        OptionalDouble result = handle.adjustZhenyuan(amountToReplenish, false);
         if (result.isEmpty()) {
-            YuanLaoGuHelper.deposit(organ, baseToReplenish);
-            debug("{} {} 真元补充失败 -> 返还元石 {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(baseToReplenish));
+            YuanLaoGuHelper.deposit(organ, amountToReplenish);
+            debug("{} {} 真元补充失败 -> 返还元石 {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(amountToReplenish));
             return;
         }
 
         double updatedZhenyuan = result.getAsDouble();
+        OptionalDouble maxOpt = handle.getMaxZhenyuan();
+        double effectiveMax = maxOpt.orElse(maxZhenyuan);
         double gained = Math.max(0.0, updatedZhenyuan - currentZhenyuan);
+
+        if (maxOpt.isPresent() && updatedZhenyuan > effectiveMax + EPSILON) {
+            double overshoot = updatedZhenyuan - effectiveMax;
+            OptionalDouble clampResult = handle.setZhenyuan(effectiveMax);
+            if (clampResult.isPresent()) {
+                updatedZhenyuan = clampResult.getAsDouble();
+                gained = Math.max(0.0, updatedZhenyuan - currentZhenyuan);
+                if (overshoot > EPSILON) {
+                    YuanLaoGuHelper.deposit(organ, overshoot);
+                    spentFromOrgan = Math.max(0.0, spentFromOrgan - overshoot);
+                    debug("{} {} 真元补充超出上限 -> 返还元石 {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(overshoot));
+                }
+            }
+        }
+
+        if (gained <= EPSILON) {
+            if (spentFromOrgan > EPSILON) {
+                YuanLaoGuHelper.deposit(organ, spentFromOrgan);
+            }
+            YuanLaoGuHelper.updateDisplayName(organ);
+            if (cc != null) {
+                NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            }
+            debug("{} {} 真元已满或增量过小，返还消耗", LOG_PREFIX, player.getScoreboardName());
+            return;
+        }
+
+        if (spentFromOrgan - gained > EPSILON) {
+            double refund = spentFromOrgan - gained;
+            YuanLaoGuHelper.deposit(organ, refund);
+            spentFromOrgan -= refund;
+            debug("{} {} 真元补充未用尽 -> 返还元石 {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(refund));
+        }
+
         YuanLaoGuHelper.updateDisplayName(organ);
         if (cc != null) {
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
         debug(
-                "{} {} 补充真元: +{} (base {}), 余额 -> {}", 
+                "{} {} 补充真元: +{} (消耗 {})，余额 -> {}",
                 LOG_PREFIX,
                 player.getScoreboardName(),
                 formatDouble(gained),
-                formatDouble(baseToReplenish),
+                formatDouble(spentFromOrgan),
                 formatDouble(YuanLaoGuHelper.readAmount(organ))
         );
     }
@@ -158,37 +204,42 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
             return;
         }
 
-        double baseToAbsorb = Math.min(BASE_ABSORB_PER_SEC, availableSpace);
-        if (baseToAbsorb <= EPSILON) {
-            debug("{} {} 计算吸收基数过低 -> {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(baseToAbsorb));
+        double amountToAbsorb = Math.min(BASE_ABSORB_PER_SEC, availableSpace);
+        amountToAbsorb = Math.min(amountToAbsorb, currentZhenyuan);
+        if (amountToAbsorb <= EPSILON) {
+            debug("{} {} 计算吸收量过低 -> {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(amountToAbsorb));
             return;
         }
 
-        OptionalDouble result = handle.consumeScaledZhenyuan(baseToAbsorb);
+        OptionalDouble result = handle.adjustZhenyuan(-amountToAbsorb, true);
         if (result.isEmpty()) {
             debug("{} {} 真元扣除失败，无法吸收", LOG_PREFIX, player.getScoreboardName());
             return;
         }
 
-        if (!YuanLaoGuHelper.deposit(organ, baseToAbsorb)) {
-            handle.replenishScaledZhenyuan(baseToAbsorb, true);
-            debug("{} {} 元石入账失败，已回滚真元", LOG_PREFIX, player.getScoreboardName());
+        double updatedZhenyuan = result.getAsDouble();
+        double consumed = Math.max(0.0, currentZhenyuan - updatedZhenyuan);
+        if (consumed <= EPSILON) {
+            debug("{} {} 真元扣除量过小 ({})，跳过吸收", LOG_PREFIX, player.getScoreboardName(), formatDouble(consumed));
             return;
         }
 
-        double updatedZhenyuan = result.getAsDouble();
-        double consumed = Math.max(0.0, currentZhenyuan - updatedZhenyuan);
+        if (!YuanLaoGuHelper.deposit(organ, consumed)) {
+            handle.adjustZhenyuan(consumed, false);
+            debug("{} {} 元石入账失败，已回滚真元", LOG_PREFIX, player.getScoreboardName());
+            return;
+        }
         YuanLaoGuHelper.updateDisplayName(organ);
         if (cc != null) {
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
         debug(
-                "{} {} 吸收真元: -{} (base {}), 余额 -> {}", 
+                "{} {} 吸收真元: -{} (存入 {})，余额 -> {}",
                 LOG_PREFIX,
                 player.getScoreboardName(),
                 formatDouble(consumed),
-                formatDouble(baseToAbsorb),
+                formatDouble(consumed),
                 formatDouble(YuanLaoGuHelper.readAmount(organ))
         );
     }
