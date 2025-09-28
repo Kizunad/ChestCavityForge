@@ -23,6 +23,7 @@ import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class GuScriptCommands {
 
@@ -75,8 +76,12 @@ public final class GuScriptCommands {
         }
 
         GuScriptRuntime runtime = new GuScriptRuntime();
-        runtime.executeAll(result.roots(), index ->
-                new DefaultGuScriptContext(player, player, new DefaultGuScriptExecutionBridge(player, player, index)));
+        AtomicInteger rootIndex = new AtomicInteger();
+        runtime.executeAll(result.roots(), () -> {
+            int index = rootIndex.getAndIncrement();
+            DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, player, index);
+            return new DefaultGuScriptContext(player, player, bridge);
+        });
 
         source.sendSuccess(() -> Component.literal("已执行 GuScript 示例，生成 " + result.roots().size() + " 个根节点"), true);
         return result.roots().size();

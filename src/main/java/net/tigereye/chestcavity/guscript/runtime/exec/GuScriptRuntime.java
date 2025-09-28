@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -44,19 +45,23 @@ public final class GuScriptRuntime {
     }
 
     public void executeAll(List<GuNode> roots, Supplier<GuScriptContext> contextFactory) {
-        if (contextFactory == null) {
-            return;
-        }
-        executeAll(roots, index -> contextFactory.get());
-    }
-
-    public void executeAll(List<GuNode> roots, IntFunction<GuScriptContext> contextFactory) {
         if (roots == null || roots.isEmpty() || contextFactory == null) {
             return;
         }
         for (int index = 0; index < roots.size(); index++) {
             GuNode root = roots.get(index);
-            GuScriptContext context = contextFactory.apply(index);
+            GuScriptContext context;
+            try {
+                context = contextFactory.get();
+            } catch (Exception ex) {
+                ChestCavity.LOGGER.error(
+                        "[GuScript] Context supplier threw for root {} (index {})",
+                        root.name(),
+                        index,
+                        ex
+                );
+                continue;
+            }
             if (context == null) {
                 ChestCavity.LOGGER.warn("[GuScript] Context factory returned null for root {} (index {})", root.name(), index);
                 continue;
@@ -67,6 +72,14 @@ public final class GuScriptRuntime {
             executeNode(root, context, 0, trace);
             trace.onCompleted(context);
         }
+    }
+
+    public void executeAll(List<GuNode> roots, IntFunction<GuScriptContext> contextFactory) {
+        if (contextFactory == null) {
+            return;
+        }
+        AtomicInteger indexCursor = new AtomicInteger();
+        executeAll(roots, () -> contextFactory.apply(indexCursor.getAndIncrement()));
     }
 
     private void executeNode(GuNode node, GuScriptContext context, int depth, ExecutionTrace trace) {
