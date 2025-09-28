@@ -1,0 +1,55 @@
+package net.tigereye.chestcavity.guscript.runtime.flow.guards;
+
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowGuard;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+
+/**
+ * Built-in flow guards.
+ */
+public final class FlowGuards {
+
+    private FlowGuards() {
+    }
+
+    public static FlowGuard hasResource(String identifier, double minimum) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || identifier == null) {
+                    return false;
+                }
+                var handleOpt = GuzhenrenResourceBridge.open(performer);
+                if (handleOpt.isEmpty()) {
+                    return false;
+                }
+                var valueOpt = handleOpt.get().read(identifier);
+                return valueOpt.isPresent() && valueOpt.getAsDouble() >= minimum;
+            }
+
+            @Override
+            public String describe() {
+                return "has_resource(" + identifier + ", " + minimum + ")";
+            }
+        };
+    }
+
+    public static FlowGuard cooldownReady(String key) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || key == null) {
+                    return false;
+                }
+                return controller.isCooldownReady(key, gameTime);
+            }
+
+            @Override
+            public String describe() {
+                return "cooldown_ready(" + key + ")";
+            }
+        };
+    }
+}

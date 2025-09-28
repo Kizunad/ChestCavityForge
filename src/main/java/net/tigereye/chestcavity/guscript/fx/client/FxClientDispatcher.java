@@ -135,5 +135,6 @@ public final class FxClientDispatcher {
         }
         ChestCavity.LOGGER.warn("[GuScript] Unsupported particle type {} for FX", settings.particleId());
         return null;
+
     }
 }

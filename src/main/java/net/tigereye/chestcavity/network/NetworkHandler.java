@@ -17,6 +17,8 @@ import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityOrganSlotUpdatePayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePayload;
 import net.tigereye.chestcavity.network.packets.OrganDataPayload;
+import net.tigereye.chestcavity.guscript.network.packets.FlowInputPayload;
+import net.tigereye.chestcavity.guscript.network.packets.FlowSyncPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptBindingTogglePayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptPageChangePayload;
@@ -34,10 +36,12 @@ public final class NetworkHandler {
         registrar.playToServer(GuScriptBindingTogglePayload.TYPE, GuScriptBindingTogglePayload.STREAM_CODEC, GuScriptBindingTogglePayload::handle);
         registrar.playToServer(GuScriptPageChangePayload.TYPE, GuScriptPageChangePayload.STREAM_CODEC, GuScriptPageChangePayload::handle);
         registrar.playToServer(GuScriptTriggerPayload.TYPE, GuScriptTriggerPayload.STREAM_CODEC, GuScriptTriggerPayload::handle);
+        registrar.playToServer(FlowInputPayload.TYPE, FlowInputPayload.STREAM_CODEC, FlowInputPayload::handle);
         registrar.playToServer(KongqiaoDaoHenSeedPayload.TYPE, KongqiaoDaoHenSeedPayload.STREAM_CODEC, DaoHenSeedHandler::handleSeedPayload);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
+        registrar.playToClient(FlowSyncPayload.TYPE, FlowSyncPayload.STREAM_CODEC, FlowSyncPayload::handle);
         registrar.playToClient(FxEventPayload.TYPE, FxEventPayload.STREAM_CODEC, FxEventPayload::handle);
     }
 
@@ -55,6 +59,10 @@ public final class NetworkHandler {
     }
 
     public static void sendOrganSlotUpdate(ServerPlayer player, ChestCavityOrganSlotUpdatePayload payload) {
+        player.connection.send(payload);
+    }
+
+    public static void sendFlowSync(ServerPlayer player, FlowSyncPayload payload) {
         player.connection.send(payload);
     }
 }

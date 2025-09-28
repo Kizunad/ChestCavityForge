@@ -32,6 +32,7 @@ public final class FxRegistry {
         return Collections.unmodifiableMap(new HashMap<>(DEFINITIONS));
     }
 
+
     public record FxContext(Vec3 origin, Vec3 fallbackDirection, Vec3 look, Vec3 target, float intensity, int performerId, int targetId) {
         public FxContext {
             origin = origin == null ? Vec3.ZERO : origin;
