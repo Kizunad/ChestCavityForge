@@ -72,6 +72,9 @@ Branching
   - Remove deprecated shims; clean imports.
   - Final compile + in-game smoke test.
 
+Status (2025-10-XX)
+- Phase 1 completed (per user confirmation). Proceed to Phase 2 cutover after parallel branches below are merged or rebased.
+
 Detailed steps (Phase 1)
 1) Copy ability classes to `net.tigereye.chestcavity.guscript.ability.guzhenren` preserving public APIs.
 2) Review client/server split: any client-only renderers or keymaps must remain under client-dist guarded subscriptions.
@@ -94,6 +97,25 @@ Validation checklist
 - Hotkey bindings and ability triggers still work (no missing IDs).
 - Network payloads unchanged; client/server payload handling intact.
 - Logs: no CNFE/NoSuchMethodError from relocated classes.
+
+### Cross-root Damage Stacking (per-trigger ordered accumulation)
+
+Goal
+- Allow multiple GuScript roots (kill-moves) within a single trigger to stack damage bonuses in order: earlier roots can export modifiers that affect later roots.
+
+Design
+- ExecutionSession: holds cumulativeMultiplier/flat (with caps). Lives for one trigger dispatch.
+- Ordering: each composite root may declare `order` (int). Roots execute in ascending order; ties use stable rule/name ordering.
+- Export: via actions `export.modifier.multiplier` / `export.modifier.flat`, or node-level `export_modifiers` flags in rule result. Exported deltas accumulate into the session and seed the next root's context.
+
+Runtime changes (to be implemented by web Codex)
+- `GuScriptExecutor.trigger`: build session; sort roots by `order`; for each root: seed context with session modifiers → execute → collect exported modifiers → session += exported.
+- `DefaultGuScriptContext`: track added multipliers/flats and expose exported values; or mark export actions explicitly.
+- `ActionRegistry`: register `export.modifier.*` actions.
+- Rule JSON: optional fields `order` (int) and `export_modifiers` ({"multiplier":bool,"flat":bool}).
+
+Acceptance
+- With three roots ordered 0/1/2, earlier exports adjust later roots’ final `emit.projectile` damage deterministically. Caps prevent runaway stacking.
 
 ## GuScript Effects & Flow Modularization (new feature)
 
