@@ -1,0 +1,33 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.generic.explode",
+      "volume": 0.85,
+      "pitch": 1.1
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:block.bone_block.break",
+      "volume": 0.9,
+      "pitch": 0.6
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:crimson_spore",
+      "count": 70,
+      "spread": [0.45, 0.35, 0.45],
+      "speed": 0.1
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:explosion_emitter",
+      "count": 1
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.18,
+      "duration": 10
+    }
+  ]
+}
