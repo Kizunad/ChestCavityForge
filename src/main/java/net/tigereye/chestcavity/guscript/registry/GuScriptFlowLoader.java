@@ -77,7 +77,20 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                 enterActions.add(ActionRegistry.fromJson(element.getAsJsonObject()));
             }
         }
-        return new FlowStateDefinition(enterActions.isEmpty() ? List.of() : List.of(FlowActions.runActions(enterActions)), transitions);
+        List<ResourceLocation> enterFx = new ArrayList<>();
+        if (json.has("enter_fx")) {
+            for (JsonElement element : json.getAsJsonArray("enter_fx")) {
+                if (!element.isJsonPrimitive()) {
+                    throw new IllegalArgumentException("Flow state enter_fx entries must be strings");
+                }
+                enterFx.add(ResourceLocation.parse(element.getAsString()));
+            }
+        }
+        return new FlowStateDefinition(
+                enterActions.isEmpty() ? List.of() : List.of(FlowActions.runActions(enterActions)),
+                enterFx,
+                transitions
+        );
     }
 
     private static FlowTransition parseTransition(JsonObject json) {

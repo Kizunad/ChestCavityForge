@@ -39,7 +39,7 @@ public final class FxClientDispatcher {
         play(payload.effectId(), context);
     }
 
-    private static void play(ResourceLocation id, FxRegistry.FxContext context) {
+    public static void play(ResourceLocation id, FxRegistry.FxContext context) {
         if (id == null || context == null) {
             return;
         }
