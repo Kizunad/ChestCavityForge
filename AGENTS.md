@@ -21,6 +21,22 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+### 2025-09-28 Test compile failure after merge (Web Codex TODO)
+- Symptom: `./gradlew test` fails during `compileTestJava`.
+- Error:
+  - `GuScriptRuntimeTest.java: RecordingBridge is not abstract and does not override abstract method playFx(ResourceLocation,FxEventParameters) in GuScriptExecutionBridge`.
+- Root cause:
+  - Interface `guscript/runtime/exec/GuScriptExecutionBridge` added `playFx(ResourceLocation, FxEventParameters)`.
+  - Test stub `RecordingBridge` in `src/test/java/net/tigereye/chestcavity/guscript/runtime/exec/GuScriptRuntimeTest.java` not updated.
+- Fix to implement:
+  - Add a no-op method to the inner class `RecordingBridge`:
+    - `public void playFx(net.minecraft.resources.ResourceLocation fxId, net.tigereye.chestcavity.guscript.fx.FxEventParameters parameters) { /* no-op for tests */ }`
+  - Re-run `./gradlew test` and address any follow-on errors.
+- Context references:
+  - Interface: `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guscript/runtime/exec/GuScriptExecutionBridge.java`
+  - Default impl: `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guscript/runtime/action/DefaultGuScriptExecutionBridge.java: playFx(...)`
+  - Failing test: `ChestCavityForge/src/test/java/net/tigereye/chestcavity/guscript/runtime/exec/GuScriptRuntimeTest.java`
+
 ## 2025-10-XX Pending tasks handoff (requires web Codex implementation)
 - **New request 2025-??-??**: Implement Flow core MVP (`feature/guscript-flow-modules`). Deliverables include FlowProgram/FlowInstance/FlowController with Idle/Charging/Charged/Releasing/Cooldown/Cancel states, resource/cooldown guards, edge actions (resource deduction, cooldown set, GuScript action triggers). Load and validate `data/chestcavity/guscript/flows/*.json` with error logging. Mirror state/time via `S2C FlowSyncPayload` containing minimal fields. Acceptance: server-driven "charge → release" demo stays in sync on client.
 - **Bug: multiple kill moves on shared trigger execute only one**

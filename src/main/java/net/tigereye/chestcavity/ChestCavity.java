@@ -157,7 +157,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
           event.addListener(new GuScriptLeafLoader());
           event.addListener(new GuScriptRuleLoader());
           event.addListener(new GuScriptFlowLoader());
-          event.addListener(new FxDefinitionLoader());
+          // FX definitions are client-only; do not register on server reload
   }
 
   private void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
