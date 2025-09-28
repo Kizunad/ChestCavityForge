@@ -21,6 +21,85 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+## 2025-09-29 YuanLaoGu 元石 & Blood-Bone Bomb Flow (analysis + TODOs)
+
+What we verified (decompile, storage format)
+- 元老蛊物品 `item.guzhenren.yuan_lao_gu_1` 持久化“元石”在物品自定义数据（DataComponents.CUSTOM_DATA）里：
+  - 当前数量键：`"元老蛊内元石数量"`
+  - 上限键：`"元老蛊内元石数量上限"`（通常 10000）
+  - 参考：decompile/9_9decompile/cfr/src/net/guzhenren/item/YuanLaoGu1Item.java、…/YuanLaoGu1WuPinZaiWuPinLanShiMeiKeFaShengProcedure.java、…/YuanLaoGu1YouJiKongQiShiShiTiDeWeiZhiProcedure.java
+- SHIFT+使用 时按 64 粒为单位吐出 `guzhenren:gucaiyuanshi`，并回写上述数量键。
+
+Actionable TODOs (assign to web Codex worker)
+- New helper in our compat bridge to read/write YuanLaoGu 元石数量
+  - Path: `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guzhenren/resource/YuanlaoguStoneHelper.java`
+  - API (static methods):
+    - `OptionalInt readCount(ItemStack stack)` → 读取 `"元老蛊内元石数量"`（四舍五入/向下取整）
+    - `OptionalInt readMax(ItemStack stack)` → 读取 `"元老蛊内元石数量上限"`，无则默认 10000
+    - `boolean setCount(ItemStack stack, int value, boolean clamp)` → 写入并可选 clamp 到 [0,max]
+    - `int adjustCount(ItemStack stack, int delta, boolean clamp)` → 返回新值
+  - Notes:
+    - 优先使用 `util/NBTWriter` 提供的 Shared NBT helpers，避免直接操作 CustomData。
+    - 仅对 `guzhenren:yuan_lao_gu_*`/`guzhenren:wei_lian_hua_yuan_lao_gu_*` 类物品生效（通过 `Item` 判定），否则返回 false。
+    - 可选：提供 `syncName(ItemStack)`，按原版逻辑刷新 `CUSTOM_NAME`（显示数量）。
+
+- Unit test for helper
+  - Path: `ChestCavityForge/src/test/java/net/tigereye/chestcavity/guzhenren/resource/YuanlaoguStoneHelperTest.java`
+  - Cases: 默认 0→加 64→到上限→溢出 clamp；上限不存在时 fallback=10000。
+
+Blood-bone bomb flow didn’t “fire” (root cause analysis)
+- Current logs show flows start: `Root 血骨爆弹#… started flow chestcavity:demo_charge_release`，但没有后续发射日志。
+- Flow runtime is ticked server-side via `GuScriptFlowEvents.onServerTick` (registered in `ChestCavity.java`).
+- Demo flow `chestcavity:demo_charge_release` 设计：`idle -(start)-> charging(40t) -> charged(160t) -> releasing(enter_actions: emit.projectile) -> cooldown`（总计 ~10s，随 `time.accelerate` 加速）。
+- Most probable reasons:
+  1) Start guards fail silently: `idle.start` 需要 `cooldown_ready` + `has_resource("zhenyuan", >=10)`。若真元不足→停留 `idle`，下一 tick 即结束实例（FlowInstance 在 `IDLE` 且 `ticksInState>0` 会 `finished=true`），因此每次触发都“开始”但不前进。
+  2) 未等待到释放：需要 40+160t（默认 10s）；若期望“立刻发射”，需改设计或临时降低时间。
+  3) 客户端期望的“禁足/扣血/扣精力/扣真元”还未实现在 flow 中（当前仅 FX + 发射），外观反馈不足易误判为未执行。
+
+What to instrument (low-risk diagnostics)
+- Add INFO logs when a state is entered（program id, state, ticksInState=0, timeScale），或在 `FlowSyncDispatcher.syncState` 旁打印一次；便于确认 40t/160t 是否达到。
+- In `DefaultGuScriptExecutionBridge.emitProjectile` 已有 `[GuScript] Projectile #… emitted` 日志；排查时先搜索该日志。
+
+Flow design tasks (align with “统一走 flow”的诉求)
+- Implement per-second resource costs during CHARGING
+  - In `demo_charge_release.json` → state `charging`:
+    - `update_period: 20`
+    - `update_actions`: `consume_health(2)`, `consume_resource("zhenyuan", 20)`, `consume_resource("jingli", 10)`，以及粒子/音效 `emit_fx` 心跳/收缩。
+  - Failure path：在 `charging` 增加自动跳转 Guard：`health_below(>2)` 或 `resource_below("zhenyuan", 20)` / `resource_below("jingli", 10)` → target `cancel`；
+    - `cancel.enter_actions`: `true_damage(50)`, `explode(power≈3-4)` + 失败音效/FX。
+
+- Lock movement for 10s
+  - Option A（简单）：`apply_effect(id=minecraft:slowness, amplifier=255, duration=200)`；
+  - Option B（属性）：`apply_attribute(id=minecraft:generic.movement_speed, modifier=chestcavity:charge_lock, operation=ADD_MULTIPLIED_TOTAL, amount=-1.0)`，在 `cooldown.enter_actions` 或 `cancel.enter_actions` 里 `remove_attribute`；
+
+- Keep “total cost = 10s baseline” under time.accelerate
+  - Approach A（周期缩放）：`update_period = round(20 / time.accelerate)`（需要 flow loader支持基于变量的周期；当前不支持）
+  - Approach B（量缩放）：在 `idle.start.actions` 里 `set_variable_from_param(param="time.accelerate", name="flow.time_scale", default=1)`，新增 `consume_*_scaled(amount, scale_variable)` 动作，按 `amount * time_scale` 结算；
+  - Implementation note：当前 `FlowActions.consume_resource/consume_health` 仅定值参数，建议新动作或扩展现有动作支持 `amount_variable`。
+
+- Release feedback and projectile
+  - `releasing.enter_actions`: 已有 `emit.projectile("chestcavity:bone_gun_projectile", damage=12)`；可叠加 `emit_fx(chestcavity:burst)` 作强反馈。
+  - 提醒：骨枪实体已在 `CCEntities` 注册，客户端渲染器在 `BloodBoneBombClient`；日志关键字：`[GuScript][Damage] BloodBoneBomb hit`（命中时）。
+
+JSON compile test
+- 已存在：`GuScriptJsonLoadTest` 会加载/编译 leaves/rules/flows，当前通过。
+- 后续可加：flow 参数注入/时间加速解析的断言（验证 `parseTimeScale` 与流内变量同步）。
+
+“thoughts_cycle 缺少 CHARGED/RELEASING” 警告（噪声清理）
+- 在 `data/chestcavity/guscript/flows/thoughts_cycle.json` 添加最小 stub 状态：
+  - `charged` 与 `releasing`，各自 `transitions: [{"trigger":"auto","target":"cooldown","min_ticks":1}]`；
+
+How to quickly validate in-game
+- 触发脚本后等 10s（或使用 `time.accelerate`），观察：
+  1) 服务端日志是否出现 `Projectile #… emitted … id=chestcavity:bone_gun_projectile`；
+  2) 命中时是否出现 `[GuScript][Damage] BloodBoneBomb hit …`；
+  3) 若无，先确认真元≥10（`GuzhenrenResourceBridge.open(player).read("zhenyuan")`）。
+
+Notes
+- Flow 事件钩子（ServerTickEvent/Post、PlayerLoggedOut）已在 `ChestCavity.java` 以 `NeoForge.EVENT_BUS.addListener` 方式注册，无需 `@EventBusSubscriber`。
+- 目前 flow 没有 movement-lock 与周期扣费：这是设计预期的缺口，需要上面的 JSON 和/或动作扩展去补齐。
+
+
 ### 2025-09-28 FX loading change (client-only)
 - Decision: Load GuScript FX definitions on the client only to reduce server overhead and avoid client/server resource pack mismatch.
 - What changed:

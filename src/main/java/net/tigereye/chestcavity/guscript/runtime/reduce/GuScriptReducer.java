@@ -121,8 +121,10 @@ public final class GuScriptReducer {
             if (failures.contains(key)) {
                 return;
             }
+            // Indices are generated in ascending order; adjacency span favors fusing near-by leaves first
+            int adjacencySpan = indices.isEmpty() ? Integer.MAX_VALUE : (indices.get(indices.size() - 1) - indices.get(0));
             ApplicationCandidate candidate = new ApplicationCandidate(rule, new ArrayList<>(indices), selected,
-                    ImmutableMultiset.copyOf(tagCounts), coverageScore(tagCounts, rule));
+                    ImmutableMultiset.copyOf(tagCounts), coverageScore(tagCounts, rule), adjacencySpan);
             acceptor.accept(candidate);
             return;
         }
@@ -194,13 +196,17 @@ public final class GuScriptReducer {
 
     private record ApplicationCandidate(ReactionRule rule, List<Integer> selectedIndices,
                                         List<GuNode> selectedNodes, ImmutableMultiset<String> tagCounts,
-                                        int coverageScore) {
+                                        int coverageScore, int adjacencySpan) {
         boolean isBetterThan(ApplicationCandidate other) {
             if (coverageScore != other.coverageScore) {
                 return coverageScore > other.coverageScore;
             }
             if (rule.priority() != other.rule.priority()) {
                 return rule.priority() > other.rule.priority();
+            }
+            if (adjacencySpan != other.adjacencySpan) {
+                // Prefer smaller span (i.e., adjacent leaves) to fuse first
+                return adjacencySpan < other.adjacencySpan;
             }
             return rule.id().compareTo(other.rule.id()) < 0;
         }

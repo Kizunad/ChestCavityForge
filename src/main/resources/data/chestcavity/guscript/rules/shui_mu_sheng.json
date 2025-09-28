@@ -1,6 +1,6 @@
 {
   "arity": 2,
-  "priority": 28,
+  "priority": 1,
   "required": { "水道": 1, "木道": 1 },
   "result": {
     "name": "水生木",

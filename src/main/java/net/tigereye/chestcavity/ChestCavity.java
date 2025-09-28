@@ -37,6 +37,7 @@ import net.tigereye.chestcavity.guscript.runtime.flow.GuScriptFlowEvents;
 
 import net.tigereye.chestcavity.guscript.registry.FxDefinitionLoader;
 import net.tigereye.chestcavity.guscript.fx.client.FxClientHooks;
+import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -80,13 +81,14 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerLogin);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerRespawn);
 		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerClone);
-		NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
-		NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
-		NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
-		NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onLivingDamage);
+        NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
+        NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
+        NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onLivingDamage);
                 NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onPlayerTick);
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onServerTick);
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
+                NeoForge.EVENT_BUS.addListener(GuScriptCommands::register);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
                 }

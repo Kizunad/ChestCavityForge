@@ -54,10 +54,15 @@ public class GuScriptMenu extends AbstractContainerMenu {
 
         int i;
         for (i = 0; i < GuScriptAttachment.ITEM_SLOT_COUNT; i++) {
-            addSlot(new Slot(container, i, 8 + i * SLOT_SIZE, 18));
+            int row = i / 9;
+            int col = i % 9;
+            int x = 8 + col * SLOT_SIZE;
+            int y = 18 + row * SLOT_SIZE;
+            addSlot(new Slot(container, i, x, y));
         }
 
-        addSlot(new BindingSlot(container, GuScriptAttachment.BINDING_SLOT_INDEX, 8, 18 + SLOT_SIZE));
+        // Place binding slot under the item grid
+        addSlot(new BindingSlot(container, GuScriptAttachment.BINDING_SLOT_INDEX, 8, 18 + getRows() * SLOT_SIZE));
 
         int verticalOffset = (getRows() - 4) * SLOT_SIZE;
         for (i = 0; i < 3; ++i) {

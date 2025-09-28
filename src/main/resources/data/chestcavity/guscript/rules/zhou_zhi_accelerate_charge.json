@@ -1,0 +1,25 @@
+{
+  "priority": 20,
+  "arity": 2,
+  "required": {
+    "宙道": 1,
+    "念头": 1
+  },
+  "result": {
+    "name": "时念加速",
+    "operator_id": "chestcavity:zhou_zhi_accelerate",
+    "kind": "OPERATOR",
+    "tags": ["加速", "蓄力"],
+    "order": 0,
+    "export_modifiers": { "multiplier": true },
+    "flow_id": "chestcavity:time_acceleration",
+    "flow_params": {
+      "intensity": "1.0",
+      "duration_ticks": "200",
+      "time.accelerate": "2.0"
+    },
+    "actions": [
+      { "id": "export.modifier.multiplier", "amount": 0.5 }
+    ]
+  }
+}

@@ -278,9 +278,36 @@ public final class GuScriptExecutor {
                 String source = flowFromPage ? "page" : "operator";
                 var program = FlowProgramRegistry.get(flowToStart);
                 if (program.isPresent()) {
-                    double timeScale = parseTimeScale(flowParams);
+                    Map<String, String> adjustedParams = flowParams == null ? new java.util.HashMap<>() : new java.util.HashMap<>(flowParams);
+                    // Pre-execute operator actions that export modifiers so downstream flows can see session changes
+                    if (root instanceof OperatorGuNode op && (!op.actions().isEmpty() || op.exportMultiplier() || op.exportFlat())) {
+                        try {
+                            DefaultGuScriptExecutionBridge preBridge = new DefaultGuScriptExecutionBridge(performer, target, index);
+                            DefaultGuScriptContext preContext = new DefaultGuScriptContext(performer, target, preBridge, session);
+                            preContext.enableModifierExports(op.exportMultiplier(), op.exportFlat());
+                            for (var action : op.actions()) {
+                                action.execute(preContext);
+                            }
+                        } catch (Exception ex) {
+                            ChestCavity.LOGGER.warn("[GuScript] Pre-execution of operator actions failed for {}: {}", root.name(), ex.toString());
+                        }
+                    }
+                    try {
+                        String flowKey = flowToStart.toString();
+                        if (!adjustedParams.containsKey("time.accelerate") && "chestcavity:demo_charge_release".equals(flowKey)) {
+                            // 使用 time.accelerate 控制实际用时：默认 1.0（10s），按 multiplier 比例加速，最多 0.9x（9s）。
+                            // reduction = min(0.1, max(0, sessionMult) * 0.2)
+                            // scale = 1 / (1 - reduction)
+                            double sessionMult = Math.max(0.0, session.currentMultiplier());
+                            double reduction = Math.min(0.1, sessionMult * 0.2);
+                            double scale = 1.0 / Math.max(0.1, (1.0 - reduction));
+                            adjustedParams.put("time.accelerate", Double.toString(Math.max(1.0, Math.min(2.0, scale))));
+                        }
+                    } catch (Exception ignored) {}
+
+                    double timeScale = parseTimeScale(adjustedParams);
                     FlowControllerManager.get(performer)
-                            .start(program.get(), target, timeScale, flowParams, performer.level().getGameTime());
+                            .start(program.get(), target, timeScale, adjustedParams, performer.level().getGameTime());
                     ChestCavity.LOGGER.info(
                             "[GuScript] Root {}#{} started flow {} (source={}, timeScale={}, params={})",
                             root.name(),
@@ -288,7 +315,7 @@ public final class GuScriptExecutor {
                             flowToStart,
                             source,
                             formatDouble(timeScale),
-                            flowParams.isEmpty() ? "{}" : flowParams
+                            adjustedParams.isEmpty() ? "{}" : adjustedParams
                     );
                     continue;
                 } else if (flowsEnabled) {

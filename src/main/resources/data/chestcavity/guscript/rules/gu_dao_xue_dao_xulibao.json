@@ -2,6 +2,7 @@
   "arity": 3,
   "priority": 26,
   "required": { "骨道": 1, "血道": 1, "蓄力爆发": 1 },
+  "inhibitors": ["精准", "暴击"],
   "result": {
     "name": "血肉蓄力爆发",
     "operator_id": "chestcavity:flesh_charge_burst",

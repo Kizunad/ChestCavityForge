@@ -25,26 +25,16 @@
     },
     "charged": {
       "transitions": [
-        {"trigger": "release", "target": "releasing"},
-        {"trigger": "auto", "target": "releasing", "min_ticks": 20},
+        {"trigger": "auto", "target": "releasing", "min_ticks": 160},
         {"trigger": "cancel", "target": "cancel"}
       ]
     },
     "releasing": {
+      "enter_actions": [
+        {"id": "emit.projectile", "projectileId": "chestcavity:bone_gun_projectile", "damage": 12.0}
+      ],
       "transitions": [
-        {
-          "trigger": "auto",
-          "target": "cooldown",
-          "min_ticks": 20,
-          "actions": [
-            {
-              "type": "trigger_actions",
-              "actions": [
-                {"id": "emit.projectile", "projectileId": "minecraft:arrow", "damage": 2.0}
-              ]
-            }
-          ]
-        }
+        {"trigger": "auto", "target": "cooldown", "min_ticks": 5}
       ]
     },
     "cooldown": {

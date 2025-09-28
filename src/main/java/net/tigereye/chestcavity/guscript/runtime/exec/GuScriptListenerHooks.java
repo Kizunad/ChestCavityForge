@@ -15,6 +15,7 @@ public final class GuScriptListenerHooks {
 
     private static final int FIRE_COOLDOWN_TICKS = 20;
     private static final int GROUND_COOLDOWN_TICKS = 20;
+    private static final int ITEM_HELD_COOLDOWN_TICKS = 10;
 
     private GuScriptListenerHooks() {
     }
@@ -55,6 +56,21 @@ public final class GuScriptListenerHooks {
                 attachment.setLastListenerTrigger(ListenerType.ON_GROUND, gameTime);
                 GuScriptExecutor.trigger(player, player, attachment);
             }
+        } else if (attachment.getListenerType() == ListenerType.ON_ITEM_HELD) {
+            // Compare the binding slot item with player's held items; trigger when matching
+            net.minecraft.world.item.ItemStack bound = attachment.getItem(net.tigereye.chestcavity.guscript.data.GuScriptAttachment.BINDING_SLOT_INDEX);
+            if (!bound.isEmpty()) {
+                boolean match = isSameItemType(bound, player.getMainHandItem()) || isSameItemType(bound, player.getOffhandItem());
+                if (match && gameTime - attachment.getLastListenerTrigger(ListenerType.ON_ITEM_HELD) >= ITEM_HELD_COOLDOWN_TICKS) {
+                    attachment.setLastListenerTrigger(ListenerType.ON_ITEM_HELD, gameTime);
+                    GuScriptExecutor.trigger(player, player, attachment);
+                }
+            }
         }
+    }
+
+    private static boolean isSameItemType(net.minecraft.world.item.ItemStack a, net.minecraft.world.item.ItemStack b) {
+        if (a.isEmpty() || b.isEmpty()) return false;
+        return a.getItem() == b.getItem();
     }
 }

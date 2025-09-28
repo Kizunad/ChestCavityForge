@@ -3,68 +3,34 @@
   "states": {
     "idle": {
       "transitions": [
-        {"trigger": "start", "target": "charging"}
+        { "trigger": "start", "target": "charging" }
       ]
     },
     "charging": {
       "enter_fx": ["chestcavity:mind_thoughts_orbit"],
       "enter_actions": [
-        {"type": "set_variable_from_param", "param": "stack_gain", "name": "thoughts.gain", "default": 1.0},
-        {"type": "set_variable_from_param", "param": "max_count", "name": "thoughts.max", "default": 5.0},
-        {"type": "set_variable_from_param", "param": "decay_per_tick", "name": "thoughts.decay", "default": 0.2},
-        {"type": "set_variable_from_param", "param": "radius", "name": "thoughts.radius", "default": 10.0},
-        {"type": "add_variable_from_variable", "name": "thoughts.count", "source": "thoughts.gain", "scale": 1.0, "value_type": "double"},
-        {"type": "clamp_variable", "name": "thoughts.count", "min": 0.0, "max": 999.0},
-        {"type": "copy_variable", "from": "thoughts.count", "to": "thoughts.export", "scale": 0.1, "offset": 0.0, "value_type": "double"},
-        {"type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.5, "scale_variable": "thoughts.count", "default_scale": 1.0}
+        { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_orbit", "intensity": 1.0 }
       ],
-      "transitions": [
-        {"trigger": "auto", "target": "charged", "min_ticks": 5},
-        {"trigger": "cancel", "target": "cancel"}
-      ]
-    },
-    "charged": {
       "update_period": 20,
       "update_actions": [
-        {"type": "add_variable_from_variable", "name": "thoughts.count", "source": "thoughts.decay", "scale": -1.0, "value_type": "double"},
-        {"type": "clamp_variable", "name": "thoughts.count", "min": 0.0, "max": 999.0},
-        {"type": "copy_variable", "from": "thoughts.count", "to": "thoughts.export", "scale": 0.1, "offset": 0.0, "value_type": "double"},
-        {"type": "emit_fx", "fx": "chestcavity:mind_thoughts_orbit", "base_intensity": 0.6, "scale_variable": "thoughts.count", "default_scale": 1.0},
-        {"type": "highlight_hostiles", "radius": 10.0, "radius_variable": "thoughts.radius", "duration": 20}
+        { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_pulse", "intensity": 0.6 }
       ],
       "transitions": [
-        {
-          "trigger": "auto",
-          "target": "releasing",
-          "min_ticks": 20,
-          "guards": [
-            {"type": "variable_at_most", "name": "thoughts.count", "maximum": 0.0, "value_type": "double"}
-          ]
-        },
-        {"trigger": "cancel", "target": "cancel"}
-      ]
-    },
-    "releasing": {
-      "enter_actions": [
-        {"type": "set_variable", "name": "thoughts.count", "value": 0.0, "value_type": "double"},
-        {"type": "set_variable", "name": "thoughts.export", "value": 0.0, "value_type": "double"}
-      ],
-      "transitions": [
-        {"trigger": "auto", "target": "cooldown", "min_ticks": 10}
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 200 },
+        { "trigger": "cancel", "target": "cancel" }
       ]
     },
     "cooldown": {
       "transitions": [
-        {"trigger": "auto", "target": "idle", "min_ticks": 20}
+        { "trigger": "auto", "target": "idle", "min_ticks": 40 }
       ]
     },
     "cancel": {
       "enter_actions": [
-        {"type": "set_variable", "name": "thoughts.count", "value": 0.0, "value_type": "double"},
-        {"type": "set_variable", "name": "thoughts.export", "value": 0.0, "value_type": "double"}
+        { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_pulse", "intensity": 1.0 }
       ],
       "transitions": [
-        {"trigger": "auto", "target": "cooldown", "min_ticks": 10}
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 10 }
       ]
     }
   }

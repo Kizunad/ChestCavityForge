@@ -20,10 +20,10 @@ import java.util.Objects;
  * Stores the serialized state for GuScript notebook pages and exposes the active page as a Container.
  */
 public class GuScriptAttachment implements Container {
-    public static final int ITEM_SLOT_COUNT = 9;
-    public static final int BINDING_SLOT_INDEX = 9;
-    public static final int TOTAL_SLOTS = ITEM_SLOT_COUNT + 1;
-    private static final int DEFAULT_ROWS = 1;
+    public static final int ITEM_SLOT_COUNT = 18; // 2 rows of 9
+    public static final int BINDING_SLOT_INDEX = 18; // binding slot after items
+    public static final int TOTAL_SLOTS = ITEM_SLOT_COUNT + 1; // +1 binding slot
+    private static final int DEFAULT_ROWS = 2;
 
     private final List<GuScriptPageState> pages = new ArrayList<>();
     private int currentPage;
@@ -230,7 +230,12 @@ public class GuScriptAttachment implements Container {
 
     public void load(CompoundTag tag, HolderLookup.Provider provider) {
         pages.clear();
-        int rows = tag.contains("Rows") ? tag.getInt("Rows") : DEFAULT_ROWS;
+        int rows = DEFAULT_ROWS;
+        if (tag != null && tag.contains("Rows")) {
+            int saved = tag.getInt("Rows");
+            // Upgrade older saves to at least DEFAULT_ROWS so container size matches page items
+            rows = Math.max(DEFAULT_ROWS, saved);
+        }
         int current = tag.contains("CurrentPage") ? tag.getInt("CurrentPage") : 0;
         ListTag list = tag.getList("Pages", Tag.TAG_COMPOUND);
         if (list.isEmpty()) {

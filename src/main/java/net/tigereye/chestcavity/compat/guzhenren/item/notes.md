@@ -505,6 +505,7 @@ COST_HUNGER
 当玩家是北冥冰魄体(需要配置通用接口判断体质)时残血获得短时间无敌，
 当胸腔内存在(  "item.guzhenren.bing_bao_gu": "冰爆蛊", 目前暂无效果，但是依旧判断)，
 冰爆的伤害提升 - 冰爆受 冰道INCREASE_EFFECT影响
+加15点伤害吸收 冰道INCREASE_EFFECT影响
 
 效果表现逻辑
 中心爆炸点
@@ -543,3 +544,6 @@ BlockIceSnowFusion：结合冰和雪的外观。
 特效表现：
 在爆炸点 level.sendParticles，多种粒子叠加。
 播放音效 SoundEvents.GLASS_BREAK + SoundEvents.SNOW_BREAK。
+
+铁骨:像玉骨一样增幅金道和骨道效率，拥有5点伤害吸收，消耗骨能
+钢筋铁骨:铁骨版提供75点伤害吸收可叠加，精铁骨版提供100点伤害吸收可叠加，同时生命值自然恢复停止，可以使用铁锭修补，当胸腔内存在精铁蛊时每秒恢复10点生命值

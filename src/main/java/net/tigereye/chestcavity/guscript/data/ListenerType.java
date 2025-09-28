@@ -7,7 +7,8 @@ import java.util.Locale;
 public enum ListenerType {
     ON_HIT("on_hit"),
     ON_FIRE("on_fire"),
-    ON_GROUND("on_ground");
+    ON_GROUND("on_ground"),
+    ON_ITEM_HELD("on_item_held");
 
     private final String translationKey;
 
@@ -19,7 +20,8 @@ public enum ListenerType {
         return switch (this) {
             case ON_HIT -> ON_FIRE;
             case ON_FIRE -> ON_GROUND;
-            case ON_GROUND -> ON_HIT;
+            case ON_GROUND -> ON_ITEM_HELD;
+            case ON_ITEM_HELD -> ON_HIT;
         };
     }
 
