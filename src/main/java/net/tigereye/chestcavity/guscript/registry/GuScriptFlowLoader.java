@@ -12,6 +12,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.action.ActionRegistry;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowGuard;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
@@ -78,11 +79,24 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                 transitions.add(parseTransition(element.getAsJsonObject()));
             }
         }
-        List<Action> enterActions = new ArrayList<>();
+        List<FlowEdgeAction> enterActions = new ArrayList<>();
+        List<Action> pendingEnterScriptActions = new ArrayList<>();
         if (json.has("enter_actions")) {
             for (JsonElement element : json.getAsJsonArray("enter_actions")) {
-                enterActions.add(ActionRegistry.fromJson(element.getAsJsonObject()));
+                JsonObject actionJson = element.getAsJsonObject();
+                if (actionJson.has("type")) {
+                    if (!pendingEnterScriptActions.isEmpty()) {
+                        enterActions.add(FlowActions.runActions(pendingEnterScriptActions));
+                        pendingEnterScriptActions = new ArrayList<>();
+                    }
+                    enterActions.add(parseAction(actionJson));
+                } else {
+                    pendingEnterScriptActions.add(ActionRegistry.fromJson(actionJson));
+                }
             }
+        }
+        if (!pendingEnterScriptActions.isEmpty()) {
+            enterActions.add(FlowActions.runActions(pendingEnterScriptActions));
         }
         List<ResourceLocation> enterFx = new ArrayList<>();
         if (json.has("enter_fx")) {
@@ -93,18 +107,31 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                 enterFx.add(ResourceLocation.parse(element.getAsString()));
             }
         }
-        List<Action> updateActions = new ArrayList<>();
+        List<FlowEdgeAction> updateActions = new ArrayList<>();
+        List<Action> pendingUpdateScriptActions = new ArrayList<>();
         if (json.has("update_actions")) {
             for (JsonElement element : json.getAsJsonArray("update_actions")) {
-                updateActions.add(ActionRegistry.fromJson(element.getAsJsonObject()));
+                JsonObject actionJson = element.getAsJsonObject();
+                if (actionJson.has("type")) {
+                    if (!pendingUpdateScriptActions.isEmpty()) {
+                        updateActions.add(FlowActions.runActions(pendingUpdateScriptActions));
+                        pendingUpdateScriptActions = new ArrayList<>();
+                    }
+                    updateActions.add(parseAction(actionJson));
+                } else {
+                    pendingUpdateScriptActions.add(ActionRegistry.fromJson(actionJson));
+                }
             }
+        }
+        if (!pendingUpdateScriptActions.isEmpty()) {
+            updateActions.add(FlowActions.runActions(pendingUpdateScriptActions));
         }
         int updatePeriod = json.has("update_period") ? json.get("update_period").getAsInt() : 0;
         return new FlowStateDefinition(
-                enterActions.isEmpty() ? List.of() : List.of(FlowActions.runActions(enterActions)),
+                enterActions,
                 enterFx,
                 transitions,
-                updateActions.isEmpty() ? List.of() : List.of(FlowActions.runActions(updateActions)),
+                updateActions,
                 Math.max(0, updatePeriod)
         );
     }

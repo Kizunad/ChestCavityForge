@@ -165,6 +165,14 @@ public final class FlowInstance {
         this.state = nextState;
         this.stateEnteredGameTime = gameTime;
         this.ticksInState = 0;
+        // log state enter for diagnostics
+        ChestCavity.LOGGER.info(
+                "[Flow] {} entered {} (timeScale={}, params={})",
+                program.id(),
+                nextState,
+                String.format("%.3f", timeScale),
+                flowParams.isEmpty() ? "{}" : flowParams
+        );
         controller.handleStateChanged(this);
         Optional<FlowStateDefinition> definition = definition();
         if (definition.isPresent()) {

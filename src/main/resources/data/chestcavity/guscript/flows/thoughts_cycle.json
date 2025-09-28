@@ -20,6 +20,16 @@
         { "trigger": "cancel", "target": "cancel" }
       ]
     },
+    "charged": {
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 1 }
+      ]
+    },
+    "releasing": {
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 1 }
+      ]
+    },
     "cooldown": {
       "transitions": [
         { "trigger": "auto", "target": "idle", "min_ticks": 40 }
