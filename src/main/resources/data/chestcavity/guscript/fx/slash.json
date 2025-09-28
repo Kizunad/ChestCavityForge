@@ -1,0 +1,33 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.player.attack.sweep",
+      "volume": 0.9,
+      "pitch": 1.05
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:crit",
+      "count": 12,
+      "speed": 0.15,
+      "spread": [0.35, 0.15, 0.35],
+      "offset": [0.0, 0.8, 0.0]
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.18,
+      "duration": 6
+    },
+    {
+      "type": "trail",
+      "particle": "minecraft:dust",
+      "color": "#ffcc55",
+      "size": 1.0,
+      "segments": 8,
+      "spacing": 0.25,
+      "spread": [0.05, 0.05, 0.05],
+      "offset": [0.0, 0.6, 0.0]
+    }
+  ]
+}
