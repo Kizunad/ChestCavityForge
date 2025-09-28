@@ -2,9 +2,14 @@ package net.tigereye.chestcavity.guscript.ast;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
@@ -20,15 +25,24 @@ public final class OperatorGuNode implements GuNode {
     private final Integer executionOrder;
     private final boolean exportMultiplier;
     private final boolean exportFlat;
+    private final ResourceLocation flowId;
+    private final Map<String, String> flowParams;
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children) {
-        this(operatorId, name, kind, tags, actions, children, null, false, false);
+        this(operatorId, name, kind, tags, actions, children, null, false, false, null, Map.of());
     }
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children,
                           Integer executionOrder, boolean exportMultiplier, boolean exportFlat) {
+        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, null, Map.of());
+    }
+
+    public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
+                          Multiset<String> tags, List<Action> actions, List<GuNode> children,
+                          Integer executionOrder, boolean exportMultiplier, boolean exportFlat,
+                          ResourceLocation flowId, Map<String, String> flowParams) {
         if (operatorId == null || operatorId.isBlank()) {
             throw new IllegalArgumentException("Operator requires an id");
         }
@@ -44,6 +58,12 @@ public final class OperatorGuNode implements GuNode {
         this.executionOrder = executionOrder;
         this.exportMultiplier = exportMultiplier;
         this.exportFlat = exportFlat;
+        this.flowId = flowId;
+        if (flowParams == null || flowParams.isEmpty()) {
+            this.flowParams = Map.of();
+        } else {
+            this.flowParams = Collections.unmodifiableMap(new LinkedHashMap<>(flowParams));
+        }
     }
 
     public String operatorId() {
@@ -87,6 +107,14 @@ public final class OperatorGuNode implements GuNode {
         return exportFlat;
     }
 
+    public Optional<ResourceLocation> flowId() {
+        return Optional.ofNullable(flowId);
+    }
+
+    public Map<String, String> flowParams() {
+        return flowParams;
+    }
+
     @Override
     public String toString() {
         return "OperatorGuNode{" +
@@ -99,6 +127,8 @@ public final class OperatorGuNode implements GuNode {
                 ", order=" + executionOrder +
                 ", exportMultiplier=" + exportMultiplier +
                 ", exportFlat=" + exportFlat +
+                ", flowId=" + flowId +
+                ", flowParams=" + flowParams +
                 '}';
     }
 }

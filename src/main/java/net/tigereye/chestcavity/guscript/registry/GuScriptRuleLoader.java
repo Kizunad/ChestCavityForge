@@ -99,14 +99,53 @@ public final class GuScriptRuleLoader extends SimpleJsonResourceReloadListener {
         final JsonObject exports = result.has("export_modifiers") ? result.getAsJsonObject("export_modifiers") : null;
         final boolean exportMultiplier = exports != null && exports.has("multiplier") && exports.get("multiplier").getAsBoolean();
         final boolean exportFlat = exports != null && exports.has("flat") && exports.get("flat").getAsBoolean();
+        final ResourceLocation flowId = parseFlowId(result);
+        final Map<String, String> flowParams = parseFlowParams(result);
 
         return ReactionRule.builder(id.toString())
                 .arity(arity)
                 .priority(priority)
                 .requiredTags(required)
                 .inhibitors(inhibitors)
-                .operator((ruleId, inputs) -> new OperatorGuNode(operatorId, name, kind, tags, actions, inputs, order, exportMultiplier, exportFlat))
+                .operator((ruleId, inputs) -> new OperatorGuNode(operatorId, name, kind, tags, actions, inputs, order, exportMultiplier, exportFlat, flowId, flowParams))
                 .build();
+    }
+
+    private static ResourceLocation parseFlowId(JsonObject result) {
+        if (!result.has("flow_id")) {
+            return null;
+        }
+        String raw = result.get("flow_id").getAsString();
+        ResourceLocation id = ResourceLocation.tryParse(raw);
+        if (id == null) {
+            throw new JsonParseException("Invalid flow_id: " + raw);
+        }
+        return id;
+    }
+
+    private static Map<String, String> parseFlowParams(JsonObject result) {
+        if (!result.has("flow_params")) {
+            return Map.of();
+        }
+        JsonObject obj = result.getAsJsonObject("flow_params");
+        if (obj == null || obj.entrySet().isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> params = new HashMap<>();
+        for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+            JsonElement value = entry.getValue();
+            if (value == null || value.isJsonNull()) {
+                continue;
+            }
+            String serialized;
+            if (value.isJsonPrimitive()) {
+                serialized = value.getAsString();
+            } else {
+                serialized = GSON.toJson(value);
+            }
+            params.put(entry.getKey(), serialized);
+        }
+        return params.isEmpty() ? Map.of() : Map.copyOf(params);
     }
 
     private static GuNodeKind parseKind(String raw) {

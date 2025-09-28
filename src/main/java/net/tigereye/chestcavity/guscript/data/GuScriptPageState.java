@@ -3,11 +3,17 @@ package net.tigereye.chestcavity.guscript.data;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents a single notebook page containing items and binding metadata.
@@ -22,6 +28,8 @@ public final class GuScriptPageState {
     private int inventorySignature;
     private GuScriptProgramCache compiledProgram;
     private final EnumMap<ListenerType, Long> listenerCooldowns = new EnumMap<>(ListenerType.class);
+    private ResourceLocation flowId;
+    private Map<String, String> flowParams;
 
     public GuScriptPageState(int rows) {
         this(itemsSizeForRows(rows));
@@ -34,6 +42,7 @@ public final class GuScriptPageState {
         this.title = "Page";
         this.dirty = true;
         this.inventorySignature = 0;
+        this.flowParams = new HashMap<>();
     }
 
     private static NonNullList<ItemStack> itemsSizeForRows(int rows) {
@@ -120,6 +129,40 @@ public final class GuScriptPageState {
         listenerCooldowns.put(type, gameTime);
     }
 
+    public Optional<ResourceLocation> flowId() {
+        return Optional.ofNullable(flowId);
+    }
+
+    public void setFlowId(ResourceLocation flowId) {
+        if (!Objects.equals(this.flowId, flowId)) {
+            this.flowId = flowId;
+            markDirty();
+        }
+    }
+
+    public Map<String, String> flowParams() {
+        if (flowParams == null || flowParams.isEmpty()) {
+            return Map.of();
+        }
+        return Map.copyOf(flowParams);
+    }
+
+    public void setFlowParams(Map<String, String> params) {
+        Map<String, String> sanitized = sanitizeParams(params);
+        if (!Objects.equals(this.flowParams, sanitized)) {
+            this.flowParams = sanitized.isEmpty() ? new HashMap<>() : new HashMap<>(sanitized);
+            markDirty();
+        }
+    }
+
+    public void clearFlowBinding() {
+        if (flowId != null || (flowParams != null && !flowParams.isEmpty())) {
+            flowId = null;
+            flowParams.clear();
+            markDirty();
+        }
+    }
+
     public CompoundTag save(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
         ContainerHelper.saveAllItems(tag, items, provider);
@@ -127,6 +170,14 @@ public final class GuScriptPageState {
         tag.putString("ListenerType", listenerType.getSerializedName());
         tag.putString("Title", title);
         tag.putInt("InventorySignature", inventorySignature);
+        if (flowId != null) {
+            tag.putString("FlowId", flowId.toString());
+        }
+        if (flowParams != null && !flowParams.isEmpty()) {
+            CompoundTag params = new CompoundTag();
+            flowParams.forEach(params::putString);
+            tag.put("FlowParams", params);
+        }
         return tag;
     }
 
@@ -146,7 +197,33 @@ public final class GuScriptPageState {
         if (tag.contains("InventorySignature")) {
             page.inventorySignature = tag.getInt("InventorySignature");
         }
+        if (tag.contains("FlowId", Tag.TAG_STRING)) {
+            page.flowId = ResourceLocation.tryParse(tag.getString("FlowId"));
+        }
+        if (tag.contains("FlowParams", Tag.TAG_COMPOUND)) {
+            CompoundTag params = tag.getCompound("FlowParams");
+            page.flowParams = new HashMap<>();
+            for (String key : params.getAllKeys()) {
+                String value = params.getString(key);
+                page.flowParams.put(key, value);
+            }
+        } else {
+            page.flowParams = new HashMap<>();
+        }
         page.dirty = true;
         return page;
+    }
+
+    private static Map<String, String> sanitizeParams(Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> sanitized = new HashMap<>();
+        params.forEach((key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+                sanitized.put(key, value);
+            }
+        });
+        return sanitized;
     }
 }

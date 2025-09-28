@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -106,6 +107,13 @@ public final class GuScriptCompiler {
         }
         hash = 31 * hash + page.bindingTarget().ordinal();
         hash = 31 * hash + page.listenerType().ordinal();
+        hash = 31 * hash + page.flowId().map(Object::hashCode).orElse(0);
+        Map<String, String> params = page.flowParams();
+        if (!params.isEmpty()) {
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                hash = 31 * hash + Objects.hash(entry.getKey(), entry.getValue());
+            }
+        }
         return hash;
     }
 }
