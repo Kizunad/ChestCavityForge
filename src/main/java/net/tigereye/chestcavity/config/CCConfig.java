@@ -134,29 +134,29 @@ public class CCConfig implements ConfigData {
         @ConfigEntry.Gui.Tooltip
         public int bindingButtonHeightPx = 20;
         @ConfigEntry.Gui.Tooltip
-        public int minBindingButtonWidthPx = 88;
+        public int minBindingButtonWidthPx = 0;
         @ConfigEntry.Gui.Tooltip
         public int bindingVerticalOffsetPx = 10;
         @ConfigEntry.Gui.Tooltip
-        public int minTopGutterPx = 6;
+        public int minTopGutterPx = 0;
         @ConfigEntry.Gui.Tooltip
-        public int minHorizontalGutterPx = 4;
+        public int minHorizontalGutterPx = 0;
         @ConfigEntry.Gui.Tooltip
-        public int minBindingSpacingPx = 4;
+        public int minBindingSpacingPx = 0;
         @ConfigEntry.Gui.Tooltip
         public int pageButtonWidthPx = 20;
         @ConfigEntry.Gui.Tooltip
         public int pageButtonHeightPx = 20;
         @ConfigEntry.Gui.Tooltip
-        public double pageButtonLeftPaddingSlots = 0.5D;
+        public double pageButtonLeftPaddingSlots = 0.8D;
         @ConfigEntry.Gui.Tooltip
         public double pageButtonTopPaddingSlots = 0.9D;
         @ConfigEntry.Gui.Tooltip
         public double pageButtonHorizontalSpacingSlots = 0.2D;
         @ConfigEntry.Gui.Tooltip
-        public int minPageButtonSpacingPx = 4;
+        public int minPageButtonSpacingPx = 0;
         @ConfigEntry.Gui.Tooltip
-        public int pageButtonHorizontalOffsetPx = -10;
+        public int pageButtonHorizontalOffsetPx = -50;
     }
 
 }
