@@ -4,7 +4,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
+import net.tigereye.chestcavity.guscript.ability.guzhenren.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
@@ -15,7 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilitie
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
 import net.tigereye.chestcavity.guscript.GuScriptModule;
-import net.tigereye.chestcavity.compat.guzhenren.ability.blood_bone_bomb.BloodBoneBombClient;
+import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BloodBoneBombClient;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
