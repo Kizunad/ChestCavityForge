@@ -11,16 +11,32 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     private final Player performer;
     private final LivingEntity target;
     private final GuScriptExecutionBridge bridge;
+    private final ExecutionSession session;
     private double damageMultiplier;
     private double flatDamageBonus;
+    private double addedMultiplier;
+    private double addedFlat;
+    private double directMultiplierExports;
+    private double directFlatExports;
+    private boolean exportMultiplierDelta;
+    private boolean exportFlatDelta;
 
     public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge) {
+        this(performer, target, bridge, null);
+    }
+
+    public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge, ExecutionSession session) {
         if (bridge == null) {
             throw new IllegalArgumentException("GuScriptExecutionBridge must not be null");
         }
         this.performer = performer;
         this.target = target;
         this.bridge = bridge;
+        this.session = session;
+        if (session != null) {
+            this.damageMultiplier = session.currentMultiplier();
+            this.flatDamageBonus = session.currentFlat();
+        }
     }
 
     @Override
@@ -41,11 +57,13 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     @Override
     public void addDamageMultiplier(double multiplier) {
         damageMultiplier += multiplier;
+        addedMultiplier += multiplier;
     }
 
     @Override
     public void addFlatDamage(double amount) {
         flatDamageBonus += amount;
+        addedFlat += amount;
     }
 
     @Override
@@ -56,5 +74,53 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     @Override
     public double flatDamageBonus() {
         return flatDamageBonus;
+    }
+
+    @Override
+    public void exportDamageMultiplier(double amount) {
+        if (amount == 0.0D) {
+            return;
+        }
+        directMultiplierExports += amount;
+        if (session != null) {
+            session.exportMultiplier(amount);
+        }
+    }
+
+    @Override
+    public void exportFlatDamage(double amount) {
+        if (amount == 0.0D) {
+            return;
+        }
+        directFlatExports += amount;
+        if (session != null) {
+            session.exportFlat(amount);
+        }
+    }
+
+    @Override
+    public void enableModifierExports(boolean exportMultiplier, boolean exportFlat) {
+        this.exportMultiplierDelta = exportMultiplier;
+        this.exportFlatDelta = exportFlat;
+    }
+
+    @Override
+    public double exportedMultiplierDelta() {
+        return exportMultiplierDelta ? addedMultiplier : 0.0D;
+    }
+
+    @Override
+    public double exportedFlatDelta() {
+        return exportFlatDelta ? addedFlat : 0.0D;
+    }
+
+    @Override
+    public double directExportedMultiplier() {
+        return directMultiplierExports;
+    }
+
+    @Override
+    public double directExportedFlat() {
+        return directFlatExports;
     }
 }

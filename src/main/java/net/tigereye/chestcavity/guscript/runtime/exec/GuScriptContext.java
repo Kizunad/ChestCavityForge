@@ -22,6 +22,31 @@ public interface GuScriptContext {
 
     double flatDamageBonus();
 
+    default void exportDamageMultiplier(double amount) {
+    }
+
+    default void exportFlatDamage(double amount) {
+    }
+
+    default void enableModifierExports(boolean exportMultiplier, boolean exportFlat) {
+    }
+
+    default double exportedMultiplierDelta() {
+        return 0.0;
+    }
+
+    default double exportedFlatDelta() {
+        return 0.0;
+    }
+
+    default double directExportedMultiplier() {
+        return 0.0;
+    }
+
+    default double directExportedFlat() {
+        return 0.0;
+    }
+
     default double applyDamageModifiers(double baseDamage) {
         double scaled = baseDamage * (1.0 + damageMultiplier());
         return Math.max(0.0, scaled + flatDamageBonus());

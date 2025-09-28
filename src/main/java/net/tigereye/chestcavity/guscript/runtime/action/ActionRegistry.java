@@ -7,6 +7,8 @@ import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
 import net.tigereye.chestcavity.guscript.ast.Action;
+import net.tigereye.chestcavity.guscript.actions.ExportFlatModifierAction;
+import net.tigereye.chestcavity.guscript.actions.ExportMultiplierModifierAction;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +38,8 @@ public final class ActionRegistry {
         ));
         register(AddDamageMultiplierAction.ID, json -> new AddDamageMultiplierAction(json.get("amount").getAsDouble()));
         register(AddFlatDamageAction.ID, json -> new AddFlatDamageAction(json.get("amount").getAsDouble()));
+        register(ExportMultiplierModifierAction.ID, json -> new ExportMultiplierModifierAction(json.get("amount").getAsDouble()));
+        register(ExportFlatModifierAction.ID, json -> new ExportFlatModifierAction(json.get("amount").getAsDouble()));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {
