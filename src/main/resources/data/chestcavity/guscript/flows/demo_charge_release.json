@@ -1,0 +1,61 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "charging",
+          "guards": [
+            {"type": "cooldown", "key": "chestcavity:demo_charge_release"},
+            {"type": "resource", "identifier": "zhenyuan", "minimum": 10.0}
+          ],
+          "actions": [
+            {"type": "consume_resource", "identifier": "zhenyuan", "amount": 10.0},
+            {"type": "set_cooldown", "key": "chestcavity:demo_charge_release", "ticks": 200}
+          ]
+        }
+      ]
+    },
+    "charging": {
+      "transitions": [
+        {"trigger": "auto", "target": "charged", "min_ticks": 40},
+        {"trigger": "cancel", "target": "cancel"}
+      ]
+    },
+    "charged": {
+      "transitions": [
+        {"trigger": "release", "target": "releasing"},
+        {"trigger": "auto", "target": "releasing", "min_ticks": 20},
+        {"trigger": "cancel", "target": "cancel"}
+      ]
+    },
+    "releasing": {
+      "transitions": [
+        {
+          "trigger": "auto",
+          "target": "cooldown",
+          "min_ticks": 20,
+          "actions": [
+            {
+              "type": "trigger_actions",
+              "actions": [
+                {"id": "emit_projectile", "projectileId": "minecraft:arrow", "damage": 2.0}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "cooldown": {
+      "transitions": [
+        {"trigger": "auto", "target": "idle", "min_ticks": 40}
+      ]
+    },
+    "cancel": {
+      "transitions": [
+        {"trigger": "auto", "target": "cooldown", "min_ticks": 5}
+      ]
+    }
+  }
+}

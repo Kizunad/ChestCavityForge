@@ -8,6 +8,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptExecutor;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**
@@ -36,6 +38,9 @@ public record GuScriptTriggerPayload(int pageIndex) implements CustomPacketPaylo
             if (payload.pageIndex >= 0) {
                 attachment.setCurrentPage(payload.pageIndex);
             }
+            FlowProgramRegistry.get(ChestCavity.id("demo_charge_release"))
+                    .ifPresent(program -> FlowControllerManager.get(player)
+                            .start(program, player, player.level().getGameTime()));
             GuScriptExecutor.triggerKeybind(player, player, attachment);
         });
     }
