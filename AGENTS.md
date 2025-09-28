@@ -217,7 +217,7 @@ Acceptance
 - Pressing the key once triggers every Keybind page; logs enumerate all pages and composite roots executed; performance caps prevent runaway execution.
 
 Status
-- Pending.
+- Completed (keybind trigger aggregates all keybind pages per press with page/root limits and logging in place).
 
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
