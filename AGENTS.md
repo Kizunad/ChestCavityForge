@@ -247,6 +247,7 @@ Acceptance
 Status
 - Completed (session-scoped modifier exports with ordered execution, config caps, and 2-root/3-root unit coverage).
 
+
 ### P1: Preserve compile order for unordered roots
 
 Problem
@@ -266,6 +267,7 @@ Branch
 
 Acceptance
 - Unordered roots retain compilation order; adding a single ordered root only repositions that root relative to others. Legacy scripts keep prior stacking unless they opt in via `order`.
+
 
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.

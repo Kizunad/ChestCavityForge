@@ -207,11 +207,28 @@ public final class GuScriptExecutor {
             GuNode node = roots.get(i);
             ordered.add(new OrderedRoot(node, i));
         }
-        ordered.sort(Comparator
-                .comparingInt(OrderedRoot::order)
-                .thenComparing(OrderedRoot::ruleId)
-                .thenComparing(OrderedRoot::name)
-                .thenComparingInt(OrderedRoot::originalIndex));
+        ordered.sort((left, right) -> {
+            int leftOrder = left.order();
+            int rightOrder = right.order();
+            boolean leftUnordered = leftOrder == Integer.MAX_VALUE;
+            boolean rightUnordered = rightOrder == Integer.MAX_VALUE;
+            if (leftUnordered && rightUnordered) {
+                return 0;
+            }
+            if (leftOrder != rightOrder) {
+                return Integer.compare(leftOrder, rightOrder);
+            }
+            int ruleComparison = left.ruleId().compareTo(right.ruleId());
+            if (ruleComparison != 0) {
+                return ruleComparison;
+            }
+            int nameComparison = left.name().compareTo(right.name());
+            if (nameComparison != 0) {
+                return nameComparison;
+            }
+            return Integer.compare(left.originalIndex(), right.originalIndex());
+        });
+
         return ordered.stream().map(OrderedRoot::node).toList();
     }
 
