@@ -26,19 +26,22 @@ public final class FlowInstance {
     private double timeScale;
     private boolean finished;
 
-    FlowInstance(FlowProgram program, Player performer, LivingEntity target, FlowController controller, double timeScale, long gameTime) {
+    private final java.util.Map<String, String> flowParams;
+
+    FlowInstance(FlowProgram program, Player performer, LivingEntity target, FlowController controller, double timeScale, java.util.Map<String, String> flowParams, long gameTime) {
         this.program = program;
         this.performer = performer;
         this.target = target;
         this.controller = controller;
         this.timeScale = timeScale <= 0.0 ? 1.0 : timeScale;
         this.tickAccumulator = 0.0;
+        this.flowParams = flowParams == null ? java.util.Map.of() : java.util.Map.copyOf(flowParams);
         enterState(program.initialState(), gameTime);
     }
 
     // Backwards-compatible ctor used by existing tests
     FlowInstance(FlowProgram program, Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        this(program, performer, target, controller, 1.0, gameTime);
+        this(program, performer, target, controller, 1.0, java.util.Map.of(), gameTime);
     }
 
     public FlowProgram program() {
@@ -185,6 +188,32 @@ public final class FlowInstance {
     void rebindPerformer(Player performer) {
         if (performer != null) {
             this.performer = performer;
+        }
+    }
+
+    java.util.Optional<String> resolveParam(String key) {
+        if (key == null || key.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.ofNullable(flowParams.get(key));
+    }
+
+    double resolveParamAsDouble(String key, double defaultValue) {
+        if (key == null) {
+            return defaultValue;
+        }
+        String raw = flowParams.get(key);
+        if (raw == null || raw.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            double parsed = Double.parseDouble(raw.trim());
+            if (Double.isNaN(parsed) || Double.isInfinite(parsed)) {
+                return defaultValue;
+            }
+            return parsed;
+        } catch (Exception ignored) {
+            return defaultValue;
         }
     }
 }
