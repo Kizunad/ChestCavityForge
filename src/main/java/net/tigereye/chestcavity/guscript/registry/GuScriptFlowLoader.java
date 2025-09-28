@@ -50,6 +50,10 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
             }
         });
         FlowProgramRegistry.update(programs);
+        try {
+            String loaded = programs.keySet().stream().map(ResourceLocation::toString).sorted().reduce((a,b) -> a+", "+b).orElse("<none>");
+            ChestCavity.LOGGER.info("[Flow] Loaded programs ({}): {}", programs.size(), loaded);
+        } catch (Exception ignored) {}
     }
 
     private static FlowProgram parseProgram(ResourceLocation id, JsonObject json) {
@@ -86,10 +90,19 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                 enterFx.add(ResourceLocation.parse(element.getAsString()));
             }
         }
+        List<Action> updateActions = new ArrayList<>();
+        if (json.has("update_actions")) {
+            for (JsonElement element : json.getAsJsonArray("update_actions")) {
+                updateActions.add(ActionRegistry.fromJson(element.getAsJsonObject()));
+            }
+        }
+        int updatePeriod = json.has("update_period") ? json.get("update_period").getAsInt() : 0;
         return new FlowStateDefinition(
                 enterActions.isEmpty() ? List.of() : List.of(FlowActions.runActions(enterActions)),
                 enterFx,
-                transitions
+                transitions,
+                updateActions.isEmpty() ? List.of() : List.of(FlowActions.runActions(updateActions)),
+                Math.max(0, updatePeriod)
         );
     }
 
@@ -116,7 +129,10 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
         String type = GsonHelper.getAsString(json, "type");
         return switch (type) {
             case "resource" -> FlowGuards.hasResource(GsonHelper.getAsString(json, "identifier"), GsonHelper.getAsDouble(json, "minimum"));
+            case "resource_below" -> FlowGuards.resourceBelow(GsonHelper.getAsString(json, "identifier"), GsonHelper.getAsDouble(json, "maximum"));
             case "cooldown" -> FlowGuards.cooldownReady(GsonHelper.getAsString(json, "key"));
+            case "health_min" -> FlowGuards.healthAtLeast(GsonHelper.getAsDouble(json, "minimum"));
+            case "health_below" -> FlowGuards.healthBelow(GsonHelper.getAsDouble(json, "maximum"));
             default -> throw new IllegalArgumentException("Unknown flow guard type: " + type);
         };
     }
@@ -125,6 +141,16 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
         String type = GsonHelper.getAsString(json, "type");
         return switch (type) {
             case "consume_resource" -> FlowActions.consumeResource(GsonHelper.getAsString(json, "identifier"), GsonHelper.getAsDouble(json, "amount"));
+            case "consume_health" -> FlowActions.consumeHealth(GsonHelper.getAsDouble(json, "amount"));
+            case "apply_effect" -> FlowActions.applyEffect(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "id")),
+                    GsonHelper.getAsInt(json, "duration"),
+                    GsonHelper.getAsInt(json, "amplifier", 0),
+                    GsonHelper.getAsBoolean(json, "showParticles", false),
+                    GsonHelper.getAsBoolean(json, "showIcon", false)
+            );
+            case "true_damage" -> FlowActions.trueDamage(GsonHelper.getAsDouble(json, "amount"));
+            case "explode" -> FlowActions.explode((float) GsonHelper.getAsDouble(json, "power"));
             case "set_cooldown" -> FlowActions.setCooldown(GsonHelper.getAsString(json, "key"), GsonHelper.getAsLong(json, "ticks"));
             case "trigger_actions" -> FlowActions.runActions(parseActions(json));
             default -> throw new IllegalArgumentException("Unknown flow action type: " + type);

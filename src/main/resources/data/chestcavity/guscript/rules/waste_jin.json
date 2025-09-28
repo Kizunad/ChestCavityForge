@@ -1,0 +1,16 @@
+{
+  "arity": 1,
+  "priority": -100,
+  "required": { "金道": 1 },
+  "result": {
+    "name": "废能·金",
+    "operator_id": "chestcavity:waste_jin",
+    "kind": "composite",
+    "tags": ["废能"],
+    "actions": [
+      { "id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": -10.0 },
+      { "id": "guzhenren.adjust", "identifier": "jingli", "amount": -10.0 }
+    ]
+  }
+}
+

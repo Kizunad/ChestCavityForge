@@ -81,8 +81,23 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
         Vec3 impact = hit.getLocation();
         playImpactFx(impact);
         if (victim != null) {
+            String ownerName = this.getOwner() instanceof ServerPlayer sp ? sp.getGameProfile().getName() : "<unknown>";
+            float beforeHealth = victim.getHealth();
+            float beforeAbsorb = victim.getAbsorptionAmount();
             BloodBoneBombAbility.applyTrueDamage(this.getOwner() instanceof ServerPlayer serverPlayer ? serverPlayer : null, victim, impactDamage);
             applyStatusEffects(victim);
+            float afterHealth = victim.getHealth();
+            float afterAbsorb = victim.getAbsorptionAmount();
+            net.tigereye.chestcavity.ChestCavity.LOGGER.info(
+                    "[GuScript][Damage] BloodBoneBomb hit {} by {}: planned={} health {}->{} absorb {}->{}",
+                    victim.getScoreboardName(),
+                    ownerName,
+                    String.format("%.3f", impactDamage),
+                    String.format("%.3f", beforeHealth),
+                    String.format("%.3f", afterHealth),
+                    String.format("%.3f", beforeAbsorb),
+                    String.format("%.3f", afterAbsorb)
+            );
         }
         this.discard();
     }

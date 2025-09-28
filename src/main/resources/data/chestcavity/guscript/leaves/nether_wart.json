@@ -1,8 +1,0 @@
-{
-  "item": "minecraft:nether_wart",
-  "name": "血蛊",
-  "tags": ["血"],
-  "actions": [
-    { "id": "consume.zhenyuan", "amount": 5 }
-  ]
-}

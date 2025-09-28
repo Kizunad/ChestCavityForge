@@ -1,0 +1,74 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "charging",
+          "guards": [
+            {"type": "cooldown", "key": "chestcavity:blood_bone_charge"},
+            {"type": "resource", "identifier": "zhenyuan", "minimum": 10.0}
+          ],
+          "actions": [
+            {"type": "consume_resource", "identifier": "zhenyuan", "amount": 10.0},
+            {"type": "set_cooldown", "key": "chestcavity:blood_bone_charge", "ticks": 200}
+          ]
+        }
+      ]
+    },
+    "charging": {
+      "enter_fx": ["chestcavity:blood_bone_charge_start"],
+      "update_period": 20,
+      "update_actions": [
+        {"id": "consume.health", "amount": 2},
+        {"id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": -20.0},
+        {"id": "guzhenren.adjust", "identifier": "jingli", "amount": -10.0},
+        {"id": "emit.fx", "fxId": "chestcavity:blood_bone_charge_heartbeat"},
+        {"id": "emit.fx", "fxId": "chestcavity:blood_bone_charge_tick"},
+        {"id": "emit.fx", "fxId": "chestcavity:blood_bone_charge_heartbeat"}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "releasing", "min_ticks": 200},
+        {"trigger": "auto", "target": "cancel", "min_ticks": 1, "guards": [ {"type": "resource_below", "identifier": "zhenyuan", "maximum": 20.0} ]},
+        {"trigger": "auto", "target": "cancel", "min_ticks": 1, "guards": [ {"type": "resource_below", "identifier": "jingli", "maximum": 10.0} ]},
+        {"trigger": "auto", "target": "cancel", "min_ticks": 1, "guards": [ {"type": "health_below", "maximum": 2.0} ]}
+      ]
+    },
+
+    "releasing": {
+      "enter_fx": ["chestcavity:burst"],
+      "transitions": [
+        {
+          "trigger": "auto", "target": "cooldown", "min_ticks": 1,
+          "actions": [
+            {"type": "trigger_actions", "actions": [ {"id": "emit.blood_bone_bomb", "base": 80.0} ]}
+          ]
+        }
+      ]
+    },
+
+    "charged": {
+      "transitions": [
+        { "trigger": "auto", "target": "releasing", "min_ticks": 0 }
+      ]
+    },
+
+    "cancel": {
+      "enter_fx": ["chestcavity:blood_bone_charge_failure"],
+      "transitions": [
+        {
+          "trigger": "auto", "target": "cooldown", "min_ticks": 1,
+          "actions": [
+            {"type": "explode", "power": 4.0},
+            {"type": "true_damage", "amount": 50.0}
+          ]
+        }
+      ]
+    },
+
+    "cooldown": {
+      "transitions": [ {"trigger": "auto", "target": "idle", "min_ticks": 40} ]
+    }
+  }
+}

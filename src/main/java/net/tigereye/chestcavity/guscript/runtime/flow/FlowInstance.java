@@ -22,14 +22,23 @@ public final class FlowInstance {
     private FlowState state;
     private long stateEnteredGameTime;
     private int ticksInState;
+    private double tickAccumulator;
+    private double timeScale;
     private boolean finished;
 
-    FlowInstance(FlowProgram program, Player performer, LivingEntity target, FlowController controller, long gameTime) {
+    FlowInstance(FlowProgram program, Player performer, LivingEntity target, FlowController controller, double timeScale, long gameTime) {
         this.program = program;
         this.performer = performer;
         this.target = target;
         this.controller = controller;
+        this.timeScale = timeScale <= 0.0 ? 1.0 : timeScale;
+        this.tickAccumulator = 0.0;
         enterState(program.initialState(), gameTime);
+    }
+
+    // Backwards-compatible ctor used by existing tests
+    FlowInstance(FlowProgram program, Player performer, LivingEntity target, FlowController controller, long gameTime) {
+        this(program, performer, target, controller, 1.0, gameTime);
     }
 
     public FlowProgram program() {
@@ -56,10 +65,34 @@ public final class FlowInstance {
         if (finished) {
             return;
         }
-        ticksInState++;
-        attemptTransitions(FlowTrigger.AUTO, level.getGameTime());
-        if (state == FlowState.IDLE && ticksInState > 0) {
-            finished = true;
+        // Accumulate scaled time and advance logical ticks accordingly
+        tickAccumulator += timeScale;
+        int steps = (int) Math.floor(tickAccumulator);
+        if (steps <= 0) {
+            return;
+        }
+        tickAccumulator -= steps;
+        for (int i = 0; i < steps && !finished; i++) {
+            // per-tick update actions
+            definition().ifPresent(def -> {
+                int period = def.updatePeriodTicks();
+                boolean shouldRun = period <= 0 || (ticksInState % period == 0);
+                if (shouldRun) {
+                    for (FlowEdgeAction action : def.updateActions()) {
+                        try {
+                            action.apply(performer, target, controller, level.getGameTime());
+                        } catch (Exception ex) {
+                            ChestCavity.LOGGER.error("[Flow] Update action {} failed for program {}", action.describe(), program.id(), ex);
+                        }
+                    }
+                }
+            });
+            ticksInState++;
+            attemptTransitions(FlowTrigger.AUTO, level.getGameTime());
+            if (state == FlowState.IDLE && ticksInState > 0) {
+                finished = true;
+                break;
+            }
         }
     }
 

@@ -278,14 +278,16 @@ public final class GuScriptExecutor {
                 String source = flowFromPage ? "page" : "operator";
                 var program = FlowProgramRegistry.get(flowToStart);
                 if (program.isPresent()) {
+                    double timeScale = parseTimeScale(flowParams);
                     FlowControllerManager.get(performer)
-                            .start(program.get(), target, performer.level().getGameTime());
+                            .start(program.get(), target, timeScale, performer.level().getGameTime());
                     ChestCavity.LOGGER.info(
-                            "[GuScript] Root {}#{} started flow {} (source={}, params={})",
+                            "[GuScript] Root {}#{} started flow {} (source={}, timeScale={}, params={})",
                             root.name(),
                             index,
                             flowToStart,
                             source,
+                            formatDouble(timeScale),
                             flowParams.isEmpty() ? "{}" : flowParams
                     );
                     continue;
@@ -330,6 +332,26 @@ public final class GuScriptExecutor {
                     formatDouble(beforeFlat),
                     formatDouble(afterFlat)
             );
+        }
+    }
+
+    private static double parseTimeScale(Map<String, String> flowParams) {
+        if (flowParams == null || flowParams.isEmpty()) {
+            return 1.0D;
+        }
+        String raw = flowParams.getOrDefault("time.accelerate", flowParams.getOrDefault("time_accelerate", "1"));
+        if (raw == null || raw.isBlank()) {
+            return 1.0D;
+        }
+        try {
+            double value = Double.parseDouble(raw);
+            if (Double.isNaN(value) || Double.isInfinite(value)) {
+                return 1.0D;
+            }
+            // Clamp to reasonable bounds to avoid runaway loops
+            return Math.max(0.1D, Math.min(100.0D, value));
+        } catch (Exception ignored) {
+            return 1.0D;
         }
     }
 

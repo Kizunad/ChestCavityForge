@@ -40,7 +40,7 @@
             {
               "type": "trigger_actions",
               "actions": [
-                {"id": "emit_projectile", "projectileId": "minecraft:arrow", "damage": 2.0}
+                {"id": "emit.projectile", "projectileId": "minecraft:arrow", "damage": 2.0}
               ]
             }
           ]

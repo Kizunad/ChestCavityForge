@@ -52,4 +52,57 @@ public final class FlowGuards {
             }
         };
     }
+
+    /** Guard: performer has at least the specified health. */
+    public static FlowGuard healthAtLeast(double minimum) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                return performer != null && performer.getHealth() >= (float) minimum;
+            }
+
+            @Override
+            public String describe() {
+                return "health_at_least(" + minimum + ")";
+            }
+        };
+    }
+
+    /** Guard: performer health is strictly below the specified value. */
+    public static FlowGuard healthBelow(double maximumExclusive) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                return performer != null && performer.getHealth() < (float) maximumExclusive;
+            }
+
+            @Override
+            public String describe() {
+                return "health_below(" + maximumExclusive + ")";
+            }
+        };
+    }
+
+    /** Guard: given resource is strictly below the specified value. */
+    public static FlowGuard resourceBelow(String identifier, double maximumExclusive) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || identifier == null) {
+                    return false;
+                }
+                var handleOpt = GuzhenrenResourceBridge.open(performer);
+                if (handleOpt.isEmpty()) {
+                    return false;
+                }
+                var valueOpt = handleOpt.get().read(identifier);
+                return valueOpt.isPresent() && valueOpt.getAsDouble() < maximumExclusive;
+            }
+
+            @Override
+            public String describe() {
+                return "resource_below(" + identifier + ", " + maximumExclusive + ")";
+            }
+        };
+    }
 }

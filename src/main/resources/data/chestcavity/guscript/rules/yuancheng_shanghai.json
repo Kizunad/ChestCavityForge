@@ -1,0 +1,12 @@
+{
+  "arity": 2,
+  "priority": 22,
+  "required": { "远程": 1, "伤害": 1 },
+  "result": {
+    "name": "远程伤害",
+    "operator_id": "chestcavity:remote_damage",
+    "kind": "operator",
+    "tags": ["远程伤害"]
+  }
+}
+

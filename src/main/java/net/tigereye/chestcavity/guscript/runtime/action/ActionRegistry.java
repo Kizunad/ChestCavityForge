@@ -50,6 +50,19 @@ public final class ActionRegistry {
                 readVec3(json, "targetOffset"),
                 json.has("intensity") ? json.get("intensity").getAsFloat() : 1.0F
         ));
+        register(net.tigereye.chestcavity.guscript.actions.AdjustGuzhenrenResourceAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.AdjustGuzhenrenResourceAction(
+                        json.get("identifier").getAsString(),
+                        json.get("amount").getAsDouble()
+                ));
+        register(net.tigereye.chestcavity.guscript.actions.GainHealthAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.GainHealthAction(
+                        json.get("amount").getAsDouble()
+                ));
+        register(net.tigereye.chestcavity.guscript.actions.EmitBloodBoneBombAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.EmitBloodBoneBombAction(
+                        json.has("base") ? json.get("base").getAsDouble() : 80.0
+                ));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {

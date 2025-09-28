@@ -60,6 +60,10 @@ public final class FlowController {
     }
 
     public void start(FlowProgram program, LivingEntity target, long gameTime) {
+        start(program, target, 1.0, gameTime);
+    }
+
+    public void start(FlowProgram program, LivingEntity target, double timeScale, long gameTime) {
         if (program == null) {
             return;
         }
@@ -67,7 +71,7 @@ public final class FlowController {
             ChestCavity.LOGGER.debug("[Flow] Ignoring start for {} because flow {} already running", performer.getGameProfile().getName(), instance.program().id());
             return;
         }
-        instance = new FlowInstance(program, performer, target, this, gameTime);
+        instance = new FlowInstance(program, performer, target, this, Math.max(0.0, timeScale), gameTime);
         FlowSyncDispatcher.syncState(performer, instance);
         if (!instance.attemptStart(gameTime)) {
             ChestCavity.LOGGER.debug("[Flow] Flow {} stayed in {} after start trigger", program.id(), instance.state());

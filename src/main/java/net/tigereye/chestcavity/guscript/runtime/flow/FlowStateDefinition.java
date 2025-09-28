@@ -13,11 +13,20 @@ public final class FlowStateDefinition {
     private final List<FlowEdgeAction> enterActions;
     private final List<ResourceLocation> enterFx;
     private final List<FlowTransition> transitions;
+    private final List<FlowEdgeAction> updateActions;
+    private final int updatePeriodTicks;
 
     public FlowStateDefinition(List<FlowEdgeAction> enterActions, List<ResourceLocation> enterFx, List<FlowTransition> transitions) {
+        this(enterActions, enterFx, transitions, List.of(), 0);
+    }
+
+    public FlowStateDefinition(List<FlowEdgeAction> enterActions, List<ResourceLocation> enterFx, List<FlowTransition> transitions,
+                               List<FlowEdgeAction> updateActions, int updatePeriodTicks) {
         this.enterActions = enterActions == null ? List.of() : List.copyOf(enterActions);
         this.enterFx = enterFx == null ? List.of() : List.copyOf(enterFx);
         this.transitions = transitions == null ? List.of() : List.copyOf(transitions);
+        this.updateActions = updateActions == null ? List.of() : List.copyOf(updateActions);
+        this.updatePeriodTicks = Math.max(0, updatePeriodTicks);
     }
 
     public List<FlowEdgeAction> enterActions() {
@@ -43,5 +52,13 @@ public final class FlowStateDefinition {
             }
         }
         return matches;
+    }
+
+    public List<FlowEdgeAction> updateActions() {
+        return updateActions;
+    }
+
+    public int updatePeriodTicks() {
+        return updatePeriodTicks;
     }
 }
