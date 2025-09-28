@@ -14,6 +14,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoOrganRegistr
 import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.ShuiDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.TuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.item.yu_dao.YuDaoOrganRegistry;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,7 +40,8 @@ public final class GuzhenrenIntegrationModule {
             XueDaoOrganRegistry::specs,
             WuHangOrganRegistry::specs,
             ShiDaoOrganRegistry::specs,
-            JiandaoOrganRegistry::specs
+            JiandaoOrganRegistry::specs,
+            YuDaoOrganRegistry::specs
     );
 
     private static boolean initialised;
