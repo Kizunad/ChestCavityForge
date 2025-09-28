@@ -96,7 +96,8 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
                 .bounds(pageButtonX + (pageButtonWidth + pageButtonSpacing) * 2, pageButtonY, pageButtonWidth, this.navButtonHeight)
                 .build());
 
-        this.pageInfoY = pageButtonY + (this.navButtonHeight - this.font.lineHeight) / 2;
+        int pageInfoSpacing = Math.max(0, ui.pageInfoBelowNavSpacingPx);
+        this.pageInfoY = pageButtonY + this.navButtonHeight + pageInfoSpacing;
 
         updateButtonStates();
     }
