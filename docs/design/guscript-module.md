@@ -84,8 +84,8 @@ The top-level package highlights the AST and UI folders explicitly while still a
 The responsive layout parameters for `GuScriptScreen` live inside the new `guscript_ui` block of `CCConfig`. They are saved to the standard `config/chestcavity.json` file, so downstream packs can rebalance spacing without recompiling the mod.
 
 - `bindingRightPaddingSlots`, `bindingTopPaddingSlots`, `bindingVerticalSpacingSlots`, and `bindingButtonWidthFraction` scale the listener/binding buttons relative to the slot grid.
-- `bindingButtonHeightPx`, `minBindingButtonWidthPx`, `minTopGutterPx`, `minHorizontalGutterPx`, and `minBindingSpacingPx` provide hard floors that keep controls readable on narrow screens.
-- `pageButtonWidthPx`, `pageButtonHeightPx`, `pageButtonLeftPaddingSlots`, `pageButtonTopPaddingSlots`, `pageButtonHorizontalSpacingSlots`, and `minPageButtonSpacingPx` control the page navigation row.
+- `bindingButtonHeightPx`, `minBindingButtonWidthPx`, `minTopGutterPx`, `minHorizontalGutterPx`, and `minBindingSpacingPx` provide hard floors that keep controls readable on narrow screens. `minHorizontalGutterPx` now defaults to a positive value so controls always retain lateral breathing room.
+- `pageButtonWidthPx`, `pageButtonHeightPx`, `pageButtonLeftPaddingSlots`, `pageButtonTopPaddingSlots`, `pageButtonHorizontalSpacingSlots`, `minPageButtonSpacingPx`, `pageButtonHorizontalOffsetPx`, and `pageInfoBelowNavSpacingPx` control the page navigation row and the page info label spacing beneath it.
 
 Tweaking these values automatically updates button placement the next time the UI opens, ensuring the gutter between controls and the inventory rows stays intact across aspect ratios.
 
