@@ -10,7 +10,7 @@ import net.minecraft.world.item.Items;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
-import net.tigereye.chestcavity.compat.guzhenren.ability.Abilities;
+import net.tigereye.chestcavity.guscript.ability.guzhenren.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
 
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;

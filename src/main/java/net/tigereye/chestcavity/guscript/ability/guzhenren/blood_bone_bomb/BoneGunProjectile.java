@@ -2,12 +2,9 @@ package net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -20,6 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.registration.CCItems;
 
@@ -67,7 +65,7 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
         if (this.level().isClientSide) {
             spawnTrailParticles();
         } else if (this.tickCount > LIFETIME_TICKS) {
-            spawnFadeParticles();
+            playFadeFx();
             this.discard();
         }
     }
@@ -81,7 +79,7 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
 
         LivingEntity victim = hit.getEntity() instanceof LivingEntity living ? living : null;
         Vec3 impact = hit.getLocation();
-        playImpactEffects(impact);
+        playImpactFx(impact);
         if (victim != null) {
             BloodBoneBombAbility.applyTrueDamage(this.getOwner() instanceof ServerPlayer serverPlayer ? serverPlayer : null, victim, impactDamage);
             applyStatusEffects(victim);
@@ -93,8 +91,8 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
     protected void onHitBlock(BlockHitResult hit) {
         super.onHitBlock(hit);
         if (!this.level().isClientSide) {
-            playImpactEffects(hit.getLocation());
-            spawnFadeParticles();
+            playImpactFx(hit.getLocation());
+            playFadeFx();
             this.discard();
         }
     }
@@ -125,23 +123,33 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
         }
     }
 
-
-    private void spawnFadeParticles() {
+    private void playFadeFx() {
         if (!(this.level() instanceof ServerLevel server)) {
             return;
         }
-        Vec3 pos = this.position();
-        server.sendParticles(ParticleTypes.SMOKE, pos.x, pos.y, pos.z, 12, 0.2, 0.2, 0.2, 0.01);
+        Vec3 origin = this.position();
+        Vec3 direction = fallbackDirection();
+        ServerPlayer owner = this.getOwner() instanceof ServerPlayer serverPlayer ? serverPlayer : null;
+        float intensity = (float) Math.max(0.8F, 0.8F + effectMultiplier * 0.2F);
+        AbilityFxDispatcher.play(server, BloodBoneBombFx.PROJECTILE_FADE, origin, direction, direction, owner, null, intensity);
     }
 
-    private void playImpactEffects(Vec3 pos) {
-        this.level().playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.6f, 1.2f);
-        this.level().playSound(null, pos.x, pos.y, pos.z, SoundEvents.BONE_BLOCK_BREAK, SoundSource.PLAYERS, 0.8f, 0.6f);
-        this.level().addParticle(ParticleTypes.CRIMSON_SPORE, pos.x, pos.y, pos.z, 0.0, 0.0, 0.0);
-        if (!this.level().isClientSide && this.level() instanceof ServerLevel server) {
-            server.sendParticles(ParticleTypes.CRIMSON_SPORE, pos.x, pos.y, pos.z, 60, 0.4, 0.4, 0.4, 0.08);
-            server.sendParticles(ParticleTypes.EXPLOSION_EMITTER, pos.x, pos.y, pos.z, 1, 0.0, 0.0, 0.0, 0.0);
+    private void playImpactFx(Vec3 pos) {
+        if (!(this.level() instanceof ServerLevel server)) {
+            return;
         }
+        Vec3 direction = fallbackDirection();
+        ServerPlayer owner = this.getOwner() instanceof ServerPlayer serverPlayer ? serverPlayer : null;
+        float intensity = (float) Math.max(1.1F, 1.0F + effectMultiplier * 0.35F);
+        AbilityFxDispatcher.play(server, BloodBoneBombFx.PROJECTILE_IMPACT, pos, direction, direction, owner, null, intensity);
+    }
+
+    private Vec3 fallbackDirection() {
+        Vec3 movement = this.getDeltaMovement();
+        if (movement == null || movement.lengthSqr() < 1.0E-4) {
+            return new Vec3(0.0, 1.0, 0.0);
+        }
+        return movement.normalize();
     }
 
     private void applyStatusEffects(LivingEntity target) {

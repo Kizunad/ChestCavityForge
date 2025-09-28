@@ -1,14 +1,10 @@
 package net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb;
 
 import com.google.common.collect.ImmutableSet;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -20,7 +16,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneGunProjectile;
+import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
@@ -28,8 +24,6 @@ import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
-import org.joml.Vector3f;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -74,11 +68,6 @@ public final class BloodBoneBombAbility {
 
     private static final double PROJECTILE_SPEED = 3.75;
 
-    private static final DustParticleOptions BLOOD_SWIRL =
-            new DustParticleOptions(new Vector3f(0.82f, 0.07f, 0.09f), 1.0f);
-    private static final DustParticleOptions BONE_GLINT =
-            new DustParticleOptions(new Vector3f(0.92f, 0.88f, 0.78f), 0.8f);
-
     private static final Map<UUID, ChargeState> ACTIVE_CHARGES = new java.util.concurrent.ConcurrentHashMap<>();
 
     private BloodBoneBombAbility() {
@@ -107,7 +96,7 @@ public final class BloodBoneBombAbility {
         ChargeState state = new ChargeState(cc);
         ACTIVE_CHARGES.put(player.getUUID(), state);
         applyChannelImmobilise(player);
-        playChargeStartCue(player);
+        playChargeStartFx(player);
     }
 
     public static void onEntityTick(EntityTickEvent.Post event) {
@@ -131,7 +120,7 @@ public final class BloodBoneBombAbility {
         state.ticksRemaining = Math.max(0, state.ticksRemaining - 1);
         state.costTimer = Math.max(0, state.costTimer - 1);
 
-        spawnChargingParticles(player, state);
+        playChargeProgressFx(player, state);
 
         if (state.costTimer == 0) {
             state.costTimer = COST_INTERVAL_TICKS;
@@ -140,7 +129,7 @@ public final class BloodBoneBombAbility {
                 return;
             }
             state.soundStep++;
-            playHeartbeatCue(player, state);
+            playChargeHeartbeatFx(player, state.soundStep);
         }
 
         if (state.ticksRemaining <= 0) {
@@ -179,10 +168,8 @@ public final class BloodBoneBombAbility {
         projectile.setPos(origin);
         projectile.shoot(velocity.x, velocity.y, velocity.z, (float) PROJECTILE_SPEED, 0.0f);
         level.addFreshEntity(projectile);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.1f, 0.7f + player.getRandom().nextFloat() * 0.2f);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 0.6f, 0.5f);
         level.gameEvent(player, GameEvent.EXPLODE, player.blockPosition());
-        spawnProjectileIgnition(level, origin, velocity);
+        playProjectileLaunchFx(player, origin, velocity, multiplier);
     }
 
     private static ItemStack createProjectileStack() {
@@ -201,45 +188,32 @@ public final class BloodBoneBombAbility {
         ServerLevel level = player.serverLevel();
         Vec3 pos = player.position();
         level.explode(player, pos.x, pos.y, pos.z, 4.0f, Level.ExplosionInteraction.MOB);
-        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.0f, 0.6f);
-        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GHAST_SCREAM, SoundSource.PLAYERS, 1.0f, 0.5f);
-        level.sendParticles(ParticleTypes.CRIMSON_SPORE, pos.x, pos.y + player.getBbHeight() * 0.5, pos.z, 120, 0.6, 0.5, 0.6, 0.1);
+        playChargeFailureFx(player);
         applyTrueDamage(player, player, 50.0f);
     }
 
-    private static void spawnProjectileIgnition(ServerLevel level, Vec3 origin, Vec3 velocity) {
-        for (int i = 0; i < 30; i++) {
-            double progress = i / 30.0;
-            Vec3 point = origin.add(velocity.scale(progress * 0.2));
-            level.sendParticles(BONE_GLINT, point.x, point.y, point.z, 1, 0.05, 0.05, 0.05, 0.01);
-        }
-        level.sendParticles(ParticleTypes.EXPLOSION, origin.x, origin.y, origin.z, 1, 0.0, 0.0, 0.0, 0.0);
+    private static void playChargeStartFx(ServerPlayer player) {
+        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_START, Vec3.ZERO, 1.0F);
     }
 
-    private static void spawnChargingParticles(ServerPlayer player, ChargeState state) {
-        ServerLevel level = player.serverLevel();
-        double centerY = player.getY() + player.getBbHeight() * 0.5;
-        double radius = 0.7 + 0.25 * Math.sin(state.ticksElapsed / 6.0);
-        int strands = 6;
-        for (int i = 0; i < strands; i++) {
-            double angle = (state.ticksElapsed * 0.25) + (i * (Math.PI * 2.0 / strands));
-            double x = player.getX() + Math.cos(angle) * radius;
-            double z = player.getZ() + Math.sin(angle) * radius;
-            level.sendParticles(BLOOD_SWIRL, x, centerY, z, 1, 0.0, 0.05, 0.0, 0.0);
-        }
-        level.sendParticles(BONE_GLINT, player.getX(), centerY - 0.3, player.getZ(), 2, 0.25, 0.15, 0.25, 0.02);
+    private static void playChargeProgressFx(ServerPlayer player, ChargeState state) {
+        float progress = state.ticksElapsed / (float) CHARGE_DURATION_TICKS;
+        float intensity = 0.7F + progress * 0.9F;
+        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_TICK, Vec3.ZERO, intensity);
     }
 
-    private static void playChargeStartCue(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.8f, 0.55f);
-        level.sendParticles(ParticleTypes.CRIMSON_SPORE, player.getX(), player.getY() + player.getBbHeight() * 0.5, player.getZ(), 20, 0.3, 0.3, 0.3, 0.05);
+    private static void playChargeHeartbeatFx(ServerPlayer player, int step) {
+        float intensity = 0.85F + (step * 0.12F);
+        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_HEARTBEAT, Vec3.ZERO, intensity);
     }
 
-    private static void playHeartbeatCue(ServerPlayer player, ChargeState state) {
-        float pitch = 0.6f + (state.soundStep / 10.0f);
-        float volume = 0.6f + (state.soundStep / 12.0f);
-        player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, volume, pitch);
+    private static void playProjectileLaunchFx(ServerPlayer player, Vec3 origin, Vec3 velocity, double multiplier) {
+        float intensity = (float) Math.max(1.0F, 1.0F + multiplier * 0.25F);
+        AbilityFxDispatcher.play(player.serverLevel(), BloodBoneBombFx.PROJECTILE_LAUNCH, origin, velocity, player.getLookAngle(), player, null, intensity);
+    }
+
+    private static void playChargeFailureFx(ServerPlayer player) {
+        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_FAILURE, Vec3.ZERO, 1.25F);
     }
 
     private static void applyChannelImmobilise(ServerPlayer player) {
