@@ -1,0 +1,15 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:entity.player.levelup", "volume": 0.6, "pitch": 1.2 },
+    { "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#66ccff",
+      "size": 1.2,
+      "speed": 0.04,
+      "spread": [0.25, 0.3, 0.25],
+      "offset": [0, 1.2, 0],
+      "count": 28
+    }
+  ]
+}
+
