@@ -10,8 +10,6 @@ import net.minecraft.util.FoodStats;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCItems;
-import net.tigereye.chestcavity.mob_effect.fx.FurnaceFlowState;
-import net.tigereye.chestcavity.mob_effect.fx.FurnacePowerFxHelper;
 
 import java.util.Optional;
 
@@ -33,9 +31,6 @@ public class FurnacePower extends CCStatusEffect{
                     ChestCavityEntity cce = optional.get();
                     ChestCavityInstance cc = cce.getChestCavityInstance();
                     cc.furnaceProgress++;
-                    if (cc.furnaceProgress % FurnacePowerFxHelper.CHARGE_SOUND_INTERVAL == 0) {
-                        FurnacePowerFxHelper.playFx(entity, FurnaceFlowState.CHARGING);
-                    }
                     if (cc.furnaceProgress >= 200) {
                         cc.furnaceProgress = 0;
                         FoodStats hungerManager = ((PlayerEntity) entity).getFoodData();
@@ -43,7 +38,6 @@ public class FurnacePower extends CCStatusEffect{
                         for (int i = 0; i <= amplifier; i++) {
                             hungerManager.eat(CCItems.FURNACE_POWER.get(), furnaceFuel);
                         }
-                        FurnacePowerFxHelper.playFx(entity, FurnaceFlowState.FEEDING);
                     }
                 }
             }
