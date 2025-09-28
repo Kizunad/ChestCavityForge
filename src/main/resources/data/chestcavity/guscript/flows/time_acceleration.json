@@ -1,0 +1,78 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "charging"
+        }
+      ]
+    },
+    "charging": {
+      "enter_fx": ["chestcavity:time_accel_enter"],
+      "enter_actions": [
+        {"type": "apply_effect", "id": "minecraft:speed", "duration": 220, "amplifier": 4, "showParticles": false, "showIcon": true},
+        {"type": "apply_effect", "id": "minecraft:haste", "duration": 220, "amplifier": 4, "showParticles": false, "showIcon": true},
+        {"type": "apply_attribute", "attribute": "minecraft:generic.attack_speed", "modifier": "chestcavity:time_accel_attack", "operation": "add_value", "amount": 1.75},
+        {"type": "apply_attribute", "attribute": "minecraft:generic.movement_speed", "modifier": "chestcavity:time_accel_move", "operation": "add_value", "amount": 0.12},
+        {"type": "set_variable_from_param", "param": "intensity", "name": "time_accel.intensity", "default": 1.0},
+        {"type": "set_variable_from_param", "param": "radius", "name": "time_accel.radius", "default": 8.0},
+        {"type": "set_variable_from_param", "param": "duration_ticks", "name": "time_accel.duration", "default": 200.0}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "charged", "min_ticks": 5},
+        {"trigger": "cancel", "target": "cancel"}
+      ]
+    },
+    "charged": {
+      "update_period": 20,
+      "update_actions": [
+        {"type": "apply_effect", "id": "minecraft:speed", "duration": 220, "amplifier": 4, "showParticles": false, "showIcon": true},
+        {"type": "apply_effect", "id": "minecraft:haste", "duration": 220, "amplifier": 4, "showParticles": false, "showIcon": true},
+        {"type": "area_effect", "id": "minecraft:slowness", "duration": 40, "amplifier": 2, "radius": 8.0, "radius_variable": "time_accel.radius", "hostiles_only": true, "show_particles": false, "show_icon": false},
+        {"type": "area_effect", "id": "minecraft:mining_fatigue", "duration": 40, "amplifier": 1, "radius": 8.0, "radius_variable": "time_accel.radius", "hostiles_only": true, "show_particles": false, "show_icon": false},
+        {"type": "dampen_projectiles", "radius": 8.0, "radius_variable": "time_accel.radius", "factor": 0.55, "cap": 24},
+        {"type": "emit_fx", "fx": "chestcavity:time_accel_loop", "base_intensity": 1.0, "scale_variable": "time_accel.intensity", "default_scale": 1.0},
+        {"type": "add_variable", "name": "time_accel.duration", "value": -20.0},
+        {"type": "clamp_variable", "name": "time_accel.duration", "min": 0.0, "max": 1200.0}
+      ],
+      "transitions": [
+        {
+          "trigger": "auto",
+          "target": "releasing",
+          "min_ticks": 20,
+          "guards": [
+            {"type": "variable_at_most", "name": "time_accel.duration", "maximum": 0.0, "value_type": "double"}
+          ]
+        },
+        {"trigger": "cancel", "target": "cancel"}
+      ]
+    },
+    "releasing": {
+      "enter_fx": ["chestcavity:time_accel_exit"],
+      "enter_actions": [
+        {"type": "remove_attribute", "attribute": "minecraft:generic.attack_speed", "modifier": "chestcavity:time_accel_attack"},
+        {"type": "remove_attribute", "attribute": "minecraft:generic.movement_speed", "modifier": "chestcavity:time_accel_move"}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "cooldown", "min_ticks": 10}
+      ]
+    },
+    "cooldown": {
+      "transitions": [
+        {"trigger": "auto", "target": "idle", "min_ticks": 40}
+      ]
+    },
+    "cancel": {
+      "enter_fx": ["chestcavity:time_accel_exit"],
+      "enter_actions": [
+        {"type": "remove_attribute", "attribute": "minecraft:generic.attack_speed", "modifier": "chestcavity:time_accel_attack"},
+        {"type": "remove_attribute", "attribute": "minecraft:generic.movement_speed", "modifier": "chestcavity:time_accel_move"}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "cooldown", "min_ticks": 10}
+      ]
+    }
+  }
+}

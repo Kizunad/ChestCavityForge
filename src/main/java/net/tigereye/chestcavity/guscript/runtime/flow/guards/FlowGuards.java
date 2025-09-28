@@ -105,4 +105,44 @@ public final class FlowGuards {
             }
         };
     }
+
+    public static FlowGuard variableAtMost(String name, double maximumInclusive, boolean asDouble) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || name == null) {
+                    return false;
+                }
+                if (asDouble) {
+                    return controller.getDouble(name, Double.NEGATIVE_INFINITY) <= maximumInclusive;
+                }
+                return controller.getLong(name, Long.MIN_VALUE) <= (long) Math.floor(maximumInclusive);
+            }
+
+            @Override
+            public String describe() {
+                return "variable_at_most(" + name + ", " + maximumInclusive + ")";
+            }
+        };
+    }
+
+    public static FlowGuard variableAtLeast(String name, double minimumInclusive, boolean asDouble) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (controller == null || name == null) {
+                    return false;
+                }
+                if (asDouble) {
+                    return controller.getDouble(name, Double.POSITIVE_INFINITY) >= minimumInclusive;
+                }
+                return controller.getLong(name, Long.MAX_VALUE) >= (long) Math.ceil(minimumInclusive);
+            }
+
+            @Override
+            public String describe() {
+                return "variable_at_least(" + name + ", " + minimumInclusive + ")";
+            }
+        };
+    }
 }
