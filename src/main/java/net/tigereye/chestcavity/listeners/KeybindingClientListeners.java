@@ -15,6 +15,8 @@ import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCKeybindings;
+import net.tigereye.chestcavity.guscript.network.packets.FlowInputPayload;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowInput;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.registration.CCOrganScores;
@@ -25,6 +27,7 @@ import java.util.Optional;
 
 public class KeybindingClientListeners {
     private static final float WOODEN_SHOVEL_DEBUG_TICK_RATE = 5.0F;
+    private static boolean wasExecuteDown = false;
 
     public static void onClientTick(ClientTickEvent.Post event){
         Player player = Minecraft.getInstance().player;
@@ -39,6 +42,17 @@ public class KeybindingClientListeners {
                 sendTriggerRequest();
             }
         }
+        while (CCKeybindings.GUSCRIPT_CANCEL != null && CCKeybindings.GUSCRIPT_CANCEL.consumeClick()) {
+            if (player != null) {
+                sendFlowInput(FlowInput.CANCEL);
+            }
+        }
+
+        boolean executeDown = CCKeybindings.GUSCRIPT_EXECUTE != null && CCKeybindings.GUSCRIPT_EXECUTE.isDown();
+        if (wasExecuteDown && !executeDown && player != null) {
+            sendFlowInput(FlowInput.RELEASE);
+        }
+        wasExecuteDown = executeDown;
 
         while(CCKeybindings.UTILITY_ABILITIES != null && CCKeybindings.UTILITY_ABILITIES.consumeClick()) {
             if(player != null) {
@@ -165,6 +179,13 @@ public class KeybindingClientListeners {
         var connection = Minecraft.getInstance().getConnection();
         if (connection != null) {
             connection.send(payload);
+        }
+    }
+
+    private static void sendFlowInput(FlowInput input) {
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection != null) {
+            connection.send(new FlowInputPayload(input));
         }
     }
 }
