@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecution
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Executes compiled GuScript programs for a player.
@@ -50,8 +51,10 @@ public final class GuScriptExecutor {
                         .map(root -> root.kind() + ":" + root.name())
                         .toList()
         );
-        RUNTIME.executeAll(cache.roots(), index -> {
-            LivingEntity actualTarget = target == null ? player : target;
+        LivingEntity actualTarget = target == null ? player : target;
+        AtomicInteger rootIndex = new AtomicInteger();
+        RUNTIME.executeAll(cache.roots(), () -> {
+            int index = rootIndex.getAndIncrement();
             DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, actualTarget, index);
             return new DefaultGuScriptContext(player, actualTarget, bridge);
         });
@@ -176,8 +179,10 @@ public final class GuScriptExecutor {
             );
         }
 
-        RUNTIME.executeAll(aggregatedRoots, index -> {
-            LivingEntity actualTarget = target == null ? player : target;
+        LivingEntity actualTarget = target == null ? player : target;
+        AtomicInteger rootIndex = new AtomicInteger();
+        RUNTIME.executeAll(aggregatedRoots, () -> {
+            int index = rootIndex.getAndIncrement();
             DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(player, actualTarget, index);
             return new DefaultGuScriptContext(player, actualTarget, bridge);
         });
