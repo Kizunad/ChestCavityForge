@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Map;
 import java.util.Objects;
+
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,6 +27,7 @@ public final class FlowControllerManager {
             controller.updatePerformer(player);
             return controller;
         });
+
     }
 
     public static void remove(ServerPlayer player) {

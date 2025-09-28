@@ -14,6 +14,7 @@ import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.tigereye.chestcavity.config.CCConfig;
@@ -27,11 +28,15 @@ import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
+
 import net.tigereye.chestcavity.guscript.registry.GuScriptFlowLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptListenerHooks;
 import net.tigereye.chestcavity.guscript.runtime.flow.GuScriptFlowEvents;
+
+import net.tigereye.chestcavity.guscript.registry.FxDefinitionLoader;
+import net.tigereye.chestcavity.guscript.fx.client.FxClientHooks;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -83,8 +88,12 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onServerTick);
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
 		if (FMLEnvironment.dist.isClient()) {
-			NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
-		}
+                        NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
+                }
+
+                if (FMLEnvironment.dist.isClient()) {
+                        bus.addListener(this::registerClientReloadListeners);
+                }
 
 		AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
 		config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
@@ -120,8 +129,9 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 	public void setup(FMLCommonSetupEvent event) {
 	}
 
-	public void doClientStuff(FMLClientSetupEvent event) {
-	}
+        public void doClientStuff(FMLClientSetupEvent event) {
+                FxClientHooks.init();
+        }
 
 	private void registerMenuScreens(RegisterMenuScreensEvent event) {
 		event.register(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), ChestCavityScreen::new);
@@ -140,13 +150,21 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 	}
 
 	private void registerReloadListeners(AddReloadListenerEvent event) {
-		event.addListener(new OrganManager());
-		event.addListener(new GeneratedChestCavityTypeManager());
-		event.addListener(new GeneratedChestCavityAssignmentManager());
-                event.addListener(new GuScriptLeafLoader());
-                event.addListener(new GuScriptRuleLoader());
-                event.addListener(new GuScriptFlowLoader());
-	}
+
+          event.addListener(new OrganManager());
+          event.addListener(new GeneratedChestCavityTypeManager());
+          event.addListener(new GeneratedChestCavityAssignmentManager());
+          event.addListener(new GuScriptLeafLoader());
+          event.addListener(new GuScriptRuleLoader());
+          event.addListener(new GuScriptFlowLoader());
+          event.addListener(new FxDefinitionLoader());
+  }
+
+  private void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
+          event.registerReloadListener(new GuScriptLeafLoader());
+          event.registerReloadListener(new GuScriptRuleLoader());
+          event.registerReloadListener(new FxDefinitionLoader());
+  }
 
 	public static boolean isDebugMode() {
 		return DEBUG_MODE;

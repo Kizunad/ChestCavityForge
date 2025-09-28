@@ -37,6 +37,7 @@ public final class FlowController {
         }
     }
 
+
     public boolean isRunning() {
         return instance != null && !instance.isFinished();
     }

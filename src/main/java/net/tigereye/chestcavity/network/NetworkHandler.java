@@ -23,6 +23,7 @@ import net.tigereye.chestcavity.guscript.network.packets.GuScriptBindingTogglePa
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptPageChangePayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptTriggerPayload;
+import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
 
 public final class NetworkHandler {
 
@@ -41,6 +42,7 @@ public final class NetworkHandler {
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
         registrar.playToClient(FlowSyncPayload.TYPE, FlowSyncPayload.STREAM_CODEC, FlowSyncPayload::handle);
+        registrar.playToClient(FxEventPayload.TYPE, FxEventPayload.STREAM_CODEC, FxEventPayload::handle);
     }
 
 
