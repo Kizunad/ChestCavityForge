@@ -53,6 +53,125 @@
 
 ### UI spacing tweak (branch: `feature/guscript-ui-spacing-tweak`)
 - Shift page navigation button row left by 10 px; shift trigger/listener button stack down by 10 px. Keep proportional spacing and min gutters intact; update defaults or layout math accordingly.
+
+### Relocate Guzhenren abilities into GuScript module
+
+Goal: Move `src/main/java/net/tigereye/chestcavity/compat/guzhenren/ability` under the GuScript module so that Guzhenren-related active skills live alongside GuScript runtime/bridges.
+
+Proposed package target
+- From: `net.tigereye.chestcavity.compat.guzhenren.ability`
+- To (phase 1): `net.tigereye.chestcavity.guscript.ability.guzhenren`
+
+Branching
+- Phase 1 (non-breaking): `feature/guscript-ability-relocation-phase1`
+  - Create new packages/classes and add shims in old package annotated `@Deprecated` forwarding to new implementations.
+  - Keep all registrations and event subscriptions wired through old package to avoid ripple changes.
+  - Compile + run validation.
+- Phase 2 (cutover): `feature/guscript-ability-relocation-phase2`
+  - Update all call sites/registrations/imports to new package.
+  - Remove deprecated shims; clean imports.
+  - Final compile + in-game smoke test.
+
+Detailed steps (Phase 1)
+1) Copy ability classes to `net.tigereye.chestcavity.guscript.ability.guzhenren` preserving public APIs.
+2) Review client/server split: any client-only renderers or keymaps must remain under client-dist guarded subscriptions.
+3) In old package, create thin wrappers that extend/delegate to the new classes; mark `@Deprecated`.
+4) Ensure registry/network IDs remain unchanged; do not rename `ResourceLocation`s or payload `TYPE`s.
+5) Build: `./gradlew compileJava`; address visibility issues by relaxing to `public` where package-private was used.
+
+Detailed steps (Phase 2)
+1) Update registrations (event listeners, keybindings, entity renderers) to import from `guscript.ability.guzhenren`.
+2) Remove shim classes and obsolete imports.
+3) Search usages via `rg` for the old package to confirm zero references.
+4) Final compile and functional test: verify abilities still trigger, render, and consume resources correctly.
+
+Risks & mitigations
+- Reflection/Mixin references to FQCNs: search for fully-qualified names in mixins/config; keep names or update configs accordingly.
+- Access modifiers: classes relying on package-private collaborators may need `public`.
+- Dist separation: keep `@EventBusSubscriber(value = Dist.CLIENT)` where appropriate to avoid classloading on server.
+
+Validation checklist
+- Hotkey bindings and ability triggers still work (no missing IDs).
+- Network payloads unchanged; client/server payload handling intact.
+- Logs: no CNFE/NoSuchMethodError from relocated classes.
+
+## GuScript Effects & Flow Modularization (new feature)
+
+Goal
+- Introduce reusable, data-driven modules for combat “flows” (e.g., charge-up → release) and audiovisual “effects” (particles, sounds, screenshake) that any GuScript kill-move can compose without bespoke Java.
+
+Design pillars
+- Flow as state machine: Idle → Charging → Charged → Releasing → Cooldown → (Cancel). All states/edges data-declarable with guards (resource/condition) and side effects (actions/effects).
+- Effects as composables: small, stateless emitters (particle burst, trail, sound cue, camera kick) that run client-only via a registry and can be scheduled on flow edges.
+- Script-agnostic: wiring lives in GuScript runtime; any operator node can attach a Flow program and Effect bundles via JSON.
+- Determinism + sync: server owns flow state; clients mirror via lightweight S2C updates with timestamps/normalised progress.
+
+Proposed packages
+- `net.tigereye.chestcavity.guscript.flow`
+  - `FlowProgram` (immutable data), `FlowState`, `FlowInstance` (runtime), `FlowGuard`, `FlowEdgeAction`
+  - Guards: resource available, cooldown ready, target in range/LOS, item present, linkage ≥ X
+  - Actions: schedule GuScript actions, set cooldown, consume resource/hp, push velocity
+- `net.tigereye.chestcavity.guscript.fx`
+  - `FxEmitter` (functional), `FxRegistry`, built-ins: `Particles`, `Sound`, `ScreenShake`, `LightFlash`, `Trail`
+  - Client hook: register emitters; server schedules via S2C `FxEventPayload`
+- `net.tigereye.chestcavity.guscript.data.flow`/`data/fx`
+  - Codecs/JSON schema; datapack loaders; validation and logs
+
+Runtime API (high level)
+- Flow
+  - `FlowProgram` describes states, edges and callbacks; an edge can reference: (a) GuScript action list, (b) Fx bundle id(s)
+  - `FlowInstance.tick(server)` advances by guards/time; emits S2C updates for client mirrors
+  - `FlowController` binds a program to a performer+target per trigger (keybind/listener)
+- FX
+  - `FxRegistry.register(id, FxEmitter)`; `FxBus.play(id, FxContext)` (client)
+  - Context carries positions, direction, color/intensity, owner entity id, seeded rng
+
+Data format (example)
+```json
+{
+  "id": "chestcavity:charge_and_burst",
+  "states": [
+    {"name": "idle"},
+    {"name": "charging", "duration": 30, "on_enter_fx": ["fx:charge_loop"], "on_update_fx": ["fx:charge_sparks"]},
+    {"name": "charged", "duration": 10, "on_enter_fx": ["fx:charged_glow"]},
+    {"name": "releasing", "on_enter_actions": [ {"id":"emit.projectile","projectileId":"minecraft:arrow","damage":6} ], "on_enter_fx": ["fx:burst"]}
+  ],
+  "edges": [
+    {"from": "idle", "to": "charging", "guard": {"id":"resource.ready","zhenyuan":5}},
+    {"from": "charging", "to": "charged", "after": 30},
+    {"from": "charged", "to": "releasing", "input": "release"},
+    {"from": "charging", "to": "idle", "input": "cancel"}
+  ],
+  "cooldown_ticks": 60
+}
+```
+
+Networking
+- S2C: `FlowSyncPayload` (performer id, program id, state, t, random seed) — drives client-side FX deterministically.
+- C2S: `FlowInputPayload` (performer id, input=release/cancel) — e.g., key-up to release。
+
+Phased delivery & branches
+- Phase 1 (core flow runtime) — `feature/guscript-flow-modules`
+  - Implement `FlowProgram/Instance/Controller`, guards/actions minimal set；wire to keybind/listener trigger path；server-only progression + shallow S2C mirror。
+  - Add codecs + loader `data/chestcavity/guscript/flows/*.json`；logs + validation。
+- Phase 2 (FX emitters) — `feature/guscript-fx-modules`
+  - Implement `FxRegistry` + built-ins；client register on startup；S2C `FxEventPayload`；basic `FxContext` from performer/target。
+  - Provide example fx json under `data/chestcavity/guscript/fx/*.json`。
+- Phase 3 (integration)
+  - Allow GuScript operator nodes to reference `flow_id` + `fx_bundles`；when a root executes, install a flow instance instead of immediate fire (if present)。
+  - Backwards compatible: no `flow_id` → current immediate actions。
+- Phase 4 (migration)
+  - Migrate selected Guzhenren abilities to flow+fx（e.g., charge-up bow, burst, lingering trail）；remove ad hoc timers from scattered listeners。
+
+Acceptance criteria
+- A demo flow (charge-hold-release) works across server+client；release emits projectile and plays FX；cancel returns to idle；cooldown enforced。
+- Flow-json hot-reload via reload listeners；invalid flows are rejected with clear logs。
+- FX emitters render client-only without server classloading; no CNFE; configurable intensity/color via json。
+
+Risks & mitigations
+- Desync: include `gameTime` or monotonic tick in sync payloads; clamp client visuals to server state。
+- Performance: cap max concurrent flow instances per entity; pool FX spawners；expose config。
+- UX: add HUD hints for charge progress later; not in MVP。
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
   - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
