@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.guscript.data.GuScriptProgramCache;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -227,6 +228,7 @@ public final class GuScriptExecutor {
             }
             return Integer.compare(left.originalIndex(), right.originalIndex());
         });
+
         return ordered.stream().map(OrderedRoot::node).toList();
     }
 

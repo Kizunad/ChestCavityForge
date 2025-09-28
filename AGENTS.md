@@ -247,6 +247,28 @@ Acceptance
 Status
 - Completed (session-scoped modifier exports with ordered execution, config caps, and 2-root/3-root unit coverage).
 
+
+### P1: Preserve compile order for unordered roots
+
+Problem
+- The current ordered execution comparator sorts by `order` then `ruleId`/`name`. For roots without explicit `order` (treated as `Integer.MAX_VALUE`), this reorders them alphabetically, changing legacy behaviour where unordered roots executed in their compilation order. Scripts relying on prior implicit ordering now get different stacking without opting in.
+
+Plan
+- Keep legacy ordering for unordered ties by making the sort stable and returning 0 when comparing two unordered roots, so their original list order is preserved. Only apply secondary tie‑breakers (`ruleId`, `name`, `originalIndex`) when at least one root has an explicit `order` or both share an explicit equal `order`.
+
+Code touchpoint
+- File: `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guscript/runtime/exec/GuScriptExecutor.java`, method `sortRootsForSession`.
+- Change comparator from unconditional tie‑breakers to a conditional one:
+  - If both `order == Integer.MAX_VALUE` (both unordered), comparator should return 0 to preserve input order (stable sort keeps `originalIndex`).
+  - Else fall through to tie‑break on `ruleId`, then `name`, then `originalIndex`.
+
+Branch
+- `hotfix/guscript-session-stacking-order-compat`
+
+Acceptance
+- Unordered roots retain compilation order; adding a single ordered root only repositions that root relative to others. Legacy scripts keep prior stacking unless they opt in via `order`.
+
+
 - **UI spacing upgrade**
   - Need responsive layout for GuScript screen controls. Replace hard-coded pixel offsets with proportional spacing (e.g., derived from slot size / GUI width) and enforce minimum gutter so buttons don’t overlap inventory rows on varied resolutions.
   - Deliver configurable constants (JSON or code) so downstream adjustments don’t require recompilation; document any new properties.
