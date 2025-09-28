@@ -112,6 +112,32 @@ class GuScriptRuntimeTest {
         assertEquals(2, contextsCreated.get(), "Each root should create a fresh context");
     }
 
+    @Test
+    void executeAll_dispatchesEveryReducerRoot() {
+        GuScriptRegistry.LeafDefinition bone = GuScriptRegistry.leaf(ResourceLocation.fromNamespaceAndPath("minecraft", "bone")).orElseThrow();
+        GuScriptRegistry.LeafDefinition blood = GuScriptRegistry.leaf(ResourceLocation.fromNamespaceAndPath("minecraft", "nether_wart")).orElseThrow();
+        GuScriptRegistry.LeafDefinition burst = GuScriptRegistry.leaf(ResourceLocation.fromNamespaceAndPath("minecraft", "gunpowder")).orElseThrow();
+
+        List<GuNode> leaves = List.of(
+                bone.toNode(), blood.toNode(), burst.toNode(),
+                bone.toNode(), blood.toNode(), burst.toNode()
+        );
+
+        GuScriptReducer reducer = new GuScriptReducer();
+        GuScriptReducer.ReductionResult reduced = reducer.reduce(leaves, GuScriptRegistry.reactionRules());
+
+        RecordingBridge bridge = new RecordingBridge();
+        AtomicInteger contextsCreated = new AtomicInteger();
+        GuScriptRuntime runtime = new GuScriptRuntime();
+        runtime.executeAll(reduced.roots(), () -> {
+            contextsCreated.incrementAndGet();
+            return new RecordingContext(bridge);
+        });
+
+        assertEquals(2, bridge.projectiles.get(), "All composite kill moves should fire projectiles");
+        assertTrue(contextsCreated.get() >= 2, "Each root should request a context");
+    }
+
     private static final class RecordingBridge implements GuScriptExecutionBridge {
         final AtomicInteger zhenyuan = new AtomicInteger();
         final AtomicInteger health = new AtomicInteger();
