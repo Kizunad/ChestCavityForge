@@ -173,8 +173,20 @@ public final class GuScriptReducer {
     private static GuNode adjustCompositeKind(GuNode node) {
         if (node instanceof OperatorGuNode operator) {
             if (operator.kind() == GuNodeKind.OPERATOR && operator.children().stream().noneMatch(GuNode::isLeaf)) {
-                return new OperatorGuNode(operator.operatorId(), operator.name(), GuNodeKind.COMPOSITE,
-                        operator.tags(), operator.actions(), operator.children());
+                Integer order = operator.executionOrder().isPresent() ? operator.executionOrder().getAsInt() : null;
+                return new OperatorGuNode(
+                        operator.operatorId(),
+                        operator.name(),
+                        GuNodeKind.COMPOSITE,
+                        operator.tags(),
+                        operator.actions(),
+                        operator.children(),
+                        order,
+                        operator.exportMultiplier(),
+                        operator.exportFlat(),
+                        operator.flowId().orElse(null),
+                        operator.flowParams()
+                );
             }
         }
         return node;

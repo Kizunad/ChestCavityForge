@@ -12,6 +12,7 @@
     "tags": ["杀招"],
     "actions": [
       { "id": "emit.projectile", "projectileId": "minecraft:arrow", "damage": 6.0 }
-    ]
+    ],
+    "flow_id": "chestcavity:demo_charge_release"
   }
 }

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.runtime.exec;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.ChestCavity;
@@ -11,10 +12,17 @@ import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.guscript.data.GuScriptPageState;
 import net.tigereye.chestcavity.guscript.data.GuScriptProgramCache;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
+import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
+import net.tigereye.chestcavity.guscript.runtime.exec.ExecutionSession;
+import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptCompiler;
+import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptRuntime;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -37,9 +45,10 @@ public final class GuScriptExecutor {
             return;
         }
         int pageIndex = attachment.getCurrentPageIndex();
+        GuScriptPageState page = attachment.activePage();
         GuScriptProgramCache cache = GuScriptCompiler.compilePageIfNeeded(
                 attachment,
-                attachment.activePage(),
+                page,
                 pageIndex,
                 player.level().getGameTime()
         );
@@ -66,7 +75,9 @@ public final class GuScriptExecutor {
         );
         List<GuNode> sortedRoots = sortRootsForSession(cache.roots());
         logRootOrdering(player, pageIndex, sortedRoots);
-        executeRootsWithSession(sortedRoots, player, actualTarget, session);
+        ResourceLocation defaultFlowId = page.flowId().orElse(null);
+        Map<String, String> defaultFlowParams = page.flowParams();
+        executeRootsWithSession(sortedRoots, player, actualTarget, session, defaultFlowId, defaultFlowParams);
     }
 
     public static void triggerKeybind(ServerPlayer player, LivingEntity target, GuScriptAttachment attachment) {
@@ -195,7 +206,7 @@ public final class GuScriptExecutor {
         );
         List<GuNode> sortedRoots = sortRootsForSession(aggregatedRoots);
         logRootOrdering(player, -1, sortedRoots);
-        executeRootsWithSession(sortedRoots, player, actualTarget, session);
+        executeRootsWithSession(sortedRoots, player, actualTarget, session, null, Map.of());
     }
 
     static List<GuNode> sortRootsForSession(List<GuNode> roots) {
@@ -232,13 +243,61 @@ public final class GuScriptExecutor {
         return ordered.stream().map(OrderedRoot::node).toList();
     }
 
-    private static void executeRootsWithSession(List<GuNode> roots, ServerPlayer performer, LivingEntity target, ExecutionSession session) {
+    private static void executeRootsWithSession(
+            List<GuNode> roots,
+            ServerPlayer performer,
+            LivingEntity target,
+            ExecutionSession session,
+            ResourceLocation defaultFlowId,
+            Map<String, String> defaultFlowParams
+    ) {
         if (roots.isEmpty()) {
             return;
         }
+        Map<String, String> safeDefaultFlowParams = defaultFlowParams == null ? Map.of() : defaultFlowParams;
+        boolean defaultFlowConsumed = false;
         AtomicInteger rootIndex = new AtomicInteger();
         for (GuNode root : roots) {
             int index = rootIndex.getAndIncrement();
+            ResourceLocation flowToStart = null;
+            Map<String, String> flowParams = Map.of();
+            boolean flowFromPage = false;
+            if (root instanceof OperatorGuNode operator) {
+                if (operator.flowId().isPresent()) {
+                    flowToStart = operator.flowId().get();
+                    flowParams = operator.flowParams();
+                } else if (!defaultFlowConsumed && defaultFlowId != null) {
+                    flowToStart = defaultFlowId;
+                    flowParams = safeDefaultFlowParams;
+                    flowFromPage = true;
+                    defaultFlowConsumed = true;
+                }
+            }
+            if (flowToStart != null) {
+                String source = flowFromPage ? "page" : "operator";
+                var program = FlowProgramRegistry.get(flowToStart);
+                if (program.isPresent()) {
+                    FlowControllerManager.get(performer)
+                            .start(program.get(), target, performer.level().getGameTime());
+                    ChestCavity.LOGGER.info(
+                            "[GuScript] Root {}#{} started flow {} (source={}, params={})",
+                            root.name(),
+                            index,
+                            flowToStart,
+                            source,
+                            flowParams.isEmpty() ? "{}" : flowParams
+                    );
+                    continue;
+                } else {
+                    ChestCavity.LOGGER.warn(
+                            "[GuScript] Root {}#{} referenced unknown flow {} (source={}). Falling back to immediate execution.",
+                            root.name(),
+                            index,
+                            flowToStart,
+                            source
+                    );
+                }
+            }
             DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(performer, target, index);
             DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge, session);
             if (root instanceof OperatorGuNode operator) {
