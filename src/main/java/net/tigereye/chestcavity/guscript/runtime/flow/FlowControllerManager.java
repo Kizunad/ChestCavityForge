@@ -32,7 +32,10 @@ public final class FlowControllerManager {
 
     public static void remove(ServerPlayer player) {
         if (player != null) {
-            CONTROLLERS.remove(player.getUUID());
+            FlowController controller = CONTROLLERS.remove(player.getUUID());
+            if (controller != null) {
+                controller.shutdown();
+            }
         }
     }
 }

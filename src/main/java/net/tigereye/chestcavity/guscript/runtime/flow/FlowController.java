@@ -5,10 +5,15 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.guscript.runtime.flow.sync.FlowSyncDispatcher;
 
+import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.function.Supplier;
 
 /**
  * Runtime controller binding a {@link FlowProgram} to a performer.
@@ -21,6 +26,11 @@ public final class FlowController {
     private final Map<String, Double> doubleVariables = new java.util.HashMap<>();
     private final java.util.PriorityQueue<ScheduledTask> scheduledTasks = new java.util.PriorityQueue<>();
     private FlowInstance instance;
+    /** FIFO queue of pending flow start requests. */
+    private final Queue<QueuedStart> pending = new ArrayDeque<>();
+    /** Preview context used when revalidating queued guards without instantiating a flow. */
+    private boolean previewActive;
+    private Map<String, String> previewParams = Map.of();
 
     public FlowController(ServerPlayer performer) {
         this.performer = Objects.requireNonNull(performer, "performer");
@@ -60,29 +70,64 @@ public final class FlowController {
                 FlowSyncDispatcher.syncStopped(performer, instance);
                 clearRuntimeState();
                 instance = null;
+                drainQueue(serverLevel.getGameTime());
             }
+            return;
         }
+        drainQueue(serverLevel.getGameTime());
     }
 
-    public void start(FlowProgram program, LivingEntity target, java.util.Map<String, String> flowParams, long gameTime) {
-        start(program, target, 1.0, flowParams, gameTime);
+    public boolean start(FlowProgram program, LivingEntity target, java.util.Map<String, String> flowParams, long gameTime) {
+        return start(program, target, 1.0, flowParams, gameTime, null);
     }
 
-    public void start(FlowProgram program, LivingEntity target, double timeScale, java.util.Map<String, String> flowParams, long gameTime) {
+    public boolean start(FlowProgram program, LivingEntity target, double timeScale, java.util.Map<String, String> flowParams, long gameTime) {
+        return start(program, target, timeScale, flowParams, gameTime, null);
+    }
+
+    public boolean start(FlowProgram program, LivingEntity target, double timeScale, java.util.Map<String, String> flowParams,
+                         long gameTime, String sourceDescriptor) {
         if (program == null) {
-            return;
+            return false;
         }
+        double safeTimeScale = Math.max(0.0D, timeScale);
+        Map<String, String> safeParams = flowParams == null ? java.util.Map.of() : java.util.Map.copyOf(flowParams);
+        String descriptor = sourceDescriptor == null ? program.id().toString() : sourceDescriptor;
         if (isRunning()) {
-            ChestCavity.LOGGER.debug("[Flow] Ignoring start for {} because flow {} already running", performer.getGameProfile().getName(), instance.program().id());
-            return;
+            if (!queueEnabled()) {
+                ChestCavity.LOGGER.info(
+                        "[Flow] {} ignored new request for {} (source={}) because a flow is already running",
+                        performerName(),
+                        program.id(),
+                        descriptor
+                );
+                return false;
+            }
+            boolean enqueued = enqueue(program, target, safeTimeScale, safeParams, gameTime, descriptor);
+            if (enqueued) {
+                ChestCavity.LOGGER.info(
+                        "[Flow] {} enqueued {} (source={}, queueSize={}/{})",
+                        performerName(),
+                        program.id(),
+                        descriptor,
+                        pending.size(),
+                        maxQueueLength()
+                );
+            }
+            return enqueued;
         }
-        clearRuntimeState();
-        java.util.Map<String, String> safeParams = flowParams == null ? java.util.Map.of() : java.util.Map.copyOf(flowParams);
-        instance = new FlowInstance(program, performer, target, this, Math.max(0.0, timeScale), safeParams, gameTime);
-        FlowSyncDispatcher.syncState(performer, instance);
-        if (!instance.attemptStart(gameTime)) {
-            ChestCavity.LOGGER.debug("[Flow] Flow {} stayed in {} after start trigger", program.id(), instance.state());
+        boolean started = startInternal(program, target, safeTimeScale, safeParams, gameTime, descriptor);
+        if (started) {
+            ChestCavity.LOGGER.info(
+                    "[Flow] {} accepted and started {} (source={}, timeScale={}, params={})",
+                    performerName(),
+                    program.id(),
+                    descriptor,
+                    formatDouble(safeTimeScale),
+                    safeParams.isEmpty() ? "{}" : safeParams
+            );
         }
+        return started;
     }
 
     public void handleInput(FlowInput input, long gameTime) {
@@ -168,17 +213,32 @@ public final class FlowController {
     }
 
     public String resolveFlowParam(String key) {
-        if (instance == null) {
-            return null;
+        if (instance != null) {
+            return instance.resolveParam(key).orElse(null);
         }
-        return instance.resolveParam(key).orElse(null);
+        if (previewActive && key != null) {
+            return previewParams.get(key);
+        }
+        return null;
     }
 
     public double resolveFlowParamAsDouble(String key, double defaultValue) {
-        if (instance == null) {
-            return defaultValue;
+        if (instance != null) {
+            return instance.resolveParamAsDouble(key, defaultValue);
         }
-        return instance.resolveParamAsDouble(key, defaultValue);
+        if (previewActive && key != null) {
+            String raw = previewParams.get(key);
+            if (raw != null) {
+                try {
+                    double parsed = Double.parseDouble(raw);
+                    if (!Double.isNaN(parsed) && !Double.isInfinite(parsed)) {
+                        return parsed;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return defaultValue;
     }
 
     public void schedule(long executeAtTick, Runnable runnable) {
@@ -190,6 +250,90 @@ public final class FlowController {
 
     FlowInstance currentInstance() {
         return instance;
+    }
+
+    /**
+     * @return {@code true} when at least one queued start is waiting to be executed.
+     */
+    public boolean hasPending() {
+        return !pending.isEmpty();
+    }
+
+    /** Visible for testing to assert queue length. */
+    int pendingSize() {
+        return pending.size();
+    }
+
+    /**
+     * Attempt to start the next eligible flow in the queue.
+     *
+     * @param gameTime current game time used for guard validation and logging
+     */
+    void drainQueue(long gameTime) {
+        if (instance != null || pending.isEmpty()) {
+            return;
+        }
+        if (!queueEnabled()) {
+            pending.clear();
+            return;
+        }
+        int safetyCounter = pending.size();
+        while (instance == null && !pending.isEmpty() && safetyCounter-- >= 0) {
+            QueuedStart queued = pending.poll();
+            if (queued == null) {
+                continue;
+            }
+            if (shouldRevalidateQueuedGuards() && !canStartQueued(queued, gameTime)) {
+                int limit = guardRetryLimit();
+                queued.guardFailures++;
+                boolean retry = queued.guardFailures <= limit;
+                ChestCavity.LOGGER.info(
+                        "[Flow] {} dequeued {} but guards failed (source={}, attempt={}, retry={})",
+                        performerName(),
+                        queued.program.id(),
+                        queued.sourceDescriptor,
+                        queued.guardFailures,
+                        retry
+                );
+                if (retry) {
+                    pending.add(queued);
+                }
+                if (retry) {
+                    break;
+                }
+                continue;
+            }
+            boolean started = startInternal(
+                    queued.program,
+                    queued.target,
+                    queued.timeScale,
+                    queued.flowParams,
+                    gameTime,
+                    queued.sourceDescriptor
+            );
+            if (started) {
+                ChestCavity.LOGGER.info(
+                        "[Flow] {} dequeued and started {} (source={}, queueSize={} remaining)",
+                        performerName(),
+                        queued.program.id(),
+                        queued.sourceDescriptor,
+                        pending.size()
+                );
+            }
+        }
+        if (safetyCounter < 0 && instance == null && !pending.isEmpty()) {
+            ChestCavity.LOGGER.warn(
+                    "[Flow] {} queue drain aborted due to safety limit (queueSize={})",
+                    performerName(),
+                    pending.size()
+            );
+        }
+    }
+
+    void shutdown() {
+        clearRuntimeState();
+        pending.clear();
+        instance = null;
     }
 
     private void runScheduledTasks(ServerLevel level) {
@@ -211,6 +355,7 @@ public final class FlowController {
         longVariables.clear();
         doubleVariables.clear();
         scheduledTasks.clear();
+        resetPreview();
     }
 
     private static final class ScheduledTask implements Comparable<ScheduledTask> {
@@ -225,6 +370,159 @@ public final class FlowController {
         @Override
         public int compareTo(ScheduledTask other) {
             return Long.compare(this.executeAt, other.executeAt);
+        }
+    }
+
+    private boolean startInternal(FlowProgram program, LivingEntity target, double timeScale, Map<String, String> flowParams,
+                                   long gameTime, String sourceDescriptor) {
+        clearRuntimeState();
+        instance = new FlowInstance(program, performer, target, this, timeScale, flowParams, gameTime);
+        FlowSyncDispatcher.syncState(performer, instance);
+        if (!instance.attemptStart(gameTime)) {
+            ChestCavity.LOGGER.debug(
+                    "[Flow] Flow {} stayed in {} after start trigger (source={})",
+                    program.id(),
+                    instance.state(),
+                    sourceDescriptor
+            );
+        }
+        return true;
+    }
+
+    private boolean enqueue(FlowProgram program, LivingEntity target, double timeScale, Map<String, String> flowParams,
+                             long gameTime, String sourceDescriptor) {
+        if (pending.size() >= maxQueueLength()) {
+            ChestCavity.LOGGER.info(
+                    "[Flow] {} dropped {} (source={}) because the queue is full ({})",
+                    performerName(),
+                    program.id(),
+                    sourceDescriptor,
+                    maxQueueLength()
+            );
+            return false;
+        }
+        pending.add(new QueuedStart(program, target, timeScale, flowParams, gameTime, sourceDescriptor));
+        return true;
+    }
+
+    private boolean canStartQueued(QueuedStart queued, long gameTime) {
+        var definitionOpt = queued.program.definition(queued.program.initialState());
+        if (definitionOpt.isEmpty()) {
+            return true;
+        }
+        List<FlowTransition> transitions = definitionOpt.get().transitionsFor(FlowTrigger.START);
+        if (transitions.isEmpty()) {
+            return true;
+        }
+        return withPreview(queued.flowParams, () -> {
+            for (FlowTransition transition : transitions) {
+                if (!guardsPass(transition, queued.target, gameTime)) {
+                    continue;
+                }
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private boolean guardsPass(FlowTransition transition, LivingEntity target, long gameTime) {
+        for (FlowGuard guard : transition.guards()) {
+            try {
+                if (!guard.test(performer, target, this, gameTime)) {
+                    return false;
+                }
+            } catch (Exception ex) {
+                ChestCavity.LOGGER.error(
+                        "[Flow] Guard {} threw while validating queued start for performer {}",
+                        guard.describe(),
+                        performerName(),
+                        ex
+                );
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Executes {@code task} while exposing the provided parameters as the current flow context.
+     * This allows guard evaluation without constructing a {@link FlowInstance}.
+     */
+    private <T> T withPreview(Map<String, String> params, Supplier<T> task) {
+        boolean previous = previewActive;
+        Map<String, String> previousParams = previewParams;
+        previewActive = true;
+        previewParams = params == null ? Map.of() : params;
+        try {
+            return task.get();
+        } finally {
+            previewActive = previous;
+            previewParams = previousParams;
+        }
+    }
+
+    private void resetPreview() {
+        previewActive = false;
+        previewParams = Map.of();
+    }
+
+    private boolean queueEnabled() {
+        CCConfig config = ChestCavity.config;
+        return config != null
+                && config.GUSCRIPT_EXECUTION != null
+                && config.GUSCRIPT_EXECUTION.enableFlowQueue;
+    }
+
+    private int maxQueueLength() {
+        CCConfig config = ChestCavity.config;
+        if (config == null || config.GUSCRIPT_EXECUTION == null) {
+            return 4;
+        }
+        return Math.max(1, config.GUSCRIPT_EXECUTION.maxFlowQueueLength);
+    }
+
+    private boolean shouldRevalidateQueuedGuards() {
+        CCConfig config = ChestCavity.config;
+        return config == null
+                || config.GUSCRIPT_EXECUTION == null
+                || config.GUSCRIPT_EXECUTION.revalidateQueuedGuards;
+    }
+
+    private int guardRetryLimit() {
+        CCConfig config = ChestCavity.config;
+        if (config == null || config.GUSCRIPT_EXECUTION == null) {
+            return 0;
+        }
+        return Math.max(0, config.GUSCRIPT_EXECUTION.queuedGuardRetryLimit);
+    }
+
+    private String performerName() {
+        return performer != null ? performer.getGameProfile().getName() : "<unbound>";
+    }
+
+    private static String formatDouble(double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
+    }
+
+    /** Immutable description of a queued flow start request. */
+    private static final class QueuedStart {
+        private final FlowProgram program;
+        private final LivingEntity target;
+        private final double timeScale;
+        private final Map<String, String> flowParams;
+        private final long requestedAtGameTime;
+        private final String sourceDescriptor;
+        private int guardFailures;
+
+        private QueuedStart(FlowProgram program, LivingEntity target, double timeScale, Map<String, String> flowParams,
+                            long requestedAtGameTime, String sourceDescriptor) {
+            this.program = Objects.requireNonNull(program, "program");
+            this.target = target;
+            this.timeScale = Math.max(0.0D, timeScale);
+            this.flowParams = flowParams == null ? Map.of() : Map.copyOf(flowParams);
+            this.requestedAtGameTime = requestedAtGameTime;
+            this.sourceDescriptor = sourceDescriptor == null ? program.id().toString() : sourceDescriptor;
+            this.guardFailures = 0;
         }
     }
 }
