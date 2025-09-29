@@ -12,13 +12,8 @@
     "tags": ["加速", "蓄力"],
     "order": 0,
     "export_modifiers": { "multiplier": true },
-    "flow_id": "chestcavity:time_acceleration",
-    "flow_params": {
-      "intensity": "1.0",
-      "duration_ticks": "200",
-      "time.accelerate": "2.0"
-    },
     "actions": [
+      { "id": "export.time_scale_mult", "amount": 2.0 },
       { "id": "export.modifier.multiplier", "amount": 0.5 }
     ]
   }

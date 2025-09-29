@@ -101,6 +101,8 @@ dependencies {
     testImplementation 'com.google.guava:guava:33.3.1-jre'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
 
 
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'

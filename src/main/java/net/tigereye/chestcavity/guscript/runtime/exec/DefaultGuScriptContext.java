@@ -18,6 +18,9 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     private double addedFlat;
     private double directMultiplierExports;
     private double directFlatExports;
+    private double directTimeScaleMultiplier = 1.0D;
+    private boolean hasDirectTimeScaleMultiplier;
+    private double directTimeScaleFlat;
     private boolean exportMultiplierDelta;
     private boolean exportFlatDelta;
 
@@ -99,6 +102,29 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     }
 
     @Override
+    public void exportTimeScaleMultiplier(double multiplier) {
+        if (Double.isNaN(multiplier) || Double.isInfinite(multiplier) || multiplier <= 0.0D) {
+            return;
+        }
+        directTimeScaleMultiplier *= multiplier;
+        hasDirectTimeScaleMultiplier = true;
+        if (session != null) {
+            session.exportTimeScaleMultiplier(multiplier);
+        }
+    }
+
+    @Override
+    public void exportTimeScaleFlat(double amount) {
+        if (Double.isNaN(amount) || Double.isInfinite(amount) || amount == 0.0D) {
+            return;
+        }
+        directTimeScaleFlat += amount;
+        if (session != null) {
+            session.exportTimeScaleFlat(amount);
+        }
+    }
+
+    @Override
     public void enableModifierExports(boolean exportMultiplier, boolean exportFlat) {
         this.exportMultiplierDelta = exportMultiplier;
         this.exportFlatDelta = exportFlat;
@@ -122,5 +148,15 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     @Override
     public double directExportedFlat() {
         return directFlatExports;
+    }
+
+    @Override
+    public double directExportedTimeScaleMultiplier() {
+        return hasDirectTimeScaleMultiplier ? directTimeScaleMultiplier : 1.0D;
+    }
+
+    @Override
+    public double directExportedTimeScaleFlat() {
+        return directTimeScaleFlat;
     }
 }
