@@ -45,6 +45,28 @@ import java.util.function.Consumer;
 
 public class ChestCavityUtil {
 
+    private static final ThreadLocal<Boolean> ORGAN_HEAL_GUARD = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+    public static void runWithOrganHeal(Runnable action) {
+        if (action == null) {
+            return;
+        }
+        if (Boolean.TRUE.equals(ORGAN_HEAL_GUARD.get())) {
+            action.run();
+            return;
+        }
+        ORGAN_HEAL_GUARD.set(Boolean.TRUE);
+        try {
+            action.run();
+        } finally {
+            ORGAN_HEAL_GUARD.set(Boolean.FALSE);
+        }
+    }
+
+    public static boolean isOrganHealGuardActive() {
+        return Boolean.TRUE.equals(ORGAN_HEAL_GUARD.get());
+    }
+
     public static void addOrganScore(ResourceLocation id, float value, Map<ResourceLocation,Float> organScores){
         organScores.put(id,organScores.getOrDefault(id,0f)+value);
     }
@@ -726,7 +748,8 @@ public class ChestCavityUtil {
                     totalHeal += Math.max(0f, ctx.listener.getHealingPerTick(cc.owner, cc, ctx.organ));
                 }
                 if (totalHeal > 0f && cc.owner.getHealth() < cc.owner.getMaxHealth()) {
-                    cc.owner.heal(totalHeal);
+                    float healAmount = totalHeal;
+                    runWithOrganHeal(() -> cc.owner.heal(healAmount));
                 }
             }
             organUpdate(cc);

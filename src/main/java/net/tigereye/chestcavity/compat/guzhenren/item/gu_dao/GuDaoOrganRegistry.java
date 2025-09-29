@@ -1,12 +1,16 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
 
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GangjinguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.HuGuguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.JingtieguguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.TieGuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHealing;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.List;
@@ -19,6 +23,9 @@ public final class GuDaoOrganRegistry {
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation BONE_BAMBOO_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
+    private static final ResourceLocation STEEL_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "ganjingu");
+    private static final ResourceLocation IRON_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tie_gu_gu");
+    private static final ResourceLocation REFINED_IRON_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jingtiegugu");
     private static final ResourceLocation BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_qiang_gu");
     private static final ResourceLocation SPIRAL_BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "luo_xuan_gu_qiang_gu");
     private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
@@ -32,6 +39,25 @@ public final class GuDaoOrganRegistry {
                 OrganIntegrationSpec.builder(BONE_BAMBOO_ID)
                         .addSlowTickListener(GuzhuguOrganBehavior.INSTANCE)
                         .ensureAttached(GuzhuguOrganBehavior.INSTANCE::ensureAttached)
+                        .build(),
+                OrganIntegrationSpec.builder(STEEL_BONE_ID)
+                        .addSlowTickListener(GangjinguOrganBehavior.INSTANCE)
+                        .addOnHitListener(GangjinguOrganBehavior.INSTANCE)
+                        .addHealListener(SteelBoneComboHealing.INSTANCE)
+                        .ensureAttached(GangjinguOrganBehavior.INSTANCE::ensureAttached)
+                        .build(),
+                OrganIntegrationSpec.builder(IRON_BONE_ID)
+                        .addSlowTickListener(TieGuGuOrganBehavior.INSTANCE)
+                        .addRemovalListener(TieGuGuOrganBehavior.INSTANCE)
+                        .ensureAttached(TieGuGuOrganBehavior.INSTANCE::ensureAttached)
+                        .onEquip(TieGuGuOrganBehavior.INSTANCE::onEquip)
+                        .build(),
+                OrganIntegrationSpec.builder(REFINED_IRON_BONE_ID)
+                        .addSlowTickListener(JingtieguguOrganBehavior.INSTANCE)
+                        .addRemovalListener(JingtieguguOrganBehavior.INSTANCE)
+                        .addHealListener(SteelBoneComboHealing.INSTANCE)
+                        .ensureAttached(JingtieguguOrganBehavior.INSTANCE::ensureAttached)
+                        .onEquip(JingtieguguOrganBehavior.INSTANCE::onEquip)
                         .build(),
                 OrganIntegrationSpec.builder(BONE_SPEAR_ID)
                         .addSlowTickListener(GuQiangguOrganBehavior.INSTANCE)
