@@ -1,0 +1,15 @@
+{
+  "arity": 1,
+  "priority": -100,
+  "required": { "星道": 1 },
+  "result": {
+    "name": "废能·星",
+    "operator_id": "chestcavity:waste_xing",
+    "kind": "composite",
+    "tags": ["废能"],
+    "actions": [
+      { "id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": -10.0 },
+      { "id": "guzhenren.adjust", "identifier": "jingli", "amount": -10.0 }
+    ]
+  }
+}
