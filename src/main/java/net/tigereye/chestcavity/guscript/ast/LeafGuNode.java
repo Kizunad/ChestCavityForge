@@ -5,6 +5,7 @@ import com.google.common.collect.Multiset;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 
 /**
  * Leaf node representing an individual Gu (蛊虫) with intrinsic tags and actions.

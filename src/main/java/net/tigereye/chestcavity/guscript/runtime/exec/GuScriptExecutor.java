@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.guscript.data.BindingTarget;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.guscript.data.GuScriptPageState;
 import net.tigereye.chestcavity.guscript.data.GuScriptProgramCache;
+import net.tigereye.chestcavity.guscript.runtime.GuNodeOrdering;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.exec.ExecutionSession;
@@ -24,7 +25,6 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -522,6 +522,15 @@ public final class GuScriptExecutor {
             }
         }
         return "unknown";
+    }
+
+    private static boolean preferUiOrderEnabled() {
+        CCConfig config = ChestCavity.config;
+        if (config == null) {
+            return true;
+        }
+        CCConfig.GuScriptExecutionConfig execution = config.GUSCRIPT_EXECUTION;
+        return execution == null || execution.preferUiOrder;
     }
 
     private static final class PendingFlowStart {

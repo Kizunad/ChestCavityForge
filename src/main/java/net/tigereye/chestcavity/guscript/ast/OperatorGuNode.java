@@ -27,22 +27,36 @@ public final class OperatorGuNode implements GuNode {
     private final boolean exportFlat;
     private final ResourceLocation flowId;
     private final Map<String, String> flowParams;
+    private final Integer primarySlotIndex;
+    private final Integer adjacencySpanHint;
+    private final Integer rulePriority;
+    private final Integer pageIndexHint;
+    private final Integer reductionSequence;
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children) {
-        this(operatorId, name, kind, tags, actions, children, null, false, false, null, Map.of());
+        this(operatorId, name, kind, tags, actions, children, null, false, false, null, Map.of(), null, null, null, null, null);
     }
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children,
                           Integer executionOrder, boolean exportMultiplier, boolean exportFlat) {
-        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, null, Map.of());
+        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, null, Map.of(), null, null, null, null, null);
     }
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children,
                           Integer executionOrder, boolean exportMultiplier, boolean exportFlat,
                           ResourceLocation flowId, Map<String, String> flowParams) {
+        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, flowId, flowParams, null, null, null, null, null);
+    }
+
+    private OperatorGuNode(String operatorId, String name, GuNodeKind kind,
+                          Multiset<String> tags, List<Action> actions, List<GuNode> children,
+                          Integer executionOrder, boolean exportMultiplier, boolean exportFlat,
+                          ResourceLocation flowId, Map<String, String> flowParams,
+                          Integer primarySlotIndex, Integer adjacencySpanHint,
+                          Integer rulePriority, Integer pageIndexHint, Integer reductionSequence) {
         if (operatorId == null || operatorId.isBlank()) {
             throw new IllegalArgumentException("Operator requires an id");
         }
@@ -64,6 +78,11 @@ public final class OperatorGuNode implements GuNode {
         } else {
             this.flowParams = Collections.unmodifiableMap(new LinkedHashMap<>(flowParams));
         }
+        this.primarySlotIndex = primarySlotIndex;
+        this.adjacencySpanHint = adjacencySpanHint;
+        this.rulePriority = rulePriority;
+        this.pageIndexHint = pageIndexHint;
+        this.reductionSequence = reductionSequence;
     }
 
     public String operatorId() {
@@ -115,6 +134,72 @@ public final class OperatorGuNode implements GuNode {
         return flowParams;
     }
 
+    public OptionalInt primarySlotIndex() {
+        return primarySlotIndex == null ? OptionalInt.empty() : OptionalInt.of(primarySlotIndex);
+    }
+
+    public OptionalInt adjacencySpanHint() {
+        return adjacencySpanHint == null ? OptionalInt.empty() : OptionalInt.of(adjacencySpanHint);
+    }
+
+    public OptionalInt rulePriorityHint() {
+        return rulePriority == null ? OptionalInt.empty() : OptionalInt.of(rulePriority);
+    }
+
+    public OptionalInt pageIndexHint() {
+        return pageIndexHint == null ? OptionalInt.empty() : OptionalInt.of(pageIndexHint);
+    }
+
+    public OptionalInt reductionSequence() {
+        return reductionSequence == null ? OptionalInt.empty() : OptionalInt.of(reductionSequence);
+    }
+
+    public OperatorGuNode withKind(GuNodeKind newKind) {
+        return new OperatorGuNode(
+                operatorId,
+                name,
+                newKind,
+                tags,
+                actions,
+                children,
+                executionOrder,
+                exportMultiplier,
+                exportFlat,
+                flowId,
+                flowParams,
+                primarySlotIndex,
+                adjacencySpanHint,
+                rulePriority,
+                pageIndexHint,
+                reductionSequence
+        );
+    }
+
+    public OperatorGuNode withOrderingMetadata(Integer primarySlotIndex,
+                                               Integer adjacencySpanHint,
+                                               Integer rulePriority,
+                                               Integer pageIndexHint,
+                                               Integer reductionSequence) {
+        return new OperatorGuNode(
+                operatorId,
+                name,
+                kind,
+                tags,
+                actions,
+                children,
+                executionOrder,
+                exportMultiplier,
+                exportFlat,
+                flowId,
+                flowParams,
+                primarySlotIndex,
+                adjacencySpanHint,
+                rulePriority,
+                pageIndexHint,
+                reductionSequence
+        );
+    }
+
     @Override
     public String toString() {
         return "OperatorGuNode{" +
@@ -129,6 +214,11 @@ public final class OperatorGuNode implements GuNode {
                 ", exportFlat=" + exportFlat +
                 ", flowId=" + flowId +
                 ", flowParams=" + flowParams +
+                ", primarySlotIndex=" + primarySlotIndex +
+                ", adjacencySpan=" + adjacencySpanHint +
+                ", rulePriority=" + rulePriority +
+                ", pageIndex=" + pageIndexHint +
+                ", reductionSequence=" + reductionSequence +
                 '}';
     }
 }
