@@ -38,8 +38,11 @@ public class CCItems {
 	// -- 剑道
 	public static final Item GUZHENREN_JIAN_YING_GU = resolveExternalItem("guzhenren", "jian_ying_gu");
 
-	// -- 骨道
-	public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
+        // -- 骨道
+        public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
+        public static final Item GUZHENREN_GAN_JIN_GU = resolveExternalItem("guzhenren", "ganjingu");
+        public static final Item GUZHENREN_TIE_GU_GU = resolveExternalItem("guzhenren", "tie_gu_gu");
+        public static final Item GUZHENREN_JING_TIE_GU_GU = resolveExternalItem("guzhenren", "jingtiegugu");
 
 	// -- 模型类 item
 	public static final Item GUZHENREN_GU_QIANG = resolveExternalItem("guzhenren", "gu_qiang");

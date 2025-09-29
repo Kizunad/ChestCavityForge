@@ -58,7 +58,6 @@ public final class GuScriptCompiler {
                 continue;
             }
             ResourceLocation itemId = stack.getItem().builtInRegistryHolder().key().location();
-            int slotIndex = i;
             GuScriptRegistry.leaf(itemId).ifPresentOrElse(def -> {
                 leaves.add(toScaledLeaf(def, stack.getCount(), pageIndex, slotIndex));
             }, () -> ChestCavity.LOGGER.warn("[GuScript] No leaf definition for item {}", itemId));

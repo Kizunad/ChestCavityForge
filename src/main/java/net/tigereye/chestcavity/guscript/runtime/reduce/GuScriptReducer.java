@@ -207,12 +207,13 @@ public final class GuScriptReducer {
     }
 
     private static Integer normalizeMetadata(int value) {
-        return value == UNKNOWN_SLOT_INDEX ? null : value;
+        return (value == UNKNOWN_SLOT_INDEX || value == UNKNOWN_PAGE_INDEX) ? null : value;
     }
 
     private static int resolvePrimarySlotIndex(GuNode node) {
         if (node instanceof LeafGuNode leaf) {
-            return leaf.slotIndex().orElse(UNKNOWN_SLOT_INDEX);
+            int slot = leaf.slotIndex();
+            return slot >= 0 ? slot : UNKNOWN_SLOT_INDEX;
         }
         if (node instanceof OperatorGuNode operator) {
             return operator.primarySlotIndex().orElse(UNKNOWN_SLOT_INDEX);
@@ -222,7 +223,8 @@ public final class GuScriptReducer {
 
     private static int resolvePageIndex(GuNode node) {
         if (node instanceof LeafGuNode leaf) {
-            return leaf.pageIndex().orElse(UNKNOWN_PAGE_INDEX);
+            int page = leaf.pageIndex();
+            return page >= 0 ? page : UNKNOWN_PAGE_INDEX;
         }
         if (node instanceof OperatorGuNode operator) {
             return operator.pageIndexHint().orElse(UNKNOWN_PAGE_INDEX);
