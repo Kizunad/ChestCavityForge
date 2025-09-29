@@ -48,8 +48,8 @@ public record FxDefinition(List<FxModule> modules) {
         }
     }
 
-    public record ParticleSettings(ResourceLocation particleId, double speed, Vec3 spread, Integer color, float size) {
-        static final ParticleSettings DEFAULT = new ParticleSettings(ResourceLocation.fromNamespaceAndPath("minecraft", "crit"), 0.0D, Vec3.ZERO, null, 1.0F);
+    public record ParticleSettings(ResourceLocation particleId, double speed, Vec3 spread, Integer primaryColor, Integer secondaryColor, float size) {
+        static final ParticleSettings DEFAULT = new ParticleSettings(ResourceLocation.fromNamespaceAndPath("minecraft", "crit"), 0.0D, Vec3.ZERO, null, null, 1.0F);
 
         public ParticleSettings {
             speed = Math.max(0.0D, speed);
