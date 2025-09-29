@@ -552,7 +552,7 @@ glass.break 混合 snow.break 的低沉音效。
 在爆炸点 level.sendParticles，多种粒子叠加。
 播放音效 SoundEvents.GLASS_BREAK + SoundEvents.SNOW_BREAK。
 
-钢筋(  "item.guzhenren.ganjingu": "钢筋蛊",):100 Health 伤害吸收，每秒(OnSlowTick) 恢复 1点精力，近战(Distance < 10方块 判定)攻击有15％概率造成基础攻击力8％的附加伤害（被动）
+钢筋(  "item.guzhenren.ganjingu": "钢筋蛊",):100 Health 伤害吸收，每秒(OnSlowTick) 恢复 1点精力，近战(Distance < 10方块 判定)攻击有15％概率造成 基础攻击力 8％ 的附加伤害（被动）
 Fx: 造成 火花 + 铁跕落地声音
 消耗(OnSlowTick) 1 饱食度维持(若没有饱食度则无上述所有效果) 
 
