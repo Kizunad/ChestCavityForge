@@ -37,6 +37,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double BONUS_DAMAGE_RATIO = 0.08;
     private static final int EFFECT_DURATION_TICKS = 60;
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
+    private static final boolean DEBUG_METAL_BONE = Boolean.getBoolean("chestcavity.debugMetalBoneAbsorption");
 
     private static final ResourceLocation GU_DAO_CHANNEL =
             ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/gu_dao_increase_effect");
@@ -66,7 +67,9 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         if (!SteelBoneComboHelper.consumeMaintenanceHunger(player)) {
-            ChestCavity.LOGGER.info("[compat/guzhenren][steel_bone] hunger gate blocked absorption for {}", describeStack(organ));
+            if (DEBUG_METAL_BONE) {
+                ChestCavity.LOGGER.info("[compat/guzhenren][steel_bone] hunger gate blocked absorption for {}", describeStack(organ));
+            }
             return;
         }
 
@@ -74,12 +77,14 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         double currentAbsorption = player.getAbsorptionAmount();
         var maxAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION);
         double maxAbsorption = maxAttr != null ? maxAttr.getBaseValue() : Double.NaN;
-        ChestCavity.LOGGER.info(
-                "[compat/guzhenren][steel_bone] post-capacity: maxAbsorption={} currentAbsorption={} stacks={}",
-                Double.isNaN(maxAbsorption) ? "<missing>" : String.format(java.util.Locale.ROOT, "%.1f", maxAbsorption),
-                String.format(java.util.Locale.ROOT, "%.1f", currentAbsorption),
-                comboState.steel()
-        );
+        if (DEBUG_METAL_BONE) {
+            ChestCavity.LOGGER.info(
+                    "[compat/guzhenren][steel_bone] post-capacity: maxAbsorption={} currentAbsorption={} stacks={}",
+                    Double.isNaN(maxAbsorption) ? "<missing>" : String.format(java.util.Locale.ROOT, "%.1f", maxAbsorption),
+                    String.format(java.util.Locale.ROOT, "%.1f", currentAbsorption),
+                    comboState.steel()
+            );
+        }
 
         int steelStacks = Math.max(1, comboState.steel());
         applyAbsorption(player, organ, steelStacks);
@@ -102,15 +107,17 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (!firstApplication) {
             long delta = gameTime - lastTick;
             if (delta < ABSORPTION_INTERVAL_TICKS) {
-                ChestCavity.LOGGER.info(
-                        "[compat/guzhenren][steel_bone] interval gate: delta={} interval={} for {}",
-                        delta,
-                        ABSORPTION_INTERVAL_TICKS,
-                        describeStack(organ)
-                );
+                if (DEBUG_METAL_BONE) {
+                    ChestCavity.LOGGER.info(
+                            "[compat/guzhenren][steel_bone] interval gate: delta={} interval={} for {}",
+                            delta,
+                            ABSORPTION_INTERVAL_TICKS,
+                            describeStack(organ)
+                    );
+                }
                 return;
             }
-        } else {
+        } else if (DEBUG_METAL_BONE) {
             ChestCavity.LOGGER.info(
                     "[compat/guzhenren][steel_bone] first absorption pass (interval {} ticks) for {}",
                     ABSORPTION_INTERVAL_TICKS,
@@ -125,11 +132,13 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         float current = player.getAbsorptionAmount();
         if (current + 1.0E-3f < required) {
             player.setAbsorptionAmount(Math.max(current, required));
-            ChestCavity.LOGGER.info(
-                    "[compat/guzhenren][steel_bone] apply absorption -> {} (stacks={})",
-                    String.format(java.util.Locale.ROOT, "%.1f", required),
-                    steelStacks
-            );
+            if (DEBUG_METAL_BONE) {
+                ChestCavity.LOGGER.info(
+                        "[compat/guzhenren][steel_bone] apply absorption -> {} (stacks={})",
+                        String.format(java.util.Locale.ROOT, "%.1f", required),
+                        steelStacks
+                );
+            }
         }
         state.setLong(ABSORPTION_KEY, gameTime);
     }
