@@ -13,14 +13,22 @@ public final class LeafGuNode implements GuNode {
     private final String name;
     private final Multiset<String> tags;
     private final List<Action> actions;
+    private final int pageIndex;
+    private final int slotIndex;
 
     public LeafGuNode(String name, Multiset<String> tags, List<Action> actions) {
+        this(name, tags, actions, -1, -1);
+    }
+
+    public LeafGuNode(String name, Multiset<String> tags, List<Action> actions, int pageIndex, int slotIndex) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Leaf node must have a name");
         }
         this.name = name;
         this.tags = tags == null ? HashMultiset.create() : HashMultiset.create(tags);
         this.actions = actions == null ? new ArrayList<>() : new ArrayList<>(actions);
+        this.pageIndex = pageIndex;
+        this.slotIndex = slotIndex;
     }
 
     @Override
@@ -36,6 +44,20 @@ public final class LeafGuNode implements GuNode {
     @Override
     public List<Action> actions() {
         return actions;
+    }
+
+    /**
+     * Zero-based page index for UI-driven ordering. {@code -1} if unspecified.
+     */
+    public int pageIndex() {
+        return pageIndex;
+    }
+
+    /**
+     * Zero-based slot index within the originating page. {@code -1} if unspecified.
+     */
+    public int slotIndex() {
+        return slotIndex;
     }
 
     @Override
@@ -54,6 +76,8 @@ public final class LeafGuNode implements GuNode {
                 "name='" + name + '\'' +
                 ", tags=" + tags +
                 ", actions=" + actions +
+                ", pageIndex=" + pageIndex +
+                ", slotIndex=" + slotIndex +
                 '}';
     }
 }

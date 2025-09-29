@@ -500,7 +500,7 @@ COST_HUNGER
 
 
 "item.guzhenren.bing_ji_gu": "冰肌蛊",
-冰肌蛊:生命恢复，精力消耗下降，消耗真元维持
+冰肌蛊:(每秒)5生命恢复，1精力，消耗200BASE真元维持
 冰道攻击有10％概率额外造成本次攻击所造成伤害的5％伤害（被动）并且对敌人造成 状态效果命令：/effect give @p guzhenren:hhanleng 30 0 此效果存在时将持续为实体添加等同于此效果等级的缓慢，挖掘疲劳。
 冰肌玉骨(冰肌蛊和玉骨蛊联动):免疫流血，可以引爆自己(1 slot)部分(匹配:chestcavity:*_muscle)肌肉产生冰爆(主动快捷键AttackAbilities) 若没有则不能执行，
 当玩家是北冥冰魄体(需要配置通用接口判断体质)时残血获得短时间无敌，
@@ -553,7 +553,7 @@ glass.break 混合 snow.break 的低沉音效。
 播放音效 SoundEvents.GLASS_BREAK + SoundEvents.SNOW_BREAK。
 
 钢筋(  "item.guzhenren.ganjingu": "钢筋蛊",):100伤害吸收(每1分钟)，每秒(OnSlowTick) 恢复 1点精力，近战(Distance < 10方块 判定)攻击有15％概率造成 基础攻击力 8％ 的附加伤害 * (1 + 金道增益)（被动）
-Fx: 
+配置通用Fx: 
 视觉效果（火花特效）
 火花粒子
 粒子类型：小型橙色/黄色发光粒子，带有轻微的拖尾。
@@ -595,8 +595,8 @@ Fx:
 目前 OrganHealingEvents 会在 LivingHealEvent 中断掉“心脏评分为 0”玩家的饱腹自然回复。扩展这里的判定：在拿到 ChestCavityInstance 后，按上面的组合检测逻辑检查钢筋 +（铁骨/精铁骨）是否生效；若是，则同样取消事件，实现“自然恢复停止”。记得跳过再生药水、器官自愈等其它来源（原有守卫逻辑已处理）。
 铁锭修补 10% 生命
 参照 GuDaoOrganEvents 对骨粉的处理方式注册一个新的交互监听：在玩家右键铁锭(对准空气)且组合有效时，服务端消费 1 个铁锭，计算 healAmount = player.getMaxHealth() * 0.10F，再用 ChestCavityUtil.runWithOrganHeal(() -> player.heal(healAmount)) 执行，避免被“自然回复拦截”误伤。若消耗成功，可像骨粉逻辑那样播放音效、动作并 event.setCanceled(true)。(并且设置正常食用冷却)
-精铁蛊在场时每秒 10 点治疗
-让钢筋或精铁骨的集成规范再注册一个 OrganHealListener：当检测到胸腔内同时拥有钢筋与精铁蛊时，每 tick 返回 0.5F（20 tick 即 10 HP），否则返回 0。ChestCavityUtil.onTick 会在服务器端累加所有器官的治疗输出并统一调用 heal，借助上一步的 runWithOrganHeal 守卫保证不会误判为自然回复。
+精铁蛊在场时每秒 5 点治疗
+让钢筋或精铁骨的集成规范再注册一个 OrganHealListener：当检测到胸腔内同时拥有钢筋与精铁蛊时，每 tick 返回 0.5F（20 tick 即 5 HP），否则返回 0。ChestCavityUtil.onTick 会在服务器端累加所有器官的治疗输出并统一调用 heal，借助上一步的 runWithOrganHeal 守卫保证不会误判为自然回复。
 状态同步与调试
 如果需要给前端或其它器官共享“自然恢复已封禁”或“钢筋增益层数”一类的状态，可以在慢速 tick 中写入一个新的 LinkageChannel，其创建和刷新方式可直接复用骨竹蛊、玉骨蛊等行为里的 LinkageManager.getContext(cc).getOrCreateChannel(...)，以便后续行为读取或做可视化提示。
 

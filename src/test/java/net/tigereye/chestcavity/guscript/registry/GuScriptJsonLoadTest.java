@@ -63,7 +63,13 @@ class GuScriptJsonLoadTest {
                     .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".json"))
                     .collect(Collectors.toMap(
                             GuScriptJsonLoadTest::toId,
-                            GuScriptJsonLoadTest::readJson
+                            p -> {
+                                JsonElement element = readJson(p);
+                                if (element == null) {
+                                    throw new IllegalStateException("Parsed null for " + p);
+                                }
+                                return element;
+                            }
                     ));
         }
     }
@@ -83,4 +89,3 @@ class GuScriptJsonLoadTest {
         }
     }
 }
-

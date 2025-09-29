@@ -58,8 +58,9 @@ public final class GuScriptCompiler {
                 continue;
             }
             ResourceLocation itemId = stack.getItem().builtInRegistryHolder().key().location();
+            int slotIndex = i;
             GuScriptRegistry.leaf(itemId).ifPresentOrElse(def -> {
-                leaves.add(toScaledLeaf(def, stack.getCount()));
+                leaves.add(toScaledLeaf(def, stack.getCount(), pageIndex, slotIndex));
             }, () -> ChestCavity.LOGGER.warn("[GuScript] No leaf definition for item {}", itemId));
         }
 
@@ -94,11 +95,11 @@ public final class GuScriptCompiler {
         return program;
     }
 
-    static LeafGuNode toScaledLeaf(GuScriptRegistry.LeafDefinition definition, int count) {
+    static LeafGuNode toScaledLeaf(GuScriptRegistry.LeafDefinition definition, int count, int pageIndex, int slotIndex) {
         int scaledCount = Math.max(1, count);
         HashMultiset<String> scaledTags = HashMultiset.create();
         definition.tags().forEachEntry((tag, tagCount) -> scaledTags.add(tag, tagCount * scaledCount));
-        return new LeafGuNode(definition.name(), scaledTags, definition.actions());
+        return new LeafGuNode(definition.name(), scaledTags, definition.actions(), pageIndex, slotIndex);
     }
 
     private static int computeSignature(GuScriptPageState page) {

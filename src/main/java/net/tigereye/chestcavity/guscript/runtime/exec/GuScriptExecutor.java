@@ -7,6 +7,7 @@ import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
+import net.tigereye.chestcavity.guscript.ast.LeafGuNode;
 import net.tigereye.chestcavity.guscript.ast.OperatorGuNode;
 import net.tigereye.chestcavity.guscript.data.BindingTarget;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
@@ -232,31 +233,33 @@ public final class GuScriptExecutor {
         List<OrderedRoot> ordered = new ArrayList<>(roots.size());
         for (int i = 0; i < roots.size(); i++) {
             GuNode node = roots.get(i);
-            ordered.add(new OrderedRoot(node, i));
+            ordered.add(OrderedRoot.from(node, i));
         }
+
+        boolean preferUiOrder = isUiOrderingPreferred();
         ordered.sort((left, right) -> {
-            int leftOrder = left.order();
-            int rightOrder = right.order();
-            boolean leftUnordered = leftOrder == Integer.MAX_VALUE;
-            boolean rightUnordered = rightOrder == Integer.MAX_VALUE;
-            if (leftUnordered && rightUnordered) {
-                return 0;
+            if (preferUiOrder) {
+                int pageComparison = Integer.compare(left.primaryPageIndex(), right.primaryPageIndex());
+                if (pageComparison != 0) {
+                    return pageComparison;
+                }
+                int slotComparison = Integer.compare(left.primarySlotIndex(), right.primarySlotIndex());
+                if (slotComparison != 0) {
+                    return slotComparison;
+                }
             }
-            if (leftOrder != rightOrder) {
-                return Integer.compare(leftOrder, rightOrder);
-            }
-            int ruleComparison = left.ruleId().compareTo(right.ruleId());
-            if (ruleComparison != 0) {
-                return ruleComparison;
-            }
-            int nameComparison = left.name().compareTo(right.name());
-            if (nameComparison != 0) {
-                return nameComparison;
-            }
-            return Integer.compare(left.originalIndex(), right.originalIndex());
+            return OrderedRoot.compareExecutionFirst(left, right);
         });
 
         return ordered.stream().map(OrderedRoot::node).toList();
+    }
+
+    private static boolean isUiOrderingPreferred() {
+        if (ChestCavity.config == null) {
+            return true;
+        }
+        CCConfig.GuScriptExecutionConfig execConfig = ChestCavity.config.GUSCRIPT_EXECUTION;
+        return execConfig == null || execConfig.preferUiOrder;
     }
 
     private static void executeRootsWithSession(
@@ -464,10 +467,17 @@ public final class GuScriptExecutor {
         if (roots.isEmpty()) {
             return;
         }
+        boolean preferUiOrder = isUiOrderingPreferred();
         String descriptor = roots.stream()
                 .map(root -> {
-                    OrderedRoot wrapper = new OrderedRoot(root, 0);
-                    return wrapper.name() + "[order=" + (wrapper.order() == Integer.MAX_VALUE ? "∞" : wrapper.order()) + ",rule=" + wrapper.ruleId() + "]";
+                    OrderedRoot wrapper = OrderedRoot.from(root, 0);
+                    String orderText = wrapper.executionOrder() == Integer.MAX_VALUE ? "∞" : Integer.toString(wrapper.executionOrder());
+                    String pageText = wrapper.primaryPageIndex() == Integer.MAX_VALUE ? "-" : Integer.toString(wrapper.primaryPageIndex());
+                    String slotText = wrapper.primarySlotIndex() == Integer.MAX_VALUE ? "-" : Integer.toString(wrapper.primarySlotIndex());
+                    if (preferUiOrder) {
+                        return wrapper.name() + "[order=" + orderText + ",rule=" + wrapper.ruleId() + ",page=" + pageText + ",slot=" + slotText + "]";
+                    }
+                    return wrapper.name() + "[order=" + orderText + ",rule=" + wrapper.ruleId() + "]";
                 })
                 .collect(Collectors.joining(", "));
         ChestCavity.LOGGER.info(
@@ -566,23 +576,99 @@ public final class GuScriptExecutor {
         }
     }
 
-    private record OrderedRoot(GuNode node, int originalIndex) {
-        int order() {
+    private record OrderedRoot(GuNode node,
+                               int originalIndex,
+                               int executionOrder,
+                               String ruleId,
+                               String name,
+                               int primaryPageIndex,
+                               int primarySlotIndex) {
+
+        private static final int NO_INDEX = Integer.MAX_VALUE;
+
+        static OrderedRoot from(GuNode node, int originalIndex) {
+            PrimaryIndexCollector indices = gatherIndices(node);
+            return new OrderedRoot(
+                    node,
+                    originalIndex,
+                    computeExecutionOrder(node),
+                    computeRuleId(node),
+                    node.name(),
+                    indices.pageIndex(),
+                    indices.slotIndex()
+            );
+        }
+
+        static int compareExecutionFirst(OrderedRoot left, OrderedRoot right) {
+            int leftOrder = left.executionOrder;
+            int rightOrder = right.executionOrder;
+            boolean leftUnordered = leftOrder == Integer.MAX_VALUE;
+            boolean rightUnordered = rightOrder == Integer.MAX_VALUE;
+            if (leftUnordered && rightUnordered) {
+                return 0;
+            }
+            if (leftOrder != rightOrder) {
+                return Integer.compare(leftOrder, rightOrder);
+            }
+            int ruleComparison = left.ruleId.compareTo(right.ruleId);
+            if (ruleComparison != 0) {
+                return ruleComparison;
+            }
+            int nameComparison = left.name.compareTo(right.name);
+            if (nameComparison != 0) {
+                return nameComparison;
+            }
+            return Integer.compare(left.originalIndex, right.originalIndex);
+        }
+
+        private static int computeExecutionOrder(GuNode node) {
             if (node instanceof OperatorGuNode operator) {
                 return operator.executionOrder().orElse(Integer.MAX_VALUE);
             }
             return Integer.MAX_VALUE;
         }
 
-        String ruleId() {
+        private static String computeRuleId(GuNode node) {
             if (node instanceof OperatorGuNode operator) {
                 return operator.operatorId();
             }
             return node.kind().name();
         }
 
-        String name() {
-            return node.name();
+        private static PrimaryIndexCollector gatherIndices(GuNode node) {
+            PrimaryIndexCollector collector = new PrimaryIndexCollector();
+            collector.collect(node);
+            return collector;
+        }
+
+        private static final class PrimaryIndexCollector {
+            private int minPage = NO_INDEX;
+            private int minSlot = NO_INDEX;
+
+            void collect(GuNode node) {
+                if (node == null) {
+                    return;
+                }
+                if (node instanceof LeafGuNode leaf) {
+                    if (leaf.pageIndex() >= 0) {
+                        minPage = Math.min(minPage, leaf.pageIndex());
+                    }
+                    if (leaf.slotIndex() >= 0) {
+                        minSlot = Math.min(minSlot, leaf.slotIndex());
+                    }
+                }
+                for (GuNode child : node.children()) {
+                    collect(child);
+                }
+            }
+
+            int pageIndex() {
+                return minPage;
+            }
+
+            int slotIndex() {
+                return minSlot;
+            }
         }
     }
 }

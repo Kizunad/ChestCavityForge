@@ -186,6 +186,8 @@ public class CCConfig implements ConfigData {
         public int queuedGuardRetryLimit = 0;
         @ConfigEntry.Gui.Tooltip
         public TimeScaleCombineStrategy timeScaleCombine = TimeScaleCombineStrategy.MULTIPLY;
+        @ConfigEntry.Gui.Tooltip
+        public boolean preferUiOrder = true; // prioritize page/slot ordering over compilation order when available
     }
 
     public enum TimeScaleCombineStrategy {
