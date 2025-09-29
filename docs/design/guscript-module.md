@@ -133,6 +133,12 @@ Tweaking these values automatically updates button placement the next time the U
    - 打通 UI 模拟预览（模拟上下文）并校验其与正式执行共享验证逻辑；
    - 编写示例脚本与集成测试，覆盖 reactive 更新、资源/链接差分与 UI 持久化。
 
+### Flow runtime resource scaling
+
+- `FlowActions.consume_resource` now normalises per-tick deductions against the effective `time.accelerate` parameter exported by the executor. Every invocation divides the configured amount by the resolved time scale so that a 10 HP/20 真元/10 精力 “per second” cost remains stable even when the flow accelerates or slows down.
+- When consuming Guzhenren resources the action routes to dedicated helpers: `jingli` uses `ResourceHandle.adjustJingli`, `zhenyuan` honours cultivation scaling via `ResourceHandle.consumeScaledZhenyuan`, and other identifiers fall back to the generic `adjustDouble` path.
+- Failures (missing attachment, unknown identifier, insufficient pool, or write errors) emit a DEBUG trace with the requested amount, resolved time scale, and before/after snapshots, then immediately raise a WARN and request `FlowTrigger.CANCEL`. That pushes the runtime into the flow’s cancel branch so punishment FX/fireballs trigger reliably instead of silently skipping the cost.
+
 ## Open Questions / Follow-ups
 
 - Determine whether script layouts should be per-player configurable via data packs or fixed presets shipped with the mod.
