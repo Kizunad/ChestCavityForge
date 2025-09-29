@@ -47,6 +47,20 @@ public interface GuScriptContext {
         return 0.0;
     }
 
+    default void exportTimeScaleMultiplier(double multiplier) {
+    }
+
+    default void exportTimeScaleFlat(double amount) {
+    }
+
+    default double directExportedTimeScaleMultiplier() {
+        return 1.0;
+    }
+
+    default double directExportedTimeScaleFlat() {
+        return 0.0;
+    }
+
     default double applyDamageModifiers(double baseDamage) {
         double scaled = baseDamage * (1.0 + damageMultiplier());
         return Math.max(0.0, scaled + flatDamageBonus());

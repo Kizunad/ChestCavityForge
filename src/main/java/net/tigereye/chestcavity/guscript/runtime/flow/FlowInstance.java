@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.ChestCavity;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.LongSupplier;
 
 /**
  * Mutable runtime for a {@link FlowProgram} bound to a performer and optional target.
@@ -65,6 +66,17 @@ public final class FlowInstance {
     }
 
     void tick(ServerLevel level) {
+        if (level == null) {
+            return;
+        }
+        tickInternal(level::getGameTime);
+    }
+
+    void tick(long gameTime) {
+        tickInternal(() -> gameTime);
+    }
+
+    private void tickInternal(LongSupplier gameTimeSupplier) {
         if (finished) {
             return;
         }
@@ -76,6 +88,7 @@ public final class FlowInstance {
         }
         tickAccumulator -= steps;
         for (int i = 0; i < steps && !finished; i++) {
+            final long gameTime = gameTimeSupplier.getAsLong();
             // per-tick update actions
             definition().ifPresent(def -> {
                 int period = def.updatePeriodTicks();
@@ -83,7 +96,7 @@ public final class FlowInstance {
                 if (shouldRun) {
                     for (FlowEdgeAction action : def.updateActions()) {
                         try {
-                            action.apply(performer, target, controller, level.getGameTime());
+                            action.apply(performer, target, controller, gameTime);
                         } catch (Exception ex) {
                             ChestCavity.LOGGER.error("[Flow] Update action {} failed for program {}", action.describe(), program.id(), ex);
                         }
@@ -91,7 +104,7 @@ public final class FlowInstance {
                 }
             });
             ticksInState++;
-            attemptTransitions(FlowTrigger.AUTO, level.getGameTime());
+            attemptTransitions(FlowTrigger.AUTO, gameTime);
             if (state == FlowState.IDLE && ticksInState > 0) {
                 finished = true;
                 break;

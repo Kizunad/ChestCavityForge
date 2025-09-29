@@ -11,6 +11,8 @@ import net.tigereye.chestcavity.guscript.actions.TriggerFxAction;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.actions.ExportFlatModifierAction;
 import net.tigereye.chestcavity.guscript.actions.ExportMultiplierModifierAction;
+import net.tigereye.chestcavity.guscript.actions.ExportTimeScaleFlatAction;
+import net.tigereye.chestcavity.guscript.actions.ExportTimeScaleMultiplierAction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 
@@ -44,6 +46,8 @@ public final class ActionRegistry {
         register(AddFlatDamageAction.ID, json -> new AddFlatDamageAction(json.get("amount").getAsDouble()));
         register(ExportMultiplierModifierAction.ID, json -> new ExportMultiplierModifierAction(json.get("amount").getAsDouble()));
         register(ExportFlatModifierAction.ID, json -> new ExportFlatModifierAction(json.get("amount").getAsDouble()));
+        register(ExportTimeScaleMultiplierAction.ID, json -> new ExportTimeScaleMultiplierAction(json.get("amount").getAsDouble()));
+        register(ExportTimeScaleFlatAction.ID, json -> new ExportTimeScaleFlatAction(json.get("amount").getAsDouble()));
         register(TriggerFxAction.ID, json -> TriggerFxAction.from(
                 ResourceLocation.parse(json.get("fxId").getAsString()),
                 readVec3(json, "originOffset"),

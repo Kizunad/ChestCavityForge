@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.guscript.runtime.exec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.guscript.ast.GuNode;
@@ -16,15 +17,19 @@ import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.exec.ExecutionSession;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptCompiler;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptRuntime;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 
 /**
  * Executes compiled GuScript programs for a player.
@@ -36,8 +41,19 @@ public final class GuScriptExecutor {
     private static final int DEFAULT_MAX_KEYBIND_ROOTS = 64;
     private static final double DEFAULT_SESSION_MULTIPLIER_CAP = 5.0D;
     private static final double DEFAULT_SESSION_FLAT_CAP = 20.0D;
+    private static final double MIN_TIME_SCALE = 0.1D;
+    private static final double MAX_TIME_SCALE = 100.0D;
+    private static Function<ServerPlayer, FlowController> FLOW_CONTROLLER_ACCESSOR = FlowControllerManager::get;
 
     private GuScriptExecutor() {
+    }
+
+    static void setFlowControllerAccessor(Function<ServerPlayer, FlowController> accessor) {
+        FLOW_CONTROLLER_ACCESSOR = accessor == null ? FlowControllerManager::get : accessor;
+    }
+
+    static void resetFlowControllerAccessor() {
+        FLOW_CONTROLLER_ACCESSOR = FlowControllerManager::get;
     }
 
     public static void trigger(ServerPlayer player, LivingEntity target, GuScriptAttachment attachment) {
@@ -258,11 +274,13 @@ public final class GuScriptExecutor {
         boolean flowsEnabled = ChestCavity.config != null && ChestCavity.config.GUSCRIPT_EXECUTION.enableFlows;
         boolean defaultFlowConsumed = false;
         AtomicInteger rootIndex = new AtomicInteger();
+        List<PendingFlowStart> pendingFlows = new ArrayList<>();
         for (GuNode root : roots) {
             int index = rootIndex.getAndIncrement();
+            PendingFlowStart pending = null;
             ResourceLocation flowToStart = null;
             Map<String, String> flowParams = Map.of();
-            boolean flowFromPage = false;
+            String source = "operator";
             if (flowsEnabled && root instanceof OperatorGuNode operator) {
                 if (operator.flowId().isPresent()) {
                     flowToStart = operator.flowId().get();
@@ -270,68 +288,20 @@ public final class GuScriptExecutor {
                 } else if (!defaultFlowConsumed && defaultFlowId != null) {
                     flowToStart = defaultFlowId;
                     flowParams = safeDefaultFlowParams;
-                    flowFromPage = true;
+                    source = "page";
                     defaultFlowConsumed = true;
                 }
             }
+
             if (flowsEnabled && flowToStart != null) {
-                String source = flowFromPage ? "page" : "operator";
                 var program = FlowProgramRegistry.get(flowToStart);
                 if (program.isPresent()) {
-                    Map<String, String> adjustedParams = flowParams == null ? new java.util.HashMap<>() : new java.util.HashMap<>(flowParams);
-                    // Pre-execute operator actions that export modifiers so downstream flows can see session changes
-                    if (root instanceof OperatorGuNode op && (!op.actions().isEmpty() || op.exportMultiplier() || op.exportFlat())) {
-                        try {
-                            DefaultGuScriptExecutionBridge preBridge = new DefaultGuScriptExecutionBridge(performer, target, index);
-                            DefaultGuScriptContext preContext = new DefaultGuScriptContext(performer, target, preBridge, session);
-                            preContext.enableModifierExports(op.exportMultiplier(), op.exportFlat());
-                            for (var action : op.actions()) {
-                                action.execute(preContext);
-                            }
-                        } catch (Exception ex) {
-                            ChestCavity.LOGGER.warn("[GuScript] Pre-execution of operator actions failed for {}: {}", root.name(), ex.toString());
-                        }
-                    }
-                    try {
-                        String flowKey = flowToStart.toString();
-                        if (!adjustedParams.containsKey("time.accelerate") && "chestcavity:demo_charge_release".equals(flowKey)) {
-                            // 使用 time.accelerate 控制实际用时：默认 1.0（10s），按 multiplier 比例加速，最多 0.9x（9s）。
-                            // reduction = min(0.1, max(0, sessionMult) * 0.2)
-                            // scale = 1 / (1 - reduction)
-                            double sessionMult = Math.max(0.0, session.currentMultiplier());
-                            double reduction = Math.min(0.1, sessionMult * 0.2);
-                            double scale = 1.0 / Math.max(0.1, (1.0 - reduction));
-                            adjustedParams.put("time.accelerate", Double.toString(Math.max(1.0, Math.min(2.0, scale))));
-                        }
-                    } catch (Exception ignored) {}
-
-                    double timeScale = parseTimeScale(adjustedParams);
-                    String descriptor = source + ":" + root.name() + "#" + index;
-                    boolean accepted = FlowControllerManager.get(performer)
-                            .start(program.get(), target, timeScale, adjustedParams, performer.level().getGameTime(), descriptor);
-                    ChestCavity.LOGGER.info(
-                            "[GuScript] Root {}#{} requested flow {} (source={}, timeScale={}, params={}, accepted={})",
-                            root.name(),
-                            index,
-                            flowToStart,
-                            source,
-                            formatDouble(timeScale),
-                            adjustedParams.isEmpty() ? "{}" : adjustedParams,
-                            accepted
-                    );
-                    if (!accepted) {
-                        ChestCavity.LOGGER.info(
-                                "[GuScript] Root {}#{} flow {} was rejected (source={}, queueEnabled={}, params={})",
-                                root.name(),
-                                index,
-                                flowToStart,
-                                source,
-                                ChestCavity.config != null && ChestCavity.config.GUSCRIPT_EXECUTION.enableFlowQueue,
-                                adjustedParams.isEmpty() ? "{}" : adjustedParams
-                        );
-                    }
-                    continue;
-                } else if (flowsEnabled) {
+                    Map<String, String> adjustedParams = flowParams == null || flowParams.isEmpty()
+                            ? new LinkedHashMap<>()
+                            : new LinkedHashMap<>(flowParams);
+                    pending = new PendingFlowStart(program.get(), adjustedParams, source, flowToStart, root.name(), index);
+                    pendingFlows.add(pending);
+                } else {
                     ChestCavity.LOGGER.warn(
                             "[GuScript] Root {}#{} referenced unknown flow {} (source={}). Falling back to immediate execution.",
                             root.name(),
@@ -341,6 +311,7 @@ public final class GuScriptExecutor {
                     );
                 }
             }
+
             DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(performer, target, index);
             DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge, session);
             if (root instanceof OperatorGuNode operator) {
@@ -348,6 +319,7 @@ public final class GuScriptExecutor {
             }
             double beforeMultiplier = session.currentMultiplier();
             double beforeFlat = session.currentFlat();
+            double beforeTimeScale = session.currentTimeScale();
             RUNTIME.execute(root, context);
             double deltaMultiplier = context.exportedMultiplierDelta();
             double deltaFlat = context.exportedFlatDelta();
@@ -359,19 +331,82 @@ public final class GuScriptExecutor {
             }
             double afterMultiplier = session.currentMultiplier();
             double afterFlat = session.currentFlat();
+            double afterTimeScale = session.currentTimeScale();
+            if (pending != null) {
+                pending.snapshotSessionScale(afterTimeScale);
+            }
             ChestCavity.LOGGER.info(
-                    "[GuScript] Root {}#{} exported modifiers: delta(multiplier={}, flat={}), direct(multiplier={}, flat={}). Session {} -> {} / {} -> {}",
+                    "[GuScript] Root {}#{} exported modifiers: delta(multiplier={}, flat={}), direct(multiplier={}, flat={}), timeScale(mult={}, flat={}). Session {} -> {} / {} -> {} / timeScale {} -> {}",
                     root.name(),
                     index,
                     formatDouble(deltaMultiplier),
                     formatDouble(deltaFlat),
                     formatDouble(context.directExportedMultiplier()),
                     formatDouble(context.directExportedFlat()),
+                    formatDouble(context.directExportedTimeScaleMultiplier()),
+                    formatDouble(context.directExportedTimeScaleFlat()),
                     formatDouble(beforeMultiplier),
                     formatDouble(afterMultiplier),
                     formatDouble(beforeFlat),
-                    formatDouble(afterFlat)
+                    formatDouble(afterFlat),
+                    formatDouble(beforeTimeScale),
+                    formatDouble(afterTimeScale)
             );
+        }
+
+        if (!flowsEnabled || pendingFlows.isEmpty()) {
+            return;
+        }
+
+        CCConfig.GuScriptExecutionConfig executionConfig = ChestCavity.config != null
+                ? ChestCavity.config.GUSCRIPT_EXECUTION
+                : null;
+        CCConfig.TimeScaleCombineStrategy strategy = executionConfig != null
+                ? executionConfig.timeScaleCombine
+                : CCConfig.TimeScaleCombineStrategy.MULTIPLY;
+        boolean queueEnabled = executionConfig != null && executionConfig.enableFlowQueue;
+
+        for (PendingFlowStart pending : pendingFlows) {
+            Map<String, String> params = pending.params();
+            double flowScale = parseTimeScale(params);
+            double sessionScale = pending.sessionScale();
+            double effectiveScale = combineTimeScale(flowScale, sessionScale, strategy);
+            params.put("time.accelerate", Double.toString(effectiveScale));
+            ChestCavity.LOGGER.info(
+                    "[GuScript][Flow] {}#{} merged timeScale for {}: flow={}, session={}, effective={}, params={}",
+                    pending.rootName(),
+                    pending.rootIndex(),
+                    pending.flowId(),
+                    formatDouble(flowScale),
+                    formatDouble(sessionScale),
+                    formatDouble(effectiveScale),
+                    params.isEmpty() ? "{}" : params
+            );
+            FlowController controller = FLOW_CONTROLLER_ACCESSOR.apply(performer);
+            long gameTime = resolveGameTime(performer, target);
+            String descriptor = pending.source() + ":" + pending.rootName() + "#" + pending.rootIndex();
+            boolean accepted = controller.start(pending.program(), target, effectiveScale, params, gameTime, descriptor);
+            ChestCavity.LOGGER.info(
+                    "[GuScript] Root {}#{} requested flow {} (source={}, timeScale={}, params={}, accepted={})",
+                    pending.rootName(),
+                    pending.rootIndex(),
+                    pending.flowId(),
+                    pending.source(),
+                    formatDouble(effectiveScale),
+                    params.isEmpty() ? "{}" : params,
+                    accepted
+            );
+            if (!accepted) {
+                ChestCavity.LOGGER.info(
+                        "[GuScript] Root {}#{} flow {} was rejected (source={}, queueEnabled={}, params={})",
+                        pending.rootName(),
+                        pending.rootIndex(),
+                        pending.flowId(),
+                        pending.source(),
+                        queueEnabled,
+                        params.isEmpty() ? "{}" : params
+                );
+            }
         }
     }
 
@@ -385,14 +420,44 @@ public final class GuScriptExecutor {
         }
         try {
             double value = Double.parseDouble(raw);
-            if (Double.isNaN(value) || Double.isInfinite(value)) {
-                return 1.0D;
-            }
-            // Clamp to reasonable bounds to avoid runaway loops
-            return Math.max(0.1D, Math.min(100.0D, value));
+            return sanitizeTimeScale(value, 1.0D);
         } catch (Exception ignored) {
             return 1.0D;
         }
+    }
+
+    static double combineTimeScale(double flowScale, double sessionScale, CCConfig.TimeScaleCombineStrategy strategy) {
+        double safeFlow = sanitizeTimeScale(flowScale, 1.0D);
+        double safeSession = sanitizeTimeScale(sessionScale, 1.0D);
+        CCConfig.TimeScaleCombineStrategy actual = strategy == null
+                ? CCConfig.TimeScaleCombineStrategy.MULTIPLY
+                : strategy;
+        double combined = switch (actual) {
+            case MULTIPLY -> safeFlow * safeSession;
+            case MAX -> Math.max(safeFlow, safeSession);
+            case OVERRIDE -> safeSession;
+        };
+        return clampTimeScale(combined);
+    }
+
+    private static double sanitizeTimeScale(double value, double fallback) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return fallback;
+        }
+        return value;
+    }
+
+    private static double clampTimeScale(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return 1.0D;
+        }
+        if (value < MIN_TIME_SCALE) {
+            return MIN_TIME_SCALE;
+        }
+        if (value > MAX_TIME_SCALE) {
+            return MAX_TIME_SCALE;
+        }
+        return value;
     }
 
     private static void logRootOrdering(ServerPlayer player, int pageIndex, List<GuNode> roots) {
@@ -407,7 +472,7 @@ public final class GuScriptExecutor {
                 .collect(Collectors.joining(", "));
         ChestCavity.LOGGER.info(
                 "[GuScript] Ordered execution for {}{}: {}",
-                player.getGameProfile().getName(),
+                resolvePlayerName(player),
                 pageIndex >= 0 ? " page " + pageIndex : " keybind aggregation",
                 descriptor
         );
@@ -421,6 +486,84 @@ public final class GuScriptExecutor {
             return value > 0 ? "+∞" : "-∞";
         }
         return String.format("%.3f", value);
+    }
+
+    private static long resolveGameTime(ServerPlayer performer, LivingEntity target) {
+        if (performer != null) {
+            Level level = performer.level();
+            if (level != null) {
+                return level.getGameTime();
+            }
+        }
+        if (target != null) {
+            Level level = target.level();
+            if (level != null) {
+                return level.getGameTime();
+            }
+        }
+        return 0L;
+    }
+
+    private static String resolvePlayerName(ServerPlayer performer) {
+        if (performer != null && performer.getGameProfile() != null) {
+            String name = performer.getGameProfile().getName();
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
+        }
+        return "unknown";
+    }
+
+    private static final class PendingFlowStart {
+        private final FlowProgram program;
+        private final Map<String, String> params;
+        private final String source;
+        private final ResourceLocation flowId;
+        private final String rootName;
+        private final int rootIndex;
+        private double sessionScale = 1.0D;
+
+        private PendingFlowStart(FlowProgram program, Map<String, String> params, String source,
+                                 ResourceLocation flowId, String rootName, int rootIndex) {
+            this.program = program;
+            this.params = params;
+            this.source = source == null ? "operator" : source;
+            this.flowId = flowId;
+            this.rootName = rootName;
+            this.rootIndex = rootIndex;
+        }
+
+        private void snapshotSessionScale(double sessionScale) {
+            this.sessionScale = sessionScale;
+        }
+
+        private FlowProgram program() {
+            return program;
+        }
+
+        private Map<String, String> params() {
+            return params;
+        }
+
+        private String source() {
+            return source;
+        }
+
+        private ResourceLocation flowId() {
+            return flowId;
+        }
+
+        private String rootName() {
+            return rootName;
+        }
+
+        private int rootIndex() {
+            return rootIndex;
+        }
+
+        private double sessionScale() {
+            return sessionScale;
+        }
     }
 
     private record OrderedRoot(GuNode node, int originalIndex) {
