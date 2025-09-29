@@ -31,7 +31,7 @@
       "update_period": 20,
       "update_actions": [
         { "type": "consume_health", "amount": 2.0 },
-        { "type": "consume_resource", "identifier": "zhenyuan", "amount": 20.0 },
+        { "type": "consume_resource", "identifier": "zhenyuan", "amount": 200.0 },
         { "type": "consume_resource", "identifier": "jingli", "amount": 10.0 },
         {
           "type": "trigger_actions",
@@ -73,7 +73,46 @@
       ]
     },
     "charged": {
+      "update_period": 20,
+      "update_actions": [
+        { "type": "consume_health", "amount": 2.0 },
+        { "type": "consume_resource", "identifier": "zhenyuan", "amount": 20.0 },
+        { "type": "consume_resource", "identifier": "jingli", "amount": 10.0 },
+        {
+          "type": "trigger_actions",
+          "actions": [
+            { "id": "emit.fx", "fxId": "chestcavity:blood_bone_charge_heartbeat", "intensity": 1.0 }
+          ]
+        },
+        {
+          "type": "trigger_actions",
+          "actions": [
+            { "id": "emit.fx", "fxId": "chestcavity:blood_bone_charge_tick", "intensity": 1.0 }
+          ]
+        }
+      ],
       "transitions": [
+        {
+          "trigger": "auto",
+          "target": "cancel",
+          "guards": [
+            { "type": "health_below", "maximum": 2.0 }
+          ]
+        },
+        {
+          "trigger": "auto",
+          "target": "cancel",
+          "guards": [
+            { "type": "resource_below", "identifier": "zhenyuan", "maximum": 20.0 }
+          ]
+        },
+        {
+          "trigger": "auto",
+          "target": "cancel",
+          "guards": [
+            { "type": "resource_below", "identifier": "jingli", "maximum": 10.0 }
+          ]
+        },
         { "trigger": "auto", "target": "releasing", "min_ticks": 160 },
         { "trigger": "cancel", "target": "cancel" }
       ]
