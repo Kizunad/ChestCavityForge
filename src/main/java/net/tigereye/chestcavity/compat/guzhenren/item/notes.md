@@ -501,11 +501,21 @@ COST_HUNGER
 
 "item.guzhenren.bing_ji_gu": "冰肌蛊",
 冰肌蛊:生命恢复，精力消耗下降，消耗真元维持
-冰肌玉骨(冰肌蛊和玉骨蛊联动):免疫流血，可以引爆自己部分肌肉产生冰爆(主动快捷键AttackAbilities)，
+冰道攻击有10％概率额外造成本次攻击所造成伤害的5％伤害（被动）并且对敌人造成 状态效果命令：/effect give @p guzhenren:hhanleng 30 0 此效果存在时将持续为实体添加等同于此效果等级的缓慢，挖掘疲劳。
+冰肌玉骨(冰肌蛊和玉骨蛊联动):免疫流血，可以引爆自己(1 slot)部分(匹配:chestcavity:*_muscle)肌肉产生冰爆(主动快捷键AttackAbilities) 若没有则不能执行，
 当玩家是北冥冰魄体(需要配置通用接口判断体质)时残血获得短时间无敌，
 当胸腔内存在(  "item.guzhenren.bing_bao_gu": "冰爆蛊", 目前暂无效果，但是依旧判断)，
 冰爆的伤害提升 - 冰爆受 冰道INCREASE_EFFECT影响
-加15点伤害吸收 冰道INCREASE_EFFECT影响
+加20点伤害吸收 冰道INCREASE_EFFECT影响
+
+冰肌蛊
+{
+  "itemID": "chestcavity:muscle",
+  "organScores": [
+    {"id":"chestcavity:strength","value": "1"},
+    {"id":"chestcavity:speed","value": "1"}
+  ]
+}
 
 效果表现逻辑
 中心爆炸点
@@ -538,12 +548,20 @@ glass.break 混合 snow.break 的低沉音效。
 遍历球形范围内的方块。
 用 level.setBlock 替换为冰雪混合物。
 设置条件避免破坏黑曜石/基岩等不可破坏物。
-自定义方块（推荐）：
-BlockIceSnowFusion：结合冰和雪的外观。
-属性：半透明、滑动、融化（在高亮度时转化为水）。
 特效表现：
 在爆炸点 level.sendParticles，多种粒子叠加。
 播放音效 SoundEvents.GLASS_BREAK + SoundEvents.SNOW_BREAK。
 
-铁骨:像玉骨一样增幅金道和骨道效率，拥有5点伤害吸收，消耗骨能
-钢筋铁骨:铁骨版提供75点伤害吸收可叠加，精铁骨版提供100点伤害吸收可叠加，同时生命值自然恢复停止，可以使用铁锭修补，当胸腔内存在精铁蛊时每秒恢复10点生命值
+钢筋(  "item.guzhenren.ganjingu": "钢筋蛊",):100 Health 伤害吸收，每秒(OnSlowTick) 恢复 1点精力，近战(Distance < 10方块 判定)攻击有15％概率造成基础攻击力8％的附加伤害（被动）
+Fx: 造成 火花 + 铁跕落地声音
+消耗(OnSlowTick) 1 饱食度维持(若没有饱食度则无上述所有效果) 
+
+铁骨(  "item.guzhenren.tie_gu_gu": "铁骨蛊",):像玉骨一样增幅金道和骨道效率，拥有5点伤害吸收，消耗骨能
+精铁骨蛊(  "item.guzhenren.jingtiegugu": "精铁骨蛊",)
+
+钢筋 + (铁骨/精铁骨):
+提供抗性1，
+当铁骨为精铁骨时获得急迫1，
+同时生命值自然恢复停止，
+可以使用铁锭修补(恢复10%生命值)，
+当胸腔内存在精铁蛊时每秒恢复10点生命值
