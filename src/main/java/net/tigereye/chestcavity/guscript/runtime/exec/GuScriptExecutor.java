@@ -12,6 +12,7 @@ import net.tigereye.chestcavity.guscript.data.BindingTarget;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.guscript.data.GuScriptPageState;
 import net.tigereye.chestcavity.guscript.data.GuScriptProgramCache;
+import net.tigereye.chestcavity.guscript.runtime.GuNodeOrdering;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.exec.ExecutionSession;
@@ -23,7 +24,6 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -229,34 +229,10 @@ public final class GuScriptExecutor {
         if (roots == null || roots.isEmpty()) {
             return List.of();
         }
-        List<OrderedRoot> ordered = new ArrayList<>(roots.size());
-        for (int i = 0; i < roots.size(); i++) {
-            GuNode node = roots.get(i);
-            ordered.add(new OrderedRoot(node, i));
-        }
-        ordered.sort((left, right) -> {
-            int leftOrder = left.order();
-            int rightOrder = right.order();
-            boolean leftUnordered = leftOrder == Integer.MAX_VALUE;
-            boolean rightUnordered = rightOrder == Integer.MAX_VALUE;
-            if (leftUnordered && rightUnordered) {
-                return 0;
-            }
-            if (leftOrder != rightOrder) {
-                return Integer.compare(leftOrder, rightOrder);
-            }
-            int ruleComparison = left.ruleId().compareTo(right.ruleId());
-            if (ruleComparison != 0) {
-                return ruleComparison;
-            }
-            int nameComparison = left.name().compareTo(right.name());
-            if (nameComparison != 0) {
-                return nameComparison;
-            }
-            return Integer.compare(left.originalIndex(), right.originalIndex());
-        });
-
-        return ordered.stream().map(OrderedRoot::node).toList();
+        boolean preferUiOrder = preferUiOrderEnabled();
+        List<GuNode> ordered = new ArrayList<>(roots);
+        ordered.sort(GuNodeOrdering.comparator(preferUiOrder));
+        return List.copyOf(ordered);
     }
 
     private static void executeRootsWithSession(
@@ -466,8 +442,14 @@ public final class GuScriptExecutor {
         }
         String descriptor = roots.stream()
                 .map(root -> {
-                    OrderedRoot wrapper = new OrderedRoot(root, 0);
-                    return wrapper.name() + "[order=" + (wrapper.order() == Integer.MAX_VALUE ? "∞" : wrapper.order()) + ",rule=" + wrapper.ruleId() + "]";
+                    int order = GuNodeOrdering.executionOrder(root);
+                    String orderDisplay = order == Integer.MAX_VALUE ? "∞" : Integer.toString(order);
+                    String ruleId = GuNodeOrdering.operatorOrKindId(root);
+                    int page = GuNodeOrdering.pageIndex(root);
+                    String pageDisplay = page == Integer.MAX_VALUE ? "-" : Integer.toString(page);
+                    int primary = GuNodeOrdering.primarySlotIndex(root);
+                    String primaryDisplay = primary == Integer.MAX_VALUE ? "-" : Integer.toString(primary);
+                    return root.name() + "[page=" + pageDisplay + ",order=" + orderDisplay + ",rule=" + ruleId + ",primaryIdx=" + primaryDisplay + "]";
                 })
                 .collect(Collectors.joining(", "));
         ChestCavity.LOGGER.info(
@@ -512,6 +494,15 @@ public final class GuScriptExecutor {
             }
         }
         return "unknown";
+    }
+
+    private static boolean preferUiOrderEnabled() {
+        CCConfig config = ChestCavity.config;
+        if (config == null) {
+            return true;
+        }
+        CCConfig.GuScriptExecutionConfig execution = config.GUSCRIPT_EXECUTION;
+        return execution == null || execution.preferUiOrder;
     }
 
     private static final class PendingFlowStart {
@@ -566,23 +557,4 @@ public final class GuScriptExecutor {
         }
     }
 
-    private record OrderedRoot(GuNode node, int originalIndex) {
-        int order() {
-            if (node instanceof OperatorGuNode operator) {
-                return operator.executionOrder().orElse(Integer.MAX_VALUE);
-            }
-            return Integer.MAX_VALUE;
-        }
-
-        String ruleId() {
-            if (node instanceof OperatorGuNode operator) {
-                return operator.operatorId();
-            }
-            return node.kind().name();
-        }
-
-        String name() {
-            return node.name();
-        }
-    }
 }
