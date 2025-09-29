@@ -137,6 +137,24 @@ public final class FlowController {
         instance.handleInput(input, gameTime);
     }
 
+    public boolean requestCancel(String reason, long gameTime) {
+        if (instance == null) {
+            ChestCavity.LOGGER.debug("[Flow] Cancel request ignored because no instance is running (reason={})", reason);
+            return false;
+        }
+        String sanitized = (reason == null || reason.isBlank()) ? "unspecified" : reason;
+        ChestCavity.LOGGER.debug(
+                "[Flow] {} received cancel request (program={}, state={}, ticks={}, reason={})",
+                performerName(),
+                instance.program().id(),
+                instance.state(),
+                instance.ticksInState(),
+                sanitized
+        );
+        instance.handleInput(FlowInput.CANCEL, gameTime);
+        return true;
+    }
+
     public void handleStateChanged(FlowInstance flowInstance) {
         FlowSyncDispatcher.syncState(performer, flowInstance);
     }
