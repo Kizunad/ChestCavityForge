@@ -306,17 +306,30 @@ public final class GuScriptExecutor {
                     } catch (Exception ignored) {}
 
                     double timeScale = parseTimeScale(adjustedParams);
-                    FlowControllerManager.get(performer)
-                            .start(program.get(), target, timeScale, adjustedParams, performer.level().getGameTime());
+                    String descriptor = source + ":" + root.name() + "#" + index;
+                    boolean accepted = FlowControllerManager.get(performer)
+                            .start(program.get(), target, timeScale, adjustedParams, performer.level().getGameTime(), descriptor);
                     ChestCavity.LOGGER.info(
-                            "[GuScript] Root {}#{} started flow {} (source={}, timeScale={}, params={})",
+                            "[GuScript] Root {}#{} requested flow {} (source={}, timeScale={}, params={}, accepted={})",
                             root.name(),
                             index,
                             flowToStart,
                             source,
                             formatDouble(timeScale),
-                            adjustedParams.isEmpty() ? "{}" : adjustedParams
+                            adjustedParams.isEmpty() ? "{}" : adjustedParams,
+                            accepted
                     );
+                    if (!accepted) {
+                        ChestCavity.LOGGER.info(
+                                "[GuScript] Root {}#{} flow {} was rejected (source={}, queueEnabled={}, params={})",
+                                root.name(),
+                                index,
+                                flowToStart,
+                                source,
+                                ChestCavity.config != null && ChestCavity.config.GUSCRIPT_EXECUTION.enableFlowQueue,
+                                adjustedParams.isEmpty() ? "{}" : adjustedParams
+                        );
+                    }
                     continue;
                 } else if (flowsEnabled) {
                     ChestCavity.LOGGER.warn(
