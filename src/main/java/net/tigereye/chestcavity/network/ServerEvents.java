@@ -1,15 +1,24 @@
 package net.tigereye.chestcavity.network;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
+
+import java.util.List;
 
 public final class ServerEvents {
 
@@ -41,6 +50,21 @@ public final class ServerEvents {
         CompoundTag tag = new CompoundTag();
         original.toTag(tag, clone.registryAccess());
         replacement.fromTag(tag, clone, clone.registryAccess());
+
+        CCAttachments.getExistingGuScript(event.getOriginal()).ifPresent(originalAttachment -> {
+            GuScriptAttachment replacementAttachment = CCAttachments.getGuScript(clone);
+            if (!event.isWasDeath()) {
+                replacementAttachment.copyFrom(originalAttachment);
+                return;
+            }
+
+            boolean keepInventory = clone.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
+            if (keepInventory) {
+                replacementAttachment.copyFrom(originalAttachment);
+            } else {
+                dropGuScriptNotebook(event.getOriginal(), originalAttachment);
+            }
+        });
     }
 
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
@@ -54,6 +78,25 @@ public final class ServerEvents {
             return;
         }
         ChestCavityEntity.of(event.getEntity()).ifPresent(ChestCavityUtil::onDeath);
+    }
+
+    private static void dropGuScriptNotebook(Player original, GuScriptAttachment attachment) {
+        if (!(original.level() instanceof ServerLevel level)) {
+            return;
+        }
+        List<ItemStack> drops = attachment.drainAllItems();
+        if (drops.isEmpty()) {
+            return;
+        }
+        Vec3 pos = original.position();
+        for (ItemStack stack : drops) {
+            if (stack.isEmpty()) {
+                continue;
+            }
+            ItemEntity drop = new ItemEntity(level, pos.x, pos.y + 0.5, pos.z, stack);
+            drop.setDefaultPickUpDelay();
+            level.addFreshEntity(drop);
+        }
     }
 
     private static void scheduleSync(ServerPlayer player, boolean includeOrganData) {

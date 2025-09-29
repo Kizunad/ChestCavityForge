@@ -46,6 +46,56 @@ public class GuScriptAttachment implements Container {
         }
     }
 
+    /**
+     * Visits every slot across every page in the attachment.
+     *
+     * @param visitor callback that receives the page index, slot index, and live {@link ItemStack} for that slot
+     */
+    public void visitSlots(GuScriptSlotVisitor visitor) {
+        Objects.requireNonNull(visitor, "visitor");
+        for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
+            GuScriptPageState page = pages.get(pageIndex);
+            List<ItemStack> items = page.items();
+            for (int slot = 0; slot < items.size(); slot++) {
+                visitor.visit(pageIndex, slot, items.get(slot));
+            }
+        }
+    }
+
+    /**
+     * Removes and returns every {@link ItemStack} stored across all pages.
+     * <p>
+     * The returned list contains defensive copies so callers may safely mutate the stacks when spawning drops.
+     * Pages are marked dirty and compilation caches are invalidated when any slot is cleared.
+     *
+     * @return ordered list of drained item stacks; empty when the attachment held no items
+     */
+    public List<ItemStack> drainAllItems() {
+        List<ItemStack> drained = new ArrayList<>();
+        for (GuScriptPageState page : pages) {
+            List<ItemStack> items = page.items();
+            boolean pageChanged = false;
+            for (int slot = 0; slot < items.size(); slot++) {
+                ItemStack stack = items.get(slot);
+                if (stack.isEmpty()) {
+                    continue;
+                }
+                drained.add(stack.copy());
+                items.set(slot, ItemStack.EMPTY);
+                pageChanged = true;
+            }
+            if (pageChanged) {
+                page.setCompiledProgram(null);
+                page.setInventorySignature(0);
+                page.markDirty();
+            }
+        }
+        if (!drained.isEmpty()) {
+            setChanged();
+        }
+        return drained;
+    }
+
     public GuScriptPageState activePage() {
         ensurePageExists(currentPage);
         return pages.get(currentPage);
@@ -53,6 +103,23 @@ public class GuScriptAttachment implements Container {
 
     public List<GuScriptPageState> pages() {
         return pages;
+    }
+
+    public void copyFrom(GuScriptAttachment source) {
+        Objects.requireNonNull(source, "source");
+        pages.clear();
+        for (GuScriptPageState page : source.pages) {
+            pages.add(page.copy());
+        }
+        if (pages.isEmpty()) {
+            pages.add(new GuScriptPageState(rows));
+        }
+        currentPage = Math.max(0, Math.min(source.currentPage, pages.size() - 1));
+        changed = true;
+    }
+
+    public int getConfiguredRows() {
+        return rows;
     }
 
     public int getPageCount() {
