@@ -1,0 +1,32 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.evoker.cast_spell",
+      "volume": 0.9,
+      "pitch": 1.1
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.illusioner.prepare_mirror",
+      "volume": 0.6,
+      "pitch": 1.45
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dragon_breath",
+      "count": 20,
+      "spread": [0.25, 0.35, 0.25],
+      "speed": 0.12
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#ede1ff",
+      "size": 1.05,
+      "count": 18,
+      "spread": [0.3, 0.3, 0.3],
+      "speed": 0.18
+    }
+  ]
+}
