@@ -29,6 +29,7 @@ public final class GuScriptReducer {
 
     private static final int MAX_ITERATIONS = 512;
     private static final int UNKNOWN_SLOT_INDEX = Integer.MAX_VALUE;
+    private static final int UNKNOWN_PAGE_INDEX = Integer.MAX_VALUE;
 
     public record ReductionResult(List<GuNode> roots, List<ReactionApplication> applications) {
         public ReductionResult {
@@ -71,8 +72,9 @@ public final class GuScriptReducer {
             if (result instanceof OperatorGuNode operator) {
                 Integer primaryIndex = normalizeMetadata(best.primarySlotIndex);
                 Integer adjacencySpan = normalizeMetadata(best.adjacencySpan);
+                Integer pageIndex = normalizeMetadata(best.pageIndex);
                 int sequence = journal.size();
-                result = operator.withOrderingMetadata(primaryIndex, adjacencySpan, best.rule.priority(), sequence);
+                result = operator.withOrderingMetadata(primaryIndex, adjacencySpan, best.rule.priority(), pageIndex, sequence);
             }
             journal.add(new ReactionApplication(best.rule, best.selectedNodes, result));
             removeSelected(pool, best.selectedIndices);
@@ -140,12 +142,14 @@ public final class GuScriptReducer {
             // Indices are generated in ascending order; adjacency span favors fusing near-by leaves first
             int adjacencySpan = indices.isEmpty() ? UNKNOWN_SLOT_INDEX : (indices.get(indices.size() - 1) - indices.get(0));
             int primarySlotIndex = UNKNOWN_SLOT_INDEX;
+            int pageIndex = UNKNOWN_PAGE_INDEX;
             for (GuNode node : selected) {
                 primarySlotIndex = Math.min(primarySlotIndex, resolvePrimarySlotIndex(node));
+                pageIndex = Math.min(pageIndex, resolvePageIndex(node));
             }
             ApplicationCandidate candidate = new ApplicationCandidate(rule, new ArrayList<>(indices), selected,
                     ImmutableMultiset.copyOf(tagCounts), coverageScore(tagCounts, rule), adjacencySpan,
-                    primarySlotIndex, sequence.getAndIncrement());
+                    primarySlotIndex, pageIndex, sequence.getAndIncrement());
             acceptor.accept(candidate);
             return;
         }
@@ -216,6 +220,16 @@ public final class GuScriptReducer {
         return UNKNOWN_SLOT_INDEX;
     }
 
+    private static int resolvePageIndex(GuNode node) {
+        if (node instanceof LeafGuNode leaf) {
+            return leaf.pageIndex().orElse(UNKNOWN_PAGE_INDEX);
+        }
+        if (node instanceof OperatorGuNode operator) {
+            return operator.pageIndexHint().orElse(UNKNOWN_PAGE_INDEX);
+        }
+        return UNKNOWN_PAGE_INDEX;
+    }
+
     private static boolean preferUiOrderEnabled() {
         CCConfig config = ChestCavity.config;
         if (config == null) {
@@ -228,10 +242,13 @@ public final class GuScriptReducer {
     private record ApplicationCandidate(ReactionRule rule, List<Integer> selectedIndices,
                                         List<GuNode> selectedNodes, ImmutableMultiset<String> tagCounts,
                                         int coverageScore, int adjacencySpan,
-                                        int primarySlotIndex, int discoveryOrder) {
+                                        int primarySlotIndex, int pageIndex, int discoveryOrder) {
         boolean isBetterThan(ApplicationCandidate other, boolean preferUiOrder) {
             if (coverageScore != other.coverageScore) {
                 return coverageScore > other.coverageScore;
+            }
+            if (preferUiOrder && pageIndex != other.pageIndex) {
+                return pageIndex < other.pageIndex;
             }
             if (preferUiOrder && primarySlotIndex != other.primarySlotIndex) {
                 return primarySlotIndex < other.primarySlotIndex;

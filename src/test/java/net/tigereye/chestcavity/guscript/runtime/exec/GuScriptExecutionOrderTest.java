@@ -52,7 +52,22 @@ class GuScriptExecutionOrderTest {
                 "When UI ordering is disabled the execution order should drive the comparator");
     }
 
+    @Test
+    void keybindSortingPreservesPageOrderWhenSlotIndicesReset() {
+        GuNode pageZero = operator("pageZero", 5, 1, 10, 0);
+        GuNode pageOne = operator("pageOne", 0, 1, 10, 1);
+
+        List<GuNode> sorted = GuScriptExecutor.sortRootsForSession(List.of(pageOne, pageZero));
+
+        assertEquals(List.of(pageZero, pageOne), sorted,
+                "Roots from earlier pages should execute before later pages even if slot indices reset");
+    }
+
     private static OperatorGuNode operator(String name, int primarySlot, int adjacency, int executionOrder) {
+        return operator(name, primarySlot, adjacency, executionOrder, 0);
+    }
+
+    private static OperatorGuNode operator(String name, int primarySlot, int adjacency, int executionOrder, int pageIndex) {
         OperatorGuNode base = new OperatorGuNode(
                 "test:" + name,
                 name,
@@ -64,6 +79,6 @@ class GuScriptExecutionOrderTest {
                 false,
                 false
         );
-        return base.withOrderingMetadata(primarySlot, adjacency, 0, 0);
+        return base.withOrderingMetadata(primarySlot, adjacency, 0, pageIndex, 0);
     }
 }

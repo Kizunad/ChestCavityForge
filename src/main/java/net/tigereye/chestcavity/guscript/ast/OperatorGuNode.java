@@ -30,24 +30,25 @@ public final class OperatorGuNode implements GuNode {
     private final Integer primarySlotIndex;
     private final Integer adjacencySpanHint;
     private final Integer rulePriority;
+    private final Integer pageIndexHint;
     private final Integer reductionSequence;
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children) {
-        this(operatorId, name, kind, tags, actions, children, null, false, false, null, Map.of(), null, null, null, null);
+        this(operatorId, name, kind, tags, actions, children, null, false, false, null, Map.of(), null, null, null, null, null);
     }
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children,
                           Integer executionOrder, boolean exportMultiplier, boolean exportFlat) {
-        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, null, Map.of(), null, null, null, null);
+        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, null, Map.of(), null, null, null, null, null);
     }
 
     public OperatorGuNode(String operatorId, String name, GuNodeKind kind,
                           Multiset<String> tags, List<Action> actions, List<GuNode> children,
                           Integer executionOrder, boolean exportMultiplier, boolean exportFlat,
                           ResourceLocation flowId, Map<String, String> flowParams) {
-        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, flowId, flowParams, null, null, null, null);
+        this(operatorId, name, kind, tags, actions, children, executionOrder, exportMultiplier, exportFlat, flowId, flowParams, null, null, null, null, null);
     }
 
     private OperatorGuNode(String operatorId, String name, GuNodeKind kind,
@@ -55,7 +56,7 @@ public final class OperatorGuNode implements GuNode {
                           Integer executionOrder, boolean exportMultiplier, boolean exportFlat,
                           ResourceLocation flowId, Map<String, String> flowParams,
                           Integer primarySlotIndex, Integer adjacencySpanHint,
-                          Integer rulePriority, Integer reductionSequence) {
+                          Integer rulePriority, Integer pageIndexHint, Integer reductionSequence) {
         if (operatorId == null || operatorId.isBlank()) {
             throw new IllegalArgumentException("Operator requires an id");
         }
@@ -80,6 +81,7 @@ public final class OperatorGuNode implements GuNode {
         this.primarySlotIndex = primarySlotIndex;
         this.adjacencySpanHint = adjacencySpanHint;
         this.rulePriority = rulePriority;
+        this.pageIndexHint = pageIndexHint;
         this.reductionSequence = reductionSequence;
     }
 
@@ -144,6 +146,10 @@ public final class OperatorGuNode implements GuNode {
         return rulePriority == null ? OptionalInt.empty() : OptionalInt.of(rulePriority);
     }
 
+    public OptionalInt pageIndexHint() {
+        return pageIndexHint == null ? OptionalInt.empty() : OptionalInt.of(pageIndexHint);
+    }
+
     public OptionalInt reductionSequence() {
         return reductionSequence == null ? OptionalInt.empty() : OptionalInt.of(reductionSequence);
     }
@@ -164,6 +170,7 @@ public final class OperatorGuNode implements GuNode {
                 primarySlotIndex,
                 adjacencySpanHint,
                 rulePriority,
+                pageIndexHint,
                 reductionSequence
         );
     }
@@ -171,6 +178,7 @@ public final class OperatorGuNode implements GuNode {
     public OperatorGuNode withOrderingMetadata(Integer primarySlotIndex,
                                                Integer adjacencySpanHint,
                                                Integer rulePriority,
+                                               Integer pageIndexHint,
                                                Integer reductionSequence) {
         return new OperatorGuNode(
                 operatorId,
@@ -187,6 +195,7 @@ public final class OperatorGuNode implements GuNode {
                 primarySlotIndex,
                 adjacencySpanHint,
                 rulePriority,
+                pageIndexHint,
                 reductionSequence
         );
     }
@@ -208,6 +217,7 @@ public final class OperatorGuNode implements GuNode {
                 ", primarySlotIndex=" + primarySlotIndex +
                 ", adjacencySpan=" + adjacencySpanHint +
                 ", rulePriority=" + rulePriority +
+                ", pageIndex=" + pageIndexHint +
                 ", reductionSequence=" + reductionSequence +
                 '}';
     }

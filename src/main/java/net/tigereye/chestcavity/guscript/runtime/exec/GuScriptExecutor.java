@@ -445,9 +445,11 @@ public final class GuScriptExecutor {
                     int order = GuNodeOrdering.executionOrder(root);
                     String orderDisplay = order == Integer.MAX_VALUE ? "∞" : Integer.toString(order);
                     String ruleId = GuNodeOrdering.operatorOrKindId(root);
+                    int page = GuNodeOrdering.pageIndex(root);
+                    String pageDisplay = page == Integer.MAX_VALUE ? "-" : Integer.toString(page);
                     int primary = GuNodeOrdering.primarySlotIndex(root);
                     String primaryDisplay = primary == Integer.MAX_VALUE ? "-" : Integer.toString(primary);
-                    return root.name() + "[order=" + orderDisplay + ",rule=" + ruleId + ",primaryIdx=" + primaryDisplay + "]";
+                    return root.name() + "[page=" + pageDisplay + ",order=" + orderDisplay + ",rule=" + ruleId + ",primaryIdx=" + primaryDisplay + "]";
                 })
                 .collect(Collectors.joining(", "));
         ChestCavity.LOGGER.info(

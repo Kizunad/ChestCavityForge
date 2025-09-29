@@ -15,6 +15,7 @@ public final class GuNodeOrdering {
 
     private static final int DEFAULT_INDEX = Integer.MAX_VALUE;
     private static final int DEFAULT_ADJACENCY = Integer.MAX_VALUE;
+    private static final int DEFAULT_PAGE_INDEX = Integer.MAX_VALUE;
 
     private GuNodeOrdering() {
     }
@@ -29,9 +30,12 @@ public final class GuNodeOrdering {
     public static Comparator<GuNode> comparator(boolean preferUiOrder) {
         if (preferUiOrder) {
             return Comparator
-                    .comparingInt(GuNodeOrdering::primarySlotIndex)
+                    .comparingInt(GuNodeOrdering::pageIndex)
+                    .thenComparingInt(GuNodeOrdering::primarySlotIndex)
                     .thenComparingInt(GuNodeOrdering::executionOrder)
-                    .thenComparingInt(GuNodeOrdering::adjacencySpan);
+                    .thenComparingInt(GuNodeOrdering::adjacencySpan)
+                    .thenComparing(GuNodeOrdering::operatorOrKindId)
+                    .thenComparing(GuNode::name);
         }
         return Comparator
                 .comparingInt(GuNodeOrdering::executionOrder)
@@ -61,6 +65,16 @@ public final class GuNodeOrdering {
             return operator.adjacencySpanHint().orElse(DEFAULT_ADJACENCY);
         }
         return DEFAULT_ADJACENCY;
+    }
+
+    public static int pageIndex(GuNode node) {
+        if (node instanceof LeafGuNode leaf) {
+            return leaf.pageIndex().orElse(DEFAULT_PAGE_INDEX);
+        }
+        if (node instanceof OperatorGuNode operator) {
+            return operator.pageIndexHint().orElse(DEFAULT_PAGE_INDEX);
+        }
+        return DEFAULT_PAGE_INDEX;
     }
 
     public static String operatorOrKindId(GuNode node) {
