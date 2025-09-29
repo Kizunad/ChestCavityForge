@@ -59,30 +59,37 @@ public record GuScriptTriggerPayload(int pageIndex, int targetEntityId) implemen
         }
 
         double distanceSqr = player.distanceToSqr(living);
-        if (distanceSqr > MAX_TARGET_RANGE_SQR) {
-            ChestCavity.LOGGER.debug("[GuScript] Rejected spoofed target {} beyond range {}", living.getUUID(), Math.sqrt(MAX_TARGET_RANGE_SQR));
-            return null;
-        }
-        if (!player.hasLineOfSight(living)) {
-            ChestCavity.LOGGER.debug("[GuScript] Rejected spoofed target {} without line of sight", living.getUUID());
-            return null;
-        }
-
+        boolean hasLineOfSight = player.hasLineOfSight(living);
         Vec3 eyePos = player.getEyePosition();
         Vec3 toTarget = living.getEyePosition().subtract(eyePos);
         double squaredLength = toTarget.lengthSqr();
-        if (squaredLength < 1.0E-6) {
-            return living;
-        }
-        Vec3 look = player.getLookAngle();
-        double dot = look.dot(toTarget.normalize());
-        if (dot < MIN_VIEW_DOT) {
-            ChestCavity.LOGGER.debug("[GuScript] Rejected spoofed target {} outside view cone (dot={})", living.getUUID(), dot);
+        double dot = squaredLength < 1.0E-6
+                ? 1.0
+                : player.getLookAngle().dot(toTarget.normalize());
+
+        if (!isTargetAllowed(distanceSqr, hasLineOfSight, dot)) {
+            ChestCavity.LOGGER.debug(
+                    "[GuScript] Rejected spoofed target {} (distanceSqr={}, hasLineOfSight={}, dot={})",
+                    living.getUUID(),
+                    distanceSqr,
+                    hasLineOfSight,
+                    dot
+            );
             return null;
         }
         return living;
     }
 
-    private static final double MAX_TARGET_RANGE_SQR = 400.0; // 20 blocks squared
-    private static final double MIN_VIEW_DOT = Math.cos(Math.toRadians(70.0));
+    static boolean isTargetAllowed(double distanceSqr, boolean hasLineOfSight, double viewDot) {
+        if (!hasLineOfSight) {
+            return false;
+        }
+        if (distanceSqr > MAX_TARGET_RANGE_SQR) {
+            return false;
+        }
+        return viewDot >= MIN_VIEW_DOT;
+    }
+
+    static final double MAX_TARGET_RANGE_SQR = 400.0; // 20 blocks squared
+    static final double MIN_VIEW_DOT = Math.cos(Math.toRadians(70.0));
 }
