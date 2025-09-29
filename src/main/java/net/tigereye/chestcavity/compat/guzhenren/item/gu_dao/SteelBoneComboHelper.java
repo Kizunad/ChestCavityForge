@@ -9,6 +9,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.Item;
@@ -16,6 +18,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GangjinguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.JingtieguguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.TieGuGuOrganBehavior;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -178,6 +183,31 @@ public final class SteelBoneComboHelper {
         return true;
     }
 
+    public static void ensureAbsorptionCapacity(LivingEntity entity, ChestCavityInstance cc) {
+        if (entity == null) {
+            return;
+        }
+        AttributeInstance attribute = entity.getAttribute(Attributes.MAX_ABSORPTION);
+        if (attribute == null) {
+            return;
+        }
+        double desired = computeAbsorptionCapacity(cc);
+        if (Math.abs(attribute.getBaseValue() - desired) > 1.0E-3) {
+            attribute.setBaseValue(desired);
+        }
+    }
+
+    private static double computeAbsorptionCapacity(ChestCavityInstance cc) {
+        if (cc == null) {
+            return 0.0;
+        }
+        ComboState state = analyse(cc);
+        double steelCap = state.steel() > 0 ? state.steel() * GangjinguOrganBehavior.ABSORPTION_PER_STACK : 0.0;
+        double ironCap = state.iron() > 0 ? state.iron() * TieGuGuOrganBehavior.ABSORPTION_PER_STACK : 0.0;
+        double refinedCap = state.refined() > 0 ? state.refined() * JingtieguguOrganBehavior.ABSORPTION_PER_STACK : 0.0;
+        return Math.max(0.0, Math.max(steelCap, Math.max(ironCap, refinedCap)));
+    }
+
     public static void spawnImpactFx(ServerLevel level, LivingEntity target, Vec3 hintPosition) {
         if (level == null || target == null) {
             return;
@@ -233,4 +263,3 @@ public final class SteelBoneComboHelper {
         private static final ComboState EMPTY = new ComboState(0, 0, 0);
     }
 }
-

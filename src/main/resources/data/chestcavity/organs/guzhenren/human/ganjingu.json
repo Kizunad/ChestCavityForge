@@ -2,7 +2,7 @@
   "itemID": "guzhenren:ganjingu",
   "organScores": [
     { "id": "chestcavity:strength", "value": "24" },
-    { "id": "chestcavity:speed", "value": "24" }
+    { "id": "chestcavity:speed", "value": "8" }
   ]
 }
 

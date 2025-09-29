@@ -2,12 +2,20 @@ package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
 /**
  * Behaviour for 铁骨蛊 – provides modest absorption and boosts Gu/Jin Dao efficiency.
+ * <p>
+ * Absorption hearts are granted sparingly: once per interval the behaviour checks
+ * the bone-growth linkage pool ({@code SteelBoneComboHelper.tryConsumeBoneEnergy})
+ * and only raises absorption if the entity currently sits below the target amount.
+ * This keeps the plating from constantly “topping off” gold hearts—consumption of
+ * the shield is intentional, and the upkeep is paid with bone energy rather than
+ * refreshing on every hit. Actual healing is deferred to the steel combo healer
+ * ({@link net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHealing}).
  */
 public final class TieGuGuOrganBehavior extends AbstractMetalBoneSupportBehavior {
 
     public static final TieGuGuOrganBehavior INSTANCE = new TieGuGuOrganBehavior();
 
-    private static final float ABSORPTION_PER_STACK = 20.0f;
+    public static final float ABSORPTION_PER_STACK = 20.0f;
     private static final double ENERGY_COST_PER_STACK = 20.0;
     private static final int ABSORPTION_INTERVAL_TICKS = 20 * 60; // 1 minute
     private static final double GU_DAO_EFFECT = 0.05;
@@ -45,5 +53,5 @@ public final class TieGuGuOrganBehavior extends AbstractMetalBoneSupportBehavior
     protected String stateRootKey() {
         return "TieGuGu";
     }
-}
 
+}
