@@ -6,8 +6,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.EntityHitResult;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptTriggerPayload;
@@ -172,7 +174,13 @@ public class KeybindingClientListeners {
         if (minecraft.screen instanceof GuScriptScreen screen) {
             pageIndex = screen.getMenu().getPageIndex();
         }
-        connection.send(new GuScriptTriggerPayload(pageIndex));
+        int targetId = -1;
+        if (minecraft.hitResult instanceof EntityHitResult entityHit) {
+            if (entityHit.getEntity() instanceof LivingEntity living) {
+                targetId = living.getId();
+            }
+        }
+        connection.send(new GuScriptTriggerPayload(pageIndex, targetId));
     }
 
     private static void sendHotkeyToServer(ChestCavityHotkeyPayload payload) {
