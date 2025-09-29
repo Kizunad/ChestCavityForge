@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
 
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior.ShuishenguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.List;

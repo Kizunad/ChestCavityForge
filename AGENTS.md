@@ -428,6 +428,14 @@ Risks & mitigations
 - 建议分支：`feature/guscript-time-accelerate-channel`。
 - 完成后更新本章节为“已完成/后续优化”（如需要扩展 `consume_*_scaled` 等高级用法）。
 
+## 2025-09-29 Shuishengu 盾牌接口提取（已完成）
+- 将水肾蛊的 `onIncomingDamage` 抵挡逻辑抽离为通用接口：新增 `listeners.damage.IncomingDamageShield`（含 `ShieldContext` / `ShieldResult`）与 `util.math.CurveUtil`（提供指数平滑曲线）。
+- 新建 `ShuishenguShield` 实现该接口，负责指数曲线、消耗/返还 charge、FX/音效播发、Linkage 比例推送。
+- `ShuishenguOrganBehavior` 迁移至 `compat.guzhenren.item.shui_dao.behavior`，慢速充能逻辑保留，OnIncomingDamage 通过 `ShuishenguShield.INSTANCE.absorb(...)` 委托；同时沿用新静态方法复用 charge 计算。
+- 更新 `WuHangOrganRegistry` 引用新的包路径；移除旧文件。
+- 编译 / 测试：`./gradlew compileJava`、`./gradlew test` 通过。
+- 后续：其它 Organ 若需盾牌行为，可实现 `IncomingDamageShield` 并在各自 `OrganIncomingDamageListener` 中委托。若需统一调度，可在未来扩展通用 ShieldRegistry。
+
 Validation checklist
 - Hotkey bindings and ability triggers still work (no missing IDs).
 - Network payloads unchanged; client/server payload handling intact.
