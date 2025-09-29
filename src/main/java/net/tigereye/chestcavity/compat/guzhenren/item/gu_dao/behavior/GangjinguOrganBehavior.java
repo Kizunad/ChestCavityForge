@@ -51,23 +51,32 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+            ChestCavity.LOGGER.debug("[compat/guzhenren][steel_bone] skip slow tick – not server player for {}", describeStack(organ));
             return;
         }
         if (!SteelBoneComboHelper.isPrimarySteelOrgan(cc, organ)) {
+            ChestCavity.LOGGER.debug("[compat/guzhenren][steel_bone] skip slow tick – not primary stack for {}", describeStack(organ));
             return;
         }
 
         SteelBoneComboHelper.ComboState comboState = SteelBoneComboHelper.analyse(cc);
         if (!SteelBoneComboHelper.hasSteel(comboState)) {
+            ChestCavity.LOGGER.debug("[compat/guzhenren][steel_bone] skip slow tick – analyse() returned no steel (state={})", comboState);
             return;
         }
 
         if (!SteelBoneComboHelper.consumeMaintenanceHunger(player)) {
-            ChestCavity.LOGGER.debug("[compat/guzhenren] Gangjingu skipped: insufficient hunger for {}", describeStack(organ));
+            ChestCavity.LOGGER.info("[compat/guzhenren][steel_bone] hunger gate blocked absorption for {}", describeStack(organ));
             return;
         }
 
         SteelBoneComboHelper.ensureAbsorptionCapacity(player, cc);
+        ChestCavity.LOGGER.info(
+                "[compat/guzhenren][steel_bone] post-capacity: maxAbsorption={} currentAbsorption={} stacks={}",
+                player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION).getBaseValue(),
+                player.getAbsorptionAmount(),
+                comboState.steel()
+        );
 
         int steelStacks = Math.max(1, comboState.steel());
         applyAbsorption(player, organ, steelStacks);
@@ -96,8 +105,8 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         if (player.getAbsorptionAmount() + 1.0E-3f < required) {
             player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), required));
-            ChestCavity.LOGGER.debug(
-                    "[compat/guzhenren] Gangjingu applied absorption {} (stacks={})",
+            ChestCavity.LOGGER.info(
+                    "[compat/guzhenren][steel_bone] apply absorption -> {} (stacks={})",
                     String.format(java.util.Locale.ROOT, "%.1f", required),
                     steelStacks
             );

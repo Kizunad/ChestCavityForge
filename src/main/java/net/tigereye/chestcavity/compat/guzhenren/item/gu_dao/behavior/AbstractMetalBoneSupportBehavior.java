@@ -37,7 +37,7 @@ abstract class AbstractMetalBoneSupportBehavior extends AbstractGuzhenrenOrganBe
             ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/bone_growth");
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
-    private static final boolean DEBUG_ABSORPTION = Boolean.getBoolean("chestcavity.debugMetalBoneAbsorption");
+    private static final boolean DEBUG_ABSORPTION = true;
 
     AbstractMetalBoneSupportBehavior() {
     }
