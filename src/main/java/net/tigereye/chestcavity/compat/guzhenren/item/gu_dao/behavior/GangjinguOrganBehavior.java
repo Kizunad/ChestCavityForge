@@ -30,7 +30,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final String STATE_ROOT = "Gangjingu";
     private static final String ABSORPTION_KEY = "LastAbsorptionTick";
-    private static final int ABSORPTION_INTERVAL_TICKS = 20 * 120; // 2 minutes
+    private static final int ABSORPTION_INTERVAL_TICKS = 20 * 1; // 2 minutes
     public static final float ABSORPTION_PER_STACK = 60.0f;
     private static final double JINGLI_PER_SECOND = 1.0;
     private static final double BONUS_DAMAGE_CHANCE = 0.15;

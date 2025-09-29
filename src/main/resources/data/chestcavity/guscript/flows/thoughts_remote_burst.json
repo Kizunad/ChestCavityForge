@@ -39,9 +39,15 @@
       "enter_actions": [
         { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_remote_release", "base_intensity": 1.0 },
         { "type": "trigger_actions", "actions": [
-          { "id": "guzhenren.adjust", "identifier": "niantou", "amount": -180.0 },
-          { "id": "mind.shock", "damage": 12.0, "range": 18.0 },
-          { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_remote_hit", "intensity": 1.0, "targetOffset": [0.0, 0.4, 0.0] }
+          {
+            "id": "if.target",
+            "range": 18.0,
+            "actions": [
+              { "id": "guzhenren.adjust", "identifier": "niantou", "amount": -180.0 },
+              { "id": "mind.shock", "damage": 12.0, "range": 18.0 },
+              { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_remote_hit", "intensity": 1.0, "targetOffset": [0.0, 0.4, 0.0] }
+            ]
+          }
         ] }
       ],
       "transitions": [

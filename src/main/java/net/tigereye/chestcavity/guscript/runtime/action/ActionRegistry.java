@@ -72,6 +72,14 @@ public final class ActionRegistry {
                 new net.tigereye.chestcavity.guscript.actions.EmitBloodBoneBombAction(
                         json.has("base") ? json.get("base").getAsDouble() : 80.0
                 ));
+        register(net.tigereye.chestcavity.guscript.actions.ConditionalTargetAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.ConditionalTargetAction(
+                        json.has("range") ? json.get("range").getAsDouble() : Double.POSITIVE_INFINITY,
+                        !json.has("excludeSelf") || json.get("excludeSelf").getAsBoolean(),
+                        !json.has("requireAlive") || json.get("requireAlive").getAsBoolean(),
+                        !json.has("requirePerformer") || json.get("requirePerformer").getAsBoolean(),
+                        readActions(json)
+                ));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {
@@ -102,5 +110,20 @@ public final class ActionRegistry {
         double y = array.size() > 1 ? array.get(1).getAsDouble() : 0.0D;
         double z = array.size() > 2 ? array.get(2).getAsDouble() : 0.0D;
         return new Vec3(x, y, z);
+    }
+
+    private static java.util.List<Action> readActions(JsonObject json) {
+        if (!json.has("actions") || !json.get("actions").isJsonArray()) {
+            return java.util.List.of();
+        }
+        JsonArray array = json.getAsJsonArray("actions");
+        java.util.List<Action> actions = new java.util.ArrayList<>(array.size());
+        for (var element : array) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            actions.add(fromJson(element.getAsJsonObject()));
+        }
+        return actions;
     }
 }

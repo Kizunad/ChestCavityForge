@@ -16,7 +16,7 @@ public final class JingtieguguOrganBehavior extends AbstractMetalBoneSupportBeha
 
     public static final float ABSORPTION_PER_STACK = 40.0f;
     private static final double ENERGY_COST_PER_STACK = 40.0;
-    private static final int ABSORPTION_INTERVAL_TICKS = 20 * 60; // 1 minute
+    private static final int ABSORPTION_INTERVAL_TICKS = 20 * 45; // 1 minute
     private static final double GU_DAO_EFFECT = 0.10;
     private static final double JIN_DAO_EFFECT = 0.10;
 
