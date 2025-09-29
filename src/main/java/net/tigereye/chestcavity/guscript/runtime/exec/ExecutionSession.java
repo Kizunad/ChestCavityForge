@@ -11,6 +11,8 @@ public final class ExecutionSession {
     private final double flatCap;
     private double cumulativeMultiplier;
     private double cumulativeFlat;
+    private double currentTimeScaleMultiplier = 1.0D;
+    private double currentTimeScaleFlat = 0.0D;
 
     public ExecutionSession(double multiplierCap, double flatCap) {
         this.multiplierCap = sanitizeCap(multiplierCap);
@@ -62,6 +64,36 @@ public final class ExecutionSession {
                     flatCap == Double.POSITIVE_INFINITY ? "unlimited" : String.format("%.3f", flatCap)
             );
         }
+    }
+
+    public void exportTimeScaleMultiplier(double multiplier) {
+        if (Double.isNaN(multiplier) || Double.isInfinite(multiplier) || multiplier <= 0.0D) {
+            return;
+        }
+        currentTimeScaleMultiplier *= multiplier;
+    }
+
+    public void exportTimeScaleFlat(double amount) {
+        if (Double.isNaN(amount) || Double.isInfinite(amount) || amount == 0.0D) {
+            return;
+        }
+        currentTimeScaleFlat += amount;
+    }
+
+    public double currentTimeScaleMultiplier() {
+        return currentTimeScaleMultiplier;
+    }
+
+    public double currentTimeScaleFlat() {
+        return currentTimeScaleFlat;
+    }
+
+    public double currentTimeScale() {
+        double combined = currentTimeScaleMultiplier + currentTimeScaleFlat;
+        if (Double.isNaN(combined) || Double.isInfinite(combined)) {
+            return 1.0D;
+        }
+        return combined;
     }
 
     private static double clamp(double value, double cap) {

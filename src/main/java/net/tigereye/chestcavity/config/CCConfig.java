@@ -184,6 +184,14 @@ public class CCConfig implements ConfigData {
         public boolean revalidateQueuedGuards = true;
         @ConfigEntry.Gui.Tooltip
         public int queuedGuardRetryLimit = 0;
+        @ConfigEntry.Gui.Tooltip
+        public TimeScaleCombineStrategy timeScaleCombine = TimeScaleCombineStrategy.MULTIPLY;
+    }
+
+    public enum TimeScaleCombineStrategy {
+        MULTIPLY,
+        MAX,
+        OVERRIDE
     }
 
 }
