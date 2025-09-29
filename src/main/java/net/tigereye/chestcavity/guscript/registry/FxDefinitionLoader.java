@@ -98,9 +98,19 @@ public final class FxDefinitionLoader extends SimpleJsonResourceReloadListener {
         ResourceLocation particleId = ResourceLocation.parse(GsonHelper.getAsString(json, "particle", "minecraft:crit"));
         double speed = GsonHelper.getAsDouble(json, "speed", 0.05D);
         Vec3 spread = readVec3(json, "spread", 0.15D);
-        Integer color = json.has("color") ? parseColor(json.get("color")) : null;
+        Integer primaryColor = null;
+        if (json.has("color")) {
+            primaryColor = parseColor(json.get("color"));
+        }
+        if (json.has("from_color")) {
+            Integer fromColor = parseColor(json.get("from_color"));
+            if (fromColor != null) {
+                primaryColor = fromColor;
+            }
+        }
+        Integer secondaryColor = json.has("to_color") ? parseColor(json.get("to_color")) : null;
         float size = GsonHelper.getAsFloat(json, "size", 1.0F);
-        return new ParticleSettings(particleId, speed, spread, color, size);
+        return new ParticleSettings(particleId, speed, spread, primaryColor, secondaryColor, size);
     }
 
     private static Vec3 readVec3(JsonObject json, String key) {
