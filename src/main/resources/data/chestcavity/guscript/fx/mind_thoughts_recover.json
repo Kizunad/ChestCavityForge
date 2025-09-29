@@ -1,0 +1,21 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.amethyst_block.fall", "volume": 0.5, "pitch": 1.25 },
+    { "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#9fe6ff",
+      "size": 1.0,
+      "speed": 0.05,
+      "spread": [0.45, 0.4, 0.45],
+      "offset": [0, 1.5, 0],
+      "count": 40
+    },
+    { "type": "particle",
+      "particle": "minecraft:happy_villager",
+      "count": 10,
+      "speed": 0.01,
+      "spread": [0.25, 0.3, 0.25],
+      "offset": [0, 1.6, 0]
+    }
+  ]
+}

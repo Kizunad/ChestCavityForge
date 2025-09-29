@@ -1,0 +1,12 @@
+{
+  "arity": 4,
+  "priority": 30,
+  "required": { "远程": 1, "念头": 1, "伤害": 1, "智道": 1 },
+  "result": {
+    "name": "念头远程伤害",
+    "operator_id": "chestcavity:mind_thought_remote",
+    "kind": "composite",
+    "tags": ["杀招", "远程", "念头"],
+    "flow_id": "chestcavity:thoughts_remote_burst"
+  }
+}

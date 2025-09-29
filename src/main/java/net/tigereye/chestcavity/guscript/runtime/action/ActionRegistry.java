@@ -63,6 +63,11 @@ public final class ActionRegistry {
                 new net.tigereye.chestcavity.guscript.actions.GainHealthAction(
                         json.get("amount").getAsDouble()
                 ));
+        register(net.tigereye.chestcavity.guscript.actions.MindShockAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.MindShockAction(
+                        json.get("damage").getAsDouble(),
+                        json.has("range") ? json.get("range").getAsDouble() : 16.0D
+                ));
         register(net.tigereye.chestcavity.guscript.actions.EmitBloodBoneBombAction.ID, json ->
                 new net.tigereye.chestcavity.guscript.actions.EmitBloodBoneBombAction(
                         json.has("base") ? json.get("base").getAsDouble() : 80.0

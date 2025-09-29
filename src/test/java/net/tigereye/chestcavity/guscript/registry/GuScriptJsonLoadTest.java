@@ -51,6 +51,7 @@ class GuScriptJsonLoadTest {
         assertTrue(FlowProgramRegistry.get(ResourceLocation.parse("chestcavity:demo_charge_release")).isPresent(), "demo_charge_release flow missing");
         assertTrue(FlowProgramRegistry.get(ResourceLocation.parse("chestcavity:time_acceleration")).isPresent(), "time_acceleration flow missing");
         assertTrue(FlowProgramRegistry.get(ResourceLocation.parse("chestcavity:thoughts_cycle")).isPresent(), "thoughts_cycle flow missing");
+        assertTrue(FlowProgramRegistry.get(ResourceLocation.parse("chestcavity:thoughts_remote_burst")).isPresent(), "thoughts_remote_burst flow missing");
     }
 
     private static Map<ResourceLocation, JsonElement> readJsonDir(String dir) throws IOException {

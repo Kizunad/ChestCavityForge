@@ -1,0 +1,12 @@
+{
+  "arity": 3,
+  "priority": 28,
+  "required": { "恢复": 1, "智道": 1, "念头": 1 },
+  "result": {
+    "name": "恢复念头",
+    "operator_id": "chestcavity:mind_thought_recover",
+    "kind": "composite",
+    "tags": ["杀招", "恢复", "念头"],
+    "flow_id": "chestcavity:thoughts_cycle"
+  }
+}
