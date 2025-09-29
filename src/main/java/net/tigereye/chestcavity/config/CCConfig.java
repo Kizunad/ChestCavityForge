@@ -177,9 +177,9 @@ public class CCConfig implements ConfigData {
         @ConfigEntry.Gui.Tooltip
         public boolean enableFlows = true; // toggle flow integration; when false, all roots execute immediately
         @ConfigEntry.Gui.Tooltip
-        public boolean enableFlowQueue = false;
+        public boolean enableFlowQueue = true; // default off to preserve legacy single-flow behavior
         @ConfigEntry.Gui.Tooltip
-        public int maxFlowQueueLength = 4;
+        public int maxFlowQueueLength = 40;
         @ConfigEntry.Gui.Tooltip
         public boolean revalidateQueuedGuards = true;
         @ConfigEntry.Gui.Tooltip

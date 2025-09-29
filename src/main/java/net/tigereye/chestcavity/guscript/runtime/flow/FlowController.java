@@ -259,8 +259,8 @@ public final class FlowController {
         return !pending.isEmpty();
     }
 
-    /** Visible for testing to assert queue length. */
-    int pendingSize() {
+    /** Visible for command feedback and testing to assert queue length. */
+    public int pendingSize() {
         return pending.size();
     }
 

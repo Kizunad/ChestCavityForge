@@ -3,8 +3,10 @@ package net.tigereye.chestcavity.guscript.runtime.flow;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -25,5 +27,9 @@ public final class FlowProgramRegistry {
 
     public static Optional<FlowProgram> get(ResourceLocation id) {
         return Optional.ofNullable(PROGRAMS.get(id));
+    }
+
+    public static Set<ResourceLocation> ids() {
+        return Collections.unmodifiableSet(PROGRAMS.keySet());
     }
 }

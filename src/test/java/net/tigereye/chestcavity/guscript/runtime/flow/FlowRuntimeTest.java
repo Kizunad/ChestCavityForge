@@ -97,7 +97,10 @@ class FlowRuntimeTest {
 
     @Test
     void queueDisabledRejectsNewFlowWhileRunning() {
-        ChestCavity.config = new CCConfig();
+        CCConfig cfg = new CCConfig();
+        // Explicitly disable queue to make this test independent of default config
+        cfg.GUSCRIPT_EXECUTION.enableFlowQueue = false;
+        ChestCavity.config = cfg;
         FlowController controller = new FlowController();
         FlowProgram program = simpleProgram(List.of());
 

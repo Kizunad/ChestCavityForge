@@ -338,6 +338,96 @@ Risks & mitigations
 - Access modifiers: classes relying on package-private collaborators may need `public`.
 - Dist separation: keep `@EventBusSubscriber(value = Dist.CLIENT)` where appropriate to avoid classloading on server.
 
+## 2025-09-29 Time.accelerate 嵌入优化（交付给 Web Codex）
+
+预准备
+- 配置与环境
+  - 默认保持 `enableFlowQueue=false` 以兼容旧行为；需要验证队列时再开启。
+  - 保持现有 Flow 运行日志（FlowInstance.enterState 的 INFO 已插桩）。
+  - 使用 `/guscript flow start <flow_id> [timeScale] [k=v …]` 命令直接启动 Flow 验证（已添加）。
+- 现状问题
+  - “时念加速”通过单独启动一个 flow 占用控制器，导致“血骨爆弹”等主技无法同时启动 → 出现“started flow 但不发射”的假象。
+  - `time.accelerate` 目前只作为 flowParams 的一个数值被简单解析，缺乏统一的会话导出/多来源叠加/可观测能力。
+
+计划（实现步骤）
+1) 新增时间加速导出动作（Action）
+   - 新建：`ExportTimeScaleMultiplierAction`（id: `export.time_scale_mult`）、`ExportTimeScaleFlatAction`（id: `export.time_scale_flat`）。
+   - 放置路径：`ChestCavityForge/src/main/java/net/tigereye/chestcavity/guscript/actions/`。
+   - 在 `ActionRegistry.registerDefaults()` 注册解析：读取 `amount`（double）。
+   - 语义：将时间倍率作为“会话导出”存入执行会话（mult/flat 两通道）。
+
+2) 扩展会话与上下文
+   - 在 `ExecutionSession` 增加字段：`currentTimeScaleMult`（默认 1.0）、`currentTimeScaleFlat`（默认 0.0），并提供：
+     - `exportTimeScaleMult(double)`, `exportTimeScaleFlat(double)`
+     - `currentTimeScale()`：按策略合并（默认 MULTIPLY）
+   - 在 `DefaultGuScriptContext` 暴露导出 API 以便动作调用。
+
+3) 执行器注入与合并（核心）
+   - 修改 `GuScriptExecutor.executeRootsWithSession(...)`：
+     - 先执行所有 operator roots 以收集“导出”（包括本次新增的 timeScale 导出）；此步不启动任何 flow。
+     - 启动 flow 前，读取 page/rule 的 `flowParams["time.accelerate"]`（若缺省视作 1.0），与 `session.currentTimeScale()` 合并：
+       - `effectiveScale = combine(flowParamScale, sessionScale)`，clamp 到 [0.1, 100]。
+       - 将 `effectiveScale` 写回 `flowParams["time.accelerate"]`，并作为 `start(program, timeScale=effectiveScale, flowParams=...)` 的 timeScale 参数。
+     - 打印一条 INFO：包含 root 名称、flowId、flowParamScale、sessionScale、effectiveScale、params 摘要。
+   - 合并策略配置：见第 5 步。
+
+4) 规则与 JSON 调整
+   - 将“时念加速”规则从“启动 time_acceleration flow”改为仅导出 timeScale（使用新动作）+ `emit.fx` 播放入场/循环/退出 FX（可选），不再占用控制器。
+   - 保留 `demo_charge_release` flow，charging/charged/releasing 不变；`update_period=20` 维持“总成本不变”。
+
+5) 配置项
+   - 在 `CCConfig.GUSCRIPT_EXECUTION` 中新增：
+     - `timeScaleCombine`: 字符串枚举，`"MULTIPLY" | "MAX" | "OVERRIDE"`（默认 MULTIPLY）。
+   - 在注入处读取策略：
+     - MULTIPLY：`effective = flow * session`（若 flow 缺省按 1.0 处理）
+     - MAX：`effective = max(flow, session)`
+     - OVERRIDE：`effective = session`（会话导出覆盖）
+
+6) 日志与可观测性
+   - 启动 flow 时打印：`[GuScript][Flow] <root>#<idx> merged timeScale: flow=<f>, session=<s>, effective=<e>`。
+   - Flow 状态进入日志（已存在）：`[Flow] <flowId> entered <STATE> (timeScale=X.XXX, params={...})`。
+   - `/guscript flow start` 命令已支持 `timeScale` 与 `key=value` 参数注入，用于手动验证合并与注入是否生效。
+
+7) 保留与兼容
+   - 不改动 FlowInstance 的 tickAccumulator 逻辑：时间加速只改变“到达逻辑 tick 上限的速度”，不改变触发次数，总扣费不变。
+   - 队列逻辑保持现状（默认关闭）。如需验证队列行为，服务端 `config/chestcavity.json(5)` 中开启 `enableFlowQueue` 并重启。
+
+测试（新增/调整）
+1) 单元测试：时间合并策略（新建 `FlowTimeScaleCombineTest`）
+   - MULTIPLY：flow=1.2, session=1.5 → effective≈1.8；
+   - MAX：flow=1.2, session=1.5 → 1.5；
+   - OVERRIDE：flow=2.0, session=1.5 → 1.5。
+   - clamping：超界值被 clamp 至 [0.1, 100]。
+
+2) 执行器注入测试（新建 `GuScriptExecutorTimeScaleTest`）
+   - 构造两个 roots：
+     - root A（operator）：导出 `export.time_scale_mult(1.5)`；
+     - root B（operator）：启动 flow `test:progress`，不显式给 `time.accelerate`；
+   - 断言：`start(...)` 的 timeScale≈1.5 且 `controller.resolveFlowParam("time.accelerate")≈"1.5"`。
+   - 再测：root B 的 flowParams 提供 `time.accelerate=1.2`，策略 MULTIPLY → effective≈1.8。
+
+3) 行为测试：总成本不变
+   - 构造一个 flow：`charging(200 ticks)`、`update_period=20`，在 `update_actions` 累加计数变量；
+   - 启动一次 `timeScale=1.0`，完成后计数=10；
+   - 再启动 `timeScale=2.0`，完成后计数仍=10（验证更新次数不变）。
+
+4) 回归测试
+   - 现有 JSON 载入测试不变；
+   - Flow 队列测试不变（默认关闭时拒绝、开启时入队）。
+
+预期效果
+- “时念加速”等加速器不再占用 flow 控制器，血骨爆弹等主技能正常启动、蓄力、释放发射。
+- `time.accelerate` 的来源可同时来自页面参数与会话导出，按配置策略合并，日志明确显示合并过程与结果。
+- Flow 的周期扣费次数不因加速而改变，总成本保持 10s 基线设计；用户体感为“更快完成”。
+
+日志与注释风格
+- 使用 INFO 记录关键生命周期（导出合并结果、flow 启动、状态切换、队列行为），DEBUG 用于守卫失败原因与细节。
+- 新增类/方法写 Javadoc 简述职责与合并策略；在 ActionRegistry 注册处注释“强类型化参数与默认值”。
+
+提交与发布
+- 建议分支：`feature/guscript-time-accelerate-channel`。
+- 完成后更新本章节为“已完成/后续优化”（如需要扩展 `consume_*_scaled` 等高级用法）。
+
 Validation checklist
 - Hotkey bindings and ability triggers still work (no missing IDs).
 - Network payloads unchanged; client/server payload handling intact.
