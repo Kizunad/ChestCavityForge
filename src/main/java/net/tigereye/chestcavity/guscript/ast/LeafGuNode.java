@@ -5,6 +5,7 @@ import com.google.common.collect.Multiset;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 
 /**
  * Leaf node representing an individual Gu (蛊虫) with intrinsic tags and actions.
@@ -13,14 +14,20 @@ public final class LeafGuNode implements GuNode {
     private final String name;
     private final Multiset<String> tags;
     private final List<Action> actions;
+    private final int slotIndex;
 
     public LeafGuNode(String name, Multiset<String> tags, List<Action> actions) {
+        this(name, tags, actions, -1);
+    }
+
+    public LeafGuNode(String name, Multiset<String> tags, List<Action> actions, int slotIndex) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Leaf node must have a name");
         }
         this.name = name;
         this.tags = tags == null ? HashMultiset.create() : HashMultiset.create(tags);
         this.actions = actions == null ? new ArrayList<>() : new ArrayList<>(actions);
+        this.slotIndex = slotIndex;
     }
 
     @Override
@@ -36,6 +43,10 @@ public final class LeafGuNode implements GuNode {
     @Override
     public List<Action> actions() {
         return actions;
+    }
+
+    public OptionalInt slotIndex() {
+        return slotIndex >= 0 ? OptionalInt.of(slotIndex) : OptionalInt.empty();
     }
 
     @Override
@@ -54,6 +65,7 @@ public final class LeafGuNode implements GuNode {
                 "name='" + name + '\'' +
                 ", tags=" + tags +
                 ", actions=" + actions +
+                ", slotIndex=" + slotIndex +
                 '}';
     }
 }

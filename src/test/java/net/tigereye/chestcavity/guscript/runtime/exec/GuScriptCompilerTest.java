@@ -59,7 +59,7 @@ class GuScriptCompilerTest {
     @Test
     void toScaledLeaf_multipliesTagsByCount() {
         GuScriptRegistry.LeafDefinition definition = GuScriptRegistry.leaf(TEST_ITEM_ID).orElseThrow();
-        LeafGuNode scaled = GuScriptCompiler.toScaledLeaf(definition, 3);
+        LeafGuNode scaled = GuScriptCompiler.toScaledLeaf(definition, 3, 0);
         assertEquals(3, scaled.tags().count("骨道"));
 
         GuScriptReducer reducer = new GuScriptReducer();
@@ -73,7 +73,7 @@ class GuScriptCompilerTest {
     @Test
     void toScaledLeaf_requiresEnoughCountToMatch() {
         GuScriptRegistry.LeafDefinition definition = GuScriptRegistry.leaf(TEST_ITEM_ID).orElseThrow();
-        LeafGuNode scaled = GuScriptCompiler.toScaledLeaf(definition, 1);
+        LeafGuNode scaled = GuScriptCompiler.toScaledLeaf(definition, 1, 0);
         assertEquals(1, scaled.tags().count("骨道"));
 
     }
