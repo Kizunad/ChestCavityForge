@@ -45,8 +45,7 @@ public final class GuNodeOrdering {
 
     public static int primarySlotIndex(GuNode node) {
         if (node instanceof LeafGuNode leaf) {
-            int slot = leaf.slotIndex();
-            return slot >= 0 ? slot : DEFAULT_INDEX;
+            return leaf.slotIndex().orElse(DEFAULT_INDEX);
         }
         if (node instanceof OperatorGuNode operator) {
             return operator.primarySlotIndex().orElse(DEFAULT_INDEX);
@@ -70,8 +69,7 @@ public final class GuNodeOrdering {
 
     public static int pageIndex(GuNode node) {
         if (node instanceof LeafGuNode leaf) {
-            int page = leaf.pageIndex();
-            return page >= 0 ? page : DEFAULT_PAGE_INDEX;
+            return leaf.pageIndex().orElse(DEFAULT_PAGE_INDEX);
         }
         if (node instanceof OperatorGuNode operator) {
             return operator.pageIndexHint().orElse(DEFAULT_PAGE_INDEX);

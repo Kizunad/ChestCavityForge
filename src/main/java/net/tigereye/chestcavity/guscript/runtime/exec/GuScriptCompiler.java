@@ -57,6 +57,7 @@ public final class GuScriptCompiler {
             if (stack.isEmpty()) {
                 continue;
             }
+            int slotIndex = i;
             ResourceLocation itemId = stack.getItem().builtInRegistryHolder().key().location();
             GuScriptRegistry.leaf(itemId).ifPresentOrElse(def -> {
                 leaves.add(toScaledLeaf(def, stack.getCount(), pageIndex, slotIndex));
