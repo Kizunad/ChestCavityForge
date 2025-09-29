@@ -7,6 +7,6 @@
     "operator_id": "chestcavity:blood_bone_bomb_final",
     "kind": "composite",
     "tags": ["杀招", "血骨爆弹"],
-    "flow_id": "chestcavity:demo_charge_release"
+    "flow_id": "chestcavity:blood_bone_charge"
   }
 }
