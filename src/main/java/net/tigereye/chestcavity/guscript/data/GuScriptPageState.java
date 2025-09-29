@@ -54,6 +54,27 @@ public final class GuScriptPageState {
         return items;
     }
 
+    /**
+     * Creates a deep copy of this page, including item stacks and metadata but excluding cached compilation artifacts.
+     */
+    public GuScriptPageState copy() {
+        NonNullList<ItemStack> copiedItems = NonNullList.withSize(items.size(), ItemStack.EMPTY);
+        for (int i = 0; i < items.size(); i++) {
+            copiedItems.set(i, items.get(i).copy());
+        }
+        GuScriptPageState clone = new GuScriptPageState(copiedItems);
+        clone.bindingTarget = bindingTarget;
+        clone.listenerType = listenerType;
+        clone.title = title;
+        clone.dirty = true;
+        clone.inventorySignature = inventorySignature;
+        clone.listenerCooldowns.putAll(listenerCooldowns);
+        clone.flowId = flowId;
+        clone.flowParams = flowParams == null ? new HashMap<>() : new HashMap<>(flowParams);
+        clone.compiledProgram = null;
+        return clone;
+    }
+
     public BindingTarget bindingTarget() {
         return bindingTarget;
     }
