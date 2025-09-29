@@ -270,6 +270,35 @@ class FlowRuntimeTest {
         assertEquals(5.0D, jingli.get(), 1.0E-6);
     }
 
+    @Test
+    void consumeResourceCancelsWhenPoolTooSmall() {
+        FlowEdgeAction consume = FlowActions.consumeResource("jingli", 10.0D);
+        FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.resolveFlowParamAsDouble(Mockito.eq("time.accelerate"), Mockito.eq(1.0D))).thenReturn(1.0D);
+        Mockito.when(controller.requestCancel(Mockito.anyString(), Mockito.anyLong())).thenReturn(true);
+
+        GuzhenrenResourceBridge.ResourceHandle handle = Mockito.mock(GuzhenrenResourceBridge.ResourceHandle.class);
+        AtomicReference<Double> jingli = new AtomicReference<>(5.0D);
+        Mockito.when(handle.getJingli()).thenAnswer(inv -> OptionalDouble.of(jingli.get()));
+        Mockito.when(handle.adjustJingli(Mockito.anyDouble(), Mockito.eq(true))).thenAnswer(inv -> {
+            double delta = inv.getArgument(0);
+            double next = Math.max(0.0D, jingli.get() + delta);
+            jingli.set(next);
+            return OptionalDouble.of(next);
+        });
+
+        FlowActions.overrideResourceOpenerForTests(player -> Optional.of(handle));
+        try {
+            consume.apply(null, null, controller, 100L);
+        } finally {
+            FlowActions.resetResourceOpenerForTests();
+        }
+
+        Mockito.verify(controller).requestCancel(Mockito.eq("resource_failure:jingli"), Mockito.eq(100L));
+        Mockito.verify(handle, Mockito.never()).adjustJingli(Mockito.anyDouble(), Mockito.eq(true));
+        assertEquals(5.0D, jingli.get(), 1.0E-6);
+    }
+
     private static FlowProgram simpleProgram(List<FlowGuard> guards) {
         FlowTransition start = new FlowTransition(
                 FlowTrigger.START,

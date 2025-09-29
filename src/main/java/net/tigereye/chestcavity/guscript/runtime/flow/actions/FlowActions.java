@@ -35,6 +35,8 @@ import java.util.function.Function;
  */
 public final class FlowActions {
 
+    private static final double RESOURCE_TOLERANCE = 1.0E-6D;
+
     private FlowActions() {
     }
 
@@ -82,6 +84,26 @@ public final class FlowActions {
                 GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
                 String normalized = canonicalId.toLowerCase(java.util.Locale.ROOT);
                 OptionalDouble before = readResourceSnapshot(handle, normalized, canonicalId);
+
+                if (!"zhenyuan".equals(normalized) && before.isPresent()) {
+                    double available = before.getAsDouble();
+                    if (!Double.isFinite(available) || available + RESOURCE_TOLERANCE < scaledAmount) {
+                        logFailureAndCancel(
+                                performer,
+                                controller,
+                                gameTime,
+                                canonicalId,
+                                scaledAmount,
+                                sanitizedAmount,
+                                timeScale,
+                                before,
+                                before,
+                                "insufficient"
+                        );
+                        return;
+                    }
+                }
+
                 OptionalDouble result;
                 switch (normalized) {
                     case "jingli" -> result = handle.adjustJingli(-scaledAmount, true);
@@ -103,6 +125,30 @@ public final class FlowActions {
                             after,
                             "write_failed"
                     );
+                    return;
+                }
+
+                if (!"zhenyuan".equals(normalized) && before.isPresent()) {
+                    double available = before.getAsDouble();
+                    double remaining = result.orElse(Double.NaN);
+                    if (Double.isFinite(available) && Double.isFinite(remaining)) {
+                        double paid = available - remaining;
+                        if (paid + RESOURCE_TOLERANCE < scaledAmount) {
+                            logFailureAndCancel(
+                                    performer,
+                                    controller,
+                                    gameTime,
+                                    canonicalId,
+                                    scaledAmount,
+                                    sanitizedAmount,
+                                    timeScale,
+                                    before,
+                                    OptionalDouble.of(remaining),
+                                    "insufficient_paid"
+                            );
+                            return;
+                        }
+                    }
                 }
             }
 
