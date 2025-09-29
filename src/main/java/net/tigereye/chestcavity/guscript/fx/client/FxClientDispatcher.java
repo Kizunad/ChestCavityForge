@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.guscript.fx.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
@@ -126,15 +127,28 @@ public final class FxClientDispatcher {
         if (type instanceof SimpleParticleType simple) {
             return simple;
         }
-        if ("minecraft:dust".equals(settings.particleId().toString()) && settings.color() != null) {
-            float r = ((settings.color() >> 16) & 0xFF) / 255.0F;
-            float g = ((settings.color() >> 8) & 0xFF) / 255.0F;
-            float b = (settings.color() & 0xFF) / 255.0F;
+        String particleKey = settings.particleId().toString();
+        if ("minecraft:dust".equals(particleKey) && settings.primaryColor() != null) {
             float size = settings.size() <= 0.0F ? 1.0F : settings.size();
-            return new DustParticleOptions(new Vector3f(r, g, b), size);
+            return new DustParticleOptions(colorToVector(settings.primaryColor()), size);
+        }
+        if ("minecraft:dust_color_transition".equals(particleKey)) {
+            if (settings.primaryColor() == null || settings.secondaryColor() == null) {
+                ChestCavity.LOGGER.warn("[GuScript] dust_color_transition requires from_color and to_color in FX definition");
+                return null;
+            }
+            float size = settings.size() <= 0.0F ? 1.0F : settings.size();
+            return new DustColorTransitionOptions(colorToVector(settings.primaryColor()), colorToVector(settings.secondaryColor()), size);
         }
         ChestCavity.LOGGER.warn("[GuScript] Unsupported particle type {} for FX", settings.particleId());
         return null;
 
+    }
+
+    private static Vector3f colorToVector(int color) {
+        float r = ((color >> 16) & 0xFF) / 255.0F;
+        float g = ((color >> 8) & 0xFF) / 255.0F;
+        float b = (color & 0xFF) / 255.0F;
+        return new Vector3f(r, g, b);
     }
 }
