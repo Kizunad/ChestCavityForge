@@ -50,7 +50,7 @@ class GuScriptReducerAdjacencyTieBreakTest {
     }
 
     private static LeafGuNode leaf(String name, String tag, int slotIndex) {
-        return new LeafGuNode(name, ImmutableMultiset.of(tag), List.of(), slotIndex);
+        return new LeafGuNode(name, ImmutableMultiset.of(tag), List.of(), 0, slotIndex);
     }
 
     private static ReactionRule rule(String id, ImmutableMultiset<String> requiredTags, String resultName) {

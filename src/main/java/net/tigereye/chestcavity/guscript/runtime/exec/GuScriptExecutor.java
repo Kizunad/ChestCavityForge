@@ -597,14 +597,24 @@ public final class GuScriptExecutor {
 
         static OrderedRoot from(GuNode node, int originalIndex) {
             PrimaryIndexCollector indices = gatherIndices(node);
+            int primaryPage = indices.pageIndex();
+            int primarySlot = indices.slotIndex();
+            if (node instanceof OperatorGuNode operator) {
+                if (primaryPage == NO_INDEX) {
+                    primaryPage = operator.pageIndexHint().orElse(NO_INDEX);
+                }
+                if (primarySlot == NO_INDEX) {
+                    primarySlot = operator.primarySlotIndex().orElse(NO_INDEX);
+                }
+            }
             return new OrderedRoot(
                     node,
                     originalIndex,
                     computeExecutionOrder(node),
                     computeRuleId(node),
                     node.name(),
-                    indices.pageIndex(),
-                    indices.slotIndex()
+                    primaryPage,
+                    primarySlot
             );
         }
 
@@ -659,12 +669,8 @@ public final class GuScriptExecutor {
                     return;
                 }
                 if (node instanceof LeafGuNode leaf) {
-                    if (leaf.pageIndex() >= 0) {
-                        minPage = Math.min(minPage, leaf.pageIndex());
-                    }
-                    if (leaf.slotIndex() >= 0) {
-                        minSlot = Math.min(minSlot, leaf.slotIndex());
-                    }
+                    leaf.pageIndex().ifPresent(value -> minPage = Math.min(minPage, value));
+                    leaf.slotIndex().ifPresent(value -> minSlot = Math.min(minSlot, value));
                 }
                 for (GuNode child : node.children()) {
                     collect(child);

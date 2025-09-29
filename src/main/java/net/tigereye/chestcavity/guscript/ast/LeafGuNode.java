@@ -6,6 +6,7 @@ import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.OptionalInt;
 
 /**
  * Leaf node representing an individual Gu (蛊虫) with intrinsic tags and actions.
@@ -14,14 +15,20 @@ public final class LeafGuNode implements GuNode {
     private final String name;
     private final Multiset<String> tags;
     private final List<Action> actions;
-    private final int pageIndex;
-    private final int slotIndex;
+    private final Integer pageIndex;
+    private final Integer slotIndex;
 
     public LeafGuNode(String name, Multiset<String> tags, List<Action> actions) {
-        this(name, tags, actions, -1, -1);
+        this(name, tags, actions, null, null);
     }
 
     public LeafGuNode(String name, Multiset<String> tags, List<Action> actions, int pageIndex, int slotIndex) {
+        this(name, tags, actions,
+                pageIndex < 0 ? null : pageIndex,
+                slotIndex < 0 ? null : slotIndex);
+    }
+
+    public LeafGuNode(String name, Multiset<String> tags, List<Action> actions, Integer pageIndex, Integer slotIndex) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Leaf node must have a name");
         }
@@ -48,17 +55,17 @@ public final class LeafGuNode implements GuNode {
     }
 
     /**
-     * Zero-based page index for UI-driven ordering. {@code -1} if unspecified.
+     * Zero-based page index for UI-driven ordering.
      */
-    public int pageIndex() {
-        return pageIndex;
+    public OptionalInt pageIndex() {
+        return pageIndex == null ? OptionalInt.empty() : OptionalInt.of(pageIndex);
     }
 
     /**
-     * Zero-based slot index within the originating page. {@code -1} if unspecified.
+     * Zero-based slot index within the originating page.
      */
-    public int slotIndex() {
-        return slotIndex;
+    public OptionalInt slotIndex() {
+        return slotIndex == null ? OptionalInt.empty() : OptionalInt.of(slotIndex);
     }
 
     @Override
@@ -77,8 +84,8 @@ public final class LeafGuNode implements GuNode {
                 "name='" + name + '\'' +
                 ", tags=" + tags +
                 ", actions=" + actions +
-                ", pageIndex=" + pageIndex +
-                ", slotIndex=" + slotIndex +
+                ", pageIndex=" + (pageIndex == null ? "<unset>" : pageIndex) +
+                ", slotIndex=" + (slotIndex == null ? "<unset>" : slotIndex) +
                 '}';
     }
 }
