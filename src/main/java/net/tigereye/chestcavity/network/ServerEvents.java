@@ -57,8 +57,8 @@ public final class ServerEvents {
                 replacementAttachment.copyFrom(originalAttachment);
                 return;
             }
-
-            boolean keepInventory = clone.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
+            // 检查死亡世界的 keepInventory，而不是重生世界的。
+            boolean keepInventory = event.getOriginal().level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
             if (keepInventory) {
                 replacementAttachment.copyFrom(originalAttachment);
             } else {
