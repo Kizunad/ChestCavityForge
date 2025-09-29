@@ -123,7 +123,7 @@
         {
           "type": "trigger_actions",
           "actions": [
-            { "id": "emit.blood_bone_bomb", "base": 80.0 }
+            { "id": "emit.blood_bone_bomb", "base": 100.0 }
           ]
         }
       ],

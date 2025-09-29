@@ -1,10 +1,17 @@
 package net.tigereye.chestcavity.guscript.actions;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.tigereye.chestcavity.guscript.ast.Action;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.guscript.ast.Action;
 
 /**
  * Deals mental (indirect magic) damage to the current GuScript target if it is within range.
@@ -12,6 +19,8 @@ import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 public record MindShockAction(double damage, double range) implements Action {
 
     public static final String ID = "mind.shock";
+    private static final ResourceLocation ZHI_DAO_INCREASE_EFFECT =
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/zhi_dao_increase_effect");
 
     public MindShockAction {
         double sanitizedDamage = Double.isNaN(damage) ? 0.0D : damage;
@@ -50,7 +59,8 @@ public record MindShockAction(double damage, double range) implements Action {
         if (!Double.isInfinite(maxDistanceSq) && performer.distanceToSqr(target) > maxDistanceSq) {
             return;
         }
-        double resolvedDamage = context.applyDamageModifiers(damage);
+        double scaledDamage = damage * (1.0 + readZhiIncrease(performer));
+        double resolvedDamage = context.applyDamageModifiers(scaledDamage);
         if (resolvedDamage <= 0.0D) {
             return;
         }
@@ -58,5 +68,23 @@ public record MindShockAction(double damage, double range) implements Action {
         target.invulnerableTime = 0;
         target.hurt(source, (float) resolvedDamage);
         target.invulnerableTime = 0;
+    }
+
+    private static double readZhiIncrease(Player player) {
+        if (player == null) {
+            return 0.0D;
+        }
+        ChestCavityInstance cc = CCAttachments.getChestCavity(player);
+        if (cc == null) {
+            return 0.0D;
+        }
+        ActiveLinkageContext linkage = LinkageManager.getContext(cc);
+        LinkageChannel channel = linkage.getOrCreateChannel(ZHI_DAO_INCREASE_EFFECT);
+        double value = channel.get();
+        if (value <= 0.0D) {
+            return 0.0D;
+        }
+        ChestCavity.LOGGER.debug("[GuScript][Damage] mind.shock using zhi increase {} for {}", value, player.getGameProfile().getName());
+        return value;
     }
 }
