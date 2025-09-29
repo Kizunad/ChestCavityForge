@@ -211,7 +211,8 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
             return;
         }
 
-        OptionalDouble result = handle.adjustZhenyuan(-amountToAbsorb, true);
+        // 使用按境界缩放的真元扣除，而非直接调整，保证与 Guzhenren 标准消耗一致
+        OptionalDouble result = handle.consumeScaledZhenyuan(amountToAbsorb);
         if (result.isEmpty()) {
             debug("{} {} 真元扣除失败，无法吸收", LOG_PREFIX, player.getScoreboardName());
             return;
