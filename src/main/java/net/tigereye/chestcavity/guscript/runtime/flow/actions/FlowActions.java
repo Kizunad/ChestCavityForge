@@ -26,36 +26,193 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.function.Function;
 
 /**
  * Built-in flow actions used by the MVP implementation.
  */
 public final class FlowActions {
 
+    private static final double RESOURCE_TOLERANCE = 1.0E-6D;
+
     private FlowActions() {
     }
 
+    private static Function<Player, Optional<GuzhenrenResourceBridge.ResourceHandle>> RESOURCE_OPENER = GuzhenrenResourceBridge::open;
+
+    public static void overrideResourceOpenerForTests(Function<Player, Optional<GuzhenrenResourceBridge.ResourceHandle>> opener) {
+        RESOURCE_OPENER = opener == null ? GuzhenrenResourceBridge::open : opener;
+    }
+
+    public static void resetResourceOpenerForTests() {
+        RESOURCE_OPENER = GuzhenrenResourceBridge::open;
+    }
+
     public static FlowEdgeAction consumeResource(String identifier, double amount) {
-        if (amount <= 0) {
+        if (identifier == null || identifier.isBlank()) {
             return describe(() -> "consume_resource(nop)");
         }
+        double sanitizedAmount = Math.max(0.0D, amount);
+        if (sanitizedAmount <= 0.0D) {
+            return describe(() -> "consume_resource(nop)");
+        }
+        String canonicalId = identifier.trim();
         return new FlowEdgeAction() {
             @Override
             public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
-                if (performer == null || identifier == null) {
+                double timeScale = 1.0D;
+                if (controller != null) {
+                    double resolved = controller.resolveFlowParamAsDouble("time.accelerate", 1.0D);
+                    if (Double.isFinite(resolved) && resolved > 0.0D) {
+                        timeScale = resolved;
+                    }
+                }
+                double scaledAmount = sanitizedAmount / timeScale;
+                if (!Double.isFinite(scaledAmount) || scaledAmount <= 0.0D) {
                     return;
                 }
-                GuzhenrenResourceBridge.open(performer).ifPresent(handle -> {
-                    double delta = -Math.abs(amount);
-                    handle.adjustDouble(identifier, delta, true);
-                });
+
+                Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = RESOURCE_OPENER.apply(performer);
+                if (handleOpt.isEmpty()) {
+                    logFailureAndCancel(performer, controller, gameTime, canonicalId, scaledAmount, sanitizedAmount, timeScale,
+                            OptionalDouble.empty(), OptionalDouble.empty(), "missing_attachment");
+                    return;
+                }
+
+                GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+                String normalized = canonicalId.toLowerCase(java.util.Locale.ROOT);
+                OptionalDouble before = readResourceSnapshot(handle, normalized, canonicalId);
+
+                if (!"zhenyuan".equals(normalized) && before.isPresent()) {
+                    double available = before.getAsDouble();
+                    if (!Double.isFinite(available) || available + RESOURCE_TOLERANCE < scaledAmount) {
+                        logFailureAndCancel(
+                                performer,
+                                controller,
+                                gameTime,
+                                canonicalId,
+                                scaledAmount,
+                                sanitizedAmount,
+                                timeScale,
+                                before,
+                                before,
+                                "insufficient"
+                        );
+                        return;
+                    }
+                }
+
+                OptionalDouble result;
+                switch (normalized) {
+                    case "jingli" -> result = handle.adjustJingli(-scaledAmount, true);
+                    case "zhenyuan" -> result = handle.consumeScaledZhenyuan(scaledAmount);
+                    default -> result = handle.adjustDouble(canonicalId, -scaledAmount, true);
+                }
+
+                if (result.isEmpty()) {
+                    OptionalDouble after = readResourceSnapshot(handle, normalized, canonicalId);
+                    logFailureAndCancel(
+                            performer,
+                            controller,
+                            gameTime,
+                            canonicalId,
+                            scaledAmount,
+                            sanitizedAmount,
+                            timeScale,
+                            before,
+                            after,
+                            "write_failed"
+                    );
+                    return;
+                }
+
+                if (!"zhenyuan".equals(normalized) && before.isPresent()) {
+                    double available = before.getAsDouble();
+                    double remaining = result.orElse(Double.NaN);
+                    if (Double.isFinite(available) && Double.isFinite(remaining)) {
+                        double paid = available - remaining;
+                        if (paid + RESOURCE_TOLERANCE < scaledAmount) {
+                            logFailureAndCancel(
+                                    performer,
+                                    controller,
+                                    gameTime,
+                                    canonicalId,
+                                    scaledAmount,
+                                    sanitizedAmount,
+                                    timeScale,
+                                    before,
+                                    OptionalDouble.of(remaining),
+                                    "insufficient_paid"
+                            );
+                            return;
+                        }
+                    }
+                }
             }
 
             @Override
             public String describe() {
-                return "consume_resource(" + identifier + ", " + amount + ")";
+                return "consume_resource(" + canonicalId + ", " + sanitizedAmount + ")";
             }
         };
+    }
+
+    private static void logFailureAndCancel(
+            Player performer,
+            FlowController controller,
+            long gameTime,
+            String identifier,
+            double scaledAmount,
+            double originalAmount,
+            double timeScale,
+            OptionalDouble before,
+            OptionalDouble after,
+            String reason
+    ) {
+        String name = performer != null ? performer.getScoreboardName() : "<null>";
+        double available = before.isPresent() ? before.getAsDouble() : Double.NaN;
+        double remaining = after.isPresent() ? after.getAsDouble() : available;
+        ChestCavity.LOGGER.debug(
+                "[Flow] consume_resource failure for {} (identifier={}, scaledAmount={}, originalAmount={}, timeScale={}, reason={}, available={}, remaining={})",
+                name,
+                identifier,
+                formatDouble(scaledAmount),
+                formatDouble(originalAmount),
+                formatDouble(timeScale),
+                reason,
+                formatDouble(available),
+                formatDouble(remaining)
+        );
+        if (controller != null) {
+            ChestCavity.LOGGER.warn(
+                    "[Flow] {} cancelling due to resource failure (identifier={}, required={}, available={}, remaining={}, timeScale={}, reason={})",
+                    name,
+                    identifier,
+                    formatDouble(scaledAmount),
+                    formatDouble(available),
+                    formatDouble(remaining),
+                    formatDouble(timeScale),
+                    reason
+            );
+            controller.requestCancel("resource_failure:" + identifier, gameTime);
+        }
+    }
+
+    private static OptionalDouble readResourceSnapshot(GuzhenrenResourceBridge.ResourceHandle handle, String normalized, String identifier) {
+        return switch (normalized) {
+            case "jingli" -> handle.getJingli();
+            case "zhenyuan" -> handle.getZhenyuan();
+            default -> handle.read(identifier);
+        };
+    }
+
+    private static String formatDouble(double value) {
+        if (!Double.isFinite(value)) {
+            return "NaN";
+        }
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
     public static FlowEdgeAction setCooldown(String key, long durationTicks) {
