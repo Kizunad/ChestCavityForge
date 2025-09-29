@@ -15,7 +15,7 @@
     },
     {
       "type": "particle",
-      "particle": "minecraft:spell_instant",
+      "particle": "minecraft:instant_effect",
       "count": 16,
       "spread": [0.35, 0.35, 0.35],
       "speed": 0.0

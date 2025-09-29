@@ -1,0 +1,33 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.enchantment_table.use",
+      "volume": 0.85,
+      "pitch": 1.35
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:block.note_block.harp",
+      "volume": 0.6,
+      "pitch": 1.9
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:end_rod",
+      "count": 16,
+      "spread": [0.25, 0.5, 0.25],
+      "speed": 0.01
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#7458ff",
+      "to_color": "#f5f2ff",
+      "size": 0.85,
+      "count": 26,
+      "spread": [0.35, 0.45, 0.35],
+      "speed": 0.02
+    }
+  ]
+}
