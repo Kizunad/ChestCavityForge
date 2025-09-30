@@ -5,7 +5,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -29,6 +28,7 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -108,7 +108,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide() || cc == null) {
+        if (entity == null || entity.level().isClientSide() || cc == null) {
             return;
         }
         if (!matchesOrgan(organ, ORGAN_ID) && !organ.is(CCItems.GUZHENREN_BING_JI_GU)) {
@@ -116,47 +116,55 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         int stackCount = Math.max(1, organ.getCount());
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            if (DEBUG) {
-                LOGGER.info("[compat/guzhenren][ice_skin] no resource handle, skip slow tick for {}", player.getGameProfile().getName());
-            }
-            return;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         double efficiency = 1.0 + lookupIncreaseEffect(context);
 
-        boolean paid = handle.consumeScaledZhenyuan(ZHENYUAN_BASE_COST * stackCount).isPresent();
+        double zhenyuanCost = ZHENYUAN_BASE_COST * stackCount;
+        GuzhenrenResourceCostHelper.ConsumptionResult consumptionResult;
+        if (entity instanceof Player player) {
+            consumptionResult = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
+        } else {
+            consumptionResult = GuzhenrenResourceCostHelper.consumeWithFallback(entity, zhenyuanCost, 0.0);
+        }
+        boolean paid = consumptionResult.succeeded();
         if (DEBUG) {
-            LOGGER.info("[compat/guzhenren][ice_skin] slow tick: stacks={}, eff={}, paidZhenyuan={} (cost={})",
-                    stackCount, String.format(java.util.Locale.ROOT, "%.3f", efficiency), paid,
-                    String.format(java.util.Locale.ROOT, "%.1f", ZHENYUAN_BASE_COST * stackCount));
+            LOGGER.info("[compat/guzhenren][ice_skin] slow tick: entity={} stacks={} eff={} paid={} mode={} cost={} healthSpent={}",
+                    entity.getName().getString(),
+                    stackCount,
+                    String.format(java.util.Locale.ROOT, "%.3f", efficiency),
+                    paid,
+                    consumptionResult.mode(),
+                    String.format(java.util.Locale.ROOT, "%.1f", zhenyuanCost),
+                    String.format(java.util.Locale.ROOT, "%.2f", consumptionResult.healthSpent()));
         }
         OrganState state = organState(organ, STATE_ROOT);
         boolean stateChanged = false;
 
         if (paid) {
-            handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
+            if (entity instanceof Player player && consumptionResult.mode() == GuzhenrenResourceCostHelper.Mode.PLAYER_RESOURCES) {
+                Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+                handleOpt.ifPresent(handle -> handle.adjustJingli(JINGLI_PER_TICK * stackCount, true));
+            }
             float healAmount = HEAL_PER_TICK * stackCount;
             if (healAmount > 0.0f) {
-                ChestCavityUtil.runWithOrganHeal(() -> player.heal(healAmount));
+                LivingEntity target = entity;
+                ChestCavityUtil.runWithOrganHeal(() -> target.heal(healAmount));
                 if (DEBUG) {
-                    LOGGER.info("[compat/guzhenren][ice_skin] healed +{} and added jingli +{}", healAmount, JINGLI_PER_TICK * stackCount);
+                    LOGGER.info("[compat/guzhenren][ice_skin] healed {} by +{}", target.getName().getString(),
+                            String.format(java.util.Locale.ROOT, "%.2f", healAmount));
                 }
             }
-            stateChanged |= tickAbsorption(player, state, stackCount, efficiency);
+            stateChanged |= tickAbsorption(entity, state, stackCount, efficiency);
             if (hasJadeBone(cc)) {
-                clearBleed(player);
+                clearBleed(entity);
                 if (DEBUG) {
-                    LOGGER.info("[compat/guzhenren][ice_skin] jade bone present: cleared bleed if any");
+                    LOGGER.info("[compat/guzhenren][ice_skin] jade bone present: cleared bleed for {}", entity.getName().getString());
                 }
             }
         }
 
-        stateChanged |= tickInvulnerability(player, state, cc, organ);
-        if (stateChanged) {
+        stateChanged |= tickInvulnerability(entity, state, cc, organ);
+        if (stateChanged && entity instanceof Player) {
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
     }
@@ -244,8 +252,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return context.lookupChannel(BING_XUE_INCREASE_EFFECT).map(LinkageChannel::get).orElse(0.0);
     }
 
-    private static boolean tickAbsorption(Player player, OrganState state, int stacks, double efficiency) {
-        if (player == null || state == null) {
+    private static boolean tickAbsorption(LivingEntity entity, OrganState state, int stacks, double efficiency) {
+        if (entity == null || state == null) {
             return false;
         }
         int timer = state.getInt(ABSORPTION_TIMER_KEY, 0) + 1;
@@ -253,9 +261,9 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (timer >= SLOW_TICK_INTERVALS_PER_MINUTE) {
             timer = 0;
             float gain = (float) (ABSORPTION_PER_TRIGGER * Math.max(1, stacks) * Math.max(0.0, efficiency));
-            float before = player.getAbsorptionAmount();
+            float before = entity.getAbsorptionAmount();
             float updated = before + gain;
-            player.setAbsorptionAmount(updated);
+            entity.setAbsorptionAmount(updated);
             changed = true;
             if (DEBUG) {
                 LOGGER.info("[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
@@ -277,8 +285,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return false;
     }
 
-    private static boolean tickInvulnerability(Player player, OrganState state, ChestCavityInstance cc, ItemStack organ) {
-        if (player == null || state == null) {
+    private static boolean tickInvulnerability(LivingEntity entity, OrganState state, ChestCavityInstance cc, ItemStack organ) {
+        if (entity == null || state == null) {
             return false;
         }
         int cooldown = Math.max(0, state.getInt(INVULN_COOLDOWN_KEY, 0));
@@ -288,7 +296,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             state.setInt(INVULN_COOLDOWN_KEY, cooldown);
             changed = true;
         }
-        if (cooldown <= 0 && hasJadeBone(cc) && isBeimingConstitution(player)
+        if (entity instanceof Player player && cooldown <= 0 && hasJadeBone(cc) && isBeimingConstitution(player)
                 && player.getHealth() <= player.getMaxHealth() * LOW_HEALTH_THRESHOLD) {
             player.invulnerableTime = Math.max(player.invulnerableTime, INVULN_DURATION_TICKS);
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, INVULN_DURATION_TICKS, 4, false, true, true));
