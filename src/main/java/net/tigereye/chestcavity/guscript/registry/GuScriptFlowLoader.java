@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.guscript.registry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
@@ -265,6 +266,24 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     json.has("scale_variable") ? GsonHelper.getAsString(json, "scale_variable") : null,
                     GsonHelper.getAsDouble(json, "default_scale", 1.0D)
             );
+            case "replace_blocks_sphere" -> {
+                ReplacementParseResult replacements = parseReplacementBlocks(json);
+                yield FlowActions.replaceBlocksSphere(
+                        GsonHelper.getAsDouble(json, "radius", 0.0D),
+                        json.has("radius_param") ? GsonHelper.getAsString(json, "radius_param") : null,
+                        json.has("radius_variable") ? GsonHelper.getAsString(json, "radius_variable") : null,
+                        GsonHelper.getAsDouble(json, "max_hardness", 0.0D),
+                        GsonHelper.getAsBoolean(json, "include_fluids", false),
+                        GsonHelper.getAsBoolean(json, "drop_blocks", false),
+                        replacements.blocks(),
+                        replacements.weights(),
+                        parseBlockList(json, "forbidden_blocks"),
+                        GsonHelper.getAsBoolean(json, "place_snow_layers", false),
+                        GsonHelper.getAsInt(json, "snow_layers_min", 1),
+                        GsonHelper.getAsInt(json, "snow_layers_max", 1),
+                        GsonHelper.getAsString(json, "origin", "performer")
+                );
+            }
             default -> throw new IllegalArgumentException("Unknown flow action type: " + type);
         };
     }
@@ -292,6 +311,66 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
         };
     }
 
+    private static List<ResourceLocation> parseBlockList(JsonObject json, String key) {
+        List<ResourceLocation> blocks = new ArrayList<>();
+        if (json == null || key == null || !json.has(key)) {
+            return blocks;
+        }
+        JsonArray array = GsonHelper.getAsJsonArray(json, key);
+        for (JsonElement element : array) {
+            if (!element.isJsonPrimitive()) {
+                continue;
+            }
+            String raw = element.getAsString();
+            ResourceLocation id = ResourceLocation.tryParse(raw);
+            if (id != null) {
+                blocks.add(id);
+            } else {
+                ChestCavity.LOGGER.warn("[Flow] Ignoring invalid block id {} in {}", raw, key);
+            }
+        }
+        return blocks;
+    }
+
+    private static ReplacementParseResult parseReplacementBlocks(JsonObject json) {
+        List<ResourceLocation> blocks = new ArrayList<>();
+        List<Integer> weights = new ArrayList<>();
+        if (json == null || !json.has("replacements")) {
+            return new ReplacementParseResult(blocks, weights);
+        }
+        JsonArray array = GsonHelper.getAsJsonArray(json, "replacements");
+        for (JsonElement element : array) {
+            if (element.isJsonPrimitive()) {
+                String raw = element.getAsString();
+                ResourceLocation id = ResourceLocation.tryParse(raw);
+                if (id != null) {
+                    blocks.add(id);
+                    weights.add(1);
+                } else {
+                    ChestCavity.LOGGER.warn("[Flow] Ignoring invalid replacement block id {}", raw);
+                }
+                continue;
+            }
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject entry = element.getAsJsonObject();
+            String blockId = GsonHelper.getAsString(entry, "block", "");
+            ResourceLocation id = ResourceLocation.tryParse(blockId);
+            if (id == null) {
+                ChestCavity.LOGGER.warn("[Flow] Ignoring invalid replacement block id {}", blockId);
+                continue;
+            }
+            int weight = Math.max(0, GsonHelper.getAsInt(entry, "weight", 1));
+            if (weight <= 0) {
+                continue;
+            }
+            blocks.add(id);
+            weights.add(weight);
+        }
+        return new ReplacementParseResult(blocks, weights);
+    }
+
     private static boolean parseVariableIsDouble(JsonObject json) {
         String type = GsonHelper.getAsString(json, "value_type", "double");
         return !type.equalsIgnoreCase("long") && !type.equalsIgnoreCase("int");
@@ -303,5 +382,8 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                 ChestCavity.LOGGER.warn("[Flow] Program {} is missing definition for state {}", id, state);
             }
         }
+    }
+
+    private record ReplacementParseResult(List<ResourceLocation> blocks, List<Integer> weights) {
     }
 }

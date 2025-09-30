@@ -1,16 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -18,19 +13,19 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SnowLayerBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.IntegerProperty;
-import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -46,9 +41,10 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -72,6 +68,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ResourceLocation ICE_COLD_EFFECT_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hhanleng");
 
     public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "bing_ji_gu_iceburst");
+    private static final ResourceLocation ICE_BURST_FLOW_ID =
+            ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "bing_xue_burst");
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -94,7 +92,6 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double ICE_BURST_BING_BAO_MULTIPLIER = 0.35;
     private static final float ICE_BURST_SLOW_AMPLIFIER = 1.0f;
     private static final int ICE_BURST_SLOW_DURATION = 8 * 20;
-    private static final double MAX_BLOCK_HARDNESS = 4.0;
     private static final int INVULN_DURATION_TICKS = 40;
     private static final int INVULN_COOLDOWN_TICKS = 20 * 30;
     private static final double LOW_HEALTH_THRESHOLD = 0.30;
@@ -394,8 +391,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             }
         }
 
-        playExplosionCues(server, entity, radius, victims.size());
-        transformEnvironment(server, entity.blockPosition(), radius);
+        triggerBurstFlow(entity, radius, victims.size());
     }
 
     private static List<LivingEntity> gatherTargets(LivingEntity user, ServerLevel level, double radius) {
@@ -404,72 +400,28 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 target != user && target.isAlive() && !target.isAlliedTo(user));
     }
 
-    private static void playExplosionCues(ServerLevel server, LivingEntity user, double radius, int victims) {
-        RandomSource random = user.getRandom();
-        double x = user.getX();
-        double y = user.getY() + user.getBbHeight() * 0.5;
-        double z = user.getZ();
-        server.playSound(null, x, y, z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.2f, 0.6f + random.nextFloat() * 0.2f);
-        server.playSound(null, x, y, z, SoundEvents.SNOW_BREAK, SoundSource.PLAYERS, 0.8f, 0.8f + random.nextFloat() * 0.2f);
-        int particleCount = 80 + victims * 10;
-        server.sendParticles(ParticleTypes.ITEM_SNOWBALL, x, y, z, particleCount, radius * 0.25, radius * 0.25, radius * 0.25, 0.1);
-        server.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, particleCount, radius * 0.3, radius * 0.3, radius * 0.3, 0.05);
-    }
-
-    private static void transformEnvironment(ServerLevel server, BlockPos origin, double radius) {
-        int bound = Mth.ceil(radius);
-        RandomSource random = server.getRandom();
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        for (int dx = -bound; dx <= bound; dx++) {
-            for (int dy = -bound; dy <= bound; dy++) {
-                for (int dz = -bound; dz <= bound; dz++) {
-                    double distSq = dx * dx + dy * dy + dz * dz;
-                    if (distSq > radius * radius) {
-                        continue;
-                    }
-                    cursor.set(origin.getX() + dx, origin.getY() + dy, origin.getZ() + dz);
-                    BlockState state = server.getBlockState(cursor);
-                    if (state == null || state.isAir() || state.getFluidState().getType() != Fluids.EMPTY) {
-                        continue;
-                    }
-                    float destroySpeed = state.getDestroySpeed(server, cursor);
-                    if (destroySpeed < 0.0f || destroySpeed > MAX_BLOCK_HARDNESS) {
-                        continue;
-                    }
-                    Block block = state.getBlock();
-                    if (block == Blocks.BEDROCK || block == Blocks.OBSIDIAN) {
-                        continue;
-                    }
-                    if (!server.removeBlock(cursor, false)) {
-                        continue;
-                    }
-                    BlockState replacement = chooseReplacement(random);
-                    if (replacement != null) {
-                        server.setBlock(cursor, replacement, Block.UPDATE_ALL);
-                    }
-                    maybePlaceSnowLayer(server, cursor.above(), random);
-                }
-            }
-        }
-    }
-
-    private static BlockState chooseReplacement(RandomSource random) {
-        List<BlockState> options = new ArrayList<>();
-        options.add(Blocks.PACKED_ICE.defaultBlockState());
-        options.add(Blocks.SNOW_BLOCK.defaultBlockState());
-        options.add(Blocks.POWDER_SNOW.defaultBlockState());
-        return options.get(random.nextInt(options.size()));
-    }
-
-    private static void maybePlaceSnowLayer(ServerLevel server, BlockPos pos, RandomSource random) {
-        BlockState state = server.getBlockState(pos);
-        if (!state.isAir()) {
+    private static void triggerBurstFlow(LivingEntity entity, double radius, int victims) {
+        if (!(entity instanceof ServerPlayer player)) {
             return;
         }
-        BlockState layer = Blocks.SNOW.defaultBlockState();
-        IntegerProperty height = SnowLayerBlock.LAYERS;
-        int layers = Mth.clamp(1 + random.nextInt(3), 1, height.getPossibleValues().stream().max(Comparator.naturalOrder()).orElse(1));
-        server.setBlock(pos, layer.setValue(height, layers), Block.UPDATE_ALL);
+        Optional<FlowProgram> programOpt = FlowProgramRegistry.get(ICE_BURST_FLOW_ID);
+        if (programOpt.isEmpty()) {
+            return;
+        }
+        ServerLevel level = player.serverLevel();
+        FlowController controller = FlowControllerManager.get(player);
+        Map<String, String> params = new HashMap<>();
+        params.put("burst.radius", formatDouble(Math.max(0.0D, radius)));
+        double victimContribution = Math.max(0, victims) * 0.25D;
+        double radiusContribution = Math.max(0.0D, radius - ICE_BURST_RADIUS) * 0.1D;
+        double scale = Math.max(1.0D, Math.min(6.0D, 1.0D + victimContribution + radiusContribution));
+        params.put("burst.scale", formatDouble(scale));
+        FlowProgram program = programOpt.get();
+        controller.start(program, player, 1.0D, params, level.getGameTime(), "bing_ji_gu.iceburst");
+    }
+
+    private static String formatDouble(double value) {
+        return String.format(Locale.ROOT, "%.4f", value);
     }
 
     private static boolean isBeimingConstitution(Player player) {
