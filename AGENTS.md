@@ -198,6 +198,55 @@ Notes
 1) `feature/guscript-flow-modules` (P1)
    - Implement Flow core MVP (Idle/Charging/Charged/Releasing/Cooldown/Cancel), loader for `data/chestcavity/guscript/flows/*.json`, server tick controller + light S2C mirror.
    - Acceptance: demo charge→release works; cooldown enforced; logs present.
+
+
+## 2025-09-30 Non‑Player Handlers: parallel branches plan
+
+Goal
+- 为尚未实现非玩家逻辑的器官增加 handlerNonPlayer 支持；当实体不是玩家时，以生命值作为真元/精力的替代支付路径（已有通用工具）。
+
+Shared helper
+- 使用 `GuzhenrenResourceCostHelper`（路径：`ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/resource/GuzhenrenResourceCostHelper.java`）统一扣费规则：
+  - 玩家：优先扣真元/精力。
+  - 非玩家：自动回退为生命值消耗（比例按 helper 内策略）。
+
+Already covered (mob support present)
+- 血眼蛊（Xieyangu）：onHit/slow‑tick 支持非玩家（server 端）。
+- 血肺蛊（XieFeigu）：slow‑tick 支持非玩家（移速/攻速/氧气）。
+- 血滴蛊（Xiedigu）：slow‑tick 支持非玩家（掉血与粒子/虚弱切换）。
+- 铁血蛊（Tiexuegu）：slow‑tick 支持非玩家（生命消耗与 INCREASE 效果叠加；真元/精力回复限玩家）。
+
+Candidates (add non‑player handler paths)
+- 冰肌蛊（BingJiGu）：
+  - 当前 onSlowTick 仅玩家生效，非玩家应走“生命值替代”扣费，保留回血/寒冷/护盾等效果中可适用于生物的部分。
+  - 主动“冰爆”保持玩家专属；非玩家版本暂不实现主动引爆（后续如需可在 OnIncomingDamage 10% 规则下触发小型 AoE 冰爆）。
+- 木道/石道/水道的三转器官（示例：木骨、石筋、水绳等，如存在）：
+  - 按已有玩家逻辑镜像非玩家路径，支付走 `GuzhenrenResourceCostHelper`。
+  - 仅应用对非玩家合理的效果（去除饥饿、氧气之类玩家专属分支）。
+- 其它剑/毒/杜等器官若仍缺非玩家路径，逐器官评估加入。
+
+Branching (parallel, small PRs)
+- 每个器官/家族开独立分支，降低冲突：
+  - `feature/mob-bingjigu-support`
+  - `feature/mob-<family>-support`（如 `mob-shui-dao-support`、`mob-mu-dao-support`）
+
+Per‑branch TODO template
+1) Wire non‑player slow‑tick/on‑hit/被击（按器官语义）
+   - 使用 `GuzhenrenResourceCostHelper` 扣费；失败则早退或按器官既定失败逻辑处理。
+2) 效果筛选
+   - 玩家专属效果（饥饿、氧气、GUI、按键引爆等）在非玩家路径关闭或降级。
+3) Debug logs（可选）
+   - 统一加开关：`-Dchestcavity.debug<OrganName>=true`，仅在 Server 端打印关键信息（进入/退出、扣费、阈值守卫）。
+4) Light tests（如可）
+   - 头部单元：方法级别验证“HP 回退扣费”路径；
+   - JSON/构建：`./gradlew compileJava` + 现有 GuScript JSON 装载测试通过。
+
+Acceptance checklist per organ
+- [ ] 非玩家路径能运行且不会因资源缺失报错。
+- [ ] HP 替代扣费与玩家真元/精力扣费互不干扰。
+- [ ] 仅应用非玩家合理效果，无客户端特有依赖。
+- [ ] Debug 开关默认关闭，开启时提供足够排错信息。
+
 2) `feature/guscript-ability-relocation-phase2` (P2)
    - Switch registrations/imports to `net.tigereye.chestcavity.guscript.ability.guzhenren`; remove deprecated shims.
    - Validate abilities still trigger and render.

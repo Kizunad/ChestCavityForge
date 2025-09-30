@@ -12,9 +12,9 @@
         { "id": "if.resource", "identifier": "jingli",   "minimum":  20.0, "actions": [
           { "id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": -100.0 },
           { "id": "guzhenren.adjust", "identifier": "jingli",   "amount":  -20.0 },
-          { "id": "linkage.adjust", "channel": "guzhenren:linkage/li_dao_increase_effect",  "amount": 0.1 },
-          { "id": "linkage.adjust", "channel": "guzhenren:linkage/xue_dao_increase_effect", "amount": 0.1 },
-          { "id": "linkage.adjust", "channel": "guzhenren:linkage/shi_dao_increase_effect", "amount": 0.1 },
+          { "id": "linkage.adjust_temporary", "channel": "guzhenren:linkage/li_dao_increase_effect",  "amount": 0.1, "duration": 1200 },
+          { "id": "linkage.adjust_temporary", "channel": "guzhenren:linkage/xue_dao_increase_effect", "amount": 0.1, "duration": 1200 },
+          { "id": "linkage.adjust_temporary", "channel": "guzhenren:linkage/shi_dao_increase_effect", "amount": 0.1, "duration": 1200 },
           { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_pulse", "intensity": 0.9 }
         ]}
       ]}

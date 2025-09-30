@@ -91,6 +91,12 @@ public final class ActionRegistry {
                         ResourceLocation.parse(json.get("channel").getAsString()),
                         json.get("amount").getAsDouble()
                 ));
+        register(net.tigereye.chestcavity.guscript.actions.AdjustLinkageChannelTemporaryAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.AdjustLinkageChannelTemporaryAction(
+                        ResourceLocation.parse(json.get("channel").getAsString()),
+                        json.get("amount").getAsDouble(),
+                        json.has("duration") ? json.get("duration").getAsInt() : 1200
+                ));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {

@@ -677,66 +677,14 @@ public final class FlowActions {
             int snowLayersMax,
             String originKey
     ) {
-        double sanitizedRadius = Math.max(0.0D, baseRadius);
-        double hardnessLimit = maxHardness <= 0.0D ? Double.POSITIVE_INFINITY : maxHardness;
-        OriginSelector origin = OriginSelector.from(originKey);
+        // Defer registry lookups until runtime (apply) to avoid test bootstrap issues
+        final double defaultRadius = Math.max(0.0D, baseRadius);
+        final double hardnessThreshold = maxHardness <= 0.0D ? Double.POSITIVE_INFINITY : maxHardness;
+        final OriginSelector origin = OriginSelector.from(originKey);
 
-        Set<Block> forbiddenBlocks = new HashSet<>();
-        if (forbiddenIds != null) {
-            for (ResourceLocation id : forbiddenIds) {
-                if (id == null) {
-                    continue;
-                }
-                Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
-                if (block != null) {
-                    forbiddenBlocks.add(block);
-                } else {
-                    ChestCavity.LOGGER.warn("[Flow] replace_blocks_sphere skipping unknown forbidden block {}", id);
-                }
-            }
-        }
-
-        List<BlockState> replacementStates = new ArrayList<>();
-        List<Integer> sanitizedWeights = new ArrayList<>();
-        int totalWeight = 0;
-        if (replacementIds != null) {
-            for (int i = 0; i < replacementIds.size(); i++) {
-                ResourceLocation id = replacementIds.get(i);
-                if (id == null) {
-                    continue;
-                }
-                int weight = 1;
-                if (replacementWeights != null && i < replacementWeights.size()) {
-                    weight = Math.max(0, replacementWeights.get(i));
-                }
-                if (weight <= 0) {
-                    continue;
-                }
-                Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
-                if (block == null) {
-                    ChestCavity.LOGGER.warn("[Flow] replace_blocks_sphere skipping unknown replacement block {}", id);
-                    continue;
-                }
-                replacementStates.add(block.defaultBlockState());
-                sanitizedWeights.add(weight);
-                totalWeight += weight;
-            }
-        }
-
-        boolean enableSnowLayers = placeSnowLayers && snowLayersMax > 0;
-        int minLayers = Math.max(1, snowLayersMin);
-        int maxLayers = Math.max(minLayers, snowLayersMax);
-        IntegerProperty snowLayerProperty = SnowLayerBlock.LAYERS;
-        int snowLayerCap = snowLayerProperty.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(1);
-
-        final double defaultRadius = sanitizedRadius;
-        final double hardnessThreshold = hardnessLimit;
         final boolean allowFluids = includeFluids;
         final boolean shouldDropBlocks = dropBlocks;
-        final boolean placeSnow = enableSnowLayers;
-        final int snowMin = Math.min(minLayers, snowLayerCap);
-        final int snowMax = Math.min(maxLayers, snowLayerCap);
-        final int weightSum = totalWeight;
+        final boolean placeSnow = placeSnowLayers && snowLayersMax > 0;
 
         return new FlowEdgeAction() {
             @Override
@@ -749,6 +697,43 @@ public final class FlowActions {
                 if (!(level instanceof ServerLevel serverLevel)) {
                     return;
                 }
+                // Resolve block ids lazily against live registries
+                Set<Block> forbiddenBlocks = new HashSet<>();
+                if (forbiddenIds != null) {
+                    for (ResourceLocation id : forbiddenIds) {
+                        if (id == null) continue;
+                        Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+                        if (block != null) {
+                            forbiddenBlocks.add(block);
+                        } else {
+                            ChestCavity.LOGGER.warn("[Flow] replace_blocks_sphere skipping unknown forbidden block {}", id);
+                        }
+                    }
+                }
+
+                List<BlockState> replacementStates = new ArrayList<>();
+                List<Integer> sanitizedWeights = new ArrayList<>();
+                int weightSum = 0;
+                if (replacementIds != null) {
+                    for (int i = 0; i < replacementIds.size(); i++) {
+                        ResourceLocation id = replacementIds.get(i);
+                        if (id == null) continue;
+                        int weight = 1;
+                        if (replacementWeights != null && i < replacementWeights.size()) {
+                            weight = Math.max(0, replacementWeights.get(i));
+                        }
+                        if (weight <= 0) continue;
+                        Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+                        if (block == null) {
+                            ChestCavity.LOGGER.warn("[Flow] replace_blocks_sphere skipping unknown replacement block {}", id);
+                            continue;
+                        }
+                        replacementStates.add(block.defaultBlockState());
+                        sanitizedWeights.add(weight);
+                        weightSum += weight;
+                    }
+                }
+
                 double radius = defaultRadius;
                 if (controller != null) {
                     if (radiusParam != null && !radiusParam.isBlank()) {
@@ -773,6 +758,12 @@ public final class FlowActions {
                 double radiusSq = radius * radius;
                 BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
                 RandomSource random = serverLevel.getRandom();
+
+                // Resolve snow layer property and caps lazily to avoid class initialization during tests
+                IntegerProperty snowLayerProperty = SnowLayerBlock.LAYERS;
+                int snowLayerCap = snowLayerProperty.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(1);
+                int snowMin = Math.min(Math.max(1, snowLayersMin), snowLayerCap);
+                int snowMax = Math.min(Math.max(snowMin, snowLayersMax), snowLayerCap);
 
                 for (int dx = -bound; dx <= bound; dx++) {
                     for (int dy = -bound; dy <= bound; dy++) {

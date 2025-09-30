@@ -552,7 +552,7 @@ glass.break 混合 snow.break 的低沉音效。
 在爆炸点 level.sendParticles，多种粒子叠加。
 播放音效 SoundEvents.GLASS_BREAK + SoundEvents.SNOW_BREAK。
 
-钢筋(  "item.guzhenren.ganjingu": "钢筋蛊",):100伤害吸收(每1分钟)，每秒(OnSlowTick) 恢复 1点精力，近战(Distance < 10方块 判定)攻击有15％概率造成 基础攻击力 8％ 的附加伤害 * (1 + 金道增益)（被动）
+钢筋(  "item.guzhenren.ganjingu": "钢筋蛊",):60伤害吸收(每2分钟)，每秒(OnSlowTick) 恢复 1点精力，近战(Distance < 10方块 判定)攻击有15％概率造成 基础攻击力 8％ 的附加伤害 * (1 + 金道增益)（被动）
 配置通用Fx: 
 视觉效果（火花特效）
 火花粒子
@@ -583,7 +583,7 @@ glass.break 混合 snow.break 的低沉音效。
 当铁骨为精铁骨时获得急迫1，
 同时生命值自然恢复停止，
 可以使用铁锭修补(恢复10%生命值)，
-当胸腔内存在精铁蛊时每秒恢复10点生命值
+当胸腔内存在精铁蛊时每秒恢复4点生命值
 
 实现步骤
 
@@ -604,7 +604,7 @@ glass.break 混合 snow.break 的低沉音效。
   "itemID": "guzhenren:ganjingu",
   "organScores": [
     {"id":"chestcavity:strength","value": "24"},
-    {"id":"chestcavity:speed","value": "24"}
+    {"id":"chestcavity:speed","value": "8"}
   ]
 }
 

@@ -13,6 +13,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -76,6 +78,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final String STATE_ROOT = "BingJiGu";
     private static final String ABSORPTION_TIMER_KEY = "AbsorptionTimer";
     private static final String INVULN_COOLDOWN_KEY = "InvulnCooldown";
+    private static final boolean DEBUG = true;
 
     private static final double ZHENYUAN_BASE_COST = 200.0;
     private static final double JINGLI_PER_TICK = 1.0;
@@ -115,6 +118,9 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         int stackCount = Math.max(1, organ.getCount());
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isEmpty()) {
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] no resource handle, skip slow tick for {}", player.getGameProfile().getName());
+            }
             return;
         }
         GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
@@ -123,6 +129,11 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         double efficiency = 1.0 + lookupIncreaseEffect(context);
 
         boolean paid = handle.consumeScaledZhenyuan(ZHENYUAN_BASE_COST * stackCount).isPresent();
+        if (DEBUG) {
+            LOGGER.info("[compat/guzhenren][ice_skin] slow tick: stacks={}, eff={}, paidZhenyuan={} (cost={})",
+                    stackCount, String.format(java.util.Locale.ROOT, "%.3f", efficiency), paid,
+                    String.format(java.util.Locale.ROOT, "%.1f", ZHENYUAN_BASE_COST * stackCount));
+        }
         OrganState state = organState(organ, STATE_ROOT);
         boolean stateChanged = false;
 
@@ -131,10 +142,16 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             float healAmount = HEAL_PER_TICK * stackCount;
             if (healAmount > 0.0f) {
                 ChestCavityUtil.runWithOrganHeal(() -> player.heal(healAmount));
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] healed +{} and added jingli +{}", healAmount, JINGLI_PER_TICK * stackCount);
+                }
             }
             stateChanged |= tickAbsorption(player, state, stackCount, efficiency);
             if (hasJadeBone(cc)) {
                 clearBleed(player);
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] jade bone present: cleared bleed if any");
+                }
             }
         }
 
@@ -167,6 +184,12 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         float bonus = (float) (damage * BONUS_DAMAGE_FRACTION * Math.max(0.0, efficiency));
         if (bonus > 0.0f) {
             applyColdEffect(target);
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] onHit bonus: baseDamage={} bonus={} eff={}",
+                        String.format(java.util.Locale.ROOT, "%.2f", damage),
+                        String.format(java.util.Locale.ROOT, "%.2f", bonus),
+                        String.format(java.util.Locale.ROOT, "%.3f", efficiency));
+            }
             return damage + bonus;
         }
         applyColdEffect(target);
@@ -230,9 +253,18 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (timer >= SLOW_TICK_INTERVALS_PER_MINUTE) {
             timer = 0;
             float gain = (float) (ABSORPTION_PER_TRIGGER * Math.max(1, stacks) * Math.max(0.0, efficiency));
-            float updated = player.getAbsorptionAmount() + gain;
+            float before = player.getAbsorptionAmount();
+            float updated = before + gain;
             player.setAbsorptionAmount(updated);
             changed = true;
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
+                        String.format(java.util.Locale.ROOT, "%.1f", gain),
+                        String.format(java.util.Locale.ROOT, "%.3f", efficiency),
+                        stacks,
+                        String.format(java.util.Locale.ROOT, "%.1f", before),
+                        String.format(java.util.Locale.ROOT, "%.1f", updated));
+            }
         }
         if (changed) {
             state.setInt(ABSORPTION_TIMER_KEY, timer);
@@ -262,6 +294,9 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, INVULN_DURATION_TICKS, 4, false, true, true));
             state.setInt(INVULN_COOLDOWN_KEY, INVULN_COOLDOWN_TICKS);
             changed = true;
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] invulnerability granted: duration={}t, cooldown={}t", INVULN_DURATION_TICKS, INVULN_COOLDOWN_TICKS);
+            }
         }
         return changed;
     }
@@ -321,10 +356,16 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 continue;
             }
             if (stack.is(CCItems.GUZHENREN_BING_JI_GU)) {
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] found organ via item constant at slot {}", i);
+                }
                 return stack;
             }
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             if (Objects.equals(id, ORGAN_ID)) {
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] found organ via id {} at slot {}", id, i);
+                }
                 return stack;
             }
         }
@@ -342,12 +383,30 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 continue;
             }
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-            if (id != null && "chestcavity".equals(id.getNamespace()) && id.getPath().endsWith("_muscle")) {
+            if (isMuscleId(id)) {
                 cc.inventory.removeItem(i, 1);
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] consumed muscle {} at slot {}", id, i);
+                }
                 return true;
             }
         }
+        if (DEBUG) {
+            LOGGER.info("[compat/guzhenren][ice_skin] no muscle found to consume");
+        }
         return false;
+    }
+
+    private static boolean isMuscleId(ResourceLocation id) {
+        if (id == null) {
+            return false;
+        }
+        if (!"chestcavity".equals(id.getNamespace())) {
+            return false;
+        }
+        String path = id.getPath();
+        // Count as muscle if it's the base human muscle ("muscle") or any suffixed variant ("*_muscle")
+        return "muscle".equals(path) || path.endsWith("_muscle");
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -356,9 +415,15 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         ItemStack organ = findOrgan(cc);
         if (organ.isEmpty() || !hasJadeBone(cc)) {
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: organEmpty={} hasJadeBone={}", organ.isEmpty(), hasJadeBone(cc));
+            }
             return;
         }
         if (!consumeMuscle(cc)) {
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: no consumable muscle found");
+            }
             return;
         }
         Level level = entity.level();
@@ -373,6 +438,16 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             baseDamage *= 1.0 + ICE_BURST_BING_BAO_MULTIPLIER;
         }
         double radius = ICE_BURST_RADIUS + Math.max(0, stacks - 1) * ICE_BURST_RADIUS_PER_STACK;
+        if (DEBUG) {
+            LOGGER.info("[compat/guzhenren][ice_skin] activating burst: stacks={}, eff={}, damageBase={}, radius={}",
+                    stacks,
+                    String.format(java.util.Locale.ROOT, "%.3f", efficiency),
+                    String.format(java.util.Locale.ROOT, "%.2f", baseDamage),
+                    String.format(java.util.Locale.ROOT, "%.2f", radius));
+        }
+
+        // Play explosion sound FX at the performer
+        server.playSound(null, entity.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
         Vec3 origin = entity.position();
         List<LivingEntity> victims = gatherTargets(entity, server, radius);
@@ -388,10 +463,29 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ICE_BURST_SLOW_DURATION, (int) ICE_BURST_SLOW_AMPLIFIER, false, true, true));
                 target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, ICE_BURST_SLOW_DURATION, (int) ICE_BURST_SLOW_AMPLIFIER, false, true, true));
                 applyColdEffect(target);
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] hit {} for {} (falloff={})", target.getName().getString(),
+                            String.format(java.util.Locale.ROOT, "%.2f", damage),
+                            String.format(java.util.Locale.ROOT, "%.2f", falloff));
+                }
             }
         }
 
         triggerBurstFlow(entity, radius, victims.size());
+
+        // Deduct 1% of player's max health as activation cost
+        if (entity instanceof Player player) {
+            float max = player.getMaxHealth();
+            float cost = (float) (max * 0.01f);
+            if (cost > 0.0f) {
+                float before = player.getHealth();
+                float after = Math.max(0.0f, before - cost);
+                player.setHealth(after);
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})", 1, String.format(java.util.Locale.ROOT, "%.2f", before), String.format(java.util.Locale.ROOT, "%.2f", after));
+                }
+            }
+        }
     }
 
     private static List<LivingEntity> gatherTargets(LivingEntity user, ServerLevel level, double radius) {
@@ -406,6 +500,9 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         Optional<FlowProgram> programOpt = FlowProgramRegistry.get(ICE_BURST_FLOW_ID);
         if (programOpt.isEmpty()) {
+            if (DEBUG) {
+                LOGGER.info("[compat/guzhenren][ice_skin] burst flow {} not found", ICE_BURST_FLOW_ID);
+            }
             return;
         }
         ServerLevel level = player.serverLevel();
@@ -418,6 +515,11 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         params.put("burst.scale", formatDouble(scale));
         FlowProgram program = programOpt.get();
         controller.start(program, player, 1.0D, params, level.getGameTime(), "bing_ji_gu.iceburst");
+        if (DEBUG) {
+            LOGGER.info("[compat/guzhenren][ice_skin] burst flow started: radius={} victims={} scale={}",
+                    String.format(java.util.Locale.ROOT, "%.2f", radius), victims,
+                    String.format(java.util.Locale.ROOT, "%.2f", scale));
+        }
     }
 
     private static String formatDouble(double value) {
