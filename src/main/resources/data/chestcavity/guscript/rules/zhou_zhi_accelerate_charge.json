@@ -9,7 +9,7 @@
     "name": "时念加速",
     "operator_id": "chestcavity:zhou_zhi_accelerate",
     "kind": "OPERATOR",
-    "tags": ["加速", "蓄力"],
+    "tags": ["时念加速"],
     "order": 0,
     "export_modifiers": { "multiplier": true },
     "actions": [

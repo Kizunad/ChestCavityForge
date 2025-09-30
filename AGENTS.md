@@ -21,6 +21,87 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+## 2025-09-30 GuScript UX & Runtime Additions (usage + notes)
+
+What was added/changed
+- Simulate Compile (UI)
+  - Button label: “模拟编译”。位置：与分页按钮同一行，位于其左侧（在 UI 左边距内，如窗口过窄会贴近左边界）。
+  - 点击后服务器生成“GuScript 编译日志”纸张（Lore 承载），内容包括：
+    1) 编译步骤（每步：序号) 规则ID: 叶A + 叶B -> 产物）
+    2) 最终根清单（kind + 名称）
+    3) 消耗的叶（含标签与重复计数）
+    4) 剩余的叶（含标签与重复计数）
+  - 作用：用于核对“应用次数 vs 最终根数”、确认哪些叶被消耗、为何只触发一次杀招等。
+
+- 规则优先与抑制
+  - 杀招规则统一 priority=100，普通组合低于之，废能保持最低（负值）。
+  - 基础组合“远程伤害”已添加抑制："inhibitors": ["杀招", "念头"]，避免降级杀招产物。
+  - “念头远程伤害”规则收紧 required 为 {"远程伤害","念头","智道"}，并添加 "inhibitors": ["杀招"]，防止将既有杀招再次作为原料合成。
+
+- Flow 资源守卫（不足直接取消，不扣不放）
+  - 念头远程伤害（thoughts_remote_burst）：charged→releasing 跳转加守卫
+    - 守卫：念头 ≥ 180 → releasing；念头 < 180 → cancel（不会扣念头与伤害）。
+  - 醉元鼓（zui_yuan_gu）flow：只为压制缺状态告警，核心逻辑改至“根执行期”，不再依赖 flow 释放。
+
+- 新“辅助杀招”：醉元鼓（真元+精力+酒道+辅助 → 杀招 醉元鼓）
+  - 规则：`data/chestcavity/guscript/rules/zui_yuan_gu.json`
+    - arity=4，priority=100
+    - result.actions（根执行期）使用资源守卫 `if.resource`：
+      - 若真元≥100 且 精力≥20：
+        - `guzhenren.adjust zhenyuan -100`，`guzhenren.adjust jingli -20`
+        - `linkage.adjust guzhenren:linkage/li_dao_increase_effect +0.1`
+        - `linkage.adjust guzhenren:linkage/xue_dao_increase_effect +0.1`
+        - `linkage.adjust guzhenren:linkage/shi_dao_increase_effect +0.1`
+        - `emit.fx chestcavity:mind_thoughts_pulse`
+      - 否则不做任何扣减与加成。
+    - 目的：把加成放在“同一次按键会话”中导出，使后续同页杀招（如念头远程伤害）得到加成。
+
+- 新动作（通用工具）
+  - `if.resource`（根/动作期资源守卫）
+    - JSON：`{ "id": "if.resource", "identifier": "zhenyuan", "minimum": 100.0, "actions": [ ... ] }`
+    - 仅在 performer（玩家）资源满足时，执行嵌套 actions。支持 identifier: `zhenyuan`/`jingli` 等。
+  - `linkage.adjust`（通道调整）
+    - JSON：`{ "id": "linkage.adjust", "channel": "guzhenren:linkage/li_dao_increase_effect", "amount": 0.1 }`
+    - 直接调整 linkage 通道数值（可正可负）。用于同页叠加加成或全局通道微调。
+
+注意事项 / 差异提示
+- “同页会话”叠加只对“根执行阶段导出”的 multiplier/flat 有效；flow 内的导出不跨会话合并。
+  - time.accelerate 例外：执行器会在启动 flow 时将 page/会话导出的 timeScale 合并进 flow；但 multiplier/flat 不会自动跨 flow 合并。
+  - 因此醉元鼓的加成已改为“根执行期导出”，保证同页伤害类杀招吃到增益。
+- 想一次按键触发多个杀招：
+  - 需要准备“互不争用”的完整素材（或分布到多个 KEYBIND 页）。
+  - 否则第一次反应会消耗关键叶，第二条不成立或会被基础组合/废能兜底消耗。
+
+文件索引（本次改动）
+- UI 按钮与网络
+  - 按钮：`src/main/java/net/tigereye/chestcavity/guscript/ui/GuScriptScreen.java`（左移一按钮宽度，和分页行对齐）
+  - 模拟编译包：`src/main/java/net/tigereye/chestcavity/guscript/network/packets/GuScriptSimulateCompilePayload.java`
+  - 注册：`src/main/java/net/tigereye/chestcavity/network/NetworkHandler.java`
+- 规则/流
+  - 念头远程伤害规则：`data/chestcavity/guscript/rules/niantou_yuancheng_shanghai.json`
+  - 远程伤害规则：`data/chestcavity/guscript/rules/yuancheng_shanghai.json`
+  - 念头远程伤害 flow：`data/chestcavity/guscript/flows/thoughts_remote_burst.json`
+  - 醉元鼓规则/flow：
+    - 规则：`data/chestcavity/guscript/rules/zui_yuan_gu.json`（根期守卫+扣资源+通道加成+FX）
+    - 流：`data/chestcavity/guscript/flows/zui_yuan_gu.json`（最小状态集，非核心）
+- 通用动作
+  - 资源守卫：`guscript/actions/IfResourceAction.java` （id: `if.resource`）
+  - 通道调整：`guscript/actions/AdjustLinkageChannelAction.java`（id: `linkage.adjust`）
+  - 注册：`guscript/runtime/action/ActionRegistry.java`
+
+验证方法
+- 重载数据：`/reload`
+- 编译：`./gradlew compileJava`
+- 模拟日志：点击“模拟编译”获取纸张，确认“最终根/消耗叶/剩余叶”。
+- 按键测试：
+  - 看聚合日志是否包含“醉元鼓”在“念头远程伤害”之前；若是，后者应获得通道加成；
+  - 资源不足时，相关 flow/守卫会引导至 cancel，不会扣资源也不会释放伤害。
+
+常见问题
+- “编译步骤出现两次杀招但只触发一次”：编译步骤记录“规则应用次数”，不是最终根数。后续应用可能复用前一次产物；请参看“最终根”与“消耗叶/剩余叶”判定。
+- “念头远程伤害没有 multiply”：若没有其它根期导出乘区，multiplier=0 正常。醉元鼓改为根期导出后，需确保它在会话内先于杀招执行。
+
+
 ## 2025-09-29 YuanLaoGu 元石 & Blood-Bone Bomb Flow (analysis + TODOs)
 
 What we verified (decompile, storage format)

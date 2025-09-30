@@ -103,6 +103,47 @@ public record GuScriptSimulateCompilePayload(int pageIndex) implements CustomPac
                 }
             }
 
+            // Summaries: final roots, consumed/remaining leaves
+            lore.add(Component.literal(""));
+            lore.add(Component.literal("最终根:"));
+            for (GuNode root : result.roots()) {
+                String kind = (root instanceof net.tigereye.chestcavity.guscript.ast.OperatorGuNode op)
+                        ? op.kind().name()
+                        : (root instanceof LeafGuNode ? "LEAF" : "NODE");
+                lore.add(Component.literal(" - " + kind + ": " + root.name()));
+            }
+
+            java.util.LinkedHashSet<LeafGuNode> consumedLeaves = new java.util.LinkedHashSet<>();
+            for (GuScriptReducer.ReactionApplication app : result.applications()) {
+                for (GuNode in : app.inputs()) {
+                    if (in instanceof LeafGuNode lf && leaves.contains(lf)) {
+                        consumedLeaves.add(lf);
+                    }
+                }
+            }
+            java.util.LinkedHashSet<LeafGuNode> remainingLeaves = new java.util.LinkedHashSet<>(leaves);
+            remainingLeaves.removeAll(consumedLeaves);
+
+            lore.add(Component.literal(""));
+            lore.add(Component.literal("消耗的叶:"));
+            if (consumedLeaves.isEmpty()) {
+                lore.add(Component.literal(" - (无)"));
+            } else {
+                for (LeafGuNode lf : consumedLeaves) {
+                    lore.add(Component.literal(" - " + lf.name() + " tags=" + formatTags(lf)));
+                }
+            }
+
+            lore.add(Component.literal(""));
+            lore.add(Component.literal("剩余的叶:"));
+            if (remainingLeaves.isEmpty()) {
+                lore.add(Component.literal(" - (无)"));
+            } else {
+                for (LeafGuNode lf : remainingLeaves) {
+                    lore.add(Component.literal(" - " + lf.name() + " tags=" + formatTags(lf)));
+                }
+            }
+
             ItemStack paper = new ItemStack(Items.PAPER);
             paper.set(DataComponents.CUSTOM_NAME, Component.literal("GuScript 编译日志"));
             paper.set(DataComponents.LORE, new ItemLore(lore));
@@ -110,5 +151,15 @@ public record GuScriptSimulateCompilePayload(int pageIndex) implements CustomPac
                 player.drop(paper, false);
             }
         });
+    }
+
+    private static String formatTags(LeafGuNode leaf) {
+        com.google.common.collect.Multiset<String> tags = leaf.tags();
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        for (com.google.common.collect.Multiset.Entry<String> e : tags.entrySet()) {
+            int c = e.getCount();
+            parts.add(c > 1 ? (e.getElement() + "(" + c + ")") : e.getElement());
+        }
+        return parts.isEmpty() ? "[]" : ("[" + String.join(", ", parts) + "]");
     }
 }

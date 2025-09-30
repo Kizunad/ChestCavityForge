@@ -6,7 +6,7 @@
     "name": "恢复念头",
     "operator_id": "chestcavity:mind_thought_recover",
     "kind": "composite",
-    "tags": ["杀招", "恢复", "念头"],
+    "tags": ["杀招", "恢复念头"],
     "flow_id": "chestcavity:thoughts_cycle"
   }
 }

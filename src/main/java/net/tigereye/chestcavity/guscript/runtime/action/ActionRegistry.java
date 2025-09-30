@@ -80,6 +80,17 @@ public final class ActionRegistry {
                         !json.has("requirePerformer") || json.get("requirePerformer").getAsBoolean(),
                         readActions(json)
                 ));
+        register(net.tigereye.chestcavity.guscript.actions.IfResourceAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.IfResourceAction(
+                        json.get("identifier").getAsString(),
+                        json.get("minimum").getAsDouble(),
+                        readActions(json)
+                ));
+        register(net.tigereye.chestcavity.guscript.actions.AdjustLinkageChannelAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.AdjustLinkageChannelAction(
+                        ResourceLocation.parse(json.get("channel").getAsString()),
+                        json.get("amount").getAsDouble()
+                ));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {

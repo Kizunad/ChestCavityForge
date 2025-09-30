@@ -1,6 +1,7 @@
 {
   "arity": 2,
   "priority": 22,
+  "inhibitors": ["杀招"],
   "required": { "远程": 1, "伤害": 1 },
   "result": {
     "name": "远程伤害",
@@ -9,4 +10,3 @@
     "tags": ["远程伤害"]
   }
 }
-

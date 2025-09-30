@@ -30,7 +30,12 @@
         { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.45 }
       ],
       "transitions": [
-        { "trigger": "auto", "target": "releasing", "min_ticks": 40 },
+        { "trigger": "auto", "target": "releasing", "min_ticks": 40,
+          "guards": [ { "type": "resource", "identifier": "niantou", "minimum": 180.0 } ]
+        },
+        { "trigger": "auto", "target": "cancel", "min_ticks": 40,
+          "guards": [ { "type": "resource_below", "identifier": "niantou", "maximum": 180.0 } ]
+        },
         { "trigger": "cancel", "target": "cancel" }
       ]
     },
