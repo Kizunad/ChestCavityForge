@@ -3,10 +3,10 @@ package net.tigereye.chestcavity.recipes.json;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -19,8 +19,11 @@ public class SalvageRecipeSerializer implements RecipeSerializer<SalvageRecipe> 
             CraftingBookCategory.CODEC.optionalFieldOf("category", CraftingBookCategory.MISC).forGetter(SalvageRecipe::category),
             Ingredient.CODEC_NONEMPTY.fieldOf("ingredient").forGetter(SalvageRecipe::getInput),
             Codec.INT.optionalFieldOf("required", 1).forGetter(SalvageRecipe::getRequired),
-            ItemStack.CODEC.fieldOf("result").forGetter(SalvageRecipe::getOutputPrototype)
-        ).apply(instance, SalvageRecipe::new)
+            BuiltInRegistries.ITEM.byNameCodec().fieldOf("result").forGetter(SalvageRecipe::getOutputItem),
+            Codec.INT.optionalFieldOf("count", 1).forGetter(SalvageRecipe::getOutputCount)
+        ).apply(instance, (category, ingredient, required, resultItem, count) ->
+            new SalvageRecipe(category, ingredient, required, new ItemStack(resultItem, count))
+        )
     );
 
     private static final StreamCodec<RegistryFriendlyByteBuf, SalvageRecipe> STREAM_CODEC = StreamCodec.composite(
