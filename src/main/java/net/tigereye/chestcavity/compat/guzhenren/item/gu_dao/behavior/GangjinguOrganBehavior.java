@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
@@ -37,6 +38,13 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double BONUS_DAMAGE_RATIO = 0.08;
     private static final int EFFECT_DURATION_TICKS = 60;
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
+    /**
+     * Non-player upkeep cost expressed in health per slow tick (~0.1 heart). Keeps mobs from
+     * maintaining steel plating for free while avoiding lethal drain.
+     */
+    private static final float NON_PLAYER_MAINTENANCE_HEALTH_COST = 0.2f;
+    /** Leaves at least one heart to prevent upkeep from finishing off weakened mobs. */
+    private static final float NON_PLAYER_MINIMUM_HEALTH_RESERVE = 2.0f;
     private static final boolean DEBUG_METAL_BONE = Boolean.getBoolean("chestcavity.debugMetalBoneAbsorption");
 
     private static final ResourceLocation GU_DAO_CHANNEL =
@@ -51,8 +59,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
-            ChestCavity.LOGGER.debug("[compat/guzhenren][steel_bone] skip slow tick – not server player for {}", describeStack(organ));
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
         if (!SteelBoneComboHelper.isPrimarySteelOrgan(cc, organ)) {
@@ -66,6 +73,19 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
 
+        if (entity instanceof net.minecraft.world.entity.player.Player player) {
+            handlePlayerSlowTick(player, cc, organ, comboState);
+        } else {
+            handleNonPlayerSlowTick(entity, cc, organ, comboState);
+        }
+    }
+
+    private void handlePlayerSlowTick(
+            net.minecraft.world.entity.player.Player player,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            SteelBoneComboHelper.ComboState comboState
+    ) {
         if (!SteelBoneComboHelper.consumeMaintenanceHunger(player)) {
             if (DEBUG_METAL_BONE) {
                 ChestCavity.LOGGER.info("[compat/guzhenren][steel_bone] hunger gate blocked absorption for {}", describeStack(organ));
@@ -73,35 +93,76 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
 
-        SteelBoneComboHelper.ensureAbsorptionCapacity(player, cc);
-        double currentAbsorption = player.getAbsorptionAmount();
-        var maxAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION);
-        double maxAbsorption = maxAttr != null ? maxAttr.getBaseValue() : Double.NaN;
+        int steelStacks = Math.max(1, comboState.steel());
+        performSteelBoneMaintenance(player, cc, organ, comboState, steelStacks);
+        SteelBoneComboHelper.restoreJingli(player, JINGLI_PER_SECOND * steelStacks);
+    }
+
+    private void handleNonPlayerSlowTick(
+            LivingEntity entity,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            SteelBoneComboHelper.ComboState comboState
+    ) {
+        if (!payNonPlayerMaintenance(entity, organ)) {
+            return;
+        }
+
+        int steelStacks = Math.max(1, comboState.steel());
+        performSteelBoneMaintenance(entity, cc, organ, comboState, steelStacks);
+    }
+
+    private void performSteelBoneMaintenance(
+            LivingEntity entity,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            SteelBoneComboHelper.ComboState comboState,
+            int steelStacks
+    ) {
+        SteelBoneComboHelper.ensureAbsorptionCapacity(entity, cc);
         if (DEBUG_METAL_BONE) {
+            var maxAttr = entity.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION);
+            double maxAbsorption = maxAttr != null ? maxAttr.getBaseValue() : Double.NaN;
             ChestCavity.LOGGER.info(
                     "[compat/guzhenren][steel_bone] post-capacity: maxAbsorption={} currentAbsorption={} stacks={}",
                     Double.isNaN(maxAbsorption) ? "<missing>" : String.format(java.util.Locale.ROOT, "%.1f", maxAbsorption),
-                    String.format(java.util.Locale.ROOT, "%.1f", currentAbsorption),
+                    String.format(java.util.Locale.ROOT, "%.1f", entity.getAbsorptionAmount()),
                     comboState.steel()
             );
         }
 
-        int steelStacks = Math.max(1, comboState.steel());
-        applyAbsorption(player, organ, steelStacks);
-
-        SteelBoneComboHelper.restoreJingli(player, JINGLI_PER_SECOND * steelStacks);
+        applyAbsorption(entity, organ, steelStacks);
 
         if (SteelBoneComboHelper.hasActiveCombo(comboState)) {
-            applyResistance(player, cc);
+            applyResistance(entity, cc);
         }
         if (SteelBoneComboHelper.hasRefinedCombo(comboState)) {
-            applyHaste(player, cc);
+            applyHaste(entity, cc);
         }
     }
 
-    private void applyAbsorption(Player player, ItemStack organ, int steelStacks) {
+    private boolean payNonPlayerMaintenance(LivingEntity entity, ItemStack organ) {
+        if (NON_PLAYER_MAINTENANCE_HEALTH_COST <= 0.0f) {
+            return true;
+        }
+        boolean drained = GuzhenrenResourceCostHelper.drainHealth(
+                entity,
+                NON_PLAYER_MAINTENANCE_HEALTH_COST,
+                NON_PLAYER_MINIMUM_HEALTH_RESERVE,
+                entity.damageSources().starve()
+        );
+        if (!drained && DEBUG_METAL_BONE) {
+            ChestCavity.LOGGER.info(
+                    "[compat/guzhenren][steel_bone] non-player maintenance blocked – insufficient health for {}",
+                    describeStack(organ)
+            );
+        }
+        return drained;
+    }
+
+    private void applyAbsorption(LivingEntity entity, ItemStack organ, int steelStacks) {
         OrganState state = organState(organ, STATE_ROOT);
-        long gameTime = player.level().getGameTime();
+        long gameTime = entity.level().getGameTime();
         long lastTick = state.getLong(ABSORPTION_KEY, Long.MIN_VALUE);
         boolean firstApplication = (lastTick == Long.MIN_VALUE);
         if (!firstApplication) {
@@ -129,9 +190,9 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             state.setLong(ABSORPTION_KEY, gameTime);
             return;
         }
-        float current = player.getAbsorptionAmount();
+        float current = entity.getAbsorptionAmount();
         if (current + 1.0E-3f < required) {
-            player.setAbsorptionAmount(Math.max(current, required));
+            entity.setAbsorptionAmount(Math.max(current, required));
             if (DEBUG_METAL_BONE) {
                 ChestCavity.LOGGER.info(
                         "[compat/guzhenren][steel_bone] apply absorption -> {} (stacks={})",
@@ -143,16 +204,16 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         state.setLong(ABSORPTION_KEY, gameTime);
     }
 
-    private void applyResistance(Player player, ChestCavityInstance cc) {
+    private void applyResistance(LivingEntity entity, ChestCavityInstance cc) {
         double increase = Math.max(0.0, SteelBoneComboHelper.guDaoIncrease(cc));
         int amplifier = Math.max(0, (int) Math.round(increase));
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, EFFECT_DURATION_TICKS, amplifier, true, true));
+        entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, EFFECT_DURATION_TICKS, amplifier, true, true));
     }
 
-    private void applyHaste(Player player, ChestCavityInstance cc) {
+    private void applyHaste(LivingEntity entity, ChestCavityInstance cc) {
         double jinIncrease = Math.max(0.0, SteelBoneComboHelper.jinDaoIncrease(cc));
         int amplifier = Math.max(0, (int) Math.round(jinIncrease));
-        player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, EFFECT_DURATION_TICKS, amplifier, true, true));
+        entity.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, EFFECT_DURATION_TICKS, amplifier, true, true));
     }
 
     @Override
