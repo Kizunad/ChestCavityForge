@@ -1,21 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "IL",
-    "P "
+    "IL ",
+    "S  ",
+    "   "
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "P": {
-      "item": "minecraft:stick"
-    },
-    "L": {
-      "item": "minecraft:lever"
-    }
+    "I": { "item": "minecraft:iron_ingot" },
+    "L": { "item": "minecraft:lever" },
+    "S": { "item": "minecraft:stick" }
   },
-  "result": {
-    "item": "chestcavity:chest_opener"
-  }
+  "result": { "item": "chestcavity:chest_opener" }
 }

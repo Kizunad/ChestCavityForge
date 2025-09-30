@@ -1,8 +1,4 @@
 {
   "replace": false,
-  "values": [
-    "chestcavity:tomophobia",
-    "chestcavity:malpractice",
-    "chestcavity:surgical"
-  ]
+  "values": []
 }
