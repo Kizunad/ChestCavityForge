@@ -30,7 +30,9 @@ import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.Mode;
 import net.tigereye.chestcavity.linkage.policy.SaturationPolicy;
 
 import net.minecraft.util.RandomSource;
@@ -115,7 +117,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
             return;
         }
 
@@ -128,9 +130,10 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
         LinkageChannel boneChannel = ensureChannel(cc, CHANNEL_ID);
         boolean resourcesPaid = false;
+        ConsumptionResult payment = null;
         if (boneChannel.get() >= totalEnergyCost) {
-            var handleOpt = GuzhenrenResourceBridge.open(player);
-            if (handleOpt.isPresent() && handleOpt.get().consumeScaledZhenyuan(totalZhenyuanCost).isPresent()) {
+            payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, totalZhenyuanCost, 0.0);
+            if (payment.succeeded()) {
                 resourcesPaid = true;
 
                 boneChannel.adjust(-totalEnergyCost);
@@ -141,10 +144,9 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
                 LinkageChannel emeraldChannel = ensureChannel(cc, EMERALD_BONE_GROWTH_CHANNEL);
                 double before = emeraldChannel.get();
-                double gained = totalEfficiency * stackCount;
-                emeraldChannel.adjust(gained);
+                double after = emeraldChannel.adjust(totalEfficiency * stackCount);
 
-                sendHarvestMessage(stackCount, before, before + gained, totalZhenyuanCost, totalEnergyCost, computeEffect(MAX_CHARGE));
+                sendHarvestMessage(entity, stackCount, before, after, payment, totalEnergyCost, computeEffect(MAX_CHARGE));
             }
         }
 
@@ -161,7 +163,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         }
 
         if (!resourcesPaid && updatedCharge != currentCharge) {
-            sendDecayMessage(updatedCharge, updatedEffect);
+            sendDecayMessage(entity, updatedCharge, updatedEffect);
         }
     }
 
@@ -217,7 +219,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
 
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
+        if (attacker == null || attacker.level().isClientSide()) {
             return damage;
         }
 
@@ -226,33 +228,36 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
             return damage;
         }
 
-        playYuGuguStrikeEffects(player, target);
+        playYuGuguStrikeEffects(attacker, target);
         return damage;
     }
 
 
-    private static void playYuGuguStrikeEffects(Player player, LivingEntity target) {
-        Level level = player.level();
+    private static void playYuGuguStrikeEffects(LivingEntity attacker, LivingEntity target) {
+        Level level = attacker.level();
         RandomSource random = level.getRandom();
 
         float chimePitch = 1.0f + (random.nextFloat() - 0.5f) * 0.2f;
         float bonePitch = 1.2f + (random.nextFloat() - 0.5f) * 0.15f;
 
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9f, chimePitch);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BONE_BLOCK_BREAK, SoundSource.PLAYERS, 0.6f, bonePitch);
+        SoundSource soundSource = attacker instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE;
+
+        level.playSound(null, attacker.getX(), attacker.getY(), attacker.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, soundSource, 0.9f, chimePitch);
+        level.playSound(null, attacker.getX(), attacker.getY(), attacker.getZ(), SoundEvents.BONE_BLOCK_BREAK, soundSource, 0.6f, bonePitch);
 
         if (level instanceof ServerLevel server) {
-            Vec3 start = player.getEyePosition();
+            Vec3 start = attacker.getEyePosition();
             Vec3 endPoint;
             if (target != null) {
                 endPoint = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
             } else {
-                endPoint = start.add(player.getLookAngle().normalize().scale(2.5));
+                Vec3 look = attacker.getLookAngle().normalize();
+                endPoint = start.add(look.scale(2.5));
             }
 
             Vec3 direction = endPoint.subtract(start);
             if (direction.lengthSqr() < 1.0E-4) {
-                direction = player.getLookAngle();
+                direction = attacker.getLookAngle();
             }
             direction = direction.normalize();
 
@@ -383,24 +388,56 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
         ChestCavity.LOGGER.info(String.format(Locale.ROOT, "[YuGugu] equip -> 增效 %.3f", effect));
     }
 
-    private static void sendHarvestMessage(int stackCount, double before, double after,
-                                           double consumedZhenyuan, double consumedEnergy, double effect) {
+    private static void sendHarvestMessage(LivingEntity entity, int stackCount, double before, double after,
+                                           ConsumptionResult payment, double consumedEnergy, double effect) {
 
+        String owner = describeEntity(entity);
+        String paymentDescription = describePayment(payment);
         ChestCavity.LOGGER.info(String.format(
             Locale.ROOT,
-            "[YuGugu] +%d EmeraldGrowth %.1f -> %.1f | 真元消耗=%.1f | 能量消耗=%.1f | 增效=%.3f",
-            stackCount, before, after, consumedZhenyuan, consumedEnergy, effect
+            "[YuGugu] %s +%d EmeraldGrowth %.1f -> %.1f | 能量消耗=%.1f | 支付=%s | 增效=%.3f",
+            owner, stackCount, before, after, consumedEnergy, paymentDescription, effect
         ));
     }
 
-    private static void sendDecayMessage(int updatedCharge, double effect) {
+    private static void sendDecayMessage(LivingEntity entity, int updatedCharge, double effect) {
+        String owner = describeEntity(entity);
         ChestCavity.LOGGER.info(String.format(Locale.ROOT,
-            "[YuGugu] 资源不足 -> 衰减 charge=%d (增效 %.3f)",
-            updatedCharge, effect
+            "[YuGugu] %s 资源不足 -> 衰减 charge=%d (增效 %.3f)",
+            owner, updatedCharge, effect
         ));
     }
 
     private static void sendRemovalMessage(double effect) {
         ChestCavity.LOGGER.info(String.format(Locale.ROOT, "[YuGugu] removed -> 撤销增效 %.3f", effect));
+    }
+
+    private static String describePayment(ConsumptionResult payment) {
+        if (payment == null) {
+            return "none";
+        }
+        Mode mode = payment.mode();
+        if (mode == Mode.PLAYER_RESOURCES) {
+            return String.format(Locale.ROOT,
+                    "真元=%.1f 精力=%.1f",
+                    payment.zhenyuanSpent(),
+                    payment.jingliSpent());
+        }
+        if (mode == Mode.HEALTH_FALLBACK) {
+            return String.format(Locale.ROOT, "生命=%.1f", payment.healthSpent());
+        }
+        return mode == null ? "unknown" : mode.name().toLowerCase(Locale.ROOT);
+    }
+
+    private static String describeEntity(LivingEntity entity) {
+        if (entity == null) {
+            return "<null>";
+        }
+        String name = entity.getName().getString();
+        String type = entity.getType().toShortString();
+        if (name == null || name.isBlank()) {
+            return type;
+        }
+        return String.format(Locale.ROOT, "%s[%s]", name, type);
     }
 }
