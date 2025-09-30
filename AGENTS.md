@@ -226,9 +226,32 @@ Candidates (add non‑player handler paths)
 - 其它剑/毒/杜等器官若仍缺非玩家路径，逐器官评估加入。
 
 Branching (parallel, small PRs)
-- 每个器官/家族开独立分支，降低冲突：
-  - `feature/mob-bingjigu-support`
-  - `feature/mob-<family>-support`（如 `mob-shui-dao-support`、`mob-mu-dao-support`）
+- 每个器官/家族开独立分支，降低冲突。建议一次只处理一个器官，便于回滚与验证。
+
+Planned branches to add handlerNonPlayer (HP fallback via GuzhenrenResourceCostHelper)
+- `feature/mob-bingjigu-support`（冰肌蛊，bing_xue_dao）
+  - 非玩家 slow‑tick：按效率回血/寒冷/护盾，扣费走 HP 替代。
+  - 主动“冰爆”暂不对非玩家开放（可选：被击10%小范围爆）。
+- `feature/mob-shuishengu-support`（水绳蛊，shui_dao）
+  - 非玩家 slow‑tick：充能/护盾数值保留；精力/真元改用 HP 替代；去除饥饿等玩家限定分支。
+- `feature/mob-roubaigu-support`（肉白骨，gu_dao）
+  - 非玩家 slow‑tick：骨生长与被动治疗保留；资源支付改用 HP 替代；关闭玩家 UI/物品修复分支或降级。
+- `feature/mob-yugugu-support`（玉骨蛊，gu_dao）
+  - 非玩家 slow‑tick：只保留可适用增益；资源支付走 HP；移除仅玩家可见/可交互逻辑。
+- `feature/mob-gangjingu-support`（钢筋蛊，gu_dao）
+  - 非玩家 slow‑tick：吸收盾恢复与容量维持；扣费走 HP；保留既有间隔门限逻辑。
+- `feature/mob-fandaicaogu-support`（帆带草蛊，shi_dao）
+  - 非玩家 slow‑tick：按器官语义迁移 buff/debuff；支付 HP 替代。
+- `feature/mob-yuanlaogu-support`（元老蛊，yu_dao）
+  - 非玩家 slow‑tick：元石吸收/释放逻辑可选支持；真元/精力→HP 替代；上限守卫复用。
+- `feature/mob-jianjiteng-support`（缄棘藤，gu_cai）
+  - 非玩家 slow‑tick：保留对生物生效的环境/属性分支；支付 HP 替代。
+- `feature/mob-tupigu-support`（土皮蛊，wu_hang/土）
+  - 非玩家 slow‑tick：与玩家路径对齐；支付 HP 替代。
+- `feature/mob-jinfeigu-support`（金肺蛊，wu_hang/金）
+  - 非玩家 slow‑tick：与玩家路径对齐（护盾/移动等）；支付 HP 替代。
+- `feature/mob-mugangu-support`（木肝蛊，wu_hang/木）
+  - 非玩家 slow‑tick：生物通用效果保留；支付 HP 替代。
 
 Per‑branch TODO template
 1) Wire non‑player slow‑tick/on‑hit/被击（按器官语义）
