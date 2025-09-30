@@ -21,6 +21,7 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
     private Button prevPageButton;
     private Button nextPageButton;
     private Button addPageButton;
+    private Button simulateButton;
     private int pageInfoY;
     private int navButtonHeight;
 
@@ -98,6 +99,15 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
 
         int pageInfoSpacing = Math.max(0, ui.pageInfoBelowNavSpacingPx);
         this.pageInfoY = pageButtonY + this.navButtonHeight + pageInfoSpacing;
+
+        // Simulate button: horizontally aligned with paging buttons, to the left of the prevPageButton
+        int simulateWidth = Math.max(60, pageButtonWidth * 3);
+        int simulateY = pageButtonY; // same row as paging buttons
+        // Move left by exactly one simulate button width from the previous placement
+        int preferredSimulateX = pageButtonX - (pageButtonSpacing + simulateWidth);
+        simulateButton = addRenderableWidget(Button.builder(Component.literal("模拟编译"), b -> sendSimulateCompile())
+                .bounds(preferredSimulateX, simulateY, simulateWidth, this.navButtonHeight)
+                .build());
 
         updateButtonStates();
     }
@@ -184,6 +194,16 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
         var connection = minecraft.getConnection();
         if (connection != null) {
             connection.send(new net.tigereye.chestcavity.guscript.network.packets.GuScriptPageChangePayload(net.tigereye.chestcavity.guscript.network.packets.GuScriptPageChangePayload.Operation.ADD, 0));
+        }
+    }
+
+    private void sendSimulateCompile() {
+        if (minecraft == null) {
+            return;
+        }
+        var connection = minecraft.getConnection();
+        if (connection != null) {
+            connection.send(new net.tigereye.chestcavity.guscript.network.packets.GuScriptSimulateCompilePayload(this.menu.getPageIndex()));
         }
     }
 

@@ -23,6 +23,7 @@ import net.tigereye.chestcavity.guscript.network.packets.GuScriptBindingTogglePa
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptPageChangePayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptTriggerPayload;
+import net.tigereye.chestcavity.guscript.network.packets.GuScriptSimulateCompilePayload;
 import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
 
 public final class NetworkHandler {
@@ -36,6 +37,7 @@ public final class NetworkHandler {
         registrar.playToServer(GuScriptBindingTogglePayload.TYPE, GuScriptBindingTogglePayload.STREAM_CODEC, GuScriptBindingTogglePayload::handle);
         registrar.playToServer(GuScriptPageChangePayload.TYPE, GuScriptPageChangePayload.STREAM_CODEC, GuScriptPageChangePayload::handle);
         registrar.playToServer(GuScriptTriggerPayload.TYPE, GuScriptTriggerPayload.STREAM_CODEC, GuScriptTriggerPayload::handle);
+        registrar.playToServer(GuScriptSimulateCompilePayload.TYPE, GuScriptSimulateCompilePayload.STREAM_CODEC, GuScriptSimulateCompilePayload::handle);
         registrar.playToServer(FlowInputPayload.TYPE, FlowInputPayload.STREAM_CODEC, FlowInputPayload::handle);
         registrar.playToServer(KongqiaoDaoHenSeedPayload.TYPE, KongqiaoDaoHenSeedPayload.STREAM_CODEC, DaoHenSeedHandler::handleSeedPayload);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
