@@ -4,8 +4,8 @@ import java.util.List;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
@@ -39,6 +39,14 @@ public class SalvageRecipe implements CraftingRecipe {
 
     public ItemStack getOutputPrototype() {
         return outputStack.copy();
+    }
+
+    public Item getOutputItem() {
+        return outputStack.getItem();
+    }
+
+    public int getOutputCount() {
+        return outputStack.getCount();
     }
 
     @Override
