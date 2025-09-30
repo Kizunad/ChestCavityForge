@@ -502,11 +502,11 @@ COST_HUNGER
 "item.guzhenren.bing_ji_gu": "冰肌蛊",
 冰肌蛊:(每秒)5生命恢复，1精力，消耗200BASE真元维持
 冰道攻击有10％概率额外造成本次攻击所造成伤害的5％伤害（被动）并且对敌人造成 状态效果命令：/effect give @p guzhenren:hhanleng 30 0 此效果存在时将持续为实体添加等同于此效果等级的缓慢，挖掘疲劳。
-冰肌玉骨(冰肌蛊和玉骨蛊联动):免疫流血，可以引爆自己(1 slot)部分(匹配:chestcavity:*_muscle)肌肉产生冰爆(主动快捷键AttackAbilities) 若没有则不能执行，
+冰肌玉骨(冰肌蛊和玉骨蛊联动):免疫流血Effect，可以引爆自己(1 slot)部分(匹配:chestcavity:*_muscle)肌肉产生冰爆(主动快捷键AttackAbilities) 若没有则不能执行，
 当玩家是北冥冰魄体(需要配置通用接口判断体质)时残血获得短时间无敌，
 当胸腔内存在(  "item.guzhenren.bing_bao_gu": "冰爆蛊", 目前暂无效果，但是依旧判断)，
 冰爆的伤害提升 - 冰爆受 冰道INCREASE_EFFECT影响
-加20点伤害吸收 冰道INCREASE_EFFECT影响
+加20点伤害吸收(每1分钟) 冰道INCREASE_EFFECT影响
 
 冰肌蛊
 {

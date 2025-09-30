@@ -2,23 +2,6 @@
   "modules": [
     { "type": "sound", "sound": "minecraft:block.enchantment_table.use", "volume": 0.7, "pitch": 1.05 },
     { "type": "sound", "sound": "minecraft:block.amethyst_cluster.break", "volume": 0.4, "pitch": 1.45 },
-    { "type": "trail",
-      "particle": "minecraft:dust",
-      "color": "#8ab4ff",
-      "size": 0.9,
-      "speed": 0.07,
-      "spread": [0.04, 0.04, 0.04],
-      "offset": [0, 1.55, 0],
-      "segments": 26,
-      "spacing": 0.22
-    },
-    { "type": "particle",
-      "particle": "minecraft:end_rod",
-      "count": 18,
-      "speed": 0.15,
-      "spread": [0.2, 0.12, 0.2],
-      "offset": [0, 1.55, 0]
-    },
     { "type": "screen_shake", "intensity": 0.08, "duration": 6 }
   ]
 }

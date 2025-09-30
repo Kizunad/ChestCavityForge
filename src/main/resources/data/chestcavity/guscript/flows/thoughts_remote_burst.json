@@ -41,7 +41,7 @@
         { "type": "trigger_actions", "actions": [
           {
             "id": "if.target",
-            "range": 18.0,
+            "range": 32.0,
             "actions": [
               { "id": "guzhenren.adjust", "identifier": "niantou", "amount": -180.0 },
               { "id": "mind.shock", "damage": 120.0, "range": 32.0 },
