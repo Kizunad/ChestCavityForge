@@ -29,8 +29,9 @@ public class CCItems {
 	// -- 血道
 	public static final Item GUZHENREN_TIE_XUE_GU = resolveExternalItem("guzhenren", "tiexuegu");
 	public static final Item GUZHENREN_XUE_FEI_GU = resolveExternalItem("guzhenren", "xie_fei_gu");
-	public static final Item GUZHENREN_XIE_DI_GU = resolveExternalItem("guzhenren", "xie_di_gu");
-	public static final Item GUZHENREN_XIE_YAN_GU = resolveExternalItem("guzhenren", "xie_yan_gu");
+        public static final Item GUZHENREN_XIE_DI_GU = resolveExternalItem("guzhenren", "xie_di_gu");
+        public static final Item GUZHENREN_XIE_YAN_GU = resolveExternalItem("guzhenren", "xie_yan_gu");
+        public static final Item GUZHENREN_BING_JI_GU = resolveExternalItem("guzhenren", "bing_ji_gu");
 
 	// -- 水道
 	public static final Item GUZHENREN_LING_XIAN_GU = resolveExternalItem("guzhenren", "ling_xian_gu");
