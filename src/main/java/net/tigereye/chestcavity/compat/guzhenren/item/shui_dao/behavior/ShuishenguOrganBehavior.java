@@ -13,7 +13,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -21,6 +20,8 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.damage.IncomingDamageShield;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 import net.tigereye.chestcavity.util.NBTCharge;
 
 /**
@@ -41,7 +42,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide() || !entity.isInWater()) {
+        if (entity.level().isClientSide() || !entity.isInWater()) {
             return;
         }
 
@@ -52,11 +53,13 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
             return;
         }
 
-        var handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return;
+        ConsumptionResult payment;
+        if (entity instanceof Player) {
+            payment = GuzhenrenResourceCostHelper.consumeStrict(entity, BASE_ZHENYUAN_COST * stackCount, 0.0);
+        } else {
+            payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, BASE_ZHENYUAN_COST * stackCount, 0.0);
         }
-        if (handleOpt.get().consumeScaledZhenyuan(BASE_ZHENYUAN_COST * stackCount).isEmpty()) {
+        if (!payment.succeeded()) {
             return;
         }
 
@@ -67,11 +70,15 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         if (updated > current) {
             playSound(entity, SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, 0.35f, 1.0f);
             spawnChargingParticles(entity, stackCount);
-            applyChargingEffect(player);
+            if (entity instanceof Player player) {
+                applyChargingEffect(player);
+            }
         }
 
         if (updated == effectiveMaxCharge) {
-            player.displayClientMessage(READY_MESSAGE, true);
+            if (entity instanceof Player player) {
+                player.displayClientMessage(READY_MESSAGE, true);
+            }
             playSound(entity, SoundEvents.BEACON_POWER_SELECT, 0.6f, 1.2f);
             spawnFullChargeBurst(entity, stackCount);
         }
