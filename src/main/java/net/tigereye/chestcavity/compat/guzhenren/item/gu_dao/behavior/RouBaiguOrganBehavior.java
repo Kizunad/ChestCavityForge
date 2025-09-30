@@ -4,6 +4,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -26,6 +27,7 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
@@ -43,7 +45,6 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.core.registries.BuiltInRegistries;
 
 /**
  * Behaviour implementation for the Rou Bai Gu organ.
@@ -103,7 +104,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide() || cc == null) {
             return;
         }
 
@@ -113,9 +114,14 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         LinkageChannel xueChannel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
 
         double efficiency = computeEfficiency(guChannel, xueChannel);
-        applyDigestiveGrowth(player, boneChannel, efficiency);
-        applyPassiveHealing(player, boneChannel, efficiency);
-        processOrganRestoration(player, cc, organ, boneChannel);
+        if (entity instanceof Player player) {
+            applyPlayerDigestiveGrowth(player, boneChannel, efficiency);
+            applyPlayerPassiveHealing(player, boneChannel, efficiency);
+            processOrganRestoration(player, cc, organ, boneChannel);
+        } else {
+            applyMobDigestiveGrowth(entity, boneChannel, efficiency);
+            applyMobPassiveHealing(entity, boneChannel, efficiency);
+        }
     }
 
     @Override
@@ -360,7 +366,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
     }
 
-    private static void applyDigestiveGrowth(Player player, LinkageChannel boneChannel, double efficiency) {
+    private static void applyPlayerDigestiveGrowth(Player player, LinkageChannel boneChannel, double efficiency) {
         if (boneChannel == null || boneChannel.get() >= SOFT_CAP) {
             return;
         }
@@ -379,7 +385,27 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         spawnDigestParticles(player);
     }
 
-    private static void applyPassiveHealing(Player player, LinkageChannel boneChannel, double efficiency) {
+    private static void applyMobDigestiveGrowth(LivingEntity entity, LinkageChannel boneChannel, double efficiency) {
+        if (entity == null || boneChannel == null || boneChannel.get() >= SOFT_CAP) {
+            return;
+        }
+
+        double missing = Math.max(0.0, SOFT_CAP - boneChannel.get());
+        double gain = Math.min(missing, DIGEST_GROWTH_PER_SECOND * Math.max(0.0, efficiency));
+        if (gain <= 0.0) {
+            return;
+        }
+
+        var payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, 0.0, COST_HUNGER);
+        if (!payment.succeeded()) {
+            return;
+        }
+
+        boneChannel.adjust(gain);
+        spawnDigestParticles(entity);
+    }
+
+    private static void applyPlayerPassiveHealing(Player player, LinkageChannel boneChannel, double efficiency) {
         if (player == null || !player.isAlive()) {
             return;
         }
@@ -406,6 +432,35 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         player.heal(healAmount);
         if (boosted) {
             spawnBoostParticles(player);
+        }
+    }
+
+    private static void applyMobPassiveHealing(LivingEntity entity, LinkageChannel boneChannel, double efficiency) {
+        if (entity == null || !entity.isAlive()) {
+            return;
+        }
+        if (entity.getHealth() >= entity.getMaxHealth()) {
+            return;
+        }
+
+        double regenBonus = BASE_REGEN_BONUS;
+        boolean boosted = false;
+        int lastHurtTick = Math.max(0, entity.getLastHurtByMobTimestamp());
+        int idleTicks = Math.max(0, entity.tickCount - lastHurtTick);
+        if (idleTicks >= OUT_OF_COMBAT_THRESHOLD_TICKS && boneChannel != null && boneChannel.get() >= COST_BONE_GROWTH) {
+            boneChannel.adjust(-COST_BONE_GROWTH);
+            regenBonus += BASE_REGEN_BONUS;
+            boosted = true;
+        }
+
+        float healAmount = (float)(BASE_EXTRA_HEAL * regenBonus * Math.max(0.0, efficiency));
+        if (healAmount <= 0f) {
+            return;
+        }
+
+        entity.heal(healAmount);
+        if (boosted) {
+            spawnBoostParticles(entity);
         }
     }
 
@@ -675,18 +730,18 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         spawnParticlesAround(server, player, ParticleTypes.HEART, 4, 0.4);
     }
 
-    private static void spawnBoostParticles(Player player) {
-        if (!(player.level() instanceof ServerLevel server)) {
+    private static void spawnBoostParticles(LivingEntity entity) {
+        if (!(entity.level() instanceof ServerLevel server)) {
             return;
         }
-        spawnParticlesAround(server, player, ParticleTypes.END_ROD, 4, 0.5);
+        spawnParticlesAround(server, entity, ParticleTypes.END_ROD, 4, 0.5);
     }
 
-    private static void spawnDigestParticles(Player player) {
-        if (!(player.level() instanceof ServerLevel server)) {
+    private static void spawnDigestParticles(LivingEntity entity) {
+        if (!(entity.level() instanceof ServerLevel server)) {
             return;
         }
-        spawnParticlesAround(server, player, DIGEST_PARTICLE, 6, 0.5);
+        spawnParticlesAround(server, entity, DIGEST_PARTICLE, 6, 0.5);
     }
 
     private static void playBiteSuccess(Player player, LivingEntity target) {
