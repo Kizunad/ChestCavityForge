@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.guscript.actions.ConsumeHealthAction;
 import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
 import net.tigereye.chestcavity.guscript.actions.TriggerFxAction;
+import net.tigereye.chestcavity.guscript.actions.SpawnEntityAction;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.actions.ExportFlatModifierAction;
 import net.tigereye.chestcavity.guscript.actions.ExportMultiplierModifierAction;
@@ -53,6 +54,11 @@ public final class ActionRegistry {
                 readVec3(json, "originOffset"),
                 readVec3(json, "targetOffset"),
                 json.has("intensity") ? json.get("intensity").getAsFloat() : 1.0F
+        ));
+        register(SpawnEntityAction.ID, json -> new SpawnEntityAction(
+                ResourceLocation.parse(json.get("entityId").getAsString()),
+                readVec3(json, "offset"),
+                !json.has("noAi") || json.get("noAi").getAsBoolean()
         ));
         register(net.tigereye.chestcavity.guscript.actions.AdjustGuzhenrenResourceAction.ID, json ->
                 new net.tigereye.chestcavity.guscript.actions.AdjustGuzhenrenResourceAction(

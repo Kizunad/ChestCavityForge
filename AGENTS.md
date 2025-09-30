@@ -199,6 +199,77 @@ Notes
    - Implement Flow core MVP (Idle/Charging/Charged/Releasing/Cooldown/Cancel), loader for `data/chestcavity/guscript/flows/*.json`, server tick controller + light S2C mirror.
    - Acceptance: demo charge→release works; cooldown enforced; logs present.
 
+## 2025-10-01 Jian Dao Sword-Slash FX/Flow Plan
+
+Goal
+- Implement a configurable “sword light” slash akin to Jian Dao, with adjustable size (length/width/lifespan), fired as a Projectile, that can break fragile blocks in flight. Provide general-purpose FX and Flow modules to drive visuals and behavior.
+
+Scope & Constraints
+- NeoForge 1.21.1, reuse existing GuScript infra for data-driven trigger where possible.
+- Block breaking limited to a curated, tag-based whitelist; respect gamerules (mobGriefing) and server-only mutation.
+- Client visuals purely via FX JSON + renderer; do not require server resource JSON beyond tags.
+
+High-level Tasks
+1) Projectile entity
+   - New `SwordSlashProjectile` extending `ThrowableItemProjectile` or lightweight `Projectile` with custom width/length and lifespan ticks.
+   - Params: `length`, `thickness` (width), `lifespan`, `baseDamage`, `breakPower`.
+   - Movement: forward ray step per tick; sweep AABB along facing over `length` for hit detection; pierce limited entities (configurable `maxPierce`).
+   - Registration: `CCEntities#SWORD_SLASH` server + client renderer registration.
+
+2) Block breaking (fragile-only)
+   - Define tag `#chestcavity:breakable_by_sword_slash` listing grass/leaves/glass/ice/snow/flowers/crops/sand/dirt/weak planks, etc. Keep conservative defaults.
+   - Server tick: for each step segment, iterate intersecting block positions within swept AABB; if block matches tag and `!level.isClientSide`, destroy with `level.destroyBlock(pos, true /* drops */)`; cap per-tick break count for perf.
+   - Respect `GameRules.RULE_MOBGRIEFING` and a mod config toggle `enableSwordSlashBlockBreaking`.
+
+3) Entity hit logic
+   - Deal damage once per entity per projectile (track UUID set) with knockback along slash direction; apply crit multiplier if originating attack was crit (optional: consult `JianYingGu` markers).
+   - Optional status: short Bleeding/Weakness for flavor via `MobEffectInstance`.
+
+4) Client visuals (FX + renderer)
+   - Renderer: billboarding quad or thin extruded mesh aligned to velocity; additive glow; color/alpha fades over lifespan.
+   - FX JSON under `assets/chestcavity/guscript/fx/`:
+     - `sword_slash_spawn.json`: initial whoosh + spark particles + swing sound.
+     - `sword_slash_trail.json`: short-lived trail particles following projectile.
+     - `sword_slash_impact.json`: small shard burst on entity/block hit.
+
+5) GuScript integration (flow/operator)
+   - New operator "杀招·剑光" rule producing a root that fires the slash.
+   - Flow `data/chestcavity/guscript/flows/sword_slash.json`:
+     - ENTER: optional charge effects; emit.fx `sword_slash_spawn`.
+     - RELEASING: `emit.projectile id=chestcavity:sword_slash length/thickness/lifespan from flow_params`; loop emit.fx `sword_slash_trail`.
+     - EXIT: emit.fx `sword_slash_impact` when projectile ends.
+   - Bridge: ensure `GuScriptExecutionBridge.emitProjectile` can pass custom NBT for size/damage params to the projectile on spawn.
+
+6) Config and balancing
+   - Add server config entries: default length, thickness, lifespan, damage, blockBreakCapPerTick, allowBlockBreaking, maxPierce.
+   - Expose minimal client config for brightness/color.
+
+7) Tags/Data
+   - Add `data/chestcavity/tags/blocks/breakable_by_sword_slash.json` initial list; allow datapack overrides by users.
+
+8) Tests & validation
+   - Unit: math helpers for sweep and per-tick step segmentation.
+   - Headless server test: spawn projectile in a small test level slice with leaf/glass blocks, assert those in tag are removed, others intact.
+   - Runtime log guards: INFO on spawn with parameters; DEBUG for per-tick break count capped.
+
+Implementation Notes
+- Use stable `AttributeModifier` UUIDs only if adding temporary speed/attack-speed buffs via flows; not required for core projectile.
+- For performance, compute discrete steps: `steps = ceil(length / stepSize)` with `stepSize≈0.5-0.75`; early-exit if lifespan expired.
+- Ensure client/server separation: renderer + FX on client, all block/entity interaction on server.
+
+File touchpoints (anticipated)
+- `ChestCavityForge/src/main/java/net/tigereye/chestcavity/entity/SwordSlashProjectile.java`
+- `ChestCavityForge/src/main/java/net/tigereye/chestcavity/registration/CCEntities.java`
+- `ChestCavityForge/src/main/java/net/tigereye/chestcavity/client/render/SwordSlashRenderer.java`
+- `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guscript/flows/sword_slash.json` (datapack)
+- `ChestCavityForge/src/main/resources/assets/chestcavity/guscript/fx/{sword_slash_spawn,trail,impact}.json`
+- `ChestCavityForge/src/main/resources/data/chestcavity/tags/blocks/breakable_by_sword_slash.json`
+- `ChestCavityForge/src/main/java/net/tigereye/chestcavity/config/CCConfig.java` (toggles)
+
+Risks / Open Questions
+- Multiplayer fairness: block breaking by player-fired slash should attribute to the shooter for permissions/claims; may need integration in protected servers (out of scope now).
+- Glass panes/thin blocks collision requires careful AABB checks; start with full-cube checks, iterate if needed.
+
 
 ## 2025-09-30 Non‑Player Handlers: parallel branches plan
 

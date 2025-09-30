@@ -284,6 +284,25 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                         GsonHelper.getAsString(json, "origin", "performer")
                 );
             }
+            case "tame_nearby" -> FlowActions.tameNearby(
+                    GsonHelper.getAsDouble(json, "radius", 4.0D),
+                    GsonHelper.getAsBoolean(json, "sit", false),
+                    GsonHelper.getAsBoolean(json, "persist", true)
+            );
+            case "order_guard" -> FlowActions.orderGuard(
+                    GsonHelper.getAsDouble(json, "radius", 8.0D),
+                    GsonHelper.getAsBoolean(json, "seek_hostiles", true),
+                    GsonHelper.getAsDouble(json, "acquire_radius", 16.0D)
+            );
+            case "bind_owner_nudao" -> FlowActions.bindOwnerNudao(
+                    GsonHelper.getAsDouble(json, "radius", 4.0D),
+                    GsonHelper.getAsBoolean(json, "tame_if_possible", true)
+            );
+            case "assist_player_attacks" -> FlowActions.assistPlayerAttacks(
+                    GsonHelper.getAsDouble(json, "ally_radius", 8.0D),
+                    GsonHelper.getAsInt(json, "recent_ticks", 40),
+                    GsonHelper.getAsDouble(json, "acquire_radius", 16.0D)
+            );
             default -> throw new IllegalArgumentException("Unknown flow action type: " + type);
         };
     }
