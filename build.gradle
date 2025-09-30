@@ -72,14 +72,7 @@ neoForge {
     }
 }
 
-sourceSets {
-    main {
-        resources {
-            srcDirs = ["src/main/resources", "src/generated/resources"]
-        }
-    }
-}
-
+sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
@@ -160,12 +153,4 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
-}
-
-tasks.withType(ProcessResources).configureEach {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-tasks.withType(Jar).configureEach {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

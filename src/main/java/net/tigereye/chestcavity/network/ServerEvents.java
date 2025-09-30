@@ -3,16 +3,18 @@ package net.tigereye.chestcavity.network;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
@@ -23,11 +25,13 @@ import java.util.List;
 public final class ServerEvents {
 
     private static final int MAX_SYNC_RETRIES = 10;
+    private static final String RECEIVED_CHEST_OPENER_TAG = ChestCavity.MODID + ":received_chest_opener";
 
     private ServerEvents() {}
 
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            grantFirstJoinChestOpener(player);
             scheduleSync(player, true);
         }
     }
@@ -136,6 +140,37 @@ public final class ServerEvents {
                 return false;
             }
         }
+        return true;
+    }
+
+    private static void grantFirstJoinChestOpener(ServerPlayer player) {
+        if (!markChestOpenerGranted(player)) {
+            return;
+        }
+
+        ItemStack chestOpener = new ItemStack(CCItems.CHEST_OPENER.get());
+        if (chestOpener.isEmpty()) {
+            return;
+        }
+
+        boolean added = player.addItem(chestOpener);
+        if (!added && !chestOpener.isEmpty()) {
+            ItemEntity drop = player.drop(chestOpener, false);
+            if (drop != null) {
+                drop.setNoPickUpDelay();
+            }
+        }
+    }
+
+    private static boolean markChestOpenerGranted(ServerPlayer player) {
+        CompoundTag persistentData = player.getPersistentData();
+        CompoundTag persisted = persistentData.getCompound(Player.PERSISTED_NBT_TAG);
+        if (persisted.getBoolean(RECEIVED_CHEST_OPENER_TAG)) {
+            return false;
+        }
+
+        persisted.putBoolean(RECEIVED_CHEST_OPENER_TAG, true);
+        persistentData.put(Player.PERSISTED_NBT_TAG, persisted);
         return true;
     }
 }
