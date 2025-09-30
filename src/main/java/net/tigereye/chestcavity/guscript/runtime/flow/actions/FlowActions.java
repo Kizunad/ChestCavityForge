@@ -1,10 +1,13 @@
 package net.tigereye.chestcavity.guscript.runtime.flow.actions;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
@@ -12,6 +15,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
@@ -25,9 +34,13 @@ import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
+import java.util.Locale;
 import java.util.function.Function;
 
 /**
@@ -649,6 +662,168 @@ public final class FlowActions {
         };
     }
 
+    public static FlowEdgeAction replaceBlocksSphere(
+            double baseRadius,
+            String radiusParam,
+            String radiusVariable,
+            double maxHardness,
+            boolean includeFluids,
+            boolean dropBlocks,
+            List<ResourceLocation> replacementIds,
+            List<Integer> replacementWeights,
+            List<ResourceLocation> forbiddenIds,
+            boolean placeSnowLayers,
+            int snowLayersMin,
+            int snowLayersMax,
+            String originKey
+    ) {
+        double sanitizedRadius = Math.max(0.0D, baseRadius);
+        double hardnessLimit = maxHardness <= 0.0D ? Double.POSITIVE_INFINITY : maxHardness;
+        OriginSelector origin = OriginSelector.from(originKey);
+
+        Set<Block> forbiddenBlocks = new HashSet<>();
+        if (forbiddenIds != null) {
+            for (ResourceLocation id : forbiddenIds) {
+                if (id == null) {
+                    continue;
+                }
+                Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+                if (block != null) {
+                    forbiddenBlocks.add(block);
+                } else {
+                    ChestCavity.LOGGER.warn("[Flow] replace_blocks_sphere skipping unknown forbidden block {}", id);
+                }
+            }
+        }
+
+        List<BlockState> replacementStates = new ArrayList<>();
+        List<Integer> sanitizedWeights = new ArrayList<>();
+        int totalWeight = 0;
+        if (replacementIds != null) {
+            for (int i = 0; i < replacementIds.size(); i++) {
+                ResourceLocation id = replacementIds.get(i);
+                if (id == null) {
+                    continue;
+                }
+                int weight = 1;
+                if (replacementWeights != null && i < replacementWeights.size()) {
+                    weight = Math.max(0, replacementWeights.get(i));
+                }
+                if (weight <= 0) {
+                    continue;
+                }
+                Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+                if (block == null) {
+                    ChestCavity.LOGGER.warn("[Flow] replace_blocks_sphere skipping unknown replacement block {}", id);
+                    continue;
+                }
+                replacementStates.add(block.defaultBlockState());
+                sanitizedWeights.add(weight);
+                totalWeight += weight;
+            }
+        }
+
+        boolean enableSnowLayers = placeSnowLayers && snowLayersMax > 0;
+        int minLayers = Math.max(1, snowLayersMin);
+        int maxLayers = Math.max(minLayers, snowLayersMax);
+        IntegerProperty snowLayerProperty = SnowLayerBlock.LAYERS;
+        int snowLayerCap = snowLayerProperty.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(1);
+
+        final double defaultRadius = sanitizedRadius;
+        final double hardnessThreshold = hardnessLimit;
+        final boolean allowFluids = includeFluids;
+        final boolean shouldDropBlocks = dropBlocks;
+        final boolean placeSnow = enableSnowLayers;
+        final int snowMin = Math.min(minLayers, snowLayerCap);
+        final int snowMax = Math.min(maxLayers, snowLayerCap);
+        final int weightSum = totalWeight;
+
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                LivingEntity originEntity = selectOrigin(performer, target, origin);
+                if (originEntity == null) {
+                    return;
+                }
+                Level level = originEntity.level();
+                if (!(level instanceof ServerLevel serverLevel)) {
+                    return;
+                }
+                double radius = defaultRadius;
+                if (controller != null) {
+                    if (radiusParam != null && !radiusParam.isBlank()) {
+                        double resolved = controller.resolveFlowParamAsDouble(radiusParam, radius);
+                        if (Double.isFinite(resolved) && resolved > 0.0D) {
+                            radius = resolved;
+                        }
+                    }
+                    if (radiusVariable != null && !radiusVariable.isBlank()) {
+                        double scale = controller.getDouble(radiusVariable, 1.0D);
+                        if (Double.isFinite(scale) && scale > 0.0D) {
+                            radius *= scale;
+                        }
+                    }
+                }
+                if (!Double.isFinite(radius) || radius <= 0.0D) {
+                    return;
+                }
+
+                BlockPos center = originEntity.blockPosition();
+                int bound = Mth.ceil(radius);
+                double radiusSq = radius * radius;
+                BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+                RandomSource random = serverLevel.getRandom();
+
+                for (int dx = -bound; dx <= bound; dx++) {
+                    for (int dy = -bound; dy <= bound; dy++) {
+                        for (int dz = -bound; dz <= bound; dz++) {
+                            double distSq = dx * dx + dy * dy + dz * dz;
+                            if (distSq > radiusSq) {
+                                continue;
+                            }
+                            cursor.set(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
+                            if (!serverLevel.isLoaded(cursor)) {
+                                continue;
+                            }
+                            BlockState state = serverLevel.getBlockState(cursor);
+                            if (state.isAir()) {
+                                continue;
+                            }
+                            if (!allowFluids && !state.getFluidState().isEmpty()) {
+                                continue;
+                            }
+                            float destroySpeed = state.getDestroySpeed(serverLevel, cursor);
+                            if (destroySpeed < 0.0F || destroySpeed > hardnessThreshold) {
+                                continue;
+                            }
+                            if (forbiddenBlocks.contains(state.getBlock())) {
+                                continue;
+                            }
+                            boolean removed = shouldDropBlocks
+                                    ? serverLevel.destroyBlock(cursor, true)
+                                    : serverLevel.removeBlock(cursor, false);
+                            if (!removed) {
+                                continue;
+                            }
+                            BlockState replacement = pickReplacement(replacementStates, sanitizedWeights, weightSum, random);
+                            if (replacement != null) {
+                                serverLevel.setBlock(cursor, replacement, Block.UPDATE_ALL);
+                            }
+                            if (placeSnow) {
+                                maybePlaceSnowLayer(serverLevel, cursor, random, snowLayerProperty, snowMin, snowMax);
+                            }
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "replace_blocks_sphere(radius=" + defaultRadius + ")";
+            }
+        };
+    }
+
     public static FlowEdgeAction emitFx(String fxId, float baseIntensity, String variableName, double defaultScale) {
         ResourceLocation fx = fxId == null ? null : ResourceLocation.tryParse(fxId);
         if (fx == null) {
@@ -689,5 +864,85 @@ public final class FlowActions {
                 return description.get();
             }
         };
+    }
+
+    private static BlockState pickReplacement(
+            List<BlockState> states,
+            List<Integer> weights,
+            int totalWeight,
+            RandomSource random
+    ) {
+        if (states == null || states.isEmpty() || totalWeight <= 0 || random == null) {
+            return null;
+        }
+        int roll = random.nextInt(totalWeight);
+        for (int i = 0; i < states.size(); i++) {
+            int weight = (weights != null && i < weights.size()) ? Math.max(0, weights.get(i)) : 1;
+            if (weight <= 0) {
+                continue;
+            }
+            roll -= weight;
+            if (roll < 0) {
+                return states.get(i);
+            }
+        }
+        return states.get(states.size() - 1);
+    }
+
+    private static void maybePlaceSnowLayer(
+            ServerLevel level,
+            BlockPos origin,
+            RandomSource random,
+            IntegerProperty layersProperty,
+            int minLayers,
+            int maxLayers
+    ) {
+        if (level == null || origin == null || random == null || layersProperty == null) {
+            return;
+        }
+        BlockPos above = origin.above();
+        if (!level.isLoaded(above)) {
+            return;
+        }
+        BlockState aboveState = level.getBlockState(above);
+        if (!aboveState.isAir()) {
+            return;
+        }
+        BlockState baseState = level.getBlockState(origin);
+        if (!baseState.isFaceSturdy(level, origin, Direction.UP)) {
+            return;
+        }
+        int span = Math.max(0, maxLayers - minLayers);
+        int layers = span > 0 ? minLayers + random.nextInt(span + 1) : minLayers;
+        layers = Mth.clamp(layers, 1, maxLayers);
+        BlockState snow = Blocks.SNOW.defaultBlockState().setValue(layersProperty, layers);
+        level.setBlock(above, snow, Block.UPDATE_ALL);
+    }
+
+    private static LivingEntity selectOrigin(Player performer, LivingEntity target, OriginSelector origin) {
+        if (origin == OriginSelector.TARGET) {
+            return target;
+        }
+        if (origin == OriginSelector.TARGET_IF_PRESENT && target != null) {
+            return target;
+        }
+        return performer;
+    }
+
+    private enum OriginSelector {
+        PERFORMER,
+        TARGET,
+        TARGET_IF_PRESENT;
+
+        static OriginSelector from(String raw) {
+            if (raw == null || raw.isBlank()) {
+                return PERFORMER;
+            }
+            return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+                case "target" -> TARGET;
+                case "target_if_present", "target_if_available" -> TARGET_IF_PRESENT;
+                default -> PERFORMER;
+            };
+        }
     }
 }

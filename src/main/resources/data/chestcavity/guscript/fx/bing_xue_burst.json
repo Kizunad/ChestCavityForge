@@ -1,0 +1,20 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.glass.break", "volume": 1.1, "pitch": 0.8 },
+    { "type": "sound", "sound": "minecraft:block.snow.break", "volume": 0.9, "pitch": 1.05 },
+    {
+      "type": "particle",
+      "particle": "minecraft:item_snowball",
+      "count": 90,
+      "speed": 0.08,
+      "spread": [0.6, 0.6, 0.6]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:snowflake",
+      "count": 70,
+      "speed": 0.035,
+      "spread": [0.55, 0.55, 0.55]
+    }
+  ]
+}

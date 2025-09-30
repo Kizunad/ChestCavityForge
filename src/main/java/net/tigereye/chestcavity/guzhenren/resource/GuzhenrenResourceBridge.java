@@ -398,6 +398,18 @@ public final class GuzhenrenResourceBridge {
         }).orElseGet(OptionalDouble::empty);
     }
 
+    private static Optional<String> readString(Object variables, PlayerField fieldKey) {
+        return resolveField(fieldKey).filter(field -> field.getType() == String.class).map(field -> {
+            try {
+                Object value = field.get(variables);
+                return Optional.ofNullable(value == null ? null : value.toString());
+            } catch (IllegalAccessException e) {
+                LOGGER.warn("Failed to read Guzhenren field '{}'", fieldKey.displayName(), e);
+                return Optional.<String>empty();
+            }
+        }).orElseGet(Optional::empty);
+    }
+
     /**
      * 利用反射写入指定字段的 double 值。
      */
@@ -452,6 +464,15 @@ public final class GuzhenrenResourceBridge {
         public OptionalDouble read(String identifier) {
             Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
             return field.isPresent() ? read(field.get()) : OptionalDouble.empty();
+        }
+
+        public Optional<String> readString(PlayerField fieldKey) {
+            return GuzhenrenResourceBridge.readString(this.variables, fieldKey);
+        }
+
+        public Optional<String> readString(String identifier) {
+            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+            return field.isPresent() ? readString(field.get()) : Optional.empty();
         }
 
         /**
@@ -549,6 +570,22 @@ public final class GuzhenrenResourceBridge {
                 }
             }
             return Collections.unmodifiableMap(values);
+        }
+
+        public Optional<String> getConstitution() {
+            return readString(PlayerField.TIZHI).filter(value -> !value.isBlank());
+        }
+
+        public boolean hasConstitution(String expected) {
+            if (expected == null || expected.isBlank()) {
+                return false;
+            }
+            String normalisedExpected = expected.trim();
+            return getConstitution().map(value -> value.equalsIgnoreCase(normalisedExpected)).orElse(false)
+                    || PlayerField.fromIdentifier(normalisedExpected)
+                    .flatMap(PlayerField::docLabel)
+                    .map(label -> getConstitution().map(value -> value.equalsIgnoreCase(label)).orElse(false))
+                    .orElse(false);
         }
 
         /**
