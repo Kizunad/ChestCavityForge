@@ -559,6 +559,9 @@ public final class FlowActions {
                             safeOffset.x,
                             safeOffset.y,
                             safeOffset.z,
+                            0.0D,
+                            0.0D,
+                            0.0D,
                             ally.getYRot(),
                             ally.getXRot(),
                             0.0F,
@@ -1058,6 +1061,7 @@ public final class FlowActions {
             return describe(() -> "emit_gecko(nop)");
         }
         Vec3 offset = parameters.offset() == null ? Vec3.ZERO : parameters.offset();
+        Vec3 relativeOffset = parameters.relativeOffset() == null ? Vec3.ZERO : parameters.relativeOffset();
         Vec3 worldPosition = parameters.worldPosition();
         float alpha = Mth.clamp(parameters.alpha(), 0.0F, 1.0F);
         float scale = parameters.scale() <= 0.0F ? 1.0F : parameters.scale();
@@ -1102,7 +1106,12 @@ public final class FlowActions {
                     }
                     case WORLD -> {
                         basePosition = worldPosition != null ? worldPosition : serverPlayer.position();
-                        Vec3 origin = basePosition.add(offset);
+                        float yaw = parameters.yaw() != null ? parameters.yaw() : serverPlayer.getYRot();
+                        float pitch = parameters.pitch() != null ? parameters.pitch() : serverPlayer.getXRot();
+                        float roll = parameters.roll() != null ? parameters.roll() : 0.0F;
+                        Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, yaw, pitch, roll);
+                        Vec3 originOffset = offset.add(rotatedRelative);
+                        Vec3 origin = basePosition.add(originOffset);
                         UUID eventId = loop
                                 ? UUID.nameUUIDFromBytes((parameters.fxId() + "|" + basePosition.x + "," + basePosition.y + "," + basePosition.z)
                                 .getBytes(StandardCharsets.UTF_8))
@@ -1117,6 +1126,9 @@ public final class FlowActions {
                                 offset.x,
                                 offset.y,
                                 offset.z,
+                                relativeOffset.x,
+                                relativeOffset.y,
+                                relativeOffset.z,
                                 parameters.yaw() != null ? parameters.yaw() : 0.0F,
                                 parameters.pitch() != null ? parameters.pitch() : 0.0F,
                                 parameters.roll() != null ? parameters.roll() : 0.0F,
@@ -1137,11 +1149,14 @@ public final class FlowActions {
                     return;
                 }
                 basePosition = attachedEntity.position();
-                Vec3 origin = basePosition.add(offset);
 
                 float yaw = parameters.yaw() != null ? parameters.yaw() : attachedEntity.getYRot();
                 float pitch = parameters.pitch() != null ? parameters.pitch() : attachedEntity.getXRot();
                 float roll = parameters.roll() != null ? parameters.roll() : 0.0F;
+
+                Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, yaw, pitch, roll);
+                Vec3 originOffset = offset.add(rotatedRelative);
+                Vec3 origin = basePosition.add(originOffset);
 
                 UUID eventId = computeFxEventId(parameters.fxId(), attachedEntity, loop);
 
@@ -1155,6 +1170,9 @@ public final class FlowActions {
                         offset.x,
                         offset.y,
                         offset.z,
+                        relativeOffset.x,
+                        relativeOffset.y,
+                        relativeOffset.z,
                         yaw,
                         pitch,
                         roll,
@@ -1209,6 +1227,7 @@ public final class FlowActions {
             ResourceLocation fxId,
             GeckoFxAnchor anchor,
             Vec3 offset,
+            Vec3 relativeOffset,
             Vec3 worldPosition,
             Float yaw,
             Float pitch,
@@ -1220,6 +1239,26 @@ public final class FlowActions {
             int durationTicks,
             String entityIdVariable
     ) {}
+
+    private static Vec3 rotateRelativeOffset(Vec3 relativeOffset, float yawDegrees, float pitchDegrees, float rollDegrees) {
+        if (relativeOffset == null || relativeOffset.equals(Vec3.ZERO)) {
+            return Vec3.ZERO;
+        }
+        double yawRad = -Math.toRadians(yawDegrees);
+        double pitchRad = -Math.toRadians(pitchDegrees);
+        double rollRad = -Math.toRadians(rollDegrees);
+        Vec3 rotated = relativeOffset;
+        if (pitchDegrees != 0.0F) {
+            rotated = rotated.xRot((float) pitchRad);
+        }
+        if (yawDegrees != 0.0F) {
+            rotated = rotated.yRot((float) yawRad);
+        }
+        if (rollDegrees != 0.0F) {
+            rotated = rotated.zRot((float) rollRad);
+        }
+        return rotated;
+    }
 
     private static UUID computeFxEventId(ResourceLocation fxId, Entity anchor, boolean loop) {
         if (!loop || fxId == null || anchor == null) {

@@ -1,0 +1,22 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.chestcavity.vanquisher_sword.slash_combo": {
+      "animation_length": 1,
+      "bones": {
+        "bone": {
+          "rotation": {
+            "0.0": { "vector": [-387.5, 67.5, -315.0] },
+            "1.0": { "vector": [-340.76708, 8.00259, -290.66684], "easing": "easeInBack" },
+            "1.001": { "vector": [-340.76708, 8.00258, -290.66684] }
+          },
+          "position": {
+            "0.0": { "vector": [-30, 35, 15] },
+            "1.0": { "vector": [-48, 6, -16], "easing": "easeInBack" }
+          }
+        }
+      }
+    }
+  },
+  "geckolib_format_version": 2
+}

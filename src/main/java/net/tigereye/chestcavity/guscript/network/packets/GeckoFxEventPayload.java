@@ -25,6 +25,9 @@ public record GeckoFxEventPayload(
         double offsetX,
         double offsetY,
         double offsetZ,
+        double relativeOffsetX,
+        double relativeOffsetY,
+        double relativeOffsetZ,
         float yaw,
         float pitch,
         float roll,
@@ -53,6 +56,9 @@ public record GeckoFxEventPayload(
         buf.writeDouble(payload.offsetX);
         buf.writeDouble(payload.offsetY);
         buf.writeDouble(payload.offsetZ);
+        buf.writeDouble(payload.relativeOffsetX);
+        buf.writeDouble(payload.relativeOffsetY);
+        buf.writeDouble(payload.relativeOffsetZ);
         buf.writeFloat(payload.yaw);
         buf.writeFloat(payload.pitch);
         buf.writeFloat(payload.roll);
@@ -74,6 +80,9 @@ public record GeckoFxEventPayload(
         double offsetX = buf.readDouble();
         double offsetY = buf.readDouble();
         double offsetZ = buf.readDouble();
+        double relativeOffsetX = buf.readDouble();
+        double relativeOffsetY = buf.readDouble();
+        double relativeOffsetZ = buf.readDouble();
         float yaw = buf.readFloat();
         float pitch = buf.readFloat();
         float roll = buf.readFloat();
@@ -83,7 +92,29 @@ public record GeckoFxEventPayload(
         boolean loop = buf.readBoolean();
         int duration = buf.readVarInt();
         UUID eventId = buf.readUUID();
-        return new GeckoFxEventPayload(fxId, anchor, attachedEntityId, basePosX, basePosY, basePosZ, offsetX, offsetY, offsetZ, yaw, pitch, roll, scale, tint, alpha, loop, duration, eventId);
+        return new GeckoFxEventPayload(
+                fxId,
+                anchor,
+                attachedEntityId,
+                basePosX,
+                basePosY,
+                basePosZ,
+                offsetX,
+                offsetY,
+                offsetZ,
+                relativeOffsetX,
+                relativeOffsetY,
+                relativeOffsetZ,
+                yaw,
+                pitch,
+                roll,
+                scale,
+                tint,
+                alpha,
+                loop,
+                duration,
+                eventId
+        );
     }
 
     @Override

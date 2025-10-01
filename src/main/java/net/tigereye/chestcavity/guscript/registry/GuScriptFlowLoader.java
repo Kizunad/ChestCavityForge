@@ -270,6 +270,7 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     GsonHelper.getAsDouble(json, "default_scale", 1.0D)
             );
             case "emit_gecko" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
+            case "emit_gecko_relative" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
             case "emit_gecko_on_allies" -> FlowActions.emitGeckoOnAllies(
                     ResourceLocation.parse(GsonHelper.getAsString(json, "fx")),
                     GsonHelper.getAsDouble(json, "ally_radius", 8.0D),
@@ -335,6 +336,7 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
         ResourceLocation fxId = ResourceLocation.parse(GsonHelper.getAsString(json, "fx"));
         GeckoFxAnchor anchor = GeckoFxAnchor.fromName(GsonHelper.getAsString(json, "anchor", "performer"));
         Vec3 offset = parseVec3(json, "offset");
+        Vec3 relativeOffset = parseVec3(json, "relative_offset");
         Vec3 worldPosition = parseVec3(json, "world_position");
         Float yaw = json.has("yaw") ? (float) GsonHelper.getAsDouble(json, "yaw") : null;
         Float pitch = json.has("pitch") ? (float) GsonHelper.getAsDouble(json, "pitch") : null;
@@ -345,7 +347,7 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
         boolean loop = GsonHelper.getAsBoolean(json, "loop", false);
         int duration = GsonHelper.getAsInt(json, "duration", 40);
         String entityVariable = json.has("entity_id_variable") ? GsonHelper.getAsString(json, "entity_id_variable") : null;
-        return new GeckoFxParameters(fxId, anchor, offset, worldPosition, yaw, pitch, roll, scale, tint, alpha, loop, duration, entityVariable);
+        return new GeckoFxParameters(fxId, anchor, offset, relativeOffset, worldPosition, yaw, pitch, roll, scale, tint, alpha, loop, duration, entityVariable);
     }
 
     private static Vec3 parseVec3(JsonObject json, String key) {
