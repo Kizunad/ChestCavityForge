@@ -10,10 +10,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.monster.Enemy;
@@ -23,27 +27,31 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.guscript.ast.Action;
+import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
+import net.tigereye.chestcavity.guscript.fx.gecko.GeckoFxDispatcher;
+import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guscript.runtime.exec.DefaultGuScriptContext;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
+import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
-import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.ThrowableProjectile;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
-import java.util.Locale;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -381,10 +389,7 @@ public final class FlowActions {
                 Level level = performer.level();
                 if (!(level instanceof ServerLevel server)) return;
                 AABB box = new AABB(performer.blockPosition()).inflate(r);
-                List<LivingEntity> allies = server.getEntitiesOfClass(LivingEntity.class, box, e -> {
-                    if (e instanceof TamableAnimal tam && tam.isOwnedBy(performer)) return true;
-                    return GuzhenrenNudaoBridge.openSubject(e).map(h -> h.isOwnedBy(performer)).orElse(false);
-                });
+                List<LivingEntity> allies = server.getEntitiesOfClass(LivingEntity.class, box, e -> isAlly(performer, e));
                 for (LivingEntity ally : allies) {
                     if (ally instanceof TamableAnimal tam) {
                         tam.setOrderedToSit(false);
@@ -448,11 +453,7 @@ public final class FlowActions {
                 int ts = performer.getLastHurtMobTimestamp();
                 if (performer.tickCount - ts > window) return;
                 AABB box = new AABB(performer.blockPosition()).inflate(r);
-                List<LivingEntity> allies = server.getEntitiesOfClass(LivingEntity.class, box, e -> {
-                    if (!e.isAlive()) return false;
-                    if (e instanceof TamableAnimal tam && tam.isOwnedBy(performer)) return true;
-                    return GuzhenrenNudaoBridge.openSubject(e).map(h -> h.isOwnedBy(performer)).orElse(false);
-                });
+                List<LivingEntity> allies = server.getEntitiesOfClass(LivingEntity.class, box, e -> isAlly(performer, e));
                 for (LivingEntity ally : allies) {
                     if (ally instanceof Mob mob) {
                         if (recent.distanceToSqr(ally) <= ar * ar) {
@@ -464,6 +465,113 @@ public final class FlowActions {
 
             @Override
             public String describe() { return "assist_player_attacks(r=" + r + ", window=" + window + ", ar=" + ar + ")"; }
+        };
+    }
+
+    /** Flow edge action: directly set invisibility for nearby entities (optionally allies only). */
+    public static FlowEdgeAction setInvisibleNearby(double radius, boolean invisible, boolean alliesOnly) {
+        double r = Math.max(0.0, radius);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) return;
+                Level level = performer.level();
+                if (!(level instanceof ServerLevel server)) return;
+                AABB box = new AABB(performer.blockPosition()).inflate(r);
+                List<LivingEntity> list = server.getEntitiesOfClass(LivingEntity.class, box, e -> {
+                    if (!e.isAlive()) return false;
+                    return !alliesOnly || isAlly(performer, e);
+                });
+                for (LivingEntity e : list) {
+                    e.setInvisible(invisible);
+                }
+            }
+
+            @Override
+            public String describe() { return "set_invisible_nearby(r=" + r + ", alliesOnly=" + alliesOnly + ", invisible=" + invisible + ")"; }
+        };
+    }
+
+    /** Flow edge action: emit a client FX at each nearby ally's position (tamed or Nudao-owned). */
+    public static FlowEdgeAction emitFxOnAllies(ResourceLocation fxId, double allyRadius, float intensity) {
+        double r = Math.max(0.0, allyRadius);
+        float clamped = intensity <= 0.0F ? 1.0F : intensity;
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || fxId == null) return;
+                Level level = performer.level();
+                if (!(level instanceof ServerLevel server)) return;
+                AABB box = new AABB(performer.blockPosition()).inflate(r);
+                List<LivingEntity> allies = server.getEntitiesOfClass(LivingEntity.class, box, e -> isAlly(performer, e));
+                for (LivingEntity ally : allies) {
+                    AbilityFxDispatcher.play(server,
+                            fxId,
+                            new net.minecraft.world.phys.Vec3(ally.getX(), ally.getY() + ally.getBbHeight() * 0.5D, ally.getZ()),
+                            ally.getLookAngle(), ally.getLookAngle(),
+                            (net.minecraft.server.level.ServerPlayer) performer,
+                            ally,
+                            clamped);
+                }
+            }
+
+            @Override
+            public String describe() { return "emit_fx_on_allies(fx=" + fxId + ", r=" + r + ")"; }
+        };
+    }
+
+    /** Flow edge action: emit Gecko FX anchored to allied entities. */
+    public static FlowEdgeAction emitGeckoOnAllies(ResourceLocation fxId, double allyRadius, Vec3 offset, float scale, int tint, float alpha, boolean loop, int duration) {
+        if (fxId == null) {
+            return describe(() -> "emit_gecko_on_allies(nop)");
+        }
+        double r = Math.max(0.0, allyRadius);
+        Vec3 safeOffset = offset == null ? Vec3.ZERO : offset;
+        float sanitizedAlpha = Mth.clamp(alpha, 0.0F, 1.0F);
+        float sanitizedScale = scale <= 0.0F ? 1.0F : scale;
+        int sanitizedDuration = Math.max(1, duration);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                Level level = performer.level();
+                if (!(level instanceof ServerLevel server)) {
+                    return;
+                }
+                AABB box = new AABB(performer.blockPosition()).inflate(r);
+                List<LivingEntity> allies = server.getEntitiesOfClass(LivingEntity.class, box, e -> isAlly(performer, e));
+                for (LivingEntity ally : allies) {
+                    Vec3 base = ally.position();
+                    Vec3 origin = base.add(safeOffset);
+                    UUID eventId = computeFxEventId(fxId, ally, loop);
+                    GeckoFxEventPayload payload = new GeckoFxEventPayload(
+                            fxId,
+                            GeckoFxAnchor.ENTITY,
+                            ally.getId(),
+                            base.x,
+                            base.y,
+                            base.z,
+                            safeOffset.x,
+                            safeOffset.y,
+                            safeOffset.z,
+                            ally.getYRot(),
+                            ally.getXRot(),
+                            0.0F,
+                            sanitizedScale,
+                            tint,
+                            sanitizedAlpha,
+                            loop,
+                            sanitizedDuration,
+                            eventId
+                    );
+                    GeckoFxDispatcher.emit(server, origin, payload);
+                }
+            }
+
+            @Override
+            public String describe() { return "emit_gecko_on_allies(fx=" + fxId + ", r=" + r + ")"; }
         };
     }
 
@@ -942,6 +1050,129 @@ public final class FlowActions {
         };
     }
 
+    public static FlowEdgeAction emitGecko(GeckoFxParameters parameters) {
+        if (parameters == null || parameters.fxId() == null) {
+            return describe(() -> "emit_gecko(nop)");
+        }
+        Vec3 offset = parameters.offset() == null ? Vec3.ZERO : parameters.offset();
+        Vec3 worldPosition = parameters.worldPosition();
+        float alpha = Mth.clamp(parameters.alpha(), 0.0F, 1.0F);
+        float scale = parameters.scale() <= 0.0F ? 1.0F : parameters.scale();
+        boolean loop = parameters.loop();
+        int duration = Math.max(1, parameters.durationTicks());
+        GeckoFxAnchor anchor = parameters.anchor() == null ? GeckoFxAnchor.PERFORMER : parameters.anchor();
+
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (!(performer instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) {
+                    return;
+                }
+                ServerLevel level = serverPlayer.serverLevel();
+                if (level.isClientSide()) {
+                    return;
+                }
+
+                Entity attachedEntity = null;
+                Vec3 basePosition;
+                switch (anchor) {
+                    case TARGET -> {
+                        if (target == null) {
+                            attachedEntity = serverPlayer;
+                        } else {
+                            attachedEntity = target;
+                        }
+                    }
+                    case ENTITY -> {
+                        if (controller == null || parameters.entityIdVariable() == null) {
+                            return;
+                        }
+                        long stored = controller.getLong(parameters.entityIdVariable(), -1L);
+                        if (stored < 0L) {
+                            return;
+                        }
+                        Entity resolved = level.getEntity((int) stored);
+                        if (resolved == null) {
+                            return;
+                        }
+                        attachedEntity = resolved;
+                    }
+                    case WORLD -> {
+                        basePosition = worldPosition != null ? worldPosition : serverPlayer.position();
+                        Vec3 origin = basePosition.add(offset);
+                        UUID eventId = loop
+                                ? UUID.nameUUIDFromBytes((parameters.fxId() + "|" + basePosition.x + "," + basePosition.y + "," + basePosition.z)
+                                .getBytes(StandardCharsets.UTF_8))
+                                : UUID.randomUUID();
+                        GeckoFxEventPayload payload = new GeckoFxEventPayload(
+                                parameters.fxId(),
+                                anchor,
+                                -1,
+                                basePosition.x,
+                                basePosition.y,
+                                basePosition.z,
+                                offset.x,
+                                offset.y,
+                                offset.z,
+                                parameters.yaw() != null ? parameters.yaw() : 0.0F,
+                                parameters.pitch() != null ? parameters.pitch() : 0.0F,
+                                parameters.roll() != null ? parameters.roll() : 0.0F,
+                                scale,
+                                parameters.tint(),
+                                alpha,
+                                loop,
+                                duration,
+                                eventId
+                        );
+                        GeckoFxDispatcher.emit(level, origin, payload);
+                        return;
+                    }
+                    case PERFORMER -> attachedEntity = serverPlayer;
+                }
+
+                if (attachedEntity == null) {
+                    return;
+                }
+                basePosition = attachedEntity.position();
+                Vec3 origin = basePosition.add(offset);
+
+                float yaw = parameters.yaw() != null ? parameters.yaw() : attachedEntity.getYRot();
+                float pitch = parameters.pitch() != null ? parameters.pitch() : attachedEntity.getXRot();
+                float roll = parameters.roll() != null ? parameters.roll() : 0.0F;
+
+                UUID eventId = computeFxEventId(parameters.fxId(), attachedEntity, loop);
+
+                GeckoFxEventPayload payload = new GeckoFxEventPayload(
+                        parameters.fxId(),
+                        anchor,
+                        attachedEntity.getId(),
+                        basePosition.x,
+                        basePosition.y,
+                        basePosition.z,
+                        offset.x,
+                        offset.y,
+                        offset.z,
+                        yaw,
+                        pitch,
+                        roll,
+                        scale,
+                        parameters.tint(),
+                        alpha,
+                        loop,
+                        duration,
+                        eventId
+                );
+
+                GeckoFxDispatcher.emit(level, origin, payload);
+            }
+
+            @Override
+            public String describe() {
+                return "emit_gecko(" + parameters.fxId() + ", anchor=" + anchor.serializedName() + ")";
+            }
+        };
+    }
+
     public static FlowEdgeAction emitFx(String fxId, float baseIntensity, String variableName, double defaultScale) {
         ResourceLocation fx = fxId == null ? null : ResourceLocation.tryParse(fxId);
         if (fx == null) {
@@ -969,6 +1200,43 @@ public final class FlowActions {
                 return "emit_fx(" + fx + ")";
             }
         };
+    }
+
+    public record GeckoFxParameters(
+            ResourceLocation fxId,
+            GeckoFxAnchor anchor,
+            Vec3 offset,
+            Vec3 worldPosition,
+            Float yaw,
+            Float pitch,
+            Float roll,
+            float scale,
+            int tint,
+            float alpha,
+            boolean loop,
+            int durationTicks,
+            String entityIdVariable
+    ) {}
+
+    private static UUID computeFxEventId(ResourceLocation fxId, Entity anchor, boolean loop) {
+        if (!loop || fxId == null || anchor == null) {
+            return UUID.randomUUID();
+        }
+        String seed = fxId + "|" + anchor.getUUID();
+        return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static boolean isAlly(Player performer, LivingEntity candidate) {
+        if (performer == null || candidate == null) {
+            return false;
+        }
+        if (!candidate.isAlive()) {
+            return false;
+        }
+        if (candidate instanceof TamableAnimal tam && tam.isOwnedBy(performer)) {
+            return true;
+        }
+        return GuzhenrenNudaoBridge.openSubject(candidate).map(handle -> handle.isOwnedBy(performer)).orElse(false);
     }
 
     private static FlowEdgeAction describe(java.util.function.Supplier<String> description) {

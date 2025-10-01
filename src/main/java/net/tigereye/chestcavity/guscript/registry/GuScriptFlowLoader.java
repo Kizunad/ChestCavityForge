@@ -10,6 +10,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.action.ActionRegistry;
@@ -22,7 +23,9 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowStateDefinition;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowTransition;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowTrigger;
 import net.tigereye.chestcavity.guscript.runtime.flow.actions.FlowActions;
+import net.tigereye.chestcavity.guscript.runtime.flow.actions.FlowActions.GeckoFxParameters;
 import net.tigereye.chestcavity.guscript.runtime.flow.guards.FlowGuards;
+import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -266,6 +269,17 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     json.has("scale_variable") ? GsonHelper.getAsString(json, "scale_variable") : null,
                     GsonHelper.getAsDouble(json, "default_scale", 1.0D)
             );
+            case "emit_gecko" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
+            case "emit_gecko_on_allies" -> FlowActions.emitGeckoOnAllies(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "fx")),
+                    GsonHelper.getAsDouble(json, "ally_radius", 8.0D),
+                    parseVec3(json, "offset"),
+                    GsonHelper.getAsFloat(json, "scale", 1.0F),
+                    parseColorInt(json.get("tint"), 0xFFFFFFFF),
+                    json.has("alpha") ? (float) GsonHelper.getAsDouble(json, "alpha") : 1.0F,
+                    GsonHelper.getAsBoolean(json, "loop", false),
+                    GsonHelper.getAsInt(json, "duration", 40)
+            );
             case "replace_blocks_sphere" -> {
                 ReplacementParseResult replacements = parseReplacementBlocks(json);
                 yield FlowActions.replaceBlocksSphere(
@@ -303,8 +317,73 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     GsonHelper.getAsInt(json, "recent_ticks", 40),
                     GsonHelper.getAsDouble(json, "acquire_radius", 16.0D)
             );
+            case "emit_fx_on_allies" -> FlowActions.emitFxOnAllies(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "fx")),
+                    GsonHelper.getAsDouble(json, "ally_radius", 8.0D),
+                    GsonHelper.getAsFloat(json, "intensity", 1.0F)
+            );
+            case "set_invisible_nearby" -> FlowActions.setInvisibleNearby(
+                    GsonHelper.getAsDouble(json, "radius", 4.0D),
+                    GsonHelper.getAsBoolean(json, "invisible", true),
+                    GsonHelper.getAsBoolean(json, "allies_only", true)
+            );
             default -> throw new IllegalArgumentException("Unknown flow action type: " + type);
         };
+    }
+
+    private static GeckoFxParameters parseGeckoFxParameters(JsonObject json) {
+        ResourceLocation fxId = ResourceLocation.parse(GsonHelper.getAsString(json, "fx"));
+        GeckoFxAnchor anchor = GeckoFxAnchor.fromName(GsonHelper.getAsString(json, "anchor", "performer"));
+        Vec3 offset = parseVec3(json, "offset");
+        Vec3 worldPosition = parseVec3(json, "world_position");
+        Float yaw = json.has("yaw") ? (float) GsonHelper.getAsDouble(json, "yaw") : null;
+        Float pitch = json.has("pitch") ? (float) GsonHelper.getAsDouble(json, "pitch") : null;
+        Float roll = json.has("roll") ? (float) GsonHelper.getAsDouble(json, "roll") : null;
+        float scale = GsonHelper.getAsFloat(json, "scale", 1.0F);
+        int tint = json.has("tint") ? parseColorInt(json.get("tint"), 0xFFFFFFFF) : 0xFFFFFFFF;
+        float alpha = json.has("alpha") ? (float) GsonHelper.getAsDouble(json, "alpha") : 1.0F;
+        boolean loop = GsonHelper.getAsBoolean(json, "loop", false);
+        int duration = GsonHelper.getAsInt(json, "duration", 40);
+        String entityVariable = json.has("entity_id_variable") ? GsonHelper.getAsString(json, "entity_id_variable") : null;
+        return new GeckoFxParameters(fxId, anchor, offset, worldPosition, yaw, pitch, roll, scale, tint, alpha, loop, duration, entityVariable);
+    }
+
+    private static Vec3 parseVec3(JsonObject json, String key) {
+        if (!json.has(key)) {
+            return null;
+        }
+        JsonElement element = json.get(key);
+        if (element.isJsonArray()) {
+            JsonArray array = element.getAsJsonArray();
+            double x = array.size() > 0 ? array.get(0).getAsDouble() : 0.0D;
+            double y = array.size() > 1 ? array.get(1).getAsDouble() : 0.0D;
+            double z = array.size() > 2 ? array.get(2).getAsDouble() : 0.0D;
+            return new Vec3(x, y, z);
+        }
+        double value = element.getAsDouble();
+        return new Vec3(value, value, value);
+    }
+
+    private static int parseColorInt(JsonElement element, int defaultValue) {
+        if (element == null) {
+            return defaultValue;
+        }
+        try {
+            String raw = element.getAsString().trim();
+            if (raw.startsWith("#")) {
+                return (int) Long.parseUnsignedLong(raw.substring(1), 16);
+            }
+            if (raw.startsWith("0x")) {
+                return (int) Long.parseUnsignedLong(raw.substring(2), 16);
+            }
+            if (raw.isEmpty()) {
+                return defaultValue;
+            }
+            return (int) Long.parseUnsignedLong(raw, 16);
+        } catch (Exception ex) {
+            ChestCavity.LOGGER.warn("[Flow] Invalid color specification {}", element);
+            return defaultValue;
+        }
     }
 
     private static List<Action> parseActions(JsonObject json) {

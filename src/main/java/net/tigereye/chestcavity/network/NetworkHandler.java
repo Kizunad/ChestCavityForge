@@ -25,6 +25,7 @@ import net.tigereye.chestcavity.guscript.network.packets.GuScriptPageChangePaylo
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptTriggerPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptSimulateCompilePayload;
 import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
+import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
 
 public final class NetworkHandler {
 
@@ -45,6 +46,7 @@ public final class NetworkHandler {
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
         registrar.playToClient(FlowSyncPayload.TYPE, FlowSyncPayload.STREAM_CODEC, FlowSyncPayload::handle);
         registrar.playToClient(FxEventPayload.TYPE, FxEventPayload.STREAM_CODEC, FxEventPayload::handle);
+        registrar.playToClient(GeckoFxEventPayload.TYPE, GeckoFxEventPayload.STREAM_CODEC, GeckoFxEventPayload::handle);
     }
 
 
@@ -65,6 +67,10 @@ public final class NetworkHandler {
     }
 
     public static void sendFlowSync(ServerPlayer player, FlowSyncPayload payload) {
+        player.connection.send(payload);
+    }
+
+    public static void sendGeckoFx(ServerPlayer player, GeckoFxEventPayload payload) {
         player.connection.send(payload);
     }
 }

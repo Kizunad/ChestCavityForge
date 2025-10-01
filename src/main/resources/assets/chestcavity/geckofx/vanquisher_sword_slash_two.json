@@ -1,0 +1,10 @@
+{
+  "model": "chestcavity:geo/vanquisher_sword.geo.json",
+  "texture": "chestcavity:textures/fx/vanquisher_sword.png",
+  "animation": "chestcavity:animations/vanquisher_sword_x.animation.json",
+  "default_animation": "animation.chestcavity.vanquisher_sword.slash_two",
+  "default_scale": 1.0,
+  "default_tint": "#FFFFFF",
+  "default_alpha": 1.0,
+  "blend": "translucent"
+}

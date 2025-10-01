@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 
+import net.tigereye.chestcavity.guscript.registry.GeckoFxDefinitionLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptFlowLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
@@ -37,6 +38,7 @@ import net.tigereye.chestcavity.guscript.runtime.flow.GuScriptFlowEvents;
 
 import net.tigereye.chestcavity.guscript.registry.FxDefinitionLoader;
 import net.tigereye.chestcavity.guscript.fx.client.FxClientHooks;
+import net.tigereye.chestcavity.guscript.fx.gecko.client.GeckoFxClient;
 import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.debug.RecipeResourceProbe;
@@ -94,6 +96,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 NeoForge.EVENT_BUS.addListener(RecipeDebugCommands::register);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
+                        NeoForge.EVENT_BUS.addListener(GeckoFxClient::onClientTick);
+                        NeoForge.EVENT_BUS.addListener(GeckoFxClient::onRenderLevel);
                 }
 
                 if (FMLEnvironment.dist.isClient()) {
@@ -169,6 +173,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
   private void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
           event.registerReloadListener(new GuScriptLeafLoader());
           event.registerReloadListener(new GuScriptRuleLoader());
+          event.registerReloadListener(new GeckoFxDefinitionLoader());
           event.registerReloadListener(new FxDefinitionLoader());
   }
 

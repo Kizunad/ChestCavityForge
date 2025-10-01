@@ -1,0 +1,24 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "update_period": 5,
+      "update_actions": [
+        {
+          "type": "emit_gecko",
+          "fx": "chestcavity:vanquisher_sword_slash_two",
+          "anchor": "performer",
+          "offset": [
+            0.0,
+            1.0,
+            4.0
+          ],
+          "scale": 1.0,
+          "alpha": 0.9,
+          "loop": false,
+          "duration": 80
+        }
+      ]
+    }
+  }
+}

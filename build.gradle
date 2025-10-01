@@ -72,10 +72,29 @@ neoForge {
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+def mixinRefmapName = "${mod_id}.refmap.json"
+def generatedMixinResourcesDir = layout.buildDirectory.dir("generated/mixins")
+def generatedRefmapFile = generatedMixinResourcesDir.map { it.file(mixinRefmapName) }
+def mixinDefaultObfuscation = findProperty('mixin_default_obfuscation') ?: 'notch'
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    srcDir(generatedMixinResourcesDir)
+}
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+tasks.named('compileJava', JavaCompile).configure {
+    def refmapFile = generatedRefmapFile.get().asFile
+    options.compilerArgs += [
+            "-AdefaultObfuscationEnv=${mixinDefaultObfuscation}",
+            "-AoutRefMapFile=${refmapFile.absolutePath}"
+    ]
+    doFirst {
+        refmapFile.parentFile.mkdirs()
+    }
 }
 
 tasks.named('compileTestJava', JavaCompile).configure {
@@ -89,8 +108,12 @@ dependencies {
     runtimeOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
     testImplementation "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
 
-    // ==== 仅测试用的前置 ====
-    testImplementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:4.7.3"
+    // ===== GeckoLib (动画库) =====
+    // 主模块按需依赖：编译期与运行期均可用（不打包）
+    compileOnly "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
+    runtimeOnly  "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
+    // 测试环境也提供（供单元测试/运行时类可见）
+    testImplementation "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
 
     // 本地 jar（AttributeFix、PlayerAnimator）
     testImplementation files("libs/attributefix-neoforge-1.21.1-21.1.2.jar")
@@ -132,6 +155,10 @@ processResources {
     filesMatching('META-INF/neoforge.mods.toml') {
         expand replaceProperties
     }
+}
+
+tasks.named('processResources').configure {
+    dependsOn(tasks.named('compileJava'))
 }
 
 jar {
