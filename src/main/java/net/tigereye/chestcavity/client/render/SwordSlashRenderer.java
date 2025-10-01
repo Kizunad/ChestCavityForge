@@ -74,10 +74,7 @@ public class SwordSlashRenderer extends EntityRenderer<SwordSlashProjectile> {
     private void addVertex(VertexConsumer consumer, PoseStack.Pose pose, float x, float y, float z,
                             float red, float green, float blue, float alpha) {
         consumer.addVertex(pose, x, y, z)
-                .setColor(red, green, blue, alpha)
-                .setOverlay(0)
-                .setLight(0x00F000F0)
-                .setNormal(pose, 0.0F, 1.0F, 0.0F);
+                .setColor(red, green, blue, alpha);
     }
 
     private static CCConfig.SwordSlashConfig config() {
