@@ -61,6 +61,14 @@ public interface GuScriptContext {
         return 0.0;
     }
 
+    default String resolveParameter(String name) {
+        return null;
+    }
+
+    default double resolveParameterAsDouble(String name, double defaultValue) {
+        return defaultValue;
+    }
+
     default double applyDamageModifiers(double baseDamage) {
         double scaled = baseDamage * (1.0 + damageMultiplier());
         return Math.max(0.0, scaled + flatDamageBonus());

@@ -273,7 +273,7 @@ class GuScriptRuntimeTest {
         }
 
         @Override
-        public void emitProjectile(String projectileId, double damage) {
+        public void emitProjectile(String projectileId, double damage, net.minecraft.nbt.CompoundTag parameters) {
             projectiles.incrementAndGet();
         }
 

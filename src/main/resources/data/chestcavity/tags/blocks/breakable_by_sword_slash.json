@@ -1,0 +1,33 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:grass_block",
+    "minecraft:dirt",
+    "minecraft:coarse_dirt",
+    "minecraft:podzol",
+    "minecraft:sand",
+    "minecraft:red_sand",
+    "minecraft:glass",
+    "minecraft:glass_pane",
+    "minecraft:white_stained_glass",
+    "minecraft:white_stained_glass_pane",
+    "minecraft:ice",
+    "minecraft:packed_ice",
+    "minecraft:snow_block",
+    "minecraft:melon",
+    "minecraft:pumpkin",
+    "minecraft:carved_pumpkin",
+    "minecraft:jack_o_lantern",
+    "minecraft:honey_block",
+    "minecraft:scaffolding",
+    "minecraft:bookshelf",
+    "#minecraft:leaves",
+    "#minecraft:flowers",
+    "#minecraft:small_flowers",
+    "#minecraft:tall_flowers",
+    "#minecraft:crops",
+    "#minecraft:saplings",
+    "#minecraft:replaceable_plants",
+    "#minecraft:wool"
+  ]
+}

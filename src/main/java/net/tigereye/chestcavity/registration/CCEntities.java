@@ -6,6 +6,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.entity.SwordSlashProjectile;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneGunProjectile;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
@@ -46,5 +47,13 @@ public final class CCEntities {
                     .clientTrackingRange(48)
                     .updateInterval(2)
                     .build(ChestCavity.MODID + ":sword_shadow_clone"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<SwordSlashProjectile>> SWORD_SLASH =
+            ENTITY_TYPES.register("sword_slash", () -> EntityType.Builder
+                    .<SwordSlashProjectile>of(SwordSlashProjectile::new, MobCategory.MISC)
+                    .sized(0.6f, 0.6f)
+                    .clientTrackingRange(64)
+                    .updateInterval(1)
+                    .build(ChestCavity.MODID + ":sword_slash"));
 
 }

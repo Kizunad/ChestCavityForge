@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.registration;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 import net.tigereye.chestcavity.ChestCavity;
 
 public class CCTags {
@@ -17,4 +18,12 @@ public class CCTags {
     //public static final Tag<Item> CARNIVORE_FOOD = TagRegistry.item(new ResourceLocation(ChestCavity.MODID,"carnivore_food"));
     //public static final Tag<Item> SALVAGEABLE = TagRegistry.item(new ResourceLocation(ChestCavity.MODID,"salvageable"));
     //public static final Tag<Item> IRON_REPAIR_MATERIAL = TagRegistry.item(new ResourceLocation(ChestCavity.MODID,"iron_repair_material"));
+
+    public static final class Blocks {
+        public static final TagKey<Block> BREAKABLE_BY_SWORD_SLASH =
+                TagKey.create(Registries.BLOCK, ChestCavity.id("breakable_by_sword_slash"));
+
+        private Blocks() {
+        }
+    }
 }

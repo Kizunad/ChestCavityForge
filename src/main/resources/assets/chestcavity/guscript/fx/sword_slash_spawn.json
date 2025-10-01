@@ -1,0 +1,31 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.player.attack.sweep",
+      "volume": 1.0,
+      "pitch": 1.1
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:crit",
+      "count": 18,
+      "speed": 0.25,
+      "spread": [0.45, 0.2, 0.45],
+      "offset": [0.0, 0.7, 0.0]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:sweep_attack",
+      "count": 6,
+      "speed": 0.0,
+      "spread": [0.12, 0.0, 0.12],
+      "offset": [0.0, 0.8, 0.0]
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.2,
+      "duration": 6
+    }
+  ]
+}
