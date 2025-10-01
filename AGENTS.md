@@ -988,3 +988,21 @@ Acceptance
 - 影随步触发时额外生成短命 `SwordShadowClone`（1s 寿命、固定偏暗色），配合剑气实体让“残影”在客户端可见。
 - 血眼蛊近战命中时调用 `CommonHooks.fireCriticalHit`：对外广播强制暴击并沿用事件返回的倍率，使其他监听者/系统（如影随步）能正确识别暴击。
 - JianYingGu 增设 `markExternalCrit`：血眼蛊触发后记录玩家在当期 tick 内的暴击状态，`isCritical` 会消费该标记，从而同步触发影随步等依赖暴击的行为。
+
+
+## Planned: Generic Entity Strike Action
+- Problem: GuScript lacks a reusable action to make spawned/allied entities perform a directed melee strike.
+- Solution sketch: add `FlowActions.entityStrike` (and companion JSON wiring) that:
+  1. Resolves a source entity (performer pet, entity id variable, or freshly spawned id).
+  2. Applies a relative offset/rotation based on performer yaw to position entity before striking.
+  3. Sets target = performer (or flow-provided `target`), triggers `swing`/`doHurtTarget`, and optionally teleports for dash distance.
+  4. Plays configurable sound (`minecraft:entity.polar_bear.attack` as default) via existing FX sound module or a direct server call.
+- Implementation needs: new Flow action + helpers in `FlowActions`, `GuScriptFlowLoader` parser, and tests verifying targeting/alignment.
+- Output: re-usable for tiger strike, summoned clones, or Jian Dao companions.
+
+## Planned: Tiger Ambush Flow Using Entity Strike Action
+- Once `entityStrike` exists, create `test/tiger_ambush_slash` flow:
+  - `enter_actions`: spawn `guzhenren:hu` at performer back/above (relative offset), optionally disable AI.
+  - Use `entityStrike` to align tiger toward performer facing direction, dash to 4 blocks behind → charge through player, apply damage + knockback.
+  - Trigger sound `minecraft:entity.polar_bear.attack` and optional particles during strike.
+- Testing: `/guscript flow start chestcavity:test/tiger_ambush_slash` should produce visible tiger lunge + audio; confirm it respects different player yaw/pitch.
