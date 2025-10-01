@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.entity;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -22,6 +23,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -182,16 +184,39 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         }
         CCConfig.SwordSlashConfig config = config();
         if (!config.enableBlockBreaking) {
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug("[SwordSlash] Block breaking disabled in config");
+            }
             return;
         }
-        if (!mobGriefingEnabled(server) && !(getOwner() instanceof Player)) {
+        boolean ownerIsPlayer = getOwner() instanceof Player;
+        boolean mobGriefAllowed = mobGriefingEnabled(server);
+        if (!mobGriefAllowed && !ownerIsPlayer) {
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug("[SwordSlash] Block breaking blocked by mobGriefing gamerule");
+            }
             return;
         }
         int cap = Math.max(0, config.blockBreakCapPerTick);
         if (cap == 0) {
+            if (ChestCavity.LOGGER.isDebugEnabled()) {
+                ChestCavity.LOGGER.debug("[SwordSlash] Block breaking cap is zero");
+            }
             return;
         }
         AABB box = new AABB(start, end).inflate(getThickness() * 0.5D);
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(
+                    "[SwordSlash] Checking block sweep start={} end={} thickness={} breakPower={} cap={} mobGriefing={} ownerIsPlayer={}",
+                    start,
+                    end,
+                    getThickness(),
+                    breakPower,
+                    cap,
+                    mobGriefAllowed,
+                    ownerIsPlayer
+            );
+        }
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         int broken = 0;
         int minX = Mth.floor(box.minX);
@@ -206,25 +231,56 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
                     cursor.set(x, y, z);
                     BlockState state = server.getBlockState(cursor);
                     if (state.isAir()) {
+                        debugSkipBlock(server, cursor, state, "air", breakPower);
                         continue;
                     }
                     if (!state.is(CCTags.Blocks.BREAKABLE_BY_SWORD_SLASH)) {
+                        debugSkipBlock(server, cursor, state, "not_tagged", breakPower);
                         continue;
                     }
                     float hardness = state.getDestroySpeed(server, cursor);
                     if (hardness < 0.0F || hardness > breakPower) {
+                        debugSkipBlock(server, cursor, state, "hardness=" + hardness, breakPower);
                         continue;
                     }
                     boolean destroyed = server.destroyBlock(cursor, true);
                     if (destroyed) {
                         broken++;
+                    } else {
+                        debugSkipBlock(server, cursor, state, "destroy_failed", breakPower);
                     }
                 }
             }
         }
-        if (broken >= cap && ChestCavity.LOGGER.isDebugEnabled()) {
-            ChestCavity.LOGGER.debug("[SwordSlash] Block break cap reached ({} per tick)", cap);
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug("[SwordSlash] Block sweep finished broken={} cap={} thickness={} breakPower={}",
+                    broken,
+                    cap,
+                    getThickness(),
+                    breakPower
+            );
+            if (broken >= cap) {
+                ChestCavity.LOGGER.debug("[SwordSlash] Block break cap reached ({} per tick)", cap);
+            }
         }
+    }
+
+    private void debugSkipBlock(ServerLevel level, BlockPos pos, BlockState state, String reason, double breakPower) {
+        if (!ChestCavity.LOGGER.isDebugEnabled()) {
+            return;
+        }
+        if (!(state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.LARGE_FERN))) {
+            return;
+        }
+        double hardness = state.getDestroySpeed(level, pos);
+        ChestCavity.LOGGER.debug(
+                "[SwordSlash] Skipping block {} at {} reason={} hardness={} breakPower={}",
+                BuiltInRegistries.BLOCK.getKey(state.getBlock()),
+                pos,
+                reason,
+                hardness,
+                breakPower
+        );
     }
 
     private boolean mobGriefingEnabled(ServerLevel level) {

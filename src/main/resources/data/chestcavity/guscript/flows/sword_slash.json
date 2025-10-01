@@ -25,34 +25,11 @@
     "releasing": {
       "enter_actions": [
         {
-          "id": "emit.projectile",
-          "projectileId": "chestcavity:sword_slash",
-          "damage": 10.0,
-          "parameters": {
-            "length": {
-              "default": 5.0
-            },
-            "thickness": {
-              "default": 1.0
-            },
-            "lifespan": {
-              "default": 10.0
-            },
-            "break_power": {
-              "default": 3.0
-            },
-            "max_pierce": {
-              "default": 6,
-              "integer": true
-            }
-          }
-        },
-        {
-          "type": "emit_gecko",
+          "type": "emit_gecko_relative",
           "fx": "chestcavity:vanquisher_sword_slash_two",
           "anchor": "performer",
           "relative_offset": [
-            2.0,
+            0.0,
             -2.0,
             3.0
           ],
@@ -67,7 +44,37 @@
         {
           "trigger": "auto",
           "target": "cooldown",
-          "min_ticks": 8
+          "min_ticks": 50,
+          "actions": [
+            {
+              "type": "trigger_actions",
+              "actions": [
+                {
+                  "id": "emit.projectile",
+                  "projectileId": "chestcavity:sword_slash",
+                  "damage": 100.0,
+                  "parameters": {
+                    "length": {
+                      "default": 20.0
+                    },
+                    "thickness": {
+                      "default": 3.0
+                    },
+                    "lifespan": {
+                      "default": 20.0
+                    },
+                    "break_power": {
+                      "default": 5.0
+                    },
+                    "max_pierce": {
+                      "default": 6,
+                      "integer": true
+                    }
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     },

@@ -27,8 +27,9 @@ Contributors / 贡献者
 - David Trover — 原作作者（Chest Cavity）
 - BoonelDanForever — 维护与迁移
 - 社区贡献者 — Bug 修复、行为扩展与本地化
-- 哈基芊 社区测试者
+- 哈基芊 数值策划！
 - （· _ ·） 社区测试者
+- 你礼貌吗 群友
 - 炎阳之末 提供了给玩家参考的文档
 
 - 数据驱动映射
