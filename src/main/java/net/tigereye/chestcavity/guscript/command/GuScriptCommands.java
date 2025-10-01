@@ -204,7 +204,8 @@ public final class GuScriptCommands {
 
         GuNode bone = new LeafGuNode("骨蛊", ImmutableMultiset.of("骨"), List.of(new ConsumeHealthAction(2)));
         GuNode blood = new LeafGuNode("血蛊", ImmutableMultiset.of("血"), List.of(new ConsumeZhenyuanAction(5)));
-        GuNode burst = new LeafGuNode("爆发蛊", ImmutableMultiset.of("爆发"), List.of(new EmitProjectileAction("minecraft:arrow", 4.0)));
+        GuNode burst = new LeafGuNode("爆发蛊", ImmutableMultiset.of("爆发"),
+                List.of(new EmitProjectileAction("minecraft:arrow", 4.0, null, null, null, null, null, null, null, null, null, null)));
 
         ReactionRule bloodBoneCore = ReactionRule.builder("blood_bone_core")
                 .arity(2)

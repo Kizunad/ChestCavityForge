@@ -1,0 +1,28 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:leaves",
+    "#minecraft:flowers",
+    "#minecraft:saplings",
+    "#minecraft:crops",
+    "#minecraft:replaceable_plants",
+    "#minecraft:wool",
+    "minecraft:vine",
+    "minecraft:glow_lichen",
+    "minecraft:cobweb",
+    "minecraft:sugar_cane",
+    "minecraft:kelp",
+    "minecraft:seagrass",
+    "minecraft:glass",
+    "minecraft:glass_pane",
+    "minecraft:ice",
+    "minecraft:packed_ice",
+    "minecraft:blue_ice",
+    "minecraft:torch",
+    "minecraft:lantern",
+    "minecraft:carved_pumpkin",
+    "minecraft:melon",
+    "minecraft:scaffolding",
+    "minecraft:bamboo"
+  ]
+}

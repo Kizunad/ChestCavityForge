@@ -1,0 +1,19 @@
+{
+  "arity": 1,
+  "priority": 40,
+  "required": { "剑道": 1 },
+  "result": {
+    "name": "杀招·剑光",
+    "operator_id": "chestcavity:sword_light_slash",
+    "kind": "operator",
+    "tags": ["杀招", "剑光", "远程", "伤害"],
+    "flow_id": "chestcavity:sword_slash",
+    "flow_params": {
+      "slash.length": 6.5,
+      "slash.thickness": 1.1,
+      "slash.lifespan": 16,
+      "slash.maxPierce": 4,
+      "slash.breakPower": 2.5
+    }
+  }
+}

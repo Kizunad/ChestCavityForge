@@ -188,6 +188,27 @@ public class CCConfig implements ConfigData {
         public TimeScaleCombineStrategy timeScaleCombine = TimeScaleCombineStrategy.MULTIPLY;
         @ConfigEntry.Gui.Tooltip
         public boolean preferUiOrder = true; // prioritize page/slot ordering over compilation order when available
+        @ConfigEntry.Gui.CollapsibleObject
+        public SwordSlashConfig swordSlash = new SwordSlashConfig();
+
+        public static class SwordSlashConfig {
+            @ConfigEntry.Gui.Tooltip
+            public double defaultLength = 6.5D;
+            @ConfigEntry.Gui.Tooltip
+            public double defaultThickness = 1.1D;
+            @ConfigEntry.Gui.Tooltip
+            public int defaultLifespanTicks = 16;
+            @ConfigEntry.Gui.Tooltip
+            public double defaultDamage = 10.0D;
+            @ConfigEntry.Gui.Tooltip
+            public int defaultMaxPierce = 4;
+            @ConfigEntry.Gui.Tooltip
+            public double defaultBreakPower = 2.5D;
+            @ConfigEntry.Gui.Tooltip
+            public int maxBlocksBrokenPerTick = 8;
+            @ConfigEntry.Gui.Tooltip
+            public boolean enableBlockBreaking = true;
+        }
     }
 
     public enum TimeScaleCombineStrategy {

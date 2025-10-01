@@ -15,9 +15,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptExecutionBridge;
+import net.tigereye.chestcavity.guscript.runtime.exec.ProjectileEmission;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
 import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordSlashProjectile;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -77,33 +79,33 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
     }
 
     @Override
-    public void emitProjectile(String projectileId, double damage) {
-        if (projectileId == null || projectileId.isBlank()) {
+    public void emitProjectile(ProjectileEmission emission) {
+        if (emission == null || emission.projectileId() == null || emission.projectileId().isBlank()) {
             return;
         }
         Level level = performer.level();
         if (level.isClientSide()) {
             return;
         }
-        ResourceLocation id = ResourceLocation.tryParse(projectileId);
+        ResourceLocation id = ResourceLocation.tryParse(emission.projectileId());
         if (id == null) {
-            ChestCavity.LOGGER.warn("[GuScript] Invalid projectile id: {}", projectileId);
+            ChestCavity.LOGGER.warn("[GuScript] Invalid projectile id: {}", emission.projectileId());
             return;
         }
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null);
         if (type == null) {
-            ChestCavity.LOGGER.warn("[GuScript] Unknown projectile entity: {}", projectileId);
+            ChestCavity.LOGGER.warn("[GuScript] Unknown projectile entity: {}", emission.projectileId());
             return;
         }
         Entity entity;
         try {
             entity = type.create(level);
         } catch (Exception e) {
-            ChestCavity.LOGGER.warn("[GuScript] Failed to instantiate projectile {}", projectileId, e);
+            ChestCavity.LOGGER.warn("[GuScript] Failed to instantiate projectile {}", emission.projectileId(), e);
             return;
         }
         if (entity == null) {
-            ChestCavity.LOGGER.warn("[GuScript] Entity type {} returned null instance", projectileId);
+            ChestCavity.LOGGER.warn("[GuScript] Entity type {} returned null instance", emission.projectileId());
             return;
         }
 
@@ -134,10 +136,14 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
             projectile.setOwner(performer);
             projectile.shoot(adjustedLook.x, adjustedLook.y, adjustedLook.z, 1.5F, 0.0F);
             if (projectile instanceof AbstractArrow arrow) {
-                arrow.setBaseDamage(damage);
+                arrow.setBaseDamage(emission.damage());
             }
         } else {
             entity.setDeltaMovement(adjustedLook.scale(1.5));
+        }
+
+        if (entity instanceof SwordSlashProjectile slash) {
+            slash.configureFromEmission(emission);
         }
 
         long sequence = PROJECTILE_SEQUENCE.incrementAndGet();
@@ -146,7 +152,7 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
                 sequence,
                 rootIndex,
                 id,
-                damage,
+                emission.damage(),
                 String.format("%.3f", spawn.x),
                 String.format("%.3f", spawn.y),
                 String.format("%.3f", spawn.z)

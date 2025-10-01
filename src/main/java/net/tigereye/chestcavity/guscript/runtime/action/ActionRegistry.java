@@ -41,7 +41,17 @@ public final class ActionRegistry {
         register(ConsumeHealthAction.ID, json -> new ConsumeHealthAction(json.get("amount").getAsInt()));
         register(EmitProjectileAction.ID, json -> new EmitProjectileAction(
                 json.get("projectileId").getAsString(),
-                json.get("damage").getAsDouble()
+                json.get("damage").getAsDouble(),
+                json.has("length") ? json.get("length").getAsDouble() : null,
+                json.has("thickness") ? json.get("thickness").getAsDouble() : null,
+                json.has("lifespan") ? json.get("lifespan").getAsInt() : null,
+                json.has("maxPierce") ? json.get("maxPierce").getAsInt() : null,
+                json.has("breakPower") ? json.get("breakPower").getAsDouble() : null,
+                json.has("lengthVariable") ? json.get("lengthVariable").getAsString() : null,
+                json.has("thicknessVariable") ? json.get("thicknessVariable").getAsString() : null,
+                json.has("lifespanVariable") ? json.get("lifespanVariable").getAsString() : null,
+                json.has("maxPierceVariable") ? json.get("maxPierceVariable").getAsString() : null,
+                json.has("breakPowerVariable") ? json.get("breakPowerVariable").getAsString() : null
         ));
         register(AddDamageMultiplierAction.ID, json -> new AddDamageMultiplierAction(json.get("amount").getAsDouble()));
         register(AddFlatDamageAction.ID, json -> new AddFlatDamageAction(json.get("amount").getAsDouble()));

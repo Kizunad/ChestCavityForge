@@ -260,7 +260,7 @@ public final class FlowActions {
                     return;
                 }
                 DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(performer, target);
-                DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge);
+                DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge, null, controller);
                 for (Action action : immutable) {
                     try {
                         action.execute(context);

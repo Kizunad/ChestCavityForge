@@ -6,12 +6,15 @@ import net.minecraft.world.entity.player.Player;
 /**
  * Mutable runtime context capturing performer, target, and runtime modifiers.
  */
-public final class DefaultGuScriptContext implements GuScriptContext {
+import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
+
+public final class DefaultGuScriptContext implements GuScriptContext, FlowVariableProvider {
 
     private final Player performer;
     private final LivingEntity target;
     private final GuScriptExecutionBridge bridge;
     private final ExecutionSession session;
+    private final FlowController flowController;
     private double damageMultiplier;
     private double flatDamageBonus;
     private double addedMultiplier;
@@ -25,10 +28,15 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     private boolean exportFlatDelta;
 
     public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge) {
-        this(performer, target, bridge, null);
+        this(performer, target, bridge, null, null);
     }
 
     public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge, ExecutionSession session) {
+        this(performer, target, bridge, session, null);
+    }
+
+    public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge,
+                                  ExecutionSession session, FlowController flowController) {
         if (bridge == null) {
             throw new IllegalArgumentException("GuScriptExecutionBridge must not be null");
         }
@@ -36,6 +44,7 @@ public final class DefaultGuScriptContext implements GuScriptContext {
         this.target = target;
         this.bridge = bridge;
         this.session = session;
+        this.flowController = flowController;
         if (session != null) {
             this.damageMultiplier = session.currentMultiplier();
             this.flatDamageBonus = session.currentFlat();
@@ -158,5 +167,21 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     @Override
     public double directExportedTimeScaleFlat() {
         return directTimeScaleFlat;
+    }
+
+    @Override
+    public double resolveFlowVariable(String name, double defaultValue) {
+        if (flowController == null || name == null) {
+            return defaultValue;
+        }
+        return flowController.getDouble(name, defaultValue);
+    }
+
+    @Override
+    public long resolveFlowVariableAsLong(String name, long defaultValue) {
+        if (flowController == null || name == null) {
+            return defaultValue;
+        }
+        return flowController.getLong(name, defaultValue);
     }
 }

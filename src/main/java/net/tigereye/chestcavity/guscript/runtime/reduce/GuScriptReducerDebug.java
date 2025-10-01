@@ -26,7 +26,8 @@ public final class GuScriptReducerDebug {
     public static void logDemo() {
         GuNode bone = new LeafGuNode("骨蛊", ImmutableMultiset.of("骨"), List.of(new ConsumeHealthAction(2)));
         GuNode blood = new LeafGuNode("血蛊", ImmutableMultiset.of("血"), List.of(new ConsumeZhenyuanAction(3)));
-        GuNode burst = new LeafGuNode("爆发蛊", ImmutableMultiset.of("爆发"), List.of(new EmitProjectileAction("explosion_shard", 6.0)));
+        GuNode burst = new LeafGuNode("爆发蛊", ImmutableMultiset.of("爆发"),
+                List.of(new EmitProjectileAction("explosion_shard", 6.0, null, null, null, null, null, null, null, null, null, null)));
 
         ReactionRule bloodBoneCore = ReactionRule.builder("blood_bone_core")
                 .arity(2)
@@ -42,7 +43,7 @@ public final class GuScriptReducerDebug {
                 .priority(5)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨爆裂枪", GuNodeKind.COMPOSITE,
                         unionTags(inputs, "杀招"),
-                        List.of(new EmitProjectileAction("blood_burst", 12.0)), inputs))
+                        List.of(new EmitProjectileAction("blood_burst", 12.0, null, null, null, null, null, null, null, null, null, null)), inputs))
                 .build();
 
         GuScriptReducer reducer = new GuScriptReducer();

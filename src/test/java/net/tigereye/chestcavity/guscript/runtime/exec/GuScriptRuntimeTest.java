@@ -68,7 +68,7 @@ class GuScriptRuntimeTest {
                 .priority(40)
                 .operator((ruleId, inputs) -> new OperatorGuNode(ruleId, "血骨爆裂枪", GuNodeKind.COMPOSITE,
                         ImmutableMultiset.of("杀招"),
-                        List.of(new EmitProjectileAction("minecraft:arrow", 6.0)),
+                        List.of(new EmitProjectileAction("minecraft:arrow", 6.0, null, null, null, null, null, null, null, null, null, null)),
                         inputs))
                 .build();
 
@@ -273,7 +273,7 @@ class GuScriptRuntimeTest {
         }
 
         @Override
-        public void emitProjectile(String projectileId, double damage) {
+        public void emitProjectile(net.tigereye.chestcavity.guscript.runtime.exec.ProjectileEmission emission) {
             projectiles.incrementAndGet();
         }
 

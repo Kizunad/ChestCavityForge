@@ -14,7 +14,7 @@ public interface GuScriptExecutionBridge {
 
     void consumeHealth(int amount);
 
-    void emitProjectile(String projectileId, double damage);
+    void emitProjectile(ProjectileEmission emission);
 
     void playFx(ResourceLocation fxId, FxEventParameters parameters);
 }
