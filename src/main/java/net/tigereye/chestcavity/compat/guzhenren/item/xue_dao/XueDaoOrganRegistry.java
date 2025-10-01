@@ -4,6 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.TiexueguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueqiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieyanguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -20,11 +21,8 @@ public final class XueDaoOrganRegistry {
     private static final ResourceLocation XUE_FEI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_fei_gu");
 
     private static final ResourceLocation XIE_DI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_di_gu");
-
-
+    private static final ResourceLocation XUE_QI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xueqigu");
     private static final ResourceLocation XIE_YAN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_yan_gu");
-
-
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(TIE_XUE_GU_ID)
@@ -32,6 +30,12 @@ public final class XueDaoOrganRegistry {
                     .addRemovalListener(TiexueguOrganBehavior.INSTANCE)
                     .ensureAttached(TiexueguOrganBehavior.INSTANCE::ensureAttached)
                     .onEquip(TiexueguOrganBehavior.INSTANCE::onEquip)
+                    .build(),
+            OrganIntegrationSpec.builder(XUE_QI_GU_ID)
+                    .addSlowTickListener(XueqiguOrganBehavior.INSTANCE)
+                    .addRemovalListener(XueqiguOrganBehavior.INSTANCE)
+                    .ensureAttached(XueqiguOrganBehavior.INSTANCE::ensureAttached)
+                    .onEquip(XueqiguOrganBehavior.INSTANCE::onEquip)
                     .build(),
             OrganIntegrationSpec.builder(XUE_FEI_GU_ID)
                     .addSlowTickListener(XieFeiguOrganBehavior.INSTANCE)
