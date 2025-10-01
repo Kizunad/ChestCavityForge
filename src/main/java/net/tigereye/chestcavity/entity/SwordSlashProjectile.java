@@ -4,6 +4,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -27,13 +30,18 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.registration.CCTags;
 import net.tigereye.chestcavity.util.ProjectileParameterReceiver;
+import net.tigereye.chestcavity.util.AnimationPathHelper;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,19 +64,31 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
             SynchedEntityData.defineId(SwordSlashProjectile.class, EntityDataSerializers.INT);
 
     private static final CCConfig.SwordSlashConfig DEFAULTS = new CCConfig.SwordSlashConfig();
+    private static final ResourceLocation SLASH_ANIMATION_FILE = ChestCavity.id("animations/vanquisher_sword_x.animation.json");
+    private static final String SLASH_ANIMATION_NAME = "animation.chestcavity.vanquisher_sword.slash_two";
+    private static final String SLASH_BONE_NAME = "bone";
+    private static final double POSITION_UNIT_SCALE = 1.0 / 16.0;
 
     private int lifespan;
     private int age;
     private double damage;
     private double breakPower;
     private int maxPierce;
-    private double speedPerTick;
     private Vec3 direction = Vec3.ZERO;
     private UUID ownerId;
     private LivingEntity cachedOwner;
     private final Set<UUID> damagedEntities = new HashSet<>();
     private int pierceCount;
     private boolean configured;
+
+    private List<AnimationPathHelper.AnimationKeyframe> positionKeyframes = new ArrayList<>();
+    private double animationDuration;
+    private double animationTime;
+    private Vec3 baseOrigin = Vec3.ZERO;
+    private Vec3 basisRight = new Vec3(1.0D, 0.0D, 0.0D);
+    private Vec3 basisUp = new Vec3(0.0D, 1.0D, 0.0D);
+    private Vec3 basisForward = new Vec3(0.0D, 0.0D, 1.0D);
+    private boolean pathActive;
 
     public SwordSlashProjectile(EntityType<? extends SwordSlashProjectile> type, Level level) {
         super(type, level);
@@ -78,7 +98,6 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         this.damage = DEFAULTS.defaultDamage;
         this.breakPower = DEFAULTS.defaultBreakPower;
         this.maxPierce = DEFAULTS.defaultMaxPierce;
-        this.speedPerTick = Math.max(0.05D, DEFAULTS.defaultLength / Math.max(1, this.lifespan));
         this.setNoGravity(true);
     }
 
@@ -95,27 +114,34 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
     @Override
     public void tick() {
         super.tick();
-        Vec3 motion = this.getDeltaMovement();
-        if (motion.lengthSqr() < 1.0E-6 && direction.lengthSqr() > 1.0E-6) {
-            motion = direction.scale(speedPerTick);
-        }
-        Vec3 start = this.position();
-        Vec3 end = start.add(motion);
+        ensurePathAvailable();
+
+        double step = 1.0D / 20.0D;
+        double nextTime = Math.min(animationTime + step, animationDuration);
+        Vec3 currentPos = this.position();
+        Vec3 targetPos = baseOrigin.add(convertRelativeToWorld(sampleRelativePosition(nextTime)));
+        Vec3 motion = targetPos.subtract(currentPos);
+
         if (!this.level().isClientSide) {
-            handleEntityHits(start, end);
-            handleBlockBreaks(start, end);
+            handleEntityHits(currentPos, targetPos);
+            handleBlockBreaks(currentPos, targetPos);
         } else {
             spawnClientTrail();
         }
+
         this.move(MoverType.SELF, motion);
         if (motion.lengthSqr() > 1.0E-6) {
             direction = motion.normalize();
-            this.setDeltaMovement(direction.scale(speedPerTick));
+            this.setDeltaMovement(Vec3.ZERO);
             updateRotationFromDirection();
         }
+
+        animationTime = nextTime;
         age++;
-        if (age >= lifespan) {
-            discard();
+        if (animationTime >= animationDuration - 1.0E-4 || age >= lifespan) {
+            if (!this.level().isClientSide) {
+                discard();
+            }
         }
     }
 
@@ -324,13 +350,37 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         tag.putDouble("Damage", damage);
         tag.putDouble("BreakPower", breakPower);
         tag.putInt("MaxPierce", maxPierce);
-        tag.putDouble("SpeedPerTick", speedPerTick);
         tag.putDouble("DirX", direction.x);
         tag.putDouble("DirY", direction.y);
         tag.putDouble("DirZ", direction.z);
         tag.putBoolean("Configured", configured);
         tag.putDouble("Length", getLength());
         tag.putDouble("Thickness", getThickness());
+        tag.putDouble("AnimTime", animationTime);
+        tag.putDouble("AnimDuration", animationDuration);
+        tag.putDouble("BaseOriginX", baseOrigin.x);
+        tag.putDouble("BaseOriginY", baseOrigin.y);
+        tag.putDouble("BaseOriginZ", baseOrigin.z);
+        tag.putDouble("BasisRightX", basisRight.x);
+        tag.putDouble("BasisRightY", basisRight.y);
+        tag.putDouble("BasisRightZ", basisRight.z);
+        tag.putDouble("BasisUpX", basisUp.x);
+        tag.putDouble("BasisUpY", basisUp.y);
+        tag.putDouble("BasisUpZ", basisUp.z);
+        tag.putDouble("BasisForwardX", basisForward.x);
+        tag.putDouble("BasisForwardY", basisForward.y);
+        tag.putDouble("BasisForwardZ", basisForward.z);
+        tag.putBoolean("PathActive", pathActive);
+        ListTag list = new ListTag();
+        for (AnimationPathHelper.AnimationKeyframe frame : positionKeyframes) {
+            CompoundTag frameTag = new CompoundTag();
+            frameTag.putDouble("t", frame.time());
+            frameTag.putDouble("x", frame.position().x);
+            frameTag.putDouble("y", frame.position().y);
+            frameTag.putDouble("z", frame.position().z);
+            list.add(frameTag);
+        }
+        tag.put("AnimPath", list);
     }
 
     @Override
@@ -343,12 +393,33 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         damage = tag.getDouble("Damage");
         breakPower = tag.getDouble("BreakPower");
         maxPierce = Math.max(0, tag.getInt("MaxPierce"));
-        speedPerTick = tag.contains("SpeedPerTick") ? tag.getDouble("SpeedPerTick") : speedPerTick;
-        double x = tag.getDouble("DirX");
-        double y = tag.getDouble("DirY");
-        double z = tag.getDouble("DirZ");
-        direction = new Vec3(x, y, z);
+        direction = new Vec3(tag.getDouble("DirX"), tag.getDouble("DirY"), tag.getDouble("DirZ"));
         configured = tag.getBoolean("Configured");
+        animationTime = tag.getDouble("AnimTime");
+        animationDuration = tag.getDouble("AnimDuration");
+        baseOrigin = new Vec3(tag.getDouble("BaseOriginX"), tag.getDouble("BaseOriginY"), tag.getDouble("BaseOriginZ"));
+        basisRight = new Vec3(tag.getDouble("BasisRightX"), tag.getDouble("BasisRightY"), tag.getDouble("BasisRightZ"));
+        basisUp = new Vec3(tag.getDouble("BasisUpX"), tag.getDouble("BasisUpY"), tag.getDouble("BasisUpZ"));
+        basisForward = new Vec3(tag.getDouble("BasisForwardX"), tag.getDouble("BasisForwardY"), tag.getDouble("BasisForwardZ"));
+        pathActive = tag.getBoolean("PathActive");
+        positionKeyframes = new ArrayList<>();
+        if (tag.contains("AnimPath", Tag.TAG_LIST)) {
+            ListTag list = tag.getList("AnimPath", Tag.TAG_COMPOUND);
+            for (int i = 0; i < list.size(); i++) {
+                CompoundTag frameTag = list.getCompound(i);
+                double t = frameTag.getDouble("t");
+                Vec3 pos = new Vec3(frameTag.getDouble("x"), frameTag.getDouble("y"), frameTag.getDouble("z"));
+                positionKeyframes.add(new AnimationPathHelper.AnimationKeyframe(t, pos));
+            }
+        }
+        positionKeyframes.sort(Comparator.comparingDouble(AnimationPathHelper.AnimationKeyframe::time));
+        if (positionKeyframes.isEmpty()) {
+            ensurePathAvailable();
+            animationDuration = positionKeyframes.get(positionKeyframes.size() - 1).time();
+        } else if (animationDuration <= 0.0D) {
+            animationDuration = positionKeyframes.get(positionKeyframes.size() - 1).time();
+        }
+        pathActive = pathActive || !positionKeyframes.isEmpty();
         this.entityData.set(DATA_LIFESPAN, lifespan);
         this.entityData.set(DATA_DAMAGE, (float) damage);
         this.entityData.set(DATA_BREAK_POWER, (float) breakPower);
@@ -393,17 +464,21 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         double length = readDouble(tag, "length", config.defaultLength);
         double thickness = readDouble(tag, "thickness", config.defaultThickness);
         this.lifespan = Math.max(1, (int) Math.round(readDouble(tag, "lifespan", config.defaultLifespanTicks)));
-        this.damage = baseDamage;
-        if (tag.contains("damage")) {
-            this.damage = tag.getDouble("damage");
-        }
+        this.damage = tag.contains("damage") ? tag.getDouble("damage") : baseDamage;
         this.breakPower = readDouble(tag, "break_power", config.defaultBreakPower);
         this.maxPierce = Math.max(0, tag.contains("max_pierce") ? tag.getInt("max_pierce") : config.defaultMaxPierce);
-        this.speedPerTick = Math.max(0.05D, length / (double) this.lifespan);
-        this.direction = initialDirection(owner);
+
         this.age = 0;
         this.damagedEntities.clear();
         this.pierceCount = 0;
+
+        setupAnimationBasis(owner);
+        loadAnimationPath(owner);
+        if (animationDuration > 0.0D) {
+            int requiredTicks = (int) Math.ceil(animationDuration * 20.0D);
+            this.lifespan = Math.max(this.lifespan, requiredTicks);
+        }
+
         this.entityData.set(DATA_LENGTH, (float) length);
         this.entityData.set(DATA_THICKNESS, (float) thickness);
         this.entityData.set(DATA_LIFESPAN, lifespan);
@@ -411,7 +486,12 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         this.entityData.set(DATA_BREAK_POWER, (float) breakPower);
         this.entityData.set(DATA_MAX_PIERCE, maxPierce);
         this.refreshDimensions();
-        this.setDeltaMovement(direction.scale(speedPerTick));
+
+        Vec3 initialRelative = sampleRelativePosition(0.0D);
+        Vec3 initialWorld = baseOrigin.add(convertRelativeToWorld(initialRelative));
+        this.setPos(initialWorld.x, initialWorld.y, initialWorld.z);
+        this.setDeltaMovement(Vec3.ZERO);
+        this.direction = basisForward;
         updateRotationFromDirection();
         this.configured = true;
     }
@@ -423,15 +503,108 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
         return fallback;
     }
 
-    private Vec3 initialDirection(@Nullable LivingEntity owner) {
-        Vec3 forward = this.getForward();
-        if (forward.lengthSqr() < 1.0E-4 && owner != null) {
-            forward = owner.getLookAngle();
+    private void setupAnimationBasis(@Nullable LivingEntity owner) {
+        Vec3 forward = owner != null ? owner.getLookAngle().normalize() : this.getForward();
+        if (forward.lengthSqr() < 1.0E-6) {
+            forward = this.getViewVector(1.0F).normalize();
         }
-        if (forward.lengthSqr() < 1.0E-4) {
+        if (forward.lengthSqr() < 1.0E-6) {
             forward = new Vec3(0.0D, 0.0D, 1.0D);
         }
-        return forward.normalize();
+        Vec3 upHint = new Vec3(0.0D, 1.0D, 0.0D);
+        if (Math.abs(forward.dot(upHint)) > 0.98D) {
+            upHint = owner != null ? owner.getUpVector(1.0F) : new Vec3(0.0D, 1.0D, 0.0D);
+        }
+        Vec3 right = forward.cross(upHint);
+        if (right.lengthSqr() < 1.0E-6) {
+            right = new Vec3(1.0D, 0.0D, 0.0D);
+        }
+        right = right.normalize();
+        Vec3 up = right.cross(forward).normalize();
+        this.basisForward = forward;
+        this.basisRight = right;
+        this.basisUp = up;
+        if (owner != null) {
+            this.baseOrigin = owner.position();
+        } else {
+            this.baseOrigin = this.position();
+        }
+    }
+
+    private void loadAnimationPath(@Nullable LivingEntity owner) {
+        this.positionKeyframes = new ArrayList<>();
+        this.animationDuration = 0.0D;
+        this.animationTime = 0.0D;
+        this.pathActive = false;
+        if (owner != null && owner.level() instanceof ServerLevel ownerServer) {
+            var manager = ownerServer.getServer().getServerResources().resourceManager();
+            var frames = AnimationPathHelper.loadPositionKeyframes(manager, SLASH_ANIMATION_FILE, SLASH_ANIMATION_NAME, SLASH_BONE_NAME);
+            if (!frames.isEmpty()) {
+                this.positionKeyframes = new ArrayList<>(frames);
+                this.pathActive = true;
+            }
+        } else if (this.level() instanceof ServerLevel serverLevel) {
+            var manager = serverLevel.getServer().getServerResources().resourceManager();
+            var frames = AnimationPathHelper.loadPositionKeyframes(manager, SLASH_ANIMATION_FILE, SLASH_ANIMATION_NAME, SLASH_BONE_NAME);
+            if (!frames.isEmpty()) {
+                this.positionKeyframes = new ArrayList<>(frames);
+                this.pathActive = true;
+            }
+        } else if (this.level() != null && this.level().isClientSide() && FMLEnvironment.dist.isClient()) {
+            var manager = net.minecraft.client.Minecraft.getInstance().getResourceManager();
+            var frames = AnimationPathHelper.loadPositionKeyframes(manager, SLASH_ANIMATION_FILE, SLASH_ANIMATION_NAME, SLASH_BONE_NAME);
+            if (!frames.isEmpty()) {
+                this.positionKeyframes = new ArrayList<>(frames);
+                this.pathActive = true;
+            }
+        }
+        ensurePathAvailable();
+        this.animationDuration = this.positionKeyframes.get(this.positionKeyframes.size() - 1).time();
+        this.animationTime = 0.0D;
+    }
+
+    private void ensurePathAvailable() {
+        if (this.pathActive && !this.positionKeyframes.isEmpty()) {
+            return;
+        }
+        if (this.positionKeyframes.isEmpty()) {
+            this.positionKeyframes = new ArrayList<>();
+            this.positionKeyframes.add(new AnimationPathHelper.AnimationKeyframe(0.0D, Vec3.ZERO));
+            this.positionKeyframes.add(new AnimationPathHelper.AnimationKeyframe(1.0D, new Vec3(0.0D, 0.0D, 16.0D)));
+        }
+        this.positionKeyframes.sort(Comparator.comparingDouble(AnimationPathHelper.AnimationKeyframe::time));
+        this.animationDuration = this.positionKeyframes.get(this.positionKeyframes.size() - 1).time();
+        if (this.baseOrigin.equals(Vec3.ZERO)) {
+            this.baseOrigin = this.position();
+        }
+        this.pathActive = true;
+    }
+
+    private Vec3 sampleRelativePosition(double time) {
+        if (this.positionKeyframes.isEmpty()) {
+            return Vec3.ZERO;
+        }
+        if (time <= this.positionKeyframes.get(0).time()) {
+            return this.positionKeyframes.get(0).position();
+        }
+        for (int i = 1; i < this.positionKeyframes.size(); i++) {
+            AnimationPathHelper.AnimationKeyframe next = this.positionKeyframes.get(i);
+            AnimationPathHelper.AnimationKeyframe prev = this.positionKeyframes.get(i - 1);
+            if (time <= next.time()) {
+                double span = next.time() - prev.time();
+                double alpha = span <= 0.0D ? 0.0D : (time - prev.time()) / span;
+                return prev.position().lerp(next.position(), alpha);
+            }
+        }
+        return this.positionKeyframes.get(this.positionKeyframes.size() - 1).position();
+    }
+
+    private Vec3 convertRelativeToWorld(Vec3 relative) {
+        double scale = POSITION_UNIT_SCALE;
+        Vec3 right = this.basisRight.scale(relative.x * scale);
+        Vec3 up = this.basisUp.scale(relative.y * scale);
+        Vec3 forward = this.basisForward.scale(relative.z * scale);
+        return right.add(up).add(forward);
     }
 
     public double getLength() {
