@@ -8,7 +8,7 @@
           "type": "emit_gecko",
           "fx": "chestcavity:vanquisher_sword_slash_two",
           "anchor": "performer",
-          "offset": [
+          "relative_offset": [
             0.0,
             -1.0,
             3.0

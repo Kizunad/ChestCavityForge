@@ -150,10 +150,11 @@ public final class GeckoFxClient {
 
                 poseStack.pushPose();
                 poseStack.translate(basePosition.x - cameraPos.x, basePosition.y - cameraPos.y, basePosition.z - cameraPos.z);
+                poseStack.translate(payload.offsetX(), payload.offsetY(), payload.offsetZ());
                 poseStack.mulPose(Axis.YP.rotationDegrees(payload.yaw()));
                 poseStack.mulPose(Axis.XP.rotationDegrees(payload.pitch()));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(payload.roll()));
-                poseStack.translate(payload.offsetX(), payload.offsetY(), payload.offsetZ());
+                poseStack.translate(payload.relativeOffsetX(), payload.relativeOffsetY(), payload.relativeOffsetZ());
                 poseStack.scale(fx.scale, fx.scale, fx.scale);
 
                 FxAnimatable animatable = fx.animatable;

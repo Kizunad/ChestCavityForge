@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.runtime.flow.actions;
 
+import com.mojang.math.Axis;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -15,12 +16,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -53,6 +54,9 @@ import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 /**
  * Built-in flow actions used by the MVP implementation.
@@ -1106,10 +1110,13 @@ public final class FlowActions {
                     }
                     case WORLD -> {
                         basePosition = worldPosition != null ? worldPosition : serverPlayer.position();
-                        float yaw = parameters.yaw() != null ? parameters.yaw() : serverPlayer.getYRot();
-                        float pitch = parameters.pitch() != null ? parameters.pitch() : serverPlayer.getXRot();
-                        float roll = parameters.roll() != null ? parameters.roll() : 0.0F;
-                        Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, yaw, pitch, roll);
+                        float yawInput = parameters.yaw() != null ? parameters.yaw() : serverPlayer.getYRot();
+                        float pitchInput = parameters.pitch() != null ? parameters.pitch() : serverPlayer.getXRot();
+                        float rollInput = parameters.roll() != null ? parameters.roll() : 0.0F;
+                        float payloadYaw = -yawInput;
+                        float payloadPitch = -pitchInput;
+                        float payloadRoll = -rollInput;
+                        Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, payloadYaw, payloadPitch, payloadRoll);
                         Vec3 originOffset = offset.add(rotatedRelative);
                         Vec3 origin = basePosition.add(originOffset);
                         UUID eventId = loop
@@ -1129,9 +1136,9 @@ public final class FlowActions {
                                 relativeOffset.x,
                                 relativeOffset.y,
                                 relativeOffset.z,
-                                parameters.yaw() != null ? parameters.yaw() : 0.0F,
-                                parameters.pitch() != null ? parameters.pitch() : 0.0F,
-                                parameters.roll() != null ? parameters.roll() : 0.0F,
+                                payloadYaw,
+                                payloadPitch,
+                                payloadRoll,
                                 scale,
                                 parameters.tint(),
                                 alpha,
@@ -1150,11 +1157,15 @@ public final class FlowActions {
                 }
                 basePosition = attachedEntity.position();
 
-                float yaw = parameters.yaw() != null ? parameters.yaw() : attachedEntity.getYRot();
-                float pitch = parameters.pitch() != null ? parameters.pitch() : attachedEntity.getXRot();
-                float roll = parameters.roll() != null ? parameters.roll() : 0.0F;
+                float yawInput = parameters.yaw() != null ? parameters.yaw() : attachedEntity.getYRot();
+                float pitchInput = parameters.pitch() != null ? parameters.pitch() : attachedEntity.getXRot();
+                float rollInput = parameters.roll() != null ? parameters.roll() : 0.0F;
 
-                Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, yaw, pitch, roll);
+                float payloadYaw = -yawInput;
+                float payloadPitch = -pitchInput;
+                float payloadRoll = -rollInput;
+
+                Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, payloadYaw, payloadPitch, payloadRoll);
                 Vec3 originOffset = offset.add(rotatedRelative);
                 Vec3 origin = basePosition.add(originOffset);
 
@@ -1173,9 +1184,9 @@ public final class FlowActions {
                         relativeOffset.x,
                         relativeOffset.y,
                         relativeOffset.z,
-                        yaw,
-                        pitch,
-                        roll,
+                        payloadYaw,
+                        payloadPitch,
+                        payloadRoll,
                         scale,
                         parameters.tint(),
                         alpha,
@@ -1244,20 +1255,27 @@ public final class FlowActions {
         if (relativeOffset == null || relativeOffset.equals(Vec3.ZERO)) {
             return Vec3.ZERO;
         }
-        double yawRad = -Math.toRadians(yawDegrees);
-        double pitchRad = -Math.toRadians(pitchDegrees);
-        double rollRad = -Math.toRadians(rollDegrees);
-        Vec3 rotated = relativeOffset;
-        if (pitchDegrees != 0.0F) {
-            rotated = rotated.xRot((float) pitchRad);
+        boolean hasYaw = yawDegrees != 0.0F;
+        boolean hasPitch = pitchDegrees != 0.0F;
+        boolean hasRoll = rollDegrees != 0.0F;
+        if (!hasYaw && !hasPitch && !hasRoll) {
+            return relativeOffset;
         }
-        if (yawDegrees != 0.0F) {
-            rotated = rotated.yRot((float) yawRad);
+
+        Quaternionf rotation = new Quaternionf();
+        if (hasYaw) {
+            rotation.mul(Axis.YP.rotationDegrees(yawDegrees));
         }
-        if (rollDegrees != 0.0F) {
-            rotated = rotated.zRot((float) rollRad);
+        if (hasPitch) {
+            rotation.mul(Axis.XP.rotationDegrees(pitchDegrees));
         }
-        return rotated;
+        if (hasRoll) {
+            rotation.mul(Axis.ZP.rotationDegrees(rollDegrees));
+        }
+
+        Vector3f working = new Vector3f((float) relativeOffset.x, (float) relativeOffset.y, (float) relativeOffset.z);
+        rotation.transform(working);
+        return new Vec3(working.x(), working.y(), working.z());
     }
 
     private static UUID computeFxEventId(ResourceLocation fxId, Entity anchor, boolean loop) {
