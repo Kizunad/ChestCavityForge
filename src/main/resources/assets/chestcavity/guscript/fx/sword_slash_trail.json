@@ -1,0 +1,22 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#f8d777",
+      "size": 1.1,
+      "count": 10,
+      "speed": 0.02,
+      "spread": [0.14, 0.12, 0.14],
+      "offset": [0.0, 0.6, 0.0]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:crit",
+      "count": 6,
+      "speed": 0.1,
+      "spread": [0.28, 0.08, 0.28],
+      "offset": [0.0, 0.65, 0.0]
+    }
+  ]
+}

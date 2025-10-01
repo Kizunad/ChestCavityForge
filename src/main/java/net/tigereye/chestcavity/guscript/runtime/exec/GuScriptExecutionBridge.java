@@ -1,7 +1,9 @@
 package net.tigereye.chestcavity.guscript.runtime.exec;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Bridge exposed to action execution for resource manipulation and effect dispatch.
@@ -14,7 +16,7 @@ public interface GuScriptExecutionBridge {
 
     void consumeHealth(int amount);
 
-    void emitProjectile(String projectileId, double damage);
+    void emitProjectile(String projectileId, double damage, @Nullable CompoundTag parameters);
 
     void playFx(ResourceLocation fxId, FxEventParameters parameters);
 }

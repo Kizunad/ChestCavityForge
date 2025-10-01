@@ -1,6 +1,10 @@
 package net.tigereye.chestcavity.guscript.runtime.action;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -11,13 +15,12 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptExecutionBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
 import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
+import net.tigereye.chestcavity.util.ProjectileParameterReceiver;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -77,7 +80,7 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
     }
 
     @Override
-    public void emitProjectile(String projectileId, double damage) {
+    public void emitProjectile(String projectileId, double damage, @Nullable CompoundTag parameters) {
         if (projectileId == null || projectileId.isBlank()) {
             return;
         }
@@ -140,17 +143,30 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
             entity.setDeltaMovement(adjustedLook.scale(1.5));
         }
 
+        CompoundTag appliedParameters = parameters != null ? parameters.copy() : null;
+        if (entity instanceof ProjectileParameterReceiver receiver) {
+            CompoundTag payload = appliedParameters == null ? new CompoundTag() : appliedParameters;
+            receiver.applyProjectileParameters(performer, payload, damage);
+            appliedParameters = payload;
+        }
+
         long sequence = PROJECTILE_SEQUENCE.incrementAndGet();
-        ChestCavity.LOGGER.info(
-                "[GuScript] Projectile #{} emitted for root {}: id={} damage={} spawn=({},{},{})",
-                sequence,
-                rootIndex,
-                id,
-                damage,
-                String.format("%.3f", spawn.x),
-                String.format("%.3f", spawn.y),
-                String.format("%.3f", spawn.z)
-        );
+        if (ChestCavity.LOGGER.isInfoEnabled()) {
+            String parameterSummary = appliedParameters == null || appliedParameters.isEmpty()
+                    ? ""
+                    : ", params=" + appliedParameters;
+            ChestCavity.LOGGER.info(
+                    "[GuScript] Projectile #{} emitted for root {}: id={} damage={} spawn=({},{},{}){}",
+                    sequence,
+                    rootIndex,
+                    id,
+                    damage,
+                    String.format("%.3f", spawn.x),
+                    String.format("%.3f", spawn.y),
+                    String.format("%.3f", spawn.z),
+                    parameterSummary
+            );
+        }
         level.addFreshEntity(entity);
     }
 

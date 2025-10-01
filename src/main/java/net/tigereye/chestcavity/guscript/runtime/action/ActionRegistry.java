@@ -41,7 +41,8 @@ public final class ActionRegistry {
         register(ConsumeHealthAction.ID, json -> new ConsumeHealthAction(json.get("amount").getAsInt()));
         register(EmitProjectileAction.ID, json -> new EmitProjectileAction(
                 json.get("projectileId").getAsString(),
-                json.get("damage").getAsDouble()
+                json.get("damage").getAsDouble(),
+                EmitProjectileAction.parseParameters(json)
         ));
         register(AddDamageMultiplierAction.ID, json -> new AddDamageMultiplierAction(json.get("amount").getAsDouble()));
         register(AddFlatDamageAction.ID, json -> new AddFlatDamageAction(json.get("amount").getAsDouble()));

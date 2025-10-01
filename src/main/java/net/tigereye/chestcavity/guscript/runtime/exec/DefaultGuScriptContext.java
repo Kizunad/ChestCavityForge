@@ -3,6 +3,8 @@ package net.tigereye.chestcavity.guscript.runtime.exec;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.function.Function;
+
 /**
  * Mutable runtime context capturing performer, target, and runtime modifiers.
  */
@@ -23,12 +25,18 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     private double directTimeScaleFlat;
     private boolean exportMultiplierDelta;
     private boolean exportFlatDelta;
+    private final Function<String, String> parameterResolver;
 
     public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge) {
-        this(performer, target, bridge, null);
+        this(performer, target, bridge, null, null);
     }
 
     public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge, ExecutionSession session) {
+        this(performer, target, bridge, session, null);
+    }
+
+    public DefaultGuScriptContext(Player performer, LivingEntity target, GuScriptExecutionBridge bridge,
+                                  ExecutionSession session, Function<String, String> parameterResolver) {
         if (bridge == null) {
             throw new IllegalArgumentException("GuScriptExecutionBridge must not be null");
         }
@@ -36,6 +44,7 @@ public final class DefaultGuScriptContext implements GuScriptContext {
         this.target = target;
         this.bridge = bridge;
         this.session = session;
+        this.parameterResolver = parameterResolver;
         if (session != null) {
             this.damageMultiplier = session.currentMultiplier();
             this.flatDamageBonus = session.currentFlat();
@@ -158,5 +167,34 @@ public final class DefaultGuScriptContext implements GuScriptContext {
     @Override
     public double directExportedTimeScaleFlat() {
         return directTimeScaleFlat;
+    }
+
+    @Override
+    public String resolveParameter(String name) {
+        if (parameterResolver == null || name == null || name.isBlank()) {
+            return null;
+        }
+        try {
+            return parameterResolver.apply(name);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    @Override
+    public double resolveParameterAsDouble(String name, double defaultValue) {
+        String raw = resolveParameter(name);
+        if (raw == null || raw.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            double parsed = Double.parseDouble(raw.trim());
+            if (Double.isNaN(parsed) || Double.isInfinite(parsed)) {
+                return defaultValue;
+            }
+            return parsed;
+        } catch (Exception ignored) {
+            return defaultValue;
+        }
     }
 }
