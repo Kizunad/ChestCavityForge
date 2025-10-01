@@ -39,6 +39,12 @@ class GeckoFxParameterParseTest {
         offset.add(-0.5D);
         json.add("offset", offset);
 
+        JsonArray relativeOffset = new JsonArray();
+        relativeOffset.add(0.25D);
+        relativeOffset.add(-0.75D);
+        relativeOffset.add(2.5D);
+        json.add("relative_offset", relativeOffset);
+
         JsonArray worldPos = new JsonArray();
         worldPos.add(4.0D);
         worldPos.add(5.0D);
@@ -57,6 +63,7 @@ class GeckoFxParameterParseTest {
         assertEquals(ChestCavity.id("ghost_dark"), params.fxId());
         assertEquals(GeckoFxAnchor.WORLD, params.anchor());
         assertEquals(new Vec3(0.0D, 1.5D, -0.5D), params.offset());
+        assertEquals(new Vec3(0.25D, -0.75D, 2.5D), params.relativeOffset());
         assertEquals(new Vec3(4.0D, 5.0D, 6.0D), params.worldPosition());
         assertEquals(15.0F, params.yaw());
         assertEquals(-10.0F, params.pitch());
