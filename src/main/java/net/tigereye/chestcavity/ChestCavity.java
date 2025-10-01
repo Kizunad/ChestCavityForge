@@ -30,6 +30,7 @@ import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 
 import net.tigereye.chestcavity.guscript.registry.GeckoFxDefinitionLoader;
+import net.tigereye.chestcavity.client.render.ChestCavityClientRenderers;
 import net.tigereye.chestcavity.guscript.registry.GuScriptFlowLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
@@ -102,6 +103,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 
                 if (FMLEnvironment.dist.isClient()) {
                         bus.addListener(this::registerClientReloadListeners);
+                        bus.addListener(ChestCavityClientRenderers::onRegisterRenderers);
                 }
 
 		AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);

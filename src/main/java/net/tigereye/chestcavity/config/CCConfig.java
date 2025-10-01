@@ -126,6 +126,10 @@ public class CCConfig implements ConfigData {
     @ConfigEntry.Gui.CollapsibleObject
     public GuScriptExecutionConfig GUSCRIPT_EXECUTION = new GuScriptExecutionConfig();
 
+    @ConfigEntry.Category("sword_slash")
+    @ConfigEntry.Gui.CollapsibleObject
+    public SwordSlashConfig SWORD_SLASH = new SwordSlashConfig();
+
     public static class GuScriptUIConfig {
         @ConfigEntry.Gui.Tooltip
         public double bindingRightPaddingSlots = 0.5D;
@@ -194,6 +198,37 @@ public class CCConfig implements ConfigData {
         MULTIPLY,
         MAX,
         OVERRIDE
+    }
+
+    public static class SwordSlashConfig {
+        @ConfigEntry.Gui.Tooltip
+        public double defaultLength = 7.5D;
+        @ConfigEntry.Gui.Tooltip
+        public double defaultThickness = 0.9D;
+        @ConfigEntry.Gui.Tooltip
+        public int defaultLifespanTicks = 12;
+        @ConfigEntry.Gui.Tooltip
+        public double defaultDamage = 10.0D;
+        @ConfigEntry.Gui.Tooltip
+        public double defaultBreakPower = 1.5D;
+        @ConfigEntry.Gui.Tooltip
+        public int defaultMaxPierce = 3;
+        @ConfigEntry.Gui.Tooltip
+        public boolean enableBlockBreaking = true;
+        @ConfigEntry.Gui.Tooltip
+        public int blockBreakCapPerTick = 6;
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public SwordSlashVisualConfig visuals = new SwordSlashVisualConfig();
+    }
+
+    public static class SwordSlashVisualConfig {
+        @ConfigEntry.Gui.Tooltip
+        public int slashColor = 0xFFE0A0;
+        @ConfigEntry.Gui.Tooltip
+        public double slashAlpha = 0.85D;
+        @ConfigEntry.Gui.Tooltip
+        public double slashEndAlpha = 0.3D;
     }
 
 }

@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -283,19 +284,8 @@ public class SingleSwordProjectile extends Entity {
         return distance < 64.0;
     }
 
-    public Packet<ClientGamePacketListener> getAddEntityPacket() {
-        return new ClientboundAddEntityPacket(
-                this.getId(),
-                this.getUUID(),
-                this.getX(),
-                this.getY(),
-                this.getZ(),
-                this.getYRot(),
-                this.getXRot(),
-                this.getType(),
-                0,
-                this.getDeltaMovement(),
-                this.getYHeadRot()
-        );
+    @Override
+    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity serverEntity) {
+        return new ClientboundAddEntityPacket(this, serverEntity);
     }
 }

@@ -1,0 +1,52 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "releasing",
+          "guards": [
+            { "type": "cooldown", "key": "chestcavity:sword_slash" }
+          ],
+          "actions": [
+            { "type": "set_cooldown", "key": "chestcavity:sword_slash", "ticks": 40 }
+          ]
+        }
+      ]
+    },
+    "releasing": {
+      "enter_fx": [ "chestcavity:sword_slash_spawn" ],
+      "enter_actions": [
+        {
+          "id": "emit.projectile",
+          "projectileId": "chestcavity:sword_slash",
+          "damage": 10.0,
+          "parameters": {
+            "length": { "flow_param": "length", "default": 7.5 },
+            "thickness": { "flow_param": "thickness", "default": 0.9 },
+            "lifespan": { "flow_param": "lifespan", "default": 12.0 },
+            "break_power": { "flow_param": "break_power", "default": 1.5 },
+            "max_pierce": { "flow_param": "max_pierce", "default": 3, "integer": true }
+          }
+        },
+        { "id": "emit.fx", "fxId": "chestcavity:sword_slash_trail", "intensity": 1.0 }
+      ],
+      "update_period": 5,
+      "update_actions": [
+        { "id": "emit.fx", "fxId": "chestcavity:sword_slash_trail", "intensity": 0.6 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 8 }
+      ]
+    },
+    "cooldown": {
+      "enter_actions": [
+        { "id": "emit.fx", "fxId": "chestcavity:sword_slash_impact", "intensity": 1.0 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 20 }
+      ]
+    }
+  }
+}

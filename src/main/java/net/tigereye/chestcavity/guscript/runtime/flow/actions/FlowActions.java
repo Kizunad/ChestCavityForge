@@ -268,7 +268,10 @@ public final class FlowActions {
                     return;
                 }
                 DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(performer, target);
-                DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge);
+                java.util.function.Function<String, String> resolver = controller != null
+                        ? controller::resolveFlowParam
+                        : null;
+                DefaultGuScriptContext context = new DefaultGuScriptContext(performer, target, bridge, null, resolver);
                 for (Action action : immutable) {
                     try {
                         action.execute(context);

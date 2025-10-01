@@ -1,0 +1,19 @@
+{
+  "arity": 2,
+  "priority": 28,
+  "required": { "剑道": 1, "杀招": 1 },
+  "result": {
+    "name": "杀招·剑光",
+    "operator_id": "chestcavity:sword_slash",
+    "kind": "composite",
+    "tags": ["杀招", "剑光"],
+    "flow_id": "chestcavity:sword_slash",
+    "flow_params": {
+      "length": "7.5",
+      "thickness": "0.9",
+      "lifespan": "12",
+      "break_power": "1.5",
+      "max_pierce": "3"
+    }
+  }
+}
