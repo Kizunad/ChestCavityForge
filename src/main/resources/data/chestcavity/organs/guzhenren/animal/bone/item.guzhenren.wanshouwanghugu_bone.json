@@ -3,11 +3,11 @@
   "organScores": [
     {
       "id": "chestcavity:defense",
-      "value": ".2"
+      "value": ".4"
     },
     {
       "id": "chestcavity:nerves",
-      "value": "0.04"
+      "value": "0.08"
     }
   ]
 }
