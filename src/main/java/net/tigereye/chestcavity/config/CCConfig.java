@@ -217,6 +217,8 @@ public class CCConfig implements ConfigData {
         public boolean enableBlockBreaking = true;
         @ConfigEntry.Gui.Tooltip
         public int blockBreakCapPerTick = 6;
+        @ConfigEntry.Gui.Tooltip
+        public boolean debugLogging = false;
 
         @ConfigEntry.Gui.CollapsibleObject
         public SwordSlashVisualConfig visuals = new SwordSlashVisualConfig();

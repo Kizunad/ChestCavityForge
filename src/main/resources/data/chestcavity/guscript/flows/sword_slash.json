@@ -37,6 +37,29 @@
           "alpha": 0.9,
           "loop": false,
           "duration": 90
+        },
+        {
+          "id": "emit.projectile",
+          "projectileId": "chestcavity:sword_slash",
+          "damage": 100.0,
+          "parameters": {
+            "length": {
+              "default": 20.0
+            },
+            "thickness": {
+              "default": 3.0
+            },
+            "lifespan": {
+              "default": 200.0
+            },
+            "break_power": {
+              "default": 5.0
+            },
+            "max_pierce": {
+              "default": 6,
+              "integer": true
+            }
+          }
         }
       ],
       "update_period": 5,
@@ -44,37 +67,7 @@
         {
           "trigger": "auto",
           "target": "cooldown",
-          "min_ticks": 50,
-          "actions": [
-            {
-              "type": "trigger_actions",
-              "actions": [
-                {
-                  "id": "emit.projectile",
-                  "projectileId": "chestcavity:sword_slash",
-                  "damage": 100.0,
-                  "parameters": {
-                    "length": {
-                      "default": 20.0
-                    },
-                    "thickness": {
-                      "default": 3.0
-                    },
-                    "lifespan": {
-                      "default": 20.0
-                    },
-                    "break_power": {
-                      "default": 5.0
-                    },
-                    "max_pierce": {
-                      "default": 6,
-                      "integer": true
-                    }
-                  }
-                }
-              ]
-            }
-          ]
+          "min_ticks": 8
         }
       ]
     },

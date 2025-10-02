@@ -26,14 +26,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
-import net.tigereye.chestcavity.registration.CCTags;
 import net.tigereye.chestcavity.util.ProjectileParameterReceiver;
 import net.tigereye.chestcavity.util.AnimationPathHelper;
 import org.jetbrains.annotations.Nullable;
@@ -68,6 +69,29 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
     private static final String SLASH_ANIMATION_NAME = "animation.chestcavity.vanquisher_sword.slash_two";
     private static final String SLASH_BONE_NAME = "bone";
     private static final double POSITION_UNIT_SCALE = 1.0 / 16.0;
+    private static final java.util.concurrent.atomic.AtomicBoolean TAG_DIAGNOSTICS_LOGGED = new java.util.concurrent.atomic.AtomicBoolean();
+    private static final java.util.Set<Block> BREAKABLE_BLOCKS = java.util.Set.of(
+            Blocks.GRASS_BLOCK,
+            Blocks.DIRT,
+            Blocks.COARSE_DIRT,
+            Blocks.PODZOL,
+            Blocks.SAND,
+            Blocks.RED_SAND,
+            Blocks.GLASS,
+            Blocks.GLASS_PANE,
+            Blocks.WHITE_STAINED_GLASS,
+            Blocks.WHITE_STAINED_GLASS_PANE,
+            Blocks.ICE,
+            Blocks.PACKED_ICE,
+            Blocks.SNOW_BLOCK,
+            Blocks.MELON,
+            Blocks.PUMPKIN,
+            Blocks.CARVED_PUMPKIN,
+            Blocks.JACK_O_LANTERN,
+            Blocks.HONEY_BLOCK,
+            Blocks.SCAFFOLDING,
+            Blocks.BOOKSHELF
+    );
 
     private int lifespan;
     private int age;
@@ -209,30 +233,33 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
             return;
         }
         CCConfig.SwordSlashConfig config = config();
+        if (isDebugLoggingEnabled()) {
+            logBreakableDiagnostics(server);
+        }
         if (!config.enableBlockBreaking) {
-            if (ChestCavity.LOGGER.isDebugEnabled()) {
-                ChestCavity.LOGGER.debug("[SwordSlash] Block breaking disabled in config");
+            if (isDebugLoggingEnabled()) {
+                logDebug("[SwordSlash] Block breaking disabled in config");
             }
             return;
         }
         boolean ownerIsPlayer = getOwner() instanceof Player;
         boolean mobGriefAllowed = mobGriefingEnabled(server);
         if (!mobGriefAllowed && !ownerIsPlayer) {
-            if (ChestCavity.LOGGER.isDebugEnabled()) {
-                ChestCavity.LOGGER.debug("[SwordSlash] Block breaking blocked by mobGriefing gamerule");
+            if (isDebugLoggingEnabled()) {
+                logDebug("[SwordSlash] Block breaking blocked by mobGriefing gamerule");
             }
             return;
         }
         int cap = Math.max(0, config.blockBreakCapPerTick);
         if (cap == 0) {
-            if (ChestCavity.LOGGER.isDebugEnabled()) {
-                ChestCavity.LOGGER.debug("[SwordSlash] Block breaking cap is zero");
+            if (isDebugLoggingEnabled()) {
+                logDebug("[SwordSlash] Block breaking cap is zero");
             }
             return;
         }
         AABB box = new AABB(start, end).inflate(getThickness() * 0.5D);
-        if (ChestCavity.LOGGER.isDebugEnabled()) {
-            ChestCavity.LOGGER.debug(
+        if (isDebugLoggingEnabled()) {
+            logDebug(
                     "[SwordSlash] Checking block sweep start={} end={} thickness={} breakPower={} cap={} mobGriefing={} ownerIsPlayer={}",
                     start,
                     end,
@@ -260,8 +287,8 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
                         debugSkipBlock(server, cursor, state, "air", breakPower);
                         continue;
                     }
-                    if (!state.is(CCTags.Blocks.BREAKABLE_BY_SWORD_SLASH)) {
-                        debugSkipBlock(server, cursor, state, "not_tagged", breakPower);
+                    if (!isBreakableBlock(state)) {
+                        debugSkipBlock(server, cursor, state, "not_breakable", breakPower);
                         continue;
                     }
                     float hardness = state.getDestroySpeed(server, cursor);
@@ -278,28 +305,65 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
                 }
             }
         }
-        if (ChestCavity.LOGGER.isDebugEnabled()) {
-            ChestCavity.LOGGER.debug("[SwordSlash] Block sweep finished broken={} cap={} thickness={} breakPower={}",
+        if (isDebugLoggingEnabled()) {
+            logDebug("[SwordSlash] Block sweep finished broken={} cap={} thickness={} breakPower={}",
                     broken,
                     cap,
                     getThickness(),
                     breakPower
             );
             if (broken >= cap) {
-                ChestCavity.LOGGER.debug("[SwordSlash] Block break cap reached ({} per tick)", cap);
+                logDebug("[SwordSlash] Block break cap reached ({} per tick)", cap);
             }
         }
     }
 
-    private void debugSkipBlock(ServerLevel level, BlockPos pos, BlockState state, String reason, double breakPower) {
-        if (!ChestCavity.LOGGER.isDebugEnabled()) {
+    private void logBreakableDiagnostics(ServerLevel server) {
+        if (!TAG_DIAGNOSTICS_LOGGED.compareAndSet(false, true)) {
             return;
         }
-        if (!(state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.LARGE_FERN))) {
+        long total = 0L;
+        long matches = 0L;
+        for (var block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
+            total++;
+            if (BREAKABLE_BLOCKS.contains(block)) {
+                matches++;
+            }
+        }
+        logDebug("[SwordSlash] Java breakable list size={}/{} blocks", matches, total);
+        BlockState grass = Blocks.GRASS_BLOCK.defaultBlockState();
+        BlockState dirt = Blocks.DIRT.defaultBlockState();
+        BlockState sand = Blocks.SAND.defaultBlockState();
+        logDebug("[SwordSlash] Breakable check grass_block={} dirt={} sand={}",
+                isBreakableBlock(grass),
+                isBreakableBlock(dirt),
+                isBreakableBlock(sand));
+    }
+
+    private void logDebug(String message, Object... args) {
+        if (isDebugLoggingEnabled()) {
+            ChestCavity.LOGGER.info(message, args);
+        }
+    }
+
+    private boolean isDebugLoggingEnabled() {
+        return true;
+        /* 
+        if (ChestCavity.config != null && ChestCavity.config.SWORD_SLASH != null) {
+            return ChestCavity.config.SWORD_SLASH.debugLogging;
+        }
+        return false;*/
+    }
+
+    private void debugSkipBlock(ServerLevel level, BlockPos pos, BlockState state, String reason, double breakPower) {
+        if (!isDebugLoggingEnabled()) {
+            return;
+        }
+        if (!(isBreakableBlock(state) || state.is(Blocks.LARGE_FERN))) {
             return;
         }
         double hardness = state.getDestroySpeed(level, pos);
-        ChestCavity.LOGGER.debug(
+        logDebug(
                 "[SwordSlash] Skipping block {} at {} reason={} hardness={} breakPower={}",
                 BuiltInRegistries.BLOCK.getKey(state.getBlock()),
                 pos,
@@ -550,13 +614,6 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
                 this.positionKeyframes = new ArrayList<>(frames);
                 this.pathActive = true;
             }
-        } else if (this.level() != null && this.level().isClientSide() && FMLEnvironment.dist.isClient()) {
-            var manager = net.minecraft.client.Minecraft.getInstance().getResourceManager();
-            var frames = AnimationPathHelper.loadPositionKeyframes(manager, SLASH_ANIMATION_FILE, SLASH_ANIMATION_NAME, SLASH_BONE_NAME);
-            if (!frames.isEmpty()) {
-                this.positionKeyframes = new ArrayList<>(frames);
-                this.pathActive = true;
-            }
         }
         ensurePathAvailable();
         this.animationDuration = this.positionKeyframes.get(this.positionKeyframes.size() - 1).time();
@@ -597,6 +654,21 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
             }
         }
         return this.positionKeyframes.get(this.positionKeyframes.size() - 1).position();
+    }
+
+    private boolean isBreakableBlock(BlockState state) {
+        if (BREAKABLE_BLOCKS.contains(state.getBlock())) {
+            return true;
+        }
+        return state.is(BlockTags.LEAVES)
+                || state.is(BlockTags.FLOWERS)
+                || state.is(BlockTags.SMALL_FLOWERS)
+                || state.is(BlockTags.TALL_FLOWERS)
+                || state.is(BlockTags.CROPS)
+                || state.is(BlockTags.SAPLINGS)
+                || state.is(BlockTags.WOOL)
+                || state.is(BlockTags.MINEABLE_WITH_AXE)
+                || state.is(BlockTags.MINEABLE_WITH_SHOVEL);
     }
 
     private Vec3 convertRelativeToWorld(Vec3 relative) {
