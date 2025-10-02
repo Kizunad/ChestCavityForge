@@ -37,11 +37,11 @@ public final class ShuiDaoOrganRegistry {
                     .ensureAttached(ShuiTiGuOrganBehavior.INSTANCE::ensureAttached)
                     .onEquip(ShuiTiGuOrganBehavior.INSTANCE::onEquip)
                     .build(),
-
             OrganIntegrationSpec.builder(JIEZE_GU_ID)
                     .addSlowTickListener(JiezeguOrganBehavior.INSTANCE)
                     .addOnHitListener(JiezeguOrganBehavior.INSTANCE)
                     .ensureAttached(JiezeguOrganBehavior.INSTANCE::ensureAttached)
+                    .build(),
             OrganIntegrationSpec.builder(QUAN_YONG_MING_GU_ID)
                     .addSlowTickListener(QuanYongMingGuOrganBehavior.INSTANCE)
                     .addRemovalListener(QuanYongMingGuOrganBehavior.INSTANCE)
