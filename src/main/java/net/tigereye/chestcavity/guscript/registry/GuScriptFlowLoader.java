@@ -341,13 +341,13 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     GsonHelper.getAsBoolean(json, "allies_only", true)
             );
             case "entity_strike" -> FlowActions.entityStrike(
-                    json.has("entity_id_variable") ? GsonHelper.getAsString(json, "entity_id_variable") : null,
                     GsonHelper.getAsDouble(json, "ally_radius", 0.0D),
                     parseVec3(json, "offset"),
                     json.has("yaw_offset") ? (float) GsonHelper.getAsDouble(json, "yaw_offset") : 0.0F,
                     GsonHelper.getAsDouble(json, "dash", 0.0D),
                     json.has("target") ? GsonHelper.getAsString(json, "target") : null,
-                    json.has("sound") ? ResourceLocation.parse(GsonHelper.getAsString(json, "sound")) : null
+                    json.has("sound") ? ResourceLocation.parse(GsonHelper.getAsString(json, "sound")) : null,
+                    json.has("entity_id_variable") ? GsonHelper.getAsString(json, "entity_id_variable") : null
             );
             default -> throw new IllegalArgumentException("Unknown flow action type: " + type);
         };
