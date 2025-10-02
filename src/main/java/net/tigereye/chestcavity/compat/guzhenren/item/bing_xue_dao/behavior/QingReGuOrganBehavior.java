@@ -51,12 +51,12 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (entity == null || entity.level().isClientSide() || cc == null) {
+
             return;
         }
         if (!matchesOrgan(organ, CCItems.GUZHENREN_QING_RE_GU, ORGAN_ID)) {
             return;
         }
-
         int stackCount = Math.max(1, organ.getCount());
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(entity);
         if (handleOpt.isPresent()) {
@@ -83,6 +83,7 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         if (hasJadeBone(cc)) {
             maybeClearPoison(entity);
+
         }
     }
 
@@ -127,6 +128,7 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         if (entity.getRandom().nextDouble() < POISON_CLEAR_CHANCE) {
             entity.removeEffect(MobEffects.POISON);
+
         }
     }
 
