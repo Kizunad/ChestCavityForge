@@ -86,20 +86,25 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
         }
 
         int stackCount = Math.max(1, organ.getCount());
-        double zhenyuanCost = ZHENYUAN_COST_PER_SECOND * stackCount;
 
-        ConsumptionResult result;
         if (entity instanceof Player player) {
-            result = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
-        } else {
-            result = GuzhenrenResourceCostHelper.consumeWithFallback(entity, zhenyuanCost, 0.0);
-        }
-        if (!result.succeeded()) {
+            double zhenyuanCost = ZHENYUAN_COST_PER_SECOND * stackCount;
+            ConsumptionResult result = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
+            if (!result.succeeded()) {
+                return;
+            }
+
+            applyHealing(entity, stackCount);
+            grantJingli(player, stackCount);
+
+            if (hasShuiTiGu(cc, organ)) {
+                ensurePureWaterAbsorption(entity, stackCount);
+            }
             return;
         }
 
         applyHealing(entity, stackCount);
-        grantJingli(entity, stackCount);
+
 
         if (hasShuiTiGu(cc, organ)) {
             ensurePureWaterAbsorption(entity, stackCount);
@@ -161,8 +166,9 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
         ChestCavityUtil.runWithOrganHeal(() -> entity.heal(healAmount));
     }
 
-    private void grantJingli(LivingEntity entity, int stackCount) {
-        if (!(entity instanceof Player player) || JINGLI_GAIN_PER_SECOND <= 0.0) {
+    private void grantJingli(Player player, int stackCount) {
+        if (JINGLI_GAIN_PER_SECOND <= 0.0) {
+
             return;
         }
         double delta = JINGLI_GAIN_PER_SECOND * stackCount;

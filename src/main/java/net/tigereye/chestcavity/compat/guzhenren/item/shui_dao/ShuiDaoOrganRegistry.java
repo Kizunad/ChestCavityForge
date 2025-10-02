@@ -20,6 +20,7 @@ public final class ShuiDaoOrganRegistry {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "ling_xian_gu");
     private static final ResourceLocation SHUI_TI_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "shui_ti_gu");
+
     private static final ResourceLocation JIEZE_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "jiezegu");
     private static final ResourceLocation QUAN_YONG_MING_GU_ID =
@@ -36,6 +37,7 @@ public final class ShuiDaoOrganRegistry {
                     .ensureAttached(ShuiTiGuOrganBehavior.INSTANCE::ensureAttached)
                     .onEquip(ShuiTiGuOrganBehavior.INSTANCE::onEquip)
                     .build(),
+
             OrganIntegrationSpec.builder(JIEZE_GU_ID)
                     .addSlowTickListener(JiezeguOrganBehavior.INSTANCE)
                     .addOnHitListener(JiezeguOrganBehavior.INSTANCE)
