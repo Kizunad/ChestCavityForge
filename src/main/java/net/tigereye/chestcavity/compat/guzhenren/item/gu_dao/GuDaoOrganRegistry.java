@@ -6,6 +6,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguO
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuzhuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.HuGuguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.JingtieguguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.TieGuGuOrganBehavior;
@@ -31,6 +32,7 @@ public final class GuDaoOrganRegistry {
     private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
     private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
     private static final ResourceLocation ROU_BAI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "rou_bai_gu");
+    private static final ResourceLocation RIB_SHIELD_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "le_gu_dun_gu");
     private static final List<OrganIntegrationSpec> SPECS;
 
     static {
@@ -79,6 +81,12 @@ public final class GuDaoOrganRegistry {
                         .addSlowTickListener(YuGuguOrganBehavior.INSTANCE)
                         .ensureAttached(YuGuguOrganBehavior.INSTANCE::ensureAttached)
                         .onEquip(YuGuguOrganBehavior.INSTANCE::onEquip)
+                        .build(),
+                OrganIntegrationSpec.builder(RIB_SHIELD_ID)
+                        .addSlowTickListener(LeGuDunGuOrganBehavior.INSTANCE)
+                        .addRemovalListener(LeGuDunGuOrganBehavior.INSTANCE)
+                        .ensureAttached(LeGuDunGuOrganBehavior.INSTANCE::ensureAttached)
+                        .onEquip(LeGuDunGuOrganBehavior.INSTANCE::onEquip)
                         .build(),
                 OrganIntegrationSpec.builder(ROU_BAI_GU_ID)
                         .addSlowTickListener(RouBaiguOrganBehavior.INSTANCE)
