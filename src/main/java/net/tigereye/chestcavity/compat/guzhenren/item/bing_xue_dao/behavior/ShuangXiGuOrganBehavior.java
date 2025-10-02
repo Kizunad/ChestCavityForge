@@ -320,10 +320,25 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
             affected.add(target);
             applyColdEffect(target);
             if (entity.getRandom().nextDouble() < FROSTBITE_CHANCE) {
+                double increase = 0.0;
+                ActiveLinkageContext ctx = LinkageManager.getContext(cc);
+                if (ctx != null) {
+                    increase = ctx.lookupChannel(BING_XUE_INCREASE_EFFECT)
+                            .map(LinkageChannel::get)
+                            .orElse(0.0);
+                }
+                double percent = Math.max(0.0, FROSTBITE_DAMAGE_PERCENT + increase);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("[compat/guzhenren][shuang_xi] apply frostbite DoT: base={} increase={} final={} target={}",
+                            FROSTBITE_DAMAGE_PERCENT,
+                            increase,
+                            percent,
+                            target.getName().getString());
+                }
                 DamageOverTimeHelper.applyBaseAttackPercentDoT(
                         entity,
                         target,
-                        FROSTBITE_DAMAGE_PERCENT,
+                        percent,
                         FROSTBITE_DURATION_SECONDS,
                         SoundEvents.GLASS_BREAK,
                         0.55f,

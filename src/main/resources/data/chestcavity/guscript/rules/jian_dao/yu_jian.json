@@ -1,16 +1,12 @@
 {
-  "arity": 3,
-  "priority": 28,
-  "required": { "剑道": 1, "驾驭": 1 ,"斩击": 1, "爆发":1, "远程伤害": 1},
+  "arity": 2,
+  "priority": 20,
+  "required": { "剑道": 1, "驾驭": 1},
   "result": {
-    "name": "杀招·御剑",
-    "operator_id": "chestcavity:sword_slash",
-    "kind": "composite",
-    "tags": ["杀招", "御剑"],
-    "flow_id": "chestcavity:sword_slash",
-    "flow_params": {
-      "damage_area": "90",
-      "damage_ray": "120"
-    }
+    "name": "御剑",
+    "operator_id": "chestcavity:control_sword",
+    "kind": "operator",
+    "tags": ["御剑"]
   }
 }
+

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.common;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -9,11 +10,17 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.server.TickTask;
+import org.slf4j.Logger;
+import net.tigereye.chestcavity.util.DoTManager;
 
 /**
  * Utility helpers for scheduling simple damage-over-time pulses.
  */
 public final class DamageOverTimeHelper {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final boolean DEBUG = true;
 
     private static final int TICKS_PER_SECOND = 20;
 
@@ -79,31 +86,17 @@ public final class DamageOverTimeHelper {
             return;
         }
 
-        for (int second = 1; second <= durationSeconds; second++) {
-            int delay = second * TICKS_PER_SECOND;
-            schedule(server, () -> {
-                if (!attacker.isAlive() || !target.isAlive() || target.isAlliedTo(attacker)) {
-                    return;
-                }
-                DamageSource source;
-                if (attacker instanceof Player player) {
-                    source = player.damageSources().playerAttack(player);
-                } else {
-                    source = attacker.damageSources().mobAttack(attacker);
-                }
-                target.hurt(source, (float) perSecondDamage);
-                if (tickSound != null) {
-                    server.playSound(null, target.blockPosition(), tickSound, SoundSource.PLAYERS, volume, pitch);
-                }
-            }, delay);
-        }
+        // Queue per-second pulses centrally to avoid stacking many tasks immediately
+        DoTManager.schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch);
     }
 
+    // Legacy local scheduler retained for reference; avoid using for DoT.
     private static void schedule(ServerLevel server, Runnable runnable, int delayTicks) {
         if (delayTicks <= 0) {
             runnable.run();
             return;
         }
-        server.getServer().execute(() -> schedule(server, runnable, delayTicks - 1));
+        int targetTick = server.getServer().getTickCount() + delayTicks;
+        server.getServer().tell(new TickTask(targetTick, runnable));
     }
 }

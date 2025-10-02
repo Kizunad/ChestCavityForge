@@ -22,6 +22,7 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.util.CombatUtil;
+import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -41,6 +42,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jiu_chong");
     private static final ResourceLocation ALCOHOL_CHANNEL = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/jiu_chong_alcohol");
+    public static final ResourceLocation ABILITY_ID = ORGAN_ID;
 
     private static final double MAX_ALCOHOL = 100.0;
     private static final double ALCOHOL_PER_FEED = 1.0;
@@ -68,6 +70,10 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static final Map<UUID, Long> MANIA_EXPIRY = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_REGEN_TICK = new ConcurrentHashMap<>();
+
+    static {
+        OrganActivationListeners.register(ABILITY_ID, JiuChongOrganBehavior::activateAbility);
+    }
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -147,6 +153,23 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             }
         }
         return (float) (damage * multiplier);
+    }
+
+    private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
+        if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+            return;
+        }
+        if (cc == null || !hasOrgan(cc)) {
+            return;
+        }
+
+        LinkageChannel channel = ensureAlcoholChannel(cc);
+        if (channel.get() < BREATH_COST) {
+            return;
+        }
+
+        channel.adjust(-BREATH_COST);
+        performDrunkenBreath(player);
     }
 
     public void ensureAttached(ChestCavityInstance cc) {

@@ -48,6 +48,7 @@ import org.apache.logging.log4j.Logger;
 
 
 import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
+import net.tigereye.chestcavity.util.DoTManager;
 
 
 
@@ -95,6 +96,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
                 NeoForge.EVENT_BUS.addListener(GuScriptCommands::register);
                 NeoForge.EVENT_BUS.addListener(RecipeDebugCommands::register);
+                // Central DoT manager ticking
+                NeoForge.EVENT_BUS.addListener(DoTManager::onServerTick);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
                         NeoForge.EVENT_BUS.addListener(GeckoFxClient::onClientTick);

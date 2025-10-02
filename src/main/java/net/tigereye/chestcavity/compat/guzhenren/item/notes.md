@@ -621,10 +621,58 @@ glass.break 混合 snow.break 的低沉音效。
   {"id":"chestcavity:nerves","value": "1"}
 ]
 
-清热蛊（肾）:每秒恢复3点生命值和1点精力，当胸腔内存在玉骨时，获得［清热解毒］效果，该效果有10％概率免疫中毒，受到的炎道伤害降低3％，消耗真元维持
+清热蛊（  "item.guzhenren.qing_re_gu": "清热蛊"）:每秒恢复3点生命值和1点精力，当胸腔内存在玉骨时，获得［清热解毒］，有10％概率(OnSlowTick)免疫中毒，受到的着火时伤害降低3％，
+消耗100BASE真元维持
 
-肋骨盾蛊（脊柱）:每秒提供60点骨能，骨道伤害提升8％，且拥有［风骨］效果，该效果每秒提供一点［不屈］，当［不屈］达到10点，可催发［骨御］获得2秒无敌，消耗真元维持，胸腔内只能生效一个肋骨盾蛊
+{
+  "itemID": "guzhenren:qing_re_gu",
+  "organScores": [
+    {"id":"chestcavity:filtration","value": "3"}
+  ]
+}
 
-竭泽蛊（肝）:水道攻击有18％概率触发［回流］，［回流］会基于本次攻击造成的伤害，额外造成8％伤害（音效:河水流动声），［回流］有8％概率触发［断流］，［断流］会给予敌方时长4秒的破甲，消耗真元维持，同时每秒额外消耗25点生命值
 
-泉涌命蛊（心脏）:水道效率提升，每秒恢复1％生命值和5点精力，当胸腔内存在水体蛊会获得［纯水］效果，该效果提供10点常驻伤害吸收，消耗真元维持，胸腔内只能生效一个泉涌命蛊
+肋骨盾蛊（  "item.guzhenren.le_gu_dun_gu": "肋骨盾蛊",）:
+每秒提供60点骨能(Bone_growth)，骨道INCREASE EFFECT + 8％，
+且拥有［风骨］效果，该效果每秒提供一点［不屈］，当［不屈］达到10点，
+可催发(ATTACKABILITY)［骨御］获得2秒无敌，消耗200BASE真元维持/s，胸腔内只能生效一个肋骨盾蛊
+
+{
+  "itemID": "guzhenren:le_gu_dun_gu",
+  "organScores": [
+    {"id":"chestcavity:defense","value": "8"},
+    {"id":"chestcavity:nerves","value": "2"}
+  ]
+}
+
+竭泽蛊（  "item.guzhenren.jiezegu": "竭泽蛊",）:
+OnHit
+攻击有18％概率触发［回流］
+，［回流］会基于本次攻击造成的 伤害，
+额外造成8％伤害（音效:河水流动声），
+［回流］有8％概率触发［断流］，
+［断流］会给予 敌方 时长 4秒 的 碎甲(/effect give @p guzhenren:suijia 30 0)，消耗500BASE真元维持/s，同时每秒额外消耗25点生命值
+
+{
+  "itemID": "guzhenren:jiezegu",
+  "organScores": [
+    {"id":"chestcavity:detoxification","value": "3"}
+  ]
+}
+
+
+
+泉涌命蛊（  "item.guzhenren.quan_yong_ming_gu": "泉涌命蛊", 心脏）:
+水道INCREASE EFFECT提升 30% ，每秒恢复1％生命值和5点精力，
+当胸腔内存在 水体蛊(  "item.guzhenren.shui_ti_gu": "水体蛊",) 
+会获得［纯水］效果，
+该效果提供10点常驻伤害(OnSlowTick)吸收，
+消耗800BASE真元维持/s，
+胸腔内只能生效一个泉涌命蛊
+
+{
+  "itemID": "guzhenren:quan_yong_ming_gu",
+  "organScores": [
+    {"id":"chestcavity:health","value": "2"}
+  ]
+}
