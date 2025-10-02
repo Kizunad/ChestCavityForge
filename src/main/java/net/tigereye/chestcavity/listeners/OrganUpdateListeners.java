@@ -28,6 +28,7 @@ public class OrganUpdateListeners {
         UpdateSpine(entity, cc);
         UpdateKnockbackResistance(entity, cc);
         UpdateIncompatibility(entity, cc);
+        OrganScoreEffects.applyAll(entity, cc);
 
     }
 
