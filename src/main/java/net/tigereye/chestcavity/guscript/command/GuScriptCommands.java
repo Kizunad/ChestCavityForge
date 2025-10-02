@@ -14,10 +14,14 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.commands.arguments.coordinates.Vec3Argument;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -91,10 +95,40 @@ public final class GuScriptCommands {
                         .then(Commands.literal("list")
                                 .executes(ctx -> listFx(ctx, ""))
                                 .then(Commands.argument("filter", StringArgumentType.word())
-                                        .executes(ctx -> listFx(ctx, StringArgumentType.getString(ctx, "filter")))))));
+                                        .executes(ctx -> listFx(ctx, StringArgumentType.getString(ctx, "filter"))))))
+                .then(Commands.literal("sound")
+                        .then(Commands.literal("play")
+                                .then(Commands.argument("id", ResourceLocationArgument.id())
+                                        .suggests(GuScriptCommands::suggestSoundIds)
+                                        .executes(ctx -> playSoundHere(ctx, DEFAULT_SOUND_VOLUME, DEFAULT_SOUND_PITCH))
+                                        .then(Commands.argument("volume", FloatArgumentType.floatArg(0.0F, 16.0F))
+                                                .executes(ctx -> playSoundHere(ctx,
+                                                        FloatArgumentType.getFloat(ctx, "volume"),
+                                                        DEFAULT_SOUND_PITCH))
+                                                .then(Commands.argument("pitch", FloatArgumentType.floatArg(0.1F, 4.0F))
+                                                        .executes(ctx -> playSoundHere(ctx,
+                                                                FloatArgumentType.getFloat(ctx, "volume"),
+                                                                FloatArgumentType.getFloat(ctx, "pitch")))))))
+                        .then(Commands.literal("play_at")
+                                .then(Commands.argument("id", ResourceLocationArgument.id())
+                                        .suggests(GuScriptCommands::suggestSoundIds)
+                                        .then(Commands.argument("pos", Vec3Argument.vec3())
+                                                .executes(ctx -> playSoundAt(ctx, DEFAULT_SOUND_VOLUME, DEFAULT_SOUND_PITCH))
+                                                .then(Commands.argument("volume", FloatArgumentType.floatArg(0.0F, 16.0F))
+                                                        .executes(ctx -> playSoundAt(ctx,
+                                                                FloatArgumentType.getFloat(ctx, "volume"),
+                                                                DEFAULT_SOUND_PITCH))
+                                                        .then(Commands.argument("pitch", FloatArgumentType.floatArg(0.1F, 4.0F))
+                                                                .executes(ctx -> playSoundAt(ctx,
+                                                                        FloatArgumentType.getFloat(ctx, "volume"),
+                                                                        FloatArgumentType.getFloat(ctx, "pitch")))))))))
+        );
     }
 
     private static final float DEFAULT_INTENSITY = 1.0F;
+
+    private static final float DEFAULT_SOUND_VOLUME = 1.0F;
+    private static final float DEFAULT_SOUND_PITCH = 1.0F;
 
     private static final List<ResourceLocation> BUILTIN_FX_IDS = List.of(
             ResourceLocation.parse("chestcavity:time_accel_enter"),
@@ -111,6 +145,19 @@ public final class GuScriptCommands {
 
     private static CompletableFuture<Suggestions> suggestFxIds(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
         return SharedSuggestionProvider.suggest(BUILTIN_FX_ID_STRINGS, builder);
+    }
+
+    private static final List<ResourceLocation> BUILTIN_SOUND_IDS = List.of(
+            ResourceLocation.parse("chestcavity:custom.sword.break_air")
+    );
+
+    private static final List<String> BUILTIN_SOUND_ID_STRINGS = BUILTIN_SOUND_IDS.stream()
+            .map(ResourceLocation::toString)
+            .sorted()
+            .toList();
+
+    private static CompletableFuture<Suggestions> suggestSoundIds(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(BUILTIN_SOUND_ID_STRINGS, builder);
     }
 
     private static CompletableFuture<Suggestions> suggestFlowIds(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
@@ -166,6 +213,75 @@ public final class GuScriptCommands {
             return 16.0F;
         }
         return intensity;
+    }
+
+    private static int playSoundHere(CommandContext<CommandSourceStack> ctx, float volume, float pitch) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer performer;
+        try {
+            performer = source.getPlayerOrException();
+        } catch (CommandSyntaxException e) {
+            source.sendFailure(Component.literal("需要玩家执行该命令"));
+            return 0;
+        }
+
+        ResourceLocation soundId = ResourceLocationArgument.getId(ctx, "id");
+        Optional<SoundEvent> sound = resolveSound(soundId);
+        if (sound.isEmpty()) {
+            source.sendFailure(Component.literal("未找到音效: " + soundId));
+            return 0;
+        }
+
+        float sanitizedPitch = clampPitch(pitch);
+        float sanitizedVolume = Math.max(0.0F, volume);
+        performer.level().playSound(null, performer.getX(), performer.getY(), performer.getZ(),
+                sound.get(), SoundSource.PLAYERS, sanitizedVolume, sanitizedPitch);
+        float finalVolume = sanitizedVolume;
+        float finalPitch = sanitizedPitch;
+        source.sendSuccess(() -> Component.literal(
+                "已在玩家位置播放音效 " + soundId + "（音量=" + formatDouble(finalVolume)
+                        + ", 音高=" + formatDouble(finalPitch) + "）"), false);
+        return 1;
+    }
+
+    private static int playSoundAt(CommandContext<CommandSourceStack> ctx, float volume, float pitch) {
+        CommandSourceStack source = ctx.getSource();
+        ServerLevel level = source.getLevel();
+        ResourceLocation soundId = ResourceLocationArgument.getId(ctx, "id");
+        Optional<SoundEvent> sound = resolveSound(soundId);
+        if (sound.isEmpty()) {
+            source.sendFailure(Component.literal("未找到音效: " + soundId));
+            return 0;
+        }
+
+        Vec3 pos = Vec3Argument.getVec3(ctx, "pos");
+        float sanitizedPitch = clampPitch(pitch);
+        float sanitizedVolume = Math.max(0.0F, volume);
+        level.playSound(null, pos.x, pos.y, pos.z, sound.get(), SoundSource.PLAYERS, sanitizedVolume, sanitizedPitch);
+        float finalVolume = sanitizedVolume;
+        float finalPitch = sanitizedPitch;
+        source.sendSuccess(() -> Component.literal(
+                "已在 " + formatVec(pos) + " 播放音效 " + soundId + "（音量=" + formatDouble(finalVolume)
+                        + ", 音高=" + formatDouble(finalPitch) + "）"), false);
+        return 1;
+    }
+
+    private static Optional<SoundEvent> resolveSound(ResourceLocation soundId) {
+        if (soundId == null) {
+            return Optional.empty();
+        }
+        Optional<Holder.Reference<SoundEvent>> holder = BuiltInRegistries.SOUND_EVENT.getHolder(soundId);
+        return holder.map(Holder.Reference::value);
+    }
+
+    private static float clampPitch(float pitch) {
+        if (pitch < 0.1F) {
+            return 0.1F;
+        }
+        if (pitch > 4.0F) {
+            return 4.0F;
+        }
+        return pitch;
     }
 
     private static int listFx(CommandContext<CommandSourceStack> ctx, String rawFilter) {
