@@ -47,7 +47,15 @@ final class SlashFlowActions {
                 if (!(level instanceof ServerLevel server)) {
                     return;
                 }
-                slashBreakArea(server, performer, r, dmg, bp);
+                double resolvedDamage = dmg;
+                if (controller != null) {
+                    resolvedDamage = resolveDamageOverride(
+                            controller,
+                            SwordSlashConstants.FLOW_PARAM_DAMAGE_AREA,
+                            resolvedDamage
+                    );
+                }
+                slashBreakArea(server, performer, r, resolvedDamage, bp);
             }
 
             @Override
@@ -74,7 +82,16 @@ final class SlashFlowActions {
                 Vec3 direction = performer.getLookAngle().normalize();
                 UUID performerId = performer.getUUID();
 
-                Runnable task = () -> runLockedSlashRay(server, performerId, start, direction, len, dmg, bp, radius);
+                double resolvedDamage = dmg;
+                if (controller != null) {
+                    resolvedDamage = resolveDamageOverride(
+                            controller,
+                            SwordSlashConstants.FLOW_PARAM_DAMAGE_RAY,
+                            resolvedDamage
+                    );
+                }
+                final double damageForRay = resolvedDamage;
+                Runnable task = () -> runLockedSlashRay(server, performerId, start, direction, len, damageForRay, bp, radius);
                 if (controller != null) {
                     controller.schedule(gameTime + delay, task);
                 } else {
@@ -334,6 +351,25 @@ final class SlashFlowActions {
                 }
             }
             current = current.add(step);
+        }
+    }
+
+    private static double resolveDamageOverride(FlowController controller, String key, double fallback) {
+        if (controller == null || key == null) {
+            return fallback;
+        }
+        String raw = controller.resolveFlowParam(key);
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            double parsed = Double.parseDouble(raw.trim());
+            if (Double.isNaN(parsed) || Double.isInfinite(parsed)) {
+                return fallback;
+            }
+            return parsed;
+        } catch (Exception ignored) {
+            return fallback;
         }
     }
 }

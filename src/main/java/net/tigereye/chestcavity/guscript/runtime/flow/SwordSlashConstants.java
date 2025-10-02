@@ -15,6 +15,9 @@ public final class SwordSlashConstants {
     /**
      * 剑 slash 行为允许破坏的方块资源 ID 集合。
      */
+    public static final String FLOW_PARAM_DAMAGE_AREA = "damage_area";
+    public static final String FLOW_PARAM_DAMAGE_RAY = "damage_ray";
+
     public static final Set<ResourceLocation> SLASH_BREAKABLE_IDS = Set.of(
             ResourceLocation.withDefaultNamespace("grass_block"),
             ResourceLocation.withDefaultNamespace("dirt"),

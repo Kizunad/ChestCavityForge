@@ -116,6 +116,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 		CCContainers.MENU_TYPES.register(bus);
 		CCItems.ITEMS.register(bus);
 		CCEntities.ENTITY_TYPES.register(bus);
+		CCSoundEvents.SOUND_EVENTS.register(bus);
 		CCRecipes.RECIPE_SERIALIZERS.register(bus);
 		CCRecipes.RECIPE_TYPES.register(bus);
 		CCEnchantments.ENCHANTMENTS.register(bus);
