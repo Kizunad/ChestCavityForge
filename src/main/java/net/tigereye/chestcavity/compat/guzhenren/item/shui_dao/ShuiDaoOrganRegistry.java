@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior.LingXianguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior.QuanYongMingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior.ShuiTiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -18,6 +19,8 @@ public final class ShuiDaoOrganRegistry {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "ling_xian_gu");
     private static final ResourceLocation SHUI_TI_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "shui_ti_gu");
+    private static final ResourceLocation QUAN_YONG_MING_GU_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "quan_yong_ming_gu");
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(LING_XIAN_GU_ID)
@@ -29,6 +32,12 @@ public final class ShuiDaoOrganRegistry {
                     .addRemovalListener(ShuiTiGuOrganBehavior.INSTANCE)
                     .ensureAttached(ShuiTiGuOrganBehavior.INSTANCE::ensureAttached)
                     .onEquip(ShuiTiGuOrganBehavior.INSTANCE::onEquip)
+                    .build(),
+            OrganIntegrationSpec.builder(QUAN_YONG_MING_GU_ID)
+                    .addSlowTickListener(QuanYongMingGuOrganBehavior.INSTANCE)
+                    .addRemovalListener(QuanYongMingGuOrganBehavior.INSTANCE)
+                    .ensureAttached(QuanYongMingGuOrganBehavior.INSTANCE::ensureAttached)
+                    .onEquip(QuanYongMingGuOrganBehavior.INSTANCE::onEquip)
                     .build()
     );
 

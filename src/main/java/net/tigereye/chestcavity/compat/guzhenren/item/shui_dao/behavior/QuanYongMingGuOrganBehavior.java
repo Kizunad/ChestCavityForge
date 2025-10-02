@@ -1,0 +1,236 @@
+package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalListener;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.ChestCavityUtil;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Behaviour for 泉涌命蛊 (Quan Yong Ming Gu).
+ */
+public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
+        implements OrganSlowTickListener, OrganRemovalListener, IncreaseEffectContributor {
+
+    public static final QuanYongMingGuOrganBehavior INSTANCE = new QuanYongMingGuOrganBehavior();
+
+    private static final String MOD_ID = "guzhenren";
+    private static final ResourceLocation ORGAN_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "quan_yong_ming_gu");
+    private static final ResourceLocation SHUI_TI_GU_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "shui_ti_gu");
+    private static final ResourceLocation SHUI_DAO_INCREASE_EFFECT =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/shui_dao_increase_effect");
+
+    private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
+
+    private static final double INCREASE_EFFECT_BONUS = 0.30;
+    private static final double ZHENYUAN_COST_PER_SECOND = 800.0;
+    private static final double JINGLI_GAIN_PER_SECOND = 5.0;
+    private static final double HEALTH_PERCENT_PER_SECOND = 0.01;
+    private static final float PURE_WATER_ABSORPTION = 10.0f;
+
+    private QuanYongMingGuOrganBehavior() {
+    }
+
+    public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        if (!matchesOrgan(organ, ORGAN_ID)) {
+            return;
+        }
+
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        ledger.registerContributor(organ, this, SHUI_DAO_INCREASE_EFFECT);
+
+        registerRemovalHook(cc, organ, this, staleRemovalContexts);
+        refreshIncreaseContribution(cc, organ, isPrimaryOrgan(cc, organ));
+    }
+
+    @Override
+    public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (entity == null || entity.level().isClientSide()) {
+            return;
+        }
+        if (!matchesOrgan(organ, ORGAN_ID)) {
+            return;
+        }
+
+        boolean primary = isPrimaryOrgan(cc, organ);
+        refreshIncreaseContribution(cc, organ, primary);
+        if (!primary) {
+            return;
+        }
+        if (cc == null || !entity.isAlive()) {
+            return;
+        }
+
+        int stackCount = Math.max(1, organ.getCount());
+        double zhenyuanCost = ZHENYUAN_COST_PER_SECOND * stackCount;
+
+        ConsumptionResult result;
+        if (entity instanceof Player player) {
+            result = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
+        } else {
+            result = GuzhenrenResourceCostHelper.consumeWithFallback(entity, zhenyuanCost, 0.0);
+        }
+        if (!result.succeeded()) {
+            return;
+        }
+
+        applyHealing(entity, stackCount);
+        grantJingli(entity, stackCount);
+
+        if (hasShuiTiGu(cc, organ)) {
+            ensurePureWaterAbsorption(entity, stackCount);
+        }
+    }
+
+    @Override
+    public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        if (!matchesOrgan(organ, ORGAN_ID)) {
+            return;
+        }
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        double removed = ledger.remove(organ, SHUI_DAO_INCREASE_EFFECT);
+        ledger.unregisterContributor(organ);
+        context.lookupChannel(SHUI_DAO_INCREASE_EFFECT)
+                .ifPresent(channel -> channel.adjust(-removed));
+    }
+
+    public void ensureAttached(ChestCavityInstance cc) {
+        if (cc == null) {
+            return;
+        }
+        LinkageManager.getContext(cc)
+                .getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT)
+                .addPolicy(NON_NEGATIVE);
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(
+            ChestCavityInstance cc,
+            ActiveLinkageContext context,
+            ItemStack organ,
+            IncreaseEffectLedger.Registrar registrar
+    ) {
+        if (organ == null || organ.isEmpty()) {
+            return;
+        }
+        boolean primary = isPrimaryOrgan(cc, organ);
+        double effect = primary ? INCREASE_EFFECT_BONUS : 0.0;
+        registrar.record(SHUI_DAO_INCREASE_EFFECT, Math.max(1, organ.getCount()), effect);
+    }
+
+    private void applyHealing(LivingEntity entity, int stackCount) {
+        if (HEALTH_PERCENT_PER_SECOND <= 0.0) {
+            return;
+        }
+        float maxHealth = entity.getMaxHealth();
+        if (maxHealth <= 0.0f || entity.getHealth() >= maxHealth) {
+            return;
+        }
+        float healAmount = (float) (maxHealth * HEALTH_PERCENT_PER_SECOND * stackCount);
+        if (healAmount <= 0.0f) {
+            return;
+        }
+        ChestCavityUtil.runWithOrganHeal(() -> entity.heal(healAmount));
+    }
+
+    private void grantJingli(LivingEntity entity, int stackCount) {
+        if (!(entity instanceof Player player) || JINGLI_GAIN_PER_SECOND <= 0.0) {
+            return;
+        }
+        double delta = JINGLI_GAIN_PER_SECOND * stackCount;
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        handleOpt.ifPresent(handle -> handle.adjustJingli(delta, true));
+    }
+
+    private void ensurePureWaterAbsorption(LivingEntity entity, int stackCount) {
+        float target = PURE_WATER_ABSORPTION * Math.max(1, stackCount);
+        if (target <= 0.0f) {
+            return;
+        }
+        float current = entity.getAbsorptionAmount();
+        if (current + 0.01f >= target) {
+            return;
+        }
+        entity.setAbsorptionAmount(target);
+    }
+
+    private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ, boolean primary) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        LinkageChannel channel = context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        double previous = ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, 0.0);
+        double target = primary ? INCREASE_EFFECT_BONUS : 0.0;
+        double delta = target - previous;
+        if (delta == 0.0) {
+            return;
+        }
+        channel.adjust(delta);
+        ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, delta);
+    }
+
+    private boolean isPrimaryOrgan(ChestCavityInstance cc, ItemStack organ) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return false;
+        }
+        int slotIndex = ChestCavityUtil.findOrganSlot(cc, organ);
+        if (slotIndex < 0) {
+            return true;
+        }
+        for (int i = 0; i < slotIndex; i++) {
+            ItemStack candidate = cc.inventory.getItem(i);
+            if (matchesOrgan(candidate, ORGAN_ID)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean hasShuiTiGu(ChestCavityInstance cc, ItemStack self) {
+        if (cc == null) {
+            return false;
+        }
+        int size = cc.inventory.getContainerSize();
+        for (int i = 0; i < size; i++) {
+            ItemStack candidate = cc.inventory.getItem(i);
+            if (candidate == self || candidate == null || candidate.isEmpty()) {
+                continue;
+            }
+            if (matchesOrgan(candidate, SHUI_TI_GU_ID)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
