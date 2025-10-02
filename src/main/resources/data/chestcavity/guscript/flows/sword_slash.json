@@ -40,23 +40,35 @@
         },
         {
           "type": "play_break_air_sound",
-          "delay_ticks": 50,
-          "volume": 1.0,
+          "delay_ticks": 20,
+          "volume": 4.0,
+          "pitch": 1.2
+        },
+        {
+          "type": "play_break_air_sound",
+          "delay_ticks": 40,
+          "volume": 4.0,
           "pitch": 1.0
         },
         {
+          "type": "play_break_air_sound",
+          "delay_ticks": 60,
+          "volume": 3.0,
+          "pitch": 0.8
+        },
+        {
           "type": "slash_area",
-          "radius": 5.0,
-          "damage": 60.0,
+          "radius": 2.5,
+          "damage": 90.0,
           "break_power": 5.0
         },
         {
           "type": "slash_delayed_ray",
           "delay_ticks": 50,
-          "length": 15.0,
+          "length": 20.0,
           "damage": 120.0,
           "break_power": 5.0,
-          "ray_radius": 2
+          "ray_radius": 1
         }
       ],
       "update_period": 5,

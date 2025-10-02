@@ -9,12 +9,7 @@
     "tags": ["杀招", "御剑"],
     "flow_id": "chestcavity:sword_slash",
     "flow_params": {
-      "length": "7.5",
-      "thickness": "0.9",
-      "lifespan": "12",
-      "break_power": "1.5",
-      "max_pierce": "3",
-      "damage_area": "60",
+      "damage_area": "90",
       "damage_ray": "120"
     }
   }

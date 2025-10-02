@@ -1,8 +1,11 @@
 package net.tigereye.chestcavity.guscript.runtime.flow.actions;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -90,6 +93,7 @@ final class SlashFlowActions {
                             resolvedDamage
                     );
                 }
+                if resolvedDamage 
                 final double damageForRay = resolvedDamage;
                 Runnable task = () -> runLockedSlashRay(server, performerId, start, direction, len, damageForRay, bp, radius);
                 if (controller != null) {
@@ -231,34 +235,39 @@ final class SlashFlowActions {
         return server.destroyBlock(pos, true, performer);
     }
 
-    private static void slashDamageEntities(ServerLevel server, Player performer, AABB area, double damage) {
-        slashDamageEntities(server, performer, area, damage, null, null, 0.0D);
+    private static List<LivingEntity> slashDamageEntities(ServerLevel server, Player performer, AABB area, double damage) {
+        return slashDamageEntities(server, performer, area, damage, null, null, 0.0D);
     }
 
-    private static void slashDamageEntities(ServerLevel server, Player performer, AABB area, double damage, Vec3 rayStart, Vec3 rayEnd, double rayRadius) {
-        List<LivingEntity> hits = server.getEntitiesOfClass(LivingEntity.class, area, entity -> canDamageSlashTarget(performer, entity));
-        if (hits.isEmpty()) {
-            return;
+    private static List<LivingEntity> slashDamageEntities(ServerLevel server, Player performer, AABB area, double damage, Vec3 rayStart, Vec3 rayEnd, double rayRadius) {
+        List<LivingEntity> candidates = server.getEntitiesOfClass(LivingEntity.class, area, entity -> canDamageSlashTarget(performer, entity));
+        if (candidates.isEmpty()) {
+            return List.of();
         }
-        for (LivingEntity entity : hits) {
+        List<LivingEntity> affected = new ArrayList<>();
+        for (LivingEntity entity : candidates) {
             if (rayStart != null && rayEnd != null && rayRadius > 0.0D) {
                 double distanceSq = distanceToSegmentSquared(entity.getBoundingBox().getCenter(), rayStart, rayEnd);
                 if (distanceSq > rayRadius * rayRadius) {
                     continue;
                 }
             }
-            applySlashDamage(performer, entity, damage);
+            if (!applySlashDamage(performer, entity, damage)) {
+                continue;
+            }
             Vec3 knock = performer.getLookAngle().normalize();
             if (knock.lengthSqr() > 1.0E-6) {
                 entity.push(knock.x * 0.6D, 0.2D + Math.abs(knock.y) * 0.1D, knock.z * 0.6D);
                 entity.hurtMarked = true;
             }
+            affected.add(entity);
         }
+        return affected;
     }
 
-    private static void applySlashDamage(Player performer, LivingEntity entity, double damage) {
+    private static boolean applySlashDamage(Player performer, LivingEntity entity, double damage) {
         if (damage <= 0.0D || entity == null) {
-            return;
+            return false;
         }
         float amount = (float) damage;
         boolean applied = false;
@@ -269,7 +278,9 @@ final class SlashFlowActions {
         }
         if (!applied) {
             entity.setHealth(Math.max(0.0F, entity.getHealth() - amount));
+            applied = true;
         }
+        return applied;
     }
 
     private static boolean canDamageSlashTarget(Player performer, LivingEntity entity) {
@@ -321,16 +332,43 @@ final class SlashFlowActions {
     private static void runLockedSlashRay(ServerLevel server, UUID performerId,
                                     Vec3 start, Vec3 direction,
                                     double length, double damage, double breakPower, double rayRadius) {
+        
         Player performer = server.getPlayerByUUID(performerId);
-        if (performer == null) return;
+        if (performer == null) {
+            ChestCavity.LOGGER.warn("[Slash] Scheduled ray skipped: performer {} missing", performerId);
+            return;
+        }
 
         Vec3 end = start.add(direction.scale(length));
 
+        ChestCavity.LOGGER.info(
+                "[Slash] Ray start performer={} damage={} breakPower={} length={} radius={} start=({}, {}, {}) dir=({}, {}, {})",
+                performer.getGameProfile().getName(),
+                formatDouble(damage),
+                formatDouble(breakPower),
+                formatDouble(length),
+                formatDouble(rayRadius),
+                formatDouble(start.x),
+                formatDouble(start.y),
+                formatDouble(start.z),
+                formatDouble(direction.x),
+                formatDouble(direction.y),
+                formatDouble(direction.z)
+        );
+
         // 实体检测
         AABB area = new AABB(start, end).inflate(rayRadius);
-        slashDamageEntities(server, performer, area, damage, start, end, rayRadius);
+        List<LivingEntity> hits = slashDamageEntities(server, performer, area, damage, start, end, rayRadius);
+        ChestCavity.LOGGER.info(
+                "[Slash] Ray entity hits count={} names={}",
+                hits.size(),
+                hits.isEmpty()
+                        ? "-"
+                        : hits.stream().map(SlashFlowActions::describeEntity).collect(Collectors.joining(", "))
+        );
 
         // 方块破坏逻辑
+        int blocksBroken = 0;
         Vec3 step = direction.scale(SLASH_RAY_STEP);
         Vec3 current = start;
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
@@ -346,12 +384,21 @@ final class SlashFlowActions {
                     if (dx * dx + dz * dz > rayRadius * rayRadius) continue;
                     for (int dy = -intRadius; dy <= intRadius; dy++) {
                         cursor.set(baseX + dx, baseY + dy, baseZ + dz);
-                        slashBreakBlock(server, performer, cursor, breakPower);
+                        if (slashBreakBlock(server, performer, cursor, breakPower)) {
+                            blocksBroken++;
+                        }
                     }
                 }
             }
             current = current.add(step);
         }
+
+        ChestCavity.LOGGER.info(
+                "[Slash] Ray finished performer={} blocksBroken={}"
+                        + (blocksBroken > 0 ? "" : " (no breakable blocks)"),
+                performer.getGameProfile().getName(),
+                blocksBroken
+        );
     }
 
     private static double resolveDamageOverride(FlowController controller, String key, double fallback) {
@@ -371,5 +418,20 @@ final class SlashFlowActions {
         } catch (Exception ignored) {
             return fallback;
         }
+    }
+
+    private static String formatDouble(double value) {
+        return String.format(Locale.ROOT, "%.3f", value);
+    }
+
+    private static String describeEntity(LivingEntity entity) {
+        if (entity == null) {
+            return "?";
+        }
+        String name = entity.getName().getString();
+        if (name == null || name.isBlank()) {
+            name = entity.getType().toShortString();
+        }
+        return name + "#" + entity.getId();
     }
 }

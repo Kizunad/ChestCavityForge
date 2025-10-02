@@ -68,7 +68,7 @@ public final class FlowController {
             instance.tick(serverLevel);
             if (instance.isFinished()) {
                 FlowSyncDispatcher.syncStopped(performer, instance);
-                clearRuntimeState();
+                clearRuntimeState(false);
                 instance = null;
                 drainQueue(serverLevel.getGameTime());
             }
@@ -349,7 +349,7 @@ public final class FlowController {
     }
 
     void shutdown() {
-        clearRuntimeState();
+        clearRuntimeState(true);
         pending.clear();
         instance = null;
     }
@@ -369,10 +369,17 @@ public final class FlowController {
         }
     }
 
+    @SuppressWarnings("unused")
     private void clearRuntimeState() {
+        clearRuntimeState(true);
+    }
+
+    private void clearRuntimeState(boolean cancelScheduled) {
         longVariables.clear();
         doubleVariables.clear();
-        scheduledTasks.clear();
+        if (cancelScheduled) {
+            scheduledTasks.clear();
+        }
         resetPreview();
     }
 
@@ -393,7 +400,7 @@ public final class FlowController {
 
     private boolean startInternal(FlowProgram program, LivingEntity target, double timeScale, Map<String, String> flowParams,
                                    long gameTime, String sourceDescriptor) {
-        clearRuntimeState();
+        clearRuntimeState(true);
         instance = new FlowInstance(program, performer, target, this, timeScale, flowParams, gameTime);
         FlowSyncDispatcher.syncState(performer, instance);
         if (!instance.attemptStart(gameTime)) {
