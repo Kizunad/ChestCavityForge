@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.runtime.flow.actions;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +28,7 @@ import net.tigereye.chestcavity.guscript.runtime.flow.SwordSlashConstants;
 final class SlashFlowActions {
 
     private static final double SLASH_DEFAULT_HEIGHT = 3.0D;
-    private static final double SLASH_RAY_STEP = 0.5D;
+    private static final double SLASH_RAY_STEP = 1D;
 
     private SlashFlowActions() {
     }
@@ -65,21 +66,22 @@ final class SlashFlowActions {
         return new FlowEdgeAction() {
             @Override
             public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
-                if (performer == null) {
+                if (!(performer.level() instanceof ServerLevel server)) {
                     return;
                 }
-                Level level = performer.level();
-                if (!(level instanceof ServerLevel server)) {
-                    return;
-                }
+                // 在施放瞬间锁定位置和朝向
+                Vec3 start = performer.position();
+                Vec3 direction = performer.getLookAngle().normalize();
                 UUID performerId = performer.getUUID();
-                Runnable task = () -> runSlashRay(server, performerId, len, dmg, bp, radius);
+
+                Runnable task = () -> runLockedSlashRay(server, performerId, start, direction, len, dmg, bp, radius);
                 if (controller != null) {
                     controller.schedule(gameTime + delay, task);
                 } else {
                     task.run();
                 }
             }
+
 
             @Override
             public String describe() {
@@ -89,7 +91,10 @@ final class SlashFlowActions {
     }
 
     private static void slashBreakArea(ServerLevel server, Player performer, double radius, double damage, double breakPower) {
+        HashSet<BlockPos> visited = new HashSet<>();
+        
         Vec3 origin = performer.position();
+        // 只取水平朝向
         Vec3 forward = performer.getLookAngle();
         Vec3 horizontalForward = new Vec3(forward.x, 0.0D, forward.z);
         if (horizontalForward.lengthSqr() < 1.0E-6) {
@@ -97,51 +102,93 @@ final class SlashFlowActions {
             horizontalForward = new Vec3(fallbackForward.x, 0.0D, fallbackForward.z);
         }
         Vec3 normalized = horizontalForward.normalize();
-        Vec3 perpendicular = new Vec3(-normalized.z, 0.0D, normalized.x);
+
         double height = SLASH_DEFAULT_HEIGHT;
-        Vec3 min = origin.subtract(perpendicular.scale(radius)).subtract(0.0D, 0.5D, 0.0D);
-        Vec3 max = origin.add(perpendicular.scale(radius)).add(normalized.scale(radius)).add(0.0D, height, 0.0D);
+
+        // 实体伤害区域: 前方半圆 AABB
+        Vec3 min = origin.add(-radius, -0.5D, -radius);
+        Vec3 max = origin.add(radius, height, radius);
         AABB area = new AABB(min, max);
         slashDamageEntities(server, performer, area, damage);
 
-        double step = SLASH_RAY_STEP;
-        int steps = (int) Math.ceil(radius / step);
+        // 方块破坏：脚下为最低点，前方半圆
+        BlockPos base = performer.blockPosition().below();
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        for (int i = -steps; i <= steps; i++) {
-            double lateral = i * step;
-            Vec3 offset = origin.add(perpendicular.scale(lateral));
-            for (double y = 0.0D; y <= height; y += step) {
-                cursor.set(offset.x, offset.y + y, offset.z);
-                slashBreakBlock(server, performer, cursor, breakPower);
+
+        for (int dx = (int) -radius; dx <= radius; dx++) {
+            for (int dz = (int) -radius; dz <= radius; dz++) {
+                double distSq = dx * dx + dz * dz;
+                if (distSq > radius * radius) {
+                    continue; // 超出圆形
+                }
+
+                // 判断是否在前方 180°（点积大于等于 0）
+                Vec3 delta = new Vec3(dx, 0, dz);
+                if (delta.lengthSqr() > 1.0E-6) {
+                    Vec3 deltaNorm = delta.normalize();
+                    if (normalized.dot(deltaNorm) < 0) {
+                        continue; // 在后方
+                    }
+                }
+
+                // 高度循环
+                for (int dy = 0; dy <= height; dy++) {
+                    cursor.set(base.getX() + dx, base.getY() + dy, base.getZ() + dz);
+                    if (visited.add(cursor.immutable())) {
+                        slashBreakBlock(server, performer, cursor, breakPower);
+                    }
+                }
             }
         }
     }
 
+
     private static void runSlashRay(ServerLevel server, UUID performerId, double length, double damage, double breakPower, double rayRadius) {
+        HashSet<BlockPos> visited = new HashSet<>();
+        
         Player performer = server.getPlayerByUUID(performerId);
         if (performer == null) {
             return;
         }
-        Vec3 start = performer.position();
+        // 起点：用眼睛位置更贴合射线
+        Vec3 start = performer.position(); // 用脚底
         Vec3 direction = performer.getLookAngle().normalize();
         Vec3 end = start.add(direction.scale(length));
 
+        // 实体检测：长方体通道 + 半径
         AABB area = new AABB(start, end).inflate(rayRadius);
         slashDamageEntities(server, performer, area, damage, start, end, rayRadius);
 
+        // 方块破坏：圆柱形体积
         Vec3 step = direction.scale(SLASH_RAY_STEP);
         Vec3 current = start;
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
         for (double travelled = 0.0D; travelled <= length; travelled += SLASH_RAY_STEP) {
-            cursor.set(current.x, current.y, current.z);
-            slashBreakBlock(server, performer, cursor, breakPower);
-            cursor.set(current.x, current.y + 1.0D, current.z);
-            slashBreakBlock(server, performer, cursor, breakPower);
-            cursor.set(current.x, current.y - 1.0D, current.z);
-            slashBreakBlock(server, performer, cursor, breakPower);
+            int baseX = Mth.floor(current.x);
+            int baseY = Mth.floor(current.y);
+            int baseZ = Mth.floor(current.z);
+
+            int intRadius = (int)Math.ceil(rayRadius);
+
+            for (int dx = -intRadius; dx <= intRadius; dx++) {
+                for (int dz = -intRadius; dz <= intRadius; dz++) {
+                    if (dx * dx + dz * dz > rayRadius * rayRadius) {
+                        continue; // 超出圆盘
+                    }
+                    for (int dy = -intRadius; dy <= intRadius; dy++) {
+                        cursor.set(baseX + dx, baseY + dy, baseZ + dz);
+                        if (visited.add(cursor.immutable())) {
+                            slashBreakBlock(server, performer, cursor, breakPower);
+                        }
+                    }
+                }
+            }
+
             current = current.add(step);
         }
     }
+
 
     private static boolean slashBreakBlock(ServerLevel server, Player performer, BlockPos pos, double breakPower) {
         if (!slashCanBreakBlocks()) {
@@ -231,7 +278,8 @@ final class SlashFlowActions {
                 || state.is(BlockTags.SAPLINGS)
                 || state.is(BlockTags.WOOL)
                 || state.is(BlockTags.MINEABLE_WITH_AXE)
-                || state.is(BlockTags.MINEABLE_WITH_SHOVEL);
+                || state.is(BlockTags.MINEABLE_WITH_SHOVEL)
+                || state.is(BlockTags.MINEABLE_WITH_PICKAXE);
     }
 
     private static boolean slashCanBreakBlocks() {
@@ -250,5 +298,42 @@ final class SlashFlowActions {
         t = Mth.clamp(t, 0.0D, 1.0D);
         Vec3 projection = start.add(ab.scale(t));
         return point.distanceToSqr(projection);
+    }
+
+    // ✅ 新方法：在施法瞬间锁定起点与方向
+    private static void runLockedSlashRay(ServerLevel server, UUID performerId,
+                                    Vec3 start, Vec3 direction,
+                                    double length, double damage, double breakPower, double rayRadius) {
+        Player performer = server.getPlayerByUUID(performerId);
+        if (performer == null) return;
+
+        Vec3 end = start.add(direction.scale(length));
+
+        // 实体检测
+        AABB area = new AABB(start, end).inflate(rayRadius);
+        slashDamageEntities(server, performer, area, damage, start, end, rayRadius);
+
+        // 方块破坏逻辑
+        Vec3 step = direction.scale(SLASH_RAY_STEP);
+        Vec3 current = start;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+        for (double travelled = 0.0D; travelled <= length; travelled += SLASH_RAY_STEP) {
+            int baseX = Mth.floor(current.x);
+            int baseY = Mth.floor(current.y);
+            int baseZ = Mth.floor(current.z);
+
+            int intRadius = (int)Math.ceil(rayRadius);
+            for (int dx = -intRadius; dx <= intRadius; dx++) {
+                for (int dz = -intRadius; dz <= intRadius; dz++) {
+                    if (dx * dx + dz * dz > rayRadius * rayRadius) continue;
+                    for (int dy = -intRadius; dy <= intRadius; dy++) {
+                        cursor.set(baseX + dx, baseY + dy, baseZ + dz);
+                        slashBreakBlock(server, performer, cursor, breakPower);
+                    }
+                }
+            }
+            current = current.add(step);
+        }
     }
 }

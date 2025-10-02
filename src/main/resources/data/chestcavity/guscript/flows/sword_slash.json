@@ -36,21 +36,21 @@
           "scale": 1.0,
           "alpha": 0.9,
           "loop": false,
-          "duration": 90
+          "duration": 89
         },
         {
           "type": "slash_area",
           "radius": 5.0,
-          "damage": 12.0,
+          "damage": 60.0,
           "break_power": 5.0
         },
         {
           "type": "slash_delayed_ray",
           "delay_ticks": 50,
           "length": 15.0,
-          "damage": 16.0,
+          "damage": 120.0,
           "break_power": 5.0,
-          "ray_radius": 1.25
+          "ray_radius": 2
         }
       ],
       "update_period": 5,
