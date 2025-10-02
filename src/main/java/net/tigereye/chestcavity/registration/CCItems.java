@@ -33,6 +33,7 @@ public class CCItems {
         public static final Item GUZHENREN_XIE_YAN_GU = resolveExternalItem("guzhenren", "xie_yan_gu");
         public static final Item GUZHENREN_BING_JI_GU = resolveExternalItem("guzhenren", "bing_ji_gu");
         public static final Item GUZHENREN_SHUANG_XI_GU = resolveExternalItem("guzhenren", "shuang_xi_gu");
+        public static final Item GUZHENREN_QING_RE_GU = resolveExternalItem("guzhenren", "qing_re_gu");
 
 	// -- 水道
 	public static final Item GUZHENREN_LING_XIAN_GU = resolveExternalItem("guzhenren", "ling_xian_gu");
