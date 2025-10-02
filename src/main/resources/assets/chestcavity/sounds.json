@@ -1,0 +1,10 @@
+{
+  "custom.sword.break_air": {
+    "sounds": [
+      {
+        "name": "chestcavity:custom/sword/break_air",
+        "stream": false
+      }
+    ]
+  }
+}

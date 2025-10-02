@@ -39,6 +39,12 @@
           "duration": 89
         },
         {
+          "type": "play_break_air_sound",
+          "delay_ticks": 50,
+          "volume": 1.0,
+          "pitch": 1.0
+        },
+        {
           "type": "slash_area",
           "radius": 5.0,
           "damage": 60.0,

@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.guscript.runtime.flow.actions;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -23,6 +24,8 @@ public final class FlowActions {
 
     private FlowActions() {
     }
+
+    private static final ResourceLocation BREAK_AIR_SOUND_ID = ResourceLocation.parse("chestcavity:custom.sword.break_air");
 
     public static void overrideResourceOpenerForTests(Function<Player, Optional<GuzhenrenResourceBridge.ResourceHandle>> opener) {
         ResourceFlowActions.overrideResourceOpenerForTests(opener);
@@ -102,6 +105,26 @@ public final class FlowActions {
 
     public static FlowEdgeAction emitGecko(GeckoFxParameters parameters) {
         return FxFlowActions.emitGecko(parameters);
+    }
+
+    public static FlowEdgeAction playSound(ResourceLocation soundId, SoundAnchor anchor, Vec3 offset, float volume, float pitch, int delayTicks) {
+        return SoundFlowActions.playSound(soundId, anchor, offset, volume, pitch, delayTicks);
+    }
+
+    public static FlowEdgeAction playSound(ResourceLocation soundId, SoundAnchor anchor, Vec3 offset, float volume, float pitch) {
+        return playSound(soundId, anchor, offset, volume, pitch, 0);
+    }
+
+    public static FlowEdgeAction playBreakAirSound(int delayTicks, float volume, float pitch) {
+        return SoundFlowActions.playSound(BREAK_AIR_SOUND_ID, SoundAnchor.PERFORMER, Vec3.ZERO, volume, pitch, delayTicks);
+    }
+
+    public static FlowEdgeAction playBreakAirSound(int delayTicks) {
+        return playBreakAirSound(delayTicks, 1.0F, 1.0F);
+    }
+
+    public static FlowEdgeAction playBreakAirSound() {
+        return playBreakAirSound(0, 1.0F, 1.0F);
     }
 
     public static FlowEdgeAction explode(float power) {
@@ -216,6 +239,22 @@ public final class FlowActions {
 
     static UUID computeFxEventId(ResourceLocation fxId, Entity anchor, boolean loop) {
         return FxFlowActions.computeFxEventId(fxId, anchor, loop);
+    }
+
+    public enum SoundAnchor {
+        PERFORMER,
+        TARGET;
+
+        public static SoundAnchor fromString(String raw) {
+            if (raw == null || raw.isBlank()) {
+                return PERFORMER;
+            }
+            String normalized = raw.trim().toLowerCase(Locale.ROOT);
+            return switch (normalized) {
+                case "target", "flow_target" -> TARGET;
+                default -> PERFORMER;
+            };
+        }
     }
 
     public record GeckoFxParameters(
