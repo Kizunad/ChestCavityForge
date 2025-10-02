@@ -93,7 +93,6 @@ final class SlashFlowActions {
                             resolvedDamage
                     );
                 }
-                if resolvedDamage 
                 final double damageForRay = resolvedDamage;
                 Runnable task = () -> runLockedSlashRay(server, performerId, start, direction, len, damageForRay, bp, radius);
                 if (controller != null) {
