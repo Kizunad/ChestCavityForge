@@ -125,6 +125,8 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
         ledger.unregisterContributor(organ);
         context.lookupChannel(SHUI_DAO_INCREASE_EFFECT)
                 .ifPresent(channel -> channel.adjust(-removed));
+        // Ensure ledger integrity to avoid stale stacked contributions
+        ledger.verifyAndRebuildIfNeeded();
     }
 
     public void ensureAttached(ChestCavityInstance cc) {
@@ -168,7 +170,6 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
 
     private void grantJingli(Player player, int stackCount) {
         if (JINGLI_GAIN_PER_SECOND <= 0.0) {
-
             return;
         }
         double delta = JINGLI_GAIN_PER_SECOND * stackCount;
@@ -177,15 +178,23 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
     }
 
     private void ensurePureWaterAbsorption(LivingEntity entity, int stackCount) {
-        float target = PURE_WATER_ABSORPTION * Math.max(1, stackCount);
-        if (target <= 0.0f) {
+        // First ensure the capacity (MAX_ABSORPTION) is high enough like SteelBone helper does
+        net.minecraft.world.entity.ai.attributes.AttributeInstance attr =
+                entity.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION);
+        double desiredCap = (double) PURE_WATER_ABSORPTION * Math.max(1, stackCount);
+        if (attr != null && desiredCap > 0.0 && Math.abs(attr.getBaseValue() - desiredCap) > 1.0E-3) {
+            attr.setBaseValue(desiredCap);
+        }
+        // Then softly raise current absorption up to the target, without clobbering higher values
+        float targetCurrent = (float) desiredCap;
+        if (targetCurrent <= 0.0f) {
             return;
         }
         float current = entity.getAbsorptionAmount();
-        if (current + 0.01f >= target) {
+        if (current + 0.01f >= targetCurrent) {
             return;
         }
-        entity.setAbsorptionAmount(target);
+        entity.setAbsorptionAmount(targetCurrent);
     }
 
     private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ, boolean primary) {
@@ -195,14 +204,15 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel channel = context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
+        // Rebuild ensures no duplicate residual entries before adjusting
+        ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, 0.0);
         double target = primary ? INCREASE_EFFECT_BONUS : 0.0;
         double delta = target - previous;
-        if (delta == 0.0) {
-            return;
+        if (delta != 0.0) {
+            channel.adjust(delta);
+            ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, delta);
         }
-        channel.adjust(delta);
-        ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, delta);
     }
 
     private boolean isPrimaryOrgan(ChestCavityInstance cc, ItemStack organ) {
@@ -239,4 +249,3 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
         return false;
     }
 }
-

@@ -112,6 +112,8 @@ public final class ShuiTiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         ledger.unregisterContributor(organ);
         context.lookupChannel(SHUI_DAO_INCREASE_EFFECT)
                 .ifPresent(channel -> channel.adjust(-removed));
+        // Guard against stale stacked entries
+        ledger.verifyAndRebuildIfNeeded();
     }
 
     public void ensureAttached(ChestCavityInstance cc) {
@@ -145,6 +147,8 @@ public final class ShuiTiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel channel = context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
+        // Ensure ledger integrity before adjusting contributions to prevent duplicates
+        ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, 0.0);
         double target = Math.max(1, organ.getCount()) * INCREASE_PER_STACK;
         double delta = target - previous;

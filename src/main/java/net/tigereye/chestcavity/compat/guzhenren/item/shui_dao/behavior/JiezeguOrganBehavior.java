@@ -80,7 +80,7 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         OrganState state = organState(organ, STATE_ROOT);
         boolean previous = state.getBoolean(ACTIVE_KEY, false);
-        boolean active = performUpkeep(entity, cc, organ);
+        boolean active = upkeepZhenyuan(entity, organ);
         if (previous != active) {
             state.setBoolean(ACTIVE_KEY, active);
             if (cc != null) {
@@ -124,17 +124,23 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         double increase = resolveWaterIncrease(cc);
         double efficiency = Math.max(0.0, 1.0 + increase);
         float bonus = (float) (damage * BONUS_DAMAGE_RATIO * efficiency);
+        
+        // 大于 0.0 才会触发
         if (bonus > 0.0f) {
             playRefluxSound(attacker.level(), attacker, target);
             if (random.nextDouble() < FLOW_BREAK_TRIGGER_CHANCE) {
-                applyFlowBreak(target, increase);
+                if (upkeepHealth(attacker)) {
+                    applyFlowBreak(target, increase);
+                }
             }
             return damage + bonus;
         }
 
         playRefluxSound(attacker.level(), attacker, target);
         if (random.nextDouble() < FLOW_BREAK_TRIGGER_CHANCE) {
-            applyFlowBreak(target, increase);
+            if (upkeepHealth(attacker)) {
+                applyFlowBreak(target, increase);
+            }
         }
         return damage;
     }
@@ -151,14 +157,10 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
     }
 
-    private boolean performUpkeep(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (entity == null || organ == null || organ.isEmpty()) {
-            return false;
-        }
+    private boolean upkeepZhenyuan(LivingEntity entity, ItemStack organ) {
+        if (entity == null || organ == null || organ.isEmpty()) return false;
         int stacks = Math.max(1, organ.getCount());
         double zhenyuanCost = BASE_ZHENYUAN_COST_PER_SECOND * stacks;
-        float healthCost = BASE_HEALTH_COST_PER_SECOND * stacks;
-
         ConsumptionResult payment;
         if (entity instanceof Player player) {
             payment = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
@@ -169,7 +171,13 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             logUpkeepFailure(entity, payment);
             return false;
         }
+        return true;
+    }
 
+    private boolean upkeepHealth(LivingEntity entity) {
+        if (entity == null) return false;
+        // Health cost uses 1 stack baseline per trigger of Flow Break; scale by 1 for now.
+        float healthCost = BASE_HEALTH_COST_PER_SECOND;
         boolean drained = GuzhenrenResourceCostHelper.drainHealth(
                 entity,
                 healthCost,
@@ -177,10 +185,9 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 entity.damageSources().generic()
         );
         if (!drained) {
-            if (entity instanceof Player player && payment.mode() == Mode.PLAYER_RESOURCES) {
-                GuzhenrenResourceCostHelper.refund(player, payment);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[compat/guzhenren][shui_dao][jiezegu] upkeepHealth failed for {}", entity.getName().getString());
             }
-            logUpkeepFailure(entity, payment);
             return false;
         }
         return true;
@@ -222,10 +229,10 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     private void logUpkeepFailure(LivingEntity entity, ConsumptionResult payment) {
-        if (!LOGGER.isDebugEnabled() || entity == null || payment == null) {
+        if ( entity == null || payment == null) {
             return;
         }
-        LOGGER.debug(
+        LOGGER.info(
                 "[compat/guzhenren][shui_dao][jiezegu] upkeep failed for {} (mode={}, reason={})",
                 entity.getName().getString(),
                 payment.mode(),

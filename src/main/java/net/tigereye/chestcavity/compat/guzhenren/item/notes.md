@@ -676,3 +676,4 @@ OnHit
     {"id":"chestcavity:health","value": "2"}
   ]
 }
+

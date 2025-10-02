@@ -1,13 +1,5 @@
 package net.tigereye.chestcavity.guzhenren.resource;
 
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.attachment.AttachmentType;
-import net.tigereye.chestcavity.ChestCavity;
-import net.neoforged.fml.ModList;
-import org.apache.logging.log4j.Logger;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -20,9 +12,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.Logger;
+
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.tigereye.chestcavity.ChestCavity;
 
 
 /**
@@ -58,7 +59,6 @@ public final class GuzhenrenResourceBridge {
     private enum PlayerField {
         ZHENYUAN("zhenyuan", "真元"),
         MAX_ZHENYUAN("zuida_zhenyuan", "最大真元"),
-        GU_FANG("GuFang", "蛊方ID"),
         GUSHI_XIULIAN_JINDU("gushi_xiulian_jindu", "蛊师所需修炼进度"),
         GUSHI_XIULIAN_DANGQIAN("gushi_xiulian_dangqian", "蛊师当前修炼进度"),
         ZHUANSHU("zhuanshu", "境界转数"),
@@ -80,7 +80,10 @@ public final class GuzhenrenResourceBridge {
         RENQI("renqi", "人气"),
         QIYUN("qiyun", "气运"),
         DAODE("daode", "道德"),
+        // --  炼蛊  --
+        GU_FANG("GuFang", "蛊方ID"),
         LIANGU_JINDU("LianGuJinDu", "炼蛊进度"),
+        // --  道痕  --
         DAOHEN_JINDAO("daohen_jindao", "金道道痕"),
         DAOHEN_SHUIDAO("daohen_shuidao", "水道道痕"),
         DAOHEN_MUDAO("daohen_mudao", "木道道痕"),
@@ -125,6 +128,7 @@ public final class GuzhenrenResourceBridge {
         DAOHEN_MENGDAO("daohen_mengdao", "梦道道痕"),
         DAOHEN_BINGDAO("daohen_bingdao", "兵道道痕"),
         DAOHEN_BIANHUADAO("daohen_bianhuadao", "变化道道痕"),
+         // --  经验  --
         LIUPAI_JINDAO("liupai_jindao", "金道流派经验"),
         LIUPAI_SHUIDAO("liupai_shuidao", "水道流派经验"),
         LIUPAI_MUDAO("liupai_mudao", "木道流派经验"),

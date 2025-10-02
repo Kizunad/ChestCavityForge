@@ -110,6 +110,8 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         RemovalRegistration registration = registerRemovalHook(cc, organ, this, staleRemovalContexts);
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         IncreaseEffectLedger ledger = context.increaseEffects();
+        // Ensure clean ledger state before registering and refreshing contributions
+        ledger.verifyAndRebuildIfNeeded();
         ledger.registerContributor(organ, this, GU_DAO_INCREASE_CHANNEL);
         refreshIncreaseContribution(cc, organ, isPrimaryOrgan(cc, organ));
         if (!registration.alreadyRegistered() && ChestCavity.LOGGER.isDebugEnabled()) {
@@ -222,6 +224,8 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         IncreaseEffectLedger ledger = context.increaseEffects();
+        // Guard against stale stacked entries before computing delta
+        ledger.verifyAndRebuildIfNeeded();
         LinkageChannel channel = ensureChannel(context, GU_DAO_INCREASE_CHANNEL).addPolicy(NON_NEGATIVE);
 
         double target = active
