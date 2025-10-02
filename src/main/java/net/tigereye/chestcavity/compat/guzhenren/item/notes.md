@@ -621,7 +621,7 @@ glass.break 混合 snow.break 的低沉音效。
   {"id":"chestcavity:nerves","value": "1"}
 ]
 
-清热蛊（  "item.guzhenren.qing_re_gu": "清热蛊"）:每秒恢复3点生命值和1点精力，当胸腔内存在玉骨时，获得［清热解毒］，有10％概率(OnSlowTick)免疫中毒，受到的着火时伤害降低3％，
+清热蛊（  "item.guzhenren.qing_re_gu": "清热蛊"）:每秒恢复3点生命值和1点精力，当胸腔内存在玉骨时，获得［清热解毒］，有10％概率(OnSlowTick)免疫中毒，受到的着火时伤害降低3％ * (1+冰雪道 INCREASE EFFECT)，
 消耗100BASE真元维持
 
 {
@@ -651,7 +651,7 @@ OnHit
 ，［回流］会基于本次攻击造成的 伤害，
 额外造成8％伤害（音效:河水流动声），
 ［回流］有8％概率触发［断流］，
-［断流］会给予 敌方 时长 4秒 的 碎甲(/effect give @p guzhenren:suijia 30 0)，消耗500BASE真元维持/s，同时每秒额外消耗25点生命值
+［断流］会给予 敌方 时长 4秒 的 碎甲(/effect give @p guzhenren:suijia 30 X) X为水道INCREASE EFFECT，消耗500BASE真元维持/s，同时每秒额外消耗25点生命值
 
 {
   "itemID": "guzhenren:jiezegu",
