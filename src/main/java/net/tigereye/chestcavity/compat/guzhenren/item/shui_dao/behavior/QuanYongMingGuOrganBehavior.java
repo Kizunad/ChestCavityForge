@@ -105,6 +105,7 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
 
         applyHealing(entity, stackCount);
 
+
         if (hasShuiTiGu(cc, organ)) {
             ensurePureWaterAbsorption(entity, stackCount);
         }
@@ -167,6 +168,7 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
 
     private void grantJingli(Player player, int stackCount) {
         if (JINGLI_GAIN_PER_SECOND <= 0.0) {
+
             return;
         }
         double delta = JINGLI_GAIN_PER_SECOND * stackCount;
