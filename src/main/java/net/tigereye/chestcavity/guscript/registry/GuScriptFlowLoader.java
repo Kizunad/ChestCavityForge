@@ -271,6 +271,18 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
             );
             case "emit_gecko" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
             case "emit_gecko_relative" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
+            case "slash_area" -> FlowActions.slashArea(
+                    GsonHelper.getAsDouble(json, "radius", 5.0D),
+                    GsonHelper.getAsDouble(json, "damage", 10.0D),
+                    GsonHelper.getAsDouble(json, "break_power", 5.0D)
+            );
+            case "slash_delayed_ray" -> FlowActions.slashDelayedRay(
+                    GsonHelper.getAsInt(json, "delay_ticks", 50),
+                    GsonHelper.getAsDouble(json, "length", 15.0D),
+                    GsonHelper.getAsDouble(json, "damage", 10.0D),
+                    GsonHelper.getAsDouble(json, "break_power", 5.0D),
+                    GsonHelper.getAsDouble(json, "ray_radius", 1.0D)
+            );
             case "emit_gecko_on_allies" -> FlowActions.emitGeckoOnAllies(
                     ResourceLocation.parse(GsonHelper.getAsString(json, "fx")),
                     GsonHelper.getAsDouble(json, "ally_radius", 8.0D),

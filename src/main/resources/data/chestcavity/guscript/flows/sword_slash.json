@@ -39,27 +39,18 @@
           "duration": 90
         },
         {
-          "id": "emit.projectile",
-          "projectileId": "chestcavity:sword_slash",
-          "damage": 100.0,
-          "parameters": {
-            "length": {
-              "default": 20.0
-            },
-            "thickness": {
-              "default": 3.0
-            },
-            "lifespan": {
-              "default": 200.0
-            },
-            "break_power": {
-              "default": 5.0
-            },
-            "max_pierce": {
-              "default": 6,
-              "integer": true
-            }
-          }
+          "type": "slash_area",
+          "radius": 5.0,
+          "damage": 12.0,
+          "break_power": 5.0
+        },
+        {
+          "type": "slash_delayed_ray",
+          "delay_ticks": 50,
+          "length": 15.0,
+          "damage": 16.0,
+          "break_power": 5.0,
+          "ray_radius": 1.25
         }
       ],
       "update_period": 5,

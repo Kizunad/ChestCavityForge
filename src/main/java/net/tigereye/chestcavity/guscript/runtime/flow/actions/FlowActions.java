@@ -23,6 +23,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowLayerBlock;
@@ -64,6 +66,34 @@ import org.joml.Vector3f;
 public final class FlowActions {
 
     private static final double RESOURCE_TOLERANCE = 1.0E-6D;
+    private static final Set<ResourceLocation> SLASH_BREAKABLE_IDS = Set.of(
+            ResourceLocation.withDefaultNamespace("grass_block"),
+            ResourceLocation.withDefaultNamespace("dirt"),
+            ResourceLocation.withDefaultNamespace("coarse_dirt"),
+            ResourceLocation.withDefaultNamespace("podzol"),
+            ResourceLocation.withDefaultNamespace("sand"),
+            ResourceLocation.withDefaultNamespace("red_sand"),
+            ResourceLocation.withDefaultNamespace("glass"),
+            ResourceLocation.withDefaultNamespace("glass_pane"),
+            ResourceLocation.withDefaultNamespace("white_stained_glass"),
+            ResourceLocation.withDefaultNamespace("white_stained_glass_pane"),
+            ResourceLocation.withDefaultNamespace("ice"),
+            ResourceLocation.withDefaultNamespace("packed_ice"),
+            ResourceLocation.withDefaultNamespace("snow_block"),
+            ResourceLocation.withDefaultNamespace("melon"),
+            ResourceLocation.withDefaultNamespace("pumpkin"),
+            ResourceLocation.withDefaultNamespace("carved_pumpkin"),
+            ResourceLocation.withDefaultNamespace("jack_o_lantern"),
+            ResourceLocation.withDefaultNamespace("honey_block"),
+            ResourceLocation.withDefaultNamespace("scaffolding"),
+            ResourceLocation.withDefaultNamespace("bookshelf"),
+            ResourceLocation.withDefaultNamespace("short_grass"),
+            ResourceLocation.withDefaultNamespace("tall_grass"),
+            ResourceLocation.withDefaultNamespace("fern"),
+            ResourceLocation.withDefaultNamespace("large_fern")
+    );
+    private static final double SLASH_DEFAULT_HEIGHT = 3.0D;
+    private static final double SLASH_RAY_STEP = 0.5D;
 
     private FlowActions() {
     }
@@ -1206,6 +1236,62 @@ public final class FlowActions {
         };
     }
 
+    public static FlowEdgeAction slashArea(double radius, double damage, double breakPower) {
+        double r = Math.max(0.0D, radius);
+        double dmg = Math.max(0.0D, damage);
+        double bp = Math.max(0.0D, breakPower);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                Level level = performer.level();
+                if (!(level instanceof ServerLevel server)) {
+                    return;
+                }
+                slashBreakArea(server, performer, r, dmg, bp);
+            }
+
+            @Override
+            public String describe() {
+                return "slash_area(r=" + r + ", damage=" + dmg + ", break=" + bp + ")";
+            }
+        };
+    }
+
+    public static FlowEdgeAction slashDelayedRay(int delayTicks, double length, double damage, double breakPower, double rayRadius) {
+        int delay = Math.max(1, delayTicks);
+        double len = Math.max(0.0D, length);
+        double dmg = Math.max(0.0D, damage);
+        double bp = Math.max(0.0D, breakPower);
+        double radius = Math.max(0.1D, rayRadius);
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                Level level = performer.level();
+                if (!(level instanceof ServerLevel server)) {
+                    return;
+                }
+                UUID performerId = performer.getUUID();
+                Runnable task = () -> runSlashRay(server, performerId, len, dmg, bp, radius);
+                if (controller != null) {
+                    controller.schedule(gameTime + delay, task);
+                } else {
+                    task.run();
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "slash_delayed_ray(delay=" + delay + ", length=" + len + ")";
+            }
+        };
+    }
+
     public static FlowEdgeAction emitFx(String fxId, float baseIntensity, String variableName, double defaultScale) {
         ResourceLocation fx = fxId == null ? null : ResourceLocation.tryParse(fxId);
         if (fx == null) {
@@ -1251,6 +1337,206 @@ public final class FlowActions {
             int durationTicks,
             String entityIdVariable
     ) {}
+
+    private static void slashBreakArea(ServerLevel server, Player performer, double radius, double damage, double breakPower) {
+        Vec3 origin = performer.position();
+        Vec3 forward = performer.getLookAngle();
+        Vec3 horizontalForward = new Vec3(forward.x, 0.0D, forward.z);
+        if (horizontalForward.lengthSqr() < 1.0E-6) {
+            Vec3 fallbackForward = performer.getForward();
+            horizontalForward = new Vec3(fallbackForward.x, 0.0D, fallbackForward.z);
+        }
+        if (horizontalForward.lengthSqr() < 1.0E-6) {
+            horizontalForward = new Vec3(0.0D, 0.0D, 1.0D);
+        }
+        horizontalForward = horizontalForward.normalize();
+        Vec3 right = new Vec3(-horizontalForward.z, 0.0D, horizontalForward.x).normalize();
+        int forwardSteps = Math.max(1, Mth.ceil(radius));
+        int lateralSteps = Math.max(1, Mth.ceil(radius));
+        int verticalSteps = Math.max(1, Mth.ceil(SLASH_DEFAULT_HEIGHT));
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int broken = 0;
+        int cap = Math.max(4, ChestCavity.config != null && ChestCavity.config.SWORD_SLASH != null
+                ? ChestCavity.config.SWORD_SLASH.blockBreakCapPerTick
+                : 20);
+        for (int f = 0; f <= forwardSteps && broken < cap; f++) {
+            double forwardDist = f;
+            Vec3 forwardOffset = horizontalForward.scale(forwardDist);
+            for (int l = -lateralSteps; l <= lateralSteps && broken < cap; l++) {
+                double lateralDist = l;
+                if (forwardDist * forwardDist + lateralDist * lateralDist > radius * radius) {
+                    continue;
+                }
+                Vec3 lateralOffset = right.scale(lateralDist);
+                Vec3 base = origin.add(forwardOffset).add(lateralOffset);
+                int baseX = Mth.floor(base.x);
+                int baseZ = Mth.floor(base.z);
+                int baseY = Mth.floor(origin.y);
+                for (int v = -1; v <= verticalSteps && broken < cap; v++) {
+                    cursor.set(baseX, baseY + v, baseZ);
+                    if (slashBreakBlock(server, performer, cursor, breakPower)) {
+                        broken++;
+                    }
+                }
+            }
+        }
+        if (damage > 0.0D) {
+            Vec3 center = origin.add(horizontalForward.scale(Math.max(1.0D, radius * 0.5D)));
+            double inflate = radius + 1.0D;
+            AABB area = new AABB(center.x - inflate, origin.y - 1.0D, center.z - inflate,
+                    center.x + inflate, origin.y + SLASH_DEFAULT_HEIGHT, center.z + inflate);
+            slashDamageEntities(server, performer, area, damage);
+        }
+    }
+
+    private static void runSlashRay(ServerLevel server, UUID performerId, double length, double damage, double breakPower, double rayRadius) {
+        Entity entity = server.getEntity(performerId);
+        if (!(entity instanceof Player performer) || performer.isRemoved()) {
+            return;
+        }
+        Vec3 start = performer.getEyePosition();
+        Vec3 direction = performer.getLookAngle().normalize();
+        if (direction.lengthSqr() < 1.0E-6) {
+            direction = performer.getForward().normalize();
+        }
+        if (direction.lengthSqr() < 1.0E-6) {
+            direction = new Vec3(0.0D, 0.0D, 1.0D);
+        }
+        Vec3 end = start.add(direction.scale(length));
+        slashBreakAlongRay(server, performer, start, end, breakPower);
+        if (damage > 0.0D) {
+            slashDamageEntities(server, performer, new AABB(start, end).inflate(rayRadius), damage, start, end, rayRadius);
+        }
+    }
+
+    private static void slashBreakAlongRay(ServerLevel server, Player performer, Vec3 start, Vec3 end, double breakPower) {
+        if (!slashCanBreakBlocks()) {
+            return;
+        }
+        Vec3 delta = end.subtract(start);
+        int steps = Math.max(1, (int) Math.ceil(delta.length() / SLASH_RAY_STEP));
+        Vec3 step = delta.scale(1.0D / steps);
+        Vec3 current = start;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int i = 0; i <= steps; i++) {
+            cursor.set(current.x, current.y, current.z);
+            slashBreakBlock(server, performer, cursor, breakPower);
+            cursor.set(current.x, current.y + 1.0D, current.z);
+            slashBreakBlock(server, performer, cursor, breakPower);
+            cursor.set(current.x, current.y - 1.0D, current.z);
+            slashBreakBlock(server, performer, cursor, breakPower);
+            current = current.add(step);
+        }
+    }
+
+    private static boolean slashBreakBlock(ServerLevel server, Player performer, BlockPos pos, double breakPower) {
+        if (!slashCanBreakBlocks()) {
+            return false;
+        }
+        if (!server.isLoaded(pos)) {
+            return false;
+        }
+        BlockState state = server.getBlockState(pos);
+        if (state.isAir()) {
+            return false;
+        }
+        if (!isSlashBreakable(state)) {
+            return false;
+        }
+        if (!server.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && !(performer instanceof Player)) {
+            return false;
+        }
+        float hardness = state.getDestroySpeed(server, pos);
+        if (hardness < 0.0F || hardness > breakPower) {
+            return false;
+        }
+        return server.destroyBlock(pos, true, performer);
+    }
+
+    private static void slashDamageEntities(ServerLevel server, Player performer, AABB area, double damage) {
+        slashDamageEntities(server, performer, area, damage, null, null, 0.0D);
+    }
+
+    private static void slashDamageEntities(ServerLevel server, Player performer, AABB area, double damage, Vec3 rayStart, Vec3 rayEnd, double rayRadius) {
+        List<LivingEntity> hits = server.getEntitiesOfClass(LivingEntity.class, area, entity -> canDamageSlashTarget(performer, entity));
+        if (hits.isEmpty()) {
+            return;
+        }
+        for (LivingEntity entity : hits) {
+            if (rayStart != null && rayEnd != null && rayRadius > 0.0D) {
+                double distanceSq = distanceToSegmentSquared(entity.getBoundingBox().getCenter(), rayStart, rayEnd);
+                if (distanceSq > rayRadius * rayRadius) {
+                    continue;
+                }
+            }
+            applySlashDamage(performer, entity, damage);
+            Vec3 knock = performer.getLookAngle().normalize();
+            if (knock.lengthSqr() > 1.0E-6) {
+                entity.push(knock.x * 0.6D, 0.2D + Math.abs(knock.y) * 0.1D, knock.z * 0.6D);
+                entity.hurtMarked = true;
+            }
+        }
+    }
+
+    private static void applySlashDamage(Player performer, LivingEntity entity, double damage) {
+        if (damage <= 0.0D || entity == null) {
+            return;
+        }
+        float amount = (float) damage;
+        boolean applied = false;
+        try {
+            entity.hurt(performer.damageSources().playerAttack(performer), amount);
+            applied = true;
+        } catch (Throwable ignored) {
+        }
+        if (!applied) {
+            entity.setHealth(Math.max(0.0F, entity.getHealth() - amount));
+        }
+    }
+
+    private static boolean canDamageSlashTarget(Player performer, LivingEntity entity) {
+        if (entity == null || !entity.isAlive()) {
+            return false;
+        }
+        if (entity == performer) {
+            return false;
+        }
+        return !isAlly(performer, entity);
+    }
+
+    private static boolean isSlashBreakable(BlockState state) {
+        ResourceLocation key = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        if (key != null && SLASH_BREAKABLE_IDS.contains(key)) {
+            return true;
+        }
+        return state.is(BlockTags.LEAVES)
+                || state.is(BlockTags.FLOWERS)
+                || state.is(BlockTags.SMALL_FLOWERS)
+                || state.is(BlockTags.TALL_FLOWERS)
+                || state.is(BlockTags.CROPS)
+                || state.is(BlockTags.SAPLINGS)
+                || state.is(BlockTags.WOOL)
+                || state.is(BlockTags.MINEABLE_WITH_AXE)
+                || state.is(BlockTags.MINEABLE_WITH_SHOVEL);
+    }
+
+    private static boolean slashCanBreakBlocks() {
+        return ChestCavity.config != null
+                && ChestCavity.config.SWORD_SLASH != null
+                && ChestCavity.config.SWORD_SLASH.enableBlockBreaking;
+    }
+
+    private static double distanceToSegmentSquared(Vec3 point, Vec3 start, Vec3 end) {
+        Vec3 ab = end.subtract(start);
+        double lengthSq = ab.lengthSqr();
+        if (lengthSq < 1.0E-6) {
+            return point.distanceToSqr(start);
+        }
+        double t = point.subtract(start).dot(ab) / lengthSq;
+        t = Mth.clamp(t, 0.0D, 1.0D);
+        Vec3 projection = start.add(ab.scale(t));
+        return point.distanceToSqr(projection);
+    }
 
     private static Vec3 rotateRelativeOffset(Vec3 relativeOffset, float yawDegrees, float pitchDegrees, float rollDegrees) {
         if (relativeOffset == null || relativeOffset.equals(Vec3.ZERO)) {

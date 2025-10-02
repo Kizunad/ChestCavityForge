@@ -1,0 +1,13 @@
+{
+  "itemID": "guzhenren:baishouwanghugu",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": ".05"
+    },
+    {
+      "id": "chestcavity:nerves",
+      "value": "0.01"
+    }
+  ]
+}
