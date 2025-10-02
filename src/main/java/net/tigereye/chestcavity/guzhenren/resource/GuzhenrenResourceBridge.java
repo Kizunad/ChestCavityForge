@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.guzhenren.resource;
 
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.tigereye.chestcavity.ChestCavity;
@@ -272,20 +273,30 @@ public final class GuzhenrenResourceBridge {
     }
 
     /**
+     * Attempts to open a resource handle for the given entity.
+     *
+     * @param entity living entity to inspect
+     * @return optional handle when the Guzhenren attachment exists
+     */
+    public static Optional<ResourceHandle> open(LivingEntity entity) {
+        if (entity == null) {
+            return Optional.empty();
+        }
+        Optional<Object> variables = fetchVariables(entity);
+        if (variables.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new ResourceHandle(entity, variables.get()));
+    }
+
+    /**
      * Attempts to open a resource handle for the given player.
      *
      * @param player player to inspect
      * @return optional handle when the Guzhenren attachment exists
      */
     public static Optional<ResourceHandle> open(Player player) {
-        if (player == null) {
-            return Optional.empty();
-        }
-        Optional<Object> variables = fetchVariables(player);
-        if (variables.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(new ResourceHandle(player, variables.get()));
+        return open((LivingEntity) player);
     }
 
     public static Optional<Object> fetchVariables(Entity entity) {
@@ -449,11 +460,11 @@ public final class GuzhenrenResourceBridge {
      * 封装对单个玩家附件的读写操作。实例在 {@link #open(Player)} 时创建，并在操作成功后负责触发同步。
      */
     public static final class ResourceHandle {
-        private final Player player;
+        private final LivingEntity owner;
         private final Object variables;
 
-        private ResourceHandle(Player player, Object variables) {
-            this.player = player;
+        private ResourceHandle(LivingEntity owner, Object variables) {
+            this.owner = owner;
             this.variables = variables;
         }
 
@@ -486,7 +497,7 @@ public final class GuzhenrenResourceBridge {
             if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
                 return OptionalDouble.empty();
             }
-            syncEntity(this.player, this.variables);
+            syncEntity(this.owner, this.variables);
             return OptionalDouble.of(value);
         }
 

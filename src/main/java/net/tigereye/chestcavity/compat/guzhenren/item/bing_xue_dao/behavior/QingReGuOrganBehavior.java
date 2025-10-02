@@ -50,34 +50,40 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player) || entity.level().isClientSide() || cc == null) {
+        if (entity == null || entity.level().isClientSide() || cc == null) {
+
             return;
         }
         if (!matchesOrgan(organ, CCItems.GUZHENREN_QING_RE_GU, ORGAN_ID)) {
             return;
         }
-
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-
         int stackCount = Math.max(1, organ.getCount());
-        double zhenyuanCost = BASE_ZHENYUAN_COST * stackCount;
-        OptionalDouble consumed = handle.consumeScaledZhenyuan(zhenyuanCost);
-        if (consumed.isEmpty()) {
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(entity);
+        if (handleOpt.isPresent()) {
+            GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+
+            double zhenyuanCost = BASE_ZHENYUAN_COST * stackCount;
+            OptionalDouble consumed = handle.consumeScaledZhenyuan(zhenyuanCost);
+            if (consumed.isEmpty()) {
+                return;
+            }
+
+            if (entity instanceof Player) {
+                handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
+            }
+        } else if (entity instanceof Player) {
+            // Players without a Guzhenren attachment cannot sustain the organ.
             return;
         }
-
-        handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
         float healAmount = HEAL_PER_TICK * stackCount;
         if (healAmount > 0.0f) {
-            ChestCavityUtil.runWithOrganHeal(() -> player.heal(healAmount));
+            LivingEntity target = entity;
+            ChestCavityUtil.runWithOrganHeal(() -> target.heal(healAmount));
         }
 
         if (hasJadeBone(cc)) {
-            maybeClearPoison(player);
+            maybeClearPoison(entity);
+
         }
     }
 
@@ -116,12 +122,13 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         context.getOrCreateChannel(BING_XUE_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
     }
 
-    private static void maybeClearPoison(Player player) {
-        if (player == null || !player.hasEffect(MobEffects.POISON)) {
+    private static void maybeClearPoison(LivingEntity entity) {
+        if (entity == null || !entity.hasEffect(MobEffects.POISON)) {
             return;
         }
-        if (player.getRandom().nextDouble() < POISON_CLEAR_CHANCE) {
-            player.removeEffect(MobEffects.POISON);
+        if (entity.getRandom().nextDouble() < POISON_CLEAR_CHANCE) {
+            entity.removeEffect(MobEffects.POISON);
+
         }
     }
 
