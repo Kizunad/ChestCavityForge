@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.guscript.GuScriptModule;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BloodBoneBombClient;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
+import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenOrganScoreEffects;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 
 import java.util.Objects;
@@ -109,6 +110,7 @@ public final class GuzhenrenModule {
         OrganRetentionRules.registerNamespace(MOD_ID);
         Abilities.bootstrap();
         GuzhenrenIntegrationModule.bootstrap();
+        GuzhenrenOrganScoreEffects.bootstrap();
         GuzhenrenNetworkBridge.bootstrap();
         GuScriptModule.bootstrap();
     }
