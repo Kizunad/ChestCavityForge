@@ -1,0 +1,13 @@
+{
+  "itemID": "guzhenren:qianshouwanglingjiao",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "100"
+    }
+  ]
+}

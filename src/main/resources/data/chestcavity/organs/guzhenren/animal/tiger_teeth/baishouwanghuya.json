@@ -1,8 +1,8 @@
 {
-  "itemID": "guzhenren:wanshouwanglingyangjiao",
+  "itemID": "guzhenren:baishouwanghuya",
   "organScores": [
     {
-      "id": "chestcavity:defense",
+      "id": "chestcavity:strength",
       "value": "40"
     },
     {

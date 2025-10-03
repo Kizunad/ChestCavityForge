@@ -1,0 +1,13 @@
+{
+  "itemID": "guzhenren:baishouwanghuya",
+  "organScores": [
+    {
+      "id": "chestcavity:strength",
+      "value": "400"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "5000"
+    }
+  ]
+}
