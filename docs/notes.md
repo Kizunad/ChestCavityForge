@@ -726,3 +726,13 @@ OnHit
 小魂蛊（心脏）:每秒恢复1点魂魄，提供［魂基］效果，该效果将额外提升20％魂魄恢复效率
 
 大魂蛊（心脏）:每秒恢复2点魂魄值和1点念头，胸腔内存在小魂蛊时获得［魂心］效果，该效果会将人同步转化为魂兽，魂兽状态不可解除；当角色为魂兽状态，提供［魂慑］效果，该效果可对低转野兽产生威慑
+
+  "item.guzhenren.lingyangyan": "蛊材_羚羊眼",
+  "item.guzhenren.quanyan": "蛊材_土犬眼",
+  "item.guzhenren.quanrou": "蛊材_土犬肉",
+  "item.guzhenren.langrou": "蛊材_狼肉",
+  "item.guzhenren.lingrou": "蛊材_羚肉",
+  "item.guzhenren.quanpi": "蛊材_土犬皮",
+  "item.guzhenren.lingyaopi": "蛊材_羚羊皮",
+  "item.guzhenren.xiongpi": "蛊材_熊皮",
+  "item.guzhenren.llangpi": "蛊材_狼皮",
