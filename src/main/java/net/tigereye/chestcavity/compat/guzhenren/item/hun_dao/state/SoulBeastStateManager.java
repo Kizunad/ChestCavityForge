@@ -88,25 +88,11 @@ public final class SoulBeastStateManager {
     }
 
     public static void handleSyncPayload(SoulBeastSyncPayload payload, IPayloadContext context) {
-        if (context.flow() == PacketFlow.CLIENTBOUND) {
-            context.enqueueWork(() -> applyClientSnapshot(payload, context.player()));
+        if (context.flow() != PacketFlow.CLIENTBOUND) {
+            LOGGER.warn("[compat/guzhenren][hun_dao][state] rejected unexpected {} payload from {}", payload.type(), context.flow());
             return;
         }
-        Player player = context.player();
-        if (!(player instanceof ServerPlayer serverPlayer)) {
-            return;
-        }
-        context.enqueueWork(() -> {
-            SoulBeastState state = getOrCreate(serverPlayer);
-            boolean dirty = false;
-            dirty |= state.setActive(payload.active());
-            dirty |= state.setPermanent(payload.permanent());
-            dirty |= state.setSource(payload.source());
-            state.setLastTick(payload.lastTick());
-            if (dirty) {
-                LOGGER.debug("[compat/guzhenren][hun_dao][state] server accepted client payload {} dirty={}", describe(serverPlayer), dirty);
-            }
-        });
+        context.enqueueWork(() -> applyClientSnapshot(payload, context.player()));
     }
 
     public static Optional<ClientSnapshot> getClientSnapshot(UUID uuid) {
