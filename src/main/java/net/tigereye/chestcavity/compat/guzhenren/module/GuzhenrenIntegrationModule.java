@@ -7,6 +7,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.DuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.GuCaiOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.KongqiaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.LeiDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoOrganRegistry;
@@ -37,6 +38,7 @@ public final class GuzhenrenIntegrationModule {
             LeiDaoOrganRegistry::specs,
             KongqiaoOrganRegistry::specs,
             MuDaoOrganRegistry::specs,
+            HunDaoOrganRegistry::specs,
             TuDaoOrganRegistry::specs,
             ShuiDaoOrganRegistry::specs,
             XueDaoOrganRegistry::specs,
