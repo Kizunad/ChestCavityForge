@@ -1,17 +1,21 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-// decoupled satiation handling via middleware
 import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.compat.guzhenren.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoBalance;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.BeastSoulStorage;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.OrganBeastSoulStorage;
+import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -116,7 +120,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
         }
         ensureAttached(cc);
         ensureActiveState(entity, organ);
-        HunDaoMiddleware.INSTANCE.passiveUpkeep(player, PASSIVE_HUNPO_LEAK);
+        HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, PASSIVE_HUNPO_LEAK);
         HunDaoMiddleware.INSTANCE.handlerPlayer(player);
         OrganState state = organState(organ, STATE_ROOT_KEY);
         logStateChange(LOGGER, prefix(), organ, KEY_LAST_SYNC_TICK, state.setLong(KEY_LAST_SYNC_TICK, entity.level().getGameTime()));
@@ -135,7 +139,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
         if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
             return damage;
         }
-        if (source == null || source.is(DamageTypeTags.IS_PROJECTILE) || target == null || !target.isAlive()) {
+        if (source == null || !CombatEntityUtil.isMeleeHit(source) || target == null || !target.isAlive()) {
             return damage;
         }
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
@@ -149,6 +153,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             return damage;
         }
         handle.adjustDouble("hunpo", -ATTACK_HUNPO_COST, true, "zuida_hunpo");
+        HunDaoDamageUtil.markHunDaoAttack(source);
         double maxHunpo = handle.read("zuida_hunpo").orElse(0.0);
         double efficiency = 1.0;
         if (cc != null) {
@@ -178,6 +183,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             return;
         }
         ensureActiveState(entity, organ);
+        SoulBeastStateManager.setActive(player, true);
         LOGGER.debug("{} soul beast organ removed but state retained for {}", prefix(), describePlayer(player));
     }
 
@@ -214,6 +220,9 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             logStateChange(LOGGER, prefix(), organ, KEY_OWNER_MSB, state.setLong(KEY_OWNER_MSB, uuid.getMostSignificantBits()));
             logStateChange(LOGGER, prefix(), organ, KEY_OWNER_LSB, state.setLong(KEY_OWNER_LSB, uuid.getLeastSignificantBits()));
         }
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+        SoulBeastStateManager.setActive(player, true);
+        SoulBeastStateManager.setSource(player, itemId);
     }
 
     // 资源维护与 DoT 已解耦至 HunDaoMiddleware

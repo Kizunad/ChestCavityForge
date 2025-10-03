@@ -11,6 +11,8 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state.SoulBeastSyncPayload;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior.DaoHenSeedHandler;
 import net.tigereye.chestcavity.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
@@ -47,6 +49,7 @@ public final class NetworkHandler {
         registrar.playToClient(FlowSyncPayload.TYPE, FlowSyncPayload.STREAM_CODEC, FlowSyncPayload::handle);
         registrar.playToClient(FxEventPayload.TYPE, FxEventPayload.STREAM_CODEC, FxEventPayload::handle);
         registrar.playToClient(GeckoFxEventPayload.TYPE, GeckoFxEventPayload.STREAM_CODEC, GeckoFxEventPayload::handle);
+        registrar.playToClient(SoulBeastSyncPayload.TYPE, SoulBeastSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleSyncPayload);
     }
 
 

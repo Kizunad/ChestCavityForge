@@ -3,9 +3,9 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware;
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.food.FoodData;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.compat.guzhenren.util.SaturationHelper;
 import org.slf4j.Logger;
 
 import java.util.Locale;
@@ -25,9 +25,6 @@ public final class HunDaoMiddleware {
 
     private HunDaoMiddleware() {}
 
-    /**
-     * 调度“魂焰”持续伤害。
-     */
     public void applySoulFlame(Player source, LivingEntity target, double perSecondDamage, int seconds) {
         if (source == null || target == null || !target.isAlive()) {
             return;
@@ -39,49 +36,47 @@ public final class HunDaoMiddleware {
         LOGGER.debug("[hun_dao][middleware] DoT={}s @{} -> {}", seconds, format(perSecondDamage), target.getName().getString());
     }
 
-    /**
-     * 被动资源维护：扣减魂魄并维持饱食/饱和。
-     */
-    public void passiveUpkeep(Player player, double hunpoLeak) {
-        if (player == null) {
+    public void leakHunpoPerSecond(Player player, double amount) {
+        if (player == null || amount <= 0.0D) {
             return;
         }
-        drainHunpo(player, hunpoLeak, "passive leak");
-        maintainSatiation(player);
+        adjustHunpo(player, -amount, "leak");
+        SaturationHelper.gentlyTopOff(player, 18, 0.5f);
     }
 
-    /**
-     * 玩家处理占位符：便于后续扩展（光环、同步等）。
-     */
+    public boolean consumeHunpo(Player player, double amount) {
+        if (player == null || amount <= 0.0D) {
+            return false;
+        }
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            return false;
+        }
+        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+        double current = handle.read("hunpo").orElse(0.0D);
+        if (current < amount) {
+            return false;
+        }
+        handle.adjustDouble("hunpo", -amount, true, "zuida_hunpo");
+        return true;
+    }
+
     public void handlerPlayer(Player player) {
-        // 占位：后续可扩展玩家态相关逻辑（如状态同步、音效、粒子）。
+        SaturationHelper.gentlyTopOff(player, 18, 0.5f);
     }
 
-    /**
-     * 非玩家处理占位符：便于后续扩展。
-     */
     public void handlerNonPlayer(LivingEntity entity) {
-        // 占位：后续可扩展非玩家实体相关逻辑。
+        // placeholder for non-player upkeep paths
     }
 
-    private void drainHunpo(Player player, double amount, String reason) {
+    private void adjustHunpo(Player player, double amount, String reason) {
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isEmpty()) {
             return;
         }
         GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        handle.adjustDouble("hunpo", -amount, true, "zuida_hunpo");
-        LOGGER.trace("[hun_dao][middleware] drained {} hunpo from {} ({})", format(amount), player.getScoreboardName(), reason);
-    }
-
-    private void maintainSatiation(Player player) {
-        FoodData foodData = player.getFoodData();
-        if (foodData.getFoodLevel() < 18) {
-            foodData.eat(1, 0.6f);
-        }
-        if (foodData.getSaturationLevel() < foodData.getFoodLevel()) {
-            foodData.eat(0, 0.4f);
-        }
+        handle.adjustDouble("hunpo", amount, true, "zuida_hunpo");
+        LOGGER.trace("[hun_dao][middleware] adjusted {} hunpo for {} ({})", format(amount), player.getScoreboardName(), reason);
     }
 
     private String format(double value) {
