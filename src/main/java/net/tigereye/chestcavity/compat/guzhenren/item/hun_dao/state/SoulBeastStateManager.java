@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.protocol.PacketFlow;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -127,6 +128,19 @@ public final class SoulBeastStateManager {
 
     public static void clearClientCache() {
         CLIENT_CACHE.clear();
+    }
+
+    /** Handle a serverbound request to (re)sync the player's SoulBeastState to the client. */
+    public static void handleRequestSyncPayload(SoulBeastRequestSyncPayload payload, IPayloadContext context) {
+        if (context.flow() != PacketFlow.SERVERBOUND) {
+            LOGGER.warn("[compat/guzhenren][hun_dao][state] rejected unexpected {} payload from {}", payload.type(), context.flow());
+            return;
+        }
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                syncToClient(sp);
+            }
+        });
     }
 
     private static void touch(LivingEntity entity, SoulBeastState state) {
