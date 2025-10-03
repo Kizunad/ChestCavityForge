@@ -12,6 +12,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state.SoulBeastState;
 
 import java.util.Optional;
 
@@ -28,6 +29,11 @@ public final class CCAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<GuScriptAttachment>> GUSCRIPT =
             ATTACHMENT_TYPES.register("guscript", () -> AttachmentType.builder(GuScriptAttachment::create)
                     .serialize(new GuScriptAttachment.Serializer())
+                    .build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<SoulBeastState>> SOUL_BEAST_STATE =
+            ATTACHMENT_TYPES.register("soul_beast_state", () -> AttachmentType.builder(SoulBeastState::new)
+                    .serialize(new SoulBeastStateSerializer())
                     .build());
 
     private CCAttachments() {
@@ -56,6 +62,14 @@ public final class CCAttachments {
         return entity.getExistingData(GUSCRIPT.get());
     }
 
+    public static SoulBeastState getSoulBeastState(LivingEntity entity) {
+        return entity.getData(SOUL_BEAST_STATE.get());
+    }
+
+    public static Optional<SoulBeastState> getExistingSoulBeastState(LivingEntity entity) {
+        return entity.getExistingData(SOUL_BEAST_STATE.get());
+    }
+
     private static class ChestCavitySerializer implements IAttachmentSerializer<CompoundTag, ChestCavityInstance> {
         @Override
         public ChestCavityInstance read(IAttachmentHolder holder, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
@@ -76,6 +90,20 @@ public final class CCAttachments {
             CompoundTag wrapper = new CompoundTag();
             attachment.toTag(wrapper, provider);
             return wrapper.getCompound("ChestCavity");
+        }
+    }
+
+    private static class SoulBeastStateSerializer implements IAttachmentSerializer<CompoundTag, SoulBeastState> {
+        @Override
+        public SoulBeastState read(IAttachmentHolder holder, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+            SoulBeastState state = new SoulBeastState();
+            state.load(tag);
+            return state;
+        }
+
+        @Override
+        public CompoundTag write(SoulBeastState attachment, net.minecraft.core.HolderLookup.Provider provider) {
+            return attachment.save();
         }
     }
 }
