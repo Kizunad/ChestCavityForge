@@ -36,6 +36,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -75,6 +76,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
     private static final double CONE_DOT_THRESHOLD = 0.45; // roughly 63 degrees cone
     private static final int BREATH_PARTICLE_STEPS = 12;
     private static final double BREATH_PARTICLE_SPACING = 0.45;
+    private static final double BASE_ZHENYUAN_COST = 800.0; // 主动技基础真元消耗
 
     private ShuangXiGuOrganBehavior() {
     }
@@ -294,6 +296,14 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         }
         ItemStack organ = findOrgan(cc);
         if (organ.isEmpty()) {
+            return;
+        }
+        // 先支付基础真元，不允许健康回退
+        var consume = GuzhenrenResourceCostHelper.consumeStrict(entity, BASE_ZHENYUAN_COST, 0.0);
+        if (!consume.succeeded()) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[compat/guzhenren][shuang_xi] ability blocked: zhenyuan cost={} failure={}", BASE_ZHENYUAN_COST, consume.failureReason());
+            }
             return;
         }
         Level level = entity.level();
