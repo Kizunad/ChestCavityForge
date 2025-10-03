@@ -12,7 +12,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Default {@link BeastSoulStorage} implementation that persists data into the organ's CustomData payload.
+ * 默认的 {@link BeastSoulStorage} 实现。
+ * <p>
+ * 将“兽魂”数据持久化到物品堆的 {@code CustomData}（1.20 组件）中：
+ * - 根键为 {@code rootKey}（默认 {@code HunDaoSoulBeast}）；
+ * - 子键 {@code BeastSoul} 下保存：实体类型、实体 NBT、存储时间。
  */
 public final class OrganBeastSoulStorage implements BeastSoulStorage {
 
@@ -32,6 +36,9 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
         this.rootKey = Objects.requireNonNull(rootKey, "rootKey");
     }
 
+    /**
+     * 判断 {@code CustomData} 中对应位置是否存在“兽魂”负载。
+     */
     @Override
     public boolean hasStoredSoul(ItemStack organ) {
         if (organ == null || organ.isEmpty()) {
@@ -49,6 +56,9 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
         return state.contains(STORAGE_KEY, Tag.TAG_COMPOUND);
     }
 
+    /**
+     * 写入“兽魂”快照（若 {@link #canStore(ItemStack, net.minecraft.world.entity.LivingEntity)} 通过）。
+     */
     @Override
     public Optional<BeastSoulRecord> store(ItemStack organ, net.minecraft.world.entity.LivingEntity entity, long storedGameTime) {
         if (!canStore(organ, entity)) {
@@ -60,6 +70,9 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
         });
     }
 
+    /**
+     * 读取当前存储的“兽魂”快照，不修改物品。
+     */
     @Override
     public Optional<BeastSoulRecord> peek(ItemStack organ) {
         if (organ == null || organ.isEmpty()) {
@@ -93,6 +106,9 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
         return Optional.of(new BeastSoulRecord(id, entityData, storedAt));
     }
 
+    /**
+     * 移除并返回已存“兽魂”快照。
+     */
     @Override
     public Optional<BeastSoulRecord> consume(ItemStack organ) {
         Optional<BeastSoulRecord> record = peek(organ);
@@ -100,6 +116,9 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
         return record;
     }
 
+    /**
+     * 清空“兽魂”存储区；若根状态为空则移除根键。
+     */
     @Override
     public void clear(ItemStack organ) {
         if (organ == null || organ.isEmpty()) {
@@ -121,6 +140,9 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
         });
     }
 
+    /**
+     * 将快照写入到物品的 {@code CustomData} 中。
+     */
     private void writeRecord(ItemStack organ, BeastSoulRecord record) {
         NBTWriter.updateCustomData(organ, tag -> {
             CompoundTag state = tag.contains(rootKey, Tag.TAG_COMPOUND) ? tag.getCompound(rootKey) : new CompoundTag();

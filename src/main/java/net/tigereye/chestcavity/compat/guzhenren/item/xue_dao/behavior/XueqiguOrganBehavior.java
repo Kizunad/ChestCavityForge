@@ -44,7 +44,7 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final double INCREASE_PER_STACK = 0.1;
-    private static final double JINGLI_PER_SECOND = 5.0;
+    private static final double JINGLI_PER_SECOND = 3.5;
     private static final float HEAL_PER_SECOND = 3.0f;
     private static final float HEALTH_DRAIN_PER_MINUTE = 8.0f;
     private static final float HEALTH_DRAIN_RESERVE = 1.0f;

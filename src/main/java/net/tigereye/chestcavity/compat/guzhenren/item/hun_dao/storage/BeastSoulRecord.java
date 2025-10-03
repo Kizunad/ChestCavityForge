@@ -11,8 +11,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Immutable representation of a stored beast soul.
- * Encapsulates the entity type, raw serialized data and the game time when the soul was captured.
+ * 存储于器官中的“兽魂”快照（不可变）。
+ * <p>
+ * 封装：
+ * - {@code entityTypeId}：实体类型标识；
+ * - {@code entityData}：实体的原始 NBT 数据（不含实体 ID）；
+ * - {@code storedGameTime}：被捕获时的游戏时间（tick）。
  */
 public record BeastSoulRecord(ResourceLocation entityTypeId, CompoundTag entityData, long storedGameTime) {
 
@@ -22,7 +26,8 @@ public record BeastSoulRecord(ResourceLocation entityTypeId, CompoundTag entityD
     }
 
     /**
-     * Serialises the provided entity into a {@link BeastSoulRecord} snapshot.
+     * 将给定实体序列化为 {@link BeastSoulRecord} 快照。
+     * 仅在服务端、且实体类型可解析时返回。
      */
     public static Optional<BeastSoulRecord> fromEntity(LivingEntity entity, long storedGameTime) {
         if (entity == null || entity.level().isClientSide()) {
@@ -38,8 +43,8 @@ public record BeastSoulRecord(ResourceLocation entityTypeId, CompoundTag entityD
     }
 
     /**
-     * Attempts to materialise the stored entity in the provided level.
-     * The caller is responsible for positioning and adding the entity to the world.
+     * 尝试在指定维度实例化该快照对应的实体。
+     * 注意：调用方需要自行设置位置并加入世界。
      */
     public Optional<Entity> createEntity(Level level) {
         if (level == null || entityTypeId == null) {

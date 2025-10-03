@@ -1,13 +1,21 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao;
 
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.HunDaoSoulBeastBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.XiaoHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.List;
 
 /**
- * Registry wiring for 魂道（Hun Dao） organs.
+ * 魂道（Hun Dao）相关器官的注册入口。
+ * <p>
+ * 该类将小魂蛊（以及其他魂道器官）与胸腔系统进行行为绑定：
+ * - 在缓慢心跳（SlowTick）时执行资源维护与状态同步；
+ * - 在命中（OnHit）时触发“魂焰”持续伤害效果与魂魄消耗；
+ * - 在器官被移除（Removal）时保留必要的绑定与活跃态；
+ * - 在装备时初始化绑定信息并确保联动通道可用。
+ * <p>
+ * 如需扩展更多魂道器官，按同样方式向 {@link #SPECS} 中追加条目即可。
  */
 public final class HunDaoOrganRegistry {
 
@@ -16,17 +24,20 @@ public final class HunDaoOrganRegistry {
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(XIAO_HUN_GU_ID)
-                    .addSlowTickListener(HunDaoSoulBeastBehavior.INSTANCE)
-                    .addOnHitListener(HunDaoSoulBeastBehavior.INSTANCE)
-                    .addRemovalListener(HunDaoSoulBeastBehavior.INSTANCE)
-                    .ensureAttached(HunDaoSoulBeastBehavior.INSTANCE::ensureAttached)
-                    .onEquip(HunDaoSoulBeastBehavior.INSTANCE::onEquip)
+                    .addSlowTickListener(XiaoHunGuBehavior.INSTANCE)
+                    .addRemovalListener(XiaoHunGuBehavior.INSTANCE)
+                    .ensureAttached(XiaoHunGuBehavior.INSTANCE::ensureAttached)
+                    .onEquip(XiaoHunGuBehavior.INSTANCE::onEquip)
                     .build()
     );
 
     private HunDaoOrganRegistry() {
     }
 
+    /**
+     * 提供给集成桥的规格列表。
+     * @return 针对魂道器官的集成规格集合
+     */
     public static List<OrganIntegrationSpec> specs() {
         return SPECS;
     }

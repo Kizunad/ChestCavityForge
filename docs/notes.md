@@ -736,3 +736,14 @@ OnHit
   "item.guzhenren.lingyaopi": "蛊材_羚羊皮",
   "item.guzhenren.xiongpi": "蛊材_熊皮",
   "item.guzhenren.llangpi": "蛊材_狼皮",
+
+- `item.guzhenren.baishouwanghuya`: 蛊材_百兽王虎牙
+- `item.guzhenren.qianshouwanghuya`: 蛊材_千兽王虎牙
+- `item.guzhenren.wanshouwanghuya`: 蛊材_万兽王虎牙
+- `item.guzhenren.shouhanghuya`: 蛊材_兽皇虎牙
+
+- `item.guzhenren.lingyangjiao`: 蛊材_羚羊角
+- `item.guzhenren.bbaishoulingyangjiao`: 蛊材_百兽王羚角
+- `item.guzhenren.qianshouwanglingjiao`: 蛊材_千兽王羚角
+- `item.guzhenren.wanshouwanglingyangjiao`: 蛊材_万兽王羚角
+- `item.guzhenren.shouhuangjiao`: 蛊材_兽皇羚角

@@ -65,7 +65,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-    private static final double INCREASE_PER_STACK = 0.025;
+    private static final double INCREASE_PER_STACK = 0.02;
     private static final double FROSTBITE_CHANCE = 0.15;
     private static final double FROSTBITE_DAMAGE_PERCENT = 0.05;
     private static final int FROSTBITE_DURATION_SECONDS = 4;

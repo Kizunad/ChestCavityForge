@@ -6,40 +6,46 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Optional;
 
 /**
- * Abstraction over how Hun Dao organs capture and release beast souls.
- * Implementations are responsible for persisting the serialized entity payload on the organ stack.
+ * 魂道器官“兽魂”存取的抽象接口。
+ * <p>
+ * 具体实现负责：
+ * - 判断能否捕获；
+ * - 序列化并写入到器官物品的自定义数据；
+ * - 读取、消费、清空已存储的兽魂。
  */
 public interface BeastSoulStorage {
 
-    /** @return {@code true} if a beast soul payload is already present on the provided organ. */
+    /**
+     * 判断器官是否已有存储的兽魂。
+     * @return 若已存在存储负载返回 {@code true}
+     */
     boolean hasStoredSoul(ItemStack organ);
 
     /**
-     * Quick validation hook that callers can use before attempting to store a soul.
-     * Implementations may reject certain entity types (players, bosses, etc.).
+     * 捕获前的快速校验：默认排除玩家、空实体、已存在存储等情况。
+     * 实现可进一步限制（如排除 Boss）。
      */
     default boolean canStore(ItemStack organ, LivingEntity entity) {
         return organ != null && !organ.isEmpty() && entity != null && !(entity instanceof net.minecraft.world.entity.player.Player) && !hasStoredSoul(organ);
     }
 
     /**
-     * Serialises the provided entity and saves the payload into the organ stack.
-     *
-     * @param organ          organ stack that will host the payload
-     * @param entity         entity whose soul should be captured
-     * @param storedGameTime timestamp (in game ticks) when the capture occurred
-     * @return the stored record if successful
+     * 序列化目标实体并保存到器官物品。
+     * @param organ 承载存储负载的器官物品
+     * @param entity 需要被捕获“兽魂”的实体
+     * @param storedGameTime 捕获时的游戏时间（tick）
+     * @return 若成功存储，返回快照记录
      */
     Optional<BeastSoulRecord> store(ItemStack organ, LivingEntity entity, long storedGameTime);
 
-    /** Returns the stored soul payload without mutating the underlying stack. */
+    /** 只读地返回已存储的兽魂负载，不修改器官物品。 */
     Optional<BeastSoulRecord> peek(ItemStack organ);
 
     /**
-     * Removes and returns the stored payload. Callers can then respawn the entity elsewhere.
+     * 移除并返回存储负载，调用方可据此在其他位置重塑实体。
      */
     Optional<BeastSoulRecord> consume(ItemStack organ);
 
-    /** Deletes any stored payload without returning it. */
+    /** 无返回地清空存储负载。 */
     void clear(ItemStack organ);
 }
