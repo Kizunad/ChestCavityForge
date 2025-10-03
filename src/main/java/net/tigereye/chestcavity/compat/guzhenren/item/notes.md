@@ -677,3 +677,46 @@ OnHit
   ]
 }
 
+
+犬:
+  chestcavity:health 1
+  chestcavity:strength 1
+  chestcavity:speed 1
+虎:
+  chestcavity:health 1
+  chestcavity:strength 2
+  chestcavity:speed 1
+  chestcavity:impact_resistant 1 
+熊:
+  chestcavity:health 2
+  chestcavity:strength 2
+  chestcavity:defense 2
+  chestcavity:impact_resistant 1
+狼:
+  chestcavity:strength  1
+  chestcavity:arrow_dodging 1
+  chestcavity:speed 2
+羚:
+  chestcavity:health 2
+  chestcavity:filtration 1
+  chestcavity:defense 2
+
+
+百兽王:
+  guzhenren:zuida_zhenyuan 1
+  guzhenren:zuida_jingli 1
+千兽王:
+  guzhenren:zuida_zhenyuan 4
+  guzhenren:zuida_jingli 4
+  guzhenren:niantou_zuida 1
+万兽王:
+  guzhenren:zuida_zhenyuan 8
+  guzhenren:zuida_jingli 8
+  guzhenren:niantou_zuida 4
+  guzhenren:zuida_hunpo 1
+兽皇:
+  guzhenren:zuida_zhenyuan 16
+  guzhenren:zuida_jingli 16
+  guzhenren:niantou_zuida 8
+  guzhenren:zuida_hunpo 4
+  guzhenren:shouyuan 1

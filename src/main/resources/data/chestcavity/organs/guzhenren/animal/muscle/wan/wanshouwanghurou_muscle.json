@@ -1,4 +1,37 @@
 {
   "itemID": "guzhenren:wanshouwanghurou",
-  "organScores": []
+  "organScores": [
+    {
+      "id": "chestcavity:health",
+      "value": "90"
+    },
+    {
+      "id": "chestcavity:impact_resistant",
+      "value": "90"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "90"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "180"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "80"
+    }
+  ]
 }
