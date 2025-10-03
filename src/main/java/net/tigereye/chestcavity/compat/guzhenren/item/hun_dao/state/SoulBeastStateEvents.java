@@ -4,16 +4,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
-import net.neoforged.neoforge.fml.common.Mod.EventBusSubscriber;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.tigereye.chestcavity.ChestCavity;
 
 /**
  * Event hooks for synchronising soul beast state with clients.
  */
-@EventBusSubscriber(modid = ChestCavity.MODID, bus = EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SoulBeastStateEvents {
 
     private SoulBeastStateEvents() {
@@ -48,21 +48,20 @@ public final class SoulBeastStateEvents {
     }
 
     @SubscribeEvent
-    public static void onLevelTick(TickEvent.LevelTickEvent event) {
-        if (event.level().isClientSide() || event.phase() != TickEvent.Phase.END) {
-            return;
+    public static void onServerTick(ServerTickEvent.Post event) {
+        long current = event.getServer().getTickCount();
+        for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+            SoulBeastStateManager.getExisting(player).ifPresent(state -> {
+                if (!state.isActive()) {
+                    return;
+                }
+                long lastTick = state.getLastTick();
+                if (current - lastTick >= 20L) {
+                    state.setLastTick(current);
+                    SoulBeastStateManager.syncToClient(player);
+                }
+            });
         }
-        event.level().players().forEach(player -> SoulBeastStateManager.getExisting(player).ifPresent(state -> {
-            long current = event.level().getGameTime();
-            if (!state.isActive()) {
-                return;
-            }
-            long lastTick = state.getLastTick();
-            if (current - lastTick >= 20L) {
-                state.setLastTick(current);
-                SoulBeastStateManager.syncToClient((ServerPlayer) player);
-            }
-        }));
     }
 
     @OnlyIn(Dist.CLIENT)

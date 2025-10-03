@@ -8,7 +8,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.fml.DistExecutor;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.registration.CCAttachments;
@@ -119,9 +119,8 @@ public final class SoulBeastStateManager {
 
     public static void applyClientSnapshot(SoulBeastSyncPayload payload, @Nullable Player contextPlayer) {
         Player resolvedPlayer = contextPlayer;
-        if (resolvedPlayer == null) {
-            resolvedPlayer = DistExecutor.unsafeCallForDist(() -> SoulBeastStateManager::resolveClientPlayer,
-                    () -> () -> null);
+        if (resolvedPlayer == null && FMLEnvironment.dist.isClient()) {
+            resolvedPlayer = resolveClientPlayer();
         }
         if (resolvedPlayer == null) {
             return;
