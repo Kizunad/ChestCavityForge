@@ -43,6 +43,7 @@ public final class NetworkHandler {
         registrar.playToServer(GuScriptSimulateCompilePayload.TYPE, GuScriptSimulateCompilePayload.STREAM_CODEC, GuScriptSimulateCompilePayload::handle);
         registrar.playToServer(FlowInputPayload.TYPE, FlowInputPayload.STREAM_CODEC, FlowInputPayload::handle);
         registrar.playToServer(KongqiaoDaoHenSeedPayload.TYPE, KongqiaoDaoHenSeedPayload.STREAM_CODEC, DaoHenSeedHandler::handleSeedPayload);
+        registrar.playToServer(SoulBeastSyncPayload.TYPE, SoulBeastSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleSyncPayload);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
