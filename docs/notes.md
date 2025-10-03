@@ -721,11 +721,20 @@ OnHit
   guzhenren:zuida_hunpo 4
   guzhenren:shouyuan 1
 
-  魂兽状态:血条将会消失替换成魂魄条，攻击视为魂道攻击，每次攻击都会附加［魂炎］（黑色火焰），［魂炎］每秒对敌人造成等同于当前魂魄值上限1％的真伤，持续5秒，每次攻击都会消耗18点魂魄值，魂魄值每秒溢散3点，魂兽寿元不会自然消耗，获得饱和效果
+魂兽状态:血条将会消失替换成魂魄条，攻击视为魂道攻击，每次攻击都会附加［魂炎］（黑色火焰），［魂炎］每秒对敌人造成等同于当前魂魄值上限1％的真伤，持续5秒，每次攻击都会消耗18点魂魄值，魂魄值每秒溢散3点，魂兽寿元不会自然消耗，获得饱和效果
 
 小魂蛊（心脏）:每秒恢复1点魂魄，提供［魂基］效果，该效果将额外提升20％魂魄恢复效率
 
-大魂蛊（心脏）:每秒恢复2点魂魄值和1点念头，胸腔内存在小魂蛊时获得［魂心］效果，该效果会将人同步转化为魂兽，魂兽状态不可解除；当角色为魂兽状态，提供［魂慑］效果，该效果可对低转野兽产生威慑
+大魂蛊（  "item.guzhenren.dahungu": "大魂蛊",）:每秒恢复2点魂魄值和1点念头，胸腔内存在小魂蛊时获得［魂心］效果，该效果会将人同步转化为->魂兽，魂兽状态不可解除；
+当角色为魂兽状态，提供［魂慑］效果，该效果可根据当前魂魄量，震慑生命值小于魂魄量的敌对生物
+{
+  "itemID": "guzhenren:dahungu",
+  "organScores": [
+    { "id": "guzhenren:zuida_hunpo", "value": "50" },
+    {"id":"chestcavity:health","value": "2"}
+  ]
+}
+
 
   "item.guzhenren.lingyangyan": "蛊材_羚羊眼",
   "item.guzhenren.quanyan": "蛊材_土犬眼",
@@ -747,3 +756,81 @@ OnHit
 - `item.guzhenren.qianshouwanglingjiao`: 蛊材_千兽王羚角
 - `item.guzhenren.wanshouwanglingyangjiao`: 蛊材_万兽王羚角
 - `item.guzhenren.shouhuangjiao`: 蛊材_兽皇羚角
+
+
+  建议新增/完善的通用模块与工具
+
+  - 魂兽状态（服务端权威 + 客户端显示）
+      - 类/工具
+          - SoulBeastState 附着与管理器: compat/guzhenren/item/hun_dao/state/SoulBeastState.java,
+  SoulBeastStateManager.java
+              - 字段: active 是否魂兽、permanent 是否不可解除、lastTick 最近同步、source 来源（小/大魂蛊）。
+              - API: isActive(entity), isPermanent(entity), setActive(entity, flag), setPermanent(entity, flag),
+  syncToClient(player).
+          - 事件钩子: 在玩家登录、换维、死亡/重生时同步魂兽标记；在心跳时保持快照一致（必要时）。
+      - 网络同步
+          - 复用现有 GuzhenrenNetworkBridge 风格，定义 C2S/S2C: soul_beast_sync，客户端接收后刷新 HUD 与本地缓存。
+      - 标签与提示
+          - 在 HUD 附近加“魂兽状态”小图标或文本；调试开关打印当前 hunpo/max。
+  - 伤害标记与命中附加（“魂道攻击”与“魂炎”）
+      - 伤害类型/标记
+          - Damage 标记工具: compat/guzhenren/combat/HunDaoDamageUtil.java
+              - markHunDaoAttack(attacker), isHunDao(source): 将近战伤害源打上 HUN_DAO 标记（可用自定义 DamageType 或
+  DamageSource 上的 tag）。
+      - 命中监听与 DoT 调用
+          - 统一从一个 OnHit 中间件出发：若 SoulBeastState.active，则每次近战命中：
+              - 消耗 18 魂魄（玩家：用 GuzhenrenResourceCostHelper.consumeStrict(player, 18, 0)；非玩家：默认跳过或按需
+  走生命折算）
+              - 调度 DoT：使用 DoTManager 施加“魂炎”（黑色火焰）→ 每秒 真伤 = maxHunpo * 0.01，持续 5 秒；忽略护甲/抗性
+          - 这部分 HunDaoSoulBeastBehavior 已有雏形：继续复用/充实它，或将计算与扣资下沉到 HunDaoMiddleware。
+  - 资源统一调度（溢散与恢复）
+      - 每秒溢散（魂兽）
+          - 在 HunDaoMiddleware 中增加 leakHunpoPerSecond(Player, amount=3.0)；由 HunDaoSoulBeastBehavior.onSlowTick
+  调用。
+      - 每秒恢复（小魂/大魂）
+          - 小魂蛊（已实现）: XiaoHunGuBehavior.handlerPlayer 每秒 +1 并通过联动 hun_ji_recovery_effect 提供 +20% 效率。
+          - 大魂蛊（新增行为）: DaHunGuBehavior 每秒 +2 魂魄 +1 念头；若胸腔内存在小魂蛊则施加“魂心”并将
+  SoulBeastState.setPermanent(true)。
+              - 需要一个“器官存在性”工具：OrganPresenceUtil.has(cc, itemOrId)；已有模式可参考
+  ShuangXiGuOrganBehavior.hasBingJiGu 并抽到共享 util。
+      - 资源桥
+          - 继续复用 GuzhenrenResourceBridge 的 ResourceHandle.read/adjustDouble/clampToMax 接口，所有读写都经它走。
+  - 魂慑（范围震慑）
+      - 中心工具: HunDaoAuraHelper.java
+          - applyDeterAura(Player source, double radius): 扫描半径 R（可配置），对于“生命值 < 当前魂魄量”的敌对生物，施
+  加“震慑”状态
+          - 实现手段：若无自定义效果，可用组合：短时 Weakness + Slowness + brief Stun-like（若无“眩晕”可用
+  MovementSlowdown + 攻速极低 + 短免疫窗口模拟）
+          - 调用时机：当 SoulBeastState.active（尤其 permanent）时，每 1s 执行一次 aura；强度随 hunpo 变化（阈值判断由
+  hunpo 读数得出）
+  - 行为注册（Registry 绑定）
+      - HunDaoOrganRegistry
+          - 目前仅注册了 XiaoHunGuBehavior。需新增：
+              - 大魂蛊 DaHunGuBehavior（SlowTick + Removal + ensureAttached + onEquip）
+              - 魂兽 HunDaoSoulBeastBehavior（SlowTick + OnHit + Removal + ensureAttached + onEquip）
+          - 确保与物品 id 对应（guzhenren:dahungu、小魂蛊 id、以及魂兽行为的触发来源）
+  - HUD/FX/音效
+      - 黑色火焰 FX：在 DoT 施加与每秒 tick 时发送粒子与音效（需注册自定义音效 id；参考之前 break_air 的注册缺失问题，必
+  须用 DeferredRegister 注册 SoundEvent）。
+      - GUI 资源：Hunpo 条材质/颜色主题。
+  - 配置与常量集中
+      - HunDaoBalance.java 或 config 节点
+          - SOUL_BEAST_HUNPO_LEAK_PER_SEC = 3.0
+          - SOUL_BEAST_ON_HIT_COST = 18.0
+          - SOUL_FLAME_DPS_FACTOR = 0.01, SOUL_FLAME_DURATION = 5s
+          - XIAO_HUN_RECOVER = 1.0, XIAO_HUN_RECOVER_BONUS = 0.2
+          - DA_HUN_RECOVER = 2.0, DA_HUN_NIANTOU = 1.0
+          - DETER_RADIUS, HUD_TOGGLE 等
+      - 统一从一处读取，便于平衡与服主配置。
+  - 工具/辅助
+      - OrganPresenceUtil：快速查胸腔是否含某器官/ID（抽取自多处 contains 循环）。
+      - CombatEntityUtil：判断近战/抛射来源、敌我阵营（已有部分逻辑，整合一下）。
+      - TrueDamageHelper：封装 DoT 的“真伤”逻辑；DoTManager 里应已有处理，暴露一个公共入口即可。
+      - SaturationHelper：温和维持饱食/饱和（上限、不覆盖食物效果），供魂兽状态被动调用。
+      - LongevityGuard（可选）：“寿元不自然消耗”若来自外部 Mod，需要在我们侧定期“回填/钳制”，提供兼容层：
+  whileSoulBeastClampShouYuan(...)。
+  - 测试建议
+      - DoTManager: 到期触发/叠加/目标死亡/卸载分支。
+      - 资源消耗: 18 魂魄不足时拒绝施加；refund/回滚路径（若未来用事务）。
+      - HUD: 客户端仅在 SoulBeastState.active 时显示；切换维度/重登保持一致。
+      - Aura: 阈值判断正确（生命值 < hunpo 时被震慑）。
