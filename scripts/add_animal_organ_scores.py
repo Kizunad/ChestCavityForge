@@ -44,12 +44,12 @@ ANIMAL_BASE: Dict[str, Dict[str, int]] = {
     'quan': {
         'chestcavity:health': 10,
         'chestcavity:strength': 10,
-        'chestcavity:speed': 10,
+        'chestcavity:speed': 0.1,
     },
     'hu': {
         'chestcavity:health': 10,
         'chestcavity:strength': 20,
-        'chestcavity:speed': 10,
+        'chestcavity:speed': 0.1,
         'chestcavity:impact_resistant': 10,
     },
     'xiong': {
@@ -61,7 +61,7 @@ ANIMAL_BASE: Dict[str, Dict[str, int]] = {
     'lang': {
         'chestcavity:strength': 10,
         'chestcavity:arrow_dodging': 10,
-        'chestcavity:speed': 20,
+        'chestcavity:speed': 0.2,
     },
     # 羚(羊) — filenames may include ling or (typo) liangyang
     'ling': {
@@ -89,8 +89,8 @@ RANK_BONUS: Dict[str, Dict[str, int]] = {
         'guzhenren:zuida_hunpo': 10,
     },
     'shouhuang': {  # 兽皇
-        'guzhenren:zuida_zhenyuan': 160,
-        'guzhenren:zuida_jingli': 160,
+        'guzhenren:zuida_zhenyuan': 100,
+        'guzhenren:zuida_jingli': 100,
         'guzhenren:niantou_zuida': 80,
         'guzhenren:zuida_hunpo': 40,
         'guzhenren:shouyuan': 10,

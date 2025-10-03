@@ -1,30 +1,19 @@
 {
 	"format_version": "1.8.0",
 	"animations": {
-		"animation.chestcavity.dark_queen_model.swing": {
-			"animation_length": 1.5,
+		"swing": {
+			"animation_length": 3,
 			"bones": {
 				"bone": {
 					"rotation": {
 						"0.0": {
 							"vector": [-291.84101, 29.24582, -432.58143]
 						},
-						"1.0": {
-							"vector": [-298.21983, 23.13887, -446.99537],
-							"easing": "easeOutElastic"
-						},
-						"1.125": {
-							"vector": [-355.74835, 37.00652, -473.2933],
-							"easing": "easeInOutCubic"
-						},
-						"1.25": {
-							"vector": [-434.54258, 16.6374, -528.76928]
-						},
-						"1.375": {
-							"vector": [-463.83832, 0.64736, -587.44109],
-							"easing": "easeInCubic"
-						},
 						"1.5": {
+							"vector": [-298.21983, 23.13887, -446.99537],
+							"easing": "easeInQuint"
+						},
+						"3.0": {
 							"vector": [-464.55733, -22.92513, -599.50942],
 							"easing": "easeInCubic"
 						}
@@ -33,24 +22,12 @@
 						"0.0": {
 							"vector": [-4, 13, 1]
 						},
-						"1.0": {
+						"1.5": {
 							"vector": [-4, 12, 0],
 							"easing": "easeInSine"
 						},
-						"1.125": {
-							"vector": [2.75, 12.25, 6.06],
-							"easing": "linear"
-						},
-						"1.25": {
-							"vector": [9.68, 17.82, 8.18],
-							"easing": "linear"
-						},
-						"1.375": {
-							"vector": [16.34, 33.41, 10.22],
-							"easing": "linear"
-						},
-						"1.5": {
-							"vector": [20.34, 48.41, 10.22],
+						"3.0": {
+							"vector": [22.34, 48.41, 9.22],
 							"easing": "easeInCirc"
 						}
 					}

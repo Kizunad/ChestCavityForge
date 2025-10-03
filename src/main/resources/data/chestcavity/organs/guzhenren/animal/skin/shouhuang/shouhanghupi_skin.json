@@ -11,7 +11,7 @@
     },
     {
       "id": "chestcavity:speed",
-      "value": "170"
+      "value": "1.7000000000000002"
     },
     {
       "id": "chestcavity:strength",
@@ -35,7 +35,7 @@
     },
     {
       "id": "guzhenren:zuida_zhenyuan",
-      "value": "160"
+      "value": "100"
     }
   ]
 }
