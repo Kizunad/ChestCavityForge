@@ -1041,4 +1041,4 @@ Acceptance
     2. `action.soulbeast.transform`（封装 `SoulBeastAPI.toSoulBeast` + 事件）
     3. `action.consume_resources_combo`（按周期扣 200 真元 + 1 HP，失败跳转）
     4. `action.emit_fail_fx`（播放 `fail_toSoulBeast` 声音与特效）
-  - FX 资源：新增蓝/黑魂焰 Gecko FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
+  - FX 资源：新增蓝/黑魂焰 FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
