@@ -20,4 +20,8 @@ public final class CCSoundEvents {
     public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_SWORD_BREAK_AIR =
             SOUND_EVENTS.register("custom.sword.break_air",
                     () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.sword.break_air")));
+
+    public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_SOULBEAST_FAIL_TO_SOULBEAST =
+            SOUND_EVENTS.register("custom.soulbeast.fail_to_soulbeast",
+                    () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.soulbeast.fail_to_soulbeast")));
 }

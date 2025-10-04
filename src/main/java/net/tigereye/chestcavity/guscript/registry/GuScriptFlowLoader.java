@@ -269,6 +269,7 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     json.has("scale_variable") ? GsonHelper.getAsString(json, "scale_variable") : null,
                     GsonHelper.getAsDouble(json, "default_scale", 1.0D)
             );
+            case "emit_fail_fx" -> FlowActions.emitFailFx();
             case "emit_gecko" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
             case "emit_gecko_relative" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
             case "play_sound" -> FlowActions.playSound(

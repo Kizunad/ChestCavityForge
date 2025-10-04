@@ -1,0 +1,28 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 48,
+      "offset": [0.0, 0.35, 0.0],
+      "spread": [0.45, 0.6, 0.45],
+      "speed": 0.03
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 32,
+      "offset": [0.0, 0.25, 0.0],
+      "spread": [0.55, 0.4, 0.55],
+      "speed": 0.015
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul",
+      "count": 20,
+      "offset": [0.0, 0.3, 0.0],
+      "spread": [0.3, 0.35, 0.3],
+      "speed": 0.04
+    }
+  ]
+}

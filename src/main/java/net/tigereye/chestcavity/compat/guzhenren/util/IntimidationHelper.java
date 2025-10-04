@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
+import net.tigereye.chestcavity.guzhenren.nudao.SoulBeastIntimidationHooks;
 
 /**
  * Utility methods for applying intimidation-style减益。
