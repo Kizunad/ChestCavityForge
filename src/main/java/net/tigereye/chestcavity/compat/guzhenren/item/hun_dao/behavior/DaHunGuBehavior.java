@@ -3,7 +3,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -14,6 +13,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoOrganRegistr
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
+import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
@@ -145,7 +145,7 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior implem
         IntimidationHelper.Settings settings = new IntimidationHelper.Settings(
                 hunpoValue,
                 IntimidationHelper.AttitudeScope.HOSTILE,
-                MobEffects.WEAKNESS,
+                CCStatusEffects.SOUL_BEAST_INTIMIDATED,
                 WEILING_EFFECT_DURATION_TICKS,
                 0,
                 false,

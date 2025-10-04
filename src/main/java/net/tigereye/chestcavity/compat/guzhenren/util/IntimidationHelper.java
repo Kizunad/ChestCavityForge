@@ -10,11 +10,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -23,6 +23,8 @@ import org.apache.logging.log4j.Logger;
 
 import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
 import net.tigereye.chestcavity.guzhenren.nudao.SoulBeastIntimidationHooks;
+import net.tigereye.chestcavity.mob_effect.SoulBeastIntimidatedEffect;
+import net.tigereye.chestcavity.registration.CCStatusEffects;
 
 /**
  * Utility methods for applying intimidation-style减益。
@@ -79,13 +81,15 @@ public final class IntimidationHelper {
         public Settings {
             healthThreshold = Double.isNaN(healthThreshold) ? 0.0D : Math.max(0.0D, healthThreshold);
             attitude = attitude == null ? AttitudeScope.HOSTILE : attitude;
-            effect = effect == null ? MobEffects.WEAKNESS : effect;
+            effect = effect == null ? CCStatusEffects.SOUL_BEAST_INTIMIDATED : effect;
             durationTicks = Math.max(1, durationTicks);
             amplifier = Math.max(0, amplifier);
         }
 
         public static Settings defaultHostile(double thresholdFraction) {
-            return new Settings(thresholdFraction, AttitudeScope.HOSTILE, MobEffects.WEAKNESS, 100, 0, false, true, true, false);
+            return new Settings(thresholdFraction, AttitudeScope.HOSTILE,
+                    CCStatusEffects.SOUL_BEAST_INTIMIDATED,
+                    100, 0, false, true, true, false);
         }
     }
 
@@ -126,19 +130,33 @@ public final class IntimidationHelper {
         if (!isBelowThreshold(candidate, settings.healthThreshold)) {
             return false;
         }
+        Holder<MobEffect> effectHolder = settings.effect;
         MobEffectInstance instance = new MobEffectInstance(
-                settings.effect,
+                effectHolder,
                 settings.durationTicks,
                 settings.amplifier,
                 settings.ambient,
                 settings.showParticles,
                 settings.showIcon
         );
-        return candidate.addEffect(instance);
+
+        SoulBeastIntimidatedEffect.assignIntimidator(candidate, performer.getUUID());
+        boolean applied = candidate.addEffect(instance);
+        if (!candidate.hasEffect(effectHolder)) {
+            SoulBeastIntimidatedEffect.clearIntimidator(candidate);
+            return false;
+        }
+
+        if (candidate instanceof Mob mob && !candidate.level().isClientSide) {
+            SoulBeastIntimidationGoalManager.ensureFleeGoal(mob);
+        }
+        return applied;
     }
 
     public static Holder<MobEffect> resolveEffect(ResourceLocation effectId, Holder<MobEffect> fallback) {
-        Holder<MobEffect> defaultEffect = fallback != null ? fallback : MobEffects.WEAKNESS;
+        Holder<MobEffect> defaultEffect = fallback != null
+                ? fallback
+                : CCStatusEffects.SOUL_BEAST_INTIMIDATED;
         if (effectId == null) {
             return defaultEffect;
         }

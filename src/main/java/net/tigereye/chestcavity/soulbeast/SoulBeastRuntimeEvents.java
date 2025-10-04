@@ -27,6 +27,7 @@ import net.tigereye.chestcavity.util.DoTManager;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
+import net.tigereye.chestcavity.registration.CCStatusEffects;
 import org.slf4j.Logger;
 
 import java.util.Optional;
@@ -246,7 +247,7 @@ public final class SoulBeastRuntimeEvents {
             IntimidationHelper.Settings settings = new IntimidationHelper.Settings(
                     hunpo,
                     IntimidationHelper.AttitudeScope.HOSTILE,
-                    net.minecraft.world.effect.MobEffects.WEAKNESS,
+                    CCStatusEffects.SOUL_BEAST_INTIMIDATED,
                     INTIMIDATION_DURATION,
                     0,
                     false,
