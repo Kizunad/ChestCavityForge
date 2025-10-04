@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage;
+package net.tigereye.chestcavity.soulbeast.storage;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 存储于器官中的“兽魂”快照（不可变）。
+ * 存储于承载物中的“兽魂”快照（不可变）。
  * <p>
  * 封装：
  * - {@code entityTypeId}：实体类型标识；

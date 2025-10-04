@@ -65,6 +65,54 @@ public final class GuzhenrenResourceCostHelper {
         return consume(entity, baseZhenyuanCost, baseJingliCost, DEFAULT_RESOURCE_TO_HEALTH_RATIO, true);
     }
 
+    /**
+     * Consumes hunpo (魂魄) from the given entity.
+     * - For players with Guzhenren attachment, deducts from the {@code hunpo} field (clamped to [0, max]).
+     * - For non-players, optionally falls back to draining health if {@code allowHealthFallback} is true.
+     *
+     * The health fallback uses the same {@link #DEFAULT_RESOURCE_TO_HEALTH_RATIO} as zhenyuan/jingli.
+     */
+    public static ConsumptionResult consumeHunpo(LivingEntity entity, double hunpoCost, boolean allowHealthFallback) {
+        if (entity == null || !entity.isAlive()) {
+            return ConsumptionResult.failure(FailureReason.ENTITY_INVALID);
+        }
+        double cost = sanitiseCost(hunpoCost);
+        if (cost <= 0.0) {
+            return ConsumptionResult.successWithResources(0.0, 0.0);
+        }
+
+        if (entity instanceof Player player) {
+            Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+            if (handleOpt.isEmpty()) {
+                return allowHealthFallback
+                        ? consumeWithHealth(player, cost, 0.0, DEFAULT_RESOURCE_TO_HEALTH_RATIO)
+                        : ConsumptionResult.failure(FailureReason.ATTACHMENT_MISSING_HANDLE);
+            }
+            ResourceHandle handle = handleOpt.get();
+            double current = handle.read("hunpo").orElse(0.0);
+            if (!Double.isFinite(current) || current + EPSILON < cost) {
+                return ConsumptionResult.failure(FailureReason.INSUFFICIENT_HUNPO);
+            }
+            if (handle.adjustDouble("hunpo", -cost, true, "zuida_hunpo").isEmpty()) {
+                return ConsumptionResult.failure(FailureReason.INSUFFICIENT_HUNPO);
+            }
+            debug("{} consumed hunpo: cost={}, remaining={}", player.getName().getString(), cost,
+                    handle.read("hunpo").orElse(Double.NaN));
+            return ConsumptionResult.successWithResources(0.0, 0.0);
+        }
+
+        if (!allowHealthFallback) {
+            return ConsumptionResult.failure(FailureReason.HEALTH_FALLBACK_DISABLED);
+        }
+        // Treat 1 hunpo as 1 resource unit with the standard conversion ratio
+        return consumeWithHealth(entity, cost, 0.0, DEFAULT_RESOURCE_TO_HEALTH_RATIO);
+    }
+
+    /** Strictly consumes hunpo from the entity without allowing health fallback. */
+    public static ConsumptionResult consumeStrict(LivingEntity entity, double hunpoCost) {
+        return consumeHunpo(entity, hunpoCost, false);
+    }
+
     public static ConsumptionResult consume(
             LivingEntity entity,
             double baseZhenyuanCost,
@@ -159,6 +207,7 @@ public final class GuzhenrenResourceCostHelper {
         NON_FINITE_COST,
         ATTACHMENT_MISSING_HANDLE,
         ATTACHMENT_MISSING_FIELD,
+        INSUFFICIENT_HUNPO,
         INSUFFICIENT_ZHENYUAN,
         INSUFFICIENT_JINGLI,
         INSUFFICIENT_HEALTH,

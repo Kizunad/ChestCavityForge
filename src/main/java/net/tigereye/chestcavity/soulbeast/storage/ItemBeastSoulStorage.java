@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage;
+package net.tigereye.chestcavity.soulbeast.storage;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -12,13 +12,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 默认的 {@link BeastSoulStorage} 实现。
- * <p>
- * 将“兽魂”数据持久化到物品堆的 {@code CustomData}（1.20 组件）中：
+ * 默认的 {@link BeastSoulStorage} 实现，面向“承载物”（ItemStack）。
+ * 将“兽魂”数据持久化到物品堆的 {@code CustomData}（1.20+ 组件）中：
  * - 根键为 {@code rootKey}（默认 {@code HunDaoSoulBeast}）；
  * - 子键 {@code BeastSoul} 下保存：实体类型、实体 NBT、存储时间。
  */
-public final class OrganBeastSoulStorage implements BeastSoulStorage {
+public final class ItemBeastSoulStorage implements BeastSoulStorage {
 
     private static final String DEFAULT_ROOT_KEY = "HunDaoSoulBeast";
     private static final String STORAGE_KEY = "BeastSoul";
@@ -28,11 +27,11 @@ public final class OrganBeastSoulStorage implements BeastSoulStorage {
 
     private final String rootKey;
 
-    public OrganBeastSoulStorage() {
+    public ItemBeastSoulStorage() {
         this(DEFAULT_ROOT_KEY);
     }
 
-    public OrganBeastSoulStorage(String rootKey) {
+    public ItemBeastSoulStorage(String rootKey) {
         this.rootKey = Objects.requireNonNull(rootKey, "rootKey");
     }
 

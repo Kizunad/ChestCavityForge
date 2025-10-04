@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state;
+package net.tigereye.chestcavity.soulbeast.state;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -31,4 +31,3 @@ public record SoulBeastRequestSyncPayload() implements CustomPacketPayload {
         return TYPE;
     }
 }
-

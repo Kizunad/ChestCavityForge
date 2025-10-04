@@ -12,9 +12,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOr
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoBalance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state.SoulBeastStateManager;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.BeastSoulStorage;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.OrganBeastSoulStorage;
+import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.soulbeast.storage.BeastSoulStorage;
+import net.tigereye.chestcavity.soulbeast.storage.ItemBeastSoulStorage;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -76,7 +76,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     private static final String KEY_BOUND_TIME = "bound_time";
     private static final String KEY_LAST_SYNC_TICK = "last_sync_tick";
 
-    private final BeastSoulStorage beastSoulStorage = new OrganBeastSoulStorage(STATE_ROOT_KEY);
+    private final BeastSoulStorage beastSoulStorage = new ItemBeastSoulStorage(STATE_ROOT_KEY);
 
     private HunDaoSoulBeastBehavior() {
     }

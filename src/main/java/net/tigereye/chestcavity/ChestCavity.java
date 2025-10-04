@@ -42,6 +42,7 @@ import net.tigereye.chestcavity.guscript.fx.client.FxClientHooks;
 import net.tigereye.chestcavity.guscript.fx.gecko.client.GeckoFxClient;
 import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
+import net.tigereye.chestcavity.soulbeast.command.SoulBeastCommands;
 import net.tigereye.chestcavity.debug.RecipeResourceProbe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -96,6 +97,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
                 NeoForge.EVENT_BUS.addListener(GuScriptCommands::register);
                 NeoForge.EVENT_BUS.addListener(RecipeDebugCommands::register);
+                NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
                 // Central DoT manager ticking
                 NeoForge.EVENT_BUS.addListener(DoTManager::onServerTick);
 		if (FMLEnvironment.dist.isClient()) {

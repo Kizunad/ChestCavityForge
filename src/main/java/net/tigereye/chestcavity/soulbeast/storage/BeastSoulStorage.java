@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage;
+package net.tigereye.chestcavity.soulbeast.storage;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -6,19 +6,15 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Optional;
 
 /**
- * 魂道器官“兽魂”存取的抽象接口。
- * <p>
- * 具体实现负责：
+ * “兽魂”存取的抽象接口（与器官解耦）。
+ * 实现负责：
  * - 判断能否捕获；
- * - 序列化并写入到器官物品的自定义数据；
+ * - 序列化并写入到承载物品的自定义数据；
  * - 读取、消费、清空已存储的兽魂。
  */
 public interface BeastSoulStorage {
 
-    /**
-     * 判断器官是否已有存储的兽魂。
-     * @return 若已存在存储负载返回 {@code true}
-     */
+    /** 判断承载物是否已有存储的兽魂。 */
     boolean hasStoredSoul(ItemStack organ);
 
     /**

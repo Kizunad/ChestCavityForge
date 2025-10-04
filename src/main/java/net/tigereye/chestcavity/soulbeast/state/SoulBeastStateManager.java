@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.state;
+package net.tigereye.chestcavity.soulbeast.state;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.protocol.PacketFlow;
@@ -41,7 +41,7 @@ public final class SoulBeastStateManager {
     }
 
     public static boolean isActive(LivingEntity entity) {
-        return getExisting(entity).map(SoulBeastState::isActive).orElse(false);
+        return getExisting(entity).map(s -> s.isPermanent() || s.isEnabled() || s.isActive()).orElse(false);
     }
 
     public static boolean isPermanent(LivingEntity entity) {
@@ -62,6 +62,26 @@ public final class SoulBeastStateManager {
         SoulBeastState state = getOrCreate(entity);
         if (state.setPermanent(permanent)) {
             touch(entity, state);
+            if (permanent && state.getStartedTick() == 0L) {
+                state.setStartedTick(state.getLastTick());
+            }
+            if (entity instanceof ServerPlayer player) {
+                syncToClient(player);
+            }
+        }
+    }
+
+    public static boolean isEnabled(LivingEntity entity) {
+        return getExisting(entity).map(SoulBeastState::isEnabled).orElse(false);
+    }
+
+    public static void setEnabled(LivingEntity entity, boolean enabled) {
+        SoulBeastState state = getOrCreate(entity);
+        if (state.setEnabled(enabled)) {
+            touch(entity, state);
+            if (enabled && state.getStartedTick() == 0L) {
+                state.setStartedTick(state.getLastTick());
+            }
             if (entity instanceof ServerPlayer player) {
                 syncToClient(player);
             }
@@ -80,7 +100,8 @@ public final class SoulBeastStateManager {
 
     public static void syncToClient(ServerPlayer player) {
         SoulBeastState state = getOrCreate(player);
-        var payload = new SoulBeastSyncPayload(player.getId(), state.isActive(), state.isPermanent(), state.getLastTick(),
+        boolean derivedActive = state.isPermanent() || state.isEnabled() || state.isActive();
+        var payload = new SoulBeastSyncPayload(player.getId(), derivedActive, state.isPermanent(), state.getLastTick(),
                 state.getSource().orElse(null));
         player.connection.send(payload);
         LOGGER.debug("[compat/guzhenren][hun_dao][state] synced {} -> active={} permanent={} source={} tick={}",
