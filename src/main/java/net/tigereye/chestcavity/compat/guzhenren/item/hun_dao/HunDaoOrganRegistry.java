@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.TiPoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.XiaoHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -28,6 +29,7 @@ public final class HunDaoOrganRegistry {
     public static final ResourceLocation XIAO_HUN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_hun_gu");
     public static final ResourceLocation DA_HUN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "dahungu");
     public static final ResourceLocation GUI_QI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "guiqigu");
+    public static final ResourceLocation TI_PO_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tipogu");
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(XIAO_HUN_GU_ID)
@@ -46,6 +48,13 @@ public final class HunDaoOrganRegistry {
                     .addOnHitListener(GuiQiGuOrganBehavior.INSTANCE)
                     .ensureAttached(GuiQiGuOrganBehavior.INSTANCE::ensureAttached)
                     .onEquip(GuiQiGuOrganBehavior.INSTANCE::onEquip)
+                    .build(),
+            OrganIntegrationSpec.builder(TI_PO_GU_ID)
+                    .addSlowTickListener(TiPoGuOrganBehavior.INSTANCE)
+                    .addOnHitListener(TiPoGuOrganBehavior.INSTANCE)
+                    .addRemovalListener(TiPoGuOrganBehavior.INSTANCE)
+                    .ensureAttached(TiPoGuOrganBehavior.INSTANCE::ensureAttached)
+                    .onEquip(TiPoGuOrganBehavior.INSTANCE::onEquip)
                     .build()
     );
 
