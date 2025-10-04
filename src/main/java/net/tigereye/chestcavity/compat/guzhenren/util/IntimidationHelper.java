@@ -185,4 +185,8 @@ public final class IntimidationHelper {
                 .map(handle -> handle.isOwnedBy(performer))
                 .orElse(false);
     }
+
+    public static boolean isSoulBeastIntimidationActive(Player performer) {
+        return SoulBeastIntimidationHooks.isIntimidationEnabled(performer);
+    }
 }

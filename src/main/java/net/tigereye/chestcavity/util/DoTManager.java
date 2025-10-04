@@ -67,6 +67,34 @@ public final class DoTManager {
         SCHEDULE.computeIfAbsent(pulse.dueTick, k -> new ArrayList<>()).add(pulse);
     }
 
+    public static int cancelAttacker(LivingEntity attacker) {
+        return attacker == null ? 0 : cancelAttacker(attacker.getUUID());
+    }
+
+    public static int cancelAttacker(UUID attackerUuid) {
+        if (attackerUuid == null) {
+            return 0;
+        }
+        int removed = 0;
+        synchronized (DoTManager.class) {
+            Iterator<Map.Entry<Integer, List<Pulse>>> iterator = SCHEDULE.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, List<Pulse>> entry = iterator.next();
+                List<Pulse> pulses = entry.getValue();
+                int before = pulses.size();
+                pulses.removeIf(pulse -> attackerUuid.equals(pulse.attackerUuid));
+                removed += before - pulses.size();
+                if (pulses.isEmpty()) {
+                    iterator.remove();
+                }
+            }
+        }
+        if (removed > 0 && DEBUG) {
+            LOGGER.info("[dot] cleared {} scheduled pulses for attacker {}", removed, attackerUuid);
+        }
+        return removed;
+    }
+
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         int now = event.getServer().getTickCount();
