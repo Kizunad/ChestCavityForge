@@ -8,13 +8,17 @@ import java.util.function.Function;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
 import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
+import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
+import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 /**
@@ -26,6 +30,16 @@ public final class FlowActions {
     }
 
     private static final ResourceLocation BREAK_AIR_SOUND_ID = ResourceLocation.parse("chestcavity:custom.sword.break_air");
+    private static final ResourceLocation FAIL_TO_SOULBEAST_SOUND_ID = ChestCavity.id("custom.soulbeast.fail_to_soulbeast");
+    private static final ResourceLocation FAIL_TO_SOULBEAST_FX_ID = ChestCavity.id("soulbeast_fail");
+    private static final FlowEdgeAction FAIL_TO_SOULBEAST_SOUND_ACTION = SoundFlowActions.playSound(
+            FAIL_TO_SOULBEAST_SOUND_ID,
+            SoundAnchor.PERFORMER,
+            Vec3.ZERO,
+            1.0F,
+            1.0F,
+            0
+    );
 
     public static void overrideResourceOpenerForTests(Function<Player, Optional<GuzhenrenResourceBridge.ResourceHandle>> opener) {
         ResourceFlowActions.overrideResourceOpenerForTests(opener);
@@ -113,6 +127,25 @@ public final class FlowActions {
 
     public static FlowEdgeAction emitGecko(GeckoFxParameters parameters) {
         return FxFlowActions.emitGecko(parameters);
+    }
+
+    public static FlowEdgeAction emitFailFx() {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                FAIL_TO_SOULBEAST_SOUND_ACTION.apply(performer, target, controller, gameTime);
+                if (performer == null) {
+                    return;
+                }
+                DefaultGuScriptExecutionBridge bridge = new DefaultGuScriptExecutionBridge(performer, target, 0);
+                bridge.playFx(FAIL_TO_SOULBEAST_FX_ID, FxEventParameters.DEFAULT);
+            }
+
+            @Override
+            public String describe() {
+                return "emit_fail_fx(sound=" + FAIL_TO_SOULBEAST_SOUND_ID + ", fx=" + FAIL_TO_SOULBEAST_FX_ID + ")";
+            }
+        };
     }
 
     public static FlowEdgeAction playSound(ResourceLocation soundId, SoundAnchor anchor, Vec3 offset, float volume, float pitch, int delayTicks) {

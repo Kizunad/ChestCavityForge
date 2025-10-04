@@ -7,7 +7,7 @@
       }
     ]
   },
-  "custom.soulbeast.fail_soulbeast_transform": {
+  "custom.soulbeast.fail_to_soulbeast": {
     "sounds": [
       {
         "name": "chestcavity:custom/soulbeast/fail_soulbeast_transform",
