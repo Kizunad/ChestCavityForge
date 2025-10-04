@@ -1,0 +1,13 @@
+{
+  "arity": 4,
+  "priority": 100,
+  "inhibitors": ["杀招"],
+  "required": { "魂道": 1, "野兽": 1, "魂魄": 1, "改造":1 },
+  "result": {
+    "name": "魂兽化",
+    "operator_id": "chestcavity:soul_beast_transform_perm",
+    "kind": "composite",
+    "tags": ["魂兽化"],
+    "flow_id": "chestcavity:thoughts_remote_burst"
+  }
+}

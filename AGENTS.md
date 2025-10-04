@@ -1032,3 +1032,13 @@ Acceptance
     {"id":"chestcavity:health","value": "2"}
   ]
 }
+- Parallel plan: `hun_dao/hun_shou_hua` 一次性主动技 flow + FX
+  - Flow 阶段：`prepare -> channel (periodic cost) -> completion/transform -> cooldown/fail`；在 `channel` 状态每秒扣 200 真元（`GuzhenrenResourceCostHelper.consumeStrict`）+ 1 生命值（`GuzhenrenResourceCostHelper.drainHealth`）。持续10s，若没有就跳转失败
+  - 首次成功后写入玩家附件标记（GuScript action），后续触发直接跳转失败分支并播放 `fail_toSoulBeast` 音效/FX。
+  - 成功时调用 `SoulBeastAPI.toSoulBeast(player, true, source)`（永久魂兽化）并依赖 `SoulBeastStateChangedEvent` 补满魂魄、启动威慑（`IntimidationHelper` 每秒检查敌对实体当前生命值 < 玩家魂魄值）。
+  - GuScript 扩展：
+    1. `predicate.hun_shou_hua.is_used` / `action.hun_shou_hua.mark_used`
+    2. `action.soulbeast.transform`（封装 `SoulBeastAPI.toSoulBeast` + 事件）
+    3. `action.consume_resources_combo`（按周期扣 200 真元 + 1 HP，失败跳转）
+    4. `action.emit_fail_fx`（播放 `fail_toSoulBeast` 声音与特效）
+  - FX 资源：新增蓝/黑魂焰 Gecko FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
