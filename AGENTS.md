@@ -1018,7 +1018,17 @@ Acceptance
 - Testing: `/guscript flow start chestcavity:test/tiger_ambush_slash` should produce visible tiger lunge + audio; confirm it respects different player yaw/pitch.
 
 ### Pending Soul Beast follow-up
-- Implement an OnIncomingDamage interception that diverts incoming damage into hunpo consumption (魂魄扣减) instead of health loss. Reuse the existing SoulBeast framework so other handlers can register alongside this conversion hook, and expose extension points for post-conversion damage scaling.
 - Consolidate the pending Soul Beast tasks (state sync, resource costs, command hooks) once the conversion path is in place.
-- Emit a dedicated hook when entities enter/exit the soul beast state (from `SoulBeastStateManager#setActive/#setEnabled/#setPermanent`) so other systems can initialise auras, HUD cues, etc.
-- Add a reusable intimidation helper that applies to entities whose current health falls below a player-controlled threshold, scoped by attitude (hostile/neutral/friendly/all). No existing logic covers this requirement.
+- Emit a dedicated hook when entities enter/exit the soul beast state (from `SoulBeastStateManager#setActive/#setEnabled/#setPermanent`) so other systems can initialise auras、HUD 等：
+  - 添加 `SoulBeastStateChangedEvent`（包含实体、旧状态、目标状态）。
+  - 在上述 setter 中比较 active/permanent/enabled 变化并发布事件；服务端同步后客户端可监听。
+  - 更新现有魂兽模块（DoT、指令、Intimidation 等）按需监听该事件。
+- Shared intimidation utility now lives at `compat/guzhenren/util/IntimidationHelper`; wire attituded threshold checks through it when implementing威慑效果。
+- Parallel plan: 实现大魂蛊（itemID `item.guzhenren.dahungu` “大魂蛊”。心脏）行为——每秒恢复 2 点魂魄与 1 点念头；若胸腔内存在小魂蛊且角色非魂兽，按 `HunDaoOrganRegistry` 列表统计魂道蛊数量为魂魄恢复效率提供 1%/只（上限 20%）的「魂意」增益；若角色为魂兽，赋予「威灵」让攻击魂魄消耗减少 10 点并调用 `IntimidationHelper` 威慑当前生命值低于玩家魂魄值的敌对实体；
+{
+  "itemID": "guzhenren:dahungu",
+  "organScores": [
+    { "id": "guzhenren:zuida_hunpo", "value": "50" },
+    {"id":"chestcavity:health","value": "2"}
+  ]
+}

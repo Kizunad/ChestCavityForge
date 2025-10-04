@@ -1,7 +1,8 @@
-package net.tigereye.chestcavity.guzhenren.nudao;
+package net.tigereye.chestcavity.compat.guzhenren.util;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -20,21 +21,19 @@ import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
+
 /**
- * Utility methods for applying intimidation style debuffs to nearby entities. The
- * caller supplies the health threshold and attitude scope so flows or abilities can
- * expose the behaviour directly to players.
+ * Utility methods for applying intimidation-style减益。
+ * 调用方提供血量阈值和关系范围，可在 flow/能力里直接复用。
  */
 public final class IntimidationHelper {
 
     private static final Logger LOGGER = LogManager.getLogger("ChestCavity/Intimidation");
 
-    private IntimidationHelper() {
-    }
+    private IntimidationHelper() {}
 
-    /**
-     * Defines the relationship filter for intimidation effects.
-     */
+    /** Attitude filter for intimidation impact. */
     public enum AttitudeScope {
         HOSTILE,
         NEUTRAL,
@@ -142,9 +141,9 @@ public final class IntimidationHelper {
         if (effectId == null) {
             return defaultEffect;
         }
-        var holderOpt = BuiltInRegistries.MOB_EFFECT.getHolder(effectId);
-        if (holderOpt.isPresent()) {
-            return holderOpt.get();
+        Optional<? extends Holder<MobEffect>> resolved = BuiltInRegistries.MOB_EFFECT.getHolder(effectId);
+        if (resolved.isPresent()) {
+            return resolved.get();
         }
         LOGGER.warn("[IntimidationHelper] Unknown effect id: {}", effectId);
         return defaultEffect;
@@ -176,8 +175,8 @@ public final class IntimidationHelper {
         if (performer.isAlliedTo(candidate)) {
             return true;
         }
-        if (candidate instanceof Player other) {
-            return performer.isAlliedTo(other);
+        if (candidate instanceof Player other && performer.isAlliedTo(other)) {
+            return true;
         }
         if (candidate instanceof TamableAnimal tamable && tamable.isOwnedBy(performer)) {
             return true;

@@ -2,12 +2,16 @@
   "itemID": "guzhenren:langrou",
   "organScores": [
     {
-      "id": "chestcavity:strength",
-      "value": "0.2"
+      "id": "chestcavity:arrow_dodging",
+      "value": "10"
     },
     {
       "id": "chestcavity:speed",
       "value": "0.2"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "10"
     }
   ]
 }

@@ -2,12 +2,36 @@
   "itemID": "guzhenren:baishouwanghuya",
   "organScores": [
     {
-      "id": "chestcavity:strength",
-      "value": "4000"
+      "id": "chestcavity:health",
+      "value": "90"
     },
     {
-      "id": "chestcavity:health",
-      "value": "10000"
+      "id": "chestcavity:impact_resistant",
+      "value": "90"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "0.9"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "180"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "60"
     }
   ]
 }

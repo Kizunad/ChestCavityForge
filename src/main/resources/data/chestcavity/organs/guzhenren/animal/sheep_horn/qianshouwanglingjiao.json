@@ -3,11 +3,27 @@
   "organScores": [
     {
       "id": "chestcavity:defense",
-      "value": "20"
+      "value": "100"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "50"
     },
     {
       "id": "chestcavity:health",
       "value": "100"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "40"
     }
   ]
 }

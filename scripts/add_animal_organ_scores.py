@@ -83,17 +83,17 @@ RANK_BONUS: Dict[str, Dict[str, int]] = {
         'guzhenren:niantou_zuida': 10,
     },
     'wan': {  # 万兽王
-        'guzhenren:zuida_zhenyuan': 80,
+        'guzhenren:zuida_zhenyuan': 60,
         'guzhenren:zuida_jingli': 80,
         'guzhenren:niantou_zuida': 40,
         'guzhenren:zuida_hunpo': 10,
     },
     'shouhuang': {  # 兽皇
-        'guzhenren:zuida_zhenyuan': 100,
+        'guzhenren:zuida_zhenyuan': 80,
         'guzhenren:zuida_jingli': 100,
         'guzhenren:niantou_zuida': 80,
         'guzhenren:zuida_hunpo': 40,
-        'guzhenren:shouyuan': 10,
+        'guzhenren:shouyuan': 1,
     },
 }
 

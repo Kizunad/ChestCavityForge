@@ -8,6 +8,26 @@
     {
       "id": "chestcavity:health",
       "value": "1000"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:shouyuan",
+      "value": "1"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "100"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "80"
     }
   ]
 }

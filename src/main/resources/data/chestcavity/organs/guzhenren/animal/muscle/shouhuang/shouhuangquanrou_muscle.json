@@ -19,7 +19,7 @@
     },
     {
       "id": "guzhenren:shouyuan",
-      "value": "10"
+      "value": "1"
     },
     {
       "id": "guzhenren:zuida_hunpo",
@@ -27,11 +27,11 @@
     },
     {
       "id": "guzhenren:zuida_jingli",
-      "value": "160"
+      "value": "100"
     },
     {
       "id": "guzhenren:zuida_zhenyuan",
-      "value": "100"
+      "value": "80"
     }
   ]
 }
