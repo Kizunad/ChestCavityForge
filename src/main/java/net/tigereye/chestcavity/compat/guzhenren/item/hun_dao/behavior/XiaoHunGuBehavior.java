@@ -37,7 +37,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
     private static final String KEY_LAST_SYNC_TICK = "last_sync_tick";
 
     private static final double BASE_RECOVERY_PER_SECOND = 1.0;
-    private static final double RECOVERY_BONUS = 0.20;
+    private static final double RECOVERY_BONUS = 0.15;
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -82,6 +82,12 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         ensureAttached(cc);
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         LinkageChannel channel = context.getOrCreateChannel(HUN_JI_RECOVERY_EFFECT).addPolicy(NON_NEGATIVE);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        ledger.verifyAndRebuildIfNeeded();
+        double contribution = ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, 0.0);
+        if (contribution <= 0.0) {
+            return; // only one Xiao Hun Gu may apply its effect
+        }
         double bonus = Math.max(0.0, channel.get());
         double amount = BASE_RECOVERY_PER_SECOND * (1.0 + bonus);
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
@@ -104,10 +110,17 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         if (cc == null) {
             return;
         }
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        ledger.verifyAndRebuildIfNeeded();
+        double previous = ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, 0.0);
         refreshIncreaseContribution(cc, organ, false);
+        if (previous > 0.0) {
+            promoteReplacement(cc, organ);
+        }
     }
 
-    private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ, boolean primary) {
+    private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ, boolean requestPrimary) {
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
@@ -116,12 +129,38 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, 0.0);
-        double target = primary ? RECOVERY_BONUS : 0.0;
+        double totalWithoutSelf = Math.max(0.0, ledger.total(HUN_JI_RECOVERY_EFFECT) - previous);
+        boolean activate = requestPrimary && totalWithoutSelf <= 0.0;
+        double target = activate ? RECOVERY_BONUS : 0.0;
         double delta = target - previous;
         if (delta != 0.0) {
             channel.adjust(delta);
-            ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, delta);
+        }
+        if (target > 0.0) {
+            ledger.set(organ, HUN_JI_RECOVERY_EFFECT, Math.max(1, organ.getCount()), target);
+        } else {
+            ledger.remove(organ, HUN_JI_RECOVERY_EFFECT);
+        }
+    }
+
+    private void promoteReplacement(ChestCavityInstance cc, ItemStack removed) {
+        if (cc == null || cc.inventory == null) {
+            return;
+        }
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        IncreaseEffectLedger ledger = context.increaseEffects();
+        ledger.verifyAndRebuildIfNeeded();
+        int size = cc.inventory.getContainerSize();
+        for (int i = 0; i < size; i++) {
+            ItemStack candidate = cc.inventory.getItem(i);
+            if (candidate == null || candidate.isEmpty() || candidate == removed) {
+                continue;
+            }
+            if (candidate.getItem() != removed.getItem()) {
+                continue;
+            }
+            refreshIncreaseContribution(cc, candidate, true);
+            break;
         }
     }
 }
-
