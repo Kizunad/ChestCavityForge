@@ -119,15 +119,19 @@ public final class IntimidationHelper {
             return false;
         }
         if (!candidate.isAlive()) {
+            LOGGER.info("[Intimidation] skip {} (dead)", describe(candidate));
             return false;
         }
         if (!settings.includeSelf && candidate == performer) {
+            LOGGER.info("[Intimidation] skip {} (self) includeSelf={}", describe(candidate), settings.includeSelf);
             return false;
         }
         if (!settings.attitude.includes(performer, candidate)) {
+            LOGGER.info("[Intimidation] skip {} (attitude mismatch)", describe(candidate));
             return false;
         }
         if (!isBelowThreshold(candidate, settings.healthThreshold)) {
+            LOGGER.info("[Intimidation] skip {} (health threshold)", describe(candidate));
             return false;
         }
         Holder<MobEffect> effectHolder = settings.effect;
@@ -139,18 +143,24 @@ public final class IntimidationHelper {
                 settings.showParticles,
                 settings.showIcon
         );
-
         SoulBeastIntimidatedEffect.assignIntimidator(candidate, performer.getUUID());
         boolean applied = candidate.addEffect(instance);
         if (!candidate.hasEffect(effectHolder)) {
+            LOGGER.info("[Intimidation] effect inactive after addEffect for {} (effect={}) applied={}"
+                    , describe(candidate), effectHolder.unwrapKey().map(Object::toString).orElse("<unknown>"), applied);
             SoulBeastIntimidatedEffect.clearIntimidator(candidate);
             return false;
         }
-
         if (candidate instanceof Mob mob && !candidate.level().isClientSide) {
             SoulBeastIntimidationGoalManager.ensureFleeGoal(mob);
+        } else {
+            LOGGER.info("[Intimidation] effect applied to {}, but not a Mob or client-side", describe(candidate));
         }
-        return applied;
+        return true;
+    }
+
+    private static String describe(LivingEntity entity) {
+        return entity == null ? "<null>" : entity.getName().getString() + "(" + entity.getType().toString() + ")";
     }
 
     public static Holder<MobEffect> resolveEffect(ResourceLocation effectId, Holder<MobEffect> fallback) {
@@ -181,7 +191,10 @@ public final class IntimidationHelper {
     }
 
     private static boolean isHostile(Entity entity) {
-        return entity instanceof Enemy;
+        if (entity instanceof Enemy) {
+            return true;
+        }
+        return entity instanceof LivingEntity living && ConstantMobs.isConsideredHostile(living);
     }
 
     private static boolean isFriendly(Player performer, LivingEntity candidate) {

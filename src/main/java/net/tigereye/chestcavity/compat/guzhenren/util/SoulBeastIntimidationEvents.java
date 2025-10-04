@@ -28,6 +28,7 @@ public final class SoulBeastIntimidationEvents {
         if (instance.getEffect() != CCStatusEffects.SOUL_BEAST_INTIMIDATED.value()) {
             return;
         }
+        ChestCavity.LOGGER.info("[Intimidation] MobEffectEvent.Added fired for {}", entity.getName().getString());
         SoulBeastIntimidatedEffect.handleEffectAdded(entity);
     }
 
@@ -41,6 +42,7 @@ public final class SoulBeastIntimidationEvents {
         if (instance.getEffect() != CCStatusEffects.SOUL_BEAST_INTIMIDATED.value()) {
             return;
         }
+        ChestCavity.LOGGER.info("[Intimidation] MobEffectEvent.Remove fired for {}", entity.getName().getString());
         SoulBeastIntimidatedEffect.handleEffectRemoved(entity);
     }
 }

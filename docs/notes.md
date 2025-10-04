@@ -790,7 +790,7 @@ OnHit
           - 在 HunDaoMiddleware 中增加 leakHunpoPerSecond(Player, amount=3.0)；由 HunDaoSoulBeastBehavior.onSlowTick
   调用。
       - 每秒恢复（小魂/大魂）
-          - 小魂蛊（已实现）: XiaoHunGuBehavior.handlerPlayer 每秒 +1 并通过联动 hun_ji_recovery_effect 提供 +20% 效率。
+          - 小魂蛊（已实现）: XiaoHunGuBehavior.handlerPlayer 每秒 +1 并通过联动 HUN_DAO_INCREASE_EFFECT 提供 +20% 效率。
           - 大魂蛊（新增行为）: DaHunGuBehavior 每秒 +2 魂魄 +1 念头；若胸腔内存在小魂蛊则施加“魂心”并将
   SoulBeastState.setPermanent(true)。
               - 需要一个“器官存在性”工具：OrganPresenceUtil.has(cc, itemOrId)；已有模式可参考
@@ -865,3 +865,50 @@ OnHit
 当胸腔内存在小魂蛊将获得以下特殊增益，
 若角色并非魂兽将获得［魂意］，胸腔内每有一只魂道蛊虫[HunDaoOrganRegistry实现一个List注册]，魂魄恢复效率提升1％，最高提升20％；
 如果角色处于魂兽状态将获得［威灵］，攻击消耗的魂魄值降低10点，同时会对所有当前生命值小于角色魂魄值的敌对生物产生威慑
+
+鬼气蛊（"item.guzhenren.guiqigu": "鬼气蛊",）:每秒恢复3点魂魄值和1点精力值  
+被动:
+攻击会造成等同于当前魂魄值上限1％的真伤magic，
+当角色处于魂兽状态获得［噬魂］，
+击杀生命值>40的生物有12％概率提升所击杀生物0.1％生命值的魂魄值上限，
+同时损伤5％魂魄稳定度  
+主动技:释放技能［鬼雾］会在敌人眼前生成一团黑雾(黑色粒子效果)，使敌人迷失方向(缓慢4，失明)
+
+{
+  "itemID": "guzhenren:xiao_hun_gu",
+  "organScores": [
+    { "id": "guzhenren:zuida_hunpo", "value": "66" },
+    {"id":"chestcavity:health","value": "4"}
+  ]
+}
+
+三转全力以赴（      "item.guzhenren.quan_li_yi_fu_gu": "全力以赴蛊", ）：
+每15秒消耗500真元恢复5点精力，
+当胸腔内的肌肉类越多(判断json是否提供strength)，
+精力回复越快，
+每个肌肉类蛊虫提供0.5，最高恢复上限15。不可叠加。
+
+{
+  "itemID": "guzhenren:quan_li_yi_fu_gu",
+  "organScores": [
+    {"id":"chestcavity:defense","value": "1"},
+    {"id":"chestcavity:nerves","value": "1"},
+    {"id":"chestcavity:strength","value": "32"}
+  ]
+}
+
+
+三转自力更生（      "item.guzhenren.zi_li_geng_sheng_gu_3": "自力更生蛊", 肾脏）：
+每10秒消耗500真元恢复2点生命。
+释放主动技后，将消耗胸腔内的肌肉器官（正则判断是否为chestcavity:*muscle即可），
+获得30秒的生命恢复，结束后获得30秒的虚弱，消耗肌肉时播放进食声音。
+不可叠加。
+
+{
+  "itemID": "guzhenren:zi_li_geng_sheng_gu_3",
+  "organScores": [
+    {"id":"chestcavity:filtration","value": "1"},
+    {"id":"chestcavity:nerves","value": "1"},
+    {"id":"chestcavity:strength","value": "32"}
+  ]
+}

@@ -9,6 +9,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 
 import net.tigereye.chestcavity.compat.guzhenren.util.SoulBeastIntimidationGoalManager;
+import org.slf4j.Logger;
+import com.mojang.logging.LogUtils;
 
 /**
  * Mob effect applied to entities that should temporarily flee from the soul beast intimidator.
@@ -17,6 +19,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.SoulBeastIntimidationGoalM
 public class SoulBeastIntimidatedEffect extends CCStatusEffect {
 
     private static final String INTIMIDATOR_TAG = "ChestCavitySoulBeastIntimidator";
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public SoulBeastIntimidatedEffect() {
         super(MobEffectCategory.HARMFUL, 0x4b2f70);
@@ -37,6 +40,7 @@ public class SoulBeastIntimidatedEffect extends CCStatusEffect {
         if (entity instanceof Mob mob) {
             SoulBeastIntimidationGoalManager.ensureFleeGoal(mob);
         }
+        LOGGER.info("[Intimidation] effect added on {}", entity.getName().getString());
     }
 
     public static void handleEffectRemoved(LivingEntity entity) {
@@ -47,6 +51,7 @@ public class SoulBeastIntimidatedEffect extends CCStatusEffect {
             SoulBeastIntimidationGoalManager.clearFleeGoal(mob);
         }
         clearIntimidator(entity);
+        LOGGER.info("[Intimidation] effect removed from {}", entity.getName().getString());
     }
 
     public static void clearIntimidator(LivingEntity entity) {

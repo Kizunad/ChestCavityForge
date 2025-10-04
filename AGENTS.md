@@ -1041,7 +1041,61 @@ Acceptance
     2. `action.soulbeast.transform`（封装 `SoulBeastAPI.toSoulBeast` + 事件）
     3. `action.consume_resources_combo`（按周期扣 200 真元 + 1 HP，失败跳转）
     4. `action.emit_fail_fx`（播放 `fail_toSoulBeast` 声音与特效）
-- FX 资源：新增蓝/黑魂焰 FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
+  - FX 资源：新增蓝/黑魂焰 FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
+- Parallel plan: 鬼气蛊（itemID `guzhenren.guiqigu` “鬼气蛊”）
+  - 被动：
+    1. 每秒恢复 3 点魂魄、1 点精力（复用 `GuzhenrenResourceCostHelper`）。
+    2. 普通攻击附加真伤 = 当前魂魄上限的 1%（magic 类型）。
+    3. 魂兽态获得「噬魂」：击杀生命值 > 40 的生物 → 12% 概率提升魂魄上限 0.1% × 被击杀生物最大生命，同时扣 5% 魂魄稳定度。
+  - 主动技 “鬼雾”：施放后在目标前方生成黑雾粒子，让敌人陷入缓慢 IV + 失明，持续时间待定（flow + FX 实现）。
+  - 数据：
+    ```json
+    {
+      "itemID": "guzhenren:guiqigu",
+      "organScores": [
+        { "id": "guzhenren:zuida_hunpo", "value": "35" },
+        { "id": "chestcavity:health", "value": "1" }
+      ]
+    }
+    ```
+  - 任务：新增被动监听（攻击/击杀 Hook）、稳定度扣除逻辑、魂兽态判断、主动技 flow + 黑雾 FX 与音效。
+- Parallel plan: 三转全力以赴蛊（itemID `guzhenren.quan_li_yi_fu_gu`, 心脏）
+  - 被动：每 15s 扣 500 真元并恢复 `20 * (1 + 力道INCREASE)` 精力；根据胸腔肌肉器官数量提升恢复速度：每个肌肉格提供 `0.5 * (1 + 力道INCREASE)`，总上限 `15 + (1 + 力道INCREASE)`，不可叠加。
+  - 实现：
+    * 周期计时（SlowTick 或定时器）使用 `GuzhenrenResourceCostHelper.consumeStrict` 扣真元。
+    * 统计胸腔内 `strength` 标记的器官数量（JSON 判定字段），按公式计算额外恢复量并通过 `GuzhenrenResourceBridge` 调整精力。
+    * 防止叠加：记录唯一状态或在装配时互斥。
+  - 数据：
+    ```json
+    {
+      "itemID": "guzhenren:quan_li_yi_fu_gu",
+      "organScores": [
+        {"id":"chestcavity:defense","value":"10"},
+        {"id":"chestcavity:nerves","value":"1"},
+        {"id":"chestcavity:strength","value":"32"}
+      ]
+    }
+    ```
+- Parallel plan: 三转自力更生蛊（itemID `guzhenren.zi_li_geng_sheng_gu_3`, 肾脏）
+  - 被动：每 10s 扣 500 真元恢复 `30 * (1 + 力道INCREASE)` 生命。
+  - 主动技（ATTACK_ABILITY）：消耗胸腔内的肌肉器官（匹配 `chestcavity:*muscle`），获得 30 秒生命回复 `1 * (1 + 力道INCREASE)`，结束后施加 `虚弱` 持续 `30 / (1 + 力道INCREASE)` 秒；每消耗 1 个肌肉播放进食音效。不可叠加。
+  - 实现要点：
+    * 周期被动同上复用 Helper。
+    * 主动技 flow：
+      1. 检查/扣除肌肉器官（按消耗数量控制效果强度）。
+      2. 启动持续恢复效果（计时器或自定义 MobEffect），在结束时施加虚弱。
+      3. 播放音效和 FX；保证仅限单实例。
+  - 数据：
+    ```json
+    {
+      "itemID": "guzhenren:zi_li_geng_sheng_gu_3",
+      "organScores": [
+        {"id":"chestcavity:filtration","value":"1"},
+        {"id":"chestcavity:nerves","value":"1"},
+        {"id":"chestcavity:strength","value":"32"}
+      ]
+    }
+    ```
 - Follow-up: 威慑 → 敌对生物主动远离玩家
   - 新增自定义 `MobEffect`（例如 `SoulBeastIntimidatedEffect`）或 Goal：当实体处于该效果时，动态插入 `AvoidEntityGoal<Player>`/`RetreatGoal`，令其持续远离威慑来源。
   - `IntimidationHelper.applyIntimidation` 改为施加此自定义效果，并记录施法者 UUID（用于 Goal 判断 flee 目标）。效果结束/实体移除时清理 Goal。

@@ -48,7 +48,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        ensureChannel(context, HUN_JI_RECOVERY_EFFECT);
+        ensureChannel(context, HUN_DAO_INCREASE_EFFECT);
     }
 
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
@@ -58,7 +58,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         registerRemovalHook(cc, organ, this, staleRemovalContexts);
         ensureAttached(cc);
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(HUN_JI_RECOVERY_EFFECT).addPolicy(NON_NEGATIVE);
+        LinkageChannel channel = context.getOrCreateChannel(HUN_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         refreshIncreaseContribution(cc, organ, true);
         sendSlotUpdate(cc, organ);
     }
@@ -81,10 +81,10 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         }
         ensureAttached(cc);
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(HUN_JI_RECOVERY_EFFECT).addPolicy(NON_NEGATIVE);
+        LinkageChannel channel = context.getOrCreateChannel(HUN_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.verifyAndRebuildIfNeeded();
-        double contribution = ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, 0.0);
+        double contribution = ledger.adjust(organ, HUN_DAO_INCREASE_EFFECT, 0.0);
         if (contribution <= 0.0) {
             return; // only one Xiao Hun Gu may apply its effect
         }
@@ -113,7 +113,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.verifyAndRebuildIfNeeded();
-        double previous = ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, 0.0);
+        double previous = ledger.adjust(organ, HUN_DAO_INCREASE_EFFECT, 0.0);
         refreshIncreaseContribution(cc, organ, false);
         if (previous > 0.0) {
             promoteReplacement(cc, organ);
@@ -125,11 +125,11 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(HUN_JI_RECOVERY_EFFECT).addPolicy(NON_NEGATIVE);
+        LinkageChannel channel = context.getOrCreateChannel(HUN_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.verifyAndRebuildIfNeeded();
-        double previous = ledger.adjust(organ, HUN_JI_RECOVERY_EFFECT, 0.0);
-        double totalWithoutSelf = Math.max(0.0, ledger.total(HUN_JI_RECOVERY_EFFECT) - previous);
+        double previous = ledger.adjust(organ, HUN_DAO_INCREASE_EFFECT, 0.0);
+        double totalWithoutSelf = Math.max(0.0, ledger.total(HUN_DAO_INCREASE_EFFECT) - previous);
         boolean activate = requestPrimary && totalWithoutSelf <= 0.0;
         double target = activate ? RECOVERY_BONUS : 0.0;
         double delta = target - previous;
@@ -137,9 +137,9 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
             channel.adjust(delta);
         }
         if (target > 0.0) {
-            ledger.set(organ, HUN_JI_RECOVERY_EFFECT, Math.max(1, organ.getCount()), target);
+            ledger.set(organ, HUN_DAO_INCREASE_EFFECT, Math.max(1, organ.getCount()), target);
         } else {
-            ledger.remove(organ, HUN_JI_RECOVERY_EFFECT);
+            ledger.remove(organ, HUN_DAO_INCREASE_EFFECT);
         }
     }
 
