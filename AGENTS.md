@@ -1059,7 +1059,7 @@ Acceptance
     }
     ```
   - 任务：新增被动监听（攻击/击杀 Hook）、稳定度扣除逻辑、魂兽态判断、主动技 flow + 黑雾 FX 与音效。
-- Parallel plan: 三转全力以赴蛊（itemID `guzhenren.quan_li_yi_fu_gu`, 心脏）
+- Parallel plan: ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li_dao 三转全力以赴蛊（itemID `guzhenren.quan_li_yi_fu_gu`, 心脏）
   - 被动：每 15s 扣 500 真元并恢复 `20 * (1 + 力道INCREASE)` 精力；根据胸腔肌肉器官数量提升恢复速度：每个肌肉格提供 `0.5 * (1 + 力道INCREASE)`，总上限 `15 + (1 + 力道INCREASE)`，不可叠加。
   - 实现：
     * 周期计时（SlowTick 或定时器）使用 `GuzhenrenResourceCostHelper.consumeStrict` 扣真元。
@@ -1076,7 +1076,7 @@ Acceptance
       ]
     }
     ```
-- Parallel plan: 三转自力更生蛊（itemID `guzhenren.zi_li_geng_sheng_gu_3`, 肾脏）
+- Parallel plan: ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li_dao 三转自力更生蛊（itemID `guzhenren.zi_li_geng_sheng_gu_3`, 肾脏）
   - 被动：每 10s 扣 500 真元恢复 `30 * (1 + 力道INCREASE)` 生命。
   - 主动技（ATTACK_ABILITY）：消耗胸腔内的肌肉器官（匹配 `chestcavity:*muscle`），获得 30 秒生命回复 `1 * (1 + 力道INCREASE)`，结束后施加 `虚弱` 持续 `30 / (1 + 力道INCREASE)` 秒；每消耗 1 个肌肉播放进食音效。不可叠加。
   - 实现要点：
@@ -1096,6 +1096,7 @@ Acceptance
       ]
     }
     ```
+- 通用工具：新增 `compat/guzhenren/item/li_dao` 包的 `LiDaoConstants`、`LiDaoHelper`、`AbstractLiDaoOrganBehavior`，封装力道增益访问、肌肉统计/判定逻辑，后续三转蛊实现统一复用。
 - Follow-up: 威慑 → 敌对生物主动远离玩家
   - 新增自定义 `MobEffect`（例如 `SoulBeastIntimidatedEffect`）或 Goal：当实体处于该效果时，动态插入 `AvoidEntityGoal<Player>`/`RetreatGoal`，令其持续远离威慑来源。
   - `IntimidationHelper.applyIntimidation` 改为施加此自定义效果，并记录施法者 UUID（用于 Goal 判断 flee 目标）。效果结束/实体移除时清理 Goal。
