@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.compat.guzhenren.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoBalance;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.soulbeast.storage.BeastSoulStorage;
@@ -25,7 +26,6 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -147,12 +147,19 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             return damage;
         }
         GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+        double attackHunpoCost = ATTACK_HUNPO_COST;
+        if (cc != null) {
+            double reduction = DaHunGuBehavior.attackHunpoCostReduction(player, cc);
+            if (reduction > 0.0) {
+                attackHunpoCost = Math.max(0.0, attackHunpoCost - reduction);
+            }
+        }
         double currentHunpo = handle.read("hunpo").orElse(0.0);
-        if (currentHunpo < ATTACK_HUNPO_COST) {
-            LOGGER.debug("{} {} lacks hunpo for soul flame ({} / {})", prefix(), describePlayer(player), format(currentHunpo), format(ATTACK_HUNPO_COST));
+        if (currentHunpo < attackHunpoCost) {
+            LOGGER.debug("{} {} lacks hunpo for soul flame ({} / {})", prefix(), describePlayer(player), format(currentHunpo), format(attackHunpoCost));
             return damage;
         }
-        handle.adjustDouble("hunpo", -ATTACK_HUNPO_COST, true, "zuida_hunpo");
+        handle.adjustDouble("hunpo", -attackHunpoCost, true, "zuida_hunpo");
         HunDaoDamageUtil.markHunDaoAttack(source);
         double maxHunpo = handle.read("zuida_hunpo").orElse(0.0);
         double efficiency = 1.0;

@@ -1,10 +1,14 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao;
 
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.XiaoHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * 魂道（Hun Dao）相关器官的注册入口。
@@ -20,7 +24,8 @@ import java.util.List;
 public final class HunDaoOrganRegistry {
 
     private static final String MOD_ID = "guzhenren";
-    private static final ResourceLocation XIAO_HUN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_hun_gu");
+    public static final ResourceLocation XIAO_HUN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_hun_gu");
+    public static final ResourceLocation DA_HUN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "dahungu");
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(XIAO_HUN_GU_ID)
@@ -28,8 +33,23 @@ public final class HunDaoOrganRegistry {
                     .addRemovalListener(XiaoHunGuBehavior.INSTANCE)
                     .ensureAttached(XiaoHunGuBehavior.INSTANCE::ensureAttached)
                     .onEquip(XiaoHunGuBehavior.INSTANCE::onEquip)
+                    .build(),
+            OrganIntegrationSpec.builder(DA_HUN_GU_ID)
+                    .addSlowTickListener(DaHunGuBehavior.INSTANCE)
+                    .ensureAttached(DaHunGuBehavior.INSTANCE::ensureAttached)
+                    .onEquip(DaHunGuBehavior.INSTANCE::onEquip)
                     .build()
     );
+
+    private static final Set<ResourceLocation> ORGAN_IDS;
+
+    static {
+        LinkedHashSet<ResourceLocation> ids = new LinkedHashSet<>();
+        for (OrganIntegrationSpec spec : SPECS) {
+            ids.add(spec.organId());
+        }
+        ORGAN_IDS = Collections.unmodifiableSet(ids);
+    }
 
     private HunDaoOrganRegistry() {
     }
@@ -40,5 +60,13 @@ public final class HunDaoOrganRegistry {
      */
     public static List<OrganIntegrationSpec> specs() {
         return SPECS;
+    }
+
+    /**
+     * Returns the set of registered Hun Dao organ ids (魂道蛊) for chest cavity counting.
+     * @return immutable set of organ identifiers
+     */
+    public static Set<ResourceLocation> organIds() {
+        return ORGAN_IDS;
     }
 }
