@@ -1041,4 +1041,9 @@ Acceptance
     2. `action.soulbeast.transform`（封装 `SoulBeastAPI.toSoulBeast` + 事件）
     3. `action.consume_resources_combo`（按周期扣 200 真元 + 1 HP，失败跳转）
     4. `action.emit_fail_fx`（播放 `fail_toSoulBeast` 声音与特效）
-  - FX 资源：新增蓝/黑魂焰 FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
+- FX 资源：新增蓝/黑魂焰 FX（用原版粒子效果实现）并在客户端注册；失败分支共用 `fail_toSoulBeast` 声音(ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/soulbeast/fail_soulbeast_transform.ogg) 与特效。
+- Follow-up: 威慑 → 敌对生物主动远离玩家
+  - 新增自定义 `MobEffect`（例如 `SoulBeastIntimidatedEffect`）或 Goal：当实体处于该效果时，动态插入 `AvoidEntityGoal<Player>`/`RetreatGoal`，令其持续远离威慑来源。
+  - `IntimidationHelper.applyIntimidation` 改为施加此自定义效果，并记录施法者 UUID（用于 Goal 判断 flee 目标）。效果结束/实体移除时清理 Goal。
+  - 覆盖玩家/非玩家：非玩家也要响应 flee；注意线程安全（仅在主线程添加/移除 Goal）。
+  - 测试验证：被威慑的敌对生物会短暂停止追击并远离；效果叠加刷新时间，结束后恢复原有 AI。

@@ -5,17 +5,21 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 
 import java.util.*;
+
+import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 
 /**
  * Central manager for simple time-based damage pulses (DoT).
@@ -37,13 +41,31 @@ public final class DoTManager {
                                          @javax.annotation.Nullable SoundEvent tickSound,
                                          float volume,
                                          float pitch) {
+        schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch,
+                null, FxAnchor.TARGET, Vec3.ZERO, 1.0f);
+    }
+
+    public static void schedulePerSecond(LivingEntity attacker,
+                                         LivingEntity target,
+                                         double perSecondDamage,
+                                         int durationSeconds,
+                                         @javax.annotation.Nullable SoundEvent tickSound,
+                                         float volume,
+                                         float pitch,
+                                         @javax.annotation.Nullable ResourceLocation fxId,
+                                         FxAnchor fxAnchor,
+                                         Vec3 fxOffset,
+                                         float fxIntensity) {
         if (attacker == null || target == null || durationSeconds <= 0 || perSecondDamage <= 0.0) {
             return;
         }
-        ServerLevel serverLevel = attacker.level() instanceof ServerLevel s ? s : null;
+        ServerLevel serverLevel = target.level() instanceof ServerLevel s ? s : null;
         if (serverLevel == null) return;
         MinecraftServer server = serverLevel.getServer();
         int now = server.getTickCount();
+        Vec3 safeOffset = fxOffset == null ? Vec3.ZERO : fxOffset;
+        FxAnchor anchor = fxAnchor == null ? FxAnchor.TARGET : fxAnchor;
+        float intensity = fxIntensity <= 0.0f ? 1.0f : fxIntensity;
         for (int i = 1; i <= durationSeconds; i++) {
             int due = now + i * 20;
             enqueue(new Pulse(due,
@@ -52,7 +74,11 @@ public final class DoTManager {
                     (float) perSecondDamage,
                     tickSound,
                     volume,
-                    pitch));
+                    pitch,
+                    fxId,
+                    anchor,
+                    safeOffset,
+                    intensity));
         }
         if (DEBUG) {
             LOGGER.info("[dot] queued DoT pulses seconds={} attacker={} target={} amountPerSecond={}",
@@ -132,6 +158,15 @@ public final class DoTManager {
             ServerLevel level = (ServerLevel) target.level();
             level.playSound(null, target.blockPosition(), pulse.sound, SoundSource.PLAYERS, pulse.volume, pulse.pitch);
         }
+        if (pulse.fxId != null && target.level() instanceof ServerLevel level) {
+            LivingEntity anchor = pulse.fxAnchor == FxAnchor.ATTACKER ? attacker : target;
+            if (anchor != null) {
+                Vec3 origin = new Vec3(anchor.getX(), anchor.getY() + anchor.getBbHeight() * 0.5D, anchor.getZ()).add(pulse.fxOffset);
+                Vec3 direction = anchor.getLookAngle();
+                ServerPlayer performer = attacker instanceof ServerPlayer sp ? sp : null;
+                AbilityFxDispatcher.play(level, pulse.fxId, origin, direction, direction, performer, anchor, pulse.fxIntensity);
+            }
+        }
         if (DEBUG) {
             LOGGER.info("[dot] apply DoT dueTick={} attacker={} target={} damage={}",
                     pulse.dueTick,
@@ -160,8 +195,13 @@ public final class DoTManager {
         final SoundEvent sound;
         final float volume;
         final float pitch;
+        final ResourceLocation fxId;
+        final FxAnchor fxAnchor;
+        final Vec3 fxOffset;
+        final float fxIntensity;
         Pulse(int dueTick, UUID attackerUuid, UUID targetUuid, float amount,
-              SoundEvent sound, float volume, float pitch) {
+              SoundEvent sound, float volume, float pitch,
+              ResourceLocation fxId, FxAnchor fxAnchor, Vec3 fxOffset, float fxIntensity) {
             this.dueTick = dueTick;
             this.attackerUuid = attackerUuid;
             this.targetUuid = targetUuid;
@@ -169,6 +209,15 @@ public final class DoTManager {
             this.sound = sound;
             this.volume = volume;
             this.pitch = pitch;
+            this.fxId = fxId;
+            this.fxAnchor = fxAnchor;
+            this.fxOffset = fxOffset;
+            this.fxIntensity = fxIntensity;
         }
+    }
+
+    public enum FxAnchor {
+        ATTACKER,
+        TARGET
     }
 }

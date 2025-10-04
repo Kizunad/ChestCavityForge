@@ -31,7 +31,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String MOD_ID = "guzhenren";
 
-    private static final ResourceLocation HUN_JI_RECOVERY_EFFECT = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/hun_ji_recovery_effect");
+    private static final ResourceLocation HUN_DAO_INCREASE_EFFECT = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/hun_dao_increase_effect");
 
     private static final String STATE_ROOT_KEY = "HunDaoHeart";
     private static final String KEY_LAST_SYNC_TICK = "last_sync_tick";

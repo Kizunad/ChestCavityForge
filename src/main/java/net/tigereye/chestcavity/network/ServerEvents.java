@@ -55,6 +55,11 @@ public final class ServerEvents {
         original.toTag(tag, clone.registryAccess());
         replacement.fromTag(tag, clone, clone.registryAccess());
 
+        CCAttachments.getExistingSoulBeastState(event.getOriginal()).ifPresent(originalState -> {
+            var replacementState = CCAttachments.getSoulBeastState(clone);
+            replacementState.load(originalState.save());
+        });
+
         CCAttachments.getExistingGuScript(event.getOriginal()).ifPresent(originalAttachment -> {
             GuScriptAttachment replacementAttachment = CCAttachments.getGuScript(clone);
             if (!event.isWasDeath()) {

@@ -14,5 +14,13 @@
         "stream": false
       }
     ]
+  },
+  "custom.soulbeast.dot": {
+    "sounds": [
+      {
+        "name": "chestcavity:custom/soulbeast/soulbeast_dot",
+        "stream": false
+      }
+    ]
   }
 }
