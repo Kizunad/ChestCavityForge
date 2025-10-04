@@ -219,8 +219,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, HUN_DAO_INCREASE_EFFECT, 0.0D);
-        double totalWithoutSelf = Math.max(0.0D, ledger.total(HUN_DAO_INCREASE_EFFECT) - previous);
-        boolean activate = requestActive && totalWithoutSelf <= 0.0D;
+        boolean activate = requestActive && !hasOtherActiveTiPoGu(cc, organ);
         double target = activate ? ZI_HUN_INCREASE_BONUS : 0.0D;
         double delta = target - previous;
         if (Math.abs(delta) > EPSILON) {
@@ -233,15 +232,37 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
-                    "{} increase contribution updated: active={} request={} previous={} total_without_self={}",
+                    "{} increase contribution updated: active={} request={} previous={}",
                     prefix(),
                     activate,
                     requestActive,
-                    format(previous),
-                    format(totalWithoutSelf)
+                    format(previous)
             );
         }
         return activate;
+    }
+
+    private boolean hasOtherActiveTiPoGu(ChestCavityInstance cc, ItemStack currentOrgan) {
+        if (cc == null || cc.inventory == null) {
+            return false;
+        }
+        for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+            ItemStack stack = cc.inventory.getItem(i);
+            if (stack == null || stack.isEmpty()) {
+                continue;
+            }
+            if (stack == currentOrgan) {
+                continue;
+            }
+            if (!matchesOrgan(stack, ORGAN_ID)) {
+                continue;
+            }
+            OrganState otherState = organState(stack, STATE_ROOT_KEY);
+            if (otherState.getBoolean(KEY_INCREASE_ACTIVE, false)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void maybeRefreshShield(

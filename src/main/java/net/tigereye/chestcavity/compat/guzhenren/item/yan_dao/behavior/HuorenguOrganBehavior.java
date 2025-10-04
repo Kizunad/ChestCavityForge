@@ -204,7 +204,7 @@ public final class HuorenguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             logStateChange(LOGGER, LOG_PREFIX, organ, INCREASE_KEY, change);
             changed |= change.changed();
         }
-        if (state.getBoolean(FLIGHT_GRANTED_KEY, false) || state.getBoolean(WAS_FLYING_KEY, false)) {
+        if (state.getBoolean(FLIGHT_GRANTED_KEY, false)) {
             disableFlight(entity, state);
             var grantChange = state.setBoolean(FLIGHT_GRANTED_KEY, false, false);
             var flyingChange = state.setBoolean(WAS_FLYING_KEY, false, false);
@@ -259,7 +259,8 @@ public final class HuorenguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             return;
         }
         boolean abilityChanged = false;
-        if (!player.getAbilities().mayfly) {
+        boolean previouslyMayFly = player.getAbilities().mayfly;
+        if (!previouslyMayFly) {
             player.getAbilities().mayfly = true;
             player.onUpdateAbilities();
             abilityChanged = true;
@@ -273,8 +274,10 @@ public final class HuorenguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             playSound(player.level(), player, SoundEvents.BLAZE_SHOOT, SHOOT_SOUND_VOLUME,
                     1.05f + player.getRandom().nextFloat() * 0.15f);
         }
-        var grantChange = state.setBoolean(FLIGHT_GRANTED_KEY, true, false);
-        var flyingChange = state.setBoolean(WAS_FLYING_KEY, isFlying, false);
+        boolean previousGrant = state.getBoolean(FLIGHT_GRANTED_KEY, false);
+        boolean grantedNow = previousGrant || abilityChanged;
+        var grantChange = state.setBoolean(FLIGHT_GRANTED_KEY, grantedNow, false);
+        var flyingChange = state.setBoolean(WAS_FLYING_KEY, grantedNow && isFlying, false);
         logStateChange(LOGGER, LOG_PREFIX, organ, FLIGHT_GRANTED_KEY, grantChange);
         logStateChange(LOGGER, LOG_PREFIX, organ, WAS_FLYING_KEY, flyingChange);
         if (abilityChanged || grantChange.changed() || flyingChange.changed()) {
@@ -318,7 +321,7 @@ public final class HuorenguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
     private void igniteTarget(LivingEntity attacker, LivingEntity target) {
         if (target.isAlive() && !target.fireImmune()) {
-            target.setSecondsOnFire(FIRE_LINGER_SECONDS);
+            target.setRemainingFireTicks(FIRE_LINGER_SECONDS * 20);
         }
         playSound(attacker.level(), attacker, SoundEvents.BLAZE_SHOOT, SHOOT_SOUND_VOLUME,
                 0.95f + attacker.getRandom().nextFloat() * 0.1f);

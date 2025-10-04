@@ -86,7 +86,14 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+tasks.register('scanStrengthOrgans', Exec) { task ->
+    File scriptFile = project.file('scripts/scan_strength_organs.py')
+    task.onlyIf { scriptFile.exists() }
+    task.commandLine 'python3', scriptFile.absolutePath
+}
+
 tasks.named('compileJava', JavaCompile).configure {
+    dependsOn tasks.named('scanStrengthOrgans')
     def refmapFile = generatedRefmapFile.get().asFile
     options.compilerArgs += [
             "-AdefaultObfuscationEnv=${mixinDefaultObfuscation}",

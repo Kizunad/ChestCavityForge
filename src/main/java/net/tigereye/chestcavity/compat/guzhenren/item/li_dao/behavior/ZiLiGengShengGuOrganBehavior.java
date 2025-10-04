@@ -214,29 +214,23 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         }
         Level level = entity.level();
         RandomSource random = entity.getRandom();
-        int consumed = 0;
         int size = cc.inventory.getContainerSize();
         for (int i = 0; i < size; i++) {
             ItemStack stack = cc.inventory.getItem(i);
             if (!LiDaoHelper.isMuscle(stack)) {
                 continue;
             }
-            int count = stack.getCount();
-            if (count <= 0) {
+            if (stack.getCount() <= 0) {
                 continue;
             }
-            cc.inventory.removeItem(i, count);
-            consumed += count;
-            for (int n = 0; n < count; n++) {
-                float pitch = 0.9f + random.nextFloat() * 0.2f;
-                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(),
-                        SoundEvents.GENERIC_EAT, entity.getSoundSource(), 0.6f, pitch);
-            }
-        }
-        if (consumed > 0) {
+            cc.inventory.removeItem(i, 1);
             cc.inventory.setChanged();
+            float pitch = 0.9f + random.nextFloat() * 0.2f;
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(),
+                    SoundEvents.GENERIC_EAT, entity.getSoundSource(), 0.6f, pitch);
+            return 1;
         }
-        return consumed;
+        return 0;
     }
 
     private static ItemStack findOrgan(ChestCavityInstance cc) {

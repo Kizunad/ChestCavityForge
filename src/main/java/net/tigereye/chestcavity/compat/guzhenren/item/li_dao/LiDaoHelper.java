@@ -8,6 +8,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.StrengthOrganRegistry;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -49,12 +50,11 @@ public final class LiDaoHelper {
         if (cc == null || cc.inventory == null) {
             return 0;
         }
-        int size = cc.inventory.getContainerSize();
         int total = 0;
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
             ItemStack stack = cc.inventory.getItem(i);
-            if (isMuscle(stack)) {
-                total += stack.getCount();
+            if (isStrengthContributor(stack)) {
+                total += 1;
             }
         }
         return total;
@@ -76,6 +76,10 @@ public final class LiDaoHelper {
         }
         String path = id.getPath();
         return path != null && path.endsWith(MUSCLE_SUFFIX);
+    }
+
+    public static boolean isStrengthContributor(ItemStack stack) {
+        return isMuscle(stack) || StrengthOrganRegistry.isStrengthOrgan(stack);
     }
 
     public static String describeMuscleContribution(double base, double liDaoIncrease) {
