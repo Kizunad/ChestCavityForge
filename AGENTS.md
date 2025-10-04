@@ -21,10 +21,6 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
-### Pending Soul Beast follow-up
-- Implement an OnIncomingDamage interception that diverts incoming damage into hunpo consumption (魂魄扣减) instead of health loss. Reuse the existing SoulBeast framework so other handlers can register alongside this conversion hook, and expose extension points for post-conversion damage scaling.
-- Consolidate the pending Soul Beast tasks (state sync, resource costs, command hooks) once the conversion path is in place.
-
 ## Web Codex 快速上手（Guzhenren 新器官）
 
 - **需求拆解**：收到用户类似 `水体蛊` / `血气蛊` 的 JSON 模板时，先把要做的事情分成数据注册（`organScores` 等静态内容）与行为实现（OnEquip/SlowTick/资源消耗）。模板里的 `itemID`、`organScores` 直接映射到数据驱动文件，行为描述留给 Java 侧的监听器处理。
@@ -1020,3 +1016,7 @@ Acceptance
   - Use `entityStrike` to align tiger toward performer facing direction, dash to 4 blocks behind → charge through player, apply damage + knockback.
   - Trigger sound `minecraft:entity.polar_bear.attack` and optional particles during strike.
 - Testing: `/guscript flow start chestcavity:test/tiger_ambush_slash` should produce visible tiger lunge + audio; confirm it respects different player yaw/pitch.
+
+### Pending Soul Beast follow-up
+- Implement an OnIncomingDamage interception that diverts incoming damage into hunpo consumption (魂魄扣减) instead of health loss. Reuse the existing SoulBeast framework so other handlers can register alongside this conversion hook, and expose extension points for post-conversion damage scaling.
+- Consolidate the pending Soul Beast tasks (state sync, resource costs, command hooks) once the conversion path is in place.
