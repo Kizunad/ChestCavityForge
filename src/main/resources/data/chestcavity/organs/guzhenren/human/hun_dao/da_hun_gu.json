@@ -1,0 +1,7 @@
+{
+  "itemID": "guzhenren:dahungu",
+  "organScores": [
+    { "id": "guzhenren:zuida_hunpo", "value": "50" },
+    {"id":"chestcavity:health","value": "2"}
+  ]
+}

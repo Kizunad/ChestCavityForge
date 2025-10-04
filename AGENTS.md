@@ -1076,7 +1076,7 @@ Acceptance
       ]
     }
     ```
-- Parallel plan: ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li_dao 三转自力更生蛊（itemID `guzhenren.zi_li_geng_sheng_gu_3`, 肾脏）
+- Parallel plan: 三转自力更生蛊（itemID `guzhenren.zi_li_geng_sheng_gu_3`, 肾脏）
   - 被动：每 10s 扣 500 真元恢复 `30 * (1 + 力道INCREASE)` 生命。
   - 主动技（ATTACK_ABILITY）：消耗胸腔内的肌肉器官（匹配 `chestcavity:*muscle`），获得 30 秒生命回复 `1 * (1 + 力道INCREASE)`，结束后施加 `虚弱` 持续 `30 / (1 + 力道INCREASE)` 秒；每消耗 1 个肌肉播放进食音效。不可叠加。
   - 实现要点：
@@ -1096,7 +1096,46 @@ Acceptance
       ]
     }
     ```
+- Parallel plan: 火人蛊（itemID `guzhenren:huorengu`，心脏）
+  - 被动：每秒恢复生命上限 0.5%、恢复 4 点精力，提供火焰抗性与喷气式飞行（长按空格持续上升），胸腔内仅允许一个实例。
+  - 粒子/音效建议：
+    * 粒子：以 `minecraft:flame`、`small_flame` 为主，必要时混合少量 `campfire_cosy_smoke` 增加层次；联动状态可额外使用 `lava` 或 `soul_fire_flame` 点缀。
+    * 音效：飞行/喷射触发 `minecraft:entity.blaze.shoot`，持续阶段低音量播放 `entity.blaze.burn` 或 `block.fire.ambient`。
+  - 实现建议：SlowTick 扣真元 / 调整生命与精力；为玩家启用自定义飞行推进（与原生飞行能力兼容），卸载时清理；使用附件或状态防止多例。
+  - 数据：
+    ```json
+    {
+      "itemID": "guzhenren:huorengu",
+      "organScores": [
+        {"id":"chestcavity:fire_resistant","value":"2"},
+        {"id":"chestcavity:health","value":"4"}
+      ]
+    }
+    ```
+- 联动计划：火心孕灵（火心蛊 + 火人蛊）
+  - 炎道效率 +26%；赋予「火灵」（急迫 I + 普攻附加 10 分钟火焰，播放持续炽烈特效）。
+  - 粒子/音效：围绕角色持续生成 `flame` + `lava` 组合，并保持 `entity.blaze.burn` 低音频；攻击触发额外 `blaze.shoot`。
+  - 需实现专属火焰粒子 FX 与音效；检测两蛊共存时启用，缺失任一器官即撤销。
 - 通用工具：新增 `compat/guzhenren/item/li_dao` 包的 `LiDaoConstants`、`LiDaoHelper`、`AbstractLiDaoOrganBehavior`，封装力道增益访问、肌肉统计/判定逻辑，后续三转蛊实现统一复用。
+- Parallel plan: 体魄蛊（itemID `guzhenren.tipogu`，心脏）
+  - 被动：每秒恢复 3 点魂魄、1 点精力。
+  - 魂兽态：普通攻击额外造成 `当前魂魄上限 * (1 + 魂道INCREASE)` 真伤（按百分比换算）并消耗 0.1% 魂魄。
+  - 非魂兽态：获得「滋魂哺身」（不可叠加）——魂道 INCREASE EFFECT +10%，每 10s 根据魂魄上限 `(0.5 * (1 + 魂道INCREASE))%` 刷新一次吸收护盾。
+  - 实现要点：
+    * 周期恢复使用 SlowTick；检测魂兽状态，以不同模式执行。
+    * 攻击监听：在 `OrganOnHitListener` 中加入额外真伤 & 魂魄消耗；注意魂魄不足时的处理与日志。
+    * 护盾刷新：使用定时任务或变量记录上次刷新 tick，并调用 `LivingEntity#setAbsorptionAmount`。
+  - 数据：
+    ```json
+    {
+      "itemID": "guzhenren:tipogu",
+      "organScores": [
+        {"id":"guzhenren:zuida_hunpo","value":"77"},
+        {"id":"chestcavity:strength","value":"32"}
+      ]
+    }
+    ```
+- 数据提醒：火人蛊、体魄蛊实现后需同步更新 `src/main/resources/data/chestcavity/organs/guzhenren/human` 下的 JSON（新增或调整对应器官描述）。
 - Follow-up: 威慑 → 敌对生物主动远离玩家
   - 新增自定义 `MobEffect`（例如 `SoulBeastIntimidatedEffect`）或 Goal：当实体处于该效果时，动态插入 `AvoidEntityGoal<Player>`/`RetreatGoal`，令其持续远离威慑来源。
   - `IntimidationHelper.applyIntimidation` 改为施加此自定义效果，并记录施法者 UUID（用于 Goal 判断 flee 目标）。效果结束/实体移除时清理 Goal。

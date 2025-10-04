@@ -1,56 +1,29 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
+package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.listeners.OrganOnFireListener;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import org.slf4j.Logger;
 
 /**
- * Handles slow-burning recovery for the Guzhenren Huoxingu organ.
+ * Placeholder behaviour for火心蛊（Yan Dao）。
+ * TODO: implement recovery、飞行、火焰抗性等逻辑。
  */
-public enum HuoxinguOrganBehavior implements OrganOnFireListener, IncreaseEffectContributor {
-    INSTANCE;
+public final class HuoxinguOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener {
 
-    private static final double BASE_COST = 100.0;
-    private static final float HEAL_PER_TICK = 0.5f;
+    public static final HuoxinguOrganBehavior INSTANCE = new HuoxinguOrganBehavior();
+    private static final Logger LOGGER = LogUtils.getLogger();
 
-    @Override
-    public void onFireTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player)) {
-            return;
-        }
-        if (entity.level().isClientSide() || !entity.isAlive()) {
-            return;
-        }
-        if (!entity.isOnFire() || player.getHealth() >= player.getMaxHealth()) {
-            return;
-        }
-
-        GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
-            int stackCount = Math.max(1, organ.getCount());
-            double totalCost = BASE_COST * stackCount;
-            if (handle.consumeScaledZhenyuan(totalCost).isEmpty()) {
-                return;
-            }
-            float healAmount = HEAL_PER_TICK * stackCount;
-            if (healAmount > 0f) {
-                player.heal(healAmount);
-            }
-        });
-    }
+    private HuoxinguOrganBehavior() {}
 
     @Override
-    public void rebuildIncreaseEffects(
-            ChestCavityInstance cc,
-            ActiveLinkageContext context,
-            ItemStack organ,
-            IncreaseEffectLedger.Registrar registrar
-    ) {
-        // Huoxingu does not contribute to INCREASE effects.
+    public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        // TODO: 实现火心蛊被动：生命/精力恢复、火焰抗性、喷气式飞行。
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[compat/guzhenren][yan_dao][huoxingu] slow tick placeholder invoked for {}", entity.getName().getString());
+        }
     }
 }

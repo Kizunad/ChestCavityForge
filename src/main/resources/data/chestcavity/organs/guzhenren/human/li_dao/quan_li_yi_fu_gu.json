@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:quan_li_yi_fu_gu",
+  "organScores": [
+    {"id":"chestcavity:defense","value": "1"},
+    {"id":"chestcavity:nerves","value": "1"},
+    {"id":"chestcavity:strength","value": "32"}
+  ]
+}

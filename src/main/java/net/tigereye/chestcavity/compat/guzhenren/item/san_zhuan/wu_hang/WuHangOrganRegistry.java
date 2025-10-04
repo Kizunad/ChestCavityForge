@@ -13,16 +13,12 @@ public final class WuHangOrganRegistry {
 
     private static final String MOD_ID = "guzhenren";
 
-    private static final ResourceLocation HUOXINGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huoxingu");
     private static final ResourceLocation TUPIGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tupigu");
     private static final ResourceLocation MUGANGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "mugangu");
     private static final ResourceLocation JINFEIGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jinfeigu");
     private static final ResourceLocation SHUISHENGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "shuishengu");
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
-            OrganIntegrationSpec.builder(HUOXINGU_ID)
-                    .addOnFireListener(HuoxinguOrganBehavior.INSTANCE)
-                    .build(),
             OrganIntegrationSpec.builder(TUPIGU_ID)
                     .addOnGroundListener(TupiguOrganBehavior.INSTANCE)
                     .addSlowTickListener(TupiguOrganBehavior.INSTANCE)

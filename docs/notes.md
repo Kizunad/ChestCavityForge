@@ -852,15 +852,22 @@ OnHit
 4. 玩家/分魂沟通渠道-ingame /message 直接实现？
 
 
-火人蛊（心）:每秒恢复0.5％生命值，
+火人蛊（      "item.guzhenren.huorengu": "火人蛊",）:每秒恢复0.5％生命值，
 每秒恢复4点精力，
-获得飞行能力（长按SPACE键飞行）和火焰抗性，
+获得飞行能力（长按SPACE键飞行,类似于喷气背包？获得持续向上的推力）和火焰抗性，
 胸腔内只能生效一个火人蛊
+{
+  "itemID": "guzhenren:huoxingu",
+  "organScores": [
+    { "id": "chestcavity:fire_resistant", "value": "2" },
+    {"id":"chestcavity:health","value": "4"}
+  ]
+}
 
 联动效果:
-火心孕灵:由火心蛊&火人蛊组成，炎道效率提升20％，
-获得［火灵］效果，该效果为炎道增伤6％，获得急迫1，
-攻击会为对方施加永不熄灭的火焰，获得一个很帅的火焰特效(预留效果接口)
+火心孕灵:由火心蛊&火人蛊组成，炎道效率提升26％，
+获得［火灵］效果，获得急迫1，
+攻击会为对方施加持续10分钟的火焰，获得一个很帅的火焰特效(粒子特效)
 
 
 大魂蛊（心脏）:每秒恢复2点魂魄值和1点念头；
@@ -911,6 +918,20 @@ OnHit
   "organScores": [
     {"id":"chestcavity:filtration","value": "1"},
     {"id":"chestcavity:nerves","value": "1"},
+    {"id":"chestcavity:strength","value": "32"}
+  ]
+}
+
+体魄蛊（肌肉）:每秒恢复3点魂魄值和1点精力
+被动:若为魂兽，攻击 额外造成等同于 当前魂魄值上限(1+魂道INCREASE EFFECT)％的真伤 消耗0.1%的魂魄，
+如果角色并非魂兽，获得［滋魂哺身］效果，魂道INCREASE EFFECT提升10％，
+同时根据当前魂魄值上限的(0.5*(1+魂道INCREASE EFFECT))％获得伤害吸收(每10s刷新一次)，
+［滋魂哺身］不可叠加
+
+{
+  "itemID": "guzhenren:xiao_hun_gu",
+  "organScores": [
+    { "id": "guzhenren:zuida_hunpo", "value": "77" },
     {"id":"chestcavity:strength","value": "32"}
   ]
 }
