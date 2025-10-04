@@ -39,6 +39,10 @@ public final class FlowActions {
         return ResourceFlowActions.consumeResource(identifier, amount);
     }
 
+    public static FlowEdgeAction consumeResourcesCombo(double zhenyuan, double jingli, double healthCost, String failureReason) {
+        return ResourceFlowActions.consumeResourcesCombo(zhenyuan, jingli, healthCost, failureReason);
+    }
+
     public static FlowEdgeAction setCooldown(String key, long durationTicks) {
         return ResourceFlowActions.setCooldown(key, durationTicks);
     }
@@ -103,12 +107,20 @@ public final class FlowActions {
         return FxFlowActions.emitFx(fxId, baseIntensity, variableName, defaultScale);
     }
 
+    public static FlowEdgeAction emitFxConditional(ResourceLocation fxId, String variableName, double skipValue, float intensity) {
+        return FxFlowActions.emitFxConditional(fxId, variableName, skipValue, intensity);
+    }
+
     public static FlowEdgeAction emitGecko(GeckoFxParameters parameters) {
         return FxFlowActions.emitGecko(parameters);
     }
 
     public static FlowEdgeAction playSound(ResourceLocation soundId, SoundAnchor anchor, Vec3 offset, float volume, float pitch, int delayTicks) {
         return SoundFlowActions.playSound(soundId, anchor, offset, volume, pitch, delayTicks);
+    }
+
+    public static FlowEdgeAction playSoundConditional(ResourceLocation soundId, SoundAnchor anchor, Vec3 offset, float volume, float pitch, int delayTicks, String variableName, double skipValue) {
+        return SoundFlowActions.playSoundConditional(soundId, anchor, offset, volume, pitch, delayTicks, variableName, skipValue);
     }
 
     public static FlowEdgeAction playSound(ResourceLocation soundId, SoundAnchor anchor, Vec3 offset, float volume, float pitch) {

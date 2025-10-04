@@ -95,6 +95,74 @@ final class SoundFlowActions {
         };
     }
 
+    static FlowEdgeAction playSoundConditional(
+            ResourceLocation soundId,
+            FlowActions.SoundAnchor anchor,
+            Vec3 offset,
+            float volume,
+            float pitch,
+            int delayTicks,
+            String variableName,
+            double skipValue
+    ) {
+        ResourceLocation resolvedSound = soundId;
+        FlowActions.SoundAnchor resolvedAnchor = anchor == null
+                ? FlowActions.SoundAnchor.PERFORMER
+                : anchor;
+        Vec3 safeOffset = offset == null ? Vec3.ZERO : offset;
+        float sanitizedVolume = volume <= 0.0F ? 1.0F : volume;
+        float sanitizedPitch = pitch <= 0.0F ? 1.0F : pitch;
+        int delay = Math.max(0, delayTicks);
+        double skip = Double.isNaN(skipValue) ? Double.NaN : skipValue;
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null || resolvedSound == null) {
+                    return;
+                }
+                if (controller != null && variableName != null) {
+                    double value = controller.getDouble(variableName, Double.NaN);
+                    if (Double.isFinite(skip) && Double.isFinite(value) && Math.abs(value - skip) < 1.0E-4D) {
+                        return;
+                    }
+                }
+                Level level = performer.level();
+                if (!(level instanceof ServerLevel server)) {
+                    return;
+                }
+
+                Optional<Holder.Reference<SoundEvent>> holder = BuiltInRegistries.SOUND_EVENT.getHolder(resolvedSound);
+                if (holder.isEmpty()) {
+                    ChestCavity.LOGGER.warn("[Flow] Unknown sound id {}", resolvedSound);
+                    return;
+                }
+                SoundEvent event = holder.get().value();
+
+                Runnable task = () -> {
+                    LivingEntity anchorEntity = resolveAnchorEntity(performer, target, resolvedAnchor);
+                    if (anchorEntity == null) {
+                        return;
+                    }
+                    Vec3 base = anchorEntity.position();
+                    Vec3 finalPosition = base.add(safeOffset);
+                    SoundSource category = anchorEntity.getSoundSource();
+                    server.playSound(null, finalPosition.x, finalPosition.y, finalPosition.z, event, category, sanitizedVolume, sanitizedPitch);
+                };
+
+                if (delay > 0 && controller != null) {
+                    controller.schedule(gameTime + delay, task);
+                } else {
+                    task.run();
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "play_sound_conditional(id=" + resolvedSound + ")";
+            }
+        };
+    }
+
     private static LivingEntity resolveAnchorEntity(
             Player performer,
             LivingEntity target,

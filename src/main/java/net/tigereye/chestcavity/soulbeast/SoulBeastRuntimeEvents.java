@@ -15,8 +15,6 @@ import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
-import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
-import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
 import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageContext;
 import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageHooks;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -26,6 +24,9 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
+import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
 import org.slf4j.Logger;
 
 import java.util.Optional;
@@ -44,6 +45,8 @@ public final class SoulBeastRuntimeEvents {
     private static final double HUNPO_PER_DAMAGE = 1.0;
     private static final float DAMAGE_EPSILON = 1.0E-3f;
     private static final ResourceLocation HUN_DAO_INCREASE_EFFECT = ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/hun_dao_increase_effect");
+    private static final double INTIMIDATION_RADIUS = 12.0D;
+    private static final int INTIMIDATION_DURATION = 100;
 
     private SoulBeastRuntimeEvents() {}
 
@@ -112,6 +115,7 @@ public final class SoulBeastRuntimeEvents {
             if ((current % 20L) == 0L) {
                 HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, 3.0);
                 HunDaoMiddleware.INSTANCE.handlerPlayer(player);
+                maybeApplyIntimidation(player);
             }
         }
     }
@@ -213,11 +217,44 @@ public final class SoulBeastRuntimeEvents {
         if (entity == null || entity.level().isClientSide()) {
             return;
         }
+        if (event.current().isSoulBeast() && !event.previous().isSoulBeast() && entity instanceof Player player) {
+            GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
+                double max = handle.read("zuida_hunpo").orElse(0.0);
+                if (Double.isFinite(max) && max > 0.0) {
+                    handle.writeDouble("hunpo", max);
+                }
+            });
+            maybeApplyIntimidation(player);
+        }
         if (event.previous().isSoulBeast() && !event.current().isSoulBeast()) {
             DoTManager.cancelAttacker(entity);
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[soulbeast] cleared pending DoT pulses after {} exited soul beast state", entity.getName().getString());
             }
         }
+    }
+
+    private static void maybeApplyIntimidation(Player performer) {
+        if (performer == null || !IntimidationHelper.isSoulBeastIntimidationActive(performer)) {
+            return;
+        }
+        GuzhenrenResourceBridge.open(performer).ifPresent(handle -> {
+            double hunpo = handle.read("hunpo").orElse(0.0);
+            if (!(hunpo > 0.0)) {
+                return;
+            }
+            IntimidationHelper.Settings settings = new IntimidationHelper.Settings(
+                    hunpo,
+                    IntimidationHelper.AttitudeScope.HOSTILE,
+                    net.minecraft.world.effect.MobEffects.WEAKNESS,
+                    INTIMIDATION_DURATION,
+                    0,
+                    false,
+                    true,
+                    true,
+                    false
+            );
+            IntimidationHelper.intimidateNearby(performer, INTIMIDATION_RADIUS, settings);
+        });
     }
 }

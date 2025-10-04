@@ -29,6 +29,7 @@ public class GuScriptAttachment implements Container {
     private int currentPage;
     private boolean changed;
     private final int rows;
+    private final java.util.Set<String> abilityFlags = new java.util.HashSet<>();
 
     public static GuScriptAttachment create(IAttachmentHolder holder) {
         return new GuScriptAttachment(DEFAULT_ROWS);
@@ -115,6 +116,8 @@ public class GuScriptAttachment implements Container {
             pages.add(new GuScriptPageState(rows));
         }
         currentPage = Math.max(0, Math.min(source.currentPage, pages.size() - 1));
+        abilityFlags.clear();
+        abilityFlags.addAll(source.abilityFlags);
         changed = true;
     }
 
@@ -315,6 +318,16 @@ public class GuScriptAttachment implements Container {
         }
         this.currentPage = Math.max(0, Math.min(current, pages.size() - 1));
         this.changed = true;
+
+        abilityFlags.clear();
+        if (tag != null && tag.contains("AbilityFlags", Tag.TAG_LIST)) {
+            ListTag flags = tag.getList("AbilityFlags", Tag.TAG_STRING);
+            for (Tag element : flags) {
+                if (element instanceof net.minecraft.nbt.StringTag str && !str.getAsString().isBlank()) {
+                    abilityFlags.add(str.getAsString());
+                }
+            }
+        }
     }
 
     public CompoundTag save(HolderLookup.Provider provider) {
@@ -326,7 +339,36 @@ public class GuScriptAttachment implements Container {
         tag.put("Pages", list);
         tag.putInt("CurrentPage", currentPage);
         tag.putInt("Rows", rows);
+        if (!abilityFlags.isEmpty()) {
+            ListTag flags = new ListTag();
+            for (String flag : abilityFlags) {
+                if (flag != null && !flag.isBlank()) {
+                    flags.add(net.minecraft.nbt.StringTag.valueOf(flag));
+                }
+            }
+            if (!flags.isEmpty()) {
+                tag.put("AbilityFlags", flags);
+            }
+        }
         return tag;
+    }
+
+    public boolean hasAbilityFlag(String flag) {
+        if (flag == null || flag.isBlank()) {
+            return false;
+        }
+        return abilityFlags.contains(flag);
+    }
+
+    public boolean markAbilityFlag(String flag) {
+        if (flag == null || flag.isBlank()) {
+            return false;
+        }
+        boolean changedFlag = abilityFlags.add(flag);
+        if (changedFlag) {
+            setChanged();
+        }
+        return changedFlag;
     }
 
     private static String describe(ItemStack stack) {

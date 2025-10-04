@@ -146,6 +146,35 @@ final class FxFlowActions {
         };
     }
 
+    static FlowEdgeAction emitFxConditional(ResourceLocation fxId, String variableName, double skipValue, float baseIntensity) {
+        if (fxId == null) {
+            return FlowActionUtils.describe(() -> "emit_fx_conditional(nop)");
+        }
+        float sanitizedIntensity = baseIntensity <= 0.0F ? 1.0F : baseIntensity;
+        double skip = Double.isNaN(skipValue) ? Double.NaN : skipValue;
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                if (controller != null && variableName != null) {
+                    double value = controller.getDouble(variableName, Double.NaN);
+                    if (Double.isFinite(skip) && Double.isFinite(value) && Math.abs(value - skip) < 1.0E-4D) {
+                        return;
+                    }
+                }
+                DefaultGuScriptExecutionBridge bridge = DefaultGuScriptExecutionBridge.forPlayer(performer);
+                bridge.playFx(fxId, new FxEventParameters(Vec3.ZERO, Vec3.ZERO, sanitizedIntensity));
+            }
+
+            @Override
+            public String describe() {
+                return "emit_fx_conditional(" + fxId + ")";
+            }
+        };
+    }
+
     static FlowEdgeAction emitGecko(FlowActions.GeckoFxParameters parameters) {
         if (parameters == null || parameters.fxId() == null) {
             return FlowActionUtils.describe(() -> "emit_gecko(nop)");
