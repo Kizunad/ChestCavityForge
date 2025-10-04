@@ -6,14 +6,18 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.EntityHitResult;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageContext;
+import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageHooks;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -35,6 +39,8 @@ public final class SoulBeastRuntimeEvents {
     private static final double ON_HIT_HUNPO_COST = 18.0;
     private static final double SOUL_FLAME_PERCENT = 0.01; // true damage per second = maxHunpo * percent
     private static final int SOUL_FLAME_SECONDS = 5;
+    private static final double HUNPO_PER_DAMAGE = 1.0;
+    private static final float DAMAGE_EPSILON = 1.0E-3f;
     private static final ResourceLocation HUN_DAO_INCREASE_EFFECT = ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/hun_dao_increase_effect");
 
     private SoulBeastRuntimeEvents() {}
@@ -105,6 +111,72 @@ public final class SoulBeastRuntimeEvents {
         }
     }
 
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onIncomingDamage(LivingIncomingDamageEvent event) {
+        LivingEntity victim = event.getEntity();
+        if (victim == null || victim.level().isClientSide()) {
+            return;
+        }
+        if (!SoulBeastStateManager.isActive(victim)) {
+            return;
+        }
+
+        float incomingDamage = event.getAmount();
+        if (!(incomingDamage > DAMAGE_EPSILON)) {
+            return;
+        }
+
+        SoulBeastDamageContext context = new SoulBeastDamageContext(victim, event.getSource(), incomingDamage);
+        double baseHunpoCost = incomingDamage * HUNPO_PER_DAMAGE;
+        double adjustedHunpoCost = SoulBeastDamageHooks.applyHunpoCostModifiers(context, baseHunpoCost);
+        if (!Double.isFinite(adjustedHunpoCost) || adjustedHunpoCost <= 0.0) {
+            float adjustedDamage = SoulBeastDamageHooks.applyPostConversionDamageModifiers(context, incomingDamage);
+            if (adjustedDamage != incomingDamage) {
+                event.setAmount(Math.max(0f, adjustedDamage));
+            }
+            return;
+        }
+
+        double drainedHunpo = drainHunpo(victim, adjustedHunpoCost);
+        double remainingHunpoCost = Math.max(0.0, adjustedHunpoCost - drainedHunpo);
+        float remainingDamage = (float) (remainingHunpoCost / HUNPO_PER_DAMAGE);
+        float adjustedDamage = SoulBeastDamageHooks.applyPostConversionDamageModifiers(context, remainingDamage);
+        if (adjustedDamage < 0f) {
+            adjustedDamage = 0f;
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[soulbeast] incoming damage converted: dmg={} hunpoCost={} drained={} remainingDamage={}",
+                    incomingDamage, adjustedHunpoCost, drainedHunpo, adjustedDamage);
+        }
+        event.setAmount(adjustedDamage);
+    }
+
+    private static double drainHunpo(LivingEntity victim, double requestedCost) {
+        if (!(victim instanceof Player player)) {
+            return 0.0;
+        }
+        if (!Double.isFinite(requestedCost) || requestedCost <= 0.0) {
+            return 0.0;
+        }
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            return 0.0;
+        }
+        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+        double available = handle.read("hunpo").orElse(0.0);
+        if (!(available > 0.0)) {
+            return 0.0;
+        }
+        double drain = Math.min(available, requestedCost);
+        if (drain <= 0.0) {
+            return 0.0;
+        }
+        if (handle.adjustDouble("hunpo", -drain, true, "zuida_hunpo").isEmpty()) {
+            return 0.0;
+        }
+        return drain;
+    }
+
     private static double computeSoulFlameDps(LivingEntity attacker) {
         double maxHunpo = 0.0;
         if (attacker instanceof Player player) {
@@ -124,3 +196,4 @@ public final class SoulBeastRuntimeEvents {
         return Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * eff[0]);
     }
 }
+

@@ -3,6 +3,8 @@ package net.tigereye.chestcavity.soulbeast.api;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageListener;
+import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageHooks;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
 
 import javax.annotation.Nullable;
@@ -74,5 +76,15 @@ public final class SoulBeastAPI {
      */
     public static boolean isSoulBeast(LivingEntity entity) {
         return entity != null && SoulBeastStateManager.isActive(entity);
+    }
+
+    /** Registers an extra Soul Beast damage listener. */
+    public static void registerDamageListener(SoulBeastDamageListener listener) {
+        SoulBeastDamageHooks.register(listener);
+    }
+
+    /** Removes a previously registered Soul Beast damage listener. */
+    public static void unregisterDamageListener(SoulBeastDamageListener listener) {
+        SoulBeastDamageHooks.unregister(listener);
     }
 }
