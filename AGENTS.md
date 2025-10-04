@@ -1020,3 +1020,5 @@ Acceptance
 ### Pending Soul Beast follow-up
 - Implement an OnIncomingDamage interception that diverts incoming damage into hunpo consumption (魂魄扣减) instead of health loss. Reuse the existing SoulBeast framework so other handlers can register alongside this conversion hook, and expose extension points for post-conversion damage scaling.
 - Consolidate the pending Soul Beast tasks (state sync, resource costs, command hooks) once the conversion path is in place.
+- Emit a dedicated hook when entities enter/exit the soul beast state (from `SoulBeastStateManager#setActive/#setEnabled/#setPermanent`) so other systems can initialise auras, HUD cues, etc.
+- Add a reusable intimidation helper that applies to entities whose current health falls below a player-controlled threshold, scoped by attitude (hostile/neutral/friendly/all). No existing logic covers this requirement.

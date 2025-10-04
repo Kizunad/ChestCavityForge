@@ -45,6 +45,7 @@ public final class SoulBeastRuntimeEvents {
 
     private SoulBeastRuntimeEvents() {}
 
+    // 近战命中时为魂兽玩家触发魂焰 DoT，优先扣除固定魂魄成本
     @SubscribeEvent
     public static void onMeleeHit(AttackEntityEvent event) {
         if (!(event.getEntity() instanceof LivingEntity attacker) || attacker.level().isClientSide()) {
@@ -71,6 +72,7 @@ public final class SoulBeastRuntimeEvents {
         }
     }
 
+    // 远程投射命中魂兽玩家时同样按固定魂魄成本触发魂焰
     @SubscribeEvent
     public static void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile().getOwner() instanceof LivingEntity owner) || event.getProjectile().level().isClientSide()) {
@@ -96,6 +98,7 @@ public final class SoulBeastRuntimeEvents {
         }
     }
 
+    // 服务器每秒维护魂兽的被动魂魄流失与饱和度补充
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         long current = event.getServer().getTickCount();
@@ -111,7 +114,8 @@ public final class SoulBeastRuntimeEvents {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    // 在所有其他伤害修正完成后，把最终伤害转化为魂魄消耗；若伤害被取消则直接跳出
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onIncomingDamage(LivingIncomingDamageEvent event) {
         LivingEntity victim = event.getEntity();
         if (victim == null || victim.level().isClientSide()) {
@@ -120,8 +124,11 @@ public final class SoulBeastRuntimeEvents {
         if (!SoulBeastStateManager.isActive(victim)) {
             return;
         }
+        if (event.isCanceled()) {
+            return;
+        }
 
-        float incomingDamage = event.getAmount();
+        float incomingDamage = Math.max(0f, event.getAmount());
         if (!(incomingDamage > DAMAGE_EPSILON)) {
             return;
         }
@@ -151,6 +158,7 @@ public final class SoulBeastRuntimeEvents {
         event.setAmount(adjustedDamage);
     }
 
+    // 扣减魂魄资源（仅适用于有 Guzhenren 附件的玩家）
     private static double drainHunpo(LivingEntity victim, double requestedCost) {
         if (!(victim instanceof Player player)) {
             return 0.0;
@@ -177,6 +185,7 @@ public final class SoulBeastRuntimeEvents {
         return drain;
     }
 
+    // 根据最大魂魄与 linkage 增益计算魂焰每秒真实伤害
     private static double computeSoulFlameDps(LivingEntity attacker) {
         double maxHunpo = 0.0;
         if (attacker instanceof Player player) {
@@ -196,4 +205,3 @@ public final class SoulBeastRuntimeEvents {
         return Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * eff[0]);
     }
 }
-
