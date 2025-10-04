@@ -1,0 +1,18 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:soul",
+      "count": 12,
+      "spread": [0.35, 0.8, 0.35],
+      "speed": 0.015
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 8,
+      "spread": [0.2, 0.6, 0.2],
+      "speed": 0.01
+    }
+  ]
+}

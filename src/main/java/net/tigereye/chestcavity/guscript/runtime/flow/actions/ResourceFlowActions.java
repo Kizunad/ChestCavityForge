@@ -18,6 +18,9 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunShouHuaConstants;
 
 /**
  * 资源与基础效果相关的 Flow Action 实现。
@@ -142,6 +145,46 @@ final class ResourceFlowActions {
             @Override
             public String describe() {
                 return "consume_resource(" + canonicalId + ")";
+            }
+        };
+    }
+
+    static FlowEdgeAction consumeResourcesCombo(double zhenyuan, double jingli, double healthCost, String failureReason) {
+        double sanitizedZhenyuan = Math.max(0.0D, zhenyuan);
+        double sanitizedJingli = Math.max(0.0D, jingli);
+        float sanitizedHealth = (float) Math.max(0.0D, healthCost);
+        String reason = failureReason == null || failureReason.isBlank()
+                ? "hun_shou_hua:resources"
+                : failureReason;
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (performer == null) {
+                    return;
+                }
+                ConsumptionResult result = GuzhenrenResourceCostHelper.consumeStrict(performer, sanitizedZhenyuan, sanitizedJingli);
+                if (result == null || !result.succeeded()) {
+                    if (controller != null) {
+                        controller.setLong(HunShouHuaConstants.FAIL_REASON_VARIABLE, HunShouHuaConstants.FAILURE_REASON_RESOURCES);
+                        controller.requestCancel(reason + ":resource", gameTime);
+                    }
+                    return;
+                }
+                if (sanitizedHealth > 0.0F) {
+                    boolean drained = GuzhenrenResourceCostHelper.drainHealth(performer, sanitizedHealth, performer.damageSources().generic());
+                    if (!drained) {
+                        GuzhenrenResourceCostHelper.refund(performer, result);
+                        if (controller != null) {
+                            controller.setLong(HunShouHuaConstants.FAIL_REASON_VARIABLE, HunShouHuaConstants.FAILURE_REASON_RESOURCES);
+                            controller.requestCancel(reason + ":health", gameTime);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public String describe() {
+                return "consume_resources_combo(zhenyuan=" + sanitizedZhenyuan + ", jingli=" + sanitizedJingli + ", health=" + sanitizedHealth + ")";
             }
         };
     }

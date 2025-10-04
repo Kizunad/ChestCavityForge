@@ -8,6 +8,14 @@
     "operator_id": "chestcavity:soul_beast_transform_perm",
     "kind": "composite",
     "tags": ["魂兽化"],
-    "flow_id": "chestcavity:thoughts_remote_burst"
+    "flow_id": "chestcavity:hun_dao/hun_shou_hua",
+    "actions": [
+      {
+        "id": "predicate.hun_shou_hua.is_used",
+        "if_used": [
+          { "id": "action.emit_fail_fx" }
+        ]
+      }
+    ]
   }
 }

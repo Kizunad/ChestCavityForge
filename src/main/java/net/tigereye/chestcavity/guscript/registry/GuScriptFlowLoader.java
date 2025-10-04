@@ -177,6 +177,7 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     GsonHelper.getAsDouble(json, "minimum"),
                     !json.has("value_type") || !GsonHelper.getAsString(json, "value_type").equalsIgnoreCase("long")
             );
+            case "hun_shou_hua_used" -> FlowGuards.hunShouHuaUsed(GsonHelper.getAsBoolean(json, "expected", true));
             default -> throw new IllegalArgumentException("Unknown flow guard type: " + type);
         };
     }
@@ -279,6 +280,28 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     GsonHelper.getAsFloat(json, "volume", 1.0F),
                     GsonHelper.getAsFloat(json, "pitch", 1.0F),
                     GsonHelper.getAsInt(json, "delay_ticks", 0)
+            );
+            case "emit_fx_conditional" -> FlowActions.emitFxConditional(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "fx")),
+                    json.has("variable") ? GsonHelper.getAsString(json, "variable") : null,
+                    json.has("skip_value") ? GsonHelper.getAsDouble(json, "skip_value") : Double.NaN,
+                    GsonHelper.getAsFloat(json, "intensity", 1.0F)
+            );
+            case "play_sound_conditional" -> FlowActions.playSoundConditional(
+                    ResourceLocation.parse(GsonHelper.getAsString(json, "id")),
+                    FlowActions.SoundAnchor.fromString(GsonHelper.getAsString(json, "anchor", "performer")),
+                    parseVec3(json, "offset"),
+                    GsonHelper.getAsFloat(json, "volume", 1.0F),
+                    GsonHelper.getAsFloat(json, "pitch", 1.0F),
+                    GsonHelper.getAsInt(json, "delay_ticks", 0),
+                    json.has("variable") ? GsonHelper.getAsString(json, "variable") : null,
+                    json.has("skip_value") ? GsonHelper.getAsDouble(json, "skip_value") : Double.NaN
+            );
+            case "consume_resources_combo" -> FlowActions.consumeResourcesCombo(
+                    json.has("zhenyuan") ? GsonHelper.getAsDouble(json, "zhenyuan") : 0.0D,
+                    json.has("jingli") ? GsonHelper.getAsDouble(json, "jingli") : 0.0D,
+                    json.has("health") ? GsonHelper.getAsDouble(json, "health") : 0.0D,
+                    json.has("failure_reason") ? GsonHelper.getAsString(json, "failure_reason") : null
             );
             case "play_break_air_sound" -> FlowActions.playBreakAirSound(
                     GsonHelper.getAsInt(json, "delay_ticks", 0),

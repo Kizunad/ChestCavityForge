@@ -9,6 +9,10 @@ import net.tigereye.chestcavity.guscript.actions.ConsumeZhenyuanAction;
 import net.tigereye.chestcavity.guscript.actions.EmitProjectileAction;
 import net.tigereye.chestcavity.guscript.actions.TriggerFxAction;
 import net.tigereye.chestcavity.guscript.actions.SpawnEntityAction;
+import net.tigereye.chestcavity.guscript.actions.EmitFailFxAction;
+import net.tigereye.chestcavity.guscript.actions.HunShouHuaMarkUsedAction;
+import net.tigereye.chestcavity.guscript.actions.HunShouHuaPredicateAction;
+import net.tigereye.chestcavity.guscript.actions.SoulBeastTransformAction;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.actions.ExportFlatModifierAction;
 import net.tigereye.chestcavity.guscript.actions.ExportMultiplierModifierAction;
@@ -104,6 +108,15 @@ public final class ActionRegistry {
                         json.get("amount").getAsDouble(),
                         json.has("duration") ? json.get("duration").getAsInt() : 1200
                 ));
+        register(EmitFailFxAction.ID, json -> new EmitFailFxAction());
+        register(HunShouHuaMarkUsedAction.ID, json -> new HunShouHuaMarkUsedAction());
+        register(SoulBeastTransformAction.ID, json -> new SoulBeastTransformAction(
+                json.has("source") ? ResourceLocation.parse(json.get("source").getAsString()) : null
+        ));
+        register(HunShouHuaPredicateAction.ID, json -> new HunShouHuaPredicateAction(
+                readActions(json, "if_used"),
+                readActions(json, "if_unused")
+        ));
     }
 
     public static void register(String id, Function<JsonObject, Action> factory) {
@@ -137,10 +150,14 @@ public final class ActionRegistry {
     }
 
     private static java.util.List<Action> readActions(JsonObject json) {
-        if (!json.has("actions") || !json.get("actions").isJsonArray()) {
+        return readActions(json, "actions");
+    }
+
+    private static java.util.List<Action> readActions(JsonObject json, String key) {
+        if (!json.has(key) || !json.get(key).isJsonArray()) {
             return java.util.List.of();
         }
-        JsonArray array = json.getAsJsonArray("actions");
+        JsonArray array = json.getAsJsonArray(key);
         java.util.List<Action> actions = new java.util.ArrayList<>(array.size());
         for (var element : array) {
             if (!element.isJsonObject()) {

@@ -5,6 +5,8 @@ import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowGuard;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunShouHuaConstants;
+import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**
  * Built-in flow guards.
@@ -142,6 +144,23 @@ public final class FlowGuards {
             @Override
             public String describe() {
                 return "variable_at_least(" + name + ", " + minimumInclusive + ")";
+            }
+        };
+    }
+
+    public static FlowGuard hunShouHuaUsed(boolean expected) {
+        return new FlowGuard() {
+            @Override
+            public boolean test(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                boolean used = performer != null && CCAttachments.getExistingGuScript(performer)
+                        .map(attachment -> attachment.hasAbilityFlag(HunShouHuaConstants.ABILITY_FLAG))
+                        .orElse(false);
+                return expected ? used : !used;
+            }
+
+            @Override
+            public String describe() {
+                return "hun_shou_hua_used(" + expected + ")";
             }
         };
     }
