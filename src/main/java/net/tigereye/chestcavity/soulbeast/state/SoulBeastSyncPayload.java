@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
  */
 public record SoulBeastSyncPayload(int entityId,
                                    boolean active,
+                                   boolean enabled,
                                    boolean permanent,
                                    long lastTick,
                                    @Nullable ResourceLocation source) implements CustomPacketPayload {
@@ -26,6 +27,7 @@ public record SoulBeastSyncPayload(int entityId,
     private static void encode(RegistryFriendlyByteBuf buf, SoulBeastSyncPayload payload) {
         buf.writeVarInt(payload.entityId());
         buf.writeBoolean(payload.active());
+        buf.writeBoolean(payload.enabled());
         buf.writeBoolean(payload.permanent());
         buf.writeVarLong(payload.lastTick());
         if (payload.source() != null) {
@@ -39,13 +41,14 @@ public record SoulBeastSyncPayload(int entityId,
     private static SoulBeastSyncPayload decode(RegistryFriendlyByteBuf buf) {
         int entityId = buf.readVarInt();
         boolean active = buf.readBoolean();
+        boolean enabled = buf.readBoolean();
         boolean permanent = buf.readBoolean();
         long lastTick = buf.readVarLong();
         ResourceLocation source = null;
         if (buf.readBoolean()) {
             source = buf.readResourceLocation();
         }
-        return new SoulBeastSyncPayload(entityId, active, permanent, lastTick, source);
+        return new SoulBeastSyncPayload(entityId, active, enabled, permanent, lastTick, source);
     }
 
     @Override
