@@ -8,11 +8,16 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
 
 import java.util.Locale;
 
+@EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SoulBeastCommands {
 
     private SoulBeastCommands() {}
@@ -67,6 +72,28 @@ public final class SoulBeastCommands {
                 "[soulbeast] active=%s enabled=%s permanent=%s source=%s lastTick=%d",
                 active, enabled, permanent, source, lastTick)), false);
         return 1;
+    }
+
+    @SubscribeEvent
+    public static void onSoulBeastStateChanged(SoulBeastStateChangedEvent event) {
+        if (!(event.entity() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (player.level().isClientSide()) {
+            return;
+        }
+        boolean before = event.previous().isSoulBeast();
+        boolean after = event.current().isSoulBeast();
+        if (before == after) {
+            return;
+        }
+        Component message = Component.literal(String.format(Locale.ROOT,
+                "[soulbeast] state %s (active=%s enabled=%s permanent=%s)",
+                after ? "enabled" : "disabled",
+                event.current().active(),
+                event.current().enabled(),
+                event.current().permanent()));
+        player.sendSystemMessage(message);
     }
 }
 

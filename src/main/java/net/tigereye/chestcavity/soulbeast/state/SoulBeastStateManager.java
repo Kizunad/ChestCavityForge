@@ -2,7 +2,6 @@ package net.tigereye.chestcavity.soulbeast.state;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.protocol.PacketFlow;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,9 +9,11 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -50,8 +51,11 @@ public final class SoulBeastStateManager {
 
     public static void setActive(LivingEntity entity, boolean active) {
         SoulBeastState state = getOrCreate(entity);
+        SoulBeastStateChangedEvent.Snapshot previous = snapshotOf(state);
         if (state.setActive(active)) {
             touch(entity, state);
+            SoulBeastStateChangedEvent.Snapshot current = snapshotOf(state);
+            postStateChanged(entity, previous, current);
             if (entity instanceof ServerPlayer player) {
                 syncToClient(player);
             }
@@ -60,11 +64,14 @@ public final class SoulBeastStateManager {
 
     public static void setPermanent(LivingEntity entity, boolean permanent) {
         SoulBeastState state = getOrCreate(entity);
+        SoulBeastStateChangedEvent.Snapshot previous = snapshotOf(state);
         if (state.setPermanent(permanent)) {
             touch(entity, state);
             if (permanent && state.getStartedTick() == 0L) {
                 state.setStartedTick(state.getLastTick());
             }
+            SoulBeastStateChangedEvent.Snapshot current = snapshotOf(state);
+            postStateChanged(entity, previous, current);
             if (entity instanceof ServerPlayer player) {
                 syncToClient(player);
             }
@@ -77,11 +84,14 @@ public final class SoulBeastStateManager {
 
     public static void setEnabled(LivingEntity entity, boolean enabled) {
         SoulBeastState state = getOrCreate(entity);
+        SoulBeastStateChangedEvent.Snapshot previous = snapshotOf(state);
         if (state.setEnabled(enabled)) {
             touch(entity, state);
             if (enabled && state.getStartedTick() == 0L) {
                 state.setStartedTick(state.getLastTick());
             }
+            SoulBeastStateChangedEvent.Snapshot current = snapshotOf(state);
+            postStateChanged(entity, previous, current);
             if (entity instanceof ServerPlayer player) {
                 syncToClient(player);
             }
@@ -100,12 +110,11 @@ public final class SoulBeastStateManager {
 
     public static void syncToClient(ServerPlayer player) {
         SoulBeastState state = getOrCreate(player);
-        boolean derivedActive = state.isPermanent() || state.isEnabled() || state.isActive();
-        var payload = new SoulBeastSyncPayload(player.getId(), derivedActive, state.isPermanent(), state.getLastTick(),
-                state.getSource().orElse(null));
+        var payload = new SoulBeastSyncPayload(player.getId(), state.isActive(), state.isEnabled(), state.isPermanent(),
+                state.getLastTick(), state.getSource().orElse(null));
         player.connection.send(payload);
-        LOGGER.debug("[compat/guzhenren][hun_dao][state] synced {} -> active={} permanent={} source={} tick={}",
-                describe(player), state.isActive(), state.isPermanent(),
+        LOGGER.debug("[compat/guzhenren][hun_dao][state] synced {} -> active={} enabled={} permanent={} source={} tick={}",
+                describe(player), state.isActive(), state.isEnabled(), state.isPermanent(),
                 state.getSource().map(Object::toString).orElse("<none>"), state.getLastTick());
     }
 
@@ -135,8 +144,18 @@ public final class SoulBeastStateManager {
         }
         Entity target = resolvedPlayer.level().getEntity(payload.entityId());
         UUID uuid = target != null ? target.getUUID() : resolvedPlayer.getUUID();
-        ClientSnapshot snapshot = new ClientSnapshot(payload.active(), payload.permanent(), payload.lastTick(), payload.source());
+        ClientSnapshot previous = CLIENT_CACHE.get(uuid);
+        ClientSnapshot snapshot = new ClientSnapshot(payload.active(), payload.enabled(), payload.permanent(),
+                payload.lastTick(), payload.source());
         CLIENT_CACHE.put(uuid, snapshot);
+        LivingEntity living = target instanceof LivingEntity le ? le : resolvedPlayer;
+        if (living != null) {
+            SoulBeastStateChangedEvent.Snapshot before = previous != null
+                    ? previous.toEventSnapshot()
+                    : SoulBeastStateChangedEvent.Snapshot.EMPTY;
+            SoulBeastStateChangedEvent.Snapshot after = snapshot.toEventSnapshot();
+            postStateChanged(living, before, after);
+        }
         if (ChestCavity.LOGGER.isDebugEnabled()) {
             ChestCavity.LOGGER.debug("[compat/guzhenren][hun_dao][state] client cached {} -> {}", uuid, snapshot);
         }
@@ -164,6 +183,19 @@ public final class SoulBeastStateManager {
         });
     }
 
+    private static SoulBeastStateChangedEvent.Snapshot snapshotOf(SoulBeastState state) {
+        return new SoulBeastStateChangedEvent.Snapshot(state.isActive(), state.isEnabled(), state.isPermanent());
+    }
+
+    private static void postStateChanged(LivingEntity entity,
+                                         SoulBeastStateChangedEvent.Snapshot previous,
+                                         SoulBeastStateChangedEvent.Snapshot current) {
+        if (entity == null || previous.equals(current)) {
+            return;
+        }
+        NeoForge.EVENT_BUS.post(new SoulBeastStateChangedEvent(entity, previous, current));
+    }
+
     private static void touch(LivingEntity entity, SoulBeastState state) {
         long tick = entity.level() != null ? entity.level().getGameTime() : 0L;
         state.setLastTick(tick);
@@ -173,7 +205,11 @@ public final class SoulBeastStateManager {
         return String.format(Locale.ROOT, "%s(%s)", player.getScoreboardName(), player.getUUID());
     }
 
-    public record ClientSnapshot(boolean active, boolean permanent, long lastTick,
+    public record ClientSnapshot(boolean active, boolean enabled, boolean permanent, long lastTick,
                                  @Nullable net.minecraft.resources.ResourceLocation source) {
+
+        public SoulBeastStateChangedEvent.Snapshot toEventSnapshot() {
+            return new SoulBeastStateChangedEvent.Snapshot(active, enabled, permanent);
+        }
     }
 }

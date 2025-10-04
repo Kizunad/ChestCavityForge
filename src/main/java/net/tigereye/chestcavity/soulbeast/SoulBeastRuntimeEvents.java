@@ -16,6 +16,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
 import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageContext;
 import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageHooks;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -24,6 +25,7 @@ import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.util.DoTManager;
 import org.slf4j.Logger;
 
 import java.util.Optional;
@@ -203,5 +205,19 @@ public final class SoulBeastRuntimeEvents {
             }
         });
         return Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * eff[0]);
+    }
+
+    @SubscribeEvent
+    public static void onSoulBeastStateChanged(SoulBeastStateChangedEvent event) {
+        LivingEntity entity = event.entity();
+        if (entity == null || entity.level().isClientSide()) {
+            return;
+        }
+        if (event.previous().isSoulBeast() && !event.current().isSoulBeast()) {
+            DoTManager.cancelAttacker(entity);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[soulbeast] cleared pending DoT pulses after {} exited soul beast state", entity.getName().getString());
+            }
+        }
     }
 }
