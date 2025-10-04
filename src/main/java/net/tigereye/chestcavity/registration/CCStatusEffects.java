@@ -10,6 +10,7 @@ import net.tigereye.chestcavity.mob_effect.CCStatusEffect;
 import net.tigereye.chestcavity.mob_effect.FurnacePower;
 import net.tigereye.chestcavity.mob_effect.OrganRejection;
 import net.tigereye.chestcavity.mob_effect.Ruminating;
+import net.tigereye.chestcavity.mob_effect.SoulBeastIntimidatedEffect;
 
 public class CCStatusEffects {
     public static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, ChestCavity.MODID);
@@ -29,4 +30,5 @@ public class CCStatusEffects {
     public static final DeferredHolder<MobEffect, MobEffect> SILK_COOLDOWN = MOB_EFFECTS.register("silk_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
     public static final DeferredHolder<MobEffect, MobEffect> VENOM_COOLDOWN = MOB_EFFECTS.register("venom_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
     public static final DeferredHolder<MobEffect, MobEffect> WATER_VULNERABILITY = MOB_EFFECTS.register("water_vulnerability", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
+    public static final DeferredHolder<MobEffect, MobEffect> SOUL_BEAST_INTIMIDATED = MOB_EFFECTS.register("soul_beast_intimidated", SoulBeastIntimidatedEffect::new);
 }
