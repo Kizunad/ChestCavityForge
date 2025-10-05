@@ -12,6 +12,15 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.soul.engine.SoulFeatureToggle;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.SoulPlayerInfo;
+import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulProfileOps;
+import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.soul.profile.InventorySnapshot;
+import net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot;
+import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
+import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
+import net.tigereye.chestcavity.soul.profile.SoulProfile;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -45,6 +54,13 @@ public final class SoulCommands {
                                         .executes(SoulCommands::removeSoulPlayer)))
                         .then(Commands.literal("spawnFakePlayer")
                                 .executes(SoulCommands::spawnFakePlayer))
+                        .then(Commands.literal("CreateSoulDefault")
+                                .executes(SoulCommands::createSoulDefault))
+                        .then(Commands.literal("CreateSoulAt")
+                                .then(Commands.argument("x", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
+                                        .then(Commands.argument("y", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
+                                                .then(Commands.argument("z", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
+                                                        .executes(SoulCommands::createSoulAt)))))
                         .then(Commands.literal("saveAll")
                                 .executes(SoulCommands::saveAll))));
     }
@@ -75,6 +91,70 @@ public final class SoulCommands {
         return 0;
     }
 
+    // Create a new soul with empty inventory and default stats at the player's current position, then spawn it.
+    private static int createSoulDefault(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再创建分魂。"));
+            return 0;
+        }
+        UUID soulId = java.util.UUID.randomUUID();
+        SoulContainer container = CCAttachments.getSoulContainer(executor);
+        if (!container.hasProfile(soulId)) {
+            InventorySnapshot inv = new InventorySnapshot(net.minecraft.core.NonNullList.withSize(41, net.minecraft.world.item.ItemStack.EMPTY));
+            PlayerStatsSnapshot stats = PlayerStatsSnapshot.empty();
+            PlayerEffectsSnapshot fx = PlayerEffectsSnapshot.empty();
+            PlayerPositionSnapshot pos = PlayerPositionSnapshot.capture(executor);
+            SoulProfile profile = SoulProfile.fromSnapshot(soulId, inv, stats, fx, pos);
+            container.putProfile(soulId, profile);
+            SoulProfileOps.markContainerDirty(executor, container, "command-createSoulDefault");
+        }
+        var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
+        if (spawned.isPresent()) {
+            SoulLog.info("[soul] command-createSoulDefault owner={} soul={}", executor.getUUID(), soulId);
+            context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                    "[soul] CreateSoulDefault -> soul=%s", soulId)), true);
+            return 1;
+        }
+        context.getSource().sendFailure(Component.literal("[soul] CreateSoulDefault 失败：无法生成分魂实体。"));
+        return 0;
+    }
+
+    // Create a new soul with default stats and empty inventory at a given position in current dimension, then spawn it.
+    private static int createSoulAt(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再创建分魂。"));
+            return 0;
+        }
+        double x = com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(context, "x");
+        double y = com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(context, "y");
+        double z = com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(context, "z");
+        float yaw = executor.getYRot();
+        float pitch = executor.getXRot();
+        UUID soulId = java.util.UUID.randomUUID();
+        SoulContainer container = CCAttachments.getSoulContainer(executor);
+        if (!container.hasProfile(soulId)) {
+            InventorySnapshot inv = new InventorySnapshot(net.minecraft.core.NonNullList.withSize(41, net.minecraft.world.item.ItemStack.EMPTY));
+            PlayerStatsSnapshot stats = PlayerStatsSnapshot.empty();
+            PlayerEffectsSnapshot fx = PlayerEffectsSnapshot.empty();
+            PlayerPositionSnapshot pos = PlayerPositionSnapshot.of(executor.level().dimension(), x, y, z, yaw, pitch, yaw);
+            SoulProfile profile = SoulProfile.fromSnapshot(soulId, inv, stats, fx, pos);
+            container.putProfile(soulId, profile);
+            SoulProfileOps.markContainerDirty(executor, container, "command-createSoulAt");
+        }
+        var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
+        if (spawned.isPresent()) {
+            SoulLog.info("[soul] command-createSoulAt owner={} soul={} pos=({},{},{})",
+                    executor.getUUID(), soulId, x, y, z);
+            context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                    "[soul] CreateSoulAt -> soul=%s @ (%.1f, %.1f, %.1f)", soulId, x, y, z)), true);
+            return 1;
+        }
+        context.getSource().sendFailure(Component.literal("[soul] CreateSoulAt 失败：无法生成分魂实体。"));
+        return 0;
+    }
+
     private static int listSoulPlayers(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -85,6 +165,7 @@ public final class SoulCommands {
         var entries = SoulFakePlayerSpawner.listActive().stream()
                 .filter(info -> info.ownerId() != null && info.ownerId().equals(ownerFilter))
                 .toList();
+        SoulLog.info("[soul] command-list owner={} count={}", ownerFilter, entries.size());
         if (entries.isEmpty()) {
             context.getSource().sendSuccess(() -> Component.literal("[soul] 暂无活跃的 SoulPlayer。"), false);
             return 0;
@@ -106,6 +187,7 @@ public final class SoulCommands {
             context.getSource().sendFailure(Component.literal("[soul] 未能切换回本体魂档。"));
             return 0;
         }
+        SoulLog.info("[soul] command-switch owner={} target=owner", executor.getUUID());
         context.getSource().sendSuccess(() -> Component.literal("[soul] 已切换回本体魂档。"), true);
         return 1;
     }
@@ -122,6 +204,7 @@ public final class SoulCommands {
                     "[soul] 未找到 UUID=%s 的 SoulPlayer，或你无权切换。", uuid)));
             return 0;
         }
+        SoulLog.info("[soul] command-switch owner={} target={} ", executor.getUUID(), uuid);
         context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "[soul] 已切换至 SoulPlayer %s。", uuid)), true);
         return 1;

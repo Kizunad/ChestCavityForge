@@ -9,10 +9,7 @@ import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 灵魂容器（玩家附件/能力的后备存储）
@@ -32,7 +29,10 @@ public final class SoulContainer {
 
     private final Player owner;
     private UUID activeProfileId;
+    private UUID resumeActiveOnLogin;
     private final Map<UUID, SoulProfile> profiles = new HashMap<>();
+    // Souls that should auto-respawn as entities when the owner logs in
+    private final Set<UUID> autospawnSouls = new HashSet<>();
 
     public SoulContainer(Player owner) {
         this.owner = owner;
@@ -45,6 +45,14 @@ public final class SoulContainer {
         return Optional.ofNullable(profiles.get(activeProfileId));
     }
 
+    public boolean hasProfile(UUID id) {
+        return profiles.containsKey(id);
+    }
+
+    public void putProfile(UUID id, SoulProfile profile) {
+        profiles.put(id, profile);
+    }
+
     public SoulProfile getOrCreateProfile(UUID id) {
         // 若不存在则创建新存档：服务端尽量捕获完整快照；
         // 客户端/非服务端上下文退化为以 Player 可读状态构造。
@@ -55,12 +63,25 @@ public final class SoulContainer {
             return SoulProfile.fromSnapshot(key,
                     InventorySnapshot.capture(owner),
                     PlayerStatsSnapshot.capture(owner),
+                    net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.capture(owner),
                     PlayerPositionSnapshot.capture(owner));
         });
     }
 
     public void setActiveProfile(UUID id) {
         this.activeProfileId = id;
+    }
+
+    public Optional<UUID> getActiveProfileId() {
+        return Optional.ofNullable(activeProfileId);
+    }
+
+    public Optional<UUID> getResumeActiveOnLogin() {
+        return Optional.ofNullable(resumeActiveOnLogin);
+    }
+
+    public void setResumeActiveOnLogin(UUID id) {
+        this.resumeActiveOnLogin = id;
     }
 
     public void updateActiveProfile() {
@@ -70,8 +91,16 @@ public final class SoulContainer {
         }
     }
 
-    public Optional<UUID> getActiveProfileId() {
-        return Optional.ofNullable(activeProfileId);
+    public Set<UUID> getAutospawnSouls() {
+        return Collections.unmodifiableSet(autospawnSouls);
+    }
+
+    public void addAutospawnSoul(UUID soulId) {
+        autospawnSouls.add(Objects.requireNonNull(soulId));
+    }
+
+    public void removeAutospawnSoul(UUID soulId) {
+        autospawnSouls.remove(soulId);
     }
 
     public CompoundTag saveNBT(HolderLookup.Provider provider) {
@@ -80,9 +109,18 @@ public final class SoulContainer {
         if (activeProfileId != null) {
             root.putUUID("active", activeProfileId);
         }
+        if (resumeActiveOnLogin != null) {
+            root.putUUID("resume_active", resumeActiveOnLogin);
+        }
         CompoundTag listTag = new CompoundTag();
         profiles.forEach((uuid, profile) -> listTag.put(uuid.toString(), profile.save(provider)));
         root.put("profiles", listTag);
+        // autospawn set
+        net.minecraft.nbt.ListTag auto = new net.minecraft.nbt.ListTag();
+        for (UUID id : autospawnSouls) {
+            auto.add(net.minecraft.nbt.StringTag.valueOf(id.toString()));
+        }
+        root.put("autospawn", auto);
         return root;
     }
 
@@ -92,12 +130,27 @@ public final class SoulContainer {
         if (tag.hasUUID("active")) {
             activeProfileId = tag.getUUID("active");
         }
+        resumeActiveOnLogin = null;
+        if (tag.hasUUID("resume_active")) {
+            resumeActiveOnLogin = tag.getUUID("resume_active");
+        }
         CompoundTag listTag = tag.getCompound("profiles");
         for (String key : listTag.getAllKeys()) {
             try {
                 UUID id = UUID.fromString(key);
                 profiles.put(id, SoulProfile.load(listTag.getCompound(key), provider));
             } catch (IllegalArgumentException ignored) {
+            }
+        }
+        autospawnSouls.clear();
+        if (tag.contains("autospawn", net.minecraft.nbt.Tag.TAG_LIST)) {
+            net.minecraft.nbt.ListTag auto = tag.getList("autospawn", net.minecraft.nbt.Tag.TAG_STRING);
+            for (int i = 0; i < auto.size(); i++) {
+                String s = auto.getString(i);
+                try {
+                    autospawnSouls.add(UUID.fromString(s));
+                } catch (IllegalArgumentException ignored) {
+                }
             }
         }
     }

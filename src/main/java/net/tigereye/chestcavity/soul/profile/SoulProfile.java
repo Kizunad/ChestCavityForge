@@ -22,15 +22,18 @@ public final class SoulProfile {
     private final UUID profileId;
     private InventorySnapshot inventory;
     private PlayerStatsSnapshot stats;
+    private PlayerEffectsSnapshot effects;
     private PlayerPositionSnapshot position;
 
     private SoulProfile(UUID profileId,
                         InventorySnapshot inventory,
                         PlayerStatsSnapshot stats,
+                        PlayerEffectsSnapshot effects,
                         PlayerPositionSnapshot position) {
         this.profileId = profileId;
         this.inventory = inventory;
         this.stats = stats;
+        this.effects = effects;
         this.position = position;
     }
 
@@ -38,34 +41,50 @@ public final class SoulProfile {
         return new SoulProfile(id,
                 InventorySnapshot.capture(player),
                 PlayerStatsSnapshot.capture(player),
+                PlayerEffectsSnapshot.capture(player),
                 PlayerPositionSnapshot.capture(player));
     }
 
     public static SoulProfile fromSnapshot(UUID id,
                                            InventorySnapshot snapshot,
                                            PlayerStatsSnapshot stats,
+                                           PlayerEffectsSnapshot effects,
                                            PlayerPositionSnapshot position) {
-        return new SoulProfile(id, snapshot, stats, position);
+        return new SoulProfile(id, snapshot, stats, effects, position);
     }
 
     public UUID id() {
         return profileId;
     }
 
-    public void restore(ServerPlayer player) {
-        // 恢复顺序：先位置（可能涉及跨维/坐标），再背包与属性
-        if (position != null) {
-            position.restore(player);
-        }
+    public java.util.Optional<PlayerPositionSnapshot> position() {
+        return java.util.Optional.ofNullable(position);
+    }
+
+    public void restoreBase(ServerPlayer player) {
+        // 恢复基础数据：背包、属性、效果
         inventory.restore(player);
         stats.restore(player, player.registryAccess());
+        if (effects != null) {
+            effects.restore(player);
+        }
         // TODO: restore capabilities, chest cavity, guzhenren etc.
+    }
+
+    /**
+     * 仅恢复记录的位置（同维度）。不会进行跨维传送。
+     */
+    public void restorePosition(ServerPlayer player) {
+        if (position != null) {
+            position.restoreSameDimension(player);
+        }
     }
 
     public void updateFrom(ServerPlayer player) {
         // 从玩家当前状态刷新快照
         this.inventory = InventorySnapshot.capture(player);
         this.stats = PlayerStatsSnapshot.capture(player);
+        this.effects = PlayerEffectsSnapshot.capture(player);
         this.position = PlayerPositionSnapshot.capture(player);
         // TODO: snapshot capabilities.
     }
@@ -75,6 +94,9 @@ public final class SoulProfile {
         tag.putUUID("id", profileId);
         tag.put("inventory", inventory.save(provider));
         tag.put("stats", stats.save());
+        if (effects != null) {
+            tag.put("effects", effects.save());
+        }
         if (position != null) {
             tag.put("position", position.save(provider));
         }
@@ -88,10 +110,13 @@ public final class SoulProfile {
         PlayerStatsSnapshot stats = tag.contains("stats")
                 ? PlayerStatsSnapshot.load(tag.getCompound("stats"), provider)
                 : PlayerStatsSnapshot.empty();
+        PlayerEffectsSnapshot effects = tag.contains("effects")
+                ? PlayerEffectsSnapshot.load(tag.getCompound("effects"))
+                : PlayerEffectsSnapshot.empty();
         PlayerPositionSnapshot position = tag.contains("position")
                 ? PlayerPositionSnapshot.load(tag.getCompound("position"))
                 : PlayerPositionSnapshot.empty();
-        return new SoulProfile(id, inv, stats, position);
+        return new SoulProfile(id, inv, stats, effects, position);
     }
 
     @Override

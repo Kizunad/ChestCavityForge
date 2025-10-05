@@ -1161,3 +1161,34 @@ Acceptance
 - `/soul test SoulPlayerList` 与 `SoulPlayerSwitch` 更新：使用 `UuidArgument` 并提供建议，switch 会校验 owner 权限并实际更新活跃 SoulPlayer。
 - 新增 `SoulFakePlayerEvents` 监听玩家登出与服务器关闭，调用 Spawner 清理，避免换档/重启残留导致崩溃或幽灵实体。
 - `PlayerStatsSnapshot` 纳入 soul profile：捕获/恢复 XP、生命/吸收、饱食度/饱和/疲劳与同步性属性；切换 profile 时主玩家与 SoulPlayer 均同步基础属性，避免数据错乱。
+
+## 2025-10-?? Web Codex 适配：SoulProfile 快照结构与扩展计划
+
+- 目标
+  - 统一“魂档（SoulProfile）”跨模块快照/恢复接口，便于 Web Codex 追加能力/器官/外部模组数据，而不影响已存在的背包/原版属性。
+
+- 快照树（当前/预留）
+  - 所有 `SoulProfile`
+    - 物品存储（`InventorySnapshot`）
+    - 原版玩家属性（`PlayerStatsSnapshot`：XP/饥饿/生命/吸收/基础属性）
+    - 能力存储（`CapabilitySnapshot`）— 预留接口
+    - 器官信息（`ChestCavitySnapshot`）— 预留接口（建议直接复用 ChestCavityInstance 的 `toTag/fromTag`）
+    - 蛊真人数据（`GuzhenrenSnapshot`）— 预留接口（通过 `GuzhenrenResourceBridge` 读写）
+    - 其他模组附着数据（注册式扩展）— 预留接口（建议 `SnapshotAdapterRegistry`）
+
+- 适配策略
+  - 定义 `SnapshotAdapter` SPI：supports/capture/restore/save/load 五件套。
+  - 在 `SoulProfile` 内维护 `List<SnapshotAdapter>`，加载时按注册顺序 load，保存时顺序 save 合并到复合 NBT；与既有 `inventory/stats/position` 并行。
+  - ChestCavity 适配：从 `CCAttachments.getChestCavity(living)` 取实例，`toTag`/`fromTag` 落 NBT；谨慎处理版本与缺省空值。
+  - Guzhenren 适配：通过 `GuzhenrenResourceBridge.open(player)`，将核心字段写入 `GuzhenrenSnapshot`；必要时触发 `syncPlayerVariables` 以刷新客户端。
+
+- 所有权与并发
+  - `SoulFakePlayerSpawner` 只允许 Owner 操作其魂档；命令补全/移除均校验所有权。
+  - 切换流程使用公共快照：
+    - 切到 SoulPlayer：保存目标快照→移除目标实体→将玩家恢复为目标快照→在原 owner 位置重生一个 FakePlayer（使用 owner 快照）。
+    - 切回 Owner：保存玩家（当前魂）快照→移除当前活跃魂实体→重生该魂 FakePlayer→恢复玩家为 owner 快照。
+
+- 后续任务建议
+  - 实现 `CapabilitySnapshot`/`ChestCavitySnapshot`/`GuzhenrenSnapshot` 的最小可用版本与注册中心。
+  - 抽象 `/soul test saveAll` → `SnapshotPersistence.saveAll(server)`，可被世界保存钩子复用。
+  - 为 FakePlayer 名称添加 `[Soul]` 前缀或 team 前缀，便于多人服区分。

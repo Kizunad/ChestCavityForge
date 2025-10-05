@@ -1,0 +1,31 @@
+package net.tigereye.chestcavity.soul.util;
+
+import net.tigereye.chestcavity.ChestCavity;
+import org.apache.logging.log4j.Logger;
+
+/**
+ * Centralised logging helper for soul-related modules. All INFO-level diagnostics flow through this
+ * class so toggling {@link #DEBUG_LOGS} in a single place enables or suppresses verbose output.
+ */
+public final class SoulLog {
+
+    private SoulLog() {
+    }
+
+    /**
+     * Master toggle for soul module diagnostics. Flip to {@code false} to silence INFO logs.
+     */
+    public static boolean DEBUG_LOGS = true;
+
+    private static final Logger LOGGER = ChestCavity.LOGGER;
+
+    public static void info(String message, Object... args) {
+        if (DEBUG_LOGS) {
+            LOGGER.info(message, args);
+        }
+    }
+
+    public static void warn(String message, Object... args) {
+        LOGGER.warn(message, args);
+    }
+}

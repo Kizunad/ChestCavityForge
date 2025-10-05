@@ -57,6 +57,16 @@ public final class PlayerPositionSnapshot {
         this.headYaw = headYaw;
     }
 
+    public static PlayerPositionSnapshot of(ResourceKey<Level> dimension,
+                                            double x,
+                                            double y,
+                                            double z,
+                                            float yaw,
+                                            float pitch,
+                                            float headYaw) {
+        return new PlayerPositionSnapshot(dimension, x, y, z, yaw, pitch, headYaw);
+    }
+
     public static PlayerPositionSnapshot capture(Player player) {
         return new PlayerPositionSnapshot(player.level().dimension(),
                 player.getX(),
@@ -65,6 +75,34 @@ public final class PlayerPositionSnapshot {
                 player.getYRot(),
                 player.getXRot(),
                 player.getYHeadRot());
+    }
+
+    public ResourceKey<Level> dimension() {
+        return dimension;
+    }
+
+    public double x() {
+        return x;
+    }
+
+    public double y() {
+        return y;
+    }
+
+    public double z() {
+        return z;
+    }
+
+    public float yaw() {
+        return yaw;
+    }
+
+    public float pitch() {
+        return pitch;
+    }
+
+    public float headYaw() {
+        return headYaw;
     }
 
     public void restore(ServerPlayer player) {
@@ -111,5 +149,16 @@ public final class PlayerPositionSnapshot {
 
     public static PlayerPositionSnapshot empty() {
         return new PlayerPositionSnapshot(Level.OVERWORLD, FALLBACK_X, FALLBACK_Y, FALLBACK_Z, 0.0F, 0.0F, 0.0F);
+    }
+
+    /**
+     * Restore only the recorded position/orientation if snapshot's dimension equals the player's current one.
+     * Does not perform any cross-dimension teleport.
+     */
+    public void restoreSameDimension(ServerPlayer player) {
+        if (player.level().dimension().equals(dimension)) {
+            player.moveTo(x, y, z, yaw, pitch);
+            player.setYHeadRot(headYaw);
+        }
     }
 }

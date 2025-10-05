@@ -1053,7 +1053,7 @@ OnHit
 
 Player（主魂实体）
 │
-├── SoulContainer (Capability)
+├── Container (Capability)
 │     ├── 当前操控魂 ID
 │     ├── 所有 SoulProfile
 │     │     ├── 物品存储 (InventorySnapshot)
