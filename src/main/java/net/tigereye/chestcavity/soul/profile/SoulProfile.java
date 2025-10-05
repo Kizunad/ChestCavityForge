@@ -53,6 +53,14 @@ public final class SoulProfile {
         return new SoulProfile(id, snapshot, stats, effects, position);
     }
 
+    public static SoulProfile empty(UUID id) {
+        return new SoulProfile(id,
+                InventorySnapshot.empty(),
+                PlayerStatsSnapshot.empty(),
+                PlayerEffectsSnapshot.empty(),
+                PlayerPositionSnapshot.empty());
+    }
+
     public UUID id() {
         return profileId;
     }

@@ -4,12 +4,21 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import net.tigereye.chestcavity.soul.profile.InventorySnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulProfileOps;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * 灵魂容器（玩家附件/能力的后备存储）
@@ -54,14 +63,10 @@ public final class SoulContainer {
         // 若不存在则创建新存档：服务端尽量捕获完整快照；
         // 客户端/非服务端上下文退化为以 Player 可读状态构造。
         return profiles.computeIfAbsent(id, key -> {
-            if (owner instanceof ServerPlayer serverPlayer) {
+            if (owner instanceof ServerPlayer serverPlayer && serverPlayer.getUUID().equals(key)) {
                 return SoulProfile.capture(serverPlayer, key);
             }
-            return SoulProfile.fromSnapshot(key,
-                    InventorySnapshot.capture(owner),
-                    PlayerStatsSnapshot.capture(owner),
-                    net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.capture(owner),
-                    PlayerPositionSnapshot.capture(owner));
+            return SoulProfile.empty(key);
         });
     }
 
@@ -86,6 +91,53 @@ public final class SoulContainer {
 
     public SoulProfile getProfile(UUID id) {
         return profiles.get(id);
+    }
+
+    public Map<UUID, CompoundTag> snapshotAll(ServerPlayer ownerPlayer) {
+        UUID ownerId = ownerPlayer.getUUID();
+        var provider = ownerPlayer.registryAccess();
+        Map<UUID, CompoundTag> snapshots = new HashMap<>();
+
+        // Owner snapshot
+        SoulProfile ownerProfile = getOrCreateProfile(ownerId);
+        SoulFakePlayerSpawner.refreshProfileSnapshot(ownerPlayer, ownerId, ownerProfile);
+        snapshots.put(ownerId, ownerProfile.save(provider));
+
+        Set<UUID> soulIds = new HashSet<>(getKnownSoulIds());
+        soulIds.addAll(SoulFakePlayerSpawner.getOwnedSoulIds(ownerId));
+        soulIds.remove(ownerId);
+
+        for (UUID soulId : soulIds) {
+            SoulProfile profile = getOrCreateProfile(soulId);
+            SoulFakePlayerSpawner.refreshProfileSnapshot(ownerPlayer, soulId, profile);
+            snapshots.put(soulId, profile.save(provider));
+        }
+
+        return snapshots;
+    }
+
+    public void restoreAll(ServerPlayer ownerPlayer, Map<UUID, CompoundTag> snapshots) {
+        if (snapshots.isEmpty()) {
+            return;
+        }
+        UUID ownerId = ownerPlayer.getUUID();
+        var provider = ownerPlayer.registryAccess();
+
+        // Load snapshots into container
+        snapshots.forEach((soulId, tag) -> profiles.put(soulId, SoulProfile.load(tag, provider)));
+
+        // Restore owner state immediately
+        SoulProfile ownerProfile = getOrCreateProfile(ownerId);
+        setActiveProfile(ownerId);
+        SoulProfileOps.applyProfileToPlayer(ownerProfile, ownerPlayer, "login-restore-owner");
+
+        snapshots.keySet().stream()
+                .filter(soulId -> !soulId.equals(ownerId))
+                .forEach(soulId -> SoulFakePlayerSpawner.respawnForOwner(ownerPlayer, soulId)
+                        .ifPresentOrElse(spawned -> SoulLog.info("[soul] login-restore owner={} soul={} action=spawn-shell", ownerId, soulId),
+                                () -> SoulLog.warn("[soul] login-restore owner={} soul={} action=spawn-shell-failed", ownerId, soulId)));
+
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, "login-restore-all");
     }
 
     public CompoundTag saveNBT(HolderLookup.Provider provider) {

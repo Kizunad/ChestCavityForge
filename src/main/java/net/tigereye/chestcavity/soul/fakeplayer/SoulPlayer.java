@@ -24,18 +24,20 @@ import java.util.UUID;
 public class SoulPlayer extends FakePlayer {
 
     private final @Nullable UUID ownerId;
+    private final UUID soulId;
 
-    private SoulPlayer(ServerLevel level, GameProfile profile, @Nullable UUID ownerId) {
+    private SoulPlayer(ServerLevel level, GameProfile profile, UUID soulId, @Nullable UUID ownerId) {
         super(level, profile);
         this.ownerId = ownerId;
+        this.soulId = soulId;
         this.noPhysics = false;
         this.setNoGravity(false);
         this.setInvulnerable(false);
         applySurvivalDefaults();
     }
 
-    public static SoulPlayer create(ServerPlayer owner, GameProfile profile) {
-        SoulPlayer soulPlayer = new SoulPlayer(owner.serverLevel(), profile, owner.getUUID());
+    public static SoulPlayer create(ServerPlayer owner, UUID soulId, GameProfile profile) {
+        SoulPlayer soulPlayer = new SoulPlayer(owner.serverLevel(), profile, soulId, owner.getUUID());
         soulPlayer.moveTo(owner.getX(), owner.getY(), owner.getZ(), owner.getYRot(), owner.getXRot());
         soulPlayer.reapplyPosition();
         soulPlayer.setCustomNameVisible(false);
@@ -60,6 +62,10 @@ public class SoulPlayer extends FakePlayer {
 
     public Optional<UUID> getOwnerId() {
         return Optional.ofNullable(ownerId);
+    }
+
+    public UUID getSoulId() {
+        return soulId;
     }
 
     @Override

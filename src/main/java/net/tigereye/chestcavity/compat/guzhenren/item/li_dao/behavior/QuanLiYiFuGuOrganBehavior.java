@@ -26,9 +26,9 @@ public final class QuanLiYiFuGuOrganBehavior extends AbstractLiDaoOrganBehavior 
     private static final String COOLDOWN_KEY = "cooldown";
 
     private static final double BASE_ZHENYUAN_COST = 500.0;
-    private static final double BASE_JINGLI_RESTORE = 20.0;
+    private static final double BASE_JINGLI_RESTORE = 5.0;
     private static final double MUSCLE_BONUS_PER_SLOT = 0.5;
-    private static final double MUSCLE_BONUS_CAP_BASE = 15.0;
+    private static final double MUSCLE_BONUS_CAP_BASE = 25.0;
     private static final int PULSE_INTERVAL_SECONDS = 15;
     private static final int RETRY_INTERVAL_SECONDS = 3;
 

@@ -46,6 +46,10 @@ public record InventorySnapshot(NonNullList<ItemStack> items) {
         player.getInventory().setChanged();
     }
 
+    public static InventorySnapshot empty() {
+        return new InventorySnapshot(NonNullList.withSize(TOTAL_SLOTS, ItemStack.EMPTY));
+    }
+
     private void clearInventory(Player player) {
         player.getInventory().items.replaceAll(ignored -> ItemStack.EMPTY);
         player.getInventory().armor.replaceAll(ignored -> ItemStack.EMPTY);

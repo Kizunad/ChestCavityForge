@@ -41,10 +41,10 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-    private static final double INCREASE_EFFECT_BONUS = 0.30;
+    private static final double INCREASE_EFFECT_BONUS = 0.25;
     private static final double ZHENYUAN_COST_PER_SECOND = 800.0;
     private static final double JINGLI_GAIN_PER_SECOND = 5.0;
-    private static final double HEALTH_PERCENT_PER_SECOND = 0.01;
+    private static final double HEALTH_PERCENT_PER_SECOND = 0.0075;
     private static final float PURE_WATER_ABSORPTION = 10.0f;
 
     private QuanYongMingGuOrganBehavior() {

@@ -8,6 +8,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEven
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.minecraft.nbt.CompoundTag;
+import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 
 import java.util.Map;
@@ -28,12 +30,13 @@ public final class SoulFakePlayerEvents {
     @SubscribeEvent
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            java.util.UUID owner = player.getUUID();
+            UUID owner = player.getUUID();
             SoulLog.info("[soul] logout-switch begin owner={}", owner);
 
             var server = player.serverLevel().getServer();
             var store = net.tigereye.chestcavity.soul.storage.SoulOfflineStore.get(server);
-            Map<UUID, CompoundTag> serialized = SoulFakePlayerSpawner.exportProfiles(player);
+            SoulContainer container = CCAttachments.getSoulContainer(player);
+            Map<UUID, CompoundTag> serialized = container.snapshotAll(player);
             store.putAll(owner, serialized);
             SoulLog.info("[soul] logout-switch stored owner={} profiles={} ", owner, serialized.size());
 
@@ -47,9 +50,10 @@ public final class SoulFakePlayerEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             var server = player.serverLevel().getServer();
             var store = net.tigereye.chestcavity.soul.storage.SoulOfflineStore.get(server);
+            SoulContainer container = CCAttachments.getSoulContainer(player);
             var pending = store.consume(player.getUUID());
             if (!pending.isEmpty()) {
-                SoulFakePlayerSpawner.importProfiles(player, pending);
+                container.restoreAll(player, pending);
             }
         }
     }

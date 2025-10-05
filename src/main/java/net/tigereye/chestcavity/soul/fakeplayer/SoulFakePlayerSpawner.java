@@ -5,7 +5,6 @@ import com.mojang.authlib.properties.Property;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
@@ -18,10 +17,11 @@ import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -125,7 +125,7 @@ public final class SoulFakePlayerSpawner {
         ));
 
         // 1️⃣ 创建实体，但暂不设置位置（否则会被 spawn 逻辑覆盖）
-        SoulPlayer soulPlayer = SoulPlayer.create(owner, clone);
+        SoulPlayer soulPlayer = SoulPlayer.create(owner, profileId, clone);
 
         ServerLevel ownerLevel = owner.serverLevel();
         var server = ownerLevel.getServer();
@@ -199,7 +199,7 @@ public final class SoulFakePlayerSpawner {
         GameProfile spawnProfile = new GameProfile(soulId, name);
         copyProperties(executor.getGameProfile(), spawnProfile);
 
-        SoulPlayer soulPlayer = SoulPlayer.create(executor, spawnProfile);
+        SoulPlayer soulPlayer = SoulPlayer.create(executor, soulId, spawnProfile);
         ensureIdentity(soulId, soulPlayer.getGameProfile(), false);
 
         SoulContainer container = CCAttachments.getSoulContainer(executor);
@@ -299,91 +299,23 @@ public final class SoulFakePlayerSpawner {
      * On logout, flush all in-world souls that belong to the owner into the owner's container,
      * mark the container dirty, and queue offline snapshots as a double safety net.
      */
-    public static Map<UUID, CompoundTag> exportProfiles(ServerPlayer ownerPlayer) {
+    public static void refreshProfileSnapshot(ServerPlayer ownerPlayer, UUID soulId, SoulProfile profile) {
         UUID owner = ownerPlayer.getUUID();
-        SoulContainer container = CCAttachments.getSoulContainer(ownerPlayer);
-        var provider = ownerPlayer.registryAccess();
-
-        Map<UUID, CompoundTag> serialized = new HashMap<>();
-
-        // Ensure owner snapshot reflects the player entity.
-        SoulProfile ownerProfile = container.getOrCreateProfile(owner);
-        ownerProfile.updateFrom(ownerPlayer);
-        serialized.put(owner, ownerProfile.save(provider));
-        SoulLog.info("[soul] logout-export owner={} dim={} pos=({},{},{})",
-                owner,
-                ownerPlayer.level().dimension().location(),
-                ownerPlayer.getX(),
-                ownerPlayer.getY(),
-                ownerPlayer.getZ());
-
-        // Capture every known soul profile.
-        for (UUID soulId : container.getKnownSoulIds()) {
-            if (soulId.equals(owner)) {
-                continue;
-            }
-            SoulProfile profile = container.getOrCreateProfile(soulId);
-            SoulPlayer soulPlayer = ACTIVE_SOUL_PLAYERS.get(soulId);
-            if (soulPlayer != null && soulPlayer.getOwnerId().map(owner::equals).orElse(false)) {
-                profile.updateFrom(soulPlayer);
-                SoulLog.info("[soul] logout-export owner={} soul={} dim={} pos=({},{},{})",
-                        owner,
-                        soulId,
-                        soulPlayer.level().dimension().location(),
-                        soulPlayer.getX(),
-                        soulPlayer.getY(),
-                        soulPlayer.getZ());
-            }
-            serialized.put(soulId, profile.save(provider));
-        }
-
-        // Include souls that exist as entities but have not yet been recorded in the container.
-        ACTIVE_SOUL_PLAYERS.forEach((soulId, soulPlayer) -> {
-            if (!soulPlayer.getOwnerId().map(owner::equals).orElse(false)) {
-                return;
-            }
-            if (serialized.containsKey(soulId)) {
-                return;
-            }
-            SoulProfile profile = SoulProfile.capture(soulPlayer, soulId);
-            serialized.put(soulId, profile.save(provider));
-            SoulLog.info("[soul] logout-export owner={} soul={} dim={} pos=({},{},{})",
-                    owner,
-                    soulId,
-                    soulPlayer.level().dimension().location(),
-                    soulPlayer.getX(),
-                    soulPlayer.getY(),
-                    soulPlayer.getZ());
-        });
-
-        SoulLog.info("[soul] logout-export-complete owner={} count={} ", owner, serialized.size());
-        return serialized;
-    }
-
-    public static void importProfiles(ServerPlayer ownerPlayer, Map<UUID, CompoundTag> snapshots) {
-        if (snapshots.isEmpty()) {
+        if (soulId.equals(owner)) {
+            profile.updateFrom(ownerPlayer);
             return;
         }
-        UUID owner = ownerPlayer.getUUID();
-        SoulContainer container = CCAttachments.getSoulContainer(ownerPlayer);
-        var provider = ownerPlayer.registryAccess();
+        SoulPlayer soulPlayer = ACTIVE_SOUL_PLAYERS.get(soulId);
+        if (soulPlayer != null && soulPlayer.getOwnerId().map(owner::equals).orElse(false)) {
+            profile.updateFrom(soulPlayer);
+        }
+    }
 
-        // Load all snapshots back into the container.
-        snapshots.forEach((soulId, tag) -> container.putProfile(soulId, SoulProfile.load(tag, provider)));
-
-        // Apply the owner snapshot immediately.
-        SoulProfile ownerProfile = container.getOrCreateProfile(owner);
-        SoulProfileOps.applyProfileToPlayer(ownerProfile, ownerPlayer, "login-restore-owner");
-        container.setActiveProfile(owner);
-
-        // Spawn shells for every non-owner profile.
-        snapshots.keySet().stream()
-                .filter(id -> !id.equals(owner))
-                .forEach(soulId -> SoulFakePlayerSpawner.respawnForOwner(ownerPlayer, soulId)
-                        .ifPresentOrElse(spawned -> SoulLog.info("[soul] login-restore owner={} soul={} action=spawn-shell", owner, soulId),
-                                () -> SoulLog.warn("[soul] login-restore owner={} soul={} action=spawn-shell-failed", owner, soulId)));
-
-        SoulProfileOps.markContainerDirty(ownerPlayer, container, "login-restore-all");
+    public static Set<UUID> getOwnedSoulIds(UUID ownerId) {
+        return ACTIVE_SOUL_PLAYERS.entrySet().stream()
+                .filter(e -> e.getValue().getOwnerId().map(ownerId::equals).orElse(false))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     /**

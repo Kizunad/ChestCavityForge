@@ -40,8 +40,8 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior implem
 
     private static final double BASE_HUNPO_RECOVERY_PER_SECOND = 2.0;
     private static final double BASE_NIANTOU_RECOVERY_PER_SECOND = 1.0;
-    private static final double SOUL_INTENT_PER_ORGAN = 0.01;
-    private static final double SOUL_INTENT_MAX = 0.20;
+    private static final double SOUL_INTENT_PER_ORGAN = 0.0075;
+    private static final double SOUL_INTENT_MAX = 0.15;
     private static final double WEILING_ATTACK_COST_REDUCTION = 10.0;
     private static final double WEILING_RADIUS = 8.0D;
     private static final int WEILING_EFFECT_DURATION_TICKS = 100;
