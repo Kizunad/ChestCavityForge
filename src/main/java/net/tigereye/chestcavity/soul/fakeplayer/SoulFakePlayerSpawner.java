@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
+import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
 
 /**
  * 灵魂假人（SoulPlayer）生命周期协调器
@@ -498,27 +499,53 @@ public final class SoulFakePlayerSpawner {
             return false;
         }
         UUID soulId = resolved.get();
-        if (!isOwner(soulId, executor.getUUID())) {
+        return despawn(executor, soulId);
+    }
+
+    public static boolean despawn(ServerPlayer owner, UUID soulId) {
+        UUID ownerId = owner.getUUID();
+
+        SoulPlayer soul = ACTIVE_SOUL_PLAYERS.remove(soulId);
+        if (soul == null || soul.getOwnerId().map(ownerId::equals).orElse(false) == false) {
+            SoulLog.warn("[soul] despawn requested for non-active soul={} owner={}", soulId, ownerId);
             return false;
         }
-        saveSoulPlayerState(soulId);
-        handleRemoval(soulId, "removeCommand");
-        SOUL_IDENTITIES.remove(soulId);
+
+        ENTITY_TO_SOUL.remove(soul.getUUID());
+        OWNER_ACTIVE_SOUL.computeIfPresent(ownerId, (key, current) -> current.equals(soulId) ? null : current);
+
+        SoulContainer container = CCAttachments.getSoulContainer(owner);
+        SoulProfile profile = container.getOrCreateProfile(soulId);
+        profile.updateFrom(soul);
+        SoulProfileOps.markContainerDirty(owner, container, "despawn");
+        SoulOfflineStore.get(owner.serverLevel().getServer())
+                .put(ownerId, soulId, profile.save(owner.registryAccess()));
+
+        handleRemoval(soulId, "despawn");
+        SoulLog.info("[soul] despawned soul={} owner={}", soulId, ownerId);
         return true;
     }
 
     public static void removeByOwner(UUID ownerId) {
-        // Use profile UUIDs as the source of truth; ACTIVE_SOUL_PLAYERS is keyed by profileId.
         List<UUID> profileIds = ACTIVE_SOUL_PLAYERS.entrySet().stream()
                 .filter(e -> e.getValue().getOwnerId().map(ownerId::equals).orElse(false))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
         for (UUID profileId : profileIds) {
-            // 为什么：在移除实体前保存其状态，避免移除后无法再读取到最新数据。
-            saveSoulPlayerState(profileId);
-            // 为什么：真正移除实体并广播移除，清理映射，防止残留可视化与内存泄漏。
-            handleRemoval(profileId, "removeByOwner");
-            // 为什么：清理缓存身份，避免下次生成沿用过期属性集。
+            ServerPlayer ownerPlayer = ACTIVE_SOUL_PLAYERS.get(profileId).serverLevel().getServer()
+                    .getPlayerList().getPlayer(ownerId);
+            if (ownerPlayer != null) {
+                despawn(ownerPlayer, profileId);
+            } else {
+                SoulPlayer soul = ACTIVE_SOUL_PLAYERS.remove(profileId);
+                if (soul != null) {
+                    ENTITY_TO_SOUL.remove(soul.getUUID());
+                    OWNER_ACTIVE_SOUL.computeIfPresent(ownerId, (key, current) -> current.equals(profileId) ? null : current);
+                    SoulOfflineStore.get(soul.serverLevel().getServer())
+                            .put(ownerId, profileId, SoulProfile.capture(soul, profileId).save(soul.registryAccess()));
+                    handleRemoval(profileId, "removeByOwner");
+                }
+            }
             SOUL_IDENTITIES.remove(profileId);
         }
     }
@@ -526,8 +553,11 @@ public final class SoulFakePlayerSpawner {
     public static void clearAll() {
         List<UUID> ids = new ArrayList<>(ACTIVE_SOUL_PLAYERS.keySet());
         ids.forEach(soulId -> {
-            saveSoulPlayerState(soulId);
-            handleRemoval(soulId, "clearAll");
+            SoulPlayer soul = ACTIVE_SOUL_PLAYERS.remove(soulId);
+            if (soul != null) {
+                ENTITY_TO_SOUL.remove(soul.getUUID());
+                soul.remove(Entity.RemovalReason.DISCARDED);
+            }
         });
         OWNER_ACTIVE_SOUL.clear();
         SOUL_IDENTITIES.clear();
