@@ -66,8 +66,22 @@ def main(argv) -> int:
             tags = []
         tags_strs = [str(t) for t in tags]
 
+        # Also consider object-style result: name and tags fields
+        result_name = ''
+        result_tags = []
+        if isinstance(result, dict):
+            rn = result.get('name')
+            if isinstance(rn, str):
+                result_name = rn
+            rt = result.get('tags')
+            if isinstance(rt, list):
+                result_tags = [str(t) for t in rt]
+
         cond = list_all or (
-            (isinstance(result, str) and keyword in result) or any(keyword in t for t in tags_strs)
+            (isinstance(result, str) and keyword in result)
+            or (result_name and keyword in result_name)
+            or any(keyword in t for t in result_tags)
+            or any(keyword in t for t in tags_strs)
         )
         if not cond:
             continue
@@ -86,4 +100,3 @@ def main(argv) -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main(sys.argv))
-

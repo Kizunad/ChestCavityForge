@@ -1,7 +1,9 @@
 package net.tigereye.chestcavity.registration;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.attachment.IAttachmentHolder;
 import net.neoforged.neoforge.attachment.IAttachmentSerializer;
@@ -13,6 +15,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastState;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
 
 import java.util.Optional;
 
@@ -34,6 +37,11 @@ public final class CCAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<SoulBeastState>> SOUL_BEAST_STATE =
             ATTACHMENT_TYPES.register("soul_beast_state", () -> AttachmentType.builder(SoulBeastState::new)
                     .serialize(new SoulBeastStateSerializer())
+                    .build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<SoulContainer>> SOUL_CONTAINER =
+            ATTACHMENT_TYPES.register("soul_container", () -> AttachmentType.builder(CCAttachments::createSoulContainer)
+                    .serialize(new SoulContainerSerializer())
                     .build());
 
     private CCAttachments() {
@@ -70,6 +78,21 @@ public final class CCAttachments {
         return entity.getExistingData(SOUL_BEAST_STATE.get());
     }
 
+    private static SoulContainer createSoulContainer(IAttachmentHolder holder) {
+        if (!(holder instanceof Player player)) {
+            throw new IllegalStateException("Soul container attachment can only be applied to players");
+        }
+        return new SoulContainer(player);
+    }
+
+    public static SoulContainer getSoulContainer(Player player) {
+        return player.getData(SOUL_CONTAINER.get());
+    }
+
+    public static Optional<SoulContainer> getExistingSoulContainer(Player player) {
+        return player.getExistingData(SOUL_CONTAINER.get());
+    }
+
     private static class ChestCavitySerializer implements IAttachmentSerializer<CompoundTag, ChestCavityInstance> {
         @Override
         public ChestCavityInstance read(IAttachmentHolder holder, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
@@ -90,6 +113,25 @@ public final class CCAttachments {
             CompoundTag wrapper = new CompoundTag();
             attachment.toTag(wrapper, provider);
             return wrapper.getCompound("ChestCavity");
+        }
+    }
+
+    private static class SoulContainerSerializer implements IAttachmentSerializer<CompoundTag, SoulContainer> {
+        @Override
+        public SoulContainer read(IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
+            if (!(holder instanceof Player player)) {
+                throw new IllegalStateException("Soul container attachment can only be read for players");
+            }
+            SoulContainer container = new SoulContainer(player);
+            if (!tag.isEmpty()) {
+                container.loadNBT(tag, provider);
+            }
+            return container;
+        }
+
+        @Override
+        public CompoundTag write(SoulContainer attachment, HolderLookup.Provider provider) {
+            return attachment.saveNBT(provider);
         }
     }
 

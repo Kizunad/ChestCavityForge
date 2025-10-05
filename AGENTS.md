@@ -1141,3 +1141,23 @@ Acceptance
   - `IntimidationHelper.applyIntimidation` 改为施加此自定义效果，并记录施法者 UUID（用于 Goal 判断 flee 目标）。效果结束/实体移除时清理 Goal。
   - 覆盖玩家/非玩家：非玩家也要响应 flee；注意线程安全（仅在主线程添加/移除 Goal）。
   - 测试验证：被威慑的敌对生物会短暂停止追击并远离；效果叠加刷新时间，结束后恢复原有 AI。
+
+## 2025-10-?? 灵魂系统目录框架（进行中）
+- 新增包路径 `net.tigereye.chestcavity.soul`，已预创建子目录：`api/`、`adapter/`、`container/`、`engine/`、`profile/`、`command/`、`fakeplayer/`、`ai/`、`network/`、`storage/`。
+- 目标：承载多魂容器（SoulContainer）、魂档案（SoulProfile）、适配器（SoulAdapter）、切换引擎（SoulSwitchEngine）、伪玩家/AI 控制及网络同步逻辑。
+- 下一步：按照换魂计划分配接口与实现骨架（先定义 `SoulContainerCapability`、`SoulProfileSnapshot`、`SoulAdapter` 接口），随后补充命令 `/soul` 与 FakePlayer 行为。
+- TODO：在实现前明确各模块之间的能力接口与事件广播，安排数据持久化与序列化格式（建议定义 `storage/` 子包用于 NBT 编解码器）。
+- 指令入口：注册 `/soul test spawnFakePlayer` 测试子命令，现已通过 `SoulFakePlayerSpawner` 使用 `FakePlayerFactory` 在执行者所在位置生成伪玩家（若生成失败会反馈原因）；后续需完善权限校验、重复实例管理与分魂绑定逻辑。
+- 自定义 `SoulPlayer`（派生自 `FakePlayer`）取代原工厂对象：允许受伤/死亡、启用重力物理并预留能力/AI 钩子；生成时与指挥者坐标对齐并调用待定的 Cap attach TODO。
+- `SoulPlayer` 现在在构造时套用生存模式能力（禁飞、禁创、可受伤），并调用 `setGameMode(GameType.SURVIVAL)` 与 `onUpdateAbilities()`；后续可在该类中扩展 AI/能力挂载。
+- `SoulPlayer.tick()` 现在强制 `travel(Vec3.ZERO)`，配合关闭飞行能力确保服务器端持续应用重力；若后续需要自定义输入，可在此替换为实际移动向量。
+- SoulPlayer 自行处理受伤：覆盖 `isInvulnerable()` 与 `hurt()`，手动结算吸收值与生命值、记录战斗日志并触发死亡，这样命中会真正扣血而不再只播动画。
+- 新增 `/soul enable` 指令：执行时调用 `SoulFeatureToggle.enable`，并向玩家发出“会破坏旧存档”的警告；其余功能默认保持关闭，仅此命令才允许后续 NBT 转化。
+- 初始化 `SoulContainer` (Capability 数据结构) 与 `SoulProfile`：支持多魂 ID → Profile 映射、当前激活魂记录，并以 `InventorySnapshot` 捕捉/恢复 36+4+1 槽位的背包、保存/读取 NBT 时通过 registry provider 解析物品。
+- `InventorySnapshot` 现提供 capture/restore/save/load，序列化使用 `ItemStack.save(provider, tag)` 与 `parseOptional(provider, tag)`，为后续器官/能力快照预留接口。
+- `/soul test SoulPlayerList` 与 `/soul test SoulPlayerSwitch <UUID>`：前者枚举当前存活的 SoulPlayer（含是否为当前选中、可选 owner UUID）；后者在 `/soul enable` 后允许执行者切换活跃 SoulPlayer（仅限拥有者）。
+- `SoulFakePlayerSpawner` 记录 activeSoulPlayerId，提供 `listActive()`/`switchTo()`；移除时自动清理。
+- SoulFakePlayerSpawner 现维护 SoulPlayer ↔ Visual 映射、玩家活跃映射；生成时先广播 PlayerInfo 再入场，列表显示 soul/visual UUID 并提供 UUID 补全；支持按视觉 UUID 解析。移除/登出/关服时清理映射并发送移除包。
+- `/soul test SoulPlayerList` 与 `SoulPlayerSwitch` 更新：使用 `UuidArgument` 并提供建议，switch 会校验 owner 权限并实际更新活跃 SoulPlayer。
+- 新增 `SoulFakePlayerEvents` 监听玩家登出与服务器关闭，调用 Spawner 清理，避免换档/重启残留导致崩溃或幽灵实体。
+- `PlayerStatsSnapshot` 纳入 soul profile：捕获/恢复 XP、生命/吸收、饱食度/饱和/疲劳与同步性属性；切换 profile 时主玩家与 SoulPlayer 均同步基础属性，避免数据错乱。

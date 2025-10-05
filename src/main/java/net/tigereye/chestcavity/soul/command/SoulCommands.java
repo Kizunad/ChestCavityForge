@@ -1,0 +1,159 @@
+package net.tigereye.chestcavity.soul.command;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.commands.arguments.UuidArgument;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.tigereye.chestcavity.soul.engine.SoulFeatureToggle;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.SoulPlayerInfo;
+
+import java.util.Locale;
+import java.util.UUID;
+
+/**
+ * Temporary soul command entry point; provides only the test hook until the soul system is fully implemented.
+ */
+public final class SoulCommands {
+
+    private SoulCommands() {
+    }
+
+    public static void register(RegisterCommandsEvent event) {
+        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+        dispatcher.register(Commands.literal("soul")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("enable")
+                        .executes(SoulCommands::enableSoulSystem))
+                .then(Commands.literal("test")
+                        .then(Commands.literal("SoulPlayerList")
+                                .executes(SoulCommands::listSoulPlayers))
+                        .then(Commands.literal("SoulPlayerSwitch")
+                                .then(Commands.literal("owner")
+                                        .executes(SoulCommands::switchOwner))
+                                .then(Commands.argument("uuid", UuidArgument.uuid())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::switchSoulPlayer)))
+                        .then(Commands.literal("SoulPlayerRemove")
+                                .then(Commands.argument("uuid", UuidArgument.uuid())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::removeSoulPlayer)))
+                        .then(Commands.literal("spawnFakePlayer")
+                                .executes(SoulCommands::spawnFakePlayer))
+                        .then(Commands.literal("saveAll")
+                                .executes(SoulCommands::saveAll))));
+    }
+
+    private static int enableSoulSystem(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        SoulFeatureToggle.enable(executor);
+        var container = net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(executor);
+        container.setActiveProfile(executor.getUUID());
+        container.getOrCreateProfile(executor.getUUID()).updateFrom(executor);
+        return 1;
+    }
+
+    private static int spawnFakePlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        ServerPlayer executor = source.getPlayerOrException();
+        var resultOpt = SoulFakePlayerSpawner.spawnTestFakePlayer(executor);
+        if (resultOpt.isPresent()) {
+            var result = resultOpt.get();
+            source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                    "[soul] spawnFakePlayer -> soul=%s",
+                    result.soulPlayer().getUUID())), true);
+            return 1;
+        }
+        source.sendFailure(Component.literal(String.format(Locale.ROOT,
+                "[soul] spawnFakePlayer 失败：无法在 %s 生成伪玩家。",
+                executor.serverLevel().dimension().location())));
+        return 0;
+    }
+
+    private static int listSoulPlayers(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再查看 SoulPlayer 列表。"));
+            return 0;
+        }
+        UUID ownerFilter = executor.getUUID();
+        var entries = SoulFakePlayerSpawner.listActive().stream()
+                .filter(info -> info.ownerId() != null && info.ownerId().equals(ownerFilter))
+                .toList();
+        if (entries.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 暂无活跃的 SoulPlayer。"), false);
+            return 0;
+        }
+        for (SoulPlayerInfo info : entries) {
+            String line = String.format(Locale.ROOT, "[soul] %s soul=%s", info.active() ? "*" : "-", info.soulUuid());
+            context.getSource().sendSuccess(() -> Component.literal(line), false);
+        }
+        return entries.size();
+    }
+
+    private static int switchOwner(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再切换 SoulPlayer。"));
+            return 0;
+        }
+        if (!SoulFakePlayerSpawner.switchTo(executor, executor.getUUID())) {
+            context.getSource().sendFailure(Component.literal("[soul] 未能切换回本体魂档。"));
+            return 0;
+        }
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已切换回本体魂档。"), true);
+        return 1;
+    }
+
+    private static int switchSoulPlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再切换 SoulPlayer。"));
+            return 0;
+        }
+        UUID uuid = UuidArgument.getUuid(context, "uuid");
+        if (!SoulFakePlayerSpawner.switchTo(executor, uuid)) {
+            context.getSource().sendFailure(Component.literal(String.format(Locale.ROOT,
+                    "[soul] 未找到 UUID=%s 的 SoulPlayer，或你无权切换。", uuid)));
+            return 0;
+        }
+        context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] 已切换至 SoulPlayer %s。", uuid)), true);
+        return 1;
+    }
+
+    private static int removeSoulPlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再移除 SoulPlayer。"));
+            return 0;
+        }
+        UUID uuid = UuidArgument.getUuid(context, "uuid");
+        if (!SoulFakePlayerSpawner.remove(uuid, executor)) {
+            context.getSource().sendFailure(Component.literal(String.format(Locale.ROOT,
+                    "[soul] 未找到 UUID=%s 的 SoulPlayer 或你无权移除。", uuid)));
+            return 0;
+        }
+        context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] 已移除 SoulPlayer %s。", uuid)), true);
+        return 1;
+    }
+
+    private static int saveAll(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再保存魂档。"));
+            return 0;
+        }
+        int saved = SoulFakePlayerSpawner.saveAll(executor);
+        context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] 已保存 %d 个 SoulPlayer 状态。", saved)), true);
+        return saved;
+    }
+}
+ 

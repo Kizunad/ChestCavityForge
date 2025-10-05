@@ -153,9 +153,6 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (source == null || source.is(DamageTypeTags.IS_PROJECTILE)) {
             return damage;
         }
-        if (!SoulBeastStateManager.isActive(player)) {
-            return damage;
-        }
 
         Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isEmpty()) {
