@@ -7,12 +7,9 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.tigereye.chestcavity.ChestCavity;
-import net.minecraft.nbt.CompoundTag;
-import net.tigereye.chestcavity.registration.CCAttachments;
-import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulPersistence;
 
-import java.util.Map;
 import java.util.UUID;
 
 @EventBusSubscriber(modid = ChestCavity.MODID)
@@ -33,13 +30,7 @@ public final class SoulFakePlayerEvents {
             UUID owner = player.getUUID();
             SoulLog.info("[soul] logout-switch begin owner={}", owner);
 
-            var server = player.serverLevel().getServer();
-            var store = net.tigereye.chestcavity.soul.storage.SoulOfflineStore.get(server);
-            SoulContainer container = CCAttachments.getSoulContainer(player);
-            Map<UUID, CompoundTag> serialized = container.snapshotAll(player);
-            store.putAll(owner, serialized);
-            SoulLog.info("[soul] logout-switch stored owner={} profiles={} ", owner, serialized.size());
-
+            SoulPersistence.saveAll(player);
             SoulFakePlayerSpawner.forceOwner(player);
             SoulFakePlayerSpawner.removeByOwner(owner);
         }
@@ -48,13 +39,7 @@ public final class SoulFakePlayerEvents {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            var server = player.serverLevel().getServer();
-            var store = net.tigereye.chestcavity.soul.storage.SoulOfflineStore.get(server);
-            SoulContainer container = CCAttachments.getSoulContainer(player);
-            var pending = store.consume(player.getUUID());
-            if (!pending.isEmpty()) {
-                container.restoreAll(player, pending);
-            }
+            SoulPersistence.loadAll(player);
         }
     }
 

@@ -93,24 +93,33 @@ public final class SoulContainer {
         return profiles.get(id);
     }
 
-    public Map<UUID, CompoundTag> snapshotAll(ServerPlayer ownerPlayer) {
+    public Map<UUID, CompoundTag> snapshotAll(ServerPlayer ownerPlayer, boolean clearDirty) {
+        return snapshotProfiles(ownerPlayer, false, clearDirty);
+    }
+
+    public Map<UUID, CompoundTag> snapshotDirty(ServerPlayer ownerPlayer, boolean clearDirty) {
+        return snapshotProfiles(ownerPlayer, true, clearDirty);
+    }
+
+    private Map<UUID, CompoundTag> snapshotProfiles(ServerPlayer ownerPlayer, boolean onlyDirty, boolean clearDirty) {
         UUID ownerId = ownerPlayer.getUUID();
         var provider = ownerPlayer.registryAccess();
         Map<UUID, CompoundTag> snapshots = new HashMap<>();
 
-        // Owner snapshot
-        SoulProfile ownerProfile = getOrCreateProfile(ownerId);
-        SoulFakePlayerSpawner.refreshProfileSnapshot(ownerPlayer, ownerId, ownerProfile);
-        snapshots.put(ownerId, ownerProfile.save(provider));
-
         Set<UUID> soulIds = new HashSet<>(getKnownSoulIds());
+        soulIds.add(ownerId);
         soulIds.addAll(SoulFakePlayerSpawner.getOwnedSoulIds(ownerId));
-        soulIds.remove(ownerId);
 
         for (UUID soulId : soulIds) {
             SoulProfile profile = getOrCreateProfile(soulId);
+            if (onlyDirty && !profile.isDirty()) {
+                continue;
+            }
             SoulFakePlayerSpawner.refreshProfileSnapshot(ownerPlayer, soulId, profile);
             snapshots.put(soulId, profile.save(provider));
+            if (clearDirty) {
+                profile.clearDirty();
+            }
         }
 
         return snapshots;
@@ -130,12 +139,18 @@ public final class SoulContainer {
         SoulProfile ownerProfile = getOrCreateProfile(ownerId);
         setActiveProfile(ownerId);
         SoulProfileOps.applyProfileToPlayer(ownerProfile, ownerPlayer, "login-restore-owner");
+        ownerProfile.clearDirty();
 
         snapshots.keySet().stream()
                 .filter(soulId -> !soulId.equals(ownerId))
                 .forEach(soulId -> SoulFakePlayerSpawner.respawnForOwner(ownerPlayer, soulId)
                         .ifPresentOrElse(spawned -> SoulLog.info("[soul] login-restore owner={} soul={} action=spawn-shell", ownerId, soulId),
                                 () -> SoulLog.warn("[soul] login-restore owner={} soul={} action=spawn-shell-failed", ownerId, soulId)));
+
+        snapshots.keySet().stream()
+                .map(this::getProfile)
+                .filter(java.util.Objects::nonNull)
+                .forEach(SoulProfile::clearDirty);
 
         SoulProfileOps.markContainerDirty(ownerPlayer, this, "login-restore-all");
     }

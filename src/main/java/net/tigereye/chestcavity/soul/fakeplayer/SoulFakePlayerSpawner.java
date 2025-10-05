@@ -270,7 +270,7 @@ public final class SoulFakePlayerSpawner {
                         net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot.capture(player),
                         net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.capture(player),
                         net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot.capture(player));
-                SoulProfileOps.queueOfflineSnapshot(server, owner, soulId, snapshot, provider, "saveSoulPlayerState-offline");
+                SoulOfflineStore.get(server).put(owner, soulId, snapshot.save(provider));
             }
         });
     }
@@ -520,6 +520,7 @@ public final class SoulFakePlayerSpawner {
         SoulProfileOps.markContainerDirty(owner, container, "despawn");
         SoulOfflineStore.get(owner.serverLevel().getServer())
                 .put(ownerId, soulId, profile.save(owner.registryAccess()));
+        profile.clearDirty();
 
         handleRemoval(soulId, "despawn");
         SoulLog.info("[soul] despawned soul={} owner={}", soulId, ownerId);
@@ -532,19 +533,18 @@ public final class SoulFakePlayerSpawner {
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
         for (UUID profileId : profileIds) {
-            ServerPlayer ownerPlayer = ACTIVE_SOUL_PLAYERS.get(profileId).serverLevel().getServer()
-                    .getPlayerList().getPlayer(ownerId);
+            SoulPlayer tracked = ACTIVE_SOUL_PLAYERS.get(profileId);
+            if (tracked == null) {
+                continue;
+            }
+            ServerPlayer ownerPlayer = tracked.serverLevel().getServer().getPlayerList().getPlayer(ownerId);
             if (ownerPlayer != null) {
                 despawn(ownerPlayer, profileId);
             } else {
-                SoulPlayer soul = ACTIVE_SOUL_PLAYERS.remove(profileId);
-                if (soul != null) {
-                    ENTITY_TO_SOUL.remove(soul.getUUID());
-                    OWNER_ACTIVE_SOUL.computeIfPresent(ownerId, (key, current) -> current.equals(profileId) ? null : current);
-                    SoulOfflineStore.get(soul.serverLevel().getServer())
-                            .put(ownerId, profileId, SoulProfile.capture(soul, profileId).save(soul.registryAccess()));
-                    handleRemoval(profileId, "removeByOwner");
-                }
+                var provider = tracked.serverLevel().registryAccess();
+                SoulOfflineStore.get(tracked.serverLevel().getServer())
+                        .put(ownerId, profileId, SoulProfile.capture(tracked, profileId).save(provider));
+                handleRemoval(profileId, "removeByOwner");
             }
             SOUL_IDENTITIES.remove(profileId);
         }

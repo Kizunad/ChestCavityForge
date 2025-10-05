@@ -24,17 +24,20 @@ public final class SoulProfile {
     private PlayerStatsSnapshot stats;
     private PlayerEffectsSnapshot effects;
     private PlayerPositionSnapshot position;
+    private boolean dirty;
 
     private SoulProfile(UUID profileId,
                         InventorySnapshot inventory,
                         PlayerStatsSnapshot stats,
                         PlayerEffectsSnapshot effects,
-                        PlayerPositionSnapshot position) {
+                        PlayerPositionSnapshot position,
+                        boolean dirty) {
         this.profileId = profileId;
         this.inventory = inventory;
         this.stats = stats;
         this.effects = effects;
         this.position = position;
+        this.dirty = dirty;
     }
 
     public static SoulProfile capture(ServerPlayer player, UUID id) {
@@ -42,7 +45,8 @@ public final class SoulProfile {
                 InventorySnapshot.capture(player),
                 PlayerStatsSnapshot.capture(player),
                 PlayerEffectsSnapshot.capture(player),
-                PlayerPositionSnapshot.capture(player));
+                PlayerPositionSnapshot.capture(player),
+                false);
     }
 
     public static SoulProfile fromSnapshot(UUID id,
@@ -50,7 +54,7 @@ public final class SoulProfile {
                                            PlayerStatsSnapshot stats,
                                            PlayerEffectsSnapshot effects,
                                            PlayerPositionSnapshot position) {
-        return new SoulProfile(id, snapshot, stats, effects, position);
+        return new SoulProfile(id, snapshot, stats, effects, position, false);
     }
 
     public static SoulProfile empty(UUID id) {
@@ -58,7 +62,8 @@ public final class SoulProfile {
                 InventorySnapshot.empty(),
                 PlayerStatsSnapshot.empty(),
                 PlayerEffectsSnapshot.empty(),
-                PlayerPositionSnapshot.empty());
+                PlayerPositionSnapshot.empty(),
+                false);
     }
 
     public UUID id() {
@@ -98,6 +103,7 @@ public final class SoulProfile {
         this.stats = PlayerStatsSnapshot.capture(player);
         this.effects = PlayerEffectsSnapshot.capture(player);
         this.position = PlayerPositionSnapshot.capture(player);
+        this.dirty = true;
         // TODO: snapshot capabilities.
     }
 
@@ -128,7 +134,15 @@ public final class SoulProfile {
         PlayerPositionSnapshot position = tag.contains("position")
                 ? PlayerPositionSnapshot.load(tag.getCompound("position"))
                 : PlayerPositionSnapshot.empty();
-        return new SoulProfile(id, inv, stats, effects, position);
+        return new SoulProfile(id, inv, stats, effects, position, false);
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    public void clearDirty() {
+        this.dirty = false;
     }
 
     @Override

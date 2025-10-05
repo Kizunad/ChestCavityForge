@@ -1,30 +1,15 @@
 package net.tigereye.chestcavity.soul.util;
 
-import net.minecraft.core.HolderLookup;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
-import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
 import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
-
-import java.util.UUID;
+import net.minecraft.server.level.ServerLevel;
 
 public final class SoulProfileOps {
 
     private SoulProfileOps() {
-    }
-
-    public static void queueOfflineSnapshot(MinecraftServer server,
-                                            UUID owner,
-                                            UUID profileId,
-                                            SoulProfile profile,
-                                            HolderLookup.Provider provider,
-                                            String reason) {
-        SoulOfflineStore.get(server).put(owner, profileId, profile.save(provider));
-        SoulLog.info("[soul] offline-queue reason={} owner={} soul={}", reason, owner, profileId);
     }
 
     public static void markContainerDirty(ServerPlayer player,
