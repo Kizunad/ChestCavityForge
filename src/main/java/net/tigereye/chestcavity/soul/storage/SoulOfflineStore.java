@@ -1,21 +1,22 @@
 package net.tigereye.chestcavity.soul.storage;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Persistent store for offline soul profile updates. When an owner is offline during a save
- * (e.g., singleplayer server shutting down right after logout), we queue the snapshot here and
- * merge it back into the owner's SoulContainer on next login.
+ * Stores pending soul profile snapshots for owners that log out or when the server shuts down.
+ * Snapshots are merged back into the owner's container the next time they log in.
  */
-public class SoulOfflineStore extends SavedData {
+public final class SoulOfflineStore extends SavedData {
 
     private static final String DATA_NAME = "chestcavity_soul_offline";
 
@@ -26,10 +27,15 @@ public class SoulOfflineStore extends SavedData {
         if (overworld == null) {
             throw new IllegalStateException("Overworld is null while accessing SoulOfflineStore");
         }
-        return overworld.getDataStorage().computeIfAbsent(new SavedData.Factory<SoulOfflineStore>(SoulOfflineStore::new, SoulOfflineStore::load), DATA_NAME);
+        return overworld.getDataStorage().computeIfAbsent(
+                new SavedData.Factory<>(SoulOfflineStore::new, SoulOfflineStore::load),
+                DATA_NAME);
     }
 
-    public static SoulOfflineStore load(CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+    private SoulOfflineStore() {
+    }
+
+    private static SoulOfflineStore load(CompoundTag tag, HolderLookup.Provider provider) {
         SoulOfflineStore store = new SoulOfflineStore();
         if (tag == null) {
             return store;
@@ -56,7 +62,7 @@ public class SoulOfflineStore extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         for (Map.Entry<UUID, Map<UUID, CompoundTag>> e : pending.entrySet()) {
             CompoundTag byOwner = new CompoundTag();
             for (Map.Entry<UUID, CompoundTag> inner : e.getValue().entrySet()) {
@@ -67,17 +73,35 @@ public class SoulOfflineStore extends SavedData {
         return tag;
     }
 
+    /**
+     * Replace all stored snapshots for an owner with the provided map.
+     */
+    public void putAll(UUID owner, Map<UUID, CompoundTag> profiles) {
+        if (profiles.isEmpty()) {
+            return;
+        }
+        Map<UUID, CompoundTag> copy = new HashMap<>();
+        profiles.forEach((soulId, tag) -> copy.put(soulId, tag.copy()));
+        pending.put(owner, copy);
+        setDirty();
+    }
+
+    /**
+     * Store/overwrite a single profile snapshot for an owner.
+     */
     public void put(UUID owner, UUID soul, CompoundTag profileTag) {
-        pending.computeIfAbsent(owner, k -> new HashMap<>()).put(soul, profileTag.copy());
+        pending.computeIfAbsent(owner, id -> new HashMap<>()).put(soul, profileTag.copy());
         setDirty();
     }
 
     public Map<UUID, CompoundTag> consume(UUID owner) {
-        Map<UUID, CompoundTag> m = pending.remove(owner);
-        if (m == null) {
-            return java.util.Collections.emptyMap();
+        Map<UUID, CompoundTag> stored = pending.remove(owner);
+        if (stored == null) {
+            return Collections.emptyMap();
         }
         setDirty();
-        return m;
+        Map<UUID, CompoundTag> copy = new HashMap<>();
+        stored.forEach((soulId, tag) -> copy.put(soulId, tag.copy()));
+        return copy;
     }
 }

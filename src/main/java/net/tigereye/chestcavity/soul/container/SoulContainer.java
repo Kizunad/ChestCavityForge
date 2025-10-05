@@ -29,10 +29,7 @@ public final class SoulContainer {
 
     private final Player owner;
     private UUID activeProfileId;
-    private UUID resumeActiveOnLogin;
     private final Map<UUID, SoulProfile> profiles = new HashMap<>();
-    // Souls that should auto-respawn as entities when the owner logs in
-    private final Set<UUID> autospawnSouls = new HashSet<>();
 
     public SoulContainer(Player owner) {
         this.owner = owner;
@@ -76,14 +73,6 @@ public final class SoulContainer {
         return Optional.ofNullable(activeProfileId);
     }
 
-    public Optional<UUID> getResumeActiveOnLogin() {
-        return Optional.ofNullable(resumeActiveOnLogin);
-    }
-
-    public void setResumeActiveOnLogin(UUID id) {
-        this.resumeActiveOnLogin = id;
-    }
-
     public void updateActiveProfile() {
         // 将玩家当前状态写回至“激活的”灵魂存档（仅限服务端）
         if (activeProfileId != null && owner instanceof ServerPlayer serverPlayer) {
@@ -91,16 +80,12 @@ public final class SoulContainer {
         }
     }
 
-    public Set<UUID> getAutospawnSouls() {
-        return Collections.unmodifiableSet(autospawnSouls);
+    public Set<UUID> getKnownSoulIds() {
+        return Collections.unmodifiableSet(profiles.keySet());
     }
 
-    public void addAutospawnSoul(UUID soulId) {
-        autospawnSouls.add(Objects.requireNonNull(soulId));
-    }
-
-    public void removeAutospawnSoul(UUID soulId) {
-        autospawnSouls.remove(soulId);
+    public SoulProfile getProfile(UUID id) {
+        return profiles.get(id);
     }
 
     public CompoundTag saveNBT(HolderLookup.Provider provider) {
@@ -109,18 +94,9 @@ public final class SoulContainer {
         if (activeProfileId != null) {
             root.putUUID("active", activeProfileId);
         }
-        if (resumeActiveOnLogin != null) {
-            root.putUUID("resume_active", resumeActiveOnLogin);
-        }
         CompoundTag listTag = new CompoundTag();
         profiles.forEach((uuid, profile) -> listTag.put(uuid.toString(), profile.save(provider)));
         root.put("profiles", listTag);
-        // autospawn set
-        net.minecraft.nbt.ListTag auto = new net.minecraft.nbt.ListTag();
-        for (UUID id : autospawnSouls) {
-            auto.add(net.minecraft.nbt.StringTag.valueOf(id.toString()));
-        }
-        root.put("autospawn", auto);
         return root;
     }
 
@@ -130,27 +106,12 @@ public final class SoulContainer {
         if (tag.hasUUID("active")) {
             activeProfileId = tag.getUUID("active");
         }
-        resumeActiveOnLogin = null;
-        if (tag.hasUUID("resume_active")) {
-            resumeActiveOnLogin = tag.getUUID("resume_active");
-        }
         CompoundTag listTag = tag.getCompound("profiles");
         for (String key : listTag.getAllKeys()) {
             try {
                 UUID id = UUID.fromString(key);
                 profiles.put(id, SoulProfile.load(listTag.getCompound(key), provider));
             } catch (IllegalArgumentException ignored) {
-            }
-        }
-        autospawnSouls.clear();
-        if (tag.contains("autospawn", net.minecraft.nbt.Tag.TAG_LIST)) {
-            net.minecraft.nbt.ListTag auto = tag.getList("autospawn", net.minecraft.nbt.Tag.TAG_STRING);
-            for (int i = 0; i < auto.size(); i++) {
-                String s = auto.getString(i);
-                try {
-                    autospawnSouls.add(UUID.fromString(s));
-                } catch (IllegalArgumentException ignored) {
-                }
             }
         }
     }

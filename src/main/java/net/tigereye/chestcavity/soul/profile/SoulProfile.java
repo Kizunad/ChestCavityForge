@@ -61,6 +61,10 @@ public final class SoulProfile {
         return java.util.Optional.ofNullable(position);
     }
 
+    public int inventorySize() {
+        return inventory.items().size();
+    }
+
     public void restoreBase(ServerPlayer player) {
         // 恢复基础数据：背包、属性、效果
         inventory.restore(player);
@@ -87,13 +91,6 @@ public final class SoulProfile {
         this.effects = PlayerEffectsSnapshot.capture(player);
         this.position = PlayerPositionSnapshot.capture(player);
         // TODO: snapshot capabilities.
-    }
-
-    public void updateFromExceptPosition(ServerPlayer player) {
-        this.inventory = InventorySnapshot.capture(player);
-        this.stats = PlayerStatsSnapshot.capture(player);
-        this.effects = PlayerEffectsSnapshot.capture(player);
-        // 保留原有 position，避免在附身状态下覆盖 owner 坐标
     }
 
     public CompoundTag save(HolderLookup.Provider provider) {
