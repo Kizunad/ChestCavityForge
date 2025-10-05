@@ -326,16 +326,33 @@ public final class SoulFakePlayerSpawner {
 
         // 始终刷新 owner 档案，避免附身状态下本体数据滞后
         SoulProfile ownerProfile = container.getOrCreateProfile(owner);
-        ownerProfile.updateFrom(ownerPlayer);
-        SoulProfileOps.queueOfflineSnapshot(server, owner, owner, ownerProfile, provider, "logout-flush-owner");
-        SoulProfileOps.markContainerDirty(ownerPlayer, container, "logout-flush-owner");
-        SoulLog.info("[soul] logout-owner owner={} active={} dim={} pos=({},{},{})",
-                owner,
-                activeId,
-                ownerPlayer.level().dimension().location(),
-                ownerPlayer.getX(),
-                ownerPlayer.getY(),
-                ownerPlayer.getZ());
+        if (!activeId.equals(owner)) {
+            ownerProfile.updateFromExceptPosition(ownerPlayer);
+            SoulProfileOps.queueOfflineSnapshot(server, owner, owner, ownerProfile, provider, "logout-flush-owner-safe");
+            SoulProfileOps.markContainerDirty(ownerPlayer, container, "logout-flush-owner-safe");
+            ownerProfile.position().ifPresentOrElse(snapshot ->
+                            SoulLog.info("[soul] logout-owner(owner-safe) owner={} active={} keepDim={} keepPos=({},{},{})",
+                                    owner,
+                                    activeId,
+                                    snapshot.dimension().location(),
+                                    snapshot.x(),
+                                    snapshot.y(),
+                                    snapshot.z()),
+                    () -> SoulLog.info("[soul] logout-owner(owner-safe) owner={} active={} keepDim=unknown keepPos=(?,?,?)",
+                            owner,
+                            activeId));
+        } else {
+            ownerProfile.updateFrom(ownerPlayer);
+            SoulProfileOps.queueOfflineSnapshot(server, owner, owner, ownerProfile, provider, "logout-flush-owner");
+            SoulProfileOps.markContainerDirty(ownerPlayer, container, "logout-flush-owner");
+            SoulLog.info("[soul] logout-owner owner={} active={} dim={} pos=({},{},{})",
+                    owner,
+                    activeId,
+                    ownerPlayer.level().dimension().location(),
+                    ownerPlayer.getX(),
+                    ownerPlayer.getY(),
+                    ownerPlayer.getZ());
+        }
 
         // Collect a stable view to avoid concurrent modification
         java.util.List<java.util.Map.Entry<UUID, SoulPlayer>> entries = new java.util.ArrayList<>(ACTIVE_SOUL_PLAYERS.entrySet());

@@ -89,6 +89,13 @@ public final class SoulProfile {
         // TODO: snapshot capabilities.
     }
 
+    public void updateFromExceptPosition(ServerPlayer player) {
+        this.inventory = InventorySnapshot.capture(player);
+        this.stats = PlayerStatsSnapshot.capture(player);
+        this.effects = PlayerEffectsSnapshot.capture(player);
+        // 保留原有 position，避免在附身状态下覆盖 owner 坐标
+    }
+
     public CompoundTag save(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
         tag.putUUID("id", profileId);
