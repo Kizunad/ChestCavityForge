@@ -1192,3 +1192,52 @@ Acceptance
   - 实现 `CapabilitySnapshot`/`ChestCavitySnapshot`/`GuzhenrenSnapshot` 的最小可用版本与注册中心。
   - 抽象 `/soul test saveAll` → `SnapshotPersistence.saveAll(server)`，可被世界保存钩子复用。
   - 为 FakePlayer 名称添加 `[Soul]` 前缀或 team 前缀，便于多人服区分。
+## 2025-10-06 Soul System — 分魂击杀导致 Owner 覆盖：因/果/解决/避免
+
+问题背景
+- 现象：玩家在频繁切换/击杀分魂后，偶发 Owner 背包/状态被某个分魂覆盖；客户端偶发收到 “Ignoring player info update for unknown player … ([UPDATE_GAME_MODE]/[UPDATE_LATENCY])”。
+- 影响：登录/后台快照后 Owner 档案不正确，分魂壳与 PlayerInfo 生命周期不一致，日志难以追踪。
+
+根因（因）
+- 在分魂死亡移除回调中，错误使用了“实体 UUID”而非“Profile UUID”（分魂档 ID）去保存和移除。
+- 结果是 `saveSoulPlayerState(entityUuid)` 和 `handleRemoval(entityUuid)` 均未命中活动映射，导致：
+  - 该分魂“未保存快照/未从 ACTIVE 表清除/未撤销 OWNER_ACTIVE_SOUL/未移除 ENTITY_TO_SOUL”；
+  - 后续后台快照/切换依据“脏状态”做出错误判断，选择了错误读源，最终把分魂数据写回 Owner 档案。
+
+后果（果）
+- Owner 被覆盖：当系统误以为 Owner 未附身或读源本体时，会从 `ServerPlayer`（此刻实际代表某分魂）读取，覆盖 Owner 档。
+- PlayerInfo 异常：外化壳已被移除但映射未清理，客户端收到针对未知 UUID 的 UPDATE 包，出现 IGNORE 日志。
+
+修复（如何解决）
+- 统一以“Profile UUID”处理分魂死亡/移除，提供实体→档案的容错 remap 并打印 WARN：
+  - `ChestCavityForge/src/main/java/net/tigereye/chestcavity/soul/fakeplayer/SoulFakePlayerSpawner.java:716`
+  - `ChestCavityForge/src/main/java/net/tigereye/chestcavity/soul/fakeplayer/SoulFakePlayerSpawner.java:736`
+- `saveSoulPlayerState` 增加兜底：若误传实体 UUID，尝试通过 `ENTITY_TO_SOUL` 反解为 Profile UUID，并 WARN 一次后继续保存。
+- `handleRemoval` 增强：若未命中活动表，尝试 remap；无论成功与否都输出清晰日志，保证 ACTIVE/ENTITY_TO_SOUL/OWNER_ACTIVE_SOUL 被一致清理。
+- 写入围栏（Write Fence）：
+  - 刷新 Owner 档案时，附身态只允许从“Owner 外化壳（shell）”读取；无壳时跳过并记录（不再从分魂态 ServerPlayer 覆盖 Owner）。
+  - 背景快照仅刷新分魂 Profile，不触碰 Owner Profile；在线 owner 按分魂分组标脏并 `saveDirty(owner)`；离线 owner 直接落 `OfflineStore`。
+
+预防（如何避免）
+- 代码层面：
+  - 任何保存/移除/刷新入口，不接受不明来源 UUID；若确需容错 remap，则必须记录 `entityUuid -> profileId` 的 WARN 日志。
+  - Owner 写入路径只允许 SELF（未附身）或 SHELL（外化壳）读源，禁止从分魂态 ServerPlayer 刷新 Owner 档案。
+  - 背景保存默认排除 Owner（不置脏/不刷新 Owner），仅对目标分魂生效。
+- 流程层面：
+  - 切换 `switchTo` 时序固定：先保存当前激活档→外化/传送→应用目标档→消费目标壳→更新激活指针。
+  - 击杀/移除分魂时，必须走 `onSoulPlayerRemoved`/`handleRemoval`，不可直接 `discard()` 绕过协调器。
+
+审计与定位（日志基线）
+- Owner 刷新：`[soul] updateActiveProfile source=SELF|SHELL|SKIP` / `refreshSnapshot owner=SELF|SHELL|SKIP`（含原因）。
+- 分魂刷新：`refreshSnapshot soul=OK|SKIP reason=...`。
+- 背景快照：`background-snapshot savedSouls=.. ownersTouched=.. offlineSouls=..`。
+- 容错 remap：`onSoulPlayerRemoved received entityUuid=.. remapped to profileId=..` / `handleRemoval received entityUuid=.. remapped to profileId=..`。
+
+相关触点（便于跳转）
+- 分魂移除/兜底：`soul/fakeplayer/SoulFakePlayerSpawner.java:716, 736`
+- Owner 写入围栏：`soul/container/SoulContainer.java:118`、`soul/fakeplayer/SoulFakePlayerSpawner.java:444`
+- 后台快照：`soul/fakeplayer/SoulFakePlayerSpawner.java:303`、事件：`soul/fakeplayer/SoulFakePlayerEvents.java:50`
+
+测试建议
+- 附身 A、击杀 B：期望看到 remap WARN 与 onSoulPlayerRemoved/handleRemoval 完整清理，后台快照不刷新 Owner。
+- 频繁切换+后台保存：Owner 只在 SELF/SHELL 下刷新，且保存统计符合现场。
