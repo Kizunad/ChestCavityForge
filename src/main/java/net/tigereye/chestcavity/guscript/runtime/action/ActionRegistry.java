@@ -91,6 +91,13 @@ public final class ActionRegistry {
                         !json.has("requirePerformer") || json.get("requirePerformer").getAsBoolean(),
                         readActions(json)
                 ));
+        register(net.tigereye.chestcavity.guscript.actions.IfItemUseAction.ID, json ->
+                new net.tigereye.chestcavity.guscript.actions.IfItemUseAction(
+                        ResourceLocation.parse(json.get("itemId").getAsString()),
+                        json.has("cooldownTicks") ? json.get("cooldownTicks").getAsInt() : 40,
+                        json.has("preferOffhand") && json.get("preferOffhand").getAsBoolean(),
+                        readActions(json)
+                ));
         register(net.tigereye.chestcavity.guscript.actions.IfResourceAction.ID, json ->
                 new net.tigereye.chestcavity.guscript.actions.IfResourceAction(
                         json.get("identifier").getAsString(),

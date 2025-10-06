@@ -192,6 +192,88 @@ public final class FlowActions {
         return CombatFlowActions.dampenProjectiles(radius, radiusVariable, factor, capPerTick);
     }
 
+    /**
+     * Spawns a new SoulPlayer for the performer with empty inventory and default stats at current position.
+     * Optional: set autospawn and immediately switch control to it.
+     */
+    public static FlowEdgeAction spawnSoulCustom(String name, boolean autospawn, boolean switchTo) {
+        return new FlowEdgeAction() {
+            @Override
+            public void apply(Player performer, LivingEntity target, FlowController controller, long gameTime) {
+                if (!(performer instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) {
+                    return;
+                }
+                if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+                    return;
+                }
+                var container = net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(serverPlayer);
+                java.util.UUID soulId = java.util.UUID.randomUUID();
+                if (!container.hasProfile(soulId)) {
+                    var inv = net.tigereye.chestcavity.soul.profile.InventorySnapshot.empty();
+                    var stats = net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot.empty();
+                    var fx = net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.empty();
+                    var pos = net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot.capture(serverPlayer);
+                    var profile = net.tigereye.chestcavity.soul.profile.SoulProfile.fromSnapshot(soulId, inv, stats, fx, pos);
+                    container.putProfile(soulId, profile);
+                    if (autospawn) {
+                        container.setAutospawn(serverPlayer, soulId, true, "flow-spawn-autospawn");
+                    }
+                    net.tigereye.chestcavity.soul.util.SoulProfileOps.markContainerDirty(serverPlayer, container, "flow-spawn");
+                }
+                // Set custom or random name for identity cache
+                String finalName = name;
+                if (finalName != null && finalName.equalsIgnoreCase("random")) {
+                    finalName = pickUniqueRandomName(serverPlayer);
+                }
+                if (finalName != null && !finalName.isBlank()) {
+                    net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.updateIdentityName(soulId, finalName);
+                }
+                var spawned = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.respawnForOwner(serverPlayer, soulId);
+                if (spawned.isPresent() && switchTo) {
+                    net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.switchTo(serverPlayer, soulId);
+                }
+                net.tigereye.chestcavity.soul.util.SoulLog.info("[soul][flow] spawnSoulCustom owner={} soul={} name={} switchTo={}",
+                        serverPlayer.getUUID(), soulId, finalName, switchTo);
+            }
+
+            @Override
+            public String describe() {
+                return "spawn_soul_custom(name=" + (name == null ? "" : name) + ", autospawn=" + autospawn + ", switchTo=" + switchTo + ")";
+            }
+        };
+    }
+
+    private static String pickUniqueRandomName(net.minecraft.server.level.ServerPlayer owner) {
+        net.minecraft.util.RandomSource rand = owner.getRandom();
+        // Try several times to find an unused base name; if all are taken, append a short numeric suffix.
+        for (int attempt = 0; attempt < 32; attempt++) {
+            String base = net.tigereye.chestcavity.soul.util.SoulNamePool.pick(new java.util.Random(rand.nextLong()));
+            if (base == null || base.isBlank()) break;
+            String candidate = base;
+            if (candidate.length() > 16) candidate = candidate.substring(0, 16);
+            if (!net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.isIdentityNameInUse(candidate)) {
+                return candidate;
+            }
+        }
+        // Fallback: append a short random number to reduce collision risk
+        for (int attempt = 0; attempt < 32; attempt++) {
+            String base = net.tigereye.chestcavity.soul.util.SoulNamePool.pick(new java.util.Random(rand.nextLong()));
+            if (base == null || base.isBlank()) break;
+            String suffix = String.valueOf(10 + rand.nextInt(90));
+            String candidate = base + suffix;
+            if (candidate.length() > 16) candidate = candidate.substring(0, 16);
+            if (!net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.isIdentityNameInUse(candidate)) {
+                return candidate;
+            }
+        }
+        // Last resort: derive from owner name
+        String ownerName = owner.getGameProfile().getName();
+        if (ownerName == null || ownerName.isBlank()) ownerName = "Soul";
+        String candidate = ownerName + "Soul";
+        if (candidate.length() > 16) candidate = candidate.substring(0, 16);
+        return candidate;
+    }
+
     public static FlowEdgeAction highlightHostiles(double radius, String radiusVariable, int durationTicks) {
         return CombatFlowActions.highlightHostiles(radius, radiusVariable, durationTicks);
     }

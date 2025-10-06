@@ -1,0 +1,29 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "charged",
+          "actions": [
+            {
+              "type": "spawn_soul_custom",
+              "name": "CustomSoul",
+              "autospawn": true,
+              "switch_to": true
+            }
+          ],
+          "min_ticks": 0
+        }
+      ]
+    },
+    "charged": {
+      "enter_fx": [ "chestcavity:mind_thoughts_pulse" ],
+      "transitions": [
+        { "trigger": "release", "target": "idle", "min_ticks": 0 },
+        { "trigger": "cancel",  "target": "idle", "min_ticks": 0 }
+      ]
+    }
+  }
+}

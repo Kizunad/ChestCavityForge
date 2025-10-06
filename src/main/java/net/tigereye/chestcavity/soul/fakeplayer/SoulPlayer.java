@@ -117,13 +117,15 @@ public class SoulPlayer extends FakePlayer {
     @Override
     public void die(DamageSource source) {
         super.die(source);
-        SoulFakePlayerSpawner.onSoulPlayerRemoved(this);
+        // Death should fully remove entity + profile data and associated UUIDs
+        SoulFakePlayerSpawner.onSoulPlayerRemoved(this, "die");
     }
 
     @Override
     public void remove(RemovalReason reason) {
         super.remove(reason);
-        SoulFakePlayerSpawner.onSoulPlayerRemoved(this);
+        // Generic removal keeps profile by default; do not purge unless it was a death
+        SoulFakePlayerSpawner.onSoulPlayerRemoved(this, String.valueOf(reason));
     }
 
     public long getLastFoodTick() {

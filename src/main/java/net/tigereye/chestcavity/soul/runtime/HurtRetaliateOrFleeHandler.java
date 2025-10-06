@@ -30,6 +30,18 @@ public final class HurtRetaliateOrFleeHandler implements SoulRuntimeHandler {
         if (!player.isAlive() || !attacker.isAlive()) {
             return SoulHurtResult.pass();
         }
+        // Friendly-fire exclusions: skip retaliation/flee when the attacker is the owner body
+        // or a soul that belongs to the same owner. This avoids fighting the owner or friendly souls.
+        var myOwnerId = player.getOwnerId().orElse(null);
+        if (myOwnerId != null) {
+            if (attacker instanceof net.minecraft.server.level.ServerPlayer sp && sp.getUUID().equals(myOwnerId)) {
+                return SoulHurtResult.pass();
+            }
+            if (attacker instanceof net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer spSoul
+                    && spSoul.getOwnerId().map(myOwnerId::equals).orElse(false)) {
+                return SoulHurtResult.pass();
+            }
+        }
         float myHp = player.getHealth();
         float enemyHp = attacker.getHealth();
         float ratio = net.tigereye.chestcavity.soul.util.SoulCombatTuning.guardHpRatio();

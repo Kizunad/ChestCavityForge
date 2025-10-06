@@ -273,6 +273,11 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
             case "emit_fail_fx" -> FlowActions.emitFailFx();
             case "emit_gecko" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
             case "emit_gecko_relative" -> FlowActions.emitGecko(parseGeckoFxParameters(json));
+            case "spawn_soul_custom" -> FlowActions.spawnSoulCustom(
+                    GsonHelper.getAsString(json, "name", "random"),
+                    GsonHelper.getAsBoolean(json, "autospawn", true),
+                    GsonHelper.getAsBoolean(json, "switch_to", false)
+            );
             case "play_sound" -> FlowActions.playSound(
                     ResourceLocation.parse(GsonHelper.getAsString(json, "id")),
                     FlowActions.SoundAnchor.fromString(GsonHelper.getAsString(json, "anchor", "performer")),

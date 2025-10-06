@@ -4,6 +4,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.util.SoulLog;
@@ -52,6 +54,8 @@ public final class SoulNavigationMirror {
     public static void tick(SoulPlayer soul) {
         Mob guide = GUIDES.get(soul.getSoulId());
         if (guide == null) return;
+        // Sync guide movement speed with soul's current MOVEMENT_SPEED so navigation keeps up
+        syncGuideSpeed(soul, guide);
         // keep guide near soul on start/reset
         double distStart = guide.distanceToSqr(soul);
         if (distStart > 16.0) { // >4 blocks
@@ -130,6 +134,8 @@ public final class SoulNavigationMirror {
             SoulLog.warn("[soul][nav] failed to spawn guide for soul={}", soul.getSoulId());
             return null;
         }
+        // Align guide movement speed to match soul's attribute value
+        syncGuideSpeed(soul, pig);
         GUIDES.put(soul.getSoulId(), pig);
         SoulLog.info("[soul][nav] spawned guide soul={} dim={}", soul.getSoulId(), level.dimension().location());
         return pig;
@@ -175,5 +181,20 @@ public final class SoulNavigationMirror {
             }
         }
         return false;
+    }
+
+    private static void syncGuideSpeed(SoulPlayer soul, Mob guide) {
+        // Copy the soul's current MOVEMENT_SPEED final value onto the guide's base value
+        // so that PathNavigation's speed computations stay in step with the soul.
+        AttributeInstance soulSpeed = soul.getAttribute(Attributes.MOVEMENT_SPEED);
+        AttributeInstance pigSpeed = guide.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (soulSpeed == null || pigSpeed == null) return;
+        double desired = soulSpeed.getValue(); // final value including modifiers
+        double current = pigSpeed.getBaseValue();
+        if (Math.abs(current - desired) > 1e-4) {
+            pigSpeed.setBaseValue(desired);
+            // do not spam logs; this is called every tick. Only log on significant change.
+            SoulLog.info("[soul][nav] guide-speed-sync soul={} value={}", soul.getSoulId(), desired);
+        }
     }
 }

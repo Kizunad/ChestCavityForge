@@ -39,8 +39,12 @@ public final class SoulContainer {
     private final Player owner;
     private UUID activeProfileId;
     private final Map<UUID, SoulProfile> profiles = new HashMap<>();
+    // Persistent display names per soul (Unicode allowed, suggest ≤16 chars for tab list)
+    private final Map<UUID, String> names = new HashMap<>();
     // Persistent AI orders per soulId
     private final Map<UUID, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order> orders = new HashMap<>();
+    // Souls to auto-respawn as shells when owner logs in
+    private final Set<UUID> autospawnSouls = new HashSet<>();
 
     public SoulContainer(Player owner) {
         this.owner = owner;
@@ -161,11 +165,15 @@ public final class SoulContainer {
         SoulProfileOps.applyProfileToPlayer(ownerProfile, ownerPlayer, "login-restore-owner");
         ownerProfile.clearDirty();
 
-        snapshots.keySet().stream()
+        autospawnSouls.stream()
+                .filter(snapshots::containsKey)
                 .filter(soulId -> !soulId.equals(ownerId))
                 .forEach(soulId -> SoulFakePlayerSpawner.respawnForOwner(ownerPlayer, soulId)
                         .ifPresentOrElse(spawned -> SoulLog.info("[soul] login-restore owner={} soul={} action=spawn-shell", ownerId, soulId),
                                 () -> SoulLog.warn("[soul] login-restore owner={} soul={} action=spawn-shell-failed", ownerId, soulId)));
+
+        // Verify cardinality post autospawn to catch accidental duplicate shells
+        SoulFakePlayerSpawner.verifyOwnerShellCardinality(ownerPlayer, "login-restore");
 
         snapshots.keySet().stream()
                 .map(this::getProfile)
@@ -184,6 +192,16 @@ public final class SoulContainer {
         CompoundTag listTag = new CompoundTag();
         profiles.forEach((uuid, profile) -> listTag.put(uuid.toString(), profile.save(provider)));
         root.put("profiles", listTag);
+        // names
+        CompoundTag nameTag = new CompoundTag();
+        names.forEach((uuid, name) -> nameTag.putString(uuid.toString(), name));
+        root.put("names", nameTag);
+        // autospawn list
+        net.minecraft.nbt.ListTag autoList = new net.minecraft.nbt.ListTag();
+        for (UUID id : autospawnSouls) {
+            autoList.add(net.minecraft.nbt.StringTag.valueOf(id.toString()));
+        }
+        root.put("autospawn", autoList);
         // orders
         CompoundTag orderTag = new CompoundTag();
         orders.forEach((uuid, order) -> orderTag.putString(uuid.toString(), order.name()));
@@ -204,6 +222,21 @@ public final class SoulContainer {
                 profiles.put(id, SoulProfile.load(listTag.getCompound(key), provider));
             } catch (IllegalArgumentException ignored) {
             }
+        }
+        names.clear();
+        CompoundTag nameTag = tag.getCompound("names");
+        for (String key : nameTag.getAllKeys()) {
+            try {
+                UUID id = UUID.fromString(key);
+                String n = nameTag.getString(key);
+                if (n != null && !n.isEmpty()) names.put(id, n);
+            } catch (IllegalArgumentException ignored) {}
+        }
+        autospawnSouls.clear();
+        net.minecraft.nbt.ListTag autoList = tag.getList("autospawn", net.minecraft.nbt.Tag.TAG_STRING);
+        for (int i = 0; i < autoList.size(); i++) {
+            String raw = autoList.getString(i);
+            try { autospawnSouls.add(UUID.fromString(raw)); } catch (IllegalArgumentException ignored) {}
         }
         orders.clear();
         CompoundTag orderTag = tag.getCompound("orders");
@@ -230,5 +263,50 @@ public final class SoulContainer {
         if (order == null) order = net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE;
         orders.put(soulId, order);
         SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "order-set");
+    }
+
+    // -------- Names (persistent) --------
+    public String getName(UUID soulId) {
+        return names.getOrDefault(soulId, "");
+    }
+
+    public void setName(ServerPlayer ownerPlayer, UUID soulId, String displayName, String reason) {
+        if (displayName == null) displayName = "";
+        // Trim to 16 chars for vanilla tab-list compatibility
+        if (displayName.length() > 16) {
+            displayName = displayName.substring(0, 16);
+        }
+        names.put(soulId, displayName);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "name-set");
+    }
+
+    public Map<UUID, String> getAllNames() {
+        return java.util.Collections.unmodifiableMap(names);
+    }
+
+    // -------- Autospawn flag (persistent)
+    public boolean isAutospawn(UUID soulId) { return autospawnSouls.contains(soulId); }
+    public void setAutospawn(ServerPlayer ownerPlayer, UUID soulId, boolean value, String reason) {
+        if (value) autospawnSouls.add(soulId); else autospawnSouls.remove(soulId);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : (value ? "autospawn-on" : "autospawn-off"));
+    }
+
+    // -------- Profile removal (safe)
+    public void removeProfile(ServerPlayer ownerPlayer, UUID soulId, String reason) {
+        if (soulId == null) return;
+        UUID ownerId = ownerPlayer.getUUID();
+        // Never remove the owner's base profile via this path
+        if (soulId.equals(ownerId)) {
+            SoulLog.warn("[soul] removeProfile skipped base owner profile owner={}", ownerId);
+            return;
+        }
+        profiles.remove(soulId);
+        names.remove(soulId);
+        orders.remove(soulId);
+        autospawnSouls.remove(soulId);
+        if (activeProfileId != null && activeProfileId.equals(soulId)) {
+            activeProfileId = ownerId; // fall back to owner base
+        }
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "remove-profile");
     }
 }
