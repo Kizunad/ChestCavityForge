@@ -28,4 +28,14 @@ public final class SoulLog {
     public static void warn(String message, Object... args) {
         LOGGER.warn(message, args);
     }
+
+    public static void error(String message, Throwable throwable, Object... args) {
+        // Log message with formatted args then attach stacktrace
+        if (args != null && args.length > 0) {
+            LOGGER.error(message, args);
+            LOGGER.error("[soul] stack:", throwable);
+        } else {
+            LOGGER.error(message, throwable);
+        }
+    }
 }

@@ -19,7 +19,7 @@ public final class SoulFakePlayerEvents {
     private SoulFakePlayerEvents() {
     }
 
-    private static final int BACKGROUND_SNAPSHOT_INTERVAL_TICKS = 20 * 30; // 30 seconds
+    private static final int BACKGROUND_SNAPSHOT_INTERVAL_TICKS = 20 * 1; // 1 second
     private static int backgroundSnapshotTicker;
 
     /**

@@ -6,9 +6,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
+import net.tigereye.chestcavity.soul.registry.SoulHurtResult;
+import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulRuntimeUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -25,6 +27,7 @@ public class SoulPlayer extends FakePlayer {
 
     private final @Nullable UUID ownerId;
     private final UUID soulId;
+    private long lastFoodTick = Long.MIN_VALUE;
 
     private SoulPlayer(ServerLevel level, GameProfile profile, UUID soulId, @Nullable UUID ownerId) {
         super(level, profile);
@@ -85,46 +88,30 @@ public class SoulPlayer extends FakePlayer {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        // 参照玩家受击流程，实现最小可用的服务器端结算（吸收护盾→生命值）
-        if (this.level().isClientSide() || this.isRemoved()) {
-            return false;
+        // 让注册表有机会取消/修改伤害
+        SoulHurtResult routed = SoulRuntimeHandlerRegistry.onHurt(this, source, amount);
+        switch (routed.action()) {
+            case CANCEL:
+                return false;
+            case APPLY:
+                return routed.appliedResult();
+            case MODIFY:
+                return SoulRuntimeUtil.applyVanillaHurt(this, source, routed.amount());
+            case PASS:
+            default:
+                return SoulRuntimeUtil.applyVanillaHurt(this, source, amount);
         }
-        if (this.isInvulnerableTo(source)) {
-            return false;
-        }
-        float remaining = Math.max(0.0F, amount);
-        if (remaining == 0.0F) {
-            return false;
-        }
-        float absorption = this.getAbsorptionAmount();
-        if (absorption > 0.0F) {
-            float absorbed = Math.min(absorption, remaining);
-            this.setAbsorptionAmount(absorption - absorbed);
-            remaining -= absorbed;
-        }
-        if (remaining <= 0.0F) {
-            return true;
-        }
-        float currentHealth = this.getHealth();
-        float newHealth = Math.max(0.0F, currentHealth - remaining);
-        this.getCombatTracker().recordDamage(source, remaining);
-        this.setHealth(newHealth);
-        this.markHurt();
-        this.invulnerableTime = 20;
-        this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
-        if (newHealth <= 0.0F) {
-            this.die(source);
-        }
-        return true;
     }
 
     @Override
     public void tick() {
         this.noPhysics = false;
         this.setNoGravity(false);
+        SoulRuntimeHandlerRegistry.onTickStart(this);
         super.tick();
         this.travel(Vec3.ZERO);
         // TODO: AI / behaviour tree hooks
+        SoulRuntimeHandlerRegistry.onTickEnd(this);
     }
 
     @Override
@@ -137,5 +124,13 @@ public class SoulPlayer extends FakePlayer {
     public void remove(RemovalReason reason) {
         super.remove(reason);
         SoulFakePlayerSpawner.onSoulPlayerRemoved(this);
+    }
+
+    public long getLastFoodTick() {
+        return lastFoodTick;
+    }
+
+    public void setLastFoodTick(long tick) {
+        this.lastFoodTick = tick;
     }
 }

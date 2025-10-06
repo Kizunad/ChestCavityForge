@@ -183,8 +183,14 @@ public final class SoulCommands {
             context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再切换 SoulPlayer。"));
             return 0;
         }
-        if (!SoulFakePlayerSpawner.switchTo(executor, executor.getUUID())) {
-            context.getSource().sendFailure(Component.literal("[soul] 未能切换回本体魂档。"));
+        try {
+            if (!SoulFakePlayerSpawner.switchTo(executor, executor.getUUID())) {
+                context.getSource().sendFailure(Component.literal("[soul] 未能切换回本体魂档。"));
+                return 0;
+            }
+        } catch (Exception e) {
+            SoulLog.error("[soul] switchOwner command failed for owner={}", e, executor.getUUID());
+            context.getSource().sendFailure(Component.literal("[soul] 试图执行该命令时出现意外错误 (owner)。请查看日志。"));
             return 0;
         }
         SoulLog.info("[soul] command-switch owner={} target=owner", executor.getUUID());
@@ -199,9 +205,15 @@ public final class SoulCommands {
             return 0;
         }
         UUID uuid = UuidArgument.getUuid(context, "uuid");
-        if (!SoulFakePlayerSpawner.switchTo(executor, uuid)) {
-            context.getSource().sendFailure(Component.literal(String.format(Locale.ROOT,
-                    "[soul] 未找到 UUID=%s 的 SoulPlayer，或你无权切换。", uuid)));
+        try {
+            if (!SoulFakePlayerSpawner.switchTo(executor, uuid)) {
+                context.getSource().sendFailure(Component.literal(String.format(Locale.ROOT,
+                        "[soul] 未找到 UUID=%s 的 SoulPlayer，或你无权切换。", uuid)));
+                return 0;
+            }
+        } catch (Exception e) {
+            SoulLog.error("[soul] switchSoulPlayer command failed owner={} target={}", e, executor.getUUID(), uuid);
+            context.getSource().sendFailure(Component.literal("[soul] 试图执行该命令时出现意外错误 (switch)。请查看日志。"));
             return 0;
         }
         SoulLog.info("[soul] command-switch owner={} target={} ", executor.getUUID(), uuid);

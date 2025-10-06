@@ -133,6 +133,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 bus.addListener(CCKeybindings::register);
                 CCTagOrgans.init();
                 CapabilitySnapshots.bootstrap();
+                net.tigereye.chestcavity.soul.runtime.SoulRuntimeHandlers.bootstrap();
     OrganRetentionRules.registerNamespace(MODID);
     if (ModList.get().isLoaded("guzhenren")) {
             GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);

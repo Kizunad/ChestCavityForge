@@ -347,7 +347,9 @@ public final class SoulFakePlayerSpawner {
             }
             ServerPlayer ownerPlayer = server.getPlayerList().getPlayer(ownerId);
             if (ownerPlayer != null) {
-                onlineByOwner.computeIfAbsent(ownerId, key -> new ArrayList<>()).add(soulPlayer);
+                if (net.tigereye.chestcavity.soul.registry.BackgroundSnapshotFilters.get().shouldSnapshot(ownerId, soulId, soulPlayer)) {
+                    onlineByOwner.computeIfAbsent(ownerId, key -> new ArrayList<>()).add(soulPlayer);
+                }
             } else {
                 offlineSouls.add(soulId);
             }
@@ -424,13 +426,21 @@ public final class SoulFakePlayerSpawner {
         if (soulId.equals(owner)) {
             // Owner profile refresh: only from owner self when not possessing; otherwise from owner shell if present.
             if (!isOwnerPossessing(owner)) {
-                profile.updateFrom(ownerPlayer);
-                SoulLog.info("[soul] refreshSnapshot owner=SELF ownerId={}", owner);
+                if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get().allowOwnerSelfWrite(owner)) {
+                    profile.updateFrom(ownerPlayer);
+                    SoulLog.info("[soul] refreshSnapshot owner=SELF ownerId={}", owner);
+                } else {
+                    SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-self", owner);
+                }
             } else {
                 Optional<SoulPlayer> shell = getOwnerShell(owner);
                 if (shell.isPresent()) {
-                    profile.updateFrom(shell.get());
-                    SoulLog.info("[soul] refreshSnapshot owner=SHELL ownerId={}", owner);
+                    if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get().allowOwnerShellWrite(owner)) {
+                        profile.updateFrom(shell.get());
+                        SoulLog.info("[soul] refreshSnapshot owner=SHELL ownerId={}", owner);
+                    } else {
+                        SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-shell", owner);
+                    }
                 } else {
                     SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=noShellWhilePossessing", owner);
                 }
@@ -439,7 +449,12 @@ public final class SoulFakePlayerSpawner {
         }
         SoulPlayer soulPlayer = ACTIVE_SOUL_PLAYERS.get(soulId);
         if (soulPlayer != null && soulPlayer.getOwnerId().map(owner::equals).orElse(false)) {
-            profile.updateFrom(soulPlayer);
+            if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get().allowSoulWrite(owner, soulId)) {
+                profile.updateFrom(soulPlayer);
+            } else {
+                SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=policy-deny-soul", owner, soulId);
+                return;
+            }
             SoulLog.info("[soul] refreshSnapshot soul=OK owner={} soulId={}", owner, soulId);
         } else {
             SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=noActiveSoulOrWrongOwner", owner, soulId);
@@ -487,6 +502,8 @@ public final class SoulFakePlayerSpawner {
         }
 
         UUID currentId = container.getActiveProfileId().orElse(ownerUuid);
+        // Pre-switch hooks
+        net.tigereye.chestcavity.soul.registry.SoulSwitchHooks.preSwitch(executor, currentId, targetId);
         if (currentId.equals(targetId)) {
             return true; // no-op
         }
@@ -526,12 +543,13 @@ public final class SoulFakePlayerSpawner {
                     ownerUuid, targetId, tl.dimension().location(), targetShell.getX(), targetShell.getY(), targetShell.getZ());
         }
 
-        // 应用目标档案（仅基础数据：物品/属性/效果），不改位置
+        // 在应用前，先保存目标壳的最新状态（包括胸腔/能力），确保切换后玩家继承的是“当前看到的”内容
+        saveSoulPlayerState(targetId);
+        // 应用目标档案（仅基础数据：物品/属性/效果+能力），不改位置
         SoulProfile targetProfile = container.getOrCreateProfile(targetId);
         applyProfileBaseOnly(targetProfile, executor, "switchTo:applyBaseOnly");
 
         // 移除（消费）目标分魂壳并设为激活
-        saveSoulPlayerState(targetId);
         handleRemoval(targetId, "switchTo:consumeTarget");
         container.setActiveProfile(targetId);
         if (targetId.equals(ownerUuid)) {
@@ -583,6 +601,8 @@ public final class SoulFakePlayerSpawner {
             });
         }
 
+        // Post-switch hooks
+        net.tigereye.chestcavity.soul.registry.SoulSwitchHooks.postSwitch(executor, currentId, targetId, true);
         return true;
     }
 
