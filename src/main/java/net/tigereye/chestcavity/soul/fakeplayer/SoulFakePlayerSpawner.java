@@ -14,6 +14,7 @@ import net.tigereye.chestcavity.registration.CCAttachments;
 import net.minecraft.world.entity.Entity;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.util.SoulPersistence;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
@@ -316,7 +317,8 @@ public final class SoulFakePlayerSpawner {
                     net.tigereye.chestcavity.soul.profile.InventorySnapshot.capture(player),
                     net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot.capture(player),
                     net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.capture(player),
-                    net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot.capture(player));
+                    net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot.capture(player),
+                    CapabilityPipeline.captureFor(player));
             SoulOfflineStore.get(server).put(owner, soulId, snapshot.save(provider));
         }
     }
