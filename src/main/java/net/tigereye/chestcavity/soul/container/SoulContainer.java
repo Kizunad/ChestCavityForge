@@ -39,6 +39,8 @@ public final class SoulContainer {
     private final Player owner;
     private UUID activeProfileId;
     private final Map<UUID, SoulProfile> profiles = new HashMap<>();
+    // Persistent AI orders per soulId
+    private final Map<UUID, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order> orders = new HashMap<>();
 
     public SoulContainer(Player owner) {
         this.owner = owner;
@@ -182,6 +184,10 @@ public final class SoulContainer {
         CompoundTag listTag = new CompoundTag();
         profiles.forEach((uuid, profile) -> listTag.put(uuid.toString(), profile.save(provider)));
         root.put("profiles", listTag);
+        // orders
+        CompoundTag orderTag = new CompoundTag();
+        orders.forEach((uuid, order) -> orderTag.putString(uuid.toString(), order.name()));
+        root.put("orders", orderTag);
         return root;
     }
 
@@ -199,5 +205,30 @@ public final class SoulContainer {
             } catch (IllegalArgumentException ignored) {
             }
         }
+        orders.clear();
+        CompoundTag orderTag = tag.getCompound("orders");
+        for (String key : orderTag.getAllKeys()) {
+            try {
+                UUID id = UUID.fromString(key);
+                String name = orderTag.getString(key);
+                try {
+                    var ord = net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.valueOf(name);
+                    orders.put(id, ord);
+                } catch (IllegalArgumentException ignored2) {
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+    }
+
+    // -------- AI Orders (persistent) --------
+    public net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order getOrder(UUID soulId) {
+        return orders.getOrDefault(soulId, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE);
+    }
+
+    public void setOrder(ServerPlayer ownerPlayer, UUID soulId, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order order, String reason) {
+        if (order == null) order = net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE;
+        orders.put(soulId, order);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "order-set");
     }
 }

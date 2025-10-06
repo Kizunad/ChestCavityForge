@@ -141,8 +141,9 @@ public final class GuzhenrenSnapshot implements CapabilitySnapshot {
 
     private static Map<String, Double> createDefaultValues() {
         // 默认构造：为每个 SoulProfile 创建独立的缓存映射。
-        // 这里保持空 Map，意味着首次捕获前不会覆盖玩家的蛊真人数据。
-        // 如果未来需要提供基础模板（例如自定义初始真元/精力），可以在此处填充键值并注明来源。
-        return new LinkedHashMap<>();
+        // 给出安全的初始寿元，避免尚未捕获前被外部兼容逻辑判死。
+        Map<String, Double> map = new LinkedHashMap<>();
+        map.put("shouyuan", 100.0d);
+        return map;
     }
 }

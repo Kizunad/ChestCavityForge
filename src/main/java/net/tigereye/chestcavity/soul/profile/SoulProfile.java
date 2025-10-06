@@ -106,13 +106,15 @@ public final class SoulProfile {
     }
 
     public void restoreBase(ServerPlayer player) {
-        // 恢复基础数据：背包、属性、效果
+        // 恢复基础数据：背包、能力/附件（可能调整属性上限）、再回写原版状态，最后效果
         inventory.restore(player);
+        // 先应用能力（ChestCavity/Guzhenren 等），以便 MAX_HEALTH 等上限先就位
+        CapabilityPipeline.applyAll(capabilities, player);
+        // 再回写原版统计（生命值会按当前 max health 裁剪，避免 700→20 的误裁）
         stats.restore(player, player.registryAccess());
         if (effects != null) {
             effects.restore(player);
         }
-        CapabilityPipeline.applyAll(capabilities, player);
     }
 
     /**

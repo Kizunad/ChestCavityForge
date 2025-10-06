@@ -39,6 +39,19 @@ public final class SoulCommands {
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("enable")
                         .executes(SoulCommands::enableSoulSystem))
+                .then(Commands.literal("order")
+                        .then(Commands.literal("follow")
+                                .then(Commands.argument("uuid", UuidArgument.uuid())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::orderFollow)))
+                        .then(Commands.literal("guard")
+                                .then(Commands.argument("uuid", UuidArgument.uuid())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::orderGuard)))
+                        .then(Commands.literal("idle")
+                                .then(Commands.argument("uuid", UuidArgument.uuid())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::orderIdle))))
                 .then(Commands.literal("test")
                         .then(Commands.literal("SoulPlayerList")
                                 .executes(SoulCommands::listSoulPlayers))
@@ -63,6 +76,79 @@ public final class SoulCommands {
                                                         .executes(SoulCommands::createSoulAt)))))
                         .then(Commands.literal("saveAll")
                                 .executes(SoulCommands::saveAll))));
+    }
+
+    private static int orderFollow(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再下达订单。"));
+            return 0;
+        }
+        UUID raw = UuidArgument.getUuid(context, "uuid");
+        UUID uuid = SoulFakePlayerSpawner.resolveSoulUuid(raw).orElse(raw);
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(uuid);
+        if (soulOpt.isEmpty()) {
+            context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。"));
+            return 0;
+        }
+        var soul = soulOpt.get();
+        UUID owner = soul.getOwnerId().orElse(null);
+        if (owner == null || !owner.equals(executor.getUUID())) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权对该 SoulPlayer 下达订单。"));
+            return 0;
+        }
+        net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, soul.getSoulId(), net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.FOLLOW, "order-follow");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 FOLLOW。超过5格将跟随你当前操控的身体。"), true);
+        return 1;
+    }
+
+    private static int orderIdle(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再下达订单。"));
+            return 0;
+        }
+        UUID raw = UuidArgument.getUuid(context, "uuid");
+        UUID uuid = SoulFakePlayerSpawner.resolveSoulUuid(raw).orElse(raw);
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(uuid);
+        if (soulOpt.isEmpty()) {
+            context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。"));
+            return 0;
+        }
+        var soul = soulOpt.get();
+        UUID owner = soul.getOwnerId().orElse(null);
+        if (owner == null || !owner.equals(executor.getUUID())) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权对该 SoulPlayer 下达订单。"));
+            return 0;
+        }
+        net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, soul.getSoulId(), net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE, "order-idle");
+        net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.clearGoal(soul);
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 IDLE。"), true);
+        return 1;
+    }
+
+    private static int orderGuard(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再下达订单。"));
+            return 0;
+        }
+        UUID raw = UuidArgument.getUuid(context, "uuid");
+        UUID uuid = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuid(raw).orElse(raw);
+        var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(uuid);
+        if (soulOpt.isEmpty()) {
+            context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。"));
+            return 0;
+        }
+        var soul = soulOpt.get();
+        UUID owner = soul.getOwnerId().orElse(null);
+        if (owner == null || !owner.equals(executor.getUUID())) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权对该 SoulPlayer 下达订单。"));
+            return 0;
+        }
+        net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, soul.getSoulId(), net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.GUARD, "order-guard");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 GUARD。在你周围16格内，仅在自身生命值大于目标2倍，且区域内不存在更强敌人时才会追击。"), true);
+        return 1;
     }
 
     private static int enableSoulSystem(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {

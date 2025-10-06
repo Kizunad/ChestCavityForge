@@ -1155,3 +1155,36 @@ Player（主魂实体）
     {"id":"chestcavity:strength","value": "32"}
   ]
 }
+
+Bing_xue_dao
+冰布蛊（  "item.guzhenren.bing_bu_gu": "冰布蛊",）：
+当背包内存在冰块或是雪球时，
+冰布蛊将产生「进食」，
+进食冰块儿时将获得生命恢复效果 II；
+进食雪球时将获得饱和效果，两者同时存在于背包内时
+，以雪球为优先级。不可叠加。
+
+{
+  "itemID": "guzhenren:bing_bu_gu",
+  "organScores": [
+    {"id":"chestcavity:nutrition","value": "2"},
+    {"id":"guzhenren:daohen_bingxuedao","value":"1"}
+  ]
+}
+
+ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/zhi_dao/...
+灵光一闪（  "item.guzhenren.ling_guang_yi_shan_gu": "灵光一闪蛊", ）：
+消耗真元，每秒回复3点念头，
+自然念头回复到300点。若装备该器官的Player 体质为逍遥智心体[tizhi 8]，
+则每秒回复的念头恢复效率提升10%。不可叠加
+
+装备了该器官的生物自身念头上限提升至2000点，
+JSON 
+{
+  "itemID": "guzhenren:ling_guang_yi_shan_gu",
+  "organScores": [
+    {"id":"guzhenren:niantou_zhida","value": "2000"},
+    {"id":"chestcavity:defense","value": "1"},
+    {"id":"chestcavity:nerves","value": "1"}
+  ]
+}

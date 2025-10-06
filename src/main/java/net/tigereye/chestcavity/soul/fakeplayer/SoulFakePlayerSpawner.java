@@ -638,11 +638,15 @@ public final class SoulFakePlayerSpawner {
                         UUID profileId = ENTITY_TO_SOUL.get(sp.getUUID());
                         return profileId == null || !profileId.equals(owner);
                     })
-                    .map(SoulPlayer::getUUID)
-                    .forEach(uuid -> builder.suggest(uuid.toString()));
+                    .forEach(sp -> {
+                        UUID entityId = sp.getUUID();
+                        UUID profileId = ENTITY_TO_SOUL.get(sp.getUUID());
+                        if (profileId != null) builder.suggest(profileId.toString());
+                        builder.suggest(entityId.toString());
+                    });
             builder.suggest("owner");
         } else {
-            ACTIVE_SOUL_PLAYERS.keySet().forEach(uuid -> builder.suggest(uuid.toString()));
+            ACTIVE_SOUL_PLAYERS.keySet().forEach(uuid -> builder.suggest(uuid.toString())); // profile ids
         }
         return builder.buildFuture();
     }
@@ -745,6 +749,8 @@ public final class SoulFakePlayerSpawner {
     static void onSoulPlayerRemoved(SoulPlayer soulPlayer) {
         UUID entityUuid = soulPlayer.getUUID();
         UUID profileId = soulPlayer.getSoulId();
+        // stop navigation mirror for this soul
+        net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.onSoulRemoved(profileId);
         if (!ACTIVE_SOUL_PLAYERS.containsKey(profileId)) {
             UUID mapped = ENTITY_TO_SOUL.get(entityUuid);
             if (mapped != null) {
@@ -768,6 +774,9 @@ public final class SoulFakePlayerSpawner {
             }
         }
         if (removed != null) {
+            // clear per-soul AI orders and navigation mirror
+            net.tigereye.chestcavity.soul.ai.SoulAIOrders.clear(soulUuid);
+            net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.onSoulRemoved(soulUuid);
             // Ensure the in-world entity is properly removed to avoid stray visual models.
             if (!removed.isRemoved()) {
                 removed.remove(Entity.RemovalReason.DISCARDED);
