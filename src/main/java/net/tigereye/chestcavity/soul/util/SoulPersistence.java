@@ -19,6 +19,17 @@ public final class SoulPersistence {
         SoulLog.info("[soul] persistence-save owner={} profiles={}", player.getUUID(), snapshots.size());
     }
 
+    public static void saveDirty(ServerPlayer player) {
+        SoulContainer container = CCAttachments.getSoulContainer(player);
+        Map<UUID, net.minecraft.nbt.CompoundTag> snapshots = container.snapshotDirty(player, true);
+        if (snapshots.isEmpty()) {
+            return;
+        }
+        SoulOfflineStore store = SoulOfflineStore.get(player.serverLevel().getServer());
+        snapshots.forEach((soulId, tag) -> store.put(player.getUUID(), soulId, tag));
+        SoulLog.info("[soul] persistence-save-dirty owner={} profiles={}", player.getUUID(), snapshots.size());
+    }
+
     public static void loadAll(ServerPlayer player) {
         var store = SoulOfflineStore.get(player.serverLevel().getServer());
         Map<UUID, net.minecraft.nbt.CompoundTag> pending = store.consume(player.getUUID());

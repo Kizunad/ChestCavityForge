@@ -79,9 +79,27 @@ public final class SoulContainer {
     }
 
     public void updateActiveProfile() {
-        // 将玩家当前状态写回至“激活的”灵魂存档（仅限服务端）
-        if (activeProfileId != null && owner instanceof ServerPlayer serverPlayer) {
-            getOrCreateProfile(activeProfileId).updateFrom(serverPlayer);
+        // 将玩家当前状态写回至“激活的”灵魂存档（仅限服务端），并避免越界源写入
+        if (activeProfileId == null || !(owner instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        UUID ownerId = serverPlayer.getUUID();
+        SoulProfile profile = getOrCreateProfile(activeProfileId);
+        if (activeProfileId.equals(ownerId)) {
+            // 目标是 Owner 档案：若玩家正附身，则改为从 Owner 外化壳刷新；若无外化壳，跳过并记录
+            if (SoulFakePlayerSpawner.isOwnerPossessing(ownerId)) {
+                SoulFakePlayerSpawner.getOwnerShell(ownerId).ifPresentOrElse(shell -> {
+                    profile.updateFrom(shell);
+                    SoulLog.info("[soul] updateActiveProfile source=SHELL owner={}", ownerId);
+                }, () -> SoulLog.info("[soul] updateActiveProfile source=SKIP owner={} reason=noShellWhilePossessing", ownerId));
+            } else {
+                profile.updateFrom(serverPlayer);
+                SoulLog.info("[soul] updateActiveProfile source=SELF owner={}", ownerId);
+            }
+        } else {
+            // 目标是某分魂：此时 serverPlayer 即为当前操控体，允许直接刷新当前激活分魂
+            profile.updateFrom(serverPlayer);
+            SoulLog.info("[soul] updateActiveProfile source=POSSESSED owner={} soulId={}", ownerId, activeProfileId);
         }
     }
 

@@ -7,6 +7,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.registration.CCAttachments;
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.Entity;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulPersistence;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
 
 import java.util.ArrayList;
@@ -56,6 +58,34 @@ public final class SoulFakePlayerSpawner {
     private static final Map<UUID, GameProfile> SOUL_IDENTITIES = new ConcurrentHashMap<>();
     // Maps the in-world SoulPlayer entity UUID -> Soul profile UUID
     private static final Map<UUID, UUID> ENTITY_TO_SOUL = new ConcurrentHashMap<>();
+
+    public static boolean isOwnerPossessingSoul(UUID ownerId, UUID soulId) {
+        if (ownerId == null || soulId == null) {
+            return false;
+        }
+        return isOwnerPossessingSoul(ownerId, soulId, OWNER_ACTIVE_SOUL.get(ownerId));
+    }
+
+    private static boolean isOwnerPossessingSoul(UUID ownerId, UUID soulId, UUID currentActiveSoul) {
+        return ownerId != null && soulId != null && currentActiveSoul != null && currentActiveSoul.equals(soulId);
+    }
+
+    private static void clearActivePossession(UUID ownerId, UUID soulId) {
+        if (ownerId == null || soulId == null) {
+            return;
+        }
+        OWNER_ACTIVE_SOUL.computeIfPresent(ownerId, (key, current) ->
+                isOwnerPossessingSoul(key, soulId, current) ? null : current);
+    }
+
+    public static boolean isOwnerPossessing(UUID ownerId) {
+        return ownerId != null && OWNER_ACTIVE_SOUL.containsKey(ownerId);
+    }
+
+    public static Optional<SoulPlayer> getOwnerShell(UUID ownerId) {
+        if (ownerId == null) return Optional.empty();
+        return Optional.ofNullable(ACTIVE_SOUL_PLAYERS.get(ownerId));
+    }
 
     private static final long ID_MASK_MSB = 0x5A5A5A5A5A5A5A5AL;
     private static final long ID_MASK_LSB = 0xA5A5A5A5A5A5A5A5L;
@@ -275,6 +305,77 @@ public final class SoulFakePlayerSpawner {
         });
     }
 
+    /**
+     * Periodically snapshot non-active soul players to reduce data loss risk.
+     * Excludes the soul the owner is currently possessing to avoid double work in the hot path.
+     */
+    public static void runBackgroundSnapshots(MinecraftServer server) {
+        if (ACTIVE_SOUL_PLAYERS.isEmpty()) {
+            return;
+        }
+
+        Map<UUID, List<SoulPlayer>> onlineByOwner = new java.util.HashMap<>();
+        java.util.LinkedHashSet<UUID> offlineSouls = new java.util.LinkedHashSet<>();
+
+        for (Map.Entry<UUID, SoulPlayer> entry : ACTIVE_SOUL_PLAYERS.entrySet()) {
+            UUID soulId = entry.getKey();
+            SoulPlayer soulPlayer = entry.getValue();
+            UUID ownerId = soulPlayer.getOwnerId().orElse(null);
+            if (ownerId == null) {
+                continue;
+            }
+            if (isOwnerPossessingSoul(ownerId, soulId)) {
+                continue; // skip the soul currently possessed by the owner
+            }
+            ServerPlayer ownerPlayer = server.getPlayerList().getPlayer(ownerId);
+            if (ownerPlayer != null) {
+                onlineByOwner.computeIfAbsent(ownerId, key -> new ArrayList<>()).add(soulPlayer);
+            } else {
+                offlineSouls.add(soulId);
+            }
+        }
+
+        int savedSouls = 0;
+        int ownersTouched = 0;
+
+        for (Map.Entry<UUID, List<SoulPlayer>> entry : onlineByOwner.entrySet()) {
+            UUID ownerId = entry.getKey();
+            ServerPlayer ownerPlayer = server.getPlayerList().getPlayer(ownerId);
+            if (ownerPlayer == null) {
+                entry.getValue().forEach(soul -> offlineSouls.add(soul.getUUID()));
+                continue;
+            }
+            SoulContainer container = CCAttachments.getSoulContainer(ownerPlayer);
+            boolean touched = false;
+            for (SoulPlayer soulPlayer : entry.getValue()) {
+                UUID soulId = soulPlayer.getUUID();
+                ensureIdentity(soulId, soulPlayer.getGameProfile(), false);
+                container.getOrCreateProfile(soulId).updateFrom(soulPlayer);
+                touched = true;
+            }
+            if (touched) {
+                ownersTouched++;
+                savedSouls += entry.getValue().size();
+                SoulProfileOps.markContainerDirty(ownerPlayer, container, "background-save");
+                SoulPersistence.saveDirty(ownerPlayer);
+            }
+        }
+
+        if (!offlineSouls.isEmpty()) {
+            for (UUID soulId : offlineSouls) {
+                saveSoulPlayerState(soulId);
+            }
+            savedSouls += offlineSouls.size();
+        }
+
+        if (savedSouls > 0) {
+            SoulLog.info("[soul] background-snapshot savedSouls={} ownersTouched={} offlineSouls={}",
+                    savedSouls,
+                    ownersTouched,
+                    offlineSouls.size());
+        }
+    }
+
     public static Optional<SoulPlayer> findSoulPlayer(UUID uuid) {
         return Optional.ofNullable(ACTIVE_SOUL_PLAYERS.get(uuid));
     }
@@ -303,12 +404,27 @@ public final class SoulFakePlayerSpawner {
     public static void refreshProfileSnapshot(ServerPlayer ownerPlayer, UUID soulId, SoulProfile profile) {
         UUID owner = ownerPlayer.getUUID();
         if (soulId.equals(owner)) {
-            profile.updateFrom(ownerPlayer);
+            // Owner profile refresh: only from owner self when not possessing; otherwise from owner shell if present.
+            if (!isOwnerPossessing(owner)) {
+                profile.updateFrom(ownerPlayer);
+                SoulLog.info("[soul] refreshSnapshot owner=SELF ownerId={}", owner);
+            } else {
+                Optional<SoulPlayer> shell = getOwnerShell(owner);
+                if (shell.isPresent()) {
+                    profile.updateFrom(shell.get());
+                    SoulLog.info("[soul] refreshSnapshot owner=SHELL ownerId={}", owner);
+                } else {
+                    SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=noShellWhilePossessing", owner);
+                }
+            }
             return;
         }
         SoulPlayer soulPlayer = ACTIVE_SOUL_PLAYERS.get(soulId);
         if (soulPlayer != null && soulPlayer.getOwnerId().map(owner::equals).orElse(false)) {
             profile.updateFrom(soulPlayer);
+            SoulLog.info("[soul] refreshSnapshot soul=OK owner={} soulId={}", owner, soulId);
+        } else {
+            SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=noActiveSoulOrWrongOwner", owner, soulId);
         }
     }
 
@@ -333,7 +449,7 @@ public final class SoulFakePlayerSpawner {
                 .map(sp -> new SoulPlayerInfo(
                         sp.getUUID(),
                         sp.getOwnerId().orElse(null),
-                        sp.getOwnerId().map(owner -> sp.getUUID().equals(OWNER_ACTIVE_SOUL.get(owner))).orElse(false)))
+                        sp.getOwnerId().map(owner -> isOwnerPossessingSoul(owner, sp.getUUID())).orElse(false)))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
@@ -512,7 +628,7 @@ public final class SoulFakePlayerSpawner {
         }
 
         ENTITY_TO_SOUL.remove(soul.getUUID());
-        OWNER_ACTIVE_SOUL.computeIfPresent(ownerId, (key, current) -> current.equals(soulId) ? null : current);
+        clearActivePossession(ownerId, soulId);
 
         SoulContainer container = CCAttachments.getSoulContainer(owner);
         SoulProfile profile = container.getOrCreateProfile(soulId);
@@ -603,11 +719,7 @@ public final class SoulFakePlayerSpawner {
             ENTITY_TO_SOUL.remove(removed.getUUID());
             removed.serverLevel().getServer().getPlayerList()
                     .broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(removed.getUUID())));
-            removed.getOwnerId().ifPresent(owner -> {
-                if (OWNER_ACTIVE_SOUL.get(owner) != null && OWNER_ACTIVE_SOUL.get(owner).equals(soulUuid)) {
-                    OWNER_ACTIVE_SOUL.remove(owner);
-                }
-            });
+            removed.getOwnerId().ifPresent(owner -> clearActivePossession(owner, soulUuid));
             SoulLog.info("[soul] despawn reason={} soul={} owner={} dim={} pos=({},{},{})",
                     reason,
                     soulUuid,

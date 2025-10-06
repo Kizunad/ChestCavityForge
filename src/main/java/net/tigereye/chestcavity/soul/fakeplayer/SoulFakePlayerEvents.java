@@ -6,6 +6,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.util.SoulPersistence;
@@ -17,6 +18,9 @@ public final class SoulFakePlayerEvents {
 
     private SoulFakePlayerEvents() {
     }
+
+    private static final int BACKGROUND_SNAPSHOT_INTERVAL_TICKS = 20 * 30; // 30 seconds
+    private static int backgroundSnapshotTicker;
 
     /**
      * 玩家登出：
@@ -43,11 +47,25 @@ public final class SoulFakePlayerEvents {
         }
     }
 
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        if (event.getServer().overworld() == null) {
+            return;
+        }
+        backgroundSnapshotTicker++;
+        if (backgroundSnapshotTicker < BACKGROUND_SNAPSHOT_INTERVAL_TICKS) {
+            return;
+        }
+        backgroundSnapshotTicker = 0;
+        SoulFakePlayerSpawner.runBackgroundSnapshots(event.getServer());
+    }
+
     /**
      * 服务器停止：释放所有仍存活的灵魂假人与可视化实体引用，防止内存泄漏。
      */
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
+        backgroundSnapshotTicker = 0;
         SoulFakePlayerSpawner.clearAll();
     }
 }
