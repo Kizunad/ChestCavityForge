@@ -1241,3 +1241,106 @@ Acceptance
 测试建议
 - 附身 A、击杀 B：期望看到 remap WARN 与 onSoulPlayerRemoved/handleRemoval 完整清理，后台快照不刷新 Owner。
 - 频繁切换+后台保存：Owner 只在 SELF/SHELL 下刷新，且保存统计符合现场。
+
+---
+
+## 扩展能力存储（CapabilitySnapshot）接入教程（预留接口）
+
+目标
+- 为 SoulProfile 增加可扩展的“能力快照层”，用于保存与恢复：
+  - 器官信息（ChestCavitySnapshot）
+  - 蛊真人数据（GuzhenrenSnapshot）
+  - 其他模组附着数据（AttachmentSnapshot）
+- 约束：独立数据不被覆盖；读写围栏明确；同步安全、可回放；可按需启用/禁用。
+
+建议目录结构（预留）
+```
+src/main/java/net/tigereye/chestcavity/soul/profile/capability/
+  CapabilitySnapshot.java            # 统一接口（capture/apply/save/load/isDirty/clearDirty）
+  CapabilitySnapshotRegistry.java    # 统一注册表（ResourceLocation→工厂）
+  CapabilityPipeline.java            # 统一编排（capture/apply/save/load 按顺序串行）
+
+  chestcavity/ChestCavitySnapshot.java   # 器官信息快照（预留）
+  guzhenren/GuzhenrenSnapshot.java       # 蛊真人快照（预留）
+  attach/AttachmentSnapshot.java         # 其他附着数据（预留注册接口）
+```
+
+接口契约（草案）
+```java
+public interface CapabilitySnapshot {
+  ResourceLocation id();
+
+  // 从玩家/实体捕获当前状态（仅服务端）。
+  CapabilitySnapshot capture(ServerPlayer player);
+
+  // 将快照应用到玩家（服务端为准；客户端仅显示层可选实现）。
+  void apply(ServerPlayer player);
+
+  // NBT 持久化（与 SoulProfile.save/load 对齐）。
+  CompoundTag save(HolderLookup.Provider provider);
+  CapabilitySnapshot load(CompoundTag tag, HolderLookup.Provider provider);
+
+  boolean isDirty();
+  void clearDirty();
+}
+```
+
+注册表（预留）
+```java
+public final class CapabilitySnapshotRegistry {
+  private static final Map<ResourceLocation, Supplier<CapabilitySnapshot>> REG = new HashMap<>();
+
+  public static void register(ResourceLocation id, Supplier<CapabilitySnapshot> factory) {
+    REG.put(id, factory);
+  }
+
+  public static Collection<ResourceLocation> keys() { return REG.keySet(); }
+  public static Optional<CapabilitySnapshot> create(ResourceLocation id) {
+    Supplier<CapabilitySnapshot> f = REG.get(id);
+    return f == null ? Optional.empty() : Optional.of(f.get());
+  }
+}
+```
+
+在 SoulProfile 中的挂载方式（思路）
+- 为 `SoulProfile` 增加 `Map<ResourceLocation, CapabilitySnapshot> extraSnapshots`；
+- `capture(player)`/`apply(player)` 前后由 `CapabilityPipeline` 统一遍历调用；
+- `save/load` 将每个快照写入 `tag.put(id.toString(), snapshot.save(provider))`。
+
+器官信息（ChestCavitySnapshot）预留要点
+- 捕获：读取玩家胸腔库存、器官得分、Ledger 状态；不要在客户端捕获。
+- 应用：先验证 Ledger，应用得分类增减后恢复内容物；避免二次触发监听（必要时加抑制标志）。
+- 冲突：与当前物品栏/效果冲突时以“快照→目标”优先，但必须在 `switchTo` 的顺序中进行（参考 SoulProfileOps）。
+
+蛊真人数据（GuzhenrenSnapshot）预留要点
+- 捕获：通过 `GuzhenrenResourceBridge` 只在服务端读取 zhenyuan/jingli/境界等；可选记录上次同步戳。
+- 应用：优先通过桥提供的 clamp/set API；避免直接操纵附件底层字段；
+- 同步：客户端 HUD 由对方模组负责；本仓库不主动 C2S 修改，保持服务端权威。
+
+其他模组附着数据（AttachmentSnapshot）预留注册接口
+- 通过 `CapabilitySnapshotRegistry.register(mod:id, MySnapshot::new)` 挂入；
+- 绝不在客户端 capture；应用时校验来源模组已加载；
+- 建议为第三方定义“读写围栏 + NBT 版本号”，保证前后兼容与回放安全。
+
+如何避免独立数据被覆盖（重点）
+- 写入围栏（Write Fence）
+  - Owner Profile：未附身用 SELF；已附身只允许 SHELL；无壳则 SKIP，不得退回 ServerPlayer（分魂态）。
+  - 分魂 Profile：只允许其对应的 SoulPlayer 写入。
+  - 背景保存：只刷新目标分魂；不要顺带刷新 Owner Profile。
+- ID 严格区分
+  - Profile UUID ≠ 实体 UUID：所有保存/移除/刷新入口都用 Profile UUID；如收到实体 UUID 必须 remap 并 WARN。
+- 原子时序
+  - 切换 switchTo：先保存当前激活档→外化/传送→应用目标档→消费目标壳→更新激活指针（已在协调器实现）。
+
+如何安全同步数据（建议）
+- 服务器权威：所有 capture/apply 都在服务端；客户端仅展示。
+- PayLoad 注册：在 `RegisterPayloadHandlersEvent` 中注册自有快照同步（若需要 UI/HUD），避免与第三方冲突；尽量沿用第三方模组的官方同步点（如 Guzhenren 的 player_variables_sync）。
+- 限流与幂等：快照级别同步需带版本/戳；同内容重复包直接丢弃。
+- 断网/崩服：利用 `SoulOfflineStore` 在登出/停服前落地所有快照；登录时优先合并离线快照。
+
+最小实现路线（落地顺序）
+1) 定义 CapabilitySnapshot/Registry/Pipeline。
+2) 在 SoulProfile 增加 `extraSnapshots` 与 save/load/exec 钩子。
+3) 实现 ChestCavitySnapshot 与 GuzhenrenSnapshot 的空壳（只做 NBT 结构与开关）；
+4) 为两者逐步补充 capture/apply 逻辑，先从只读指标开始（不写回），再扩展到完整恢复；
+5) 提供一组单元测试：capture→save→load→apply 的往返一致性；切换/后台保存/登出流程的幂等与防覆盖验证。
