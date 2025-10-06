@@ -1334,7 +1334,7 @@ Acceptance
 
 目标
 - 为 SoulProfile 增加可扩展的“能力快照层”，用于保存与恢复：
-  - 器官信息（ChestCavitySnapshot）
+  - 器官信息（ChestCavitySnapshot）(已实现)
   - 蛊真人数据（GuzhenrenSnapshot）
   - 其他模组附着数据（AttachmentSnapshot）
 - 约束：独立数据不被覆盖；读写围栏明确；同步安全、可回放；可按需启用/禁用。
