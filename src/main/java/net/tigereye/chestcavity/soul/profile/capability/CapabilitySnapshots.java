@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.soul.profile.capability;
 
+import net.tigereye.chestcavity.soul.profile.capability.guzhenren.GuzhenrenSnapshot;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class CapabilitySnapshots {
@@ -12,6 +14,7 @@ public final class CapabilitySnapshots {
     public static void bootstrap() {
         if (BOOTSTRAPPED.compareAndSet(false, true)) {
             CapabilitySnapshotRegistry.register(ChestCavitySnapshot.ID, ChestCavitySnapshot::new);
+            CapabilitySnapshotRegistry.register(GuzhenrenSnapshot.ID, GuzhenrenSnapshot::new);
         }
     }
 }
