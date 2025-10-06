@@ -2,8 +2,14 @@ package net.tigereye.chestcavity.soul.profile;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
+import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshot;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -24,6 +30,7 @@ public final class SoulProfile {
     private PlayerStatsSnapshot stats;
     private PlayerEffectsSnapshot effects;
     private PlayerPositionSnapshot position;
+    private final Map<ResourceLocation, CapabilitySnapshot> capabilities;
     private boolean dirty;
 
     private SoulProfile(UUID profileId,
@@ -31,21 +38,26 @@ public final class SoulProfile {
                         PlayerStatsSnapshot stats,
                         PlayerEffectsSnapshot effects,
                         PlayerPositionSnapshot position,
+                        Map<ResourceLocation, CapabilitySnapshot> capabilities,
                         boolean dirty) {
         this.profileId = profileId;
         this.inventory = inventory;
         this.stats = stats;
         this.effects = effects;
         this.position = position;
+        this.capabilities = new LinkedHashMap<>(capabilities);
         this.dirty = dirty;
     }
 
     public static SoulProfile capture(ServerPlayer player, UUID id) {
+        Map<ResourceLocation, CapabilitySnapshot> capabilitySnapshots = CapabilityPipeline.captureFor(player);
+        CapabilityPipeline.clearDirty(capabilitySnapshots);
         return new SoulProfile(id,
                 InventorySnapshot.capture(player),
                 PlayerStatsSnapshot.capture(player),
                 PlayerEffectsSnapshot.capture(player),
                 PlayerPositionSnapshot.capture(player),
+                capabilitySnapshots,
                 false);
     }
 
@@ -54,7 +66,17 @@ public final class SoulProfile {
                                            PlayerStatsSnapshot stats,
                                            PlayerEffectsSnapshot effects,
                                            PlayerPositionSnapshot position) {
-        return new SoulProfile(id, snapshot, stats, effects, position, false);
+        return fromSnapshot(id, snapshot, stats, effects, position, CapabilityPipeline.createDefaultSnapshots());
+    }
+
+    public static SoulProfile fromSnapshot(UUID id,
+                                           InventorySnapshot snapshot,
+                                           PlayerStatsSnapshot stats,
+                                           PlayerEffectsSnapshot effects,
+                                           PlayerPositionSnapshot position,
+                                           Map<ResourceLocation, CapabilitySnapshot> capabilities) {
+        CapabilityPipeline.clearDirty(capabilities);
+        return new SoulProfile(id, snapshot, stats, effects, position, capabilities, false);
     }
 
     public static SoulProfile empty(UUID id) {
@@ -63,6 +85,7 @@ public final class SoulProfile {
                 PlayerStatsSnapshot.empty(),
                 PlayerEffectsSnapshot.empty(),
                 PlayerPositionSnapshot.empty(),
+                CapabilityPipeline.createDefaultSnapshots(),
                 false);
     }
 
@@ -72,6 +95,10 @@ public final class SoulProfile {
 
     public java.util.Optional<PlayerPositionSnapshot> position() {
         return java.util.Optional.ofNullable(position);
+    }
+
+    public Map<ResourceLocation, CapabilitySnapshot> capabilities() {
+        return Collections.unmodifiableMap(capabilities);
     }
 
     public int inventorySize() {
@@ -85,7 +112,7 @@ public final class SoulProfile {
         if (effects != null) {
             effects.restore(player);
         }
-        // TODO: restore capabilities, chest cavity, guzhenren etc.
+        CapabilityPipeline.applyAll(capabilities, player);
     }
 
     /**
@@ -103,8 +130,8 @@ public final class SoulProfile {
         this.stats = PlayerStatsSnapshot.capture(player);
         this.effects = PlayerEffectsSnapshot.capture(player);
         this.position = PlayerPositionSnapshot.capture(player);
+        CapabilityPipeline.captureAll(capabilities, player);
         this.dirty = true;
-        // TODO: snapshot capabilities.
     }
 
     public CompoundTag save(HolderLookup.Provider provider) {
@@ -117,6 +144,10 @@ public final class SoulProfile {
         }
         if (position != null) {
             tag.put("position", position.save(provider));
+        }
+        CompoundTag capabilityTag = CapabilityPipeline.save(capabilities, provider);
+        if (!capabilityTag.isEmpty()) {
+            tag.put("capabilities", capabilityTag);
         }
         return tag;
     }
@@ -134,14 +165,16 @@ public final class SoulProfile {
         PlayerPositionSnapshot position = tag.contains("position")
                 ? PlayerPositionSnapshot.load(tag.getCompound("position"))
                 : PlayerPositionSnapshot.empty();
-        return new SoulProfile(id, inv, stats, effects, position, false);
+        Map<ResourceLocation, CapabilitySnapshot> capabilities = CapabilityPipeline.load(tag.getCompound("capabilities"), provider);
+        return new SoulProfile(id, inv, stats, effects, position, capabilities, false);
     }
 
     public boolean isDirty() {
-        return dirty;
+        return dirty || CapabilityPipeline.isDirty(capabilities);
     }
 
     public void clearDirty() {
+        CapabilityPipeline.clearDirty(capabilities);
         this.dirty = false;
     }
 
