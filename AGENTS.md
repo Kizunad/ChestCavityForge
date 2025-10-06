@@ -217,7 +217,93 @@ Goal
 Scope & Constraints
 - NeoForge 1.21.1, reuse existing GuScript infra for data-driven trigger where possible.
 - Block breaking limited to a curated, tag-based whitelist; respect gamerules (mobGriefing) and server-only mutation.
-- Client visuals purely via FX JSON + renderer; do not require server resource JSON beyond tags.
+  - Client visuals purely via FX JSON + renderer; do not require server resource JSON beyond tags.
+
+## 2025-10-06 Guzhenren 属性桥接 PLAN（给 web codex 执行）
+
+目标
+- 将蛊真人玩家变量（真元/精力/魂魄/念头/道痕/境界/阶段等）规范化为统一的“属性桥接层”，供 ChestCavity 行为与器官逻辑读取/修改；必要时把关键能力映射到原版 Attribute（示例：MAX_ABSORPTION）。
+- 读写一致、可缓存、可订阅变更，避免客户端权威；当兼容模组缺失时优雅降级（读 0/只读）。
+
+必须先读的文件
+- ChestCavityForge/src/main/java/net/tigereye/chestcavity/guzhenren/resource/GuzhenrenResourceBridge.java
+
+范围与非目标
+- 范围：桥接“玩家变量”到统一 API；把少量与战斗/生存紧密相关的能力映射为 Attribute（如吸收上限）；提供用于日志与命令的快照视图。
+- 非目标：不改动蛊真人自身的数据定义/同步包格式；不引入新的网络协议（沿用现有 GuzhenrenNetworkBridge 事件）。
+
+API 设计（服务端优先）
+- 核心门面（AttributeFacade）
+  - `double read(String key)` / `boolean write(String key, double v)` / `boolean adjust(String key, double dv)`；key 支持中/英别名与文档别名（沿用 GuzhenrenResourceBridge 解析）。
+  - `double clampToMax(String key)`：当桥接层有“最大值”变量时进行封顶（例如 真元≤最大真元）。
+  - `boolean present()`：是否存在兼容附件（缺失时只读 0）。
+  - 事件：`onSynced(UUID player)` 回调刷新缓存（见下“事件与缓存”）。
+- 属性枚举（GuzhenrenAttribute）
+  - 维护标准化键集合与别名：`ZHENYUAN, JINGLI, HUNPO, NIAN_TOU, DAO_HEN_* ...`，并标注读/写/最大值键、是否会被 clamp。
+  - 兼容文档里的歧义键（云道/运道等）→ 采用已存在的后缀区分（_CLOUD/_FORBIDDEN）。
+- Attribute 注入（可选）
+  - 复用 MAX_ABSORPTION 注入做法：在 `EntityAttributeModificationEvent` 中仅为玩家注册需要的 Attribute；
+  - 只为「需要与原版数值系统交互」的能力注入 Attribute（如上限/抗性），其余变量通过桥接层读写即可。
+
+实现步骤
+1) 梳理桥接字段
+  - 逐项核对 GuzhenrenResourceBridge 提供的枚举/字符串别名与 `read/writeDouble/adjustDouble/clampToMax`；
+  - 输出一份“标准键→附件真实键”的映射表（Java 枚举+注释），并标注只读/可写/有上限。
+2) 新建门面层
+  - 包：`chestcavity/guzhenren/attribute/`
+  - 类：`GuzhenrenAttribute`（枚举）、`GuzhenrenAttributeFacade`（实现上述 API，内部委托 GuzhenrenResourceBridge）
+  - 类：`GuzhenrenAttributeCache`（简单缓存：`Map<String, Double>` + 脏标记/有效期，默认 1s）
+3) 事件与缓存
+  - 订阅 `GuzhenrenPlayerVariablesSyncedEvent`（已由 GuzhenrenNetworkBridge 发布），命中后刷新 Facade 缓存；
+  - 保留 1s 客户端轮询仅用于日志（已有 DaoHenBehavior），服务端只走事件+主动写入后的本地刷新。
+4) Attribute 注入（按需）
+  - 在 `GuzhenrenModule.bootstrap(bus, EVENT_BUS)` 里追加 `EntityAttributeModificationEvent` 监听，参考 MAX_ABSORPTION；
+  - 仅注入必要项（例如“最大念头上限”若会用于原版机制判断），否则留在桥接层。
+5) 行为接入点
+  - 统一在器官/监听代码里调用 Facade，而非直接操作附件；
+  - 示例：某器官消耗真元 → `facade.adjust("真元", -cost)`；某被动状态受“禁道”影响 → `read("禁道_FORBIDDEN")` 参与计算。
+6) 命令与调试
+  - `/guz attr dump`：输出标准键与当前值、最大值（若有）；
+  - `/guz attr set <key> <value>`：仅限 OP，用于临时校验读写路径。
+7) 测试
+  - 单测：枚举别名解析与 clamp 逻辑；
+  - 集成：模拟 `player_variables_sync` 事件 → 校验缓存/读值；写入型用 FakeAttachment（当兼容模组缺席时只读）。
+8) 日志
+  - 统一前缀 `[compat/guzhenren][attr]`；关键节点打印：解析别名失败、写入被拒（只读/无附件）、clamp 生效、事件刷新命中/跳过。
+
+文件变更（建议）
+- 新增
+  - `src/main/java/net/tigereye/chestcavity/guzhenren/attribute/GuzhenrenAttribute.java`
+  - `src/main/java/net/tigereye/chestcavity/guzhenren/attribute/GuzhenrenAttributeFacade.java`
+  - `src/main/java/net/tigereye/chestcavity/guzhenren/attribute/GuzhenrenAttributeCache.java`
+  - `src/main/java/net/tigereye/chestcavity/guzhenren/command/GuzAttrCommands.java`
+- 修改
+  - `src/main/java/net/tigereye/chestcavity/guzhenren/GuzhenrenModule.java`：注册事件/命令
+  - 器官/监听调用处：由直接桥接改为 Facade 读写（逐步替换）
+
+判定标准（验收）
+- 兼容模组在场：
+  - 读写 `read/adjust` 能反映到蛊真人 UI/行为（或通过命令 dump 对比事件后的缓存）
+  - `player_variables_sync` 到来后，Facade 缓存值变化一致、日志显示命中
+  - 注入的 Attribute（若启用）在玩家身上可见，数值与桥接层一致
+- 兼容模组缺席：
+  - Facade `present()` 为 false；`read→0`、`write/adjust→false`，无 NPE
+- 性能：常态读从缓存返回，事件驱动刷新；无 1tick 高频日志；无主线程阻塞
+
+风险与回退
+- 文档别名歧义：已通过 `_CLOUD/_FORBIDDEN` 后缀区分；仍歧义时以默认主键为准并记录 WARN。
+- 注入 Attribute 的兼容性：仅在玩家上注入，避免影响生物；出问题可在配置/模块开关禁用注入路径。
+
+执行顺序（给 web codex）
+1) 研读 `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guzhenren/resource/GuzhenrenResourceBridge.java`，列出可用键与别名；
+2) 实现三件套（枚举/门面/缓存），先打通只读；
+3) 接事件，验证缓存；
+4) 打通写入（`adjust`→`write`），加 clamp；
+5) 接入 1~2 个器官/监听作为样板；
+6) 可选注入 Attribute（若本期需要）；
+7) 加命令 dump/set；
+8) 补文档与小测，提交 PR。
+
 
 High-level Tasks
 1) Projectile entity

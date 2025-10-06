@@ -264,6 +264,7 @@ public final class GuzhenrenResourceBridge {
     }
 
     private static final Map<PlayerField, Field> FIELD_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, Field> NAME_FIELD_CACHE = new ConcurrentHashMap<>();
 
     private GuzhenrenResourceBridge() {
     }
@@ -322,6 +323,29 @@ public final class GuzhenrenResourceBridge {
             return Optional.empty();
         }
         return Optional.of(variables);
+    }
+
+    private static Optional<Field> resolveFieldByName(String fieldName) {
+        if (fieldName == null || fieldName.isBlank()) {
+            return Optional.empty();
+        }
+        ensureInitialised();
+        if (playerVariablesClass == null) {
+            return Optional.empty();
+        }
+        Field cached = NAME_FIELD_CACHE.get(fieldName);
+        if (cached != null) {
+            return Optional.of(cached);
+        }
+        try {
+            Field f = playerVariablesClass.getDeclaredField(fieldName);
+            f.setAccessible(true);
+            NAME_FIELD_CACHE.put(fieldName, f);
+            return Optional.of(f);
+        } catch (NoSuchFieldException e) {
+            LOGGER.debug("Guzhenren PlayerVariables missing field '{}': {}", fieldName, e.toString());
+            return Optional.empty();
+        }
     }
 
     public static Optional<Class<?>> getPlayerVariablesClass() {
@@ -585,6 +609,128 @@ public final class GuzhenrenResourceBridge {
                 }
             }
             return Collections.unmodifiableMap(values);
+        }
+
+        // -------------------------
+        // ShaZhao (杀招) GUI helpers
+        // -------------------------
+
+        private static String shazhaoScrollField(int page) {
+            return switch (page) {
+                case 1 -> "ShaZhao1";
+                case 2 -> "ShaZhao2";
+                case 3 -> "ShaZhao3";
+                case 4 -> "ShaZhao4";
+                default -> null;
+            };
+        }
+
+        private static String shazhaoGuChongField(int page, int slotIndex) {
+            if (slotIndex < 1 || slotIndex > 10) return null;
+            String prefix = switch (page) {
+                case 1 -> "ShaZhao1_GuChong";
+                case 2 -> "ShaZhao2_GuChong";
+                case 3 -> "ShaZhao3_GuChong";
+                case 4 -> "ShaZhao4_GuChong";
+                default -> null;
+            };
+            return prefix == null ? null : prefix + slotIndex;
+        }
+
+        private static String shazhaoDurabilityField(int page, int slotIndex) {
+            if (slotIndex < 1 || slotIndex > 10) return null;
+            String prefix = switch (page) {
+                case 1 -> "ShaZhao1_GuChong";
+                case 2 -> "ShaZhao2_GuChong";
+                case 3 -> "ShaZhao3_GuChong";
+                case 4 -> "ShaZhao4_GuChong";
+                default -> null;
+            };
+            return prefix == null ? null : prefix + slotIndex + "_NaiJiu";
+        }
+
+        public Optional<net.minecraft.world.item.ItemStack> readShaZhaoScroll(int page) {
+            String fieldName = shazhaoScrollField(page);
+            if (fieldName == null) return Optional.empty();
+            Optional<Field> f = resolveFieldByName(fieldName);
+            if (f.isEmpty()) return Optional.empty();
+            try {
+                Object value = f.get().get(this.variables);
+                if (value instanceof net.minecraft.world.item.ItemStack stack) {
+                    return Optional.of(stack.copy());
+                }
+            } catch (IllegalAccessException ignored) {}
+            return Optional.empty();
+        }
+
+        public boolean writeShaZhaoScroll(int page, net.minecraft.world.item.ItemStack stack) {
+            String fieldName = shazhaoScrollField(page);
+            if (fieldName == null) return false;
+            Optional<Field> f = resolveFieldByName(fieldName);
+            if (f.isEmpty()) return false;
+            try {
+                f.get().set(this.variables, stack == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.copy());
+                GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
+                return true;
+            } catch (IllegalAccessException ignored) {
+                return false;
+            }
+        }
+
+        public Optional<net.minecraft.world.item.ItemStack> readShaZhaoSlot(int page, int slotIndex) {
+            String fieldName = shazhaoGuChongField(page, slotIndex);
+            if (fieldName == null) return Optional.empty();
+            Optional<Field> f = resolveFieldByName(fieldName);
+            if (f.isEmpty()) return Optional.empty();
+            try {
+                Object value = f.get().get(this.variables);
+                if (value instanceof net.minecraft.world.item.ItemStack stack) {
+                    return Optional.of(stack.copy());
+                }
+            } catch (IllegalAccessException ignored) {}
+            return Optional.empty();
+        }
+
+        public boolean writeShaZhaoSlot(int page, int slotIndex, net.minecraft.world.item.ItemStack stack) {
+            String fieldName = shazhaoGuChongField(page, slotIndex);
+            if (fieldName == null) return false;
+            Optional<Field> f = resolveFieldByName(fieldName);
+            if (f.isEmpty()) return false;
+            try {
+                f.get().set(this.variables, stack == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.copy());
+                GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
+                return true;
+            } catch (IllegalAccessException ignored) {
+                return false;
+            }
+        }
+
+        public OptionalDouble readShaZhaoDurability(int page, int slotIndex) {
+            String fieldName = shazhaoDurabilityField(page, slotIndex);
+            if (fieldName == null) return OptionalDouble.empty();
+            Optional<Field> f = resolveFieldByName(fieldName);
+            if (f.isEmpty()) return OptionalDouble.empty();
+            try {
+                Object value = f.get().get(this.variables);
+                if (value instanceof Number n) {
+                    return OptionalDouble.of(n.doubleValue());
+                }
+            } catch (IllegalAccessException ignored) {}
+            return OptionalDouble.empty();
+        }
+
+        public OptionalDouble writeShaZhaoDurability(int page, int slotIndex, double value) {
+            String fieldName = shazhaoDurabilityField(page, slotIndex);
+            if (fieldName == null) return OptionalDouble.empty();
+            Optional<Field> f = resolveFieldByName(fieldName);
+            if (f.isEmpty()) return OptionalDouble.empty();
+            try {
+                f.get().set(this.variables, value);
+                GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
+                return OptionalDouble.of(value);
+            } catch (IllegalAccessException ignored) {
+                return OptionalDouble.empty();
+            }
         }
 
         public Optional<String> getConstitution() {
