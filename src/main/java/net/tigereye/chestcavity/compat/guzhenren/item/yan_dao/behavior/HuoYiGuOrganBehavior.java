@@ -135,7 +135,7 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
                 continue;
             }
             target.hurt(source, (float) damage);
-            target.setSecondsOnFire(4);
+            target.setRemainingFireTicks(4 * 20);
             target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,
                     ACTIVE_SLOWNESS_DURATION_TICKS,
                     slowAmplifier,
@@ -196,7 +196,7 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
                     continue;
                 }
                 target.hurt(source, (float) damage);
-                target.setSecondsOnFire(2);
+                target.setRemainingFireTicks(2 * 20);
             }
         }
 

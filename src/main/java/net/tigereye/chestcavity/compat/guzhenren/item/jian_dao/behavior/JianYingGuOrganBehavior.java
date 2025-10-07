@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.ShadowService;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -30,7 +31,6 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -207,17 +207,14 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
             return;
         }
         Vec3 origin = target.position();
-        PlayerSkinUtil.SkinSnapshot tinted = PlayerSkinUtil.withTint(null, 0.1f, 0.05f, 0.2f, 0.45f);
-        ItemStack display = resolveDisplayStack(player);
-        Vec3 anchor = swordAnchor(player);
-        Vec3 tip = swordTip(player, anchor);
+        PlayerSkinUtil.SkinSnapshot tinted = ShadowService.captureTint(player, ShadowService.JIAN_DAO_AFTERIMAGE);
+        ItemStack display = ShadowService.resolveDisplayStack(player);
+        Vec3 anchor = ShadowService.swordAnchor(player);
+        Vec3 tip = ShadowService.swordTip(player, anchor);
         SingleSwordProjectile.spawn(level, player, anchor, tip, tinted, display);
         if (level instanceof ServerLevel server) {
             Vec3 spawnPos = player.position().add(player.getLookAngle().scale(0.3)).add(0.0, 0.1, 0.0);
-            SwordShadowClone clone = SwordShadowClone.spawn(server, player, spawnPos, tinted, 0.0f);
-            if (clone != null) {
-                clone.setLifetime(AFTERIMAGE_DURATION_TICKS);
-            }
+            ShadowService.spawn(server, player, spawnPos, ShadowService.JIAN_DAO_AFTERIMAGE, 0.0f, AFTERIMAGE_DURATION_TICKS);
         }
         AFTERIMAGES.add(new AfterimageTask(player.getUUID(), level.dimension(), level.getGameTime() + AFTERIMAGE_DELAY_TICKS, origin));
     }
@@ -246,10 +243,10 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         state.lastTriggerTick = now;
         state.lastMultiplier = multiplier;
 
-        PlayerSkinUtil.SkinSnapshot tint = PlayerSkinUtil.withTint(PlayerSkinUtil.capture(player), 0.12f, 0.05f, 0.22f, 0.6f);
-        ItemStack display = resolveDisplayStack(player);
-        Vec3 anchor = swordAnchor(player);
-        Vec3 tip = swordTip(player, anchor);
+        PlayerSkinUtil.SkinSnapshot tint = ShadowService.captureTint(player, ShadowService.JIAN_DAO_CLONE);
+        ItemStack display = ShadowService.resolveDisplayStack(player);
+        Vec3 anchor = ShadowService.swordAnchor(player);
+        Vec3 tip = ShadowService.swordTip(player, anchor);
         SingleSwordProjectile.spawn(player.level(), player, anchor, tip, tint, display);
 
         return BASE_DAMAGE * multiplier * efficiency;
@@ -259,44 +256,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         if (!(player.level() instanceof ServerLevel server)) {
             return;
         }
-        List<SwordShadowClone> clones = server.getEntitiesOfClass(
-                SwordShadowClone.class,
-                player.getBoundingBox().inflate(16.0, 6.0, 16.0),
-                clone -> clone.isOwnedBy(player)
-        );
-        for (SwordShadowClone clone : clones) {
-            clone.commandStrike(target);
-        }
-    }
-
-    private static ItemStack resolveDisplayStack(Player player) {
-        ItemStack mainHand = player.getMainHandItem();
-        if (!mainHand.isEmpty()) {
-            return mainHand.copy();
-        }
-        ItemStack offHand = player.getOffhandItem();
-        if (!offHand.isEmpty()) {
-            return offHand.copy();
-        }
-        if (CCItems.GUZHENREN_XIE_NING_JIAN != net.minecraft.world.item.Items.AIR) {
-            return new ItemStack(CCItems.GUZHENREN_XIE_NING_JIAN);
-        }
-        return SingleSwordProjectile.defaultDisplayItem();
-    }
-
-    private static Vec3 swordAnchor(LivingEntity entity) {
-        return entity.position().add(0.0, entity.getBbHeight() * 0.7, 0.0);
-    }
-
-    private static Vec3 swordTip(LivingEntity entity, Vec3 anchor) {
-        Vec3 look = entity.getLookAngle();
-        if (look.lengthSqr() < 1.0E-4) {
-            look = Vec3.directionFromRotation(entity.getXRot(), entity.getYRot());
-        }
-        if (look.lengthSqr() < 1.0E-4) {
-            look = new Vec3(0.0, 0.0, 1.0);
-        }
-        return anchor.add(look.normalize().scale(2.0));
+        ShadowService.commandOwnedClones(server, player, target);
     }
 
     private static Vec3 randomOffset(RandomSource random) {
