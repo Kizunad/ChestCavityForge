@@ -7,6 +7,7 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
@@ -58,6 +59,8 @@ public class SwordShadowClone extends PathfinderMob {
     private static final double SEARCH_RADIUS = 12.0;
     private static final ResourceLocation DEFAULT_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/steve.png");
+    private static final SoundEvent LI_YING_PUNCH_SOUND = SoundEvent.createVariableRangeEvent(
+            ResourceLocation.fromNamespaceAndPath("chestcavity", "custom.fight.punch"));
 
     private int lifetime = MAX_LIFETIME_TICKS;
     private int attackCooldown;
@@ -182,6 +185,18 @@ public class SwordShadowClone extends PathfinderMob {
     private void performStrike(LivingEntity target, Player owner) {
         attackCooldown = ATTACK_COOLDOWN_TICKS;
         this.swing(InteractionHand.MAIN_HAND);
+        if (this.level() instanceof ServerLevel serverLevel) {
+            serverLevel.playSound(
+                    null,
+                    this.getX(),
+                    this.getY(),
+                    this.getZ(),
+                    LI_YING_PUNCH_SOUND,
+                    SoundSource.PLAYERS,
+                    0.9f,
+                    1.0f + (this.getRandom().nextFloat() - 0.5f) * 0.25f
+            );
+        }
         if (skinTint != null) {
             ItemStack display = resolveDisplayStack(owner);
             Vec3 anchor = swordAnchor();
