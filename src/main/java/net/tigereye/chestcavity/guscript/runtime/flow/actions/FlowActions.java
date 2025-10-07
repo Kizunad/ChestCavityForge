@@ -117,6 +117,10 @@ public final class FlowActions {
         return FxFlowActions.emitGeckoOnAllies(fxId, allyRadius, offset, scale, tint, alpha, loop, duration);
     }
 
+    public static FlowEdgeAction scoreboardSet(String objective, int value, String playerName) {
+        return ScoreboardFlowActions.set(objective, value, playerName);
+    }
+
     public static FlowEdgeAction emitFx(String fxId, float baseIntensity, String variableName, double defaultScale) {
         return FxFlowActions.emitFx(fxId, baseIntensity, variableName, defaultScale);
     }
@@ -204,6 +208,7 @@ public final class FlowActions {
                     return;
                 }
                 if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+                    net.tigereye.chestcavity.soul.util.SoulLog.info("[soul][flow] spawnSoulCustom skipped: soul system disabled");
                     return;
                 }
                 var container = net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(serverPlayer);
@@ -226,7 +231,7 @@ public final class FlowActions {
                     finalName = pickUniqueRandomName(serverPlayer);
                 }
                 if (finalName != null && !finalName.isBlank()) {
-                    net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.updateIdentityName(soulId, finalName);
+                    net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.seedIdentityName(soulId, finalName);
                 }
                 var spawned = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.respawnForOwner(serverPlayer, soulId);
                 if (spawned.isPresent() && switchTo) {

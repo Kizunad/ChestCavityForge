@@ -292,6 +292,11 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
                     json.has("skip_value") ? GsonHelper.getAsDouble(json, "skip_value") : Double.NaN,
                     GsonHelper.getAsFloat(json, "intensity", 1.0F)
             );
+            case "scoreboard_set" -> FlowActions.scoreboardSet(
+                    GsonHelper.getAsString(json, "objective"),
+                    GsonHelper.getAsInt(json, "value"),
+                    json.has("player") ? GsonHelper.getAsString(json, "player") : null
+            );
             case "play_sound_conditional" -> FlowActions.playSoundConditional(
                     ResourceLocation.parse(GsonHelper.getAsString(json, "id")),
                     FlowActions.SoundAnchor.fromString(GsonHelper.getAsString(json, "anchor", "performer")),

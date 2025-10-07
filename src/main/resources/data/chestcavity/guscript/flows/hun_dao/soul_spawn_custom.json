@@ -6,10 +6,22 @@
         {
           "trigger": "start",
           "target": "charged",
+          "guards": [
+            {
+              "type": "resource",
+              "identifier": "zuida_hunpo",
+              "minimum": 50.0
+            }
+          ],
           "actions": [
             {
+              "type": "consume_resource",
+              "identifier": "zuida_hunpo",
+              "amount": 50.0
+            },
+            {
               "type": "spawn_soul_custom",
-              "name": "CustomSoul",
+              "name": "random",
               "autospawn": true,
               "switch_to": true
             }
@@ -21,6 +33,7 @@
     "charged": {
       "enter_fx": [ "chestcavity:mind_thoughts_pulse" ],
       "transitions": [
+        { "trigger": "auto",    "target": "idle", "min_ticks": 1 },
         { "trigger": "release", "target": "idle", "min_ticks": 0 },
         { "trigger": "cancel",  "target": "idle", "min_ticks": 0 }
       ]

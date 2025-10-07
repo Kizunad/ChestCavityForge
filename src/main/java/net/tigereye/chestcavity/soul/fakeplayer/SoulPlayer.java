@@ -11,6 +11,7 @@ import net.neoforged.neoforge.common.util.FakePlayer;
 import net.tigereye.chestcavity.soul.registry.SoulHurtResult;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulRuntimeUtil;
+import net.tigereye.chestcavity.soul.util.SoulMessenger;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -117,6 +118,8 @@ public class SoulPlayer extends FakePlayer {
     @Override
     public void die(DamageSource source) {
         super.die(source);
+        // Notify owner that this soul has died
+        SoulMessenger.sendToOwner(this, "老大，我死了", "death");
         // Death should fully remove entity + profile data and associated UUIDs
         SoulFakePlayerSpawner.onSoulPlayerRemoved(this, "die");
     }

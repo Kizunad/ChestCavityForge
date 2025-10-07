@@ -4,6 +4,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.combat.FleeContext;
 import net.tigereye.chestcavity.soul.combat.SoulFleeHandler;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
+import net.tigereye.chestcavity.soul.util.SoulMessenger;
 
 /**
  * Simple flee: move opposite to threat for a short distance and let navigation
@@ -38,7 +39,8 @@ public final class SimpleFleeHandler implements SoulFleeHandler {
         }
         Vec3 target = self.position().add(dir.normalize().scale(fleeDistance));
         SoulNavigationMirror.setGoal(self, target, speed, stop);
+        // 通知 Owner：分魂正在逃跑
+        SoulMessenger.sendFleeing(self);
         return true;
     }
 }
-

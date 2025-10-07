@@ -192,6 +192,28 @@ public final class SoulFakePlayerSpawner {
         return false;
     }
 
+    /**
+     * Seeds or updates the cached identity name. If an identity does not yet exist for the soul,
+     * this creates one with a derived entity UUID and the provided name so subsequent spawns will
+     * use it. If one exists, only the display name is changed.
+     */
+    public static void seedIdentityName(UUID soulId, String newName) {
+        if (newName == null) return;
+        String name = newName.trim();
+        if (name.isEmpty()) return;
+        if (name.length() > 16) name = name.substring(0, 16);
+        final String finalName = name;
+        SOUL_IDENTITIES.compute(soulId, (id, existing) -> {
+            if (existing == null) {
+                UUID entityId = deriveEntityUuid(id);
+                return new GameProfile(entityId, finalName);
+            }
+            GameProfile updated = new GameProfile(existing.getId(), finalName);
+            copyProperties(existing, updated);
+            return updated;
+        });
+    }
+
     private static boolean isOwner(UUID soulId, UUID ownerId) {
         SoulPlayer soul = ACTIVE_SOUL_PLAYERS.get(soulId);
         return soul != null && soul.getOwnerId().map(ownerId::equals).orElse(false);
@@ -1145,4 +1167,20 @@ public final class SoulFakePlayerSpawner {
     public record SoulPlayerInfo(UUID soulUuid,
                                  @Nullable UUID ownerId,
                                  boolean active) {}
+
+    /** Resolve a user-facing display name for a soul. Falls back to a short id if unnamed. */
+    public static String resolveDisplayName(ServerPlayer owner, UUID soulId) {
+        try {
+            SoulContainer container = CCAttachments.getSoulContainer(owner);
+            String n = container.getName(soulId);
+            if (n != null && !n.isBlank()) return n;
+        } catch (Exception ignored) {}
+        var gp = SOUL_IDENTITIES.get(soulId);
+        if (gp != null && gp.getName() != null && !gp.getName().isBlank()) {
+            return gp.getName();
+        }
+        String id = soulId == null ? "?" : soulId.toString();
+        String shortId = id.length() > 8 ? id.substring(0, 8) : id;
+        return "#" + shortId;
+    }
 }

@@ -130,6 +130,18 @@ public final class SoulCommands {
             return 0;
         }
         String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        if ("@a".equalsIgnoreCase(token)) {
+            int count = 0;
+            for (UUID sid : SoulFakePlayerSpawner.getOwnedSoulIds(executor.getUUID())) {
+                var sp = SoulFakePlayerSpawner.findSoulPlayer(sid);
+                if (sp.isEmpty()) continue;
+                net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, sid, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.FOLLOW, "order-follow-all");
+                count++;
+            }
+            final int total = count;
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 已对所有分魂设置 FOLLOW，共 " + total + " 个。"), true);
+            return count;
+        }
         UUID uuid = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token).orElse(null);
         var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(uuid);
         if (soulOpt.isEmpty()) {
@@ -154,6 +166,19 @@ public final class SoulCommands {
             return 0;
         }
         String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        if ("@a".equalsIgnoreCase(token)) {
+            int count = 0;
+            for (UUID sid : SoulFakePlayerSpawner.getOwnedSoulIds(executor.getUUID())) {
+                var sp = SoulFakePlayerSpawner.findSoulPlayer(sid);
+                if (sp.isEmpty()) continue;
+                net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, sid, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE, "order-idle-all");
+                net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.clearGoal(sp.get());
+                count++;
+            }
+            final int total = count;
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 已对所有分魂设置 IDLE，共 " + total + " 个。"), true);
+            return count;
+        }
         UUID uuid = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token).orElse(null);
         var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(uuid);
         if (soulOpt.isEmpty()) {
@@ -179,6 +204,18 @@ public final class SoulCommands {
             return 0;
         }
         String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        if ("@a".equalsIgnoreCase(token)) {
+            int count = 0;
+            for (UUID sid : SoulFakePlayerSpawner.getOwnedSoulIds(executor.getUUID())) {
+                var sp = SoulFakePlayerSpawner.findSoulPlayer(sid);
+                if (sp.isEmpty()) continue;
+                net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, sid, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.GUARD, "order-guard-all");
+                count++;
+            }
+            final int total = count;
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 已对所有分魂设置 GUARD，共 " + total + " 个。"), true);
+            return count;
+        }
         UUID uuid = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token).orElse(null);
         var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(uuid);
         if (soulOpt.isEmpty()) {
@@ -313,9 +350,10 @@ public final class SoulCommands {
         var resultOpt = SoulFakePlayerSpawner.spawnTestFakePlayer(executor);
         if (resultOpt.isPresent()) {
             var result = resultOpt.get();
+            String name = result.soulPlayer().getGameProfile().getName();
             source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
-                    "[soul] spawnFakePlayer -> soul=%s",
-                    result.soulPlayer().getUUID())), true);
+                    "[soul] spawnFakePlayer -> %s",
+                    name == null || name.isBlank() ? "<unnamed>" : name)), true);
             return 1;
         }
         source.sendFailure(Component.literal(String.format(Locale.ROOT,
@@ -347,8 +385,9 @@ public final class SoulCommands {
         var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulDefault owner={} soul={}", executor.getUUID(), soulId);
+            String name = SoulFakePlayerSpawner.resolveDisplayName(executor, soulId);
             context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
-                    "[soul] CreateSoulDefault -> soul=%s", soulId)), true);
+                    "[soul] CreateSoulDefault -> %s", name)), true);
             return 1;
         }
         context.getSource().sendFailure(Component.literal("[soul] CreateSoulDefault 失败：无法生成分魂实体。"));
@@ -384,8 +423,9 @@ public final class SoulCommands {
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulAt owner={} soul={} pos=({},{},{})",
                     executor.getUUID(), soulId, x, y, z);
+            String name = SoulFakePlayerSpawner.resolveDisplayName(executor, soulId);
             context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
-                    "[soul] CreateSoulAt -> soul=%s @ (%.1f, %.1f, %.1f)", soulId, x, y, z)), true);
+                    "[soul] CreateSoulAt -> %s @ (%.1f, %.1f, %.1f)", name, x, y, z)), true);
             return 1;
         }
         context.getSource().sendFailure(Component.literal("[soul] CreateSoulAt 失败：无法生成分魂实体。"));
@@ -459,9 +499,10 @@ public final class SoulCommands {
             context.getSource().sendFailure(Component.literal("[soul] 试图执行该命令时出现意外错误 (switch)。请查看日志。"));
             return 0;
         }
-        SoulLog.info("[soul] command-switch owner={} target={} ", executor.getUUID(), uuid);
+        String name = SoulFakePlayerSpawner.resolveDisplayName(executor, uuid);
+        SoulLog.info("[soul] command-switch owner={} target={}/{} ", executor.getUUID(), name, uuid);
         context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
-                "[soul] 已切换至 SoulPlayer %s。", uuid)), true);
+                "[soul] 已切换至 %s。", name)), true);
         return 1;
     }
 
@@ -478,13 +519,14 @@ public final class SoulCommands {
             return 0;
         }
         UUID uuid = resolved.get();
+        String disp = SoulFakePlayerSpawner.resolveDisplayName(executor, uuid);
         if (!SoulFakePlayerSpawner.remove(uuid, executor)) {
             context.getSource().sendFailure(Component.literal(String.format(Locale.ROOT,
                     "[soul] 未找到 UUID=%s 的 SoulPlayer 或你无权移除。", uuid)));
             return 0;
         }
         context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
-                "[soul] 已移除 SoulPlayer %s。", uuid)), true);
+                "[soul] 已移除 %s。", disp)), true);
         return 1;
     }
 
