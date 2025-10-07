@@ -1408,3 +1408,20 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li
     {"id": "chestcavity:speed", "value": "0.1"},
   ]
 }
+
+黑豕蛊（肌肉）：每3秒恢复1点精力，当玩家攻击时，有6%的概率召唤出[力影]，
+「力影」将重复玩家的当前动作并造成相同伤害的(10*(1+力道INCREASE_EFFECT))%。
+[力影]冷却20秒。不可叠加。
+{
+  "itemID": "guzhenren:long_wan_qu_qu_gu",
+  "organScores": [
+    {"id": "guzhenren:max_jingli", "value": "5"},
+    {"id": "guzhenren:max_zhenyuan", "value": "10"},
+    {"id": "chestcavity:defense", "value": "4"},
+    {"id": "chestcavity:speed", "value": "0.1"},
+  ]
+}
+
+白豕蛊（肌肉）：每3秒恢复1点精力，当玩家攻击时，有6%的概率召唤出[力影]，
+「力影」将重复玩家的当前动作并造成相同伤害的(10*(1+力道INCREASE_EFFECT))%。
+[力影]冷却20秒。不可叠加。

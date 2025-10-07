@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoClientAbilitie
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.YanDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneAttributeHooks;
 import net.tigereye.chestcavity.guscript.GuScriptModule;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BloodBoneBombClient;
@@ -96,6 +97,7 @@ public final class GuzhenrenModule {
             modBus.addListener(ShiDaoClientAbilities::onClientSetup);
             modBus.addListener(JiandaoClientAbilities::onClientSetup);
             modBus.addListener(XueDaoClientAbilities::onClientSetup);
+            modBus.addListener(YanDaoClientAbilities::onClientSetup);
             modBus.addListener(HunDaoClientAbilities::onClientSetup);
             modBus.addListener(BloodBoneBombClient::onRegisterRenderers);
             modBus.addListener(JiandaoClientRenderers::onRegisterRenderers);
