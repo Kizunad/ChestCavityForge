@@ -30,5 +30,13 @@
         "stream": false
       }
     ]
+  },
+  "custom.fight.punch": {
+    "sounds": [
+      {
+        "name": "chestcavity:custom/fight/punch",
+        "stream": false
+      }
+    ]
   }
 }

@@ -1412,7 +1412,7 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li
 ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li_dao/...
 [力影] 通用工具库
 src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/common/ShadowService.java
-[力影] 逻辑： 生成 力影， 攻击 玩家攻击的 entity(播放ChestCavityForge/src/main/resources/assets/chestcavity/sounds/custom/fight/punch.ogg)， 消失 (玻璃破碎音效)
+[力影] 逻辑： 生成 力影， 攻击 玩家攻击的 entity (punch音效：SoundEvents.createVariableRangeEvent(new ResourceLocation("chestcavity","custom.fight.punch")) 播放此音效。)， 消失 (玻璃破碎音效)
 
 黑豕蛊（肌肉）：每3秒恢复1点精力，当玩家攻击时，有6%的概率召唤出[力影]，
 「力影」将重复玩家的当前动作并造成相同伤害的(10*(1+力道INCREASE_EFFECT))%。
