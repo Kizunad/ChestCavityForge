@@ -1393,3 +1393,18 @@ AbilityFxDispatcher.play(
 同时命中目标后会自主触发二次释放，由高空中化身火龙从高空俯冲前方目标命中后爆炸，
 触发爆炸时会扣除当前生命值30%血量（爆炸伤害血量越低伤害越高，每扣15滴血伤害提升5%，
 上限40％，基础伤害300），不可叠加
+
+ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li_dao/...
+龙丸蛐蛐蛊（肋骨）：
+使用主动技(为 ATTACKABILITY )动闪避，闪避最多触发三次。冷却30秒。不可叠加。
+自动闪避效果可用: performShortDodge(但是具体无敌效果还是需要你去实现,例如：在 dodge 开始时登记一个短暂的“无敌窗口”，在 LivingIncomingDamageEvent（或 LivingHurtEvent) 中检查该标记，命中时直接
+     event.setCanceled(true) 或把伤害降为 0；
+{
+  "itemID": "guzhenren:long_wan_qu_qu_gu",
+  "organScores": [
+    {"id": "guzhenren:max_jingli", "value": "5"},
+    {"id": "guzhenren:max_zhenyuan", "value": "10"},
+    {"id": "chestcavity:defense", "value": "4"},
+    {"id": "chestcavity:speed", "value": "0.1"},
+  ]
+}
