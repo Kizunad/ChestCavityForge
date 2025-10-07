@@ -22,5 +22,13 @@
         "stream": false
       }
     ]
+  },
+  "custom.fire.huo_yi": {
+    "sounds": [
+      {
+        "name": "chestcavity:custom/fire/fire_huo_yi",
+        "stream": false
+      }
+    ]
   }
 }

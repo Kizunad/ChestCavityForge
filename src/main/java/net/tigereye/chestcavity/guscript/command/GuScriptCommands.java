@@ -135,7 +135,8 @@ public final class GuScriptCommands {
             ResourceLocation.parse("chestcavity:time_accel_loop"),
             ResourceLocation.parse("chestcavity:time_accel_exit"),
             ResourceLocation.parse("chestcavity:mind_thoughts_orbit"),
-            ResourceLocation.parse("chestcavity:mind_thoughts_pulse")
+            ResourceLocation.parse("chestcavity:mind_thoughts_pulse"),
+            ResourceLocation.parse("chestcavity:fire_huo_yi")
     );
 
     private static final List<String> BUILTIN_FX_ID_STRINGS = BUILTIN_FX_IDS.stream()

@@ -113,7 +113,10 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         }
         // If in attack range, use attack registry; otherwise, path towards the target
         SoulLook.faceTowards(soul, target.position());
-        boolean attacked = SoulAttackRegistry.attackIfInRange(soul, target);
+        boolean attacked = false;
+        if (!soul.isUsingItem()) {
+            attacked = SoulAttackRegistry.attackIfInRange(soul, target);
+        }
         if (!attacked) {
             SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
         } else {
@@ -135,7 +138,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         if (nearest == null) return;
         double maxRange = net.tigereye.chestcavity.soul.combat.SoulAttackRegistry.maxRange(soul, nearest);
         double d = soul.distanceTo(nearest);
-        if (d <= maxRange + 0.25) {
+        if (d <= maxRange + 0.25 && !soul.isUsingItem()) {
             SoulLook.faceTowards(soul, nearest.position());
             boolean attacked = net.tigereye.chestcavity.soul.combat.SoulAttackRegistry.attackIfInRange(soul, nearest);
             if (attacked) {

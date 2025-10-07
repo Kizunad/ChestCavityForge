@@ -36,6 +36,7 @@ public final class MeleeAttackHandler implements SoulAttackHandler {
     public boolean tryAttack(AttackContext ctx) {
         var self = ctx.self();
         var target = ctx.target();
+        if (self.isUsingItem()) return false; // don't interrupt eating/drinking
         if (!target.isAlive()) return false;
 
         // face the target before attack

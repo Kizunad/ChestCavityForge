@@ -1357,3 +1357,39 @@ JSON
     {"id":"chestcavity:nerves","value": "1"}
   ]
 }
+
+ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/yan_dao/...
+火衣蛊（肌肉）：
+主动效果(为 ATTACKABILITY )：消耗50真元，5饱食度 生成一个特殊的范围燃烧效果，
+使用期间会每秒受到 (5*(1+炎道INCREASE_EFFECT)) 持续燃烧DoT伤害 会附加缓慢(1*(1+炎道INCREASE_EFFECT))，持续10s。(冷却11s) 使用自定义音效chestcavity:fire_huo_yi
+被动效果：对Radius: 10格内的目标进行，每秒(0.5*(1+炎道INCREASE_EFFECT))的持续DoT伤害5秒后消失，
+5秒后会再次释放。
+
+JSON 
+{
+  "itemID": "guzhenren:huo_gu",
+  "organScores": [
+    {"id":"guzhenren:speed","value": "0.1"},
+    {"id":"guzhenren:strength","value": "16"},
+    {"id":"chestcavity:fire_resistant","value": "1"}
+  ]
+}
+
+- 示例：在服务器侧、拿到 ServerPlayer performer 后调用：
+
+AbilityFxDispatcher.play(
+    performer,
+    net.minecraft.resources.ResourceLocation.parse("chestcavity:fire_huo_yi"),
+    net.minecraft.world.phys.Vec3.ZERO, // 原点偏移；可换成 new Vec3(0,1,0) 等
+    1.0F                                // 强度（>0 即可）
+);
+
+火龙蛊（脊椎）：
+气运上限提升至20，消耗真元
+被动：［龙旺火运］气运恢复效率提升10％
+主动技：这只蛊可以在10秒内释放两次，冷却20秒
+首次释放时向前发射一条火龙，同时玩家强制飞行停滞半空，
+（火龙基础伤害150），命中目标后会发生爆炸（爆炸伤害是当前生命值上限10％的伤害），
+同时命中目标后会自主触发二次释放，由高空中化身火龙从高空俯冲前方目标命中后爆炸，
+触发爆炸时会扣除当前生命值30%血量（爆炸伤害血量越低伤害越高，每扣15滴血伤害提升5%，
+上限40％，基础伤害300），不可叠加

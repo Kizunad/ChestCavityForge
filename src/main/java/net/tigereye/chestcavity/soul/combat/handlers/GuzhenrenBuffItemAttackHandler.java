@@ -76,6 +76,7 @@ public final class GuzhenrenBuffItemAttackHandler implements SoulAttackHandler {
     public boolean tryAttack(AttackContext ctx) {
         SoulPlayer self = ctx.self();
         if (self.level().isClientSide()) return false;
+        if (self.isUsingItem()) return false; // don't interrupt current consumption
         if (!self.isAlive()) return false;
         ensureLoaded();
         if (BUFF_ITEMS.isEmpty()) return false;
