@@ -23,21 +23,36 @@ public final class SoulNavigationMirror {
 
     private static final Map<UUID, VirtualSoulNavigator> NAVS = new HashMap<>();
     private static final Map<UUID, Goal> GOALS = new HashMap<>();
+    // Reduce navigation log noise unless explicitly enabled via JVM property
+    private static final boolean NAV_LOGS = Boolean.getBoolean("chestcavity.debugNav");
 
     public static void setGoal(SoulPlayer soul, Vec3 target, double speed, double stopDistance) {
         VirtualSoulNavigator nav = ensureNavigator(soul);
         if (nav == null) return;
         nav.setGoal(soul, target, speed, stopDistance);
-        GOALS.put(soul.getUUID(), new Goal(target, speed, stopDistance));
-        SoulLog.info("[soul][nav] setGoal soul={} target=({}, {}, {}) speed={} stop={}",
-                soul.getUUID(), target.x, target.y, target.z, speed, stopDistance);
+        UUID id = soul.getUUID();
+        Goal prev = GOALS.put(id, new Goal(target, speed, stopDistance));
+        if (NAV_LOGS) {
+            boolean changed = true;
+            if (prev != null) {
+                double dx = prev.target.x - target.x;
+                double dy = prev.target.y - target.y;
+                double dz = prev.target.z - target.z;
+                double dist2 = dx*dx + dy*dy + dz*dz;
+                changed = dist2 > 0.25 || Math.abs(prev.speed - speed) > 1e-6 || Math.abs(prev.stopDistance - stopDistance) > 1e-6;
+            }
+            if (changed) {
+                SoulLog.info("[soul][nav] setGoal soul={} target=({}, {}, {}) speed={} stop={}",
+                        id, target.x, target.y, target.z, speed, stopDistance);
+            }
+        }
     }
 
     public static void clearGoal(SoulPlayer soul) {
         Goal g = GOALS.remove(soul.getUUID());
         VirtualSoulNavigator nav = NAVS.get(soul.getUUID());
         if (nav != null) nav.clearGoal();
-        if (g != null) {
+        if (g != null && NAV_LOGS) {
             SoulLog.info("[soul][nav] clearGoal soul={}", soul.getUUID());
         }
     }

@@ -101,6 +101,14 @@ public final class SoulProfile {
         return Collections.unmodifiableMap(capabilities);
     }
 
+    public <T extends CapabilitySnapshot> java.util.Optional<T> capability(ResourceLocation id, Class<T> type) {
+        CapabilitySnapshot snapshot = capabilities.get(id);
+        if (snapshot == null || !type.isInstance(snapshot)) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(type.cast(snapshot));
+    }
+
     public int inventorySize() {
         return inventory.items().size();
     }

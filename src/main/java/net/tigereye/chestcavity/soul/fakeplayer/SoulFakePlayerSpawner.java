@@ -10,8 +10,9 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.tigereye.chestcavity.registration.CCAttachments;
 import net.minecraft.world.entity.Entity;
+import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
+import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
@@ -609,10 +610,13 @@ public final class SoulFakePlayerSpawner {
         // 1) Save current possession into its profile
         SoulSwitchGuard.begin(executor, "switchTo");
         try {
+        SoulProfile currentProfile;
         if (currentId.equals(ownerUuid)) {
             container.updateActiveProfile();
+            currentProfile = container.getOrCreateProfile(currentId);
         } else {
-            container.getOrCreateProfile(currentId).updateFrom(executor);
+            currentProfile = container.getOrCreateProfile(currentId);
+            currentProfile.updateFrom(executor);
         }
 
         // 2) Capture player's current coordinates/rotations to leave a shell AFTER possession
@@ -628,6 +632,10 @@ public final class SoulFakePlayerSpawner {
         // - If target is owner, do NOT spawn a temporary owner shell. Optionally teleport to owner's snapshot.
         // - If target is a soul, ensure shell exists, teleport to it, then consume it.
         SoulProfile targetProfile = container.getOrCreateProfile(targetId);
+        boolean liupaiSynced = GuzhenrenLiupaiSync.mergeMaxLiupai(currentProfile, targetProfile);
+        if (liupaiSynced) {
+            SoulProfileOps.markContainerDirty(executor, container, "switchTo-liupai-sync");
+        }
         if (targetId.equals(ownerUuid)) {
             // Optional: move executor to owner's last snapshot position for consistency
             targetProfile.position().ifPresent(snapshot -> {

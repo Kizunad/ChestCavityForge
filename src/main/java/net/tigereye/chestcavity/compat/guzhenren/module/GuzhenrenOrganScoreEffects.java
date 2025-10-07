@@ -41,8 +41,11 @@ public final class GuzhenrenOrganScoreEffects {
         registerMaxField("hunpo_kangxing_shangxian", "hunpo_kangxing", "hunpo_kangxing_shangxian", "hunpo_stability_max");
         registerWithMax("niantou", "niantou_zhida", "niantou_zuida");
         registerMaxField("niantou_zhida", "niantou", "niantou_zhida", "niantou_zuida");
+        registerSimple("niantou_rongliang");
+        
         registerSimple("renqi");
         registerSimple("qiyun");
+        registerSimple("qiyun_shangxian");
         registerSimple("daode");
 
         registerSimple("daohen_jindao");

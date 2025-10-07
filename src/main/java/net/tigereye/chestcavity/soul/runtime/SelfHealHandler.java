@@ -200,10 +200,9 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     }
 
     private static boolean canBenefitFromFood(Player player) {
-        FoodData food = player.getFoodData();
-        boolean canEat = player.canEat(false);
-        boolean lowHp = player.getHealth() < player.getMaxHealth();
-        return canEat || (lowHp && player.hasEffect(MobEffects.REGENERATION));
+        // 仅在饥饿未满时进食，避免在满饱食度状态下反复尝试普通食物导致“看起来一直吃但没有任何效果”的现象。
+        // 金苹果/再生药水已在更高优先级分支处理，这里只考虑普通食物维持自然回血。
+        return player.canEat(false);
     }
 
     private static boolean isGoldenApple(ItemStack stack) {
@@ -222,7 +221,13 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     private static int findAnyEdibleHotbar(Player player) {
         for (int i = 0; i < 9; i++) {
             ItemStack s = player.getInventory().getItem(i);
-            if (!s.isEmpty() && s.getFoodProperties(player) != null) return i;
+            if (s.isEmpty()) continue;
+            var props = s.getFoodProperties(player);
+            if (props == null) continue;
+            // 只在当前可进食时返回该食物（尊重 canAlwaysEat 语义）
+            if (player.canEat(props.canAlwaysEat())) {
+                return i;
+            }
         }
         return -1;
     }

@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshot;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceDefaultConstants;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -81,6 +82,10 @@ public final class GuzhenrenSnapshot implements CapabilitySnapshot {
             if (identifier == null || value == null || !Double.isFinite(value)) {
                 continue;
             }
+            // Avoid writing non-double typed fields by consulting default constants
+            if (!GuzhenrenResourceDefaultConstants.DOUBLE_DEFAULTS.containsKey(identifier)) {
+                continue;
+            }
             OptionalDouble result = handle.writeDouble(identifier, value);
             if (result.isEmpty()) {
                 ChestCavity.LOGGER.debug("[soul] Failed to apply Guzhenren field {} for {}", identifier, player.getGameProfile().getName());
@@ -137,6 +142,24 @@ public final class GuzhenrenSnapshot implements CapabilitySnapshot {
 
     public Map<String, Double> values() {
         return Collections.unmodifiableMap(cachedValues);
+    }
+
+    public double getValueOrDefault(String key, double fallback) {
+        Double value = cachedValues.get(key);
+        if (value == null || !Double.isFinite(value)) {
+            return fallback;
+        }
+        return value;
+    }
+
+    public void setValue(String key, double value) {
+        if (key == null || !Double.isFinite(value)) {
+            return;
+        }
+        Double previous = cachedValues.put(key, value);
+        if (previous == null || Double.doubleToLongBits(previous) != Double.doubleToLongBits(value)) {
+            this.dirty = true;
+        }
     }
 
     private static Map<String, Double> createDefaultValues() {

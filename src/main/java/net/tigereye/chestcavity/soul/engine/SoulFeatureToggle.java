@@ -11,7 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class SoulFeatureToggle {
 
-    private static final AtomicBoolean SOUL_SYSTEM_ENABLED = new AtomicBoolean(false);
+    // 默认启用魂体生态：无需先执行 /soul enable
+    private static final AtomicBoolean SOUL_SYSTEM_ENABLED = new AtomicBoolean(true);
 
     private SoulFeatureToggle() {
     }
