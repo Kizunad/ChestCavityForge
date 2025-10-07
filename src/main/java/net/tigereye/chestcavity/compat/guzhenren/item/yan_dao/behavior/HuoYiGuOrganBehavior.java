@@ -254,9 +254,32 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         }
         long gameTime = level.getGameTime();
         OrganState state = INSTANCE.organState(organ, STATE_ROOT);
-        long cooldown = state.getLong(KEY_COOLDOWN_UNTIL, 0L);
-        if (cooldown > gameTime) {
+        long cooldownUntil = Math.max(0L, state.getLong(KEY_COOLDOWN_UNTIL, 0L));
+        if (cooldownUntil > gameTime) {
+            long remaining = cooldownUntil - gameTime;
+            long clamped = Mth.clamp(remaining, 0L, ACTIVE_COOLDOWN_TICKS);
+            if (clamped != remaining) {
+                OrganState.Change<Long> change = state.setLong(
+                        KEY_COOLDOWN_UNTIL,
+                        gameTime + clamped,
+                        value -> Math.max(0L, value),
+                        0L);
+                if (change.changed()) {
+                    INSTANCE.sendSlotUpdate(cc, organ);
+                }
+            }
             return;
+        }
+
+        if (cooldownUntil > 0L) {
+            OrganState.Change<Long> change = state.setLong(
+                    KEY_COOLDOWN_UNTIL,
+                    0L,
+                    value -> Math.max(0L, value),
+                    0L);
+            if (change.changed()) {
+                INSTANCE.sendSlotUpdate(cc, organ);
+            }
         }
 
         ConsumptionResult payment = GuzhenrenResourceCostHelper.consumeStrict(player, ACTIVE_ZHENYUAN_COST, 0.0);

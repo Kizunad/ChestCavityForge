@@ -28,4 +28,12 @@ public final class CCSoundEvents {
     public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_SOULBEAST_DOT =
             SOUND_EVENTS.register("custom.soulbeast.dot",
                     () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.soulbeast.dot")));
+
+    public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FIRE_HUO_YI =
+            SOUND_EVENTS.register("custom.fire.huo_yi",
+                    () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.fire.huo_yi")));
+
+    public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FIGHT_PUNCH =
+            SOUND_EVENTS.register("custom.fight.punch",
+                    () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.fight.punch")));
 }

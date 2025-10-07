@@ -117,8 +117,12 @@ public final class PlayerSkinUtil {
                     .map(JsonElement::getAsString)
                     .orElse(null);
             ResourceLocation texture = null;
-            if (url != null && url.isBlank()) {
-                url = null;
+            if (url != null) {
+                if (url.isBlank()) {
+                    url = null;
+                } else {
+                    texture = urlToResource(url);
+                }
             }
             return new SkinPayload(texture, model == null ? null : model.toLowerCase(Locale.ROOT), url);
         } catch (IllegalArgumentException ignored) {

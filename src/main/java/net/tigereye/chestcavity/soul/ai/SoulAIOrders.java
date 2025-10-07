@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SoulAIOrders {
 
-    public enum Order { IDLE, FOLLOW, GUARD }
+    public enum Order { IDLE, FOLLOW, GUARD, FORCE_FIGHT }
 
     private static final Map<UUID, Order> EPHEMERAL = new ConcurrentHashMap<>();
 

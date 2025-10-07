@@ -55,7 +55,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final double PASSIVE_HUNPO_PER_SECOND = 3.0D;
     private static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
-    private static final double TRUE_DAMAGE_RATIO = 0.01D;
+    private static final double TRUE_DAMAGE_RATIO = 0.015D;
     private static final double GUI_WU_RADIUS = 4.0D;
     private static final int GUI_WU_COOLDOWN_TICKS = 160;
 

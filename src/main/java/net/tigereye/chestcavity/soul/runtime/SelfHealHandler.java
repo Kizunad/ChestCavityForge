@@ -54,7 +54,9 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     @Override
     public void onTickEnd(SoulPlayer player) {
         if (!player.isAlive() || player.level().isClientSide()) return;
+        // Do not interfere with normal attacks: skip when eating/drinking or during attack cooldown
         if (player.isUsingItem()) return;
+        if (player.getAttackStrengthScale(0.0f) < 1.0f) return;
 
         float hp = player.getHealth();
         float max = player.getMaxHealth();
@@ -71,30 +73,7 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     }
 
     private boolean tryUseHealingItem(SoulPlayer player) {
-        // 0) Try Guzhenren-specific healing items first (e.g., 灵涎蛊)
-        if (tryUseGuzhenrenItem(player)) return true;
-
-        // 1) Prioritize golden apples (instant regen/absorption)
-        int slot = findHotbarSlot(player, Items.ENCHANTED_GOLDEN_APPLE);
-        if (slot == -1) slot = findHotbarSlot(player, Items.GOLDEN_APPLE);
-        if (slot != -1 && tryUseFromHotbar(player, slot)) return true;
-
-        // 2) Healing/Regeneration potions (drinkable)
-        int potionSlot = findFirstDrinkableHealingPotion(player);
-        if (potionSlot != -1 && tryUseFromHotbar(player, potionSlot)) return true;
-
-        // 3) Generic edible if can eat (to trigger natural regen)
-        if (canBenefitFromFood(player)) {
-            int foodSlot = findAnyEdibleHotbar(player);
-            if (foodSlot != -1 && tryUseFromHotbar(player, foodSlot)) return true;
-        }
-
-        // 4) Try offhand if it already holds a good item
-        ItemStack off = player.getOffhandItem();
-        if (isGoldenApple(off) || isDrinkableHealingPotion(off) || (off.getFoodProperties(player) != null && canBenefitFromFood(player))) {
-            return useInHand(player, InteractionHand.OFF_HAND);
-        }
-        return false;
+        return tryUseGuzhenrenItem(player);
     }
 
     private static void ensureGuzhenrenItems() {
@@ -125,136 +104,70 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     private boolean tryUseGuzhenrenItem(SoulPlayer player) {
         ensureGuzhenrenItems();
         if (GUZ_HEAL_ITEMS.isEmpty()) return false;
+
         for (Item item : GUZ_HEAL_ITEMS) {
             if (player.getCooldowns().isOnCooldown(item)) continue;
+
             Pair<InteractionHand, Integer> choice = chooseHandAndSlot(player, item);
             if (choice == null) continue;
+
             InteractionHand hand = choice.getFirst();
             Integer slot = choice.getSecond();
             int original = player.getInventory().selected;
             boolean switched = false;
+
             if (slot != null && slot >= 0 && slot <= 8 && original != slot) {
                 player.getInventory().selected = slot;
                 switched = true;
             }
+
             ItemStack stack = player.getItemInHand(hand);
             if (stack.isEmpty() || stack.getItem() != item) {
                 if (switched) player.getInventory().selected = original;
                 continue;
             }
+
             InteractionResultHolder<ItemStack> result = stack.use(player.level(), player, hand);
             InteractionResult type = result.getResult();
             boolean consumed = type.consumesAction() || type == InteractionResult.SUCCESS;
+
             if (!consumed) {
                 if (switched) player.getInventory().selected = original;
                 continue;
             }
+
             ItemStack after = result.getObject();
             if (after != stack) player.setItemInHand(hand, after);
-            if (after.getUseDuration(player) > 0 && !player.isUsingItem()) player.startUsingItem(hand);
-            // Cooldown is applied by the item/mod itself; we only respect it via isOnCooldown above
-            net.tigereye.chestcavity.soul.util.SoulLog.info("[soul][heal][guz] used item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
+
+            // 🩸 关键补丁：FakePlayer 无法自动吃/喝 → 直接执行 finishUsingItem()
+            if (player instanceof SoulPlayer) {
+                ItemStack resultStack = after.finishUsingItem(player.level(), player);
+                player.setItemInHand(hand, resultStack);
+                SoulLog.info("[soul][heal][guz] force-finish use for fake player, item={}", BuiltInRegistries.ITEM.getKey(item));
+            } else {
+                // 真实玩家（本体）仍使用正常流程
+                if (after.getUseDuration(player) > 0 && !player.isUsingItem()) {
+                    player.startUsingItem(hand);
+                }
+            }
+
+            // 冷却由物品本身处理，这里仅日志输出
+            SoulLog.info("[soul][heal][guz] used item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
+
+            if (switched) player.getInventory().selected = original;
             return true;
         }
+
         return false;
     }
+
 
     private static Pair<InteractionHand, Integer> chooseHandAndSlot(Player p, Item item) {
-        // Prefer offhand if already holding the item
-        if (p.getOffhandItem().getItem() == item) return Pair.of(InteractionHand.OFF_HAND, null);
-        if (p.getMainHandItem().getItem() == item) return Pair.of(InteractionHand.MAIN_HAND, p.getInventory().selected);
-        for (int i = 0; i < 9; i++) {
-            ItemStack s = p.getInventory().getItem(i);
-            if (!s.isEmpty() && s.getItem() == item) return Pair.of(InteractionHand.MAIN_HAND, i);
-        }
-        return null;
+        // Restrict healing to offhand only to avoid interfering with main-hand attacks
+        return (p.getOffhandItem().getItem() == item)
+                ? Pair.of(InteractionHand.OFF_HAND, null)
+                : null;
     }
 
-    private static boolean tryUseFromHotbar(Player player, int slot) {
-        if (slot < 0 || slot > 8) return false;
-        if (player.getInventory().selected != slot) {
-            player.getInventory().selected = slot;
-        }
-        return useInHand(player, InteractionHand.MAIN_HAND);
-    }
 
-    private static boolean useInHand(Player player, InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-        if (stack.isEmpty()) return false;
-        InteractionResultHolder<ItemStack> result = stack.use(player.level(), player, hand);
-        InteractionResult type = result.getResult();
-        boolean consumed = type.consumesAction() || type == InteractionResult.SUCCESS;
-        if (consumed) {
-            SoulLog.info("[soul][heal] use item hand={} item={} x{}", hand, stack.getItem().toString(), stack.getCount());
-            // If the use returns a different stack, update hand (mirrors vanilla client flow)
-            ItemStack after = result.getObject();
-            if (after != stack) {
-                player.setItemInHand(hand, after);
-            }
-            // For items that require holding (e.g., potions/food), startUsingItem keeps ticking until finished
-            if (player.getItemInHand(hand) == after && after.getUseDuration(player) > 0 && !player.isUsingItem()) {
-                player.startUsingItem(hand);
-            }
-        }
-        return consumed;
-    }
-
-    private static boolean canBenefitFromFood(Player player) {
-        // 仅在饥饿未满时进食，避免在满饱食度状态下反复尝试普通食物导致“看起来一直吃但没有任何效果”的现象。
-        // 金苹果/再生药水已在更高优先级分支处理，这里只考虑普通食物维持自然回血。
-        return player.canEat(false);
-    }
-
-    private static boolean isGoldenApple(ItemStack stack) {
-        Item item = stack.getItem();
-        return item == Items.GOLDEN_APPLE || item == Items.ENCHANTED_GOLDEN_APPLE;
-    }
-
-    private static int findHotbarSlot(Player player, Item item) {
-        for (int i = 0; i < 9; i++) {
-            ItemStack s = player.getInventory().getItem(i);
-            if (!s.isEmpty() && s.getItem() == item) return i;
-        }
-        return -1;
-    }
-
-    private static int findAnyEdibleHotbar(Player player) {
-        for (int i = 0; i < 9; i++) {
-            ItemStack s = player.getInventory().getItem(i);
-            if (s.isEmpty()) continue;
-            var props = s.getFoodProperties(player);
-            if (props == null) continue;
-            // 只在当前可进食时返回该食物（尊重 canAlwaysEat 语义）
-            if (player.canEat(props.canAlwaysEat())) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static int findFirstDrinkableHealingPotion(Player player) {
-        for (int i = 0; i < 9; i++) {
-            ItemStack s = player.getInventory().getItem(i);
-            if (!s.isEmpty() && isDrinkableHealingPotion(s)) return i;
-        }
-        return -1;
-    }
-
-    private static boolean isDrinkableHealingPotion(ItemStack stack) {
-        if (stack.getItem() != Items.POTION) return false;
-        PotionContents contents = stack.getOrDefault(net.minecraft.core.component.DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
-        var potion = contents.potion().orElse(null);
-        if (potion == null) return false;
-        if (potion.equals(Potions.HEALING) || potion.equals(Potions.STRONG_HEALING) ||
-            potion.equals(Potions.REGENERATION) || potion.equals(Potions.STRONG_REGENERATION)) {
-            return true;
-        }
-        // Also accept custom potions that grant REGEN or INSTANT_HEALTH effects
-        for (MobEffectInstance eff : contents.customEffects()) {
-            if (eff.getEffect() == MobEffects.REGENERATION || eff.getEffect() == MobEffects.HEAL) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

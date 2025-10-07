@@ -22,6 +22,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneAttributeH
 import net.tigereye.chestcavity.guscript.GuScriptModule;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BloodBoneBombClient;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
+import net.tigereye.chestcavity.guzhenren.network.PlayerSkinSyncClient;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenIntegrationModule;
 import net.tigereye.chestcavity.compat.guzhenren.module.GuzhenrenOrganScoreEffects;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
@@ -107,6 +109,9 @@ public final class GuzhenrenModule {
 
     private static void installForgeListeners(IEventBus forgeBus) {
         forgeBus.addListener(JianYingGuEvents::onServerTick);
+        if (FMLEnvironment.dist.isClient()) {
+            forgeBus.addListener((ClientTickEvent.Post event) -> PlayerSkinSyncClient.onClientTick(event));
+        }
     }
 
     private static void initialiseCompat() {

@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.registration.CCSoundEvents;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -32,15 +33,13 @@ import java.util.OptionalDouble;
 abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
         implements OrganSlowTickListener, OrganOnHitListener {
 
-    private static final double TRIGGER_CHANCE = 0.06;
+    private static final double TRIGGER_CHANCE = 1;
+    private static final float BASE_CLONE_DAMAGE = 10.0f;
     private static final double DAMAGE_RATIO = 0.10;
     private static final long COOLDOWN_TICKS = 20L * 20L; // 20 seconds
     private static final long REGEN_INTERVAL_TICKS = 3L * 20L; // 3 seconds
     private static final double JINGLI_PER_TICK = 1.0;
     private static final int CLONE_LIFETIME_TICKS = 40;
-
-    private static final SoundEvent PUNCH_SOUND = SoundEvent.createVariableRangeEvent(
-            ResourceLocation.fromNamespaceAndPath("chestcavity", "custom.fight.punch"));
 
     private static final String LAST_REGEN_TICK_KEY = "LastRegenTick";
     private static final String NEXT_READY_TICK_KEY = "NextReadyTick";
@@ -148,7 +147,7 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
 
         double liDaoIncrease = Math.max(0.0, liDaoIncrease(cc));
         float baseDamage = Math.max(0.0f, damage);
-        float cloneDamage = (float) (baseDamage * DAMAGE_RATIO * (1.0 + liDaoIncrease));
+        float cloneDamage = (float) ((BASE_CLONE_DAMAGE + baseDamage * DAMAGE_RATIO) * (1.0 + liDaoIncrease));
         if (cloneDamage <= 0.0f) {
             return damage;
         }
@@ -172,7 +171,7 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
                 spawnPos.x,
                 spawnPos.y,
                 spawnPos.z,
-                PUNCH_SOUND,
+                punchSound(),
                 SoundSource.PLAYERS,
                 0.9f,
                 1.0f + (random.nextFloat() - 0.5f) * 0.25f
@@ -202,5 +201,9 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
             return slotStack == organ;
         }
         return false;
+    }
+
+    private static SoundEvent punchSound() {
+        return CCSoundEvents.CUSTOM_FIGHT_PUNCH.get();
     }
 }

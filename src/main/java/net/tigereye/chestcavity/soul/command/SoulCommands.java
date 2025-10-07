@@ -49,6 +49,10 @@ public final class SoulCommands {
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
                                         .executes(SoulCommands::orderGuard)))
+                        .then(Commands.literal("forcefight")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::orderForceFight)))
                         .then(Commands.literal("idle")
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
@@ -230,6 +234,42 @@ public final class SoulCommands {
         }
         net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, soul.getSoulId(), net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.GUARD, "order-guard");
         context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 GUARD。在你周围16格内，仅在自身生命值大于目标2倍，且区域内不存在更强敌人时才会追击。"), true);
+        return 1;
+    }
+
+    private static int orderForceFight(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再下达订单。"));
+            return 0;
+        }
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        if ("@a".equalsIgnoreCase(token)) {
+            int count = 0;
+            for (UUID sid : SoulFakePlayerSpawner.getOwnedSoulIds(executor.getUUID())) {
+                var sp = SoulFakePlayerSpawner.findSoulPlayer(sid);
+                if (sp.isEmpty()) continue;
+                net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, sid, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.FORCE_FIGHT, "order-forcefight-all");
+                count++;
+            }
+            final int total = count;
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 已对所有分魂设置 FORCE_FIGHT，共 " + total + " 个。"), true);
+            return count;
+        }
+        UUID uuid = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token).orElse(null);
+        var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(uuid);
+        if (soulOpt.isEmpty()) {
+            context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。"));
+            return 0;
+        }
+        var soul = soulOpt.get();
+        UUID owner = soul.getOwnerId().orElse(null);
+        if (owner == null || !owner.equals(executor.getUUID())) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权对该 SoulPlayer 下达订单。"));
+            return 0;
+        }
+        net.tigereye.chestcavity.soul.ai.SoulAIOrders.set(executor, soul.getSoulId(), net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.FORCE_FIGHT, "order-forcefight");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 FORCE_FIGHT。在你周围16格内，无差别进攻所有生物（排除你与友方分魂）。"), true);
         return 1;
     }
 

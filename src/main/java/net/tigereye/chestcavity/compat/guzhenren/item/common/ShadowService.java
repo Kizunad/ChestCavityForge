@@ -57,10 +57,10 @@ public final class ShadowService {
     public static final ReplicaStyle JIAN_DAO_AFTERIMAGE = ReplicaStyle.tinted("jian_dao_afterimage", false, 0.10f, 0.05f, 0.20f, 0.45f);
 
     /** Darker overlay suited for黑豕蛊 (captures base skin then desaturates heavily). */
-    public static final ReplicaStyle HEI_ZHU_CLONE = ReplicaStyle.tinted("hei_zhu_clone", true, 0.05f, 0.05f, 0.06f, 0.85f);
+    public static final ReplicaStyle HEI_ZHU_CLONE = ReplicaStyle.tinted("hei_zhu_clone", false, 0.0f, 0.0f, 0.0f, 0.50f);
 
     /** Brighter overlay suited for白豕蛊 (captures base skin with a light aura). */
-    public static final ReplicaStyle BAI_ZHU_CLONE = ReplicaStyle.tinted("bai_zhu_clone", true, 0.80f, 0.82f, 0.88f, 0.65f);
+    public static final ReplicaStyle BAI_ZHU_CLONE = ReplicaStyle.tinted("bai_zhu_clone", false, 1.0f, 1.0f, 1.0f, 0.50f);
 
     /**
      * Captures a tinted skin snapshot according to the supplied style.

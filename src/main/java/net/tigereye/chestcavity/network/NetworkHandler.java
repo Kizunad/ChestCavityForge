@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.soulbeast.state.SoulBeastSyncPayload;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastRequestSyncPayload;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior.DaoHenSeedHandler;
 import net.tigereye.chestcavity.guzhenren.network.packets.KongqiaoDaoHenSeedPayload;
+import net.tigereye.chestcavity.guzhenren.network.packets.PlayerSkinUploadPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityHotkeyPayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityOrganSlotUpdatePayload;
 import net.tigereye.chestcavity.network.packets.ChestCavityUpdatePayload;
@@ -44,6 +45,7 @@ public final class NetworkHandler {
         registrar.playToServer(GuScriptSimulateCompilePayload.TYPE, GuScriptSimulateCompilePayload.STREAM_CODEC, GuScriptSimulateCompilePayload::handle);
         registrar.playToServer(FlowInputPayload.TYPE, FlowInputPayload.STREAM_CODEC, FlowInputPayload::handle);
         registrar.playToServer(KongqiaoDaoHenSeedPayload.TYPE, KongqiaoDaoHenSeedPayload.STREAM_CODEC, DaoHenSeedHandler::handleSeedPayload);
+        registrar.playToServer(PlayerSkinUploadPayload.TYPE, PlayerSkinUploadPayload.STREAM_CODEC, PlayerSkinUploadPayload::handle);
         registrar.playToServer(SoulBeastRequestSyncPayload.TYPE, SoulBeastRequestSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleRequestSyncPayload);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);

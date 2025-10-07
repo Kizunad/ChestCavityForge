@@ -82,11 +82,11 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final double ZHENYUAN_BASE_COST = 200.0;
     private static final double JINGLI_PER_TICK = 1.0;
-    private static final float HEAL_PER_TICK = 5.0f;
+    private static final float HEAL_PER_TICK = 4.5f;
     private static final int SLOW_TICK_INTERVALS_PER_MINUTE = 15; // 15秒
     private static final float ABSORPTION_PER_TRIGGER = 20.0f;
-    private static final double BONUS_DAMAGE_FRACTION = 0.05;
-    private static final double BONUS_TRIGGER_CHANCE = 0.10;
+    private static final double BONUS_DAMAGE_FRACTION = 0.04;
+    private static final double BONUS_TRIGGER_CHANCE = 0.12;
     private static final int ICE_EFFECT_DURATION_TICKS = 30 * 20;
     private static final double ICE_BURST_BASE_DAMAGE = 18.0;
     private static final double ICE_BURST_RADIUS = 6.0;

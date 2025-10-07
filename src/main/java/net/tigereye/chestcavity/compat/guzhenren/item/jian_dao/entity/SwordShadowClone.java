@@ -30,9 +30,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
-import net.tigereye.chestcavity.registration.CCEntities;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.registration.CCEntities;
+import net.tigereye.chestcavity.registration.CCSoundEvents;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -59,8 +60,6 @@ public class SwordShadowClone extends PathfinderMob {
     private static final double SEARCH_RADIUS = 12.0;
     private static final ResourceLocation DEFAULT_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/steve.png");
-    private static final SoundEvent LI_YING_PUNCH_SOUND = SoundEvent.createVariableRangeEvent(
-            ResourceLocation.fromNamespaceAndPath("chestcavity", "custom.fight.punch"));
 
     private int lifetime = MAX_LIFETIME_TICKS;
     private int attackCooldown;
@@ -191,7 +190,7 @@ public class SwordShadowClone extends PathfinderMob {
                     this.getX(),
                     this.getY(),
                     this.getZ(),
-                    LI_YING_PUNCH_SOUND,
+                    punchSound(),
                     SoundSource.PLAYERS,
                     0.9f,
                     1.0f + (this.getRandom().nextFloat() - 0.5f) * 0.25f
@@ -425,5 +424,9 @@ public class SwordShadowClone extends PathfinderMob {
             look = new Vec3(0.0, 0.0, 1.0);
         }
         return anchor.add(look.normalize().scale(2.0));
+    }
+
+    private static SoundEvent punchSound() {
+        return CCSoundEvents.CUSTOM_FIGHT_PUNCH.get();
     }
 }

@@ -51,16 +51,88 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
                 SoulLook.faceTowards(soul, owner.position());
             }
             case GUARD -> handleGuard(soul, owner);
+            case FORCE_FIGHT -> handleForceFight(soul, owner);
             case IDLE -> {
                 // no-op
             }
         }
         // Move first this tick so distance checks reflect new position
         SoulNavigationMirror.tick(soul);
-        // Opportunistic post-move attack for GUARD
+        // Opportunistic post-move attack
         if (order == SoulAIOrders.Order.GUARD) {
             postGuardAttack(soul, owner);
+        } else if (order == SoulAIOrders.Order.FORCE_FIGHT) {
+            postForceFightAttack(soul, owner);
         }
+    }
+
+    private void handleForceFight(SoulPlayer soul, ServerPlayer owner) {
+        ServerLevel level = soul.serverLevel();
+        Vec3 anchor = owner.position();
+        AABB box = new AABB(anchor, anchor).inflate(GUARD_RADIUS);
+        // Force-fight: consider ANY living entity except the owner and self (and friendly souls of same owner)
+        List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && e != owner && e != soul && !isSameOwnerSoul(e, owner));
+        if (candidates.isEmpty()) {
+            // No entities: hover near owner
+            double dist = soul.distanceTo(owner);
+            if (dist > FOLLOW_TRIGGER_DIST) {
+                SoulNavigationMirror.setGoal(soul, anchor, SPEED, STOP_DIST);
+            } else {
+                SoulNavigationMirror.clearGoal(soul);
+            }
+            SoulLook.faceTowards(soul, anchor);
+            return;
+        }
+
+        // Aggressive: pick nearest and pursue/attack unconditionally (no HP ratio check)
+        LivingEntity target = candidates.stream()
+                .min(Comparator.comparingDouble(h -> h.distanceToSqr(soul)))
+                .orElse(null);
+        if (target == null) {
+            SoulNavigationMirror.clearGoal(soul);
+            SoulLook.faceTowards(soul, anchor);
+            return;
+        }
+        SoulLook.faceTowards(soul, target.position());
+        boolean attacked = false;
+        if (!soul.isUsingItem()) {
+            attacked = SoulAttackRegistry.attackIfInRange(soul, target);
+        }
+        if (!attacked) {
+            SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+        } else {
+            SoulNavigationMirror.clearGoal(soul);
+        }
+    }
+
+    private void postForceFightAttack(SoulPlayer soul, ServerPlayer owner) {
+        ServerLevel level = soul.serverLevel();
+        Vec3 anchor = owner.position();
+        AABB box = new AABB(anchor, anchor).inflate(GUARD_RADIUS);
+        List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && e != owner && e != soul && !isSameOwnerSoul(e, owner));
+        if (candidates.isEmpty()) return;
+        LivingEntity nearest = candidates.stream()
+                .min(Comparator.comparingDouble(h -> h.distanceToSqr(soul)))
+                .orElse(null);
+        if (nearest == null) return;
+        double maxRange = SoulAttackRegistry.maxRange(soul, nearest);
+        double d = soul.distanceTo(nearest);
+        if (d <= maxRange + 0.25 && !soul.isUsingItem()) {
+            SoulLook.faceTowards(soul, nearest.position());
+            boolean attacked = SoulAttackRegistry.attackIfInRange(soul, nearest);
+            if (attacked) {
+                SoulNavigationMirror.clearGoal(soul);
+            }
+        }
+    }
+
+    private static boolean isSameOwnerSoul(LivingEntity entity, ServerPlayer owner) {
+        if (entity instanceof net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer spSoul) {
+            return spSoul.getOwnerId().map(owner.getUUID()::equals).orElse(false);
+        }
+        return false;
     }
 
     private void handleGuard(SoulPlayer soul, ServerPlayer owner) {
