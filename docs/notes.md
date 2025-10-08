@@ -1438,7 +1438,22 @@ src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/common/ShadowServic
   ]
 }
 
+ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/yan_dao/...
 焚身蛊（肾脏）：
+
 处于着火状态时，每秒恢复3点精力值，
-有20％概率免疫中毒，获得［灵火庇护］固定抵御12点伤害（灵火庇护最多叠加n个）；n=2
+有每秒 20％概率 去除中毒debuff(如果有)，获得［灵火庇护］固定减免12点伤害（灵火庇护最多叠加n个）；n=2
 当胸腔内存在火心蛊和火人蛊时，自身将被赋予永久着火状态，同时获得火焰免疫。
+
+  "detoxification": 0.2,
+  "fire_resistant": 2,
+
+
+  {
+  "itemID": "guzhenren:fen_shen_gu",
+  "organScores": [
+    {"id": "guzhenren:max_jingli", "value": "20"},
+    {"id": "chestcavity:fire_resistant", "value": "2"},
+    {"id": "chestcavity:detoxification", "value": "1"}
+  ]
+}
