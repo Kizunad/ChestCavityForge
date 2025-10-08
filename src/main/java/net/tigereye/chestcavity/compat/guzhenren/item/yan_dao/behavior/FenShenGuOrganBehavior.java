@@ -109,7 +109,8 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return damage;
         }
 
-        if (!source.is(DamageTypeTags.IS_FIRE)) {
+        // 着火/近战
+        if (!source.is(DamageTypeTags.IS_FIRE) || !source.is(DamageTypeTags.IS_MELEE)) {
             return damage;
         }
 
@@ -171,6 +172,7 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, FIRE_RESIST_DURATION_TICKS, 0, false, false, true));
     }
 
+    // 检测存在火心蛊和火人蛊
     private boolean hasFlameCoreSynergy(ChestCavityInstance cc) {
         return OrganPresenceUtil.has(cc, HUOXINGU_ID) && OrganPresenceUtil.has(cc, HUORENGU_ID);
     }

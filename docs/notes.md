@@ -1449,7 +1449,7 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/ya
   "fire_resistant": 2,
 
 
-  {
+{
   "itemID": "guzhenren:fen_shen_gu",
   "organScores": [
     {"id": "guzhenren:max_jingli", "value": "20"},
@@ -1457,3 +1457,10 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/ya
     {"id": "chestcavity:detoxification", "value": "1"}
   ]
 }
+
+ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li_dao
+
+蓄力蛊（肋骨）：
+攻击时有12%概率打出「蓄力一击」，本次攻击将造成1.4*(1+力道INCREASE_EFFECT)倍伤害。
+胸腔内的肌肉越多（只判定肌肉器官(chestcavity:*muscle(包括muscle))，判定已有通用工具实现），
+概率越高，每组（16个）肌肉器官提高0.5%概率，最高不超过23%。不可叠加。
