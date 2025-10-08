@@ -59,8 +59,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
                 // no-op
             }
         }
-        // Move first this tick so distance checks reflect new position
-        SoulNavigationMirror.tick(soul);
+        // Navigation is advanced centrally via server tick; no per-entity tick here
         // Opportunistic post-move attack
         if (order == SoulAIOrders.Order.GUARD) {
             postGuardAttack(soul, owner);

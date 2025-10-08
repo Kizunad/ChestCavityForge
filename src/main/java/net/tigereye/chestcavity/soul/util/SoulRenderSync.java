@@ -45,10 +45,8 @@ public final class SoulRenderSync {
         }
     }
 
-    /** Convenience: ensure a reasonable selected hotbar then broadcast equipment. */
+    /** Convenience: broadcast equipment without changing selected hotbar. */
     public static void syncEquipmentForPlayer(Player player) {
-        ensureMainHandSelected(player);
         syncEquipment(player);
     }
 }
-

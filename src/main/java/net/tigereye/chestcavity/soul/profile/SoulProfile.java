@@ -116,8 +116,7 @@ public final class SoulProfile {
     public void restoreBase(ServerPlayer player) {
         // 恢复基础数据：背包、能力/附件（可能调整属性上限）、再回写原版状态，最后效果
         inventory.restore(player);
-        // 确保主手选中了一个可见物品（以便后续装备修饰符应用到 MAINHAND）
-        net.tigereye.chestcavity.soul.util.SoulRenderSync.ensureMainHandSelected(player);
+        // 选中槽位由 InventorySnapshot 恢复；不再在此处变更，以保持与存档一致
         // 应用装备修饰符：直接通知 LivingEntity 装备变更，确保武器/护甲的属性修饰符生效
         reapplyEquipmentAttributeModifiers(player);
         // 先应用能力（ChestCavity/Guzhenren 等），以便 MAX_HEALTH 等上限先就位
