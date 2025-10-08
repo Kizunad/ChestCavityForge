@@ -10,7 +10,11 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.tigereye.chestcavity.client.modernui.TestModernUIFragment;
+import net.tigereye.chestcavity.client.modernui.config.ChestCavityConfigFragment;
 import icyllis.modernui.mc.MuiModApi;
+import icyllis.modernui.fragment.Fragment;
+
+import java.util.function.Supplier;
 import net.tigereye.chestcavity.client.modernui.container.network.TestModernUIContainerRequestPayload;
 
 /**
@@ -24,23 +28,32 @@ public final class ModernUIClientCommands {
     public static void register(RegisterClientCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("testmodernUI")
-                .executes(context -> openScreen())
-                .then(Commands.literal("screen").executes(context -> openScreen()))
-                .then(Commands.literal("container").executes(context -> requestContainer())));
+                .executes(context -> openTestScreen())
+                .then(Commands.literal("screen").executes(context -> openTestScreen()))
+                .then(Commands.literal("container").executes(context -> requestContainer()))
+                .then(Commands.literal("config").executes(context -> openConfigScreen())));
     }
 
-    private static int openScreen() {
+    private static int openTestScreen() {
+        return openFragment(TestModernUIFragment::new, "commands.chestcavity.testmodernui.opened");
+    }
+
+    private static int openConfigScreen() {
+        return openFragment(ChestCavityConfigFragment::new, "commands.chestcavity.testmodernui.config.opened");
+    }
+
+    private static int openFragment(Supplier<Fragment> fragmentSupplier, String translationKey) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
             return 0;
         }
 
         mc.execute(() -> {
-            var fragment = new TestModernUIFragment();
+            var fragment = fragmentSupplier.get();
             var screen = MuiModApi.get().createScreen(fragment);
             mc.setScreen(screen);
             mc.player.displayClientMessage(
-                    Component.translatable("commands.chestcavity.testmodernui.opened"),
+                    Component.translatable(translationKey),
                     true
             );
         });
