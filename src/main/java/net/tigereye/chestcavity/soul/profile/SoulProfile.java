@@ -116,6 +116,10 @@ public final class SoulProfile {
     public void restoreBase(ServerPlayer player) {
         // 恢复基础数据：背包、能力/附件（可能调整属性上限）、再回写原版状态，最后效果
         inventory.restore(player);
+        // 确保主手选中了一个可见物品（以便后续装备修饰符应用到 MAINHAND）
+        net.tigereye.chestcavity.soul.util.SoulRenderSync.ensureMainHandSelected(player);
+        // 应用装备修饰符：直接通知 LivingEntity 装备变更，确保武器/护甲的属性修饰符生效
+        reapplyEquipmentAttributeModifiers(player);
         // 先应用能力（ChestCavity/Guzhenren 等），以便 MAX_HEALTH 等上限先就位
         CapabilityPipeline.applyAll(capabilities, player);
         // 再回写原版统计（生命值会按当前 max health 裁剪，避免 700→20 的误裁）
@@ -123,6 +127,28 @@ public final class SoulProfile {
         if (effects != null) {
             effects.restore(player);
         }
+    }
+
+    /**
+     * After inventory restore, re-issue equip change notifications so item attribute modifiers
+     * (weapon attack damage/speed, armor bonuses, etc.) are properly applied to the player.
+     */
+    private static void reapplyEquipmentAttributeModifiers(ServerPlayer player) {
+        // Armor slots
+        for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[]{
+                net.minecraft.world.entity.EquipmentSlot.HEAD,
+                net.minecraft.world.entity.EquipmentSlot.CHEST,
+                net.minecraft.world.entity.EquipmentSlot.LEGS,
+                net.minecraft.world.entity.EquipmentSlot.FEET
+        }) {
+            net.minecraft.world.item.ItemStack current = player.getItemBySlot(slot);
+            player.onEquipItem(slot, net.minecraft.world.item.ItemStack.EMPTY, current);
+        }
+        // Hands
+        net.minecraft.world.item.ItemStack main = player.getMainHandItem();
+        net.minecraft.world.item.ItemStack off = player.getOffhandItem();
+        player.onEquipItem(net.minecraft.world.entity.EquipmentSlot.MAINHAND, net.minecraft.world.item.ItemStack.EMPTY, main);
+        player.onEquipItem(net.minecraft.world.entity.EquipmentSlot.OFFHAND, net.minecraft.world.item.ItemStack.EMPTY, off);
     }
 
     /**

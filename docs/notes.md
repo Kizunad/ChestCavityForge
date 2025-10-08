@@ -1437,3 +1437,8 @@ src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/common/ShadowServic
     {"id": "chestcavity:speed", "value": "0.1"}
   ]
 }
+
+焚身蛊（肾脏）：
+处于着火状态时，每秒恢复3点精力值，
+有20％概率免疫中毒，获得［灵火庇护］固定抵御12点伤害（灵火庇护最多叠加n个）；n=2
+当胸腔内存在火心蛊和火人蛊时，自身将被赋予永久着火状态，同时获得火焰免疫。

@@ -29,6 +29,9 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
     private static final double STOP_DIST = 2.0;            // blocks
     private static final double SPEED = 1.2;               // nav speed
     private static final double GUARD_RADIUS = 16.0;       // blocks
+    // Kiting preferences
+    private static final double KITE_MIN_DIST = 3.0;        // start kiting if closer than this
+    private static final double KITE_TARGET_DIST = 6.0;     // preferred distance when kiting
 
     @Override
     public void onTickEnd(SoulPlayer soul) {
@@ -100,7 +103,19 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
             attacked = SoulAttackRegistry.attackIfInRange(soul, target);
         }
         if (!attacked) {
-            SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+            // Basic kiting: if too close and not attacking, step away to preferred distance
+            double d = soul.distanceTo(target);
+            if (d < KITE_MIN_DIST) {
+                var away = soul.position().subtract(target.position());
+                if (away.lengthSqr() > 1.0e-6) {
+                    var goal = target.position().add(away.normalize().scale(KITE_TARGET_DIST));
+                    SoulNavigationMirror.setGoal(soul, goal, SPEED, STOP_DIST);
+                } else {
+                    SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+                }
+            } else {
+                SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+            }
         } else {
             SoulNavigationMirror.clearGoal(soul);
         }
@@ -183,14 +198,25 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
             SoulLook.faceTowards(soul, anchor);
             return;
         }
-        // If in attack range, use attack registry; otherwise, path towards the target
+        // If in attack range, use attack registry; otherwise, path or kite towards the target
         SoulLook.faceTowards(soul, target.position());
         boolean attacked = false;
         if (!soul.isUsingItem()) {
             attacked = SoulAttackRegistry.attackIfInRange(soul, target);
         }
         if (!attacked) {
-            SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+            double d = soul.distanceTo(target);
+            if (d < KITE_MIN_DIST) {
+                var away = soul.position().subtract(target.position());
+                if (away.lengthSqr() > 1.0e-6) {
+                    var goal = target.position().add(away.normalize().scale(KITE_TARGET_DIST));
+                    SoulNavigationMirror.setGoal(soul, goal, SPEED, STOP_DIST);
+                } else {
+                    SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+                }
+            } else {
+                SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
+            }
         } else {
             // while attacking, do not move goal to avoid pushback fighting navigation
             SoulNavigationMirror.clearGoal(soul);

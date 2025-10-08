@@ -15,6 +15,8 @@ public final class SoulRuntimeHandlers {
             // Reactive hurt must run before default APPLY handler
             SoulRuntimeHandlerRegistry.register(new HurtRetaliateOrFleeHandler());
             SoulRuntimeHandlerRegistry.register(new DefaultSoulRuntimeHandler());
+            // Periodic callbacks (per-second / per-minute)
+            SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.runtime.SoulPeriodicDispatcher());
             // Opportunistic self-heal (food/potion/golden apples)
             SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.runtime.SelfHealHandler());
             // Minimal AI orders (FOLLOW/IDLE/GUARD)

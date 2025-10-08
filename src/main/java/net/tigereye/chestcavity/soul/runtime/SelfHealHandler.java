@@ -107,55 +107,16 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
 
         for (Item item : GUZ_HEAL_ITEMS) {
             if (player.getCooldowns().isOnCooldown(item)) continue;
-
-            Pair<InteractionHand, Integer> choice = chooseHandAndSlot(player, item);
-            if (choice == null) continue;
-
-            InteractionHand hand = choice.getFirst();
-            Integer slot = choice.getSecond();
-            int original = player.getInventory().selected;
-            boolean switched = false;
-
-            if (slot != null && slot >= 0 && slot <= 8 && original != slot) {
-                player.getInventory().selected = slot;
-                switched = true;
+            // 1) 优先从副手直接使用（不影响主手攻击）
+            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useOffhandIfReady(player, item, true)) {
+                SoulLog.info("[soul][heal][guz] used offhand item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
+                return true;
             }
-
-            ItemStack stack = player.getItemInHand(hand);
-            if (stack.isEmpty() || stack.getItem() != item) {
-                if (switched) player.getInventory().selected = original;
-                continue;
+            // 2) 不在副手时，从热键栏或背包临时搬到副手使用一次并还原
+            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)) {
+                SoulLog.info("[soul][heal][guz] swapped from inventory to offhand and used item={}", BuiltInRegistries.ITEM.getKey(item));
+                return true;
             }
-
-            InteractionResultHolder<ItemStack> result = stack.use(player.level(), player, hand);
-            InteractionResult type = result.getResult();
-            boolean consumed = type.consumesAction() || type == InteractionResult.SUCCESS;
-
-            if (!consumed) {
-                if (switched) player.getInventory().selected = original;
-                continue;
-            }
-
-            ItemStack after = result.getObject();
-            if (after != stack) player.setItemInHand(hand, after);
-
-            // 🩸 关键补丁：FakePlayer 无法自动吃/喝 → 直接执行 finishUsingItem()
-            if (player instanceof SoulPlayer) {
-                ItemStack resultStack = after.finishUsingItem(player.level(), player);
-                player.setItemInHand(hand, resultStack);
-                SoulLog.info("[soul][heal][guz] force-finish use for fake player, item={}", BuiltInRegistries.ITEM.getKey(item));
-            } else {
-                // 真实玩家（本体）仍使用正常流程
-                if (after.getUseDuration(player) > 0 && !player.isUsingItem()) {
-                    player.startUsingItem(hand);
-                }
-            }
-
-            // 冷却由物品本身处理，这里仅日志输出
-            SoulLog.info("[soul][heal][guz] used item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
-
-            if (switched) player.getInventory().selected = original;
-            return true;
         }
 
         return false;

@@ -610,6 +610,10 @@ public final class SoulFakePlayerSpawner {
         // 1) Save current possession into its profile
         SoulSwitchGuard.begin(executor, "switchTo");
         try {
+        // Preserve the executor's currently selected hotbar index to avoid transient duplication
+        // when inventory/equipment are restored mid-switch.
+        int preservedSelected = executor.getInventory().selected;
+        if (preservedSelected < 0 || preservedSelected > 8) preservedSelected = Math.max(0, Math.min(8, preservedSelected));
         SoulProfile currentProfile;
         if (currentId.equals(ownerUuid)) {
             container.updateActiveProfile();
@@ -672,6 +676,8 @@ public final class SoulFakePlayerSpawner {
 
         // 应用目标档案（仅基础数据：物品/属性/效果+能力），不改位置
         applyProfileBaseOnly(targetProfile, executor, "switchTo:applyBaseOnly");
+        // Restore the preserved selected hotbar slot to keep client/server selection stable
+        executor.getInventory().selected = preservedSelected;
 
         // 若目标是分魂，则消费其外壳；目标为本体则仅在存在外壳时清理
         if (!targetId.equals(ownerUuid)) {

@@ -34,7 +34,9 @@ public final class SimpleFleeHandler implements SoulFleeHandler {
         if (dir.lengthSqr() < 1e-4) {
             dir = self.position().subtract(ctx.anchor());
             if (dir.lengthSqr() < 1e-4) {
-                return false;
+                // near-zero: pick a random horizontal direction to avoid no-op
+                double angle = self.level().random.nextDouble() * Math.PI * 2.0;
+                dir = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
             }
         }
         Vec3 target = self.position().add(dir.normalize().scale(fleeDistance));

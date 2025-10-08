@@ -7,6 +7,8 @@ import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.ai.navigation.WaterBoundPathNavigation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
@@ -30,25 +32,33 @@ import javax.annotation.Nullable;
 final class VirtualSoulNavigator {
 
     private final DummyMob dummy;
-    private final GroundPathNavigation nav;
+    private final GroundPathNavigation navGround;
+    private final WaterBoundPathNavigation navWater;
+    private PathNavigation navCurrent;
 
     private @Nullable Vec3 target;
     private double stopDistance = 2.0;
     private double speedModifier = 1.0;
     private int stuckTicks;
     private double lastRemain2 = Double.MAX_VALUE;
+    private static final float MAX_UP_STEP = 1.5f; // allow stepping up ~1.5 blocks
+    // Auto step-up cooldown (similar to vanilla auto-jump debounce)
+    private int stepAssistCooldown = 0; // ticks remaining
+
+    private enum Mode { GROUND, SWIMMING, FLYING }
 
     VirtualSoulNavigator(ServerLevel level) {
         this.dummy = new DummyMob(level);
-        this.nav = new GroundPathNavigation(this.dummy, level);
-        // 支持涉水与门/台阶：
-        // - canFloat: 允许在水中寻路；
-        // - canPassDoors: 把门视作可通过（配合下方 tryOpenDoorIfNeeded 在相邻时打开木门）；
-        // - canOpenDoors: 提示导航器可开门（我们也会手动开木门避免停滞）。
-        this.nav.setCanFloat(true);
-        this.nav.setCanPassDoors(true);
-        this.nav.setCanOpenDoors(true);
-        // Keep default step height from backing entity type
+        this.navGround = new GroundPathNavigation(this.dummy, level);
+        this.navWater = new WaterBoundPathNavigation(this.dummy, level);
+        // Ground defaults
+        this.navGround.setCanPassDoors(true);
+        this.navGround.setCanOpenDoors(true);
+        this.navGround.setCanFloat(true);
+        // Water defaults
+        this.navWater.setCanFloat(true);
+        this.navCurrent = this.navGround;
+        // Note: step-height tuning relies on navigation/jump control; direct setter may not be available in this mapping.
     }
 
     void setGoal(SoulPlayer soul, Vec3 target, double speedModifier, double stopDistance) {
@@ -58,12 +68,13 @@ final class VirtualSoulNavigator {
         // start navigation from the soul's current location
         this.dummy.moveTo(soul.getX(), soul.getY(), soul.getZ(), soul.getYRot(), soul.getXRot());
         syncSpeedFromSoul(soul);
-        this.nav.moveTo(target.x, target.y, target.z, speedModifier);
+        selectNavFor(soul); // ensure nav matches current environment
+        this.navCurrent.moveTo(target.x, target.y, target.z, speedModifier);
     }
 
     void clearGoal() {
         this.target = null;
-        this.nav.stop();
+        this.navCurrent.stop();
         this.stuckTicks = 0;
         this.lastRemain2 = Double.MAX_VALUE;
     }
@@ -76,61 +87,85 @@ final class VirtualSoulNavigator {
         if (soul.isRemoved()) return;
         Level level = soul.level();
         if (!(level instanceof ServerLevel serverLevel)) return;
+        // Cooldown reduces once per tick
+        if (stepAssistCooldown > 0) stepAssistCooldown--;
 
         // Keep dummy at the same position of soul at start of tick
         this.dummy.setPos(soul.getX(), soul.getY(), soul.getZ());
         this.dummy.setYRot(soul.getYRot());
         this.dummy.setXRot(soul.getXRot());
-        // PathNavigation.canUpdatePath 依赖 onGround()；Dummy 不参与真实物理，强制视为在地面
-        this.dummy.setOnGround(true);
+        // Keep grounded flag for ground nav; step height is governed by pathing and jump control
 
         // Maintain speed parity before nav tick
         syncSpeedFromSoul(soul);
 
-        // Path maintenance: if nav went idle but target remains far, reissue
-        if (this.nav.isDone()) {
-            this.nav.moveTo(target.x, target.y, target.z, this.speedModifier);
-        }
+        // Mode selection and navigation tick
+        Mode mode = selectNavFor(soul);
 
-        // Tick navigation → sets MoveControl intentions (wanted position + speed)
-        this.nav.tick();
-        // 若下一节点被木门阻挡，尝试打开门（非铁门）以避免寻路卡住
-        tryOpenDoorIfNeeded(serverLevel);
+        Vec3 beforePlayer = soul.position();
+        Vec3 delta;
 
-        // Tick MoveControl and perform one travel step to advance dummy position in the Level
-        Vec3 before = this.dummy.position();
-        this.dummy.getMoveControl().tick();
-        // travel uses internal xxa/zza/speed set by MoveControl.tick
-        this.dummy.travel(Vec3.ZERO);
-        Vec3 after = this.dummy.position();
-        Vec3 delta = after.subtract(before);
-
-        // If movement is extremely small, try nudging towards the next path point to avoid stall
-        if (delta.lengthSqr() < 1.0e-6) {
-            Vec3 hint = hintDirectionTowardsNext();
-            if (hint != null) {
-                double speed = currentBlocksPerTick();
-                delta = hint.scale(speed);
-                // Move dummy with collisions so stuck detection works
-                this.dummy.move(MoverType.SELF, delta);
-            }
-        }
-
-        // Apply the computed delta to the SoulPlayer using vanilla collision resolution
-        if (delta.lengthSqr() > 0) {
+        if (mode == Mode.FLYING) {
+            // Direct-flight steering: move straight towards target, ignore collisions gently
+            soul.setNoGravity(true);
+            this.dummy.setNoGravity(true);
+            Vec3 to = new Vec3(target.x - soul.getX(), target.y - soul.getY(), target.z - soul.getZ());
+            double dist = Math.sqrt(to.lengthSqr());
+            double maxStep = Math.max(0.05, currentBlocksPerTick());
+            Vec3 step = dist > maxStep ? to.scale(maxStep / dist) : to;
+            delta = step;
+            // Apply flight move directly to the SoulPlayer
             soul.move(MoverType.SELF, delta);
-            // Align facing towards movement
-            if (delta.horizontalDistanceSqr() > 1.0e-6) {
-                float yaw = (float)(Mth.atan2(delta.z, delta.x) * (180F/Math.PI)) - 90f;
-                soul.setYRot(yaw);
-                soul.setYHeadRot(yaw);
+        } else {
+            // Ensure gravity restored outside flying mode
+            if (soul.isNoGravity()) soul.setNoGravity(false);
+            if (this.dummy.isNoGravity()) this.dummy.setNoGravity(false);
+            // Path maintenance: if nav went idle but target remains far, reissue
+            if (this.navCurrent.isDone()) {
+                this.navCurrent.moveTo(target.x, target.y, target.z, this.speedModifier);
             }
+            // Advance pathfinding one step
+            this.navCurrent.tick();
+            if (mode == Mode.GROUND) {
+                tryOpenDoorIfNeeded(serverLevel);
+            }
+            // Directly step towards the next node center to avoid relying on internal travel mechanics
+            var path = this.navCurrent.getPath();
+            Vec3 nextCenter = null;
+            if (path != null && !path.isDone()) {
+                var nodePos = path.getNextNodePos();
+                if (nodePos != null) {
+                    nextCenter = new Vec3(nodePos.getX() + 0.5, nodePos.getY(), nodePos.getZ() + 0.5);
+                }
+            }
+            if (nextCenter == null) {
+                // fallback: go straight to final target smoothly
+                nextCenter = this.target;
+            }
+            Vec3 toNode = nextCenter.subtract(soul.position());
+            double dist = toNode.length();
+            double maxStep = Math.max(0.05, currentBlocksPerTick());
+            if (dist > maxStep) {
+                delta = toNode.scale(maxStep / dist);
+            } else {
+                delta = toNode;
+            }
+            // Apply move with step assist when grounded
+            applyMoveWithStepAssist(soul, delta, mode);
+        }
+
+        // Align facing towards actual movement
+        Vec3 moved = soul.position().subtract(beforePlayer);
+        if (moved.horizontalDistanceSqr() > 1.0e-6) {
+            float yaw = (float)(Mth.atan2(moved.z, moved.x) * (180F/Math.PI)) - 90f;
+            soul.setYRot(yaw);
+            soul.setYHeadRot(yaw);
         }
 
         // Completion & stuck handling
-        double remain2 = after.distanceToSqr(this.target);
+        double remain2 = soul.position().distanceToSqr(this.target);
         boolean close = remain2 <= (this.stopDistance * this.stopDistance);
-        boolean navDone = this.nav.isDone();
+        boolean navDone = (mode != Mode.FLYING) && this.navCurrent.isDone();
         if (remain2 < this.lastRemain2 - 0.25) { // progressed ~0.5 blocks in distance
             this.lastRemain2 = remain2;
             this.stuckTicks = 0;
@@ -143,11 +178,14 @@ final class VirtualSoulNavigator {
             return;
         }
 
-        if (this.stuckTicks >= 40) { // ~2 seconds
-            if (fallbackToSafeGround(serverLevel, soul)) {
-                this.stuckTicks = 0;
-                this.lastRemain2 = Double.MAX_VALUE;
-            }
+        // Recompute path periodically if we appear stuck
+        if (mode != Mode.FLYING && (this.stuckTicks % 40 == 0)) {
+            this.navCurrent.recomputePath();
+        }
+        // No teleport fallback; keep behavior minimal and predictable
+        if (this.stuckTicks >= 200) {
+            this.stuckTicks = 0;
+            this.lastRemain2 = remain2;
         }
     }
 
@@ -162,57 +200,34 @@ final class VirtualSoulNavigator {
     }
 
     private double currentBlocksPerTick() {
-        // Match MoveControl: desiredSpeed = speedModifier * entity.getSpeed()
-        // Movement per tick roughly equals desiredSpeed for ground walking in vanilla travel.
         AttributeInstance d = this.dummy.getAttribute(Attributes.MOVEMENT_SPEED);
-        double base = d != null ? d.getValue() : 0.1; // MOVEMENT_SPEED final value
+        double base = d != null ? d.getValue() : 0.1;
         return base * this.speedModifier;
     }
 
-    /**
-     * Provide a gentle direction hint towards the next path node when MoveControl produces no motion.
-     */
-    private @Nullable Vec3 hintDirectionTowardsNext() {
-        if (this.nav.getPath() == null || this.nav.getPath().isDone()) return null;
-        var p = this.nav.getPath();
-        var node = p.getNextNodePos();
-        Vec3 here = this.dummy.position();
-        Vec3 dir = new Vec3(node.getX() + 0.5 - here.x, node.getY() - here.y, node.getZ() + 0.5 - here.z);
-        if (dir.lengthSqr() < 1.0e-6) return null;
-        return dir.normalize();
-    }
-
-    private boolean fallbackToSafeGround(ServerLevel level, SoulPlayer soul) {
-        if (this.target == null) return false;
-        int[] OFF = new int[]{0, 1, -1, 2, -2};
-        for (int dx : OFF) for (int dz : OFF) {
-            if (Math.abs(dx) + Math.abs(dz) > 3) continue;
-            int x = Mth.floor(this.target.x) + dx;
-            int z = Mth.floor(this.target.z) + dz;
-            int startY = Math.min(level.getMaxBuildHeight() - 1, Mth.floor(this.target.y) + 2);
-            int minY = Math.max(level.getMinBuildHeight(), startY - 24);
-            for (int y = startY; y >= minY; y--) {
-                BlockPos pos = new BlockPos(x, y, z);
-                BlockPos below = pos.below();
-                if (level.isEmptyBlock(pos) && !level.isEmptyBlock(below) && level.getBlockState(below).isSolid()) {
-                    double fx = x + 0.5;
-                    double fy = y + 0.01;
-                    double fz = z + 0.5;
-                    // snap dummy & soul, then re-issue navigation
-                    this.dummy.setPos(fx, fy, fz);
-                    soul.teleportTo(level, fx, fy, fz, soul.getYRot(), soul.getXRot());
-                    this.nav.moveTo(this.target.x, this.target.y, this.target.z, this.speedModifier);
-                    SoulLog.info("[soul][nav] fallback safe-ground soul={} at ({},{},{})", soul.getSoulId(), fx, fy, fz);
-                    return true;
-                }
-            }
+    private Mode selectNavFor(SoulPlayer soul) {
+        if (this.target == null) return Mode.GROUND;
+        // FLY when abilities report flying (granted via organ or command)
+        if (soul.getAbilities().flying) {
+            this.navCurrent.stop();
+            return Mode.FLYING;
         }
-        return false;
+        // SWIMMING when in water or bubble column
+        boolean inWater = soul.isInWaterOrBubble();
+        PathNavigation desired = inWater ? this.navWater : this.navGround;
+        if (this.navCurrent != desired) {
+            this.navCurrent.stop();
+            // Move dummy to current soul pos before issuing new moveTo
+            this.dummy.moveTo(soul.getX(), soul.getY(), soul.getZ(), soul.getYRot(), soul.getXRot());
+            this.navCurrent = desired;
+            this.navCurrent.moveTo(target.x, target.y, target.z, this.speedModifier);
+        }
+        return inWater ? Mode.SWIMMING : Mode.GROUND;
     }
 
     // 检查下一节点是否为关闭的木门，若是且靠近则尝试打开
     private void tryOpenDoorIfNeeded(ServerLevel level) {
-        var path = this.nav.getPath();
+        var path = this.navCurrent.getPath();
         if (path == null || path.isDone()) return;
         var nodePos = path.getNextNodePos();
         // 检查当前与下一格（下/上半门）
@@ -242,6 +257,72 @@ final class VirtualSoulNavigator {
                     level.setBlock(other, otherState.setValue(openProp, true), 10);
                 }
             }
+        }
+    }
+
+    /**
+     * Apply movement to the SoulPlayer. If on ground mode and the move seems blocked,
+     * attempt an auto-jump style step-up up to 2 blocks high by splitting the move into
+     * vertical then horizontal components.
+     */
+    private void applyMoveWithStepAssist(SoulPlayer soul, Vec3 delta, Mode mode) {
+        if (delta.lengthSqr() <= 0) return;
+        Vec3 start = soul.position();
+        // Try plain move first
+        soul.move(MoverType.SELF, delta);
+        Vec3 after = soul.position();
+        double intended2 = delta.lengthSqr();
+        double moved2 = after.distanceToSqr(start);
+        if (mode != Mode.GROUND) return; // only assist on ground
+        if (moved2 >= Math.min(intended2, 0.25)) return; // moved enough
+
+        // Respect step assist cooldown
+        if (stepAssistCooldown > 0) {
+            // On cooldown: do not attempt step-up; keep current (possibly blocked) result
+            return;
+        }
+
+        // Revert to start and try step-up attempts
+        // Move back by negative of actual displacement to avoid teleport
+        Vec3 revert = start.subtract(after);
+        if (revert.lengthSqr() > 0) soul.move(MoverType.SELF, revert);
+
+        double[] heights = new double[]{1.0, 1.5, 2.0};
+        for (double h : heights) {
+            // Raise up by h, then apply only horizontal component
+            Vec3 up = new Vec3(0.0, h, 0.0);
+            soul.move(MoverType.SELF, up);
+            // Horizontal only
+            Vec3 horiz = new Vec3(delta.x, 0.0, delta.z);
+            soul.move(MoverType.SELF, horiz);
+
+            Vec3 pos = soul.position();
+            double movedTry2 = pos.distanceToSqr(start);
+            if (movedTry2 >= Math.min(intended2, 0.25)) {
+                // Success: start cooldown
+                int maxCd = getStepAssistCooldownMax();
+                if (maxCd < 0) maxCd = 0;
+                if (maxCd > 200) maxCd = 200;
+                this.stepAssistCooldown = maxCd;
+                return; // success
+            }
+            // Revert and try next height
+            Vec3 back = start.subtract(pos);
+            if (back.lengthSqr() > 0) soul.move(MoverType.SELF, back);
+        }
+        // All failed: stay at start (already reverted)
+    }
+
+    private static int getStepAssistCooldownMax() {
+        String v = System.getProperty("chestcavity.soul.stepAssistCooldown");
+        if (v == null) return 8; // ~0.4s at 20 TPS
+        try {
+            int parsed = Integer.parseInt(v);
+            if (parsed < 0) return 0;
+            if (parsed > 200) return 200;
+            return parsed;
+        } catch (NumberFormatException e) {
+            return 8;
         }
     }
 }

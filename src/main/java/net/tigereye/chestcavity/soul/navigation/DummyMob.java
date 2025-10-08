@@ -26,7 +26,6 @@ final class DummyMob extends Mob {
         this.setSilent(true);
         this.setInvulnerable(true);
         this.setPersistenceRequired();
-        // Step height left as default for the backing entity type
     }
 
     @Override
@@ -36,7 +35,12 @@ final class DummyMob extends Mob {
 
     @Override
     protected net.minecraft.world.entity.ai.navigation.PathNavigation createNavigation(Level level) {
-        return new net.minecraft.world.entity.ai.navigation.GroundPathNavigation(this, level);
+        var nav = new net.minecraft.world.entity.ai.navigation.GroundPathNavigation(this, level);
+        // Encourage small step-ups by enabling passing through doors and floating; jumping is handled by path logic
+        nav.setCanPassDoors(true);
+        nav.setCanOpenDoors(true);
+        nav.setCanFloat(true);
+        return nav;
     }
 
     @Override

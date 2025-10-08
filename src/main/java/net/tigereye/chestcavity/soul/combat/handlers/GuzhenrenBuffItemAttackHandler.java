@@ -96,44 +96,18 @@ public final class GuzhenrenBuffItemAttackHandler implements SoulAttackHandler {
     private boolean tryUseAnyBuff(SoulPlayer player) {
         for (Item item : BUFF_ITEMS) {
             if (player.getCooldowns().isOnCooldown(item)) continue;
-            Pair<InteractionHand, Integer> choice = chooseHandAndSlot(player, item);
-            if (choice == null) continue;
-            InteractionHand hand = choice.getFirst();
-            Integer slot = choice.getSecond();
-            int original = player.getInventory().selected;
-            boolean switched = false;
-            if (slot != null && slot >= 0 && slot <= 8 && original != slot) {
-                player.getInventory().selected = slot;
-                switched = true;
+            // 1) Prefer offhand direct use (minimizes interference with main-hand/selection)
+            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useOffhandIfReady(player, item, true)) {
+                SoulLog.info("[soul][attack][guz] buff-use(offhand) item={}", BuiltInRegistries.ITEM.getKey(item));
+                return true;
             }
-            ItemStack stack = player.getItemInHand(hand);
-            if (stack.isEmpty() || stack.getItem() != item) {
-                if (switched) player.getInventory().selected = original;
-                continue;
+            // 2) Temporarily swap from inventory/hotbar to offhand, use once, then restore
+            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)) {
+                SoulLog.info("[soul][attack][guz] buff-use(offhand-swap) item={}", BuiltInRegistries.ITEM.getKey(item));
+                return true;
             }
-            InteractionResultHolder<ItemStack> result = stack.use(player.level(), player, hand);
-            InteractionResult type = result.getResult();
-            boolean consumed = type.consumesAction() || type == InteractionResult.SUCCESS;
-            if (!consumed) {
-                if (switched) player.getInventory().selected = original;
-                continue;
-            }
-            ItemStack after = result.getObject();
-            if (after != stack) player.setItemInHand(hand, after);
-            if (after.getUseDuration(player) > 0 && !player.isUsingItem()) player.startUsingItem(hand);
-            SoulLog.info("[soul][attack][guz] buff-use item={}", BuiltInRegistries.ITEM.getKey(item));
-            return true;
         }
         return false;
     }
 
-    private static Pair<InteractionHand, Integer> chooseHandAndSlot(Player p, Item item) {
-        if (p.getOffhandItem().getItem() == item) return Pair.of(InteractionHand.OFF_HAND, null);
-        if (p.getMainHandItem().getItem() == item) return Pair.of(InteractionHand.MAIN_HAND, p.getInventory().selected);
-        for (int i = 0; i < 9; i++) {
-            ItemStack s = p.getInventory().getItem(i);
-            if (!s.isEmpty() && s.getItem() == item) return Pair.of(InteractionHand.MAIN_HAND, i);
-        }
-        return null;
-    }
 }

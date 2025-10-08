@@ -63,10 +63,15 @@ public record IfItemUseAction(ResourceLocation itemId, int cooldownTicks, boolea
         }
 
         // 2) Attempt use
+        // Resolve the actual stack from the player's hand; never fabricate a new stack
         ItemStack stack = performer.getItemInHand(hand);
         if (stack.isEmpty() || stack.getItem() != item) {
-            // Fallback: if selection changed during the tick, re-resolve
-            stack = new ItemStack(item);
+            // Selection may have changed; try to re-resolve once from the target hand
+            stack = performer.getItemInHand(hand);
+            if (stack.isEmpty() || stack.getItem() != item) {
+                if (switched) performer.getInventory().selected = originalSelected;
+                return;
+            }
         }
         InteractionResultHolder<ItemStack> result = stack.use(performer.level(), performer, hand);
         InteractionResult type = result.getResult();
@@ -78,6 +83,7 @@ public record IfItemUseAction(ResourceLocation itemId, int cooldownTicks, boolea
         }
 
         ItemStack after = result.getObject();
+        // Only write back when the returned reference differs; this preserves in-place mutations
         if (after != stack) {
             performer.setItemInHand(hand, after);
         }
@@ -116,4 +122,3 @@ public record IfItemUseAction(ResourceLocation itemId, int cooldownTicks, boolea
         return null;
     }
 }
-
