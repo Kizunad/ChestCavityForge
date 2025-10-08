@@ -10,6 +10,7 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.types.GeneratedChestCavityType;
+import net.tigereye.chestcavity.chestcavities.types.RandomChestCavityFiller;
 
 import java.util.*;
 
@@ -33,6 +34,7 @@ public class ChestCavityTypeSerializer {
         cct.setDefaultChestCavity(readDefaultChestCavityFromJson(id,cctJson,cct.getForbiddenSlots()));
         cct.setBaseOrganScores(readBaseOrganScoresFromJson(id,cctJson));
         cct.setExceptionalOrganList(readExceptionalOrgansFromJson(id,cctJson));
+        cct.setRandomFillers(readRandomGeneratorsFromJson(id, cctJson));
         cct.setDropRateMultiplier(cctJson.dropRateMultiplier);
         cct.setPlayerChestCavity(cctJson.playerChestCavity);
         cct.setBossChestCavity(cctJson.bossChestCavity);
@@ -132,6 +134,101 @@ public class ChestCavityTypeSerializer {
         }
 
         return exceptionalOrgans;
+    }
+
+    private List<RandomChestCavityFiller> readRandomGeneratorsFromJson(ResourceLocation id, ChestCavityTypeJsonFormat cctJson) {
+        if (cctJson.randomGenerators == null) {
+            return Collections.emptyList();
+        }
+        List<RandomChestCavityFiller> fillers = new ArrayList<>();
+        int index = 0;
+        for (JsonElement element : cctJson.randomGenerators) {
+            ++index;
+            if (!element.isJsonObject()) {
+                ChestCavity.LOGGER.error("Invalid entry type in {}'s random generators at position {}", id, index);
+                continue;
+            }
+            JsonObject object = element.getAsJsonObject();
+            if (!object.has("id")) {
+                ChestCavity.LOGGER.error("Missing id component in entry no. {} in {}'s random generators", index, id);
+                continue;
+            }
+            ResourceLocation generatorId;
+            try {
+                generatorId = ResourceLocation.parse(object.get("id").getAsString());
+            } catch (IllegalArgumentException exception) {
+                ChestCavity.LOGGER.error("Invalid id '{}' in entry no. {} in {}'s random generators", object.get("id").getAsString(), index, id);
+                continue;
+            }
+
+            int minCount = 1;
+            int maxCount = 1;
+            if (object.has("count")) {
+                JsonElement countElement = object.get("count");
+                if (countElement.isJsonPrimitive() && countElement.getAsJsonPrimitive().isNumber()) {
+                    minCount = maxCount = countElement.getAsInt();
+                } else if (countElement.isJsonObject()) {
+                    JsonObject countObject = countElement.getAsJsonObject();
+                    if (countObject.has("min")) {
+                        minCount = countObject.get("min").getAsInt();
+                    } else {
+                        minCount = 0;
+                    }
+                    if (countObject.has("max")) {
+                        maxCount = countObject.get("max").getAsInt();
+                    } else {
+                        maxCount = minCount;
+                    }
+                } else {
+                    ChestCavity.LOGGER.error("Invalid count definition in entry no. {} in {}'s random generators", index, id);
+                    continue;
+                }
+            }
+
+            if (minCount < 0 || maxCount < 0) {
+                ChestCavity.LOGGER.warn("Negative count in entry no. {} in {}'s random generators; clamping to zero", index, id);
+                minCount = Math.max(0, minCount);
+                maxCount = Math.max(0, maxCount);
+            }
+            if (minCount > maxCount) {
+                ChestCavity.LOGGER.warn("Min greater than max in entry no. {} in {}'s random generators; swapping values", index, id);
+                int temp = minCount;
+                minCount = maxCount;
+                maxCount = temp;
+            }
+
+            if (!object.has("items") || !object.get("items").isJsonArray()) {
+                ChestCavity.LOGGER.error("Missing items array in entry no. {} in {}'s random generators", index, id);
+                continue;
+            }
+
+            List<Item> items = new ArrayList<>();
+            for (JsonElement itemElement : object.getAsJsonArray("items")) {
+                if (!itemElement.isJsonPrimitive()) {
+                    ChestCavity.LOGGER.error("Invalid item entry in entry no. {} in {}'s random generators", index, id);
+                    continue;
+                }
+                ResourceLocation itemId;
+                try {
+                    itemId = ResourceLocation.parse(itemElement.getAsString());
+                } catch (IllegalArgumentException exception) {
+                    ChestCavity.LOGGER.error("Invalid item id '{}' in entry no. {} in {}'s random generators", itemElement.getAsString(), index, id);
+                    continue;
+                }
+                Optional<Item> itemOptional = BuiltInRegistries.ITEM.getOptional(itemId);
+                if (itemOptional.isEmpty()) {
+                    ChestCavity.LOGGER.error("Unknown {} in entry no. {} in {}'s random generators", itemId, index, id);
+                    continue;
+                }
+                items.add(itemOptional.get());
+            }
+            if (items.isEmpty()) {
+                ChestCavity.LOGGER.error("No valid items found in entry no. {} in {}'s random generators", index, id);
+                continue;
+            }
+            fillers.add(new RandomChestCavityFiller(generatorId, minCount, maxCount, items));
+        }
+        return Collections.unmodifiableList(fillers);
     }
 
     private Map<ResourceLocation,Float> readOrganScoresFromJson(ResourceLocation id, JsonArray json){
