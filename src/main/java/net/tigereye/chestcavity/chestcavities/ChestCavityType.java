@@ -22,6 +22,8 @@ public interface ChestCavityType {
 
     public List<ItemStack> generateLootDrops(RandomSource random, int looting);
 
+    default void applyRandomFillers(ChestCavityInstance instance, ChestCavityInventory inventory, RandomSource random) {}
+
     public void setOrganCompatibility(ChestCavityInstance instance);
     public float getHeartBleedCap();
     public boolean isOpenable(ChestCavityInstance instance);

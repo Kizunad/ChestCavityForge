@@ -26,6 +26,7 @@ public class GeneratedChestCavityType implements ChestCavityType {
     private Map<Ingredient,Map<ResourceLocation,Float>> exceptionalOrganList = null;
     private List<ItemStack> droppableOrgans = null;
     private List<Integer> forbiddenSlots = new ArrayList<>();
+    private List<RandomChestCavityFiller> randomFillers = Collections.emptyList();
     private float dropRateMultiplier = 1;
     private boolean bossChestCavity = false;
     private boolean playerChestCavity = false;
@@ -92,6 +93,14 @@ public class GeneratedChestCavityType implements ChestCavityType {
             forbiddenSlots.remove(index);
         }
     }
+
+    public void setRandomFillers(List<RandomChestCavityFiller> fillers) {
+        randomFillers = Objects.requireNonNullElseGet(fillers, Collections::emptyList);
+    }
+
+    public List<RandomChestCavityFiller> getRandomFillers() {
+        return randomFillers;
+    }
     @Override
     public boolean isSlotForbidden(int index){
         return forbiddenSlots.contains(index);
@@ -109,6 +118,16 @@ public class GeneratedChestCavityType implements ChestCavityType {
         chestCavity.clearContent();
         for(int i = 0; i < chestCavity.getContainerSize(); i++){
             chestCavity.setItem(i,defaultChestCavity.getItem(i));
+        }
+    }
+
+    @Override
+    public void applyRandomFillers(ChestCavityInstance instance, ChestCavityInventory inventory, RandomSource random) {
+        if (randomFillers.isEmpty()) {
+            return;
+        }
+        for (RandomChestCavityFiller filler : randomFillers) {
+            filler.fill(inventory, random);
         }
     }
 

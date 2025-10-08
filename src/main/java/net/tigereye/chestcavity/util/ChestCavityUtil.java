@@ -574,6 +574,8 @@ public class ChestCavityUtil {
                     cc.inventory.setItem(i, item.copy());
                 }
             }
+            RandomSource random = cc.owner != null ? cc.owner.getRandom() : RandomSource.create();
+            cc.getChestCavityType().applyRandomFillers(cc, cc.inventory, random);
             cc.getChestCavityType().setOrganCompatibility(cc);
         }
     }
