@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -105,6 +106,10 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return damage;
         }
         if (!isPrimaryOrgan(cc, organ)) {
+            return damage;
+        }
+
+        if (!source.is(DamageTypeTags.IS_FIRE)) {
             return damage;
         }
 
