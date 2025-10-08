@@ -4,6 +4,8 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -15,8 +17,10 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOr
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.OrganPresenceUtil;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,6 +41,7 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "fen_shen_gu");
     private static final ResourceLocation HUOXINGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huoxingu");
     private static final ResourceLocation HUORENGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huorengu");
+    private static final ResourceLocation FLAME_AURA_FX = ResourceLocation.parse("chestcavity:fire_huo_yi");
 
     private static final String STATE_ROOT = "FenShenGu";
     private static final String STACKS_KEY = "LinghuoStacks";
@@ -78,6 +83,9 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (synergyActive) {
             maintainPermanentFlames(entity);
             grantFireResistance(entity);
+            if (entity.level() instanceof ServerLevel serverLevel) {
+                playFlameAura(serverLevel, entity);
+            }
         }
 
         if (entity.isOnFire() || synergyActive) {
@@ -109,8 +117,8 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return damage;
         }
 
-        // 着火/近战
-        if (!source.is(DamageTypeTags.IS_FIRE) || source.is(DamageTypeTags.IS_PROJECTILE)) {
+        // 近战
+        if (source.is(DamageTypeTags.IS_PROJECTILE)) {
             return damage;
         }
 
@@ -170,6 +178,17 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private void grantFireResistance(LivingEntity entity) {
         entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, FIRE_RESIST_DURATION_TICKS, 0, false, false, true));
+    }
+
+    private void playFlameAura(ServerLevel level, LivingEntity entity) {
+        if (level == null || entity == null || FLAME_AURA_FX == null) {
+            return;
+        }
+        Vec3 origin = entity.position().add(0.0D, entity.getBbHeight() * 0.5D, 0.0D);
+        Vec3 look = entity.getLookAngle();
+        Vec3 fallback = look.lengthSqr() > 1.0E-4D ? look : new Vec3(0.0D, 1.0D, 0.0D);
+        ServerPlayer performer = entity instanceof ServerPlayer player ? player : null;
+        AbilityFxDispatcher.play(level, FLAME_AURA_FX, origin, fallback, look, performer, entity, 1.0F);
     }
 
     // 检测存在火心蛊和火人蛊

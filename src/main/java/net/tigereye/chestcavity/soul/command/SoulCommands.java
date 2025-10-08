@@ -412,7 +412,8 @@ public final class SoulCommands {
         UUID soulId = java.util.UUID.randomUUID();
         SoulContainer container = CCAttachments.getSoulContainer(executor);
         if (!container.hasProfile(soulId)) {
-            InventorySnapshot inv = new InventorySnapshot(net.minecraft.core.NonNullList.withSize(41, net.minecraft.world.item.ItemStack.EMPTY));
+            int selected = Math.max(0, Math.min(8, executor.getInventory().selected));
+            InventorySnapshot inv = new InventorySnapshot(net.minecraft.core.NonNullList.withSize(41, net.minecraft.world.item.ItemStack.EMPTY), selected);
             PlayerStatsSnapshot stats = PlayerStatsSnapshot.empty();
             PlayerEffectsSnapshot fx = PlayerEffectsSnapshot.empty();
             PlayerPositionSnapshot pos = PlayerPositionSnapshot.capture(executor);
@@ -449,7 +450,8 @@ public final class SoulCommands {
         UUID soulId = java.util.UUID.randomUUID();
         SoulContainer container = CCAttachments.getSoulContainer(executor);
         if (!container.hasProfile(soulId)) {
-            InventorySnapshot inv = new InventorySnapshot(net.minecraft.core.NonNullList.withSize(41, net.minecraft.world.item.ItemStack.EMPTY));
+            int selected = Math.max(0, Math.min(8, executor.getInventory().selected));
+            InventorySnapshot inv = new InventorySnapshot(net.minecraft.core.NonNullList.withSize(41, net.minecraft.world.item.ItemStack.EMPTY), selected);
             PlayerStatsSnapshot stats = PlayerStatsSnapshot.empty();
             PlayerEffectsSnapshot fx = PlayerEffectsSnapshot.empty();
             PlayerPositionSnapshot pos = PlayerPositionSnapshot.of(executor.level().dimension(), x, y, z, yaw, pitch, yaw);

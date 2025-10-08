@@ -2,6 +2,7 @@
   "itemID": "guzhenren:guiqigu",
   "organScores": [
     { "id": "guzhenren:zuida_hunpo", "value": "66" },
-    {"id":"chestcavity:health","value": "4"}
+    {"id":"chestcavity:health","value": "4"},
+    {"id":"chestcavity:speed","value": "0.1"}
   ]
 }

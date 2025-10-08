@@ -13,7 +13,7 @@ import net.minecraft.world.item.ItemStack;
  * - 仅保存原版的 41 个槽位：36 主背包 + 4 护甲槽 + 1 副手。
  * - 不涉及外部模组的扩展容器；用于灵魂存档的最小可用还原。
  */
-public record InventorySnapshot(NonNullList<ItemStack> items) {
+public record InventorySnapshot(NonNullList<ItemStack> items, int selectedHotbar) {
 
     private static final int TOTAL_SLOTS = 41;
 
@@ -27,7 +27,9 @@ public record InventorySnapshot(NonNullList<ItemStack> items) {
         }
         stacks.set(player.getInventory().items.size() + player.getInventory().armor.size(),
                 player.getInventory().offhand.get(0).copy());
-        return new InventorySnapshot(stacks);
+        int selected = player.getInventory().selected;
+        if (selected < 0 || selected > 8) selected = Math.max(0, Math.min(8, selected));
+        return new InventorySnapshot(stacks, selected);
     }
 
     public void restore(Player player) {
@@ -43,11 +45,16 @@ public record InventorySnapshot(NonNullList<ItemStack> items) {
         if (offhandIndex < items.size()) {
             player.getInventory().offhand.set(0, items.get(offhandIndex).copy());
         }
+        // Restore selected hotbar slot if valid
+        int sel = selectedHotbar;
+        if (sel >= 0 && sel <= 8) {
+            player.getInventory().selected = sel;
+        }
         player.getInventory().setChanged();
     }
 
     public static InventorySnapshot empty() {
-        return new InventorySnapshot(NonNullList.withSize(TOTAL_SLOTS, ItemStack.EMPTY));
+        return new InventorySnapshot(NonNullList.withSize(TOTAL_SLOTS, ItemStack.EMPTY), 0);
     }
 
     private void clearInventory(Player player) {
@@ -66,6 +73,7 @@ public record InventorySnapshot(NonNullList<ItemStack> items) {
             }
         }
         root.putInt("size", items.size());
+        root.putInt("selected", Math.max(0, Math.min(8, selectedHotbar)));
         return root;
     }
 
@@ -84,6 +92,8 @@ public record InventorySnapshot(NonNullList<ItemStack> items) {
             } catch (NumberFormatException ignored) {
             }
         }
-        return new InventorySnapshot(stacks);
+        int selected = tag.contains("selected") ? tag.getInt("selected") : 0;
+        if (selected < 0 || selected > 8) selected = 0;
+        return new InventorySnapshot(stacks, selected);
     }
 }

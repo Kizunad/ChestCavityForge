@@ -676,8 +676,12 @@ public final class SoulFakePlayerSpawner {
 
         // 应用目标档案（仅基础数据：物品/属性/效果+能力），不改位置
         applyProfileBaseOnly(targetProfile, executor, "switchTo:applyBaseOnly");
-        // Restore the preserved selected hotbar slot to keep client/server selection stable
-        executor.getInventory().selected = preservedSelected;
+        // 选中槽位一致性：无论目标为分魂或本体，一律使用目标档案自身的 selectedHotbar（已在 restoreBase 内恢复）
+        // 同步当前主手槽位到客户端，避免客户端旧视图覆盖；并广播一次容器变更
+        executor.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(executor.getInventory().selected));
+        executor.inventoryMenu.broadcastChanges();
+        // Final equipment sync after selection is settled
+        net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(executor);
 
         // 若目标是分魂，则消费其外壳；目标为本体则仅在存在外壳时清理
         if (!targetId.equals(ownerUuid)) {
@@ -757,8 +761,9 @@ public final class SoulFakePlayerSpawner {
 
     // 仅应用基础数据（背包/属性/效果），不改变位置，用于“先TP至目标壳，再继承数据”的切换流程
     private static void applyProfileBaseOnly(SoulProfile profile, ServerPlayer player, String reason) {
+        // Restore inventory/stats/effects; selection restored from InventorySnapshot inside restore
         profile.restoreBase(player);
-        net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(player);
+        // Do NOT sync equipment here; final sync is performed by caller after selected slot is finalized
         SoulLog.info("[soul] apply-base-only reason={} soul={}", reason, profile.id());
     }
 

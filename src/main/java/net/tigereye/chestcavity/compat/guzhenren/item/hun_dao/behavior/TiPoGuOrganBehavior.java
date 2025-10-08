@@ -273,7 +273,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             boolean forceRefresh
     ) {
         if (soulBeast) {
-            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick));
+            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
             logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, state.setDouble(KEY_LAST_SHIELD_AMOUNT, 0.0D));
             return;
         }
@@ -281,13 +281,21 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (forceRefresh) {
             lastRefresh = Long.MIN_VALUE;
         }
+        if (lastRefresh != Long.MIN_VALUE) {
+            long minAllowed = Math.max(0L, currentTick - SHIELD_REFRESH_INTERVAL_TICKS);
+            long clampedTick = Math.max(minAllowed, Math.min(lastRefresh, currentTick));
+            if (clampedTick != lastRefresh) {
+                logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, clampedTick, value -> Math.max(0L, value), 0L));
+                lastRefresh = clampedTick;
+            }
+        }
         boolean shouldRefresh = lastRefresh == Long.MIN_VALUE || currentTick - lastRefresh >= SHIELD_REFRESH_INTERVAL_TICKS;
         if (!shouldRefresh) {
             return;
         }
         double maxHunpo = handle.read("zuida_hunpo").orElse(0.0D);
         if (!(maxHunpo > 0.0D)) {
-            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick));
+            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
             logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, state.setDouble(KEY_LAST_SHIELD_AMOUNT, 0.0D));
             return;
         }
@@ -299,7 +307,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (updated - currentAbsorption > EPSILON) {
             player.setAbsorptionAmount(updated);
         }
-        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick));
+        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
         logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, state.setDouble(KEY_LAST_SHIELD_AMOUNT, shieldValue));
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(

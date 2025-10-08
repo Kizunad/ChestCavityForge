@@ -2,6 +2,7 @@
   "itemID": "guzhenren:tipogu",
   "organScores": [
     {"id":"guzhenren:zuida_hunpo","value":"77"},
-    {"id":"chestcavity:strength","value":"32"}
+    {"id":"chestcavity:strength","value":"32"},
+    {"id":"chestcavity:speed","value": "0.05"}
   ]
 }
