@@ -110,7 +110,7 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         // 着火/近战
-        if (!source.is(DamageTypeTags.IS_FIRE) || !source.is(DamageTypeTags.IS_MELEE)) {
+        if (!source.is(DamageTypeTags.IS_FIRE) || source.is(DamageTypeTags.IS_PROJECTILE)) {
             return damage;
         }
 
