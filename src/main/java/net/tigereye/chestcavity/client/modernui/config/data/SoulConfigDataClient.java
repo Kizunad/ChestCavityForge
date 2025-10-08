@@ -58,6 +58,7 @@ public final class SoulConfigDataClient {
     public record SoulEntry(
             java.util.UUID soulId,
             String displayName,
+            boolean owner,
             boolean active,
             float health,
             float maxHealth,

@@ -18,17 +18,11 @@ import icyllis.modernui.widget.TextView;
 import icyllis.modernui.widget.ViewPager;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
-import net.tigereye.chestcavity.registration.CCAttachments;
-import net.tigereye.chestcavity.soul.container.SoulContainer;
-import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
-import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -39,9 +33,6 @@ import java.util.UUID;
 public class ChestCavityConfigFragment extends Fragment {
 
     private static final int TAB_COUNT = 3;
-    private static final ResourceLocation MAX_HEALTH_ID =
-            ResourceLocation.fromNamespaceAndPath("minecraft", "generic.max_health");
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -241,6 +232,29 @@ public class ChestCavityConfigFragment extends Fragment {
             addCardLine(card, String.format(java.util.Locale.ROOT,
                     "经验等级: %d (进度 %.0f%%)", entry.xpLevel(), entry.xpProgress() * 100f));
 
+            var actions = new LinearLayout(context);
+            actions.setOrientation(LinearLayout.HORIZONTAL);
+            actions.setGravity(Gravity.END);
+            var button = new Button(context);
+            if (entry.active()) {
+                button.setText("当前附身");
+                button.setEnabled(false);
+            } else {
+                button.setText(entry.owner() ? "切回本体" : "附身");
+                button.setOnClickListener(v -> {
+                    requestActivate(entry.soulId());
+                    button.setEnabled(false);
+                });
+            }
+            actions.addView(button, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            var params = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.topMargin = card.dp(10);
+            card.addView(actions, params);
+
             return card;
         }
 
@@ -256,14 +270,23 @@ public class ChestCavityConfigFragment extends Fragment {
             card.addView(tv, params);
         }
 
-        private String defaultSoulLabel(UUID soulId) {
-            String id = soulId.toString();
-            return "Soul " + (id.length() > 8 ? id.substring(0, 8) : id);
-        }
-
         private String shortUuid(UUID soulId) {
             String id = soulId.toString();
             return id.length() > 8 ? id.substring(0, 8) : id;
+        }
+
+        private void requestActivate(UUID soulId) {
+            Minecraft mc = Minecraft.getInstance();
+            ClientPacketListener connection = mc.getConnection();
+            if (connection == null) {
+                return;
+            }
+            mc.execute(() -> {
+                ClientPacketListener conn = mc.getConnection();
+                if (conn != null) {
+                    conn.send(new SoulConfigActivatePayload(soulId));
+                }
+            });
         }
 
         private LinearLayout baseLayout(icyllis.modernui.core.Context context) {

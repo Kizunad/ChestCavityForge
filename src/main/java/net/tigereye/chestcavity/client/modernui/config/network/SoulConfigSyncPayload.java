@@ -22,6 +22,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
         for (Entry entry : payload.entries) {
             buf.writeUUID(entry.soulId);
             buf.writeUtf(entry.displayName);
+            buf.writeBoolean(entry.owner);
             buf.writeBoolean(entry.active);
             buf.writeFloat(entry.health);
             buf.writeFloat(entry.maxHealth);
@@ -39,6 +40,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
         for (int i = 0; i < size; i++) {
             UUID soulId = buf.readUUID();
             String name = buf.readUtf();
+            boolean owner = buf.readBoolean();
             boolean active = buf.readBoolean();
             float health = buf.readFloat();
             float maxHealth = buf.readFloat();
@@ -47,7 +49,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
             float saturation = buf.readFloat();
             int lvl = buf.readVarInt();
             float xpProgress = buf.readFloat();
-            entries.add(new Entry(soulId, name, active, health, maxHealth, absorption, food, saturation, lvl, xpProgress));
+            entries.add(new Entry(soulId, name, owner, active, health, maxHealth, absorption, food, saturation, lvl, xpProgress));
         }
         return new SoulConfigSyncPayload(entries);
     }
@@ -63,6 +65,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
                     .map(e -> new SoulConfigDataClient.SoulEntry(
                             e.soulId,
                             e.displayName,
+                            e.owner,
                             e.active,
                             e.health,
                             e.maxHealth,
@@ -79,6 +82,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
     public record Entry(
             UUID soulId,
             String displayName,
+            boolean owner,
             boolean active,
             float health,
             float maxHealth,
