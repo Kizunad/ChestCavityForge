@@ -5,6 +5,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.BaiShiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HeiShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.QuanLiYiFuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XuLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -27,6 +28,8 @@ public final class LiDaoOrganRegistry {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "long_wan_qu_qu_gu");
     private static final ResourceLocation ZI_LI_GENG_SHENG_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "zi_li_geng_sheng_gu_3");
+    private static final ResourceLocation XU_LI_GU_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "xu_li_gu");
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(BAI_SHI_GU_ID)
@@ -44,6 +47,10 @@ public final class LiDaoOrganRegistry {
                     .build(),
             OrganIntegrationSpec.builder(LONG_WAN_QU_QU_GU_ID)
                     .addIncomingDamageListener(LongWanQuQuGuOrganBehavior.INSTANCE)
+                    .build(),
+            OrganIntegrationSpec.builder(XU_LI_GU_ID)
+                    .addOnHitListener(XuLiGuOrganBehavior.INSTANCE)
+                    .ensureAttached(XuLiGuOrganBehavior.INSTANCE::ensureAttached)
                     .build(),
             OrganIntegrationSpec.builder(ZI_LI_GENG_SHENG_GU_ID)
                     .addSlowTickListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
