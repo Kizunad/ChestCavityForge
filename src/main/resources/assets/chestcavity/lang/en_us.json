@@ -70,6 +70,7 @@
     "message.guzhenren.chou_pi_gu.uncomfortable": "Your stomach feels a little unsettled...",
     "message.guzhenren.chou_pi_gu.stench": "A foul stench spreads through the air!",
     "message.guzhenren.chou_pi_gu.odor_broadcast": "%s lets out an atrocious stench!",
+    "commands.chestcavity.testmodernui.opened": "Opened Modern UI test screen.",
     "message.guzhenren.xie_di_gu.on_equip": "Blood Drop Gu feeds on your vitality, drawing 5 health every 10 seconds to condense drops. Detonate them in crises to scour foes and restore essence, but when the flow runs dry your body will weaken.",
     "item.chestcavity.chest_opener": "Chest Opener",
     "item.chestcavity.wooden_cleaver": "Wooden Cleaver",

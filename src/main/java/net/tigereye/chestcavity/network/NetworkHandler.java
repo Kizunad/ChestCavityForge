@@ -30,6 +30,7 @@ import net.tigereye.chestcavity.guscript.network.packets.GuScriptTriggerPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptSimulateCompilePayload;
 import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
+import net.tigereye.chestcavity.client.modernui.container.network.TestModernUIContainerRequestPayload;
 
 public final class NetworkHandler {
 
@@ -47,6 +48,7 @@ public final class NetworkHandler {
         registrar.playToServer(KongqiaoDaoHenSeedPayload.TYPE, KongqiaoDaoHenSeedPayload.STREAM_CODEC, DaoHenSeedHandler::handleSeedPayload);
         registrar.playToServer(PlayerSkinUploadPayload.TYPE, PlayerSkinUploadPayload.STREAM_CODEC, PlayerSkinUploadPayload::handle);
         registrar.playToServer(SoulBeastRequestSyncPayload.TYPE, SoulBeastRequestSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleRequestSyncPayload);
+        registrar.playToServer(TestModernUIContainerRequestPayload.TYPE, TestModernUIContainerRequestPayload.STREAM_CODEC, TestModernUIContainerRequestPayload::handle);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);

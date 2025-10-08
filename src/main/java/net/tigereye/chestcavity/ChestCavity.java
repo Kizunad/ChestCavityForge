@@ -41,6 +41,7 @@ import net.tigereye.chestcavity.guscript.registry.FxDefinitionLoader;
 import net.tigereye.chestcavity.guscript.fx.client.FxClientHooks;
 import net.tigereye.chestcavity.guscript.fx.gecko.client.GeckoFxClient;
 import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
+import net.tigereye.chestcavity.command.ModernUIServerCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.soul.command.SoulCommands;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
@@ -49,9 +50,12 @@ import net.tigereye.chestcavity.debug.RecipeResourceProbe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
 import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
 import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.client.command.ModernUIClientCommands;
+import icyllis.modernui.mc.neoforge.MenuScreenFactory;
+import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
+import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 
 
 
@@ -99,6 +103,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                 NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
                 NeoForge.EVENT_BUS.addListener(GuScriptCommands::register);
                 NeoForge.EVENT_BUS.addListener(RecipeDebugCommands::register);
+                NeoForge.EVENT_BUS.addListener(ModernUIServerCommands::register);
                 NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
                 NeoForge.EVENT_BUS.addListener(SoulCommands::register);
                 // Central DoT manager ticking
@@ -107,6 +112,7 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
                         NeoForge.EVENT_BUS.addListener(GeckoFxClient::onClientTick);
                         NeoForge.EVENT_BUS.addListener(GeckoFxClient::onRenderLevel);
+                        NeoForge.EVENT_BUS.addListener(ModernUIClientCommands::register);
                 }
 
                 if (FMLEnvironment.dist.isClient()) {
@@ -158,6 +164,8 @@ public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix 
 	private void registerMenuScreens(RegisterMenuScreensEvent event) {
 		event.register(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), ChestCavityScreen::new);
 		event.register(CCContainers.GUSCRIPT_MENU.get(), GuScriptScreen::new);
+		event.register(CCContainers.TEST_MODERN_UI_MENU.get(), MenuScreenFactory.create(menu ->
+				new TestModernUIContainerFragment((TestModernUIContainerMenu) menu)));
 	}
 
 	public void doServerStuff(FMLDedicatedServerSetupEvent event) {

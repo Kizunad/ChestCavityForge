@@ -14,6 +14,7 @@
   "message.guzhenren.chou_pi_gu.uncomfortable": "你感觉到肚子有点不舒服……",
   "message.guzhenren.chou_pi_gu.stench": "一股恶臭弥漫开来！",
   "message.guzhenren.chou_pi_gu.odor_broadcast": "%s 放出了一股腥臭的气味！",
+  "commands.chestcavity.testmodernui.opened": "已打开 Modern UI 测试界面。",
   "message.guzhenren.xie_di_gu.on_equip": "血滴蛊以血为源，每 10 秒榨取 5 点生命，汇聚成血滴。血滴可在危机时引爆，既能屠敌，又能回元，但若血液枯竭，宿主体将陷入虚弱。",
   "death.attack.ccHeartbleed": "%1$s's 牺牲滋养了太阳",
   "death.attack.ccHeartbleed.player": "%2$s 见证了 %1$s 的牺牲",

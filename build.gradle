@@ -18,6 +18,9 @@ repositories {
 
     // GeckoLib
     maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven" }
+
+    // Modern UI
+    maven { url = "https://maven.izzel.io/releases" }
 }
 
 base {
@@ -121,6 +124,17 @@ dependencies {
     runtimeOnly  "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
     // 测试环境也提供（供单元测试/运行时类可见）
     testImplementation "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
+
+    // ===== Modern UI (界面框架前置) =====
+    compileOnly("icyllis.modernui:ModernUI-Core:${modernui_core_version}") { transitive = false }
+    compileOnly("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") { transitive = false }
+    compileOnly("icyllis.modernui:ModernUI-NeoForge:${modernui_version}") { transitive = false }
+    runtimeOnly("icyllis.modernui:ModernUI-Core:${modernui_core_version}") { transitive = false }
+    runtimeOnly("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") { transitive = false }
+    runtimeOnly("icyllis.modernui:ModernUI-NeoForge:${modernui_version}") { transitive = false }
+    testImplementation("icyllis.modernui:ModernUI-NeoForge:${modernui_version}") { transitive = false }
+    testRuntimeOnly("icyllis.modernui:ModernUI-Core:${modernui_core_version}") { transitive = false }
+    testRuntimeOnly("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") { transitive = false }
 
     // 本地 jar（AttributeFix、PlayerAnimator）
     testImplementation files("libs/attributefix-neoforge-1.21.1-21.1.2.jar")
