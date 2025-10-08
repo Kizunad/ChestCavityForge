@@ -104,5 +104,19 @@
       "item": "chestcavity:swift_muscle",
       "position": 26
     }
+  ],
+  "randomGenerators": [
+    {
+      "id": "chestcavity:guzhenren/wolves/lei_dian_lang/organs",
+      "count": {
+        "min": 2,
+        "max": 3
+      },
+      "items": [
+        "guzhenren:qianlangwangrou",
+        "guzhenren:qqianshouwanglangpi",
+        "guzhenren:qqianshouwanglangyan"
+      ]
+    }
   ]
 }
