@@ -142,6 +142,19 @@ final class VirtualSoulNavigator {
                 // fallback: go straight to final target smoothly
                 nextCenter = this.target;
             }
+            // Line-of-sight smoothing: if no solid block between current eye and target, prefer target directly
+            if (this.target != null) {
+                Vec3 eye = soul.getEyePosition();
+                Vec3 toTarget = new Vec3(this.target.x, this.target.y + 0.5, this.target.z);
+                var hit = soul.level().clip(new net.minecraft.world.level.ClipContext(
+                        eye, toTarget,
+                        net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                        net.minecraft.world.level.ClipContext.Fluid.NONE,
+                        soul));
+                if (hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
+                    nextCenter = this.target;
+                }
+            }
             Vec3 toNode = nextCenter.subtract(soul.position());
             double dist = toNode.length();
             double maxStep = Math.max(0.05, currentBlocksPerTick());

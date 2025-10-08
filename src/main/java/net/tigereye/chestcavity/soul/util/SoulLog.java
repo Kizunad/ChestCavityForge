@@ -15,7 +15,7 @@ public final class SoulLog {
     /**
      * Master toggle for soul module diagnostics. Flip to {@code false} to silence INFO logs.
      */
-    public static boolean DEBUG_LOGS = true;
+    public static boolean DEBUG_LOGS = Boolean.getBoolean("chestcavity.debugSoul");
 
     private static final Logger LOGGER = ChestCavity.LOGGER;
 

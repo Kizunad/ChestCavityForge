@@ -142,7 +142,7 @@ public final class SoulPlayerInput {
         }
         if (slot == -1) return false;
 
-        ItemStack prevOff = player.getOffhandItem();
+        ItemStack prevOff = player.getOffhandItem().copy();
         ItemStack hot = player.getInventory().getItem(slot);
         // Move whole stack into offhand (preserve reference for mutation on use)
         player.setItemInHand(InteractionHand.OFF_HAND, hot);
@@ -151,11 +151,31 @@ public final class SoulPlayerInput {
         try {
             ok = rightMouseItemUse(player, InteractionHand.OFF_HAND, forceFinish);
         } finally {
-            // Move back whatever remains to original slot, restore previous offhand
+            // Move back whatever remains to inventory safely, then restore previous offhand
             ItemStack remain = player.getOffhandItem();
-            player.getInventory().setItem(slot, remain);
+            // Clear offhand first to avoid duplicating reference when adding to inventory
+            player.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+            safeReturnToInventory(player, slot, remain);
+            // Restore original offhand snapshot
             player.setItemInHand(InteractionHand.OFF_HAND, prevOff);
         }
         return ok;
+    }
+
+    private static void safeReturnToInventory(SoulPlayer player, int preferredSlot, ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return;
+        var inv = player.getInventory();
+        ItemStack cur = inv.getItem(preferredSlot);
+        if (cur.isEmpty()) {
+            inv.setItem(preferredSlot, stack);
+            return;
+        }
+        // Try to merge into inventory; if not fully added, drop the rest
+        ItemStack copy = stack.copy();
+        boolean added = inv.add(copy);
+        if (!added || !copy.isEmpty()) {
+            // drop remaining safely at feet (no random throw)
+            player.drop(copy, false);
+        }
     }
 }

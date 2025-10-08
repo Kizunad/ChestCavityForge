@@ -30,9 +30,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SelfHealHandler implements SoulRuntimeHandler {
 
-    private static final int ATTEMPT_COOLDOWN_TICKS = 20; // once per second
-    private static final float HEALTH_THRESHOLD_FRACTION = 0.60f;
-    private static final float HEALTH_MISSING_MIN = 4.0f;
+    private static final int ATTEMPT_COOLDOWN_TICKS = getIntProp("chestcavity.soul.selfHealCooldown", 20, 0, 200); // once per second
+    private static final float HEALTH_THRESHOLD_FRACTION = getFloatProp("chestcavity.soul.selfHealHealthFrac", 0.60f, 0.0f, 1.0f);
+    private static final float HEALTH_MISSING_MIN = getFloatProp("chestcavity.soul.selfHealMinMissing", 4.0f, 0.0f, 1000.0f);
 
     private static final Map<UUID, Long> LAST_ATTEMPT = new ConcurrentHashMap<>();
 
@@ -130,5 +130,25 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
                 : null;
     }
 
+    private static int getIntProp(String key, int def, int lo, int hi) {
+        try {
+            String v = System.getProperty(key);
+            if (v == null) return def;
+            int x = Integer.parseInt(v);
+            if (x < lo) return lo;
+            if (x > hi) return hi;
+            return x;
+        } catch (Throwable ignored) { return def; }
+    }
 
+    private static float getFloatProp(String key, float def, float lo, float hi) {
+        try {
+            String v = System.getProperty(key);
+            if (v == null) return def;
+            float x = Float.parseFloat(v);
+            if (x < lo) return lo;
+            if (x > hi) return hi;
+            return x;
+        } catch (Throwable ignored) { return def; }
+    }
 }

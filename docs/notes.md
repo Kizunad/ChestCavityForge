@@ -1464,3 +1464,45 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li
 攻击时有12%概率打出「蓄力一击」，本次攻击将造成1.4*(1+力道INCREASE_EFFECT)倍伤害。
 胸腔内的肌肉越多（只判定肌肉器官(chestcavity:*muscle(包括muscle))，判定已有通用工具实现），
 概率越高，每组（16个）肌肉器官提高0.5%概率，最高不超过23%。不可叠加。
+---
+提醒 · 待验证（Soul 模块）
+
+- 副手临时交换（SoulPlayerInput.useWithOffhandSwapIfReady）
+  - 当前已加“安全归还”与冲突兜底（优先槽非空则尝试 add，剩余丢地；先清空副手再归还；恢复原副手快照）。
+  - 仍需集成测试覆盖极端场景（使用期间槽位被其他逻辑写入、冷却/失败路径等）。
+  - 待办：落地测试用例/服内脚本验证；必要时增加 DEBUG 日志记录归还路径。
+
+- 日志降噪已生效
+  - 启用详细日志：`-Dchestcavity.debugSoul=true`（INFO 级别），导航详细：`-Dchestcavity.debugNav=true`。
+  - 关闭后仅保留必要 WARN/ERROR。
+  - 消息开关（玩家聊天/系统提示）：
+    - 关闭所有分魂消息：`-Dchestcavity.soul.msgEnabled=false`
+    - 仅关闭逃跑消息：`-Dchestcavity.soul.fleeMsgEnabled=false`
+    - 调整消息冷却：`-Dchestcavity.soul.msgCooldownTicks=200`（单位 tick）
+
+- 可调开关（JVM 参数）
+  - 自愈：
+    - `-Dchestcavity.soul.selfHealCooldown`（默认 20tick）
+    - `-Dchestcavity.soul.selfHealHealthFrac`（默认 0.60）
+    - `-Dchestcavity.soul.selfHealMinMissing`（默认 4.0）
+  - 台阶上抬冷却：`-Dchestcavity.soul.stepAssistCooldown`（默认 8tick）
+
+下一步（计划）
+- P1：
+  - 为“安全归还”路径加 DEBUG 日志（仅 `debugSoul=true` 时）。
+  - 将背景快照/切换细节 INFO 切换为 DEBUG（受开关控制）。
+- P2：
+  - 路径平滑（节点前瞻/直射跳点）。
+  - 两栖偏好（长水域优先上岸绕行）。
+  - 上抬前快速空域/前向 AABB 探测以减少误判。
+
+
+花豕蛊（肌肉）：
+每5秒消耗200真元恢复3点精力，
+释放主动技后，将消耗300真元获得10秒的力量。
+
+—
+
+2025-10-08 Soul 每秒回调挂载
+- 已在 SoulRuntimeHandlers 引导时注册 `GuzhenrenZhuanshuSecondHandler`，每秒读取 `zhuanshu` 字段；当 `zhuanshu != 0.0` 时触发占位 handler（仅 DEBUG 日志）。
+- 后续可在该 handler 内扩展实际逻辑（如状态门控/FX/增益）。

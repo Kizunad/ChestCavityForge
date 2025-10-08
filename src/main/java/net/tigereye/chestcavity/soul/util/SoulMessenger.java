@@ -15,10 +15,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class SoulMessenger {
     private SoulMessenger() {}
 
-    private static final long DEFAULT_COOLDOWN_TICKS = 100; // ~5s @20tps
+    private static final boolean MSG_ENABLED = getBoolProp("chestcavity.soul.msgEnabled", true);
+    private static final boolean FLEE_MSG_ENABLED = getBoolProp("chestcavity.soul.fleeMsgEnabled", true);
+    private static final long DEFAULT_COOLDOWN_TICKS = getLongProp("chestcavity.soul.msgCooldownTicks", 100L, 0L, 20L * 60L);
     private static final Map<UUID, Long> LAST_FLEE_SENT = new ConcurrentHashMap<>();
 
     public static void sendToOwner(SoulPlayer soul, String content, String context) {
+        if (!MSG_ENABLED) return;
         var ownerIdOpt = soul.getOwnerId();
         if (ownerIdOpt.isEmpty()) return;
         ServerPlayer owner = soul.serverLevel().getServer().getPlayerList().getPlayer(ownerIdOpt.get());
@@ -33,6 +36,7 @@ public final class SoulMessenger {
 
     /** Convenience: send a "fleeing" cry for help with basic cooldown. */
     public static void sendFleeing(SoulPlayer soul) {
+        if (!MSG_ENABLED || !FLEE_MSG_ENABLED) return;
         long now = soul.serverLevel().getGameTime();
         UUID id = soul.getUUID();
         long last = LAST_FLEE_SENT.getOrDefault(id, Long.MIN_VALUE);
@@ -42,5 +46,21 @@ public final class SoulMessenger {
         LAST_FLEE_SENT.put(id, now);
         sendToOwner(soul, "老大，救命", "triggered when fleeing");
     }
-}
 
+    private static boolean getBoolProp(String key, boolean def) {
+        String v = System.getProperty(key);
+        if (v == null) return def;
+        return v.equalsIgnoreCase("true") || v.equalsIgnoreCase("1") || v.equalsIgnoreCase("yes");
+    }
+
+    private static long getLongProp(String key, long def, long lo, long hi) {
+        try {
+            String v = System.getProperty(key);
+            if (v == null) return def;
+            long x = Long.parseLong(v);
+            if (x < lo) return lo;
+            if (x > hi) return hi;
+            return x;
+        } catch (Throwable ignored) { return def; }
+    }
+}
