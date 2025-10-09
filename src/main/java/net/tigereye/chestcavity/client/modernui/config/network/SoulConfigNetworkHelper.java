@@ -67,7 +67,8 @@ final class SoulConfigNetworkHelper {
                 stats.foodLevel(),
                 stats.saturation(),
                 stats.experienceLevel(),
-                stats.experienceProgress()
+                stats.experienceProgress(),
+                container.getOrder(soulId)
         ));
     }
 }

@@ -5,6 +5,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
+import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
             buf.writeFloat(entry.saturation);
             buf.writeVarInt(entry.xpLevel);
             buf.writeFloat(entry.xpProgress);
+            buf.writeVarInt(entry.order.ordinal());
         }
     }
 
@@ -49,7 +51,9 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
             float saturation = buf.readFloat();
             int lvl = buf.readVarInt();
             float xpProgress = buf.readFloat();
-            entries.add(new Entry(soulId, name, owner, active, health, maxHealth, absorption, food, saturation, lvl, xpProgress));
+            int orderOrdinal = buf.readVarInt();
+            SoulAIOrders.Order order = SoulAIOrders.Order.values()[Math.max(0, Math.min(orderOrdinal, SoulAIOrders.Order.values().length - 1))];
+            entries.add(new Entry(soulId, name, owner, active, health, maxHealth, absorption, food, saturation, lvl, xpProgress, order));
         }
         return new SoulConfigSyncPayload(entries);
     }
@@ -73,7 +77,8 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
                             e.food,
                             e.saturation,
                             e.xpLevel,
-                            e.xpProgress))
+                            e.xpProgress,
+                            e.order))
                     .toList();
             SoulConfigDataClient.INSTANCE.updateSnapshot(new SoulConfigDataClient.Snapshot(entries));
         });
@@ -90,6 +95,7 @@ public record SoulConfigSyncPayload(List<Entry> entries) implements CustomPacket
             int food,
             float saturation,
             int xpLevel,
-            float xpProgress
+            float xpProgress,
+            SoulAIOrders.Order order
     ) {}
 }

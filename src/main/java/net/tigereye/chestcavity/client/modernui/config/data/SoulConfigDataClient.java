@@ -4,6 +4,7 @@ import icyllis.modernui.annotation.MainThread;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRequestPayload;
+import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -66,7 +67,8 @@ public final class SoulConfigDataClient {
             int food,
             float saturation,
             int xpLevel,
-            float xpProgress
+            float xpProgress,
+            SoulAIOrders.Order order
     ) {}
 
     @FunctionalInterface

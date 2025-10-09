@@ -9,10 +9,14 @@ import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.LayoutInflater;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
+import icyllis.modernui.widget.AdapterView;
+import icyllis.modernui.widget.ArrayAdapter;
 import icyllis.modernui.widget.Button;
+import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.PagerAdapter;
+import icyllis.modernui.widget.Spinner;
 import icyllis.modernui.widget.TabLayout;
 import icyllis.modernui.widget.TextView;
 import icyllis.modernui.widget.ViewPager;
@@ -21,6 +25,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
+import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
 
 import java.util.List;
 import java.util.UUID;
@@ -70,6 +77,8 @@ public class ChestCavityConfigFragment extends Fragment {
     }
 
     private final class ConfigPagerAdapter extends PagerAdapter {
+
+        private static final SoulAIOrders.Order[] ORDER_VALUES = SoulAIOrders.Order.values();
 
         @Override
         public int getCount() {
@@ -212,13 +221,75 @@ public class ChestCavityConfigFragment extends Fragment {
             background.setColor(entry.active() ? 0xFF1F3B4D : 0xFF1B2836);
             card.setBackground(background);
 
-            var title = new TextView(context);
-            title.setText(entry.displayName() + (entry.active() ? "  (当前附身)" : ""));
-            title.setTextSize(16);
-            title.setGravity(Gravity.START);
-            card.addView(title, new LinearLayout.LayoutParams(
+            var titleRow = new LinearLayout(context);
+            titleRow.setOrientation(LinearLayout.HORIZONTAL);
+            titleRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            var nameView = new TextView(context);
+            nameView.setText(entry.displayName() + (entry.active() ? "  (当前附身)" : ""));
+            nameView.setTextSize(16);
+            nameView.setGravity(Gravity.START);
+            titleRow.addView(nameView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            var editButton = new Button(context);
+            editButton.setText("✏");
+            editButton.setMinimumWidth(editButton.dp(36));
+            titleRow.addView(editButton, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            card.addView(titleRow, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var editRow = new LinearLayout(context);
+            editRow.setOrientation(LinearLayout.HORIZONTAL);
+            editRow.setGravity(Gravity.CENTER_VERTICAL);
+            editRow.setVisibility(View.GONE);
+
+            var editInput = new EditText(context);
+            editInput.setSingleLine();
+            editInput.setText(entry.displayName());
+            editRow.addView(editInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            var saveRename = new Button(context);
+            saveRename.setText("保存");
+            editRow.addView(saveRename, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var cancelRename = new Button(context);
+            cancelRename.setText("取消");
+            editRow.addView(cancelRename, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var editParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            editParams.topMargin = card.dp(6);
+            card.addView(editRow, editParams);
+
+            editButton.setOnClickListener(v -> {
+                if (entry.active()) {
+                    return;
+                }
+                boolean show = editRow.getVisibility() == View.GONE;
+                if (show) {
+                    editInput.setText(entry.displayName());
+                    editRow.setVisibility(View.VISIBLE);
+                    editInput.requestFocus();
+                } else {
+                    editRow.setVisibility(View.GONE);
+                }
+            });
+
+            saveRename.setOnClickListener(v -> {
+                requestRename(entry.soulId(), editInput.getText().toString());
+                editRow.setVisibility(View.GONE);
+            });
+
+            cancelRename.setOnClickListener(v -> editRow.setVisibility(View.GONE));
 
             addCardLine(card, "UUID: " + shortUuid(entry.soulId()));
 
@@ -231,6 +302,54 @@ public class ChestCavityConfigFragment extends Fragment {
 
             addCardLine(card, String.format(java.util.Locale.ROOT,
                     "经验等级: %d (进度 %.0f%%)", entry.xpLevel(), entry.xpProgress() * 100f));
+
+            var orderRow = new LinearLayout(context);
+            orderRow.setOrientation(LinearLayout.HORIZONTAL);
+            orderRow.setGravity(Gravity.CENTER_VERTICAL);
+            var orderLabel = new TextView(context);
+            orderLabel.setText("指令：");
+            orderLabel.setTextSize(13);
+            orderRow.addView(orderLabel, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var spinner = new Spinner(context);
+            spinner.setMinimumWidth(spinner.dp(160));
+            String[] labels = new String[ORDER_VALUES.length];
+            for (int i = 0; i < ORDER_VALUES.length; i++) {
+                labels[i] = orderLabel(ORDER_VALUES[i]);
+            }
+            var adapter = new ArrayAdapter<>(context, labels);
+            spinner.setAdapter(adapter);
+            spinner.setSelection(entry.order().ordinal());
+            spinner.setEnabled(!entry.active());
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                private boolean ignore = true;
+
+                @Override
+                public void onItemSelected(@NonNull AdapterView<?> parent, View view, int position, long id) {
+                    if (entry.active()) {
+                        return;
+                    }
+                    if (ignore) {
+                        ignore = false;
+                        return;
+                    }
+                    SoulAIOrders.Order order = ORDER_VALUES[position];
+                    requestOrderChange(entry.soulId(), order);
+                }
+
+                @Override
+                public void onNothingSelected(@NonNull AdapterView<?> parent) { }
+            });
+            orderRow.addView(spinner, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            var orderParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            orderParams.topMargin = card.dp(8);
+            card.addView(orderRow, orderParams);
 
             var actions = new LinearLayout(context);
             actions.setOrientation(LinearLayout.HORIZONTAL);
@@ -275,6 +394,15 @@ public class ChestCavityConfigFragment extends Fragment {
             return id.length() > 8 ? id.substring(0, 8) : id;
         }
 
+        private String orderLabel(SoulAIOrders.Order order) {
+            return switch (order) {
+                case IDLE -> "待命";
+                case FOLLOW -> "跟随";
+                case GUARD -> "守卫";
+                case FORCE_FIGHT -> "强制战斗";
+            };
+        }
+
         private void requestActivate(UUID soulId) {
             Minecraft mc = Minecraft.getInstance();
             ClientPacketListener connection = mc.getConnection();
@@ -285,6 +413,34 @@ public class ChestCavityConfigFragment extends Fragment {
                 ClientPacketListener conn = mc.getConnection();
                 if (conn != null) {
                     conn.send(new SoulConfigActivatePayload(soulId));
+                }
+            });
+        }
+
+        private void requestRename(UUID soulId, String newName) {
+            Minecraft mc = Minecraft.getInstance();
+            ClientPacketListener connection = mc.getConnection();
+            if (connection == null) {
+                return;
+            }
+            mc.execute(() -> {
+                ClientPacketListener conn = mc.getConnection();
+                if (conn != null) {
+                    conn.send(new SoulConfigRenamePayload(soulId, newName));
+                }
+            });
+        }
+
+        private void requestOrderChange(UUID soulId, SoulAIOrders.Order order) {
+            Minecraft mc = Minecraft.getInstance();
+            ClientPacketListener connection = mc.getConnection();
+            if (connection == null) {
+                return;
+            }
+            mc.execute(() -> {
+                ClientPacketListener conn = mc.getConnection();
+                if (conn != null) {
+                    conn.send(new SoulConfigSetOrderPayload(soulId, order));
                 }
             });
         }

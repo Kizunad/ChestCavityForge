@@ -32,7 +32,9 @@ import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
 import net.tigereye.chestcavity.client.modernui.container.network.TestModernUIContainerRequestPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRequestPayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSyncPayload;
 
 public final class NetworkHandler {
@@ -54,6 +56,8 @@ public final class NetworkHandler {
         registrar.playToServer(TestModernUIContainerRequestPayload.TYPE, TestModernUIContainerRequestPayload.STREAM_CODEC, TestModernUIContainerRequestPayload::handle);
         registrar.playToServer(SoulConfigRequestPayload.TYPE, SoulConfigRequestPayload.STREAM_CODEC, SoulConfigRequestPayload::handle);
         registrar.playToServer(SoulConfigActivatePayload.TYPE, SoulConfigActivatePayload.STREAM_CODEC, SoulConfigActivatePayload::handle);
+        registrar.playToServer(SoulConfigRenamePayload.TYPE, SoulConfigRenamePayload.STREAM_CODEC, SoulConfigRenamePayload::handle);
+        registrar.playToServer(SoulConfigSetOrderPayload.TYPE, SoulConfigSetOrderPayload.STREAM_CODEC, SoulConfigSetOrderPayload::handle);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
