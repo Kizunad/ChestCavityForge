@@ -37,6 +37,8 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 
 import java.util.List;
 import java.util.Optional;
@@ -232,9 +234,9 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (healthRatio > HIGH_HEALTH_THRESHOLD) {
             double amount = SPEED_BONUS_PER_STACK * Math.max(1, organ.getCount());
             AttributeModifier modifier = new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
-            replaceModifier(attribute, id, modifier);
+            AttributeOps.replaceTransient(attribute, id, modifier);
         } else {
-            attribute.removeModifier(id);
+            AttributeOps.removeById(attribute, id);
         }
     }
 
@@ -243,7 +245,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (attribute == null || slotIndex < 0) {
             return;
         }
-        attribute.removeModifier(movementModifierId(slotIndex));
+        AttributeOps.removeById(attribute, movementModifierId(slotIndex));
     }
 
     private static ResourceLocation movementModifierId(int slotIndex) {
@@ -259,9 +261,9 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (healthRatio < LOW_HEALTH_THRESHOLD) {
             double amount = ATTACK_SPEED_BONUS_PER_STACK * Math.max(1, organ.getCount());
             AttributeModifier modifier = new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
-            replaceModifier(attribute, id, modifier);
+            AttributeOps.replaceTransient(attribute, id, modifier);
         } else {
-            attribute.removeModifier(id);
+            AttributeOps.removeById(attribute, id);
         }
     }
 
@@ -270,7 +272,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (attribute == null || slotIndex < 0) {
             return;
         }
-        attribute.removeModifier(rapidBreathModifierId(slotIndex));
+        AttributeOps.removeById(attribute, rapidBreathModifierId(slotIndex));
     }
 
     private static ResourceLocation rapidBreathModifierId(int slotIndex) {
@@ -278,7 +280,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     }
 
     private static void replaceModifier(AttributeInstance attribute, ResourceLocation id, AttributeModifier modifier) {
-        attribute.removeModifier(id);
+        AttributeOps.removeById(attribute, id);
         attribute.addTransientModifier(modifier);
     }
 
@@ -371,7 +373,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         for (int pulse = 0; pulse < FOG_DURATION_SECONDS; pulse++) {
             final int tickDelay = pulse * 20;
-            schedule(server, () -> applyFogPulse(server, player, cc, center, hasPoison, fogDamage), tickDelay);
+            TickOps.schedule(server, () -> applyFogPulse(server, player, cc, center, hasPoison, fogDamage), tickDelay);
         }
     }
 
@@ -410,7 +412,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         for (int pulse = 0; pulse < FOG_DURATION_SECONDS; pulse++) {
             final int tickDelay = pulse * 20;
-            schedule(server, () -> applyFogPulse(server, user, cc, center, hasPoison, fogDamage), tickDelay);
+            TickOps.schedule(server, () -> applyFogPulse(server, user, cc, center, hasPoison, fogDamage), tickDelay);
         }
     }
 
@@ -528,13 +530,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         }
     }
 
-    private static void schedule(ServerLevel level, Runnable runnable, int delayTicks) {
-        if (delayTicks <= 0) {
-            runnable.run();
-            return;
-        }
-        level.getServer().execute(() -> schedule(level, runnable, delayTicks - 1));
-    }
+    // replaced by TickOps.schedule
 
     private static ItemStack findOrgan(ChestCavityInstance cc) {
         if (cc == null || cc.inventory == null) {
