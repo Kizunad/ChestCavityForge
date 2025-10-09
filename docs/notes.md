@@ -1506,3 +1506,5 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li
 2025-10-08 Soul 每秒回调挂载
 - 已在 SoulRuntimeHandlers 引导时注册 `GuzhenrenZhuanshuSecondHandler`，每秒读取 `zhuanshu` 字段；当 `zhuanshu != 0.0` 时触发占位 handler（仅 DEBUG 日志）。
 - 后续可在该 handler 内扩展实际逻辑（如状态门控/FX/增益）。
+
+ niantou_rongliang 是念头的容量上限，用于硬性裁剪当前念头并由流程事件提升
