@@ -5,6 +5,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.chat.Component;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import java.util.UUID;
 
@@ -36,6 +38,14 @@ public record SoulConfigRenamePayload(UUID soulId, String newName) implements Cu
             }
             var soulId = payload.soulId();
             String newName = payload.newName().trim();
+            SoulContainer container = CCAttachments.getSoulContainer(serverPlayer);
+            var ownerId = serverPlayer.getUUID();
+            var activeId = container.getActiveProfileId().orElse(ownerId);
+            if (!soulId.equals(ownerId) && activeId.equals(soulId)) {
+                serverPlayer.displayClientMessage(Component.translatable("text.chestcavity.soul.config.cannot_rename_active"), false);
+                serverPlayer.connection.send(new SoulConfigSyncPayload(SoulConfigNetworkHelper.buildEntries(serverPlayer)));
+                return;
+            }
             boolean changed = SoulFakePlayerSpawner.rename(serverPlayer, soulId, newName, false);
             if (changed) {
                 // Apply immediately if entity is present
@@ -43,8 +53,7 @@ public record SoulConfigRenamePayload(UUID soulId, String newName) implements Cu
             } else {
                 serverPlayer.displayClientMessage(Component.literal("[soul] 重命名失败，检查 ID 是否正确。"), false);
             }
-            var entries = SoulConfigNetworkHelper.buildEntries(serverPlayer);
-            serverPlayer.connection.send(new SoulConfigSyncPayload(entries));
+            serverPlayer.connection.send(new SoulConfigSyncPayload(SoulConfigNetworkHelper.buildEntries(serverPlayer)));
         });
     }
 }

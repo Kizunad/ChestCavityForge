@@ -35,30 +35,37 @@ public final class ModernUIClientCommands {
     }
 
     private static int openTestScreen() {
-        return openFragment(TestModernUIFragment::new, "commands.chestcavity.testmodernui.opened");
+        return openFragmentCommand(TestModernUIFragment::new, "commands.chestcavity.testmodernui.opened");
     }
 
     private static int openConfigScreen() {
-        return openFragment(ChestCavityConfigFragment::new, "commands.chestcavity.testmodernui.config.opened");
+        return openFragmentCommand(ChestCavityConfigFragment::new, "commands.chestcavity.testmodernui.config.opened");
     }
 
-    private static int openFragment(Supplier<Fragment> fragmentSupplier, String translationKey) {
+    public static void openConfigViaHotkey() {
+        openFragment(ChestCavityConfigFragment::new, null);
+    }
+
+    private static int openFragmentCommand(Supplier<Fragment> fragmentSupplier, String translationKey) {
+        return openFragment(fragmentSupplier, Component.translatable(translationKey)) ? Command.SINGLE_SUCCESS : 0;
+    }
+
+    private static boolean openFragment(Supplier<Fragment> fragmentSupplier, Component toastMessage) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
-            return 0;
+            return false;
         }
 
         mc.execute(() -> {
             var fragment = fragmentSupplier.get();
             var screen = MuiModApi.get().createScreen(fragment);
             mc.setScreen(screen);
-            mc.player.displayClientMessage(
-                    Component.translatable(translationKey),
-                    true
-            );
+            if (toastMessage != null) {
+                mc.player.displayClientMessage(toastMessage, true);
+            }
         });
 
-        return Command.SINGLE_SUCCESS;
+        return true;
     }
 
     private static int requestContainer() {

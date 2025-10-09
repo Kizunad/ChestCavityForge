@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -20,7 +21,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -53,7 +53,7 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private TuQiangGuOrganBehavior() {
     }
 
-    private static final Logger LOGGER = ChestCavity.LOGGER;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final String MOD_ID = "guzhenren";
     public static final ResourceLocation ABILITY_ID =

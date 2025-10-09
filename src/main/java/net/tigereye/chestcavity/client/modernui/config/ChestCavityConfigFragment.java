@@ -234,6 +234,7 @@ public class ChestCavityConfigFragment extends Fragment {
             var editButton = new Button(context);
             editButton.setText("✏");
             editButton.setMinimumWidth(editButton.dp(36));
+            editButton.setEnabled(!entry.active());
             titleRow.addView(editButton, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -285,7 +286,17 @@ public class ChestCavityConfigFragment extends Fragment {
             });
 
             saveRename.setOnClickListener(v -> {
-                requestRename(entry.soulId(), editInput.getText().toString());
+                if (entry.active()) {
+                    editRow.setVisibility(View.GONE);
+                    return;
+                }
+                String candidate = editInput.getText().toString().trim();
+                if (candidate.length() > 16) {
+                    candidate = candidate.substring(0, 16);
+                }
+                if (!candidate.equals(entry.displayName())) {
+                    requestRename(entry.soulId(), candidate);
+                }
                 editRow.setVisibility(View.GONE);
             });
 

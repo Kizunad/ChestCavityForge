@@ -3,8 +3,11 @@ package net.tigereye.chestcavity.client.modernui.config.network;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.chat.Component;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
 import java.util.UUID;
 
 public record SoulConfigSetOrderPayload(UUID soulId, SoulAIOrders.Order order) implements CustomPacketPayload {
@@ -36,9 +39,17 @@ public record SoulConfigSetOrderPayload(UUID soulId, SoulAIOrders.Order order) i
             if (!(context.player() instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) {
                 return;
             }
-            SoulAIOrders.set(serverPlayer, payload.soulId(), payload.order(), "config-set-order");
-            var entries = SoulConfigNetworkHelper.buildEntries(serverPlayer);
-            serverPlayer.connection.send(new SoulConfigSyncPayload(entries));
+            UUID soulId = payload.soulId();
+            SoulContainer container = CCAttachments.getSoulContainer(serverPlayer);
+            UUID ownerId = serverPlayer.getUUID();
+            UUID activeId = container.getActiveProfileId().orElse(ownerId);
+            if (!soulId.equals(ownerId) && activeId.equals(soulId)) {
+                serverPlayer.displayClientMessage(Component.translatable("text.chestcavity.soul.config.cannot_change_order_active"), false);
+                serverPlayer.connection.send(new SoulConfigSyncPayload(SoulConfigNetworkHelper.buildEntries(serverPlayer)));
+                return;
+            }
+            SoulAIOrders.set(serverPlayer, soulId, payload.order(), "config-set-order");
+            serverPlayer.connection.send(new SoulConfigSyncPayload(SoulConfigNetworkHelper.buildEntries(serverPlayer)));
         });
     }
 }
