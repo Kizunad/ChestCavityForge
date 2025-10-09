@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.guscript.network.packets.FlowInputPayload;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowInput;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.client.command.ModernUIClientCommands;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.util.SingleplayerTickController;
 
@@ -55,6 +56,12 @@ public class KeybindingClientListeners {
             sendFlowInput(FlowInput.RELEASE);
         }
         wasExecuteDown = executeDown;
+
+        while (CCKeybindings.MODERN_UI_CONFIG != null && CCKeybindings.MODERN_UI_CONFIG.consumeClick()) {
+            if (player != null) {
+                ModernUIClientCommands.openConfigViaHotkey();
+            }
+        }
 
         while(CCKeybindings.UTILITY_ABILITIES != null && CCKeybindings.UTILITY_ABILITIES.consumeClick()) {
             if(player != null) {

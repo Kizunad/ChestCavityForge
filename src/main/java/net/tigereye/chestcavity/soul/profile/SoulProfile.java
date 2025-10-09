@@ -97,6 +97,10 @@ public final class SoulProfile {
         return java.util.Optional.ofNullable(position);
     }
 
+    public PlayerStatsSnapshot stats() {
+        return stats;
+    }
+
     public Map<ResourceLocation, CapabilitySnapshot> capabilities() {
         return Collections.unmodifiableMap(capabilities);
     }

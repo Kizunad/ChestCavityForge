@@ -35,6 +35,8 @@ public final class GuzhenrenAttackAbilityHandler implements SoulAttackHandler {
             // 蛊道（螺旋骨枪、肋骨盾）
             net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior.ABILITY_ID,
             net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuOrganBehavior.ABILITY_ID,
+            // 土道（土墙蛊土牢）
+            net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.TuQiangGuOrganBehavior.ABILITY_ID,
             // 冰雪道（冰棘/霜息）
             net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior.ABILITY_ID,
             net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior.ABILITY_ID,
