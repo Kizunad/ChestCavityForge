@@ -7,13 +7,14 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.compat.guzhenren.item.common.ShadowService;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoConstants;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -39,23 +40,18 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
     private static final long COOLDOWN_TICKS = 20L * 20L; // 20 seconds
     private static final long REGEN_INTERVAL_TICKS = 3L * 20L; // 3 seconds
     private static final double JINGLI_PER_TICK = 1.0;
-    private static final int CLONE_LIFETIME_TICKS = 40;
-
     private static final String LAST_REGEN_TICK_KEY = "LastRegenTick";
     private static final String NEXT_READY_TICK_KEY = "NextReadyTick";
 
     private final ResourceLocation organId;
     private final String stateRoot;
-    private final ShadowService.ReplicaStyle replicaStyle;
 
     protected AbstractLiYingGuOrganBehavior(
             ResourceLocation organId,
-            String stateRoot,
-            ShadowService.ReplicaStyle replicaStyle
+            String stateRoot
     ) {
         this.organId = Objects.requireNonNull(organId, "organId");
         this.stateRoot = Objects.requireNonNull(stateRoot, "stateRoot");
-        this.replicaStyle = Objects.requireNonNull(replicaStyle, "replicaStyle");
     }
 
     public ResourceLocation organId() {
@@ -152,25 +148,14 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
             return damage;
         }
 
-        Vec3 spawnPos = ShadowService.offsetFromOwner(player, 0.8, 0.1, random.triangle(0.0, 0.35));
-        boolean spawned = ShadowService.spawn(
-                server,
-                player,
-                spawnPos,
-                replicaStyle,
-                cloneDamage,
-                CLONE_LIFETIME_TICKS,
-                clone -> clone.commandStrike(target)
-        ).isPresent();
-        if (!spawned) {
-            return damage;
-        }
+        JianYingGuOrganBehavior.applyTrueDamage(player, target, cloneDamage);
+        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20, 2, false, true, true));
 
         server.playSound(
                 null,
-                spawnPos.x,
-                spawnPos.y,
-                spawnPos.z,
+                target.getX(),
+                target.getY(),
+                target.getZ(),
                 punchSound(),
                 SoundSource.PLAYERS,
                 0.9f,
