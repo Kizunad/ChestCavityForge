@@ -47,8 +47,11 @@ import java.util.Objects;
  * and world interactions (placing temporary walls) will be layered on top in a
  * follow-up patch once the groundwork is proven stable.</p>
  */
-public enum TuQiangGuOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
-    INSTANCE;
+public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
+    public static final TuQiangGuOrganBehavior INSTANCE = new TuQiangGuOrganBehavior();
+
+    private TuQiangGuOrganBehavior() {
+    }
 
     private static final Logger LOGGER = ChestCavity.LOGGER;
 
