@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior;
 
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.common.ShadowService;
 
 /**
  * Behaviour for 白豕蛊（三转力道，肌肉）。
@@ -15,8 +14,7 @@ public final class BaiShiGuOrganBehavior extends AbstractLiYingGuOrganBehavior {
     private BaiShiGuOrganBehavior() {
         super(
                 ResourceLocation.fromNamespaceAndPath(MOD_ID, "bai_shi_gu"),
-                "BaiShiGu",
-                ShadowService.BAI_ZHU_CLONE
+                "BaiShiGu"
         );
     }
 }
