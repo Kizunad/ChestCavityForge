@@ -104,5 +104,31 @@
       "item": "chestcavity:swift_muscle",
       "position": 26
     }
+  ],
+  "randomGenerators": [
+    {
+      "id": "chestcavity:guzhenren/wolves/tu_lang/muscle",
+      "count": 1,
+      "items": [
+        "guzhenren:langrou"
+      ]
+    },
+    {
+      "id": "chestcavity:guzhenren/wolves/tu_lang/skin",
+      "count": 1,
+      "items": [
+        "guzhenren:llangpi"
+      ]
+    },
+    {
+      "id": "chestcavity:guzhenren/wolves/tu_lang/eye",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:langyan"
+      ]
+    }
   ]
 }
