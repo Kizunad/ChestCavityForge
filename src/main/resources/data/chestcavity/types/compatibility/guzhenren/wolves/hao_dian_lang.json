@@ -1,7 +1,7 @@
 {
   "defaultChestCavity": [
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:langrou",
       "position": 0
     },
     {
@@ -29,11 +29,11 @@
       "position": 7
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:langrou",
       "position": 8
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:langrou",
       "position": 9
     },
     {
@@ -65,15 +65,15 @@
       "position": 16
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:langrou",
       "position": 17
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:bailangwurou",
       "position": 18
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:bailangwurou",
       "position": 19
     },
     {
@@ -97,37 +97,43 @@
       "position": 24
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:bbaishouwanglangpi",
       "position": 25
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:bbaishouwanglangpi",
       "position": 26
     }
   ],
   "randomGenerators": [
     {
-      "id": "chestcavity:guzhenren/wolves/hao_dian_lang/muscle",
-      "count": 1,
-      "items": [
-        "guzhenren:bailangwurou"
-      ]
-    },
-    {
-      "id": "chestcavity:guzhenren/wolves/hao_dian_lang/skin",
-      "count": 1,
-      "items": [
-        "guzhenren:bbaishouwanglangpi"
-      ]
-    },
-    {
-      "id": "chestcavity:guzhenren/wolves/hao_dian_lang/eye",
+      "id": "chestcavity:wolves/hei_shi_gu",
       "count": {
         "min": 0,
         "max": 1
       },
       "items": [
-        "guzhenren:langyan"
+        "guzhenren:hei_shi_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/hei_shi_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:bai_shi_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/dian_liu_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:dianliugu"
       ]
     }
   ]

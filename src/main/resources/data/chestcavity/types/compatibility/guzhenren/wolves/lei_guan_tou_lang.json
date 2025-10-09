@@ -1,7 +1,7 @@
 {
   "defaultChestCavity": [
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:qianlangwangrou",
       "position": 0
     },
     {
@@ -29,15 +29,15 @@
       "position": 7
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:qianlangwangrou",
       "position": 8
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:qianlangwangrou",
       "position": 9
     },
     {
-      "item": "chestcavity:animal_rib",
+      "item": "guzhenren:wanshangwanglangpi",
       "position": 10
     },
     {
@@ -61,27 +61,27 @@
       "position": 15
     },
     {
-      "item": "chestcavity:animal_rib",
+      "item": "guzhenren:wanshangwanglangpi",
       "position": 16
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:qianlangwangrou",
       "position": 17
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:wanlangwurou",
       "position": 18
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:wanlangwurou",
       "position": 19
     },
     {
-      "item": "chestcavity:carnivore_intestine",
+      "item": "guzhenren:wawanshouwanglangyan",
       "position": 20
     },
     {
-      "item": "chestcavity:carnivore_intestine",
+      "item": "guzhenren:wawanshouwanglangyan",
       "position": 21
     },
     {
@@ -97,37 +97,63 @@
       "position": 24
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:wanlangwurou",
       "position": 25
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:wanlangwurou",
       "position": 26
     }
   ],
   "randomGenerators": [
     {
-      "id": "chestcavity:guzhenren/wolves/lei_guan_tou_lang/muscle",
-      "count": 1,
-      "items": [
-        "guzhenren:wanlangwurou"
-      ]
-    },
-    {
-      "id": "chestcavity:guzhenren/wolves/lei_guan_tou_lang/skin",
-      "count": 1,
-      "items": [
-        "guzhenren:wanshangwanglangpi"
-      ]
-    },
-    {
-      "id": "chestcavity:guzhenren/wolves/lei_guan_tou_lang/eye",
+      "id": "chestcavity:wolves/hei_shi_gu",
       "count": {
         "min": 0,
         "max": 1
       },
       "items": [
-        "guzhenren:wawanshouwanglangyan"
+        "guzhenren:hei_shi_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/hei_shi_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:bai_shi_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/dian_liu_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:dianliugu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/xie_fei_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:xie_fei_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/xie_di_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:xie_di_gu"
       ]
     }
   ]

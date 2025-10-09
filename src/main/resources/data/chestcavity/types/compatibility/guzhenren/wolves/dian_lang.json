@@ -65,7 +65,7 @@
       "position": 16
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:langrou",
       "position": 17
     },
     {
@@ -101,33 +101,29 @@
       "position": 25
     },
     {
-      "item": "chestcavity:swift_muscle",
+      "item": "guzhenren:langrou",
       "position": 26
     }
   ],
   "randomGenerators": [
     {
-      "id": "chestcavity:guzhenren/wolves/dian_lang/muscle",
-      "count": 1,
-      "items": [
-        "guzhenren:langrou"
-      ]
-    },
-    {
-      "id": "chestcavity:guzhenren/wolves/dian_lang/skin",
-      "count": 1,
-      "items": [
-        "guzhenren:llangpi"
-      ]
-    },
-    {
-      "id": "chestcavity:guzhenren/wolves/dian_lang/eye",
+      "id": "chestcavity:wolves/hei_shi_gu",
       "count": {
         "min": 0,
         "max": 1
       },
       "items": [
-        "guzhenren:langyan"
+        "guzhenren:hei_shi_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:wolves/hei_shi_gu",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:bai_shi_gu"
       ]
     }
   ]
