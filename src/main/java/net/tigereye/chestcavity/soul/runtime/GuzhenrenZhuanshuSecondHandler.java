@@ -6,6 +6,7 @@ import net.tigereye.chestcavity.soul.registry.SoulPerSecondListener;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 
 import java.util.Optional;
+import java.util.OptionalDouble;
 
 /**
  * Per-second hook for Guzhenren fields of interest.
@@ -17,6 +18,10 @@ import java.util.Optional;
 public final class GuzhenrenZhuanshuSecondHandler implements SoulPerSecondListener {
 
     private static final String FIELD_ZHUANSHU = "zhuanshu";
+    private static final double ZHENYUAN_RECOVERY = 1.0D;
+    private static final double HUNPO_RECOVERY = 0.05D;
+    private static final double JINGLI_RECOVERY = 0.5D;
+    private static final double NIANTOU_RECOVERY = 1.0D;
 
     @Override
     public void onSecond(SoulPlayer player, long gameTime) {
@@ -27,21 +32,33 @@ public final class GuzhenrenZhuanshuSecondHandler implements SoulPerSecondListen
         if (handleOpt.isEmpty()) {
             return;
         }
-        double zhuanshu = handleOpt.get().read(FIELD_ZHUANSHU).orElse(0.0D);
-        if (zhuanshu != 0.0D) {
-            onNonZeroZhuanshu(player, zhuanshu, gameTime);
+        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+        OptionalDouble newNiantou = handle.adjustDouble("niantou", NIANTOU_RECOVERY, true, "niantou_zuida");
+        OptionalDouble newHunpo = handle.adjustDouble("hunpo", HUNPO_RECOVERY, true, "zuida_hunpo");
+        OptionalDouble newJingli = handle.adjustDouble("jingli", JINGLI_RECOVERY, true, "zuida_jingli");
+        double zhuanshu = handle.read(FIELD_ZHUANSHU).orElse(0.0D);
+        OptionalDouble newZhenyuan = OptionalDouble.empty();
+        if (zhuanshu > 0.0D) {
+            newZhenyuan = handle.adjustDouble("zhenyuan", ZHENYUAN_RECOVERY, true, "zuida_zhenyuan");
         }
+        logRecovery(player, zhuanshu, gameTime, newZhenyuan, newHunpo, newJingli, newNiantou);
     }
 
-    /**
-     * Placeholder for downstream logic when {@code zhuanshu} is non-zero.
-     * Keep side-effects minimal; downstream modules can replace/extend this behavior later.
-     */
-    private static void onNonZeroZhuanshu(SoulPlayer player, double zhuanshu, long gameTime) {
-        // For now just emit a debug log (gated by -Dchestcavity.debugSoul=true)
-        SoulLog.info("[soul][periodic] zhuanshu>0 owner={} soul={} value={} t={}",
-                player.getOwnerId().orElse(null), player.getSoulId(), zhuanshu, gameTime);
-        // Future: invoke specific handlers (gates, effects, etc.) here.
+    private static void logRecovery(SoulPlayer player,
+                                    double zhuanshu,
+                                    long gameTime,
+                                    OptionalDouble newZhenyuan,
+                                    OptionalDouble newHunpo,
+                                    OptionalDouble newJingli,
+                                    OptionalDouble newNiantou) {
+        SoulLog.info("[soul][periodic] resource tick owner={} soul={} zhuanshu={} t={} zhenyuan={} hunpo={} jingli={} niantou={}",
+                player.getOwnerId().orElse(null),
+                player.getSoulId(),
+                zhuanshu,
+                gameTime,
+                newZhenyuan.isPresent() ? newZhenyuan.getAsDouble() : "skip",
+                newHunpo.orElse(Double.NaN),
+                newJingli.orElse(Double.NaN),
+                newNiantou.orElse(Double.NaN));
     }
 }
-

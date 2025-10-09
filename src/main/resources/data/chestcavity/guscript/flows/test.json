@@ -1,0 +1,26 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        { "trigger": "start", "target": "releasing" }
+      ]
+    },
+    "releasing": {
+      "enter_actions": [
+        {
+          "type": "emit_gecko",
+          "fx": "chestcavity:lash",
+          "anchor": "performer",
+          "scale": 1.0,
+          "alpha": 1.0,
+          "loop": false,
+          "duration": 40
+        }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 1 }
+      ]
+    }
+  }
+}

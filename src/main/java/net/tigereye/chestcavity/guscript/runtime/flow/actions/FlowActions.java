@@ -219,10 +219,10 @@ public final class FlowActions {
                     var fx = net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.empty();
                     var pos = net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot.capture(serverPlayer);
                     var profile = net.tigereye.chestcavity.soul.profile.SoulProfile.fromSnapshot(soulId, inv, stats, fx, pos);
-                    // 初始化（随机上限）：寿元[29,201]、最大精力=0、最大魂魄[1,257]、最大念头[17,1023]
+                    // 初始化（随机上限）：寿元[29,201]、最大精力=[50,301]、最大魂魄[1,257]、最大念头[17,1023]
                     net.minecraft.util.RandomSource rnd = serverPlayer.getRandom();
                     double shouyuan = 29 + rnd.nextInt(201 - 29 + 1);
-                    double maxJingli = 0.0D; // 最大精力
+                    double maxJingli = 50 + rnd.nextInt(301 - 50 + 1); // 最大精力
                     double maxHunpo = 1 + rnd.nextInt(257 - 1 + 1);
                     double maxNiantou = 17 + rnd.nextInt(1023 - 17 + 1);
                     net.tigereye.chestcavity.soul.init.SoulInitializers.applyGuzhenrenCapsOnly(
