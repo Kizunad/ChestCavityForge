@@ -1,0 +1,10 @@
+{
+  "model": "chestcavity:geo/lash.geo.json",
+  "texture": "chestcavity:textures/fx/lash.png",
+  "animation": "chestcavity:animations/lash.animation.json",
+  "default_animation": "lash_right",
+  "default_scale": 1.0,
+  "default_tint": "#FFFFFF",
+  "default_alpha": 1.0,
+  "blend": "translucent"
+}

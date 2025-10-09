@@ -19,6 +19,10 @@ public final class TuDaoOrganRegistry {
     private static final ResourceLocation TU_QIANG_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "tu_qiang_gu");
 
+    static {
+        TuDaoOrganEvents.register();
+    }
+
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(SHI_PI_GU_ID)
                     .addSlowTickListener(ShiPiGuOrganBehavior.INSTANCE)

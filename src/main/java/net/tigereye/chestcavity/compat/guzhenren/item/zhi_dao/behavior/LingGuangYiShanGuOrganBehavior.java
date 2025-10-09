@@ -34,7 +34,7 @@ public final class LingGuangYiShanGuOrganBehavior extends AbstractGuzhenrenOrgan
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final double BASE_ZHENYUAN_COST_PER_SECOND = 1000.0;
-    private static final double BASE_NIANTOU_RECOVERY_PER_SECOND = 3.0;
+    private static final double BASE_NIANTOU_RECOVERY_PER_SECOND = 1.0;
     private static final double TIZHI_RECOVERY_BONUS_PER_SECOND = 0.12;
     private static final double REQUIRED_TIZHI = 8.0;
     private static final double EPSILON = 1.0E-4;

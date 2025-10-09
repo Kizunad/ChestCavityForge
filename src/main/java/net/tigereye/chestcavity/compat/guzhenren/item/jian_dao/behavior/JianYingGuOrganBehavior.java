@@ -92,6 +92,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     // LivingIncomingDamageEvent and would otherwise loop back into onHit.
     private static final ThreadLocal<Boolean> REENTRY_GUARD = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static final Logger LOGGER = ChestCavity.LOGGER;
+    private static final String ABILITY_LOG_PATTERN = "[compat/guzhenren][jian_dao][ability] {} owner={} reason={} {}";
 
     static {
         OrganActivationListeners.register(ABILITY_ID, JianYingGuOrganBehavior::activateAbility);
@@ -267,7 +268,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
         if (!(entity instanceof Player player)) {
-            LOGGER.info("[compat/guzhenren][jian_dao][ability] EXIT owner=? reason=non_player entity_type={}", entity.getType());
+            logAbility(null, "EXIT", "non_player", "entity_type=" + entity.getType());
             return;
         }
         if (entity.level().isClientSide()) {
@@ -540,6 +541,10 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     private static void logAbility(@Nullable Player player, String phase, String reason, String details) {
         String owner = player != null ? player.getScoreboardName() : "?";
         String info = details == null ? "-" : details;
-        LOGGER.info("[compat/guzhenren][jian_dao][ability] {} owner={} reason={} {}", phase, owner, reason, info);
+        if ("WARN".equalsIgnoreCase(phase)) {
+            LOGGER.warn(ABILITY_LOG_PATTERN, phase, owner, reason, info);
+            return;
+        }
+        LOGGER.debug(ABILITY_LOG_PATTERN, phase, owner, reason, info);
     }
 }

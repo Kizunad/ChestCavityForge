@@ -3,7 +3,9 @@ package net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -37,6 +39,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * Behaviour implementation for 土墙蛊 (Tu Qiang Gu).
@@ -77,7 +83,7 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final int ABILITY_RANGE = 10;
     private static final int PRISON_RADIUS = 4;
-    private static final int PRISON_DURATION_TICKS = 20 * 8;
+    private static final int PRISON_DURATION_TICKS = 20 * 60; // 60 seconds
 
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tu_qiang_gu");
     private static final ResourceLocation YU_PI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_pi_gu");
@@ -94,6 +100,9 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final BlockState JADE_PRISON_BLOCK = resolvePrisonBlock(JADE_LAO_BLOCK_ID, Blocks.EMERALD_BLOCK.defaultBlockState());
 
     private static final double RANGE_SQUARED = ABILITY_RANGE * ABILITY_RANGE;
+
+    private static final ConcurrentHashMap<UUID, ActivePrison> ACTIVE_PRISONS = new ConcurrentHashMap<>();
+    private static final AtomicLong PRISON_SEQUENCE = new AtomicLong();
 
     static {
         OrganActivationListeners.register(ABILITY_ID, TuQiangGuOrganBehavior::activateAbility);
@@ -257,6 +266,7 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (slotUpdate) {
             sendSlotUpdate(cc, organ);
         }
+        updateHeShiBiChannel(cc, updated);
     }
 
     /** Activates the temporary barrier that grants local hardening. */
@@ -381,22 +391,77 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+        Player owner = user instanceof Player ? (Player) user : null;
+        if (owner != null) {
+            int stored = Math.max(0, state.getInt(EMERALD_BLOCKS_KEY, 0));
+            int barrierTicks = Math.max(0, state.getInt(BARRIER_TICKS_KEY, 0));
+            LOGGER.info(
+                    "[compat/guzhenren][tu_qiang_gu][ability] HOTKEY owner={} sneaking={} stored={} barrier_ticks={}",
+                    owner.getScoreboardName(),
+                    owner.isShiftKeyDown(),
+                    stored,
+                    barrierTicks
+            );
+        }
+
+        if (attemptEmeraldUpgrade(user, cc, organ, state)) {
+            return;
+        }
+
         int barrierTicks = Math.max(0, state.getInt(BARRIER_TICKS_KEY, 0));
         if (barrierTicks > 0) {
+            if (owner != null) {
+                LOGGER.info(
+                        "[compat/guzhenren][tu_qiang_gu][ability] EXIT owner={} reason=barrier_active ticks={}",
+                        owner.getScoreboardName(),
+                        barrierTicks
+                );
+            }
             return;
         }
 
         LivingEntity target = findPrisonTarget(user, server);
         if (target == null) {
+            if (owner != null) {
+                LOGGER.info(
+                        "[compat/guzhenren][tu_qiang_gu][ability] EXIT owner={} reason=no_target range={}",
+                        owner.getScoreboardName(),
+                        ABILITY_RANGE
+                );
+            }
             return;
         }
 
         boolean jadePrisonUnlocked = state.getBoolean(JADE_PRISON_UNLOCKED_KEY, false);
         BlockState prisonBlock = jadePrisonUnlocked ? JADE_PRISON_BLOCK : EARTH_PRISON_BLOCK;
 
+        if (owner != null) {
+            clearActivePrison(owner, server);
+        }
+
         PrisonPlacement placement = buildPrisonShell(server, target, PRISON_RADIUS, prisonBlock);
         if (placement.blocks().isEmpty()) {
+            if (owner != null) {
+                LOGGER.info(
+                        "[compat/guzhenren][tu_qiang_gu][ability] EXIT owner={} reason=placement_blocked shell_attempts={} shell_placed={} shell_blocked={} shell_out_of_bounds={} shell_replaced={} interior_attempts={} interior_cleared={} interior_blocked={} interior_out_of_bounds={} fallback={}",
+                        owner.getScoreboardName(),
+                        placement.shellAttempts(),
+                        placement.shellPlaced(),
+                        placement.shellBlocked(),
+                        placement.shellOutOfBounds(),
+                        placement.shellReplaced(),
+                        placement.interiorAttempts(),
+                        placement.interiorCleared(),
+                        placement.interiorBlocked(),
+                        placement.interiorOutOfBounds(),
+                        placement.fallbackUsed()
+                );
+            }
             return;
+        }
+
+        if (owner != null) {
+            registerActivePrison(owner, server, placement);
         }
 
         Vec3 center = Vec3.atCenterOf(target.blockPosition());
@@ -405,7 +470,160 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         INSTANCE.activateBarrier(cc, organ, PRISON_DURATION_TICKS);
 
-        schedulePrisonCleanup(server, placement, PRISON_DURATION_TICKS);
+        if (owner != null) {
+            String sample = placement.blocks().stream()
+                    .limit(5)
+                    .map(BlockPos::toShortString)
+                    .collect(Collectors.joining(","));
+            LOGGER.info(
+                    "[compat/guzhenren][tu_qiang_gu][ability] EXIT owner={} reason=success placed={} block={} sample={} fallback={} shell_attempts={} shell_placed={} shell_blocked={} shell_out_of_bounds={} shell_replaced={} interior_attempts={} interior_cleared={} interior_blocked={} interior_out_of_bounds={}",
+                    owner.getScoreboardName(),
+                    placement.blocks().size(),
+                    placement.block(),
+                    sample,
+                    placement.fallbackUsed(),
+                    placement.shellAttempts(),
+                    placement.shellPlaced(),
+                    placement.shellBlocked(),
+                    placement.shellOutOfBounds(),
+                    placement.shellReplaced(),
+                    placement.interiorAttempts(),
+                    placement.interiorCleared(),
+                    placement.interiorBlocked(),
+                    placement.interiorOutOfBounds()
+            );
+        }
+    }
+
+    private static void clearActivePrison(Player owner, ServerLevel level) {
+        UUID ownerId = owner.getUUID();
+        ActivePrison existing = ACTIVE_PRISONS.remove(ownerId);
+        if (existing == null) {
+            return;
+        }
+        LOGGER.info("[compat/guzhenren][tu_qiang_gu][cleanup] skipped removal owner={} version={}", ownerId, existing.version());
+    }
+
+    private static void registerActivePrison(Player owner, ServerLevel level, PrisonPlacement placement) {
+        if (placement == null || placement.blocks().isEmpty()) {
+            return;
+        }
+        long version = PRISON_SEQUENCE.incrementAndGet();
+        ActivePrison active = new ActivePrison(level.dimension(), placement, version);
+        ACTIVE_PRISONS.put(owner.getUUID(), active);
+        LOGGER.info("[compat/guzhenren][tu_qiang_gu][scheduler] cleanup disabled owner={} version={}", owner.getUUID(), version);
+    }
+
+    private static boolean attemptEmeraldUpgrade(LivingEntity user, ChestCavityInstance cc, ItemStack organ, OrganState state) {
+        if (!(user instanceof Player player)) {
+            return false;
+        }
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return false;
+        }
+        int stored = Math.max(0, state.getInt(EMERALD_BLOCKS_KEY, 0));
+        if (stored >= 3) {
+            boolean unlocked = state.getBoolean(JADE_PRISON_UNLOCKED_KEY, false);
+            if (!unlocked) {
+                OrganState.Change<Boolean> fix = state.setBoolean(JADE_PRISON_UNLOCKED_KEY, true);
+                INSTANCE.logStateChange(LOGGER, INSTANCE.prefix(), organ, JADE_PRISON_UNLOCKED_KEY, fix);
+                if (fix.changed()) {
+                    INSTANCE.sendSlotUpdate(cc, organ);
+                }
+            }
+            INSTANCE.updateHeShiBiChannel(cc, stored);
+            return false;
+        }
+        if (state.getBoolean(JADE_PRISON_UNLOCKED_KEY, false)) {
+            INSTANCE.updateHeShiBiChannel(cc, stored);
+            return false;
+        }
+        if (!player.isShiftKeyDown()) {
+            return false;
+        }
+        if (!consumeEmeraldBlock(player)) {
+            return false;
+        }
+        INSTANCE.onEmeraldBlockConsumed(cc, organ);
+        if (player.level() instanceof ServerLevel server) {
+            int total = Math.max(0, state.getInt(EMERALD_BLOCKS_KEY, stored + 1));
+            playEmeraldUpgradeCue(server, player, total);
+        }
+        return true;
+    }
+
+    private static boolean consumeEmeraldBlock(Player player) {
+        if (player == null) {
+            return false;
+        }
+        if (player.getAbilities().instabuild) {
+            return true;
+        }
+        var inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!stack.isEmpty() && isEmeraldUpgradeItem(stack)) {
+                stack.shrink(1);
+                if (stack.isEmpty()) {
+                    inventory.setItem(slot, ItemStack.EMPTY);
+                }
+                inventory.setChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isEmeraldUpgradeItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        if (stack.is(Blocks.EMERALD_BLOCK.asItem())) {
+            return true;
+        }
+        var jadeItem = JADE_PRISON_BLOCK.getBlock().asItem();
+        return stack.is(jadeItem);
+    }
+
+    private static void playEmeraldUpgradeCue(ServerLevel server, Player player, int total) {
+        float clamped = Math.min(total, 3);
+        float pitch = 0.9f + (clamped * 0.05f);
+        server.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.7f, pitch);
+    }
+
+    private void updateHeShiBiChannel(ChestCavityInstance cc, int emeraldBlocks) {
+        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        if (context == null) {
+            return;
+        }
+        LinkageChannel channel = ensureChannel(context, HE_SHI_BI_LINK);
+        if (channel != null) {
+            channel.set(Math.max(0, emeraldBlocks));
+        }
+    }
+
+    public ItemStack locateOrgan(ChestCavityInstance cc) {
+        return findOrgan(cc);
+    }
+
+    public int getEmeraldBlocksConsumed(ItemStack organ) {
+        if (organ == null || organ.isEmpty()) {
+            return 0;
+        }
+        OrganState state = organState(organ, STATE_ROOT);
+        return Math.max(0, state.getInt(EMERALD_BLOCKS_KEY, 0));
+    }
+
+    public int remainingEmeraldUpgrades(ItemStack organ) {
+        if (organ == null || organ.isEmpty()) {
+            return 0;
+        }
+        OrganState state = organState(organ, STATE_ROOT);
+        if (state.getBoolean(JADE_PRISON_UNLOCKED_KEY, false)) {
+            return 0;
+        }
+        int stored = Math.max(0, state.getInt(EMERALD_BLOCKS_KEY, 0));
+        return Math.max(0, 3 - stored);
     }
 
     private static ItemStack findOrgan(ChestCavityInstance cc) {
@@ -450,48 +668,185 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static PrisonPlacement buildPrisonShell(ServerLevel level, LivingEntity target, int radius, BlockState blockState) {
         if (radius <= 0 || blockState == null || target == null) {
-            return new PrisonPlacement(List.of(), Blocks.AIR);
+            return new PrisonPlacement(List.<BlockPos>of(), Blocks.AIR, 0, 0, 0, 0, 0, 0, 0, 0, 0, false);
         }
         BlockPos center = target.blockPosition();
+        List<BlockPos> shellPositions = new ArrayList<>();
+        List<BlockPos> interiorPositions = new ArrayList<>();
         List<BlockPos> placed = new ArrayList<>();
+        PlacementAccumulator stats = new PlacementAccumulator();
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
         int outerSq = radius * radius;
-        int innerSq = Math.max(0, (radius - 1) * (radius - 1));
+        int shellSq = Math.max(1, (radius - 1) * (radius - 1));
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dy = -radius; dy <= radius; dy++) {
                 for (int dz = -radius; dz <= radius; dz++) {
                     int distanceSq = dx * dx + dy * dy + dz * dz;
-                    if (distanceSq > outerSq || distanceSq < innerSq) {
+                    if (distanceSq > outerSq) {
                         continue;
                     }
                     mutable.set(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
-                    if (!level.isInWorldBounds(mutable)) {
-                        continue;
+                    boolean onBoundary = distanceSq >= shellSq
+                            || Math.abs(dx) == radius
+                            || Math.abs(dy) == radius
+                            || Math.abs(dz) == radius;
+                    if (onBoundary) {
+                        shellPositions.add(mutable.immutable());
+                    } else {
+                        interiorPositions.add(mutable.immutable());
                     }
-                    if (!level.getBlockState(mutable).isAir()) {
-                        continue;
-                    }
-                    level.setBlockAndUpdate(mutable, blockState);
-                    placed.add(mutable.immutable());
                 }
             }
         }
-        return new PrisonPlacement(placed, blockState.getBlock());
+        for (BlockPos pos : interiorPositions) {
+            tryClearInterior(level, pos, stats);
+        }
+        for (BlockPos pos : shellPositions) {
+            tryPlacePrisonBlock(level, pos, blockState, placed, stats);
+        }
+        boolean fallbackUsed = false;
+        if (placed.isEmpty()) {
+            fallbackUsed = placeFallbackCap(level, center, radius, blockState, placed, stats);
+        }
+        return new PrisonPlacement(
+                placed,
+                blockState.getBlock(),
+                stats.shellAttempts,
+                stats.shellPlaced,
+                stats.shellBlocked,
+                stats.shellOutOfBounds,
+                stats.shellReplaced,
+                stats.interiorAttempts,
+                stats.interiorCleared,
+                stats.interiorBlocked,
+                stats.interiorOutOfBounds,
+                fallbackUsed
+        );
     }
 
-    private static void schedulePrisonCleanup(ServerLevel level, PrisonPlacement placement, int delayTicks) {
+    private static boolean placeFallbackCap(
+            ServerLevel level,
+            BlockPos center,
+            int radius,
+            BlockState blockState,
+            List<BlockPos> placed,
+            PlacementAccumulator stats
+    ) {
+        int capY = Math.min(level.getMaxBuildHeight() - 1, center.getY() + Math.max(2, radius));
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        boolean any = false;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                if ((dx * dx) + (dz * dz) > radius * radius) {
+                    continue;
+                }
+                mutable.set(center.getX() + dx, capY, center.getZ() + dz);
+                if (tryPlacePrisonBlock(level, mutable, blockState, placed, stats)) {
+                    any = true;
+                }
+            }
+        }
+        return any;
+    }
+
+    private static boolean tryPlacePrisonBlock(
+            ServerLevel level,
+            BlockPos pos,
+            BlockState blockState,
+            List<BlockPos> placed,
+            PlacementAccumulator stats
+    ) {
+        stats.shellAttempts++;
+        if (!level.isInWorldBounds(pos)) {
+            stats.shellOutOfBounds++;
+            return false;
+        }
+        BlockState existing = level.getBlockState(pos);
+        boolean replaced = false;
+        if (!existing.isAir()) {
+            boolean replaceable = !existing.getFluidState().isEmpty()
+                    || existing.getCollisionShape(level, pos).isEmpty()
+                    || existing.getDestroySpeed(level, pos) >= 0.0f;
+            if (!replaceable || existing.is(Blocks.BEDROCK)) {
+                stats.shellBlocked++;
+                return false;
+            }
+            replaced = true;
+        }
+        level.setBlock(pos, blockState, Block.UPDATE_ALL_IMMEDIATE);
+        LOGGER.info("[compat/guzhenren][tu_qiang_gu][placement] shell place owner={} pos={} replaced={} block={}",
+                level.players().isEmpty() ? "?" : level.players().get(0).getScoreboardName(),
+                pos,
+                replaced,
+                blockState.getBlock());
+        placed.add(pos.immutable());
+        stats.shellPlaced++;
+        if (replaced) {
+            stats.shellReplaced++;
+        }
+        return true;
+    }
+
+    private static boolean tryClearInterior(ServerLevel level, BlockPos pos, PlacementAccumulator stats) {
+        stats.interiorAttempts++;
+        if (!level.isInWorldBounds(pos)) {
+            stats.interiorOutOfBounds++;
+            return false;
+        }
+        BlockState existing = level.getBlockState(pos);
+        if (existing.isAir()) {
+            return true;
+        }
+        if (existing.is(Blocks.BEDROCK) || existing.getDestroySpeed(level, pos) < 0.0f) {
+            stats.interiorBlocked++;
+            return false;
+        }
+        level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL_IMMEDIATE);
+        stats.interiorCleared++;
+        return true;
+    }
+
+    private static void schedulePrisonCleanup(
+            ServerLevel level,
+            UUID ownerId,
+            long version,
+            PrisonPlacement placement,
+            int delayTicks
+    ) {
         if (placement == null || placement.blocks().isEmpty()) {
             return;
         }
-        if (delayTicks <= 0) {
-            cleanupPrison(level, placement);
-            return;
-        }
-        int targetTick = level.getServer().getTickCount() + delayTicks;
-        level.getServer().tell(new TickTask(targetTick, () -> cleanupPrison(level, placement)));
+        MinecraftServer server = level.getServer();
+        int effectiveDelay = Math.max(1, delayTicks);
+        int currentTick = server.getTickCount();
+        int targetTick = currentTick + effectiveDelay;
+        LOGGER.info("[compat/guzhenren][tu_qiang_gu][scheduler] owner={} version={} delay={} current_tick={} target_tick={}",
+                ownerId,
+                version,
+                effectiveDelay,
+                currentTick,
+                targetTick);
+        server.tell(new TickTask(targetTick, () -> cleanupPrison(server, ownerId, version)));
     }
 
-    private static void cleanupPrison(ServerLevel level, PrisonPlacement placement) {
+    private static void cleanupPrison(MinecraftServer server, UUID ownerId, long version) {
+        ActivePrison active = ACTIVE_PRISONS.get(ownerId);
+        if (active == null || active.version() != version) {
+            return;
+        }
+        ServerLevel level = server.getLevel(active.levelKey());
+        if (level != null) {
+        LOGGER.info("[compat/guzhenren][tu_qiang_gu][cleanup] owner={} version={} releasing={} coords={}",
+                ownerId,
+                version,
+                active.placement().blocks().size(),
+                summarizeBlocks(active.placement().blocks(), 5));
+        releasePrison(level, ownerId, version, active.placement());
+        }
+        ACTIVE_PRISONS.remove(ownerId, active);
+    }
+
+    private static void releasePrison(ServerLevel level, UUID ownerId, long version, PrisonPlacement placement) {
         if (placement == null || placement.blocks().isEmpty()) {
             return;
         }
@@ -501,7 +856,12 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 continue;
             }
             level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+            LOGGER.info("[compat/guzhenren][tu_qiang_gu][cleanup] remove owner={} version={} pos={}", ownerId, version, pos);
         }
+    }
+
+    private static String summarizeBlocks(List<BlockPos> blocks, int limit) {
+        return blocks.stream().limit(limit).map(BlockPos::toShortString).collect(Collectors.joining(","));
     }
 
     private static BlockState resolvePrisonBlock(ResourceLocation id, BlockState fallback) {
@@ -513,6 +873,34 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 .orElse(fallback);
     }
 
-    private record PrisonPlacement(List<BlockPos> blocks, Block block) {
+    private static final class PlacementAccumulator {
+        private int shellAttempts;
+        private int shellPlaced;
+        private int shellBlocked;
+        private int shellOutOfBounds;
+        private int shellReplaced;
+        private int interiorAttempts;
+        private int interiorCleared;
+        private int interiorBlocked;
+        private int interiorOutOfBounds;
+    }
+
+    private record PrisonPlacement(
+            List<BlockPos> blocks,
+            Block block,
+            int shellAttempts,
+            int shellPlaced,
+            int shellBlocked,
+            int shellOutOfBounds,
+            int shellReplaced,
+            int interiorAttempts,
+            int interiorCleared,
+            int interiorBlocked,
+            int interiorOutOfBounds,
+            boolean fallbackUsed
+    ) {
+    }
+
+    private record ActivePrison(ResourceKey<Level> levelKey, PrisonPlacement placement, long version) {
     }
 }

@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoClientAbilit
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.ShiDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.TuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.XueDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.YanDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneAttributeHooks;
@@ -98,6 +99,7 @@ public final class GuzhenrenModule {
             modBus.addListener(MuDaoClientAbilities::onClientSetup);
             modBus.addListener(ShiDaoClientAbilities::onClientSetup);
             modBus.addListener(JiandaoClientAbilities::onClientSetup);
+            modBus.addListener(TuDaoClientAbilities::onClientSetup);
             modBus.addListener(XueDaoClientAbilities::onClientSetup);
             modBus.addListener(YanDaoClientAbilities::onClientSetup);
             modBus.addListener(HunDaoClientAbilities::onClientSetup);
