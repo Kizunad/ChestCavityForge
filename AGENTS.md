@@ -23,6 +23,8 @@
 
 ## Web Codex 快速上手（Guzhenren 新器官）
 
+- 进度跟踪：`docs/guzhenren_behavior_migration.md` 维护蛊真人行为迁移表，本次已将 Lei / Shi / Chou / Jiu 家族切换到 `util.behavior` 的 Ledger/MultiCooldown 工具链。
+
 - **需求拆解**：收到用户类似 `水体蛊` / `血气蛊` 的 JSON 模板时，先把要做的事情分成数据注册（`organScores` 等静态内容）与行为实现（OnEquip/SlowTick/资源消耗）。模板里的 `itemID`、`organScores` 直接映射到数据驱动文件，行为描述留给 Java 侧的监听器处理。
 - **数据注册路径**：在 `ChestCavityForge/src/main/resources/data/chestcavity/organs/guzhenren/` 下新增或调整对应 `*.json`（人类器官通常位于 `.../human/` 子目录）。对照现有文件（例如 `guzhenren:gucaikongqiao`）复制 `itemID`、`organScores`、`defaultCompatibility` 等字段，必要时同步更新 `assets/chestcavity/lang/zh_cn.json` 里的条目。
 - **资源桥入口**：所有 Guzhenren 真元/精力/念头 等附件都通过 `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guzhenren/resource/GuzhenrenResourceBridge.java` 访问。打开后使用 `GuzhenrenResourceBridge.open(player)` 拿到 `ResourceHandle`。默认真元扣减统一调用 `ResourceHandle#consumeScaledZhenyuan(baseCost)`（按境界缩放），不要直接走 `adjustZhenyuan`，否则会绕过缩放公式。

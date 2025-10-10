@@ -27,14 +27,14 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.util.NBTCharge;
-import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.registration.CCItems;
 
 import java.util.List;
@@ -53,7 +53,8 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/du_dao_increase_effect");
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-    private static final String STATE_KEY = "ChouPiGuTimer";
+    private static final String STATE_ROOT = "ChouPiGu";
+    private static final String INTERVAL_KEY = "NextIntervalTicks";
     private static final int RANDOM_INTERVAL_MIN_TICKS = 100;
     private static final int RANDOM_INTERVAL_MAX_TICKS = 400;
     private static final int SLOW_TICK_STEP = 20;
@@ -82,8 +83,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         if (entity.level().isClientSide()) {
             return;
         }
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt intervalEntry = cooldown.entryInt(INTERVAL_KEY);
         if (!(entity instanceof Player player)) {
-            handleNonPlayerSlowTick(entity, cc, organ);
+            handleNonPlayerSlowTick(entity, cc, organ, intervalEntry);
             return;
         }
         if (!player.isAlive()) {
@@ -91,24 +94,31 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
 
         RandomSource random = player.getRandom();
-        int remaining = Math.max(0, NBTCharge.getCharge(organ, STATE_KEY));
+        int remaining = Math.max(0, intervalEntry.getTicks());
         if (remaining <= 0) {
-            setNextInterval(cc, organ, randomInterval(random));
+            if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
+                intervalEntry.setTicks(randomInterval(random));
+            }
             return;
         }
 
         int updated = Math.max(0, remaining - SLOW_TICK_STEP);
+        intervalEntry.setTicks(updated);
         if (updated > 0) {
-            setNextInterval(cc, organ, updated);
             return;
         }
 
-        if (!releaseGas(player, cc, organ, TriggerCause.RANDOM)) {
-            setNextInterval(cc, organ, randomInterval(random));
+        if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
+            intervalEntry.setTicks(randomInterval(random));
         }
     }
 
-    private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+    private void handleNonPlayerSlowTick(
+            LivingEntity entity,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            MultiCooldown.EntryInt intervalEntry
+    ) {
         if (entity == null || organ == null || organ.isEmpty()) {
             return;
         }
@@ -117,20 +127,22 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
 
         RandomSource random = entity.getRandom();
-        int remaining = Math.max(0, NBTCharge.getCharge(organ, STATE_KEY));
+        int remaining = Math.max(0, intervalEntry.getTicks());
         if (remaining <= 0) {
-            setNextInterval(cc, organ, randomInterval(random));
+            if (!releaseGas(entity, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
+                intervalEntry.setTicks(randomInterval(random));
+            }
             return;
         }
 
         int updated = Math.max(0, remaining - SLOW_TICK_STEP);
+        intervalEntry.setTicks(updated);
         if (updated > 0) {
-            setNextInterval(cc, organ, updated);
             return;
         }
 
-        if (!releaseGas(entity, cc, organ, TriggerCause.RANDOM)) {
-            setNextInterval(cc, organ, randomInterval(random));
+        if (!releaseGas(entity, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
+            intervalEntry.setTicks(randomInterval(random));
         }
     }
 
@@ -139,20 +151,30 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         if (victim.level().isClientSide()) {
             return damage;
         }
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt intervalEntry = cooldown.entryInt(INTERVAL_KEY);
+        RandomSource random = victim.getRandom();
         if (victim instanceof Player player) {
-            RandomSource random = player.getRandom();
             double increase = Math.max(0.0, getPoisonIncrease(cc));
             double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
             if (random.nextDouble() < Math.min(1.0, chance)) {
-                releaseGas(player, cc, organ, TriggerCause.DAMAGE);
+                if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.DAMAGE)) {
+                    intervalEntry.setTicks(randomInterval(random));
+                }
             }
             return damage;
         }
-        handleNonPlayerDamage(victim, cc, organ);
+        handleNonPlayerDamage(victim, cc, organ, intervalEntry, random);
         return damage;
     }
 
-    private void handleNonPlayerDamage(LivingEntity victim, ChestCavityInstance cc, ItemStack organ) {
+    private void handleNonPlayerDamage(
+            LivingEntity victim,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            MultiCooldown.EntryInt intervalEntry,
+            RandomSource random
+    ) {
         if (victim == null || organ == null || organ.isEmpty()) {
             return;
         }
@@ -160,11 +182,12 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             return;
         }
 
-        RandomSource random = victim.getRandom();
         double increase = Math.max(0.0, getPoisonIncrease(cc));
         double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
         if (random.nextDouble() < Math.min(1.0, chance)) {
-            releaseGas(victim, cc, organ, TriggerCause.DAMAGE);
+            if (!releaseGas(victim, cc, organ, intervalEntry, random, TriggerCause.DAMAGE)) {
+                intervalEntry.setTicks(randomInterval(random));
+            }
         }
     }
 
@@ -181,7 +204,11 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
                 continue;
             }
             if (random.nextDouble() < chance) {
-                releaseGas(player, cc, organ, TriggerCause.FOOD);
+                MultiCooldown cooldown = createCooldown(cc, organ);
+                MultiCooldown.EntryInt intervalEntry = cooldown.entryInt(INTERVAL_KEY);
+                if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.FOOD)) {
+                    intervalEntry.setTicks(randomInterval(random));
+                }
                 break;
             }
         }
@@ -194,7 +221,14 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         ensurePoisonChannel(cc);
     }
 
-    private boolean releaseGas(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, TriggerCause cause) {
+    private boolean releaseGas(
+            LivingEntity entity,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            MultiCooldown.EntryInt intervalEntry,
+            RandomSource random,
+            TriggerCause cause
+    ) {
         if (entity == null) {
             return false;
         }
@@ -202,10 +236,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         if (!(level instanceof ServerLevel server)) {
             return false;
         }
-
-        RandomSource random = entity.getRandom();
         performEffects(server, entity, cc, organ, random, cause);
-        setNextInterval(cc, organ, randomInterval(random));
+        if (intervalEntry != null) {
+            intervalEntry.setTicks(randomInterval(random));
+        }
         return true;
     }
 
@@ -364,26 +398,27 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         return RANDOM_INTERVAL_MIN_TICKS + random.nextInt(RANDOM_INTERVAL_MAX_TICKS - RANDOM_INTERVAL_MIN_TICKS + 1);
     }
 
-    private static void setNextInterval(ChestCavityInstance cc, ItemStack organ, int ticks) {
-        int clamped = Math.max(0, ticks);
-        if (NBTCharge.getCharge(organ, STATE_KEY) == clamped) {
-            return;
-        }
-        NBTCharge.setCharge(organ, STATE_KEY, clamped);
-        if (cc != null) {
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
-    }
-
     private static double getPoisonIncrease(ChestCavityInstance cc) {
-        if (cc == null) {
-            return 0.0;
-        }
-        return ensurePoisonChannel(cc).get();
+        LinkageChannel channel = ensurePoisonChannel(cc);
+        return channel == null ? 0.0 : channel.get();
     }
 
     private static LinkageChannel ensurePoisonChannel(ChestCavityInstance cc) {
+        if (cc == null) {
+            return null;
+        }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        return context.getOrCreateChannel(DU_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
+        return LedgerOps.ensureChannel(context, DU_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+    }
+
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(organ, STATE_ROOT)
+                .withIntClamp(value -> Math.max(0, value), 0);
+        if (cc != null && organ != null && !organ.isEmpty()) {
+            builder.withSync(cc, organ);
+        } else if (organ != null) {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
     }
 }
