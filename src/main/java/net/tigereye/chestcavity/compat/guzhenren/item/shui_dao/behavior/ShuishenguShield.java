@@ -10,6 +10,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.listeners.damage.IncomingDamageShield;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -92,9 +93,13 @@ public final class ShuishenguShield implements IncomingDamageShield {
         }
         double ratio = CurveUtil.clamp(currentCharge / (double) maxCharge, 0.0D, 1.0D);
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.lookupChannel(CHARGE_CHANNEL_ID)
-                .orElseGet(() -> context.getOrCreateChannel(CHARGE_CHANNEL_ID).addPolicy(UNIT_CLAMP));
-        channel.set(ratio);
+        if (context == null) {
+            return;
+        }
+        LinkageChannel channel = LedgerOps.ensureChannel(context, CHARGE_CHANNEL_ID, UNIT_CLAMP);
+        if (channel != null) {
+            channel.set(ratio);
+        }
     }
 
     private static void playDamageSound(LivingEntity entity, boolean shieldBroken) {

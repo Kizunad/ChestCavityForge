@@ -21,7 +21,6 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -168,7 +167,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         float healed = applyHealing(entity, healAmount);
         if (healed <= 0.0f) {
             if (player != null && payment != null) {
-                GuzhenrenResourceCostHelper.refund(player, payment);
+                ResourceOps.refund(player, payment);
             }
             return false;
         }
@@ -195,7 +194,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         float healed = applyHealing(entity, healAmount);
         if (healed <= 0.0f) {
             if (player != null && payment != null) {
-                GuzhenrenResourceCostHelper.refund(player, payment);
+                ResourceOps.refund(player, payment);
             }
             return false;
         }

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.util.behavior;
 
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -44,6 +45,35 @@ public final class ResourceOps {
     public static GuzhenrenResourceCostHelper.ConsumptionResult consumeHunpoWithFallback(LivingEntity entity, double hunpo) {
         if (entity == null) throw new IllegalArgumentException("entity is null");
         return GuzhenrenResourceCostHelper.consumeHunpo(entity, hunpo, true);
+    }
+
+    /** Refund a previous {@link GuzhenrenResourceCostHelper} consumption back to the player. */
+    public static boolean refund(Player player, GuzhenrenResourceCostHelper.ConsumptionResult result) {
+        if (player == null || result == null) {
+            return false;
+        }
+        return GuzhenrenResourceCostHelper.refund(player, result);
+    }
+
+    /** Drain health/absorption from an entity while respecting vanilla rollback semantics. */
+    public static boolean drainHealth(LivingEntity entity, float amount, float minimumReserve, DamageSource source) {
+        return GuzhenrenResourceCostHelper.drainHealth(entity, amount, minimumReserve, source);
+    }
+
+    /** Convenience overload that uses the entity's generic damage source. */
+    public static boolean drainHealth(LivingEntity entity, float amount, float minimumReserve) {
+        DamageSource source = entity == null ? null : entity.damageSources().generic();
+        return drainHealth(entity, amount, minimumReserve, source);
+    }
+
+    /** Convenience overload that omits the minimum reserve. */
+    public static boolean drainHealth(LivingEntity entity, float amount, DamageSource source) {
+        return drainHealth(entity, amount, 0.0f, source);
+    }
+
+    /** Convenience overload that omits both reserve and custom source. */
+    public static boolean drainHealth(LivingEntity entity, float amount) {
+        return drainHealth(entity, amount, 0.0f);
     }
 
 
