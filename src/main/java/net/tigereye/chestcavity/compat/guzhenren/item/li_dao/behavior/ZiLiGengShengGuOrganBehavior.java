@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganB
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoConstants;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;

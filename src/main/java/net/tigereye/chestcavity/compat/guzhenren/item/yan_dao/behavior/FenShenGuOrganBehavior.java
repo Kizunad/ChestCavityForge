@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.OrganPresenceUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
@@ -71,14 +72,13 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         OrganState state = organState(organ, STATE_ROOT);
-        boolean dirty = false;
+        OrganStateOps.Collector collector = OrganStateOps.collector(cc, organ);
 
         boolean synergyActive = hasFlameCoreSynergy(cc);
         boolean previousSynergy = state.getBoolean(SYNERGY_KEY, false);
         if (synergyActive != previousSynergy) {
-            var change = state.setBoolean(SYNERGY_KEY, synergyActive, false);
+            var change = collector.record(state.setBoolean(SYNERGY_KEY, synergyActive, false));
             logStateChange(LOGGER, LOG_PREFIX, organ, SYNERGY_KEY, change);
-            dirty |= change.changed();
         }
 
         if (synergyActive) {
@@ -90,14 +90,12 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         if (entity.isOnFire() || synergyActive) {
-            dirty |= applyBurningBenefits(entity, organ, state);
+            collector.record(applyBurningBenefits(entity, organ, state));
         } else {
-            dirty |= resetStacks(state, organ);
+            collector.record(resetStacks(state, organ));
         }
 
-        if (dirty) {
-            sendSlotUpdate(cc, organ);
-        }
+        collector.commit();
     }
 
     @Override
