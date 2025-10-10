@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 
 /**
  * Placeholder behaviour for火心蛊（Yan Dao）。
- * TODO: implement recovery、火焰抗性等逻辑。
+ * 
  */
 public final class HuoxinguOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener {
 

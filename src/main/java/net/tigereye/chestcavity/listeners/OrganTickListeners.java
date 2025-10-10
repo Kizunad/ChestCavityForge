@@ -197,7 +197,7 @@ public class OrganTickListeners {
         }
         float Hydroallergy = cc.getOrganScore(CCOrganScores.HYDROALLERGENIC);
         if(Hydroallergy <= 0){   //do nothing if the target isn't hydrophobic
-            return;                                                                 //TODO: make enderman water-damage dependent on hydroallergenic
+            return;                                                                 
         }
         if (entity.isInWater()) {
             if(!entity.hasEffect(CCStatusEffects.WATER_VULNERABILITY)) {

@@ -60,14 +60,7 @@ import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerM
 
 
 @Mod(ChestCavity.MODID)
-public class ChestCavity { //TODO: fix 1.19 version to include color thing, fix organUtil class, possibly update to 4?, add alexs mobs and other mods compat
-
-	//Ideas: make smaller one that can only be used on small animals, and make it with a durability so that it can only be used a certain amount of times and not too op
-
-	//Changelog:
-	//fixed a bug where cloth config would cause the game to not load
-	//fixed bugs related to multiplayer and not being able to see organ qualities
-	//updated the version to 2.16.4
+public class ChestCavity { 
 
 
 	public static final String MODID = "chestcavity";
