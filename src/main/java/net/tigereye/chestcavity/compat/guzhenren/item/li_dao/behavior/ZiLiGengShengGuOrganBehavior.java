@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganB
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoConstants;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
@@ -87,14 +88,16 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         }
 
         OrganState state = organState(organ, STATE_ROOT);
+        MultiCooldown cooldown = createCooldown(cc, organ);
         long gameTime = entity.level().getGameTime();
 
-        tickPassive(entity, cc, organ, state, gameTime);
-        tickAbility(entity, cc, organ, state, gameTime);
+        tickPassive(entity, cc, organ, state, cooldown, gameTime);
+        tickAbility(entity, cc, organ, state, cooldown, gameTime);
     }
 
-    private void tickPassive(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, long gameTime) {
-        long nextAllowed = state.getLong(NEXT_PASSIVE_TICK_KEY, 0L);
+    private void tickPassive(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, MultiCooldown cooldown, long gameTime) {
+        MultiCooldown.Entry passiveEntry = cooldown.entry(NEXT_PASSIVE_TICK_KEY);
+        long nextAllowed = passiveEntry.getReadyTick();
         if (nextAllowed > gameTime) {
             return;
         }
@@ -102,7 +105,7 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         double efficiency = Math.max(0.0, 1.0 + liDaoIncrease(cc));
         ConsumptionResult payment = ResourceOps.consumeStrict(entity, PASSIVE_ZHENYUAN_COST, 0.0);
         long reschedule = Math.max(gameTime + PASSIVE_INTERVAL_TICKS, gameTime + 1);
-        OrganStateOps.setLong(state, cc, organ, NEXT_PASSIVE_TICK_KEY, reschedule, value -> Math.max(0L, value), 0L);
+        passiveEntry.setReadyAt(reschedule);
 
         if (!payment.succeeded()) {
             if (LOGGER.isDebugEnabled()) {
@@ -117,34 +120,39 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         }
     }
 
-    private void tickAbility(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, long gameTime) {
+    private void tickAbility(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, MultiCooldown cooldown, long gameTime) {
         if (!state.getBoolean(ACTIVE_FLAG_KEY, false)) {
             return;
         }
         double efficiency = Math.max(state.getDouble(ACTIVE_EFFICIENCY_KEY, 1.0), 0.0);
-        long abilityEnd = state.getLong(ACTIVE_END_TICK_KEY, 0L);
+        MultiCooldown.Entry abilityEndEntry = cooldown.entry(ACTIVE_END_TICK_KEY);
+        MultiCooldown.Entry regenEntry = cooldown.entry(NEXT_REGEN_TICK_KEY);
+        long abilityEnd = abilityEndEntry.getReadyTick();
 
         if (abilityEnd > 0L && gameTime >= abilityEnd) {
-            finishAbility(entity, cc, organ, state, efficiency);
+            finishAbility(entity, cc, organ, state, cooldown, efficiency);
             return;
         }
 
-        long nextRegen = state.getLong(NEXT_REGEN_TICK_KEY, gameTime);
+        long nextRegen = regenEntry.getReadyTick();
         if (gameTime >= nextRegen) {
             float healAmount = (float) (ABILITY_REGEN_PER_SECOND * Math.max(efficiency, 0.0));
             if (healAmount > EPSILON && entity.isAlive()) {
                 entity.heal(healAmount);
             }
             long newNext = Math.max(gameTime + REGEN_STEP_TICKS, nextRegen + REGEN_STEP_TICKS);
-            OrganStateOps.setLong(state, cc, organ, NEXT_REGEN_TICK_KEY, newNext, value -> Math.max(0L, value), 0L);
+            regenEntry.setReadyAt(newNext);
         }
     }
 
-    private void finishAbility(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, double efficiency) {
+    private void finishAbility(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, MultiCooldown cooldown, double efficiency) {
         OrganStateOps.setBoolean(state, cc, organ, ACTIVE_FLAG_KEY, false, false);
-        OrganStateOps.setLong(state, cc, organ, ACTIVE_END_TICK_KEY, 0L, value -> 0L, 0L);
-        OrganStateOps.setLong(state, cc, organ, NEXT_REGEN_TICK_KEY, 0L, value -> 0L, 0L);
+        cooldown.entry(ACTIVE_END_TICK_KEY).setReadyAt(0L);
+        cooldown.entry(NEXT_REGEN_TICK_KEY).setReadyAt(0L);
         OrganStateOps.setDouble(state, cc, organ, ACTIVE_EFFICIENCY_KEY, 0.0, value -> Math.max(0.0, value), 0.0);
+        if (entity != null) {
+            entity.removeEffect(MobEffects.REGENERATION);
+        }
 
         int weaknessTicks = computeWeaknessDurationTicks(efficiency);
         if (weaknessTicks > 0 && entity != null && entity.isAlive()) {
@@ -157,6 +165,17 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         double seconds = WEAKNESS_BASE_SECONDS / safeEfficiency;
         int ticks = (int) Math.round(seconds * 20.0);
         return Math.max(ticks, 0);
+    }
+
+    private MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(OrganState.of(organ, STATE_ROOT))
+                .withLongClamp(value -> Math.max(0L, value), 0L);
+        if (cc != null) {
+            builder.withSync(cc, organ);
+        } else {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -173,12 +192,15 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
 
         OrganState state = INSTANCE.organState(organ, STATE_ROOT);
         long gameTime = player.level().getGameTime();
+        MultiCooldown cooldown = INSTANCE.createCooldown(cc, organ);
+        MultiCooldown.Entry abilityEndEntry = cooldown.entry(ACTIVE_END_TICK_KEY);
+        MultiCooldown.Entry regenEntry = cooldown.entry(NEXT_REGEN_TICK_KEY);
 
         if (state.getBoolean(ACTIVE_FLAG_KEY, false)) {
-            long endTick = state.getLong(ACTIVE_END_TICK_KEY, 0L);
+            long endTick = abilityEndEntry.getReadyTick();
             if (endTick > 0L && gameTime >= endTick) {
                 double efficiency = Math.max(state.getDouble(ACTIVE_EFFICIENCY_KEY, 1.0), 0.0);
-                INSTANCE.finishAbility(entity, cc, organ, state, efficiency);
+                INSTANCE.finishAbility(entity, cc, organ, state, cooldown, efficiency);
             }
             if (state.getBoolean(ACTIVE_FLAG_KEY, false)) {
                 return;
@@ -192,9 +214,10 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
 
         double efficiency = Math.max(0.0, 1.0 + INSTANCE.liDaoIncrease(cc));
         OrganStateOps.setBoolean(state, cc, organ, ACTIVE_FLAG_KEY, true, false);
-        OrganStateOps.setLong(state, cc, organ, ACTIVE_END_TICK_KEY, gameTime + ABILITY_DURATION_TICKS, value -> Math.max(0L, value), 0L);
-        OrganStateOps.setLong(state, cc, organ, NEXT_REGEN_TICK_KEY, gameTime + REGEN_STEP_TICKS, value -> Math.max(0L, value), 0L);
+        abilityEndEntry.setReadyAt(gameTime + ABILITY_DURATION_TICKS);
+        regenEntry.setReadyAt(gameTime + REGEN_STEP_TICKS);
         OrganStateOps.setDouble(state, cc, organ, ACTIVE_EFFICIENCY_KEY, Math.max(efficiency, 0.0), value -> Math.max(0.0, value), 0.0);
+        player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, (int) ABILITY_DURATION_TICKS, 0, false, true, true));
     }
 
     private int consumeMuscles(LivingEntity entity, ChestCavityInstance cc) {
@@ -242,8 +265,9 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
             return;
         }
         OrganState state = organState(organ, STATE_ROOT);
+        MultiCooldown cooldown = createCooldown(cc, organ);
         double efficiency = Math.max(state.getDouble(ACTIVE_EFFICIENCY_KEY, 1.0), 0.0);
-        finishAbility(entity, cc, organ, state, efficiency);
-        OrganStateOps.setLong(state, cc, organ, NEXT_PASSIVE_TICK_KEY, 0L, value -> 0L, 0L);
+        finishAbility(entity, cc, organ, state, cooldown, efficiency);
+        cooldown.entry(NEXT_PASSIVE_TICK_KEY).setReadyAt(0L);
     }
 }
