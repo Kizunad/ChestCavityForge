@@ -9,6 +9,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
@@ -56,9 +57,11 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
         }
 
         OrganState state = organState(organ, STATE_ROOT);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry invulnExpireEntry = cooldown.entry(INVULN_EXPIRE_TICK_KEY);
         long gameTime = victim.level().getGameTime();
 
-        long invulnExpire = state.getLong(INVULN_EXPIRE_TICK_KEY, 0L);
+        long invulnExpire = invulnExpireEntry.getReadyTick();
         if (invulnExpire > gameTime) {
             return 0.0f;
         }
@@ -93,7 +96,7 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
         boolean dirty = false;
         int remaining = Math.max(0, charges - 1);
         dirty |= OrganStateOps.setInt(state, cc, organ, CHARGES_KEY, remaining, value -> Math.max(0, Math.min(value, MAX_CHARGES)), 0).changed();
-        dirty |= OrganStateOps.setLong(state, cc, organ, INVULN_EXPIRE_TICK_KEY, gameTime + INVULN_WINDOW_TICKS, value -> Math.max(0L, value), 0L).changed();
+        invulnExpireEntry.setReadyAt(gameTime + INVULN_WINDOW_TICKS);
         if (remaining <= 0) {
             dirty |= OrganStateOps.setBoolean(state, cc, organ, ACTIVE_KEY, false, false).changed();
         }
@@ -117,8 +120,11 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
         }
 
         OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry nextReadyEntry = cooldown.entry(NEXT_READY_TICK_KEY);
+        MultiCooldown.Entry invulnExpireEntry = cooldown.entry(INVULN_EXPIRE_TICK_KEY);
         long gameTime = player.level().getGameTime();
-        long nextReady = Math.max(0L, state.getLong(NEXT_READY_TICK_KEY, 0L));
+        long nextReady = Math.max(0L, nextReadyEntry.getReadyTick());
         if (nextReady > gameTime) {
             return;
         }
@@ -129,8 +135,8 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
         boolean dirty = false;
         dirty |= OrganStateOps.setBoolean(state, cc, organ, ACTIVE_KEY, true, false).changed();
         dirty |= OrganStateOps.setInt(state, cc, organ, CHARGES_KEY, MAX_CHARGES, value -> Math.max(0, Math.min(value, MAX_CHARGES)), 0).changed();
-        dirty |= OrganStateOps.setLong(state, cc, organ, NEXT_READY_TICK_KEY, gameTime + COOLDOWN_TICKS, value -> Math.max(0L, value), 0L).changed();
-        dirty |= OrganStateOps.setLong(state, cc, organ, INVULN_EXPIRE_TICK_KEY, 0L, value -> Math.max(0L, value), 0L).changed();
+        nextReadyEntry.setReadyAt(gameTime + COOLDOWN_TICKS);
+        invulnExpireEntry.setReadyAt(0L);
         if (dirty) {
             INSTANCE.sendSlotUpdate(cc, organ);
         }
@@ -145,6 +151,17 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
                 0.8f,
                 1.1f
         );
+    }
+
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(OrganState.of(organ, STATE_ROOT))
+                .withLongClamp(value -> Math.max(0L, value), 0L);
+        if (cc != null) {
+            builder.withSync(cc, organ);
+        } else {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
     }
 
     private static ItemStack findOrgan(ChestCavityInstance cc) {

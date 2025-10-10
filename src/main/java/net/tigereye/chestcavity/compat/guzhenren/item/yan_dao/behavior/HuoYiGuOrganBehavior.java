@@ -22,7 +22,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -91,12 +91,13 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
             return;
         }
         OrganState state = organState(organ, STATE_ROOT);
+        MultiCooldown cooldown = createCooldown(cc, organ);
         long gameTime = level.getGameTime();
         double multiplier = resolveYanDaoMultiplier(cc);
 
         boolean dirty = false;
-        dirty |= tickActiveAura(serverLevel, entity, state, gameTime, multiplier);
-        dirty |= tickPassivePulse(serverLevel, entity, state, gameTime, multiplier);
+        dirty |= tickActiveAura(serverLevel, entity, cooldown, gameTime, multiplier);
+        dirty |= tickPassivePulse(serverLevel, entity, state, cooldown, gameTime, multiplier);
 
         if (dirty) {
             sendSlotUpdate(cc, organ);
@@ -105,20 +106,23 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
 
     private boolean tickActiveAura(ServerLevel level,
                                    LivingEntity user,
-                                   OrganState state,
+                                   MultiCooldown cooldown,
                                    long gameTime,
                                    double multiplier) {
         boolean dirty = false;
-        long activeUntil = state.getLong(KEY_ACTIVE_UNTIL, 0L);
+        MultiCooldown.Entry activeUntilEntry = cooldown.entry(KEY_ACTIVE_UNTIL);
+        MultiCooldown.Entry activeNextEntry = cooldown.entry(KEY_ACTIVE_NEXT_TICK);
+        long activeUntil = activeUntilEntry.getReadyTick();
         if (activeUntil <= gameTime) {
             if (activeUntil != 0L) {
-                dirty |= state.setLong(KEY_ACTIVE_UNTIL, 0L, value -> Math.max(0L, value), 0L).changed();
-                dirty |= state.setLong(KEY_ACTIVE_NEXT_TICK, 0L, value -> Math.max(0L, value), 0L).changed();
+                activeUntilEntry.setReadyAt(0L);
+                activeNextEntry.setReadyAt(0L);
+                dirty = true;
             }
             return dirty;
         }
 
-        long nextTick = state.getLong(KEY_ACTIVE_NEXT_TICK, 0L);
+        long nextTick = activeNextEntry.getReadyTick();
         if (nextTick > gameTime) {
             return dirty;
         }
@@ -126,7 +130,8 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         double damage = Math.max(0.0, ACTIVE_DAMAGE_PER_SECOND * multiplier);
         double slowLevel = Math.max(0.0, ACTIVE_SLOWNESS_BASE * multiplier);
         if (damage <= 0.0) {
-            dirty |= state.setLong(KEY_ACTIVE_NEXT_TICK, gameTime + 20L, value -> Math.max(0L, value), 0L).changed();
+            activeNextEntry.setReadyAt(gameTime + 20L);
+            dirty = true;
             return dirty;
         }
 
@@ -147,37 +152,38 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
                     true));
         }
 
-        dirty |= state.setLong(KEY_ACTIVE_NEXT_TICK, gameTime + 20L, value -> Math.max(0L, value), 0L).changed();
+        activeNextEntry.setReadyAt(gameTime + 20L);
+        dirty = true;
         return dirty;
     }
 
     private boolean tickPassivePulse(ServerLevel level,
                                      LivingEntity user,
                                      OrganState state,
+                                     MultiCooldown cooldown,
                                      long gameTime,
                                      double multiplier) {
         boolean dirty = false;
         boolean passiveActive = state.getBoolean(KEY_PASSIVE_ACTIVE, true);
-        long toggleTick = state.getLong(KEY_PASSIVE_TOGGLE_TICK, 0L);
+        MultiCooldown.Entry passiveToggleEntry = cooldown.entry(KEY_PASSIVE_TOGGLE_TICK);
+        MultiCooldown.Entry passiveNextEntry = cooldown.entry(KEY_PASSIVE_NEXT_TICK);
+        long toggleTick = passiveToggleEntry.getReadyTick();
         if (toggleTick <= 0L) {
             passiveActive = true;
             dirty |= state.setBoolean(KEY_PASSIVE_ACTIVE, true, true).changed();
-            dirty |= state.setLong(KEY_PASSIVE_TOGGLE_TICK,
-                    gameTime + PASSIVE_ACTIVE_DURATION_TICKS,
-                    value -> Math.max(0L, value),
-                    0L).changed();
-            dirty |= state.setLong(KEY_PASSIVE_NEXT_TICK, gameTime, value -> Math.max(0L, value), 0L).changed();
+            passiveToggleEntry.setReadyAt(gameTime + PASSIVE_ACTIVE_DURATION_TICKS);
+            passiveNextEntry.setReadyAt(gameTime);
+            dirty = true;
             toggleTick = gameTime + PASSIVE_ACTIVE_DURATION_TICKS;
         } else if (gameTime >= toggleTick) {
             passiveActive = !passiveActive;
             dirty |= state.setBoolean(KEY_PASSIVE_ACTIVE, passiveActive, true).changed();
             long nextToggle = gameTime + (passiveActive ? PASSIVE_ACTIVE_DURATION_TICKS : PASSIVE_DOWNTIME_TICKS);
-            dirty |= state.setLong(KEY_PASSIVE_TOGGLE_TICK,
-                    nextToggle,
-                    value -> Math.max(0L, value),
-                    0L).changed();
+            passiveToggleEntry.setReadyAt(nextToggle);
+            dirty = true;
             if (passiveActive) {
-                dirty |= state.setLong(KEY_PASSIVE_NEXT_TICK, gameTime, value -> Math.max(0L, value), 0L).changed();
+                passiveNextEntry.setReadyAt(gameTime);
+                dirty = true;
             }
         }
 
@@ -185,7 +191,7 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
             return dirty;
         }
 
-        long nextTick = state.getLong(KEY_PASSIVE_NEXT_TICK, 0L);
+        long nextTick = passiveNextEntry.getReadyTick();
         if (nextTick > gameTime) {
             return dirty;
         }
@@ -203,7 +209,8 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
             }
         }
 
-        dirty |= state.setLong(KEY_PASSIVE_NEXT_TICK, gameTime + 20L, value -> Math.max(0L, value), 0L).changed();
+        passiveNextEntry.setReadyAt(gameTime + 20L);
+        dirty = true;
         return dirty;
     }
 
@@ -225,6 +232,17 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
             return player.damageSources().playerAttack(player);
         }
         return user.damageSources().mobAttack(user);
+    }
+
+    private MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(OrganState.of(organ, STATE_ROOT))
+                .withLongClamp(value -> Math.max(0L, value), 0L);
+        if (cc != null) {
+            builder.withSync(cc, organ);
+        } else {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
     }
 
     private static List<LivingEntity> collectTargets(ServerLevel level,
@@ -257,32 +275,24 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         }
         long gameTime = level.getGameTime();
         OrganState state = INSTANCE.organState(organ, STATE_ROOT);
-        long cooldownUntil = Math.max(0L, state.getLong(KEY_COOLDOWN_UNTIL, 0L));
+        MultiCooldown cooldown = INSTANCE.createCooldown(cc, organ);
+        MultiCooldown.Entry cooldownUntilEntry = cooldown.entry(KEY_COOLDOWN_UNTIL);
+        MultiCooldown.Entry activeUntilEntry = cooldown.entry(KEY_ACTIVE_UNTIL);
+        MultiCooldown.Entry activeNextEntry = cooldown.entry(KEY_ACTIVE_NEXT_TICK);
+        long cooldownUntil = Math.max(0L, cooldownUntilEntry.getReadyTick());
         if (cooldownUntil > gameTime) {
             long remaining = cooldownUntil - gameTime;
             long clamped = Mth.clamp(remaining, 0L, ACTIVE_COOLDOWN_TICKS);
             if (clamped != remaining) {
-                OrganState.Change<Long> change = state.setLong(
-                        KEY_COOLDOWN_UNTIL,
-                        gameTime + clamped,
-                        value -> Math.max(0L, value),
-                        0L);
-                if (change.changed()) {
-                    INSTANCE.sendSlotUpdate(cc, organ);
-                }
+                cooldownUntilEntry.setReadyAt(gameTime + clamped);
+                INSTANCE.sendSlotUpdate(cc, organ);
             }
             return;
         }
 
         if (cooldownUntil > 0L) {
-            OrganState.Change<Long> change = state.setLong(
-                    KEY_COOLDOWN_UNTIL,
-                    0L,
-                    value -> Math.max(0L, value),
-                    0L);
-            if (change.changed()) {
-                INSTANCE.sendSlotUpdate(cc, organ);
-            }
+            cooldownUntilEntry.setReadyAt(0L);
+            INSTANCE.sendSlotUpdate(cc, organ);
         }
 
         ConsumptionResult payment = ResourceOps.consumeStrict(player, ACTIVE_ZHENYUAN_COST, 0.0);
@@ -295,9 +305,9 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         }
 
         long activeUntil = gameTime + ACTIVE_DURATION_TICKS;
-        state.setLong(KEY_ACTIVE_UNTIL, activeUntil, value -> Math.max(0L, value), 0L);
-        state.setLong(KEY_ACTIVE_NEXT_TICK, gameTime, value -> Math.max(0L, value), 0L);
-        state.setLong(KEY_COOLDOWN_UNTIL, gameTime + ACTIVE_COOLDOWN_TICKS, value -> Math.max(0L, value), 0L);
+        activeUntilEntry.setReadyAt(activeUntil);
+        activeNextEntry.setReadyAt(gameTime);
+        cooldownUntilEntry.setReadyAt(gameTime + ACTIVE_COOLDOWN_TICKS);
         INSTANCE.sendSlotUpdate(cc, organ);
 
         if (player instanceof ServerPlayer serverPlayer) {

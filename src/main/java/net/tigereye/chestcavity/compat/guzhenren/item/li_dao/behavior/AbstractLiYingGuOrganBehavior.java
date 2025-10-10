@@ -14,7 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoConstants;
@@ -77,9 +77,10 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
             return;
         }
 
-        OrganState state = organState(organ, stateRoot);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry lastRegenEntry = cooldown.entry(LAST_REGEN_TICK_KEY);
         long gameTime = entity.level().getGameTime();
-        long lastRegenTick = Math.max(0L, state.getLong(LAST_REGEN_TICK_KEY, 0L));
+        long lastRegenTick = Math.max(0L, lastRegenEntry.getReadyTick());
         if (gameTime < lastRegenTick) {
             lastRegenTick = 0L;
         }
@@ -92,7 +93,7 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
             return;
         }
 
-        OrganStateOps.setLong(state, cc, organ, LAST_REGEN_TICK_KEY, gameTime, value -> Math.max(0L, value), 0L);
+        lastRegenEntry.setReadyAt(gameTime);
     }
 
     @Override
@@ -123,9 +124,10 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
             return damage;
         }
 
-        OrganState state = organState(organ, stateRoot);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry nextReadyEntry = cooldown.entry(NEXT_READY_TICK_KEY);
         long gameTime = server.getGameTime();
-        long nextReadyTick = Math.max(0L, state.getLong(NEXT_READY_TICK_KEY, 0L));
+        long nextReadyTick = Math.max(0L, nextReadyEntry.getReadyTick());
         if (gameTime < nextReadyTick) {
             return damage;
         }
@@ -156,9 +158,20 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
                 1.0f + (random.nextFloat() - 0.5f) * 0.25f
         );
 
-        OrganStateOps.setLong(state, cc, organ, NEXT_READY_TICK_KEY, gameTime + COOLDOWN_TICKS, value -> Math.max(0L, value), 0L);
+        nextReadyEntry.setReadyAt(gameTime + COOLDOWN_TICKS);
 
         return damage;
+    }
+
+    protected MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(OrganState.of(organ, stateRoot))
+                .withLongClamp(value -> Math.max(0L, value), 0L);
+        if (cc != null) {
+            builder.withSync(cc, organ);
+        } else {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
     }
 
     private boolean isPrimaryOrgan(ChestCavityInstance cc, ItemStack organ) {
