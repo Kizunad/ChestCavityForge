@@ -3,6 +3,7 @@ import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.Consu
 
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -309,12 +310,27 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         cooldownUntilEntry.setReadyAt(gameTime + ACTIVE_COOLDOWN_TICKS);
         INSTANCE.sendSlotUpdate(cc, organ);
 
+        // Visual feedback: a small burst of flames on activation
+        spawnActivationParticles(serverLevel, entity);
+
         if (player instanceof ServerPlayer serverPlayer) {
             AbilityFxDispatcher.play(serverPlayer, FIRE_HUO_YI_FX, Vec3.ZERO, 1.0F);
         } else {
             BuiltInRegistries.SOUND_EVENT.getOptional(FIRE_HUO_YI_FX).ifPresent(sound ->
                     serverLevel.playSound(null, entity.blockPosition(), sound, SoundSource.PLAYERS, 1.0F, 1.0F));
         }
+    }
+
+    private static void spawnActivationParticles(ServerLevel level, LivingEntity user) {
+        if (level == null || user == null) {
+            return;
+        }
+        double x = user.getX();
+        double y = user.getY() + user.getBbHeight() * 0.6;
+        double z = user.getZ();
+        // A small, subtle flame burst around the torso
+        level.sendParticles(ParticleTypes.FLAME, x, y, z, 14, 0.35, 0.20, 0.35, 0.01);
+        level.sendParticles(ParticleTypes.SMALL_FLAME, x, y + 0.1, z, 8, 0.25, 0.15, 0.25, 0.005);
     }
 
     private static boolean tryConsumeHunger(Player player, int hungerCost) {

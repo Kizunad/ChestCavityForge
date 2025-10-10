@@ -38,7 +38,7 @@
   - 血道：XieFeigu 仅读取 `xue_dao_increase_effect`（不改写），目前保留 `LinkageManager.lookupChannel` 可接受；其余血道器官（Xiedigu/Tiexuegu）已使用 `LedgerOps` 管理增效，继续关注卸下残留日志。
   - 炎道：HuoYiGu 多处引用 `GuzhenrenResourceCostHelper`，建议统一走 `ResourceOps.consumeStrict/WithFallback`，并确认冷却是否已集中到 `MultiCooldown`。
   - 力道：ZiLiGengShengGu 已接入 `MultiCooldown` 与 `ResourceOps`；`AbstractLiDaoOrganBehavior`/`LiDaoHelper` 中对 `LinkageManager` 的只读路径可保留，若新增通道写入请改走 `LedgerOps`。
-  - 水道：LingXiangu/Jiezegu/ShuishenguShield 仍有直接通道/计时逻辑；护盾消耗建议保留 `ShuishenguShield`，其资源路径统一至 `ResourceOps`。
+  - 水道：LingXiangu/Jiezegu/ShuishenguShield 已部分迁移至 `ResourceOps`/`LedgerOps`（见 57d67f8：退款/扣血改走 `ResourceOps.refund/drainHealth`，充能显示通道改 `LedgerOps.ensureChannel`）。剩余仅保留护盾核心在 `ShuishenguShield`。
   - 冰雪道：BingJiGu 已接 `AbsorptionHelper`，ShuangXiGu 使用 `LedgerOps`；检查 `QingReGu` 是否仍直接建通道，必要时改为 `LedgerOps.ensureChannel`。
   - 空窍：DaoHenSeedHandler 基于种子播种通道，维持低层操作可接受；若仅需“确保存在”，可替换为 `LedgerOps.ensureChannel`。
   - 模块：`GuzhenrenOrganHandlers`、`GuzhenrenOrganScoreEffects` 侧重全局挂载与资源桥分发，保持当前结构。
