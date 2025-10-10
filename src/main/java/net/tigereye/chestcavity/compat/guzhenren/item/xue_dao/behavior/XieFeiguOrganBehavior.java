@@ -178,7 +178,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (slotIndex >= 0 && storedSlot != slotIndex) {
             removeMovementModifier(entity, storedSlot);
             removeRapidBreathModifier(entity, storedSlot);
-            writeSlot(cc, organ, slotIndex);
+            writeSlot(organ, slotIndex);
         }
 
         double maxHealth = entity.getMaxHealth();
@@ -193,7 +193,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         int mode = determineMode(healthRatio);
         if (mode != readMode(organ)) {
-            writeMode(cc, organ, mode);
+            writeMode(organ, mode);
             playPassiveCue(entity, mode);
         }
     }
@@ -203,8 +203,8 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         int slotIndex = readSlot(organ);
         removeMovementModifier(entity, slotIndex);
         removeRapidBreathModifier(entity, slotIndex);
-        writeMode(cc, organ, MODE_NEUTRAL);
-        writeSlot(cc, organ, -1);
+        writeMode(organ, MODE_NEUTRAL);
+        writeSlot(organ, -1);
         net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown.bind(organ, STATE_KEY, COOLDOWN_KEY).clear();
     }
 

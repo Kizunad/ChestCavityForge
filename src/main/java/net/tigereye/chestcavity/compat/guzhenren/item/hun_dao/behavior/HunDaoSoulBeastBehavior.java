@@ -121,7 +121,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             return;
         }
         ensureAttached(cc);
-        ensureActiveState(entity, organ);
+        ensureActiveState(entity, cc, organ);
         HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, PASSIVE_HUNPO_LEAK);
         HunDaoMiddleware.INSTANCE.handlerPlayer(player);
         OrganState state = organState(organ, STATE_ROOT_KEY);
@@ -191,7 +191,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
         if (!(entity instanceof Player player)) {
             return;
         }
-        ensureActiveState(entity, organ);
+        ensureActiveState(entity, cc, organ);
         SoulBeastStateManager.setActive(player, true);
         LOGGER.debug("{} soul beast organ removed but state retained for {}", prefix(), describePlayer(player));
     }
@@ -218,7 +218,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     /**
      * 确保活跃态与归属 UUID 已写入；若缺失则以当前玩家补全。
      */
-    private void ensureActiveState(LivingEntity entity, ItemStack organ) {
+    private void ensureActiveState(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || organ == null || organ.isEmpty()) {
             return;
         }
