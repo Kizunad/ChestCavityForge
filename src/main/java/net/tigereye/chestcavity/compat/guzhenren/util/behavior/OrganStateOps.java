@@ -55,6 +55,7 @@ public final class OrganStateOps {
         }
         return change;
     }
+
     public static OrganState.Change<Integer> setInt(OrganState state, ChestCavityInstance cc, ItemStack stack,
                                                      String key, int value, IntUnaryOperator clamp, int defaultValue) {
         if (state == null) {
@@ -103,4 +104,75 @@ public final class OrganStateOps {
         return change;
     }
 
+    /**
+     * Create a collector that aggregates {@link OrganState.Change} instances and emits a single
+     * {@link NetworkUtil#sendOrganSlotUpdate(ChestCavityInstance, ItemStack)} call when committed.
+     * Useful when multiple state keys are updated in the same tick and the caller only wants to
+     * synchronise once after all mutations have been applied.
+     */
+    public static Collector collector(ChestCavityInstance cc, ItemStack stack) {
+        return new Collector(cc, stack);
+    }
+
+    /**
+     * Aggregates organ state mutations and defers the slot update until {@link #commit()} is invoked.
+     */
+    public static final class Collector {
+        private final ChestCavityInstance cc;
+        private final ItemStack stack;
+        private boolean dirty;
+
+        private Collector(ChestCavityInstance cc, ItemStack stack) {
+            this.cc = cc;
+            this.stack = stack;
+        }
+
+        /** Record a change and return it for further handling (logging, etc.). */
+        public <T> OrganState.Change<T> record(OrganState.Change<T> change) {
+            if (change != null && change.changed()) {
+                dirty = true;
+            }
+            return change;
+        }
+
+        /** Record an arbitrary dirty flag. */
+        public Collector record(boolean changed) {
+            if (changed) {
+                dirty = true;
+            }
+            return this;
+        }
+
+        /**
+         * Record multiple changes at once. Declared final so it can be annotated with {@link SafeVarargs}.
+         */
+        @SafeVarargs
+        public final Collector recordAll(OrganState.Change<?>... changes) {
+            if (changes == null) {
+                return this;
+            }
+            for (OrganState.Change<?> change : changes) {
+                record(change);
+            }
+            return this;
+        }
+
+        /** Returns whether any recorded change has mutated the state. */
+        public boolean changed() {
+            return dirty;
+        }
+
+        /**
+         * Sends the organ slot update if at least one recorded change mutated the state.
+         * Returns {@code true} when a packet was dispatched.
+         */
+        public boolean commit() {
+            if (!dirty) {
+                return false;
+            }
+            NetworkUtil.sendOrganSlotUpdate(cc, stack);
+            dirty = false;
+            return true;
+        }
+    }
 }

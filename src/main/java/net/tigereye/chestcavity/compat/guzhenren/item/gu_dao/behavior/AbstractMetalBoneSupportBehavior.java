@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
