@@ -29,6 +29,8 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -42,6 +44,7 @@ import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.slf4j.Logger;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
 
 import java.util.HashMap;
 import java.util.List;
@@ -128,7 +131,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         ActiveLinkageContext context = LinkageManager.getContext(cc);
         double efficiency = 1.0 + lookupIncreaseEffect(context);
 
-        boolean paid = handle.consumeScaledZhenyuan(ZHENYUAN_BASE_COST * stackCount).isPresent();
+        boolean paid = ResourceOps.tryConsumeScaledZhenyuan(handle, ZHENYUAN_BASE_COST * stackCount).isPresent();
         if (DEBUG) {
             LOGGER.info("[compat/guzhenren][ice_skin] slow tick: stacks={}, eff={}, paidZhenyuan={} (cost={})",
                     stackCount, String.format(java.util.Locale.ROOT, "%.3f", efficiency), paid,
@@ -138,7 +141,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         boolean stateChanged = false;
 
         if (paid) {
-            handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
+            ResourceOps.adjustJingli(player, JINGLI_PER_TICK * stackCount);
             float healAmount = HEAL_PER_TICK * stackCount;
             if (healAmount > 0.0f) {
                 ChestCavityUtil.runWithOrganHeal(() -> player.heal(healAmount));
@@ -146,7 +149,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                     LOGGER.info("[compat/guzhenren][ice_skin] healed +{} and added jingli +{}", healAmount, JINGLI_PER_TICK * stackCount);
                 }
             }
-            stateChanged |= tickAbsorption(player, state, stackCount, efficiency);
+            stateChanged |= tickAbsorption(player, state, cc, organ, stackCount, efficiency);
             if (hasJadeBone(cc)) {
                 clearBleed(player);
                 if (DEBUG) {
@@ -212,10 +215,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         RemovalRegistration registration = registerRemovalHook(cc, organ, this, staleRemovalContexts);
         if (!registration.alreadyRegistered()) {
-            OrganState state = organState(organ, STATE_ROOT);
-            state.setInt(ABSORPTION_TIMER_KEY, 0);
-            state.setInt(INVULN_COOLDOWN_KEY, 0);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            OrganStateOps.setIntSync(cc, organ, STATE_ROOT, ABSORPTION_TIMER_KEY, 0, v -> Math.max(0, v), 0);
+            OrganStateOps.setIntSync(cc, organ, STATE_ROOT, INVULN_COOLDOWN_KEY, 0, v -> Math.max(0, v), 0);
         }
     }
 
@@ -244,7 +245,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return context.lookupChannel(BING_XUE_INCREASE_EFFECT).map(LinkageChannel::get).orElse(0.0);
     }
 
-    private static boolean tickAbsorption(Player player, OrganState state, int stacks, double efficiency) {
+    private static boolean tickAbsorption(Player player, OrganState state, ChestCavityInstance cc, ItemStack organ, int stacks, double efficiency) {
         if (player == null || state == null) {
             return false;
         }
@@ -267,11 +268,11 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             }
         }
         if (changed) {
-            state.setInt(ABSORPTION_TIMER_KEY, timer);
+            OrganStateOps.setInt(state, cc, organ, ABSORPTION_TIMER_KEY, timer, value -> Math.max(0, value), 0);
             return true;
         }
         if (state.getInt(ABSORPTION_TIMER_KEY, 0) != timer) {
-            state.setInt(ABSORPTION_TIMER_KEY, timer);
+            OrganStateOps.setInt(state, cc, organ, ABSORPTION_TIMER_KEY, timer, value -> Math.max(0, value), 0);
             return true;
         }
         return false;
@@ -281,18 +282,13 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (player == null || state == null) {
             return false;
         }
-        int cooldown = Math.max(0, state.getInt(INVULN_COOLDOWN_KEY, 0));
-        boolean changed = false;
-        if (cooldown > 0) {
-            cooldown--;
-            state.setInt(INVULN_COOLDOWN_KEY, cooldown);
-            changed = true;
-        }
-        if (cooldown <= 0 && hasJadeBone(cc) && isBeimingConstitution(player)
+        Cooldown.Int cd = Cooldown.Int.of(state, INVULN_COOLDOWN_KEY);
+        boolean changed = cd.tickDown();
+        if (cd.isReady() && hasJadeBone(cc) && isBeimingConstitution(player)
                 && player.getHealth() <= player.getMaxHealth() * LOW_HEALTH_THRESHOLD) {
             player.invulnerableTime = Math.max(player.invulnerableTime, INVULN_DURATION_TICKS);
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, INVULN_DURATION_TICKS, 4, false, true, true));
-            state.setInt(INVULN_COOLDOWN_KEY, INVULN_COOLDOWN_TICKS);
+            cd.start(INVULN_COOLDOWN_TICKS);
             changed = true;
             if (DEBUG) {
                 LOGGER.info("[compat/guzhenren][ice_skin] invulnerability granted: duration={}t, cooldown={}t", INVULN_DURATION_TICKS, INVULN_COOLDOWN_TICKS);

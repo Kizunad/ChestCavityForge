@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.YuanLaoGuHelper;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 import java.util.Locale;
@@ -129,7 +130,7 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
         }
 
         double spentFromOrgan = amountToReplenish;
-        OptionalDouble result = handle.adjustZhenyuan(amountToReplenish, false);
+        OptionalDouble result = ResourceOps.tryAdjustZhenyuan(handle, amountToReplenish, false);
         if (result.isEmpty()) {
             YuanLaoGuHelper.deposit(organ, amountToReplenish);
             debug("{} {} 真元补充失败 -> 返还元石 {}", LOG_PREFIX, player.getScoreboardName(), formatDouble(amountToReplenish));
@@ -212,7 +213,7 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
         }
 
         // 使用按境界缩放的真元扣除，而非直接调整，保证与 Guzhenren 标准消耗一致
-        OptionalDouble result = handle.consumeScaledZhenyuan(amountToAbsorb);
+        OptionalDouble result = ResourceOps.tryConsumeScaledZhenyuan(handle, amountToAbsorb);
         if (result.isEmpty()) {
             debug("{} {} 真元扣除失败，无法吸收", LOG_PREFIX, player.getScoreboardName());
             return;
@@ -226,7 +227,7 @@ public enum YuanLaoGuOrganBehavior implements OrganSlowTickListener {
         }
 
         if (!YuanLaoGuHelper.deposit(organ, consumed)) {
-            handle.adjustZhenyuan(consumed, false);
+            ResourceOps.tryAdjustZhenyuan(handle, consumed, false);
             debug("{} {} 元石入账失败，已回滚真元", LOG_PREFIX, player.getScoreboardName());
             return;
         }

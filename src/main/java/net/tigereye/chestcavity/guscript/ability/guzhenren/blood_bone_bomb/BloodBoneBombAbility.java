@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+
 
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -19,7 +21,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -140,7 +143,7 @@ public final class BloodBoneBombAbility {
     }
 
     private static boolean payChargeCosts(ServerPlayer player, ChargeState state) {
-        ConsumptionResult result = GuzhenrenResourceCostHelper.consumeStrict(player, ZHENYUAN_COST, JINGLI_COST);
+        ConsumptionResult result = ResourceOps.consumeStrict(player, ZHENYUAN_COST, JINGLI_COST);
         if (!result.succeeded()) {
             return false;
         }

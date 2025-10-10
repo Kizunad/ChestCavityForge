@@ -19,7 +19,9 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunShouHuaConstants;
 
 /**
@@ -162,7 +164,7 @@ final class ResourceFlowActions {
                 if (performer == null) {
                     return;
                 }
-                ConsumptionResult result = GuzhenrenResourceCostHelper.consumeStrict(performer, sanitizedZhenyuan, sanitizedJingli);
+                ConsumptionResult result = ResourceOps.consumeStrict(performer, sanitizedZhenyuan, sanitizedJingli);
                 if (result == null || !result.succeeded()) {
                     if (controller != null) {
                         controller.setLong(HunShouHuaConstants.FAIL_REASON_VARIABLE, HunShouHuaConstants.FAILURE_REASON_RESOURCES);

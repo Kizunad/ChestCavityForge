@@ -10,6 +10,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOr
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -20,7 +21,9 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -73,10 +76,7 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         RemovalRegistration registration = registerRemovalHook(cc, organ, this, staleRemovalContexts);
         refreshIncreaseContribution(cc, organ);
         if (!registration.alreadyRegistered()) {
-            OrganState state = organState(organ, STATE_KEY);
-            var change = state.setInt(TIMER_KEY, SLOW_TICKS_PER_MINUTE, value -> Math.max(1, value), SLOW_TICKS_PER_MINUTE);
-            logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
-            sendSlotUpdate(cc, organ);
+            OrganStateOps.setIntSync(cc, organ, STATE_KEY, TIMER_KEY, SLOW_TICKS_PER_MINUTE, v -> Math.max(1, v), SLOW_TICKS_PER_MINUTE);
         }
     }
 
@@ -96,10 +96,7 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         int stackCount = Math.max(1, organ.getCount());
         if (entity instanceof Player player) {
-            GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
-                double amount = JINGLI_PER_SECOND * stackCount;
-                handle.adjustJingli(amount, true);
-            });
+            ResourceOps.adjustJingli(player, JINGLI_PER_SECOND * stackCount);
         }
 
         if (HEAL_PER_SECOND > 0.0f && entity.getHealth() < entity.getMaxHealth()) {
@@ -116,11 +113,7 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             drained = GuzhenrenResourceCostHelper.drainHealth(entity, drainAmount, HEALTH_DRAIN_RESERVE, entity.damageSources().generic());
             timer = drained ? SLOW_TICKS_PER_MINUTE : FAILURE_RETRY_TICKS;
         }
-        var timerChange = state.setInt(TIMER_KEY, timer, value -> Math.max(1, value), SLOW_TICKS_PER_MINUTE);
-        if (timerChange.changed()) {
-            logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, timerChange);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        OrganStateOps.setIntSync(cc, organ, STATE_KEY, TIMER_KEY, timer, v -> Math.max(1, v), SLOW_TICKS_PER_MINUTE);
     }
 
     @Override
@@ -168,14 +161,12 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(XUE_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
         double previous = ledger.adjust(organ, XUE_DAO_INCREASE_EFFECT, 0.0);
         double target = Math.max(1, organ.getCount()) * INCREASE_PER_STACK;
         double delta = target - previous;
         if (delta != 0.0) {
-            channel.adjust(delta);
-            ledger.adjust(organ, XUE_DAO_INCREASE_EFFECT, delta);
+            LedgerOps.adjust(cc, organ, XUE_DAO_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
         }
     }
 }

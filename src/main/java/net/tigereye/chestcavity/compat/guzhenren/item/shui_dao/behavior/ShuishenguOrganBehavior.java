@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -21,7 +23,8 @@ import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.damage.IncomingDamageShield;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.util.NBTCharge;
 
 /**
@@ -55,9 +58,9 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
 
         ConsumptionResult payment;
         if (entity instanceof Player) {
-            payment = GuzhenrenResourceCostHelper.consumeStrict(entity, BASE_ZHENYUAN_COST * stackCount, 0.0);
+            payment = ResourceOps.consumeStrict(entity, BASE_ZHENYUAN_COST * stackCount, 0.0);
         } else {
-            payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, BASE_ZHENYUAN_COST * stackCount, 0.0);
+            payment = ResourceOps.consumeWithFallback(entity, BASE_ZHENYUAN_COST * stackCount, 0.0);
         }
         if (!payment.succeeded()) {
             return;

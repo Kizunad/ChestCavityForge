@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 
 /**
  * Tupigu converts zhenyuan into jingli boosts on a slow cadence with a small jump bonus.
@@ -39,11 +40,11 @@ public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickL
         GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
             int stackCount = Math.max(1, organ.getCount());
             double totalCost = BASE_COST * stackCount;
-            if (handle.consumeScaledZhenyuan(totalCost).isEmpty()) {
+            if (ResourceOps.tryConsumeScaledZhenyuan(handle, totalCost).isEmpty()) {
                 return;
             }
 
-            handle.adjustJingli(JINGLI_PER_TRIGGER * stackCount, true);
+            ResourceOps.tryAdjustJingli(handle, JINGLI_PER_TRIGGER * stackCount, true);
 
             MobEffectInstance current = player.getEffect(MobEffects.JUMP);
             if (current == null || current.getDuration() <= JUMP_EFFECT_TICKS / 2) {

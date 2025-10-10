@@ -34,6 +34,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
@@ -89,7 +90,7 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
             paid = tryConsumeRechargeResources(player);
         } else {
             // 非玩家：使用 Helper 购买 1 点充能（允许生命值替代）
-            paid = GuzhenrenResourceCostHelper.consumeWithFallback(entity, BASE_ZHENYUAN_COST, BASE_JINGLI_COST).succeeded();
+            paid = ResourceOps.consumeWithFallback(entity, BASE_ZHENYUAN_COST, BASE_JINGLI_COST).succeeded();
         }
         if (!paid) {
             return;
@@ -117,38 +118,7 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
 
 
     private static boolean tryConsumeRechargeResources(Player player) {
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return false;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-
-        OptionalDouble jingliBeforeOpt = handle.getJingli();
-        if (jingliBeforeOpt.isEmpty()) {
-            return false;
-        }
-        double jingliBefore = jingliBeforeOpt.getAsDouble();
-        if (jingliBefore + EPSILON < BASE_JINGLI_COST) {
-            return false;
-        }
-
-        OptionalDouble jingliAfterOpt = handle.adjustJingli(-BASE_JINGLI_COST, true);
-        if (jingliAfterOpt.isEmpty()) {
-            return false;
-        }
-        double jingliAfter = jingliAfterOpt.getAsDouble();
-        if ((jingliBefore - jingliAfter) + EPSILON < BASE_JINGLI_COST) {
-            handle.setJingli(jingliBefore);
-            return false;
-        }
-
-        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
-        if (zhenyuanResult.isPresent()) {
-            return true;
-        }
-
-        handle.setJingli(jingliBefore);
-        return false;
+        return ResourceOps.consumeStrict(player, BASE_ZHENYUAN_COST, BASE_JINGLI_COST).succeeded();
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {

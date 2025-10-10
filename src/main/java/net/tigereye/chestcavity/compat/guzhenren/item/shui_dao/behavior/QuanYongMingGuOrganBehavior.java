@@ -9,6 +9,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOr
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -19,6 +20,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 
 import java.util.List;
 import java.util.Optional;
@@ -89,13 +91,13 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
 
         if (entity instanceof Player player) {
             double zhenyuanCost = ZHENYUAN_COST_PER_SECOND * stackCount;
-            ConsumptionResult result = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
+            ConsumptionResult result = ResourceOps.consumeStrict(player, zhenyuanCost, 0.0);
             if (!result.succeeded()) {
                 return;
             }
 
             applyHealing(entity, stackCount);
-            grantJingli(player, stackCount);
+            ResourceOps.adjustJingli(player, JINGLI_GAIN_PER_SECOND * stackCount);
 
             if (hasShuiTiGu(cc, organ)) {
                 ensurePureWaterAbsorption(entity, stackCount);
@@ -173,8 +175,7 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
             return;
         }
         double delta = JINGLI_GAIN_PER_SECOND * stackCount;
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        handleOpt.ifPresent(handle -> handle.adjustJingli(delta, true));
+        ResourceOps.adjustJingli(player, delta);
     }
 
     private void ensurePureWaterAbsorption(LivingEntity entity, int stackCount) {
@@ -202,16 +203,13 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
-        // Rebuild ensures no duplicate residual entries before adjusting
         ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, 0.0);
         double target = primary ? INCREASE_EFFECT_BONUS : 0.0;
         double delta = target - previous;
         if (delta != 0.0) {
-            channel.adjust(delta);
-            ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, delta);
+            LedgerOps.adjust(cc, organ, SHUI_DAO_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
         }
     }
 

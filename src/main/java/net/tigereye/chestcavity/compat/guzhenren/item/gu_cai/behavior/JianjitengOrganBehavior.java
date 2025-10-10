@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.registration.CCItems;
 
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -77,7 +78,8 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
             return;
         }
         GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(ZHENYUAN_COST);
+        double beforeZhenyuan = handle.getZhenyuan().orElse(Double.NaN);
+        OptionalDouble zhenyuanResult = ResourceOps.tryConsumeScaledZhenyuan(handle, ZHENYUAN_COST);
         if (zhenyuanResult.isEmpty()) {
             if (ChestCavity.LOGGER.isDebugEnabled()) {
                 ChestCavity.LOGGER.debug("{} {} lacks zhenyuan for charging", LOG_PREFIX, player.getScoreboardName());
@@ -87,21 +89,19 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
 
         drainHealth(player);
 
-
         int updatedCharge = currentCharge + 1;
         if (ChestCavity.LOGGER.isDebugEnabled()) {
-            double consumed = zhenyuanResult.getAsDouble();
+            double remaining = zhenyuanResult.getAsDouble();
+            double consumed = Double.isFinite(beforeZhenyuan) ? Math.max(0.0, beforeZhenyuan - remaining) : Double.NaN;
             ChestCavity.LOGGER.debug(
-
                     "{} {} charge -> {}/{} (消耗真元 {})",
-
                     LOG_PREFIX,
                     player.getScoreboardName(),
                     Math.min(updatedCharge, MAX_CHARGE),
                     MAX_CHARGE,
-
-                    String.format(Locale.ROOT, "%.2f", consumed)
-
+                    Double.isFinite(consumed)
+                            ? String.format(Locale.ROOT, "%.2f", consumed)
+                            : String.format(Locale.ROOT, "%.2f", remaining)
             );
         }
 

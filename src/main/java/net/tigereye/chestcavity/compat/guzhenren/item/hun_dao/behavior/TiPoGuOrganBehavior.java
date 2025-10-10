@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -22,6 +23,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
 import org.slf4j.Logger;
 
@@ -109,21 +111,21 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
         double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
         if (hunpoGain != 0.0D) {
-            handle.adjustDouble("hunpo", hunpoGain, true, "zuida_hunpo");
+            ResourceOps.tryAdjustDouble(handle, "hunpo", hunpoGain, true, "zuida_hunpo");
         }
         if (jingliGain != 0.0D) {
-            handle.adjustDouble("jingli", jingliGain, true, "zuida_jingli");
+            ResourceOps.tryAdjustDouble(handle, "jingli", jingliGain, true, "zuida_jingli");
         }
 
         boolean soulBeast = SoulBeastStateManager.isActive(player);
         OrganState state = organState(organ, STATE_ROOT_KEY);
         long currentTick = entity.level().getGameTime();
-        logStateChange(LOGGER, prefix(), organ, KEY_LAST_TICK, state.setLong(KEY_LAST_TICK, currentTick));
+        logStateChange(LOGGER, prefix(), organ, KEY_LAST_TICK, OrganStateOps.setLong(state, cc, organ, KEY_LAST_TICK, currentTick, value -> Math.max(0L, value), 0L));
         boolean wasSoulBeast = state.getBoolean(KEY_SOUL_BEAST, false);
-        logStateChange(LOGGER, prefix(), organ, KEY_SOUL_BEAST, state.setBoolean(KEY_SOUL_BEAST, soulBeast));
+        logStateChange(LOGGER, prefix(), organ, KEY_SOUL_BEAST, OrganStateOps.setBoolean(state, cc, organ, KEY_SOUL_BEAST, soulBeast, false));
 
         boolean increaseActive = updateIncreaseContribution(cc, organ, !soulBeast);
-        logStateChange(LOGGER, prefix(), organ, KEY_INCREASE_ACTIVE, state.setBoolean(KEY_INCREASE_ACTIVE, increaseActive));
+        logStateChange(LOGGER, prefix(), organ, KEY_INCREASE_ACTIVE, OrganStateOps.setBoolean(state, cc, organ, KEY_INCREASE_ACTIVE, increaseActive, false));
 
         boolean forceShieldRefresh = !soulBeast && wasSoulBeast;
         maybeRefreshShield(player, cc, handle, organ, state, soulBeast, currentTick, forceShieldRefresh);
@@ -182,7 +184,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             }
             return damage;
         }
-        handle.adjustDouble("hunpo", -hunpoCost, true, "zuida_hunpo");
+        ResourceOps.tryAdjustDouble(handle, "hunpo", -hunpoCost, true, "zuida_hunpo");
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     "{} applied soul beast strike: extra={} cost={} increase={} target={}",
@@ -273,8 +275,8 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             boolean forceRefresh
     ) {
         if (soulBeast) {
-            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
-            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, state.setDouble(KEY_LAST_SHIELD_AMOUNT, 0.0D));
+            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, OrganStateOps.setLong(state, cc, organ, KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
+            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, OrganStateOps.setDouble(state, cc, organ, KEY_LAST_SHIELD_AMOUNT, 0.0D, value -> value, 0.0D));
             return;
         }
         long lastRefresh = state.getLong(KEY_LAST_SHIELD_TICK, Long.MIN_VALUE);
@@ -285,7 +287,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             long minAllowed = Math.max(0L, currentTick - SHIELD_REFRESH_INTERVAL_TICKS);
             long clampedTick = Math.max(minAllowed, Math.min(lastRefresh, currentTick));
             if (clampedTick != lastRefresh) {
-                logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, clampedTick, value -> Math.max(0L, value), 0L));
+                logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, OrganStateOps.setLong(state, cc, organ, KEY_LAST_SHIELD_TICK, clampedTick, value -> Math.max(0L, value), 0L));
                 lastRefresh = clampedTick;
             }
         }
@@ -295,8 +297,8 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         double maxHunpo = handle.read("zuida_hunpo").orElse(0.0D);
         if (!(maxHunpo > 0.0D)) {
-            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
-            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, state.setDouble(KEY_LAST_SHIELD_AMOUNT, 0.0D));
+            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, OrganStateOps.setLong(state, cc, organ, KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
+            logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, OrganStateOps.setDouble(state, cc, organ, KEY_LAST_SHIELD_AMOUNT, 0.0D, value -> value, 0.0D));
             return;
         }
         double increase = Math.max(0.0D, readHunDaoIncrease(cc));
@@ -307,8 +309,8 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (updated - currentAbsorption > EPSILON) {
             player.setAbsorptionAmount(updated);
         }
-        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, state.setLong(KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
-        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, state.setDouble(KEY_LAST_SHIELD_AMOUNT, shieldValue));
+        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, OrganStateOps.setLong(state, cc, organ, KEY_LAST_SHIELD_TICK, currentTick, value -> Math.max(0L, value), 0L));
+        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SHIELD_AMOUNT, OrganStateOps.setDouble(state, cc, organ, KEY_LAST_SHIELD_AMOUNT, shieldValue, value -> value, 0.0D));
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     "{} refreshed shield: player={} shield={} increase={} hunpo_max={}",

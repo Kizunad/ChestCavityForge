@@ -14,6 +14,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -131,7 +132,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             );
         }
 
-        applyAbsorption(entity, organ, steelStacks);
+        applyAbsorption(entity, cc, organ, steelStacks);
 
         if (SteelBoneComboHelper.hasActiveCombo(comboState)) {
             applyResistance(entity, cc);
@@ -160,7 +161,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return drained;
     }
 
-    private void applyAbsorption(LivingEntity entity, ItemStack organ, int steelStacks) {
+    private void applyAbsorption(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, int steelStacks) {
         OrganState state = organState(organ, STATE_ROOT);
         long gameTime = entity.level().getGameTime();
         long lastTick = state.getLong(ABSORPTION_KEY, Long.MIN_VALUE);
@@ -187,7 +188,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         float required = Math.max(0.0f, ABSORPTION_PER_STACK * steelStacks);
         if (required <= 0.0f) {
-            state.setLong(ABSORPTION_KEY, gameTime);
+            OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
             return;
         }
         float current = entity.getAbsorptionAmount();
@@ -201,7 +202,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 );
             }
         }
-        state.setLong(ABSORPTION_KEY, gameTime);
+        OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
     }
 
     private void applyResistance(LivingEntity entity, ChestCavityInstance cc) {

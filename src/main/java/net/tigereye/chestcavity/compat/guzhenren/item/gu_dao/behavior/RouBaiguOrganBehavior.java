@@ -28,6 +28,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
@@ -396,7 +397,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return;
         }
 
-        var payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, 0.0, COST_HUNGER);
+        var payment = ResourceOps.consumeWithFallback(entity, 0.0, COST_HUNGER);
         if (!payment.succeeded()) {
             return;
         }
@@ -568,32 +569,14 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     private static boolean consumeRestorationResources(Player player, LinkageChannel boneChannel) {
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return false;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
         double jingliCost = COST_JINGLI * 0.2;
         double zhenyuanCost = COST_ZHENYUAN * 0.2;
-
-        var jingliBeforeOpt = handle.getJingli();
-        if (jingliBeforeOpt.isEmpty() || jingliBeforeOpt.getAsDouble() + 1.0E-4 < jingliCost) {
+        if (!ResourceOps.consumeStrict(player, zhenyuanCost, jingliCost).succeeded()) {
             return false;
         }
-
-        if (handle.adjustJingli(-jingliCost, true).isEmpty()) {
-            return false;
-        }
-
-        if (handle.consumeScaledZhenyuan(zhenyuanCost).isEmpty()) {
-            handle.adjustJingli(jingliCost, true);
-            return false;
-        }
-
         if (boneChannel != null) {
             boneChannel.adjust(COST_BONE_GROWTH * 0.5);
         }
-
         return true;
     }
 

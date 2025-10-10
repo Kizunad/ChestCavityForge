@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.policy.SaturationPolicy;
@@ -328,23 +329,15 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel guDao = ensureChannel(context, GU_DAO_INCREASE_EFFECT);
-        LinkageChannel tuDao = ensureChannel(context, TU_DAO_INCREASE_EFFECT);
-        double guValue = guDao.adjust(delta);
-        double tuValue = tuDao.adjust(delta);
-        IncreaseEffectLedger ledger = context.increaseEffects();
-        double guContribution = ledger.adjust(organ, GU_DAO_INCREASE_EFFECT, delta);
-        double tuContribution = ledger.adjust(organ, TU_DAO_INCREASE_EFFECT, delta);
+        // Adjust GU first without verify, then TU with verify to avoid double-verify cost
+        LedgerOps.adjust(cc, organ, GU_DAO_INCREASE_EFFECT, delta, NON_NEGATIVE, false);
+        LedgerOps.adjust(cc, organ, TU_DAO_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
         if (ChestCavity.LOGGER.isDebugEnabled()) {
             ChestCavity.LOGGER.debug(
-                    "[YuGugu] 记录增效 Δ{} organ={} count={} -> GU:{} ({}) TU:{} ({})",
+                    "[YuGugu] 记录增效 Δ{} organ={} count={} (via LedgerOps)",
                     String.format(Locale.ROOT, "%.3f", delta),
                     describeStack(organ),
-                    organ == null ? 0 : Math.max(1, organ.getCount()),
-                    String.format(Locale.ROOT, "%.3f", guValue),
-                    String.format(Locale.ROOT, "%.3f", guContribution),
-                    String.format(Locale.ROOT, "%.3f", tuValue),
-                    String.format(Locale.ROOT, "%.3f", tuContribution)
+                    organ == null ? 0 : Math.max(1, organ.getCount())
             );
         }
     }

@@ -10,6 +10,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -22,6 +23,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 
 /**
  * Behaviour for 水体蛊 (Shui Ti Gu).
@@ -80,12 +82,9 @@ public final class ShuiTiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         int stackCount = Math.max(1, organ.getCount());
         double totalCost = ZHENYUAN_PER_SECOND * stackCount;
-        ConsumptionResult payment;
-        if (entity instanceof Player player) {
-            payment = GuzhenrenResourceCostHelper.consumeStrict(player, totalCost, 0.0);
-        } else {
-            payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, totalCost, 0.0);
-        }
+        ConsumptionResult payment = (entity instanceof Player player)
+                ? ResourceOps.consumeStrict(player, totalCost, 0.0)
+                : ResourceOps.consumeWithFallback(entity, totalCost, 0.0);
         if (!payment.succeeded()) {
             return;
         }
@@ -145,16 +144,13 @@ public final class ShuiTiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(SHUI_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
-        // Ensure ledger integrity before adjusting contributions to prevent duplicates
         ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, 0.0);
         double target = Math.max(1, organ.getCount()) * INCREASE_PER_STACK;
         double delta = target - previous;
         if (delta != 0.0) {
-            channel.adjust(delta);
-            ledger.adjust(organ, SHUI_DAO_INCREASE_EFFECT, delta);
+            LedgerOps.adjust(cc, organ, SHUI_DAO_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
         }
     }
 

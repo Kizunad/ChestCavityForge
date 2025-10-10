@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.util.NBTWriter;
@@ -486,29 +487,7 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
     }
 
     private static boolean tryConsumeResources(Player player) {
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return false;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        OptionalDouble jingliBeforeOpt = handle.getJingli();
-        if (jingliBeforeOpt.isEmpty()) {
-            return false;
-        }
-        double jingliBefore = jingliBeforeOpt.getAsDouble();
-        if (jingliBefore + EPSILON < BASE_JINGLI_COST) {
-            return false;
-        }
-        OptionalDouble jingliAfterOpt = handle.adjustJingli(-BASE_JINGLI_COST, true);
-        if (jingliAfterOpt.isEmpty()) {
-            return false;
-        }
-        OptionalDouble zhenyuanResult = handle.consumeScaledZhenyuan(BASE_ZHENYUAN_COST);
-        if (zhenyuanResult.isPresent()) {
-            return true;
-        }
-        handle.adjustJingli(BASE_JINGLI_COST, true);
-        return false;
+        return ResourceOps.consumeStrict(player, BASE_ZHENYUAN_COST, BASE_JINGLI_COST).succeeded();
     }
 
     private static void schedule(ServerLevel level, Runnable runnable, int delayTicks) {

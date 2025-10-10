@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +18,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganB
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoConstants;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
@@ -85,51 +88,44 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         OrganState state = organState(organ, STATE_ROOT);
         long gameTime = entity.level().getGameTime();
 
-        boolean dirty = false;
-        dirty |= tickPassive(entity, cc, state, gameTime);
-        dirty |= tickAbility(entity, state, gameTime);
-
-        if (dirty) {
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        tickPassive(entity, cc, organ, state, gameTime);
+        tickAbility(entity, cc, organ, state, gameTime);
     }
 
-    private boolean tickPassive(LivingEntity entity, ChestCavityInstance cc, OrganState state, long gameTime) {
+    private void tickPassive(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, long gameTime) {
         long nextAllowed = state.getLong(NEXT_PASSIVE_TICK_KEY, 0L);
         if (nextAllowed > gameTime) {
-            return false;
+            return;
         }
 
         double efficiency = Math.max(0.0, 1.0 + liDaoIncrease(cc));
-        ConsumptionResult payment = GuzhenrenResourceCostHelper.consumeStrict(entity, PASSIVE_ZHENYUAN_COST, 0.0);
+        ConsumptionResult payment = ResourceOps.consumeStrict(entity, PASSIVE_ZHENYUAN_COST, 0.0);
         long reschedule = Math.max(gameTime + PASSIVE_INTERVAL_TICKS, gameTime + 1);
-        boolean dirty = state.setLong(NEXT_PASSIVE_TICK_KEY, reschedule).changed();
+        OrganStateOps.setLong(state, cc, organ, NEXT_PASSIVE_TICK_KEY, reschedule, value -> Math.max(0L, value), 0L);
 
         if (!payment.succeeded()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[compat/guzhenren][zi_li_geng_sheng] passive upkeep failed: {}", payment.failureReason());
             }
-            return dirty;
+            return;
         }
 
         float healAmount = (float) (PASSIVE_HEAL_BASE * Math.max(efficiency, 0.0));
         if (healAmount > EPSILON && entity.isAlive()) {
             entity.heal(healAmount);
         }
-        return dirty;
     }
 
-    private boolean tickAbility(LivingEntity entity, OrganState state, long gameTime) {
+    private void tickAbility(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, long gameTime) {
         if (!state.getBoolean(ACTIVE_FLAG_KEY, false)) {
-            return false;
+            return;
         }
         double efficiency = Math.max(state.getDouble(ACTIVE_EFFICIENCY_KEY, 1.0), 0.0);
         long abilityEnd = state.getLong(ACTIVE_END_TICK_KEY, 0L);
-        boolean dirty = false;
 
         if (abilityEnd > 0L && gameTime >= abilityEnd) {
-            dirty |= finishAbility(entity, state, efficiency);
-            return dirty;
+            finishAbility(entity, cc, organ, state, efficiency);
+            return;
         }
 
         long nextRegen = state.getLong(NEXT_REGEN_TICK_KEY, gameTime);
@@ -139,23 +135,20 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
                 entity.heal(healAmount);
             }
             long newNext = Math.max(gameTime + REGEN_STEP_TICKS, nextRegen + REGEN_STEP_TICKS);
-            dirty |= state.setLong(NEXT_REGEN_TICK_KEY, newNext).changed();
+            OrganStateOps.setLong(state, cc, organ, NEXT_REGEN_TICK_KEY, newNext, value -> Math.max(0L, value), 0L);
         }
-        return dirty;
     }
 
-    private boolean finishAbility(LivingEntity entity, OrganState state, double efficiency) {
-        boolean dirty = false;
-        dirty |= state.setBoolean(ACTIVE_FLAG_KEY, false).changed();
-        dirty |= state.setLong(ACTIVE_END_TICK_KEY, 0L).changed();
-        dirty |= state.setLong(NEXT_REGEN_TICK_KEY, 0L).changed();
-        dirty |= state.setDouble(ACTIVE_EFFICIENCY_KEY, 0.0).changed();
+    private void finishAbility(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, OrganState state, double efficiency) {
+        OrganStateOps.setBoolean(state, cc, organ, ACTIVE_FLAG_KEY, false, false);
+        OrganStateOps.setLong(state, cc, organ, ACTIVE_END_TICK_KEY, 0L, value -> 0L, 0L);
+        OrganStateOps.setLong(state, cc, organ, NEXT_REGEN_TICK_KEY, 0L, value -> 0L, 0L);
+        OrganStateOps.setDouble(state, cc, organ, ACTIVE_EFFICIENCY_KEY, 0.0, value -> Math.max(0.0, value), 0.0);
 
         int weaknessTicks = computeWeaknessDurationTicks(efficiency);
         if (weaknessTicks > 0 && entity != null && entity.isAlive()) {
             entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, weaknessTicks, 0));
         }
-        return dirty;
     }
 
     private int computeWeaknessDurationTicks(double efficiency) {
@@ -184,13 +177,9 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
             long endTick = state.getLong(ACTIVE_END_TICK_KEY, 0L);
             if (endTick > 0L && gameTime >= endTick) {
                 double efficiency = Math.max(state.getDouble(ACTIVE_EFFICIENCY_KEY, 1.0), 0.0);
-                boolean dirty = INSTANCE.finishAbility(entity, state, efficiency);
-                if (dirty) {
-                    NetworkUtil.sendOrganSlotUpdate(cc, organ);
-                }
+                INSTANCE.finishAbility(entity, cc, organ, state, efficiency);
             }
             if (state.getBoolean(ACTIVE_FLAG_KEY, false)) {
-                NetworkUtil.sendOrganSlotUpdate(cc, organ);
                 return;
             }
         }
@@ -201,11 +190,10 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         }
 
         double efficiency = Math.max(0.0, 1.0 + INSTANCE.liDaoIncrease(cc));
-        state.setBoolean(ACTIVE_FLAG_KEY, true);
-        state.setLong(ACTIVE_END_TICK_KEY, gameTime + ABILITY_DURATION_TICKS);
-        state.setLong(NEXT_REGEN_TICK_KEY, gameTime + REGEN_STEP_TICKS);
-        state.setDouble(ACTIVE_EFFICIENCY_KEY, Math.max(efficiency, 0.0));
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        OrganStateOps.setBoolean(state, cc, organ, ACTIVE_FLAG_KEY, true, false);
+        OrganStateOps.setLong(state, cc, organ, ACTIVE_END_TICK_KEY, gameTime + ABILITY_DURATION_TICKS, value -> Math.max(0L, value), 0L);
+        OrganStateOps.setLong(state, cc, organ, NEXT_REGEN_TICK_KEY, gameTime + REGEN_STEP_TICKS, value -> Math.max(0L, value), 0L);
+        OrganStateOps.setDouble(state, cc, organ, ACTIVE_EFFICIENCY_KEY, Math.max(efficiency, 0.0), value -> Math.max(0.0, value), 0.0);
     }
 
     private int consumeMuscles(LivingEntity entity, ChestCavityInstance cc) {
@@ -254,10 +242,7 @@ public final class ZiLiGengShengGuOrganBehavior extends AbstractLiDaoOrganBehavi
         }
         OrganState state = organState(organ, STATE_ROOT);
         double efficiency = Math.max(state.getDouble(ACTIVE_EFFICIENCY_KEY, 1.0), 0.0);
-        boolean dirty = finishAbility(entity, state, efficiency);
-        dirty |= state.setLong(NEXT_PASSIVE_TICK_KEY, 0L).changed();
-        if (dirty && cc != null) {
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        finishAbility(entity, cc, organ, state, efficiency);
+        OrganStateOps.setLong(state, cc, organ, NEXT_PASSIVE_TICK_KEY, 0L, value -> 0L, 0L);
     }
 }

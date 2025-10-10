@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 
@@ -224,12 +225,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         if (player.getRandom().nextDouble() >= PASSIVE_TRIGGER_CHANCE) {
             return 0.0;
         }
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return 0.0;
-        }
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        if (handle.consumeScaledZhenyuan(PASSIVE_ZHENYUAN_COST).isEmpty()) {
+        OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, PASSIVE_ZHENYUAN_COST);
+        if (consumed.isEmpty()) {
             return 0.0;
         }
 
@@ -345,14 +342,14 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
             return;
         }
 
-        OptionalDouble jingliAfterOpt = handle.adjustJingli(-ACTIVE_JINGLI_COST, true);
+        OptionalDouble jingliAfterOpt = ResourceOps.tryAdjustJingli(handle, -ACTIVE_JINGLI_COST, true);
         if (jingliAfterOpt.isEmpty()) {
             logAbility(player, "EXIT", "jingli_adjust_failed", String.format(Locale.ROOT, "start=%.1f", jingliBefore));
             return;
         }
-        OptionalDouble zhenAfterOpt = handle.consumeScaledZhenyuan(COST_ZHENYUAN * ACTIVE_ZHENYUAN_MULTIPLIER);
+        OptionalDouble zhenAfterOpt = ResourceOps.tryConsumeScaledZhenyuan(handle, COST_ZHENYUAN * ACTIVE_ZHENYUAN_MULTIPLIER);
         if (zhenAfterOpt.isEmpty()) {
-            handle.setJingli(jingliBefore);
+            ResourceOps.trySetJingli(handle, jingliBefore);
             String detail;
             if (zhenBeforeOpt.isPresent()) {
                 detail = String.format(Locale.ROOT, "have=%.1f required=%.1f", zhenBeforeOpt.getAsDouble(), COST_ZHENYUAN * ACTIVE_ZHENYUAN_MULTIPLIER);

@@ -10,6 +10,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
 
@@ -73,14 +74,14 @@ public final class GuiQiGuEvents {
         if (!(bonus > 0.0D)) {
             return;
         }
-        handle.adjustDouble("zuida_hunpo", bonus, false);
+        ResourceOps.tryAdjustDouble(handle, "zuida_hunpo", bonus, false, null);
 
         double stabilityMax = handle.read("hunpo_kangxing_shangxian").orElse(0.0D);
         double penalty = stabilityMax > 0.0D
                 ? stabilityMax * SOUL_EATER_STABILITY_PENALTY
                 : handle.read("hunpo_kangxing").orElse(0.0D) * SOUL_EATER_STABILITY_PENALTY;
         if (penalty > 0.0D) {
-            handle.adjustDouble("hunpo_kangxing", -penalty, true, "hunpo_kangxing_shangxian");
+            ResourceOps.tryAdjustDouble(handle, "hunpo_kangxing", -penalty, true, "hunpo_kangxing_shangxian");
         }
     }
 }

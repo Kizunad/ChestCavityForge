@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+
 
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -20,7 +22,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -178,7 +181,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         ConsumptionResult payment = null;
         if (player != null) {
             double cost = BASE_NORMAL_ZHENYUAN_COST * stackCount;
-            payment = GuzhenrenResourceCostHelper.consumeStrict(player, cost, 0.0);
+            payment = ResourceOps.consumeStrict(player, cost, 0.0);
             if (!payment.succeeded()) {
                 return false;
             }
@@ -205,7 +208,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         ConsumptionResult payment = null;
         if (player != null) {
             double cost = BASE_STRESS_ZHENYUAN_COST * stackCount;
-            payment = GuzhenrenResourceCostHelper.consumeStrict(player, cost, 0.0);
+            payment = ResourceOps.consumeStrict(player, cost, 0.0);
             if (!payment.succeeded()) {
                 return false;
             }

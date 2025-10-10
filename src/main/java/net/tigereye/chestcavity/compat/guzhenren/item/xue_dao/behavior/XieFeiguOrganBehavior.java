@@ -30,6 +30,7 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -37,6 +38,7 @@ import net.tigereye.chestcavity.util.ChestCavityUtil;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 
@@ -159,11 +161,8 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (!registration.alreadyRegistered()) {
             OrganState state = organState(organ, STATE_KEY);
             if (state.getInt(SLOT_KEY, -1) != registration.slotIndex()) {
-                var change = state.setInt(SLOT_KEY, registration.slotIndex(), value -> Math.max(-1, value), -1);
+                var change = OrganStateOps.setInt(state, cc, organ, SLOT_KEY, registration.slotIndex(), value -> Math.max(-1, value), -1);
                 logStateChange(LOGGER, LOG_PREFIX, organ, SLOT_KEY, change);
-                if (change.changed()) {
-                    sendSlotUpdate(cc, organ);
-                }
             }
         }
     }
@@ -179,10 +178,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (slotIndex >= 0 && storedSlot != slotIndex) {
             removeMovementModifier(entity, storedSlot);
             removeRapidBreathModifier(entity, storedSlot);
-            var change = writeSlot(organ, slotIndex);
-            if (change.changed()) {
-                sendSlotUpdate(cc, organ);
-            }
+            writeSlot(cc, organ, slotIndex);
         }
 
         double maxHealth = entity.getMaxHealth();
@@ -197,8 +193,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         int mode = determineMode(healthRatio);
         if (mode != readMode(organ)) {
-            writeMode(organ, mode);
-            sendSlotUpdate(cc, organ);
+            writeMode(cc, organ, mode);
             playPassiveCue(entity, mode);
         }
     }
@@ -208,9 +203,9 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         int slotIndex = readSlot(organ);
         removeMovementModifier(entity, slotIndex);
         removeRapidBreathModifier(entity, slotIndex);
-        writeMode(organ, MODE_NEUTRAL);
-        writeSlot(organ, -1);
-        writeCooldown(organ, 0L);
+        writeMode(cc, organ, MODE_NEUTRAL);
+        writeSlot(cc, organ, -1);
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown.bind(organ, STATE_KEY, COOLDOWN_KEY).clear();
     }
 
     private static void applyOxygenSupport(LivingEntity entity, double healthRatio) {
@@ -338,8 +333,8 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         }
 
         long gameTime = level.getGameTime();
-        long nextAllowed = INSTANCE.readCooldown(organ);
-        if (nextAllowed > gameTime) {
+        Cooldown cooldown = Cooldown.of(INSTANCE.state(organ), COOLDOWN_KEY);
+        if (!cooldown.isReady(gameTime)) {
             return;
         }
 
@@ -361,7 +356,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             return;
         }
 
-        INSTANCE.writeCooldown(organ, gameTime + COOLDOWN_TICKS);
+        cooldown.setReadyAt(gameTime + COOLDOWN_TICKS);
         INSTANCE.sendSlotUpdate(cc, organ);
 
         Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
@@ -394,12 +389,12 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             return;
         }
         long gameTime = level.getGameTime();
-        long nextAllowed = INSTANCE.readCooldown(organ);
-        if (nextAllowed > gameTime) {
+        Cooldown cooldown = Cooldown.of(INSTANCE.state(organ), COOLDOWN_KEY);
+        if (!cooldown.isReady(gameTime)) {
             return;
         }
 
-        INSTANCE.writeCooldown(organ, gameTime + COOLDOWN_TICKS);
+        cooldown.setReadyAt(gameTime + COOLDOWN_TICKS);
         INSTANCE.sendSlotUpdate(cc, organ);
 
         Vec3 center = user.position().add(0.0, user.getBbHeight() * 0.5, 0.0);
@@ -599,12 +594,6 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         return change;
     }
 
-    private long readCooldown(ItemStack stack) {
-        return state(stack).getLong(COOLDOWN_KEY, 0L);
-    }
-
-    private void writeCooldown(ItemStack stack, long value) {
-        var change = state(stack).setLong(COOLDOWN_KEY, value, v -> Math.max(0L, v), 0L);
-        logStateChange(LOGGER, LOG_PREFIX, stack, COOLDOWN_KEY, change);
-    }
+    // Cooldown fully encapsulated by util.behavior.Cooldown
 }
+

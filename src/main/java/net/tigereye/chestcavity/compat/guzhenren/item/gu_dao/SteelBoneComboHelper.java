@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GangjinguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.JingtieguguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.TieGuGuOrganBehavior;
@@ -150,7 +151,7 @@ public final class SteelBoneComboHelper {
         if (player == null || amount <= 0.0) {
             return;
         }
-        GuzhenrenResourceBridge.open(player).ifPresent(handle -> handle.adjustJingli(amount, true));
+        ResourceOps.adjustJingli(player, amount);
     }
 
     public static double guDaoIncrease(ChestCavityInstance cc) {

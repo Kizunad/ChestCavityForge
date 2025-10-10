@@ -25,6 +25,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 
 import java.util.List;
 import java.util.Optional;
@@ -89,17 +90,11 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         int current = clampBuQu(state.getInt(BU_QU_KEY, 0));
         if (current < MAX_BU_QU) {
-            OrganState.Change<Integer> change = state.setInt(
-                    BU_QU_KEY,
-                    current + 1,
-                    value -> clampBuQu(value),
-                    0
-            );
-            if (change.changed()) {
-                sendSlotUpdate(cc, organ);
-            }
+            net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(
+                    cc, organ, STATE_ROOT, BU_QU_KEY, current + 1, v -> clampBuQu(v), 0);
         } else if (current != state.getInt(BU_QU_KEY, 0)) {
-            state.setInt(BU_QU_KEY, current, value -> clampBuQu(value), 0);
+            net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(
+                    cc, organ, STATE_ROOT, BU_QU_KEY, current, v -> clampBuQu(v), 0);
         }
     }
 
@@ -141,7 +136,7 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             ensureChannel(context, GU_DAO_INCREASE_CHANNEL).addPolicy(NON_NEGATIVE).adjust(-removed);
         }
         ledger.verifyAndRebuildIfNeeded();
-        organState(organ, STATE_ROOT).setInt(BU_QU_KEY, 0, value -> 0, 0);
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(cc, organ, STATE_ROOT, BU_QU_KEY, 0, value -> 0, 0);
     }
 
     @Override
@@ -194,12 +189,8 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         applyBoneGuardInvulnerability(player);
-        OrganState.Change<Integer> change = state.setInt(BU_QU_KEY, 0, value -> 0, 0);
-        if (change.changed()) {
-            sendSlotUpdate(cc, organ);
-        } else {
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(
+                cc, organ, STATE_ROOT, BU_QU_KEY, 0, v -> 0, 0);
     }
 
     private void applyBoneGuardInvulnerability(ServerPlayer player) {
@@ -226,16 +217,13 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         IncreaseEffectLedger ledger = context.increaseEffects();
         // Guard against stale stacked entries before computing delta
         ledger.verifyAndRebuildIfNeeded();
-        LinkageChannel channel = ensureChannel(context, GU_DAO_INCREASE_CHANNEL).addPolicy(NON_NEGATIVE);
-
         double target = active
                 ? Math.min(MAX_EFFECTIVE_STACKS, Math.max(1, organ.getCount())) * GU_DAO_INCREASE_PER_STACK
                 : 0.0;
         double previous = ledger.adjust(organ, GU_DAO_INCREASE_CHANNEL, 0.0);
         double delta = target - previous;
         if (delta != 0.0) {
-            channel.adjust(delta);
-            ledger.adjust(organ, GU_DAO_INCREASE_CHANNEL, delta);
+            LedgerOps.adjust(cc, organ, GU_DAO_INCREASE_CHANNEL, delta, NON_NEGATIVE, true);
         }
     }
 
@@ -245,10 +233,7 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         int current = state.getInt(BU_QU_KEY, 0);
         if (current != 0) {
-            OrganState.Change<Integer> change = state.setInt(BU_QU_KEY, 0, value -> 0, 0);
-            if (change.changed()) {
-                sendSlotUpdate(cc, organ);
-            }
+            OrganStateOps.setInt(state, cc, organ, BU_QU_KEY, 0, value -> 0, 0);
         }
     }
 

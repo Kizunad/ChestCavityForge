@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import org.slf4j.Logger;
 
 /**
@@ -38,7 +39,7 @@ public final class HuoxinguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             return;
         }
 
-        var payment = GuzhenrenResourceCostHelper.consumeStrict(entity, BURN_ZHENYUAN_COST, 0.0);
+        var payment = ResourceOps.consumeStrict(entity, BURN_ZHENYUAN_COST, 0.0);
         if (!payment.succeeded()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[compat/guzhenren][yan_dao][huoxingu] insufficient resources for {} (reason={})", entity.getName().getString(), payment.failureReason());

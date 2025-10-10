@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.util.DoTManager;
 import net.tigereye.chestcavity.util.DoTManager.FxAnchor;
 import net.tigereye.chestcavity.compat.guzhenren.util.SaturationHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
 import org.slf4j.Logger;
 
@@ -77,7 +78,7 @@ public final class HunDaoMiddleware {
         if (current < amount) {
             return false;
         }
-        handle.adjustDouble("hunpo", -amount, true, "zuida_hunpo");
+        ResourceOps.tryAdjustDouble(handle, "hunpo", -amount, true, "zuida_hunpo");
         return true;
     }
 
@@ -95,7 +96,7 @@ public final class HunDaoMiddleware {
             return;
         }
         GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        handle.adjustDouble("hunpo", amount, true, "zuida_hunpo");
+        ResourceOps.tryAdjustDouble(handle, "hunpo", amount, true, "zuida_hunpo");
         LOGGER.trace("[hun_dao][middleware] adjusted {} hunpo for {} ({})", format(amount), player.getScoreboardName(), reason);
     }
 

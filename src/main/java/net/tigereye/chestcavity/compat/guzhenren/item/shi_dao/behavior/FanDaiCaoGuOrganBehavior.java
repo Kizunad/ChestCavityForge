@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.behavior;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -8,7 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenHungerHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
@@ -32,7 +35,7 @@ public enum FanDaiCaoGuOrganBehavior implements OrganSlowTickListener {
         if (!GuzhenrenHungerHelper.needsFood(player)) {
             return;
         }
-        ConsumptionResult payment = GuzhenrenResourceCostHelper.consumeStrict(player, BASE_ZHENYUAN_COST, 0.0);
+        ConsumptionResult payment = ResourceOps.consumeStrict(player, BASE_ZHENYUAN_COST, 0.0);
         if (!payment.succeeded()) {
             return;
         }

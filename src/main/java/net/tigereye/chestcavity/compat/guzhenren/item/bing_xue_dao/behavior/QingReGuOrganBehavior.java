@@ -19,6 +19,7 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -58,22 +59,15 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
         int stackCount = Math.max(1, organ.getCount());
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(entity);
-        if (handleOpt.isPresent()) {
-            GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-
-            double zhenyuanCost = BASE_ZHENYUAN_COST * stackCount;
-            OptionalDouble consumed = handle.consumeScaledZhenyuan(zhenyuanCost);
-            if (consumed.isEmpty()) {
+        double zhenyuanCost = BASE_ZHENYUAN_COST * stackCount;
+        OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(entity, zhenyuanCost);
+        if (consumed.isEmpty()) {
+            if (entity instanceof Player) {
+                // Players without a Guzhenren attachment cannot sustain the organ.
                 return;
             }
-
-            if (entity instanceof Player) {
-                handle.adjustJingli(JINGLI_PER_TICK * stackCount, true);
-            }
-        } else if (entity instanceof Player) {
-            // Players without a Guzhenren attachment cannot sustain the organ.
-            return;
+        } else if (entity instanceof Player playerWithHandle) {
+            ResourceOps.adjustJingli(playerWithHandle, JINGLI_PER_TICK * stackCount);
         }
         float healAmount = HEAL_PER_TICK * stackCount;
         if (healAmount > 0.0f) {

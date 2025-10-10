@@ -19,6 +19,7 @@ import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageContext;
 import net.tigereye.chestcavity.soulbeast.damage.SoulBeastDamageHooks;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -65,7 +66,7 @@ public final class SoulBeastRuntimeEvents {
             return;
         }
         // Strictly consume hunpo first (no HP fallback)
-        var res = GuzhenrenResourceCostHelper.consumeStrict(attacker, ON_HIT_HUNPO_COST);
+        var res = ResourceOps.consumeHunpoStrict(attacker, ON_HIT_HUNPO_COST);
         if (!res.succeeded()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[soulbeast] blocked melee DoT: insufficient hunpo (cost={} reason={})", ON_HIT_HUNPO_COST, res.failureReason());
@@ -94,7 +95,7 @@ public final class SoulBeastRuntimeEvents {
         if (!(hit instanceof LivingEntity target) || !target.isAlive()) {
             return;
         }
-        var res = GuzhenrenResourceCostHelper.consumeStrict(owner, ON_HIT_HUNPO_COST);
+        var res = ResourceOps.consumeHunpoStrict(owner, ON_HIT_HUNPO_COST);
         if (!res.succeeded()) {
             return;
         }

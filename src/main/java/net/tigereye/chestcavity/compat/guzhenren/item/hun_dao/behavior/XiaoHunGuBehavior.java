@@ -10,6 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -18,6 +20,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import org.slf4j.Logger;
 
@@ -92,12 +95,12 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         double amount = BASE_RECOVERY_PER_SECOND * (1.0 + bonus);
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         handleOpt.ifPresent(handle -> {
-            handle.adjustDouble("hunpo", amount, true, "zuida_hunpo");
+            ResourceOps.tryAdjustDouble(handle, "hunpo", amount, true, "zuida_hunpo");
             LOGGER.debug("[compat/guzhenren][hun_dao][heart][player] +{} hunpo to {} (bonus={})",
                 String.format("%.2f", amount), player.getScoreboardName(), String.format("%.2f", bonus));
         });
         OrganState state = organState(organ, STATE_ROOT_KEY);
-        state.setLong(KEY_LAST_SYNC_TICK, player.level().getGameTime());
+        OrganStateOps.setLong(state, cc, organ, KEY_LAST_SYNC_TICK, player.level().getGameTime(), value -> value, 0L);
     }
 
     private void handlerNonPlayer(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -125,7 +128,6 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
             return;
         }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = context.getOrCreateChannel(HUN_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
         ledger.verifyAndRebuildIfNeeded();
         double previous = ledger.adjust(organ, HUN_DAO_INCREASE_EFFECT, 0.0);
@@ -133,13 +135,10 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior impl
         boolean activate = requestPrimary && totalWithoutSelf <= 0.0;
         double target = activate ? RECOVERY_BONUS : 0.0;
         double delta = target - previous;
-        if (delta != 0.0) {
-            channel.adjust(delta);
-        }
         if (target > 0.0) {
-            ledger.set(organ, HUN_DAO_INCREASE_EFFECT, Math.max(1, organ.getCount()), target);
+            LedgerOps.set(cc, organ, HUN_DAO_INCREASE_EFFECT, Math.max(1, organ.getCount()), target, NON_NEGATIVE, true);
         } else {
-            ledger.remove(organ, HUN_DAO_INCREASE_EFFECT);
+            LedgerOps.remove(cc, organ, HUN_DAO_INCREASE_EFFECT, NON_NEGATIVE, true);
         }
     }
 

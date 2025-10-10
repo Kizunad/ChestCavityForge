@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.registration.CCItems;
 
 /**
@@ -84,27 +85,18 @@ public final class BingBuGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         int cooldown = state.getInt(NON_PLAYER_COOLDOWN_KEY, -1);
         if (cooldown < 0) {
             cooldown = entity.getRandom().nextInt(NON_PLAYER_INTERVAL_SECONDS + 1);
-            var change = state.setInt(NON_PLAYER_COOLDOWN_KEY, cooldown);
-            if (change.changed() && cc != null) {
-                sendSlotUpdate(cc, organ);
-            }
+            OrganStateOps.setInt(state, cc, organ, NON_PLAYER_COOLDOWN_KEY, cooldown, value -> value, -1);
         }
 
         if (cooldown > 0) {
             int next = cooldown - 1;
-            var change = state.setInt(NON_PLAYER_COOLDOWN_KEY, next);
-            if (change.changed() && cc != null) {
-                sendSlotUpdate(cc, organ);
-            }
+            OrganStateOps.setInt(state, cc, organ, NON_PLAYER_COOLDOWN_KEY, next, value -> value, -1);
             return;
         }
 
         boolean applied = tryGrantNonPlayerRegeneration(entity);
         int nextCooldown = applied ? NON_PLAYER_INTERVAL_SECONDS : 1;
-        var change = state.setInt(NON_PLAYER_COOLDOWN_KEY, nextCooldown);
-        if (change.changed() && cc != null) {
-            sendSlotUpdate(cc, organ);
-        }
+        OrganStateOps.setInt(state, cc, organ, NON_PLAYER_COOLDOWN_KEY, nextCooldown, value -> value, -1);
     }
 
     private boolean tryGrantSaturation(Player player) {

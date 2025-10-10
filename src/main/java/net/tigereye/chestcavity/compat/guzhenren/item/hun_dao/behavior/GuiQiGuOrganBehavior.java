@@ -13,6 +13,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
@@ -99,8 +101,8 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         int stackCount = Math.max(1, organ.getCount());
         double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
         double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
-        handle.adjustDouble("hunpo", hunpoGain, true, "zuida_hunpo");
-        handle.adjustDouble("jingli", jingliGain, true, "zuida_jingli");
+        ResourceOps.tryAdjustDouble(handle, "hunpo", hunpoGain, true, "zuida_hunpo");
+        ResourceOps.tryAdjustDouble(handle, "jingli", jingliGain, true, "zuida_jingli");
     }
 
     @Override
@@ -205,7 +207,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         params.put("gui_wu.radius", formatDouble(GUI_WU_RADIUS));
         controller.start(programOpt.get(), player, 1.0D, params, server.getGameTime(), "hun_dao.gui_wu");
 
-        state.setLong(KEY_COOLDOWN_UNTIL, currentTick + GUI_WU_COOLDOWN_TICKS);
+        OrganStateOps.setLong(state, cc, organ, KEY_COOLDOWN_UNTIL, currentTick + GUI_WU_COOLDOWN_TICKS, value -> Math.max(0L, value), 0L);
         INSTANCE.sendSlotUpdate(cc, organ);
     }
 

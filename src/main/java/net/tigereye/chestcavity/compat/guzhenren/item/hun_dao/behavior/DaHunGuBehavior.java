@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoOrganRegistry;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
@@ -16,6 +17,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
 import org.slf4j.Logger;
 
@@ -77,19 +79,19 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior implem
         double soulIntentBonus = (!soulBeast && hasXiaoHunGu(cc)) ? computeSoulIntentBonus(cc) : 0.0;
         double hunpoGain = BASE_HUNPO_RECOVERY_PER_SECOND * (1.0 + soulIntentBonus);
         if (hunpoGain > 0.0) {
-            handle.adjustDouble("hunpo", hunpoGain, true, "zuida_hunpo");
+            ResourceOps.tryAdjustDouble(handle, "hunpo", hunpoGain, true, "zuida_hunpo");
             LOGGER.debug("[compat/guzhenren][hun_dao][da_hun_gu] +{} hunpo (soul_intent_bonus={}) -> {}",
                     format(hunpoGain), format(soulIntentBonus), describePlayer(player));
         }
         if (BASE_NIANTOU_RECOVERY_PER_SECOND > 0.0) {
-            handle.adjustDouble("niantou", BASE_NIANTOU_RECOVERY_PER_SECOND, true, "niantou_zuida");
+            ResourceOps.tryAdjustDouble(handle, "niantou", BASE_NIANTOU_RECOVERY_PER_SECOND, true, "niantou_zuida");
         }
         if (soulBeast && hasDaHunGu(cc)) {
             double currentHunpo = handle.read("hunpo").orElse(0.0);
             applyWeiling(player, currentHunpo);
         }
         OrganState state = organState(organ, STATE_ROOT_KEY);
-        state.setLong(KEY_LAST_SYNC_TICK, entity.level().getGameTime());
+        OrganStateOps.setLong(state, cc, organ, KEY_LAST_SYNC_TICK, entity.level().getGameTime(), value -> value, 0L);
     }
 
     private boolean hasXiaoHunGu(ChestCavityInstance cc) {

@@ -9,6 +9,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -68,7 +69,7 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
 
         int charges = Math.max(0, state.getInt(CHARGES_KEY, 0));
         if (charges <= 0) {
-            boolean dirty = state.setBoolean(ACTIVE_KEY, false).changed();
+            boolean dirty = OrganStateOps.setBoolean(state, cc, organ, ACTIVE_KEY, false, false).changed();
             if (dirty) {
                 sendSlotUpdate(cc, organ);
             }
@@ -91,10 +92,10 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
 
         boolean dirty = false;
         int remaining = Math.max(0, charges - 1);
-        dirty |= state.setInt(CHARGES_KEY, remaining).changed();
-        dirty |= state.setLong(INVULN_EXPIRE_TICK_KEY, gameTime + INVULN_WINDOW_TICKS).changed();
+        dirty |= OrganStateOps.setInt(state, cc, organ, CHARGES_KEY, remaining, value -> Math.max(0, Math.min(value, MAX_CHARGES)), 0).changed();
+        dirty |= OrganStateOps.setLong(state, cc, organ, INVULN_EXPIRE_TICK_KEY, gameTime + INVULN_WINDOW_TICKS, value -> Math.max(0L, value), 0L).changed();
         if (remaining <= 0) {
-            dirty |= state.setBoolean(ACTIVE_KEY, false).changed();
+            dirty |= OrganStateOps.setBoolean(state, cc, organ, ACTIVE_KEY, false, false).changed();
         }
         if (dirty) {
             sendSlotUpdate(cc, organ);
@@ -126,10 +127,10 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
         }
 
         boolean dirty = false;
-        dirty |= state.setBoolean(ACTIVE_KEY, true).changed();
-        dirty |= state.setInt(CHARGES_KEY, MAX_CHARGES).changed();
-        dirty |= state.setLong(NEXT_READY_TICK_KEY, gameTime + COOLDOWN_TICKS).changed();
-        dirty |= state.setLong(INVULN_EXPIRE_TICK_KEY, 0L).changed();
+        dirty |= OrganStateOps.setBoolean(state, cc, organ, ACTIVE_KEY, true, false).changed();
+        dirty |= OrganStateOps.setInt(state, cc, organ, CHARGES_KEY, MAX_CHARGES, value -> Math.max(0, Math.min(value, MAX_CHARGES)), 0).changed();
+        dirty |= OrganStateOps.setLong(state, cc, organ, NEXT_READY_TICK_KEY, gameTime + COOLDOWN_TICKS, value -> Math.max(0L, value), 0L).changed();
+        dirty |= OrganStateOps.setLong(state, cc, organ, INVULN_EXPIRE_TICK_KEY, 0L, value -> Math.max(0L, value), 0L).changed();
         if (dirty) {
             INSTANCE.sendSlotUpdate(cc, organ);
         }

@@ -16,6 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
@@ -27,9 +28,11 @@ import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 
 import java.util.List;
 
@@ -100,7 +103,7 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             applyEffectDelta(cc, organ, storedEffect);
         }
         if (state.getInt(TIMER_KEY, 0) <= 0) {
-            var change = state.setInt(TIMER_KEY, initialTimer(cc), value -> Math.max(0, value), 0);
+            var change = OrganStateOps.setInt(state, cc, organ, TIMER_KEY, initialTimer(cc), value -> Math.max(0, value), 0);
             logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
         }
         sendSlotUpdate(cc, organ);
@@ -121,13 +124,13 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         OrganState state = organState(organ, STATE_KEY);
         int timer = Math.max(0, state.getInt(TIMER_KEY, 0));
         if (timer > 0) {
-            var change = state.setInt(TIMER_KEY, timer - 1, value -> Math.max(0, value), 0);
+            var change = OrganStateOps.setInt(state, cc, organ, TIMER_KEY, timer - 1, value -> Math.max(0, value), 0);
             logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
             return;
         }
 
         triggerEffect(entity, cc, organ, state);
-        var change = state.setInt(TIMER_KEY, TRIGGER_INTERVAL_SLOW_TICKS, value -> Math.max(0, value), 0);
+        var change = OrganStateOps.setInt(state, cc, organ, TIMER_KEY, TRIGGER_INTERVAL_SLOW_TICKS, value -> Math.max(0, value), 0);
         logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
         sendSlotUpdate(cc, organ);
     }
@@ -146,8 +149,8 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             ledger.unregisterContributor(organ);
             ledger.verifyAndRebuildIfNeeded();
         }
-        var effectChange = state.setDouble(EFFECT_KEY, 0.0, value -> Math.max(0.0, value), 0.0);
-        var timerChange = state.setInt(TIMER_KEY, 0, value -> Math.max(0, value), 0);
+        var effectChange = OrganStateOps.setDouble(state, cc, organ, EFFECT_KEY, 0.0, value -> Math.max(0.0, value), 0.0);
+        var timerChange = OrganStateOps.setInt(state, cc, organ, TIMER_KEY, 0, value -> Math.max(0, value), 0);
         logStateChange(LOGGER, LOG_PREFIX, organ, EFFECT_KEY, effectChange);
         logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, timerChange);
     }
@@ -193,7 +196,7 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (delta != 0.0) {
             applyEffectDelta(cc, organ, delta);
         }
-        var effectChange = state.setDouble(EFFECT_KEY, newEffect, value -> Math.max(0.0, value), 0.0);
+        var effectChange = OrganStateOps.setDouble(state, cc, organ, EFFECT_KEY, newEffect, value -> Math.max(0.0, value), 0.0);
         logStateChange(LOGGER, LOG_PREFIX, organ, EFFECT_KEY, effectChange);
 
         ActiveLinkageContext context = LinkageManager.getContext(cc);
@@ -224,10 +227,8 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         }
         double zhenyuanGain = ZHENYUAN_BASE * efficiencyMultiplier;
         double jingliGain = JINGLI_BASE * efficiencyMultiplier;
-        GuzhenrenResourceCostHelper.withHandle(player, handle -> {
-            handle.replenishScaledZhenyuan(zhenyuanGain, true);
-            handle.adjustJingli(jingliGain, true);
-        });
+        ResourceOps.replenishScaledZhenyuan(player, zhenyuanGain);
+        ResourceOps.adjustJingli(player, jingliGain);
     }
 
     private static void playTriggerCues(LivingEntity entity) {
@@ -271,23 +272,14 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     }
 
     private LinkageChannel ensureIncreaseChannel(ActiveLinkageContext context) {
-        LinkageChannel channel = ensureChannel(context, XUE_DAO_INCREASE_EFFECT);
-        if (channel != null) {
-            channel.addPolicy(NON_NEGATIVE);
-        }
-        return channel;
+        return LedgerOps.ensureChannel(context, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
     }
 
     private void applyEffectDelta(ChestCavityInstance cc, ItemStack organ, double delta) {
         if (cc == null || delta == 0.0) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        LinkageChannel channel = ensureIncreaseChannel(context);
-        if (channel != null) {
-            channel.adjust(delta);
-        }
-        context.increaseEffects().adjust(organ, XUE_DAO_INCREASE_EFFECT, delta);
+        LedgerOps.adjust(cc, organ, XUE_DAO_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
     }
 
     private static int initialTimer(ChestCavityInstance cc) {
@@ -307,7 +299,7 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (delta != 0.0) {
             applyEffectDelta(cc, organ, delta);
         }
-        var effectChange = state.setDouble(EFFECT_KEY, targetEffect, value -> Math.max(0.0, value), 0.0);
+        var effectChange = OrganStateOps.setDouble(state, cc, organ, EFFECT_KEY, targetEffect, value -> Math.max(0.0, value), 0.0);
         logStateChange(LOGGER, LOG_PREFIX, organ, EFFECT_KEY, effectChange);
         if (player instanceof Player p && !p.level().isClientSide()) {
             p.sendSystemMessage(STARVED_MESSAGE);

@@ -10,7 +10,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuO
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.TieGuGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为
+import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHealing;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 

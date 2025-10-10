@@ -9,7 +9,13 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.Mode;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
@@ -54,7 +60,7 @@ public final class QuanLiYiFuGuOrganBehavior extends AbstractLiDaoOrganBehavior 
             return;
         }
 
-        ConsumptionResult payment = GuzhenrenResourceCostHelper.consumeStrict(player, BASE_ZHENYUAN_COST, 0.0);
+        ConsumptionResult payment = ResourceOps.consumeStrict(player, BASE_ZHENYUAN_COST, 0.0);
         if (!payment.succeeded()) {
             setCooldownSeconds(state, cc, organ, RETRY_INTERVAL_SECONDS);
             return;
@@ -67,10 +73,7 @@ public final class QuanLiYiFuGuOrganBehavior extends AbstractLiDaoOrganBehavior 
             return;
         }
 
-        boolean applied = GuzhenrenResourceBridge.open(player)
-                .map(handle -> handle.adjustJingli(jingliRestore, true).isPresent())
-                .orElse(false);
-        if (!applied) {
+        if (ResourceOps.tryAdjustJingli(player, jingliRestore, true).isEmpty()) {
             refund(player, payment);
             setCooldownSeconds(state, cc, organ, RETRY_INTERVAL_SECONDS);
             return;
@@ -97,15 +100,7 @@ public final class QuanLiYiFuGuOrganBehavior extends AbstractLiDaoOrganBehavior 
         }
         int next = Math.max(0, remaining - 1);
         if (next != remaining) {
-            OrganState.Change<Integer> change = state.setInt(
-                    COOLDOWN_KEY,
-                    next,
-                    value -> Math.max(0, Math.min(value, MAX_STORED_COOLDOWN)),
-                    0
-            );
-            if (change.changed()) {
-                sendSlotUpdate(cc, organ);
-            }
+            OrganStateOps.setIntSync(cc, organ, STATE_ROOT, COOLDOWN_KEY, next, v -> Math.max(0, Math.min(v, MAX_STORED_COOLDOWN)), 0);
         }
         return true;
     }
@@ -118,15 +113,7 @@ public final class QuanLiYiFuGuOrganBehavior extends AbstractLiDaoOrganBehavior 
             stored = Math.max(0, seconds - 1);
         }
         stored = Math.min(stored, MAX_STORED_COOLDOWN);
-        OrganState.Change<Integer> change = state.setInt(
-                COOLDOWN_KEY,
-                stored,
-                value -> Math.max(0, Math.min(value, MAX_STORED_COOLDOWN)),
-                0
-        );
-        if (change.changed()) {
-            sendSlotUpdate(cc, organ);
-        }
+        OrganStateOps.setIntSync(cc, organ, STATE_ROOT, COOLDOWN_KEY, stored, v -> Math.max(0, Math.min(v, MAX_STORED_COOLDOWN)), 0);
     }
 
     private void refund(Player player, ConsumptionResult payment) {

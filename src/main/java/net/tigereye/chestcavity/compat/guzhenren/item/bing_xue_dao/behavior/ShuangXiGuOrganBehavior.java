@@ -36,7 +36,9 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -191,14 +193,12 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         if (context == null) {
             return;
         }
-        LinkageChannel channel = context.getOrCreateChannel(BING_XUE_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
         IncreaseEffectLedger ledger = context.increaseEffects();
         double previous = ledger.adjust(organ, BING_XUE_INCREASE_EFFECT, 0.0);
         double target = Math.max(1, organ.getCount()) * INCREASE_PER_STACK;
         double delta = target - previous;
         if (delta != 0.0) {
-            channel.adjust(delta);
-            ledger.adjust(organ, BING_XUE_INCREASE_EFFECT, delta);
+            LedgerOps.adjust(cc, organ, BING_XUE_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
         }
     }
 
@@ -299,7 +299,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
             return;
         }
         // 先支付基础真元，不允许健康回退
-        var consume = GuzhenrenResourceCostHelper.consumeStrict(entity, BASE_ZHENYUAN_COST, 0.0);
+        var consume = ResourceOps.consumeStrict(entity, BASE_ZHENYUAN_COST, 0.0);
         if (!consume.succeeded()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[compat/guzhenren][shuang_xi] ability blocked: zhenyuan cost={} failure={}", BASE_ZHENYUAN_COST, consume.failureReason());

@@ -35,6 +35,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import org.slf4j.Logger;
 
@@ -233,7 +234,7 @@ public final class HuorenguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (!(entity instanceof Player player) || JINGLI_RESTORE <= 0.0) {
             return;
         }
-        GuzhenrenResourceBridge.open(player).ifPresent(handle -> handle.adjustJingli(JINGLI_RESTORE, true));
+        ResourceOps.adjustJingli(player, JINGLI_RESTORE);
     }
 
     private void applyFireResistance(LivingEntity entity) {

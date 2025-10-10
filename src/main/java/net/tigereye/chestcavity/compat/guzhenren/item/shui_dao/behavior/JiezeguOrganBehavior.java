@@ -19,7 +19,10 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.Mode;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -27,6 +30,7 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.slf4j.Logger;
 
@@ -82,10 +86,7 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         boolean previous = state.getBoolean(ACTIVE_KEY, false);
         boolean active = upkeepZhenyuan(entity, organ);
         if (previous != active) {
-            state.setBoolean(ACTIVE_KEY, active);
-            if (cc != null) {
-                NetworkUtil.sendOrganSlotUpdate(cc, organ);
-            }
+            OrganStateOps.setBooleanSync(cc, organ, STATE_ROOT, ACTIVE_KEY, active, false);
         }
     }
 
@@ -163,9 +164,9 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         double zhenyuanCost = BASE_ZHENYUAN_COST_PER_SECOND * stacks;
         ConsumptionResult payment;
         if (entity instanceof Player player) {
-            payment = GuzhenrenResourceCostHelper.consumeStrict(player, zhenyuanCost, 0.0);
+            payment = ResourceOps.consumeStrict(player, zhenyuanCost, 0.0);
         } else {
-            payment = GuzhenrenResourceCostHelper.consumeWithFallback(entity, zhenyuanCost, 0.0);
+            payment = ResourceOps.consumeWithFallback(entity, zhenyuanCost, 0.0);
         }
         if (!payment.succeeded()) {
             logUpkeepFailure(entity, payment);

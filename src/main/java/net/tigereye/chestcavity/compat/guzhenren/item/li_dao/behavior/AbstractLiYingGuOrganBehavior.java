@@ -14,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoConstants;
@@ -22,6 +23,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
 
 import java.util.Objects;
@@ -85,20 +87,12 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
             return;
         }
 
-        Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        if (handleOpt.isEmpty()) {
-            return;
-        }
-        ResourceHandle handle = handleOpt.get();
-        OptionalDouble result = handle.adjustJingli(JINGLI_PER_TICK, true);
+        OptionalDouble result = ResourceOps.tryAdjustJingli(player, JINGLI_PER_TICK, true);
         if (result.isEmpty()) {
             return;
         }
 
-        OrganState.Change<Long> change = state.setLong(LAST_REGEN_TICK_KEY, gameTime);
-        if (change.changed()) {
-            sendSlotUpdate(cc, organ);
-        }
+        OrganStateOps.setLong(state, cc, organ, LAST_REGEN_TICK_KEY, gameTime, value -> Math.max(0L, value), 0L);
     }
 
     @Override
@@ -162,10 +156,7 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
                 1.0f + (random.nextFloat() - 0.5f) * 0.25f
         );
 
-        OrganState.Change<Long> change = state.setLong(NEXT_READY_TICK_KEY, gameTime + COOLDOWN_TICKS);
-        if (change.changed()) {
-            sendSlotUpdate(cc, organ);
-        }
+        OrganStateOps.setLong(state, cc, organ, NEXT_READY_TICK_KEY, gameTime + COOLDOWN_TICKS, value -> Math.max(0L, value), 0L);
 
         return damage;
     }

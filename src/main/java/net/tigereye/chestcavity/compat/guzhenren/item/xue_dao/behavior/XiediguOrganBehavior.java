@@ -23,9 +23,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TargetingOps;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -302,9 +303,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     }
 
     private static List<LivingEntity> gatherTargets(LivingEntity user, ServerLevel level, double radius) {
-        AABB area = user.getBoundingBox().inflate(radius);
-        return level.getEntitiesOfClass(LivingEntity.class, area, target ->
-                target != user && target.isAlive() && !target.isAlliedTo(user));
+        return TargetingOps.hostilesWithinRadius(user, level, radius);
     }
 
     private static double computeXueDaoMultiplier(ChestCavityInstance cc) {
@@ -316,11 +315,9 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         if (player == null || drops <= 0) {
             return;
         }
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        handleOpt.ifPresent(handle -> {
-            handle.replenishScaledZhenyuan(ZHENYUAN_PER_DROP * drops, true);
-            handle.adjustJingli(JINGLI_PER_DROP * drops, true);
-        });
+        // Use ResourceOps wrappers to adjust Guzhenren resources when available
+        ResourceOps.replenishScaledZhenyuan(player, ZHENYUAN_PER_DROP * drops);
+        ResourceOps.adjustJingli(player, JINGLI_PER_DROP * drops);
         float heal = HEAL_PER_DROP * drops;
         if (heal > 0.0f) {
             player.heal(heal);

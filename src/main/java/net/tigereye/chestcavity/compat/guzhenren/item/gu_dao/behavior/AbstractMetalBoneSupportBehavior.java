@@ -14,6 +14,7 @@ import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -97,7 +98,7 @@ abstract class AbstractMetalBoneSupportBehavior extends AbstractGuzhenrenOrganBe
                         requiredAbsorption, describeStack(organ)
                 );
             }
-            state.setLong(ABSORPTION_KEY, gameTime);
+            OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
             return;
         }
 
@@ -147,7 +148,7 @@ abstract class AbstractMetalBoneSupportBehavior extends AbstractGuzhenrenOrganBe
                     describeStack(organ)
             );
         }
-        state.setLong(ABSORPTION_KEY, gameTime);
+        OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
     }
 
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
@@ -229,12 +230,10 @@ abstract class AbstractMetalBoneSupportBehavior extends AbstractGuzhenrenOrganBe
         double jinDelta = jinTarget - jinPrevious;
 
         if (guDelta != 0.0) {
-            guDao.adjust(guDelta);
-            ledger.adjust(organ, GU_DAO_CHANNEL, guDelta);
+            LedgerOps.adjust(cc, organ, GU_DAO_CHANNEL, guDelta, NON_NEGATIVE, false);
         }
         if (jinDelta != 0.0) {
-            jinDao.adjust(jinDelta);
-            ledger.adjust(organ, JIN_DAO_CHANNEL, jinDelta);
+            LedgerOps.adjust(cc, organ, JIN_DAO_CHANNEL, jinDelta, NON_NEGATIVE, true);
         }
     }
 

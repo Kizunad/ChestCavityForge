@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.linkage.policy.DecayPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 
 import java.util.OptionalDouble;
 import java.util.Set;
@@ -84,17 +85,17 @@ public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTick
             boolean success;
             if (!hasCompanionOrgans) {
                 double jingliCost = BASE_JINGLI_COST * stackCount;
-                OptionalDouble jingliResult = handle.adjustJingli(-jingliCost, true);
+                OptionalDouble jingliResult = ResourceOps.tryAdjustJingli(handle, -jingliCost, true);
                 if (jingliResult.isEmpty()) {
                     regenChannel.set(0.0);
                     return;
                 }
-                success = handle.replenishScaledZhenyuan(regenBudget, true).isPresent();
+                success = ResourceOps.tryReplenishScaledZhenyuan(handle, regenBudget, true).isPresent();
                 if (!success) {
-                    handle.adjustJingli(jingliCost, true);
+                    ResourceOps.tryAdjustJingli(handle, jingliCost, true);
                 }
             } else {
-                success = handle.replenishScaledZhenyuan(regenBudget, true).isPresent();
+                success = ResourceOps.tryReplenishScaledZhenyuan(handle, regenBudget, true).isPresent();
             }
 
             double regenRatio = baseRegen <= 0.0 ? 0.0 : Math.min(1.0, regenBudget / baseRegen);

@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.compat.guzhenren.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoBalance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
@@ -25,6 +26,7 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import org.slf4j.Logger;
 
@@ -123,7 +125,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
         HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, PASSIVE_HUNPO_LEAK);
         HunDaoMiddleware.INSTANCE.handlerPlayer(player);
         OrganState state = organState(organ, STATE_ROOT_KEY);
-        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SYNC_TICK, state.setLong(KEY_LAST_SYNC_TICK, entity.level().getGameTime()));
+        logStateChange(LOGGER, prefix(), organ, KEY_LAST_SYNC_TICK, OrganStateOps.setLong(state, cc, organ, KEY_LAST_SYNC_TICK, entity.level().getGameTime(), value -> value, 0L));
     }
 
     @Override
@@ -159,7 +161,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             LOGGER.debug("{} {} lacks hunpo for soul flame ({} / {})", prefix(), describePlayer(player), format(currentHunpo), format(attackHunpoCost));
             return damage;
         }
-        handle.adjustDouble("hunpo", -attackHunpoCost, true, "zuida_hunpo");
+        ResourceOps.tryAdjustDouble(handle, "hunpo", -attackHunpoCost, true, "zuida_hunpo");
         HunDaoDamageUtil.markHunDaoAttack(source);
         double maxHunpo = handle.read("zuida_hunpo").orElse(0.0);
         double efficiency = 1.0;
@@ -203,14 +205,14 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
      */
     private void bindOrganState(ChestCavityInstance cc, ItemStack organ) {
         OrganState state = organState(organ, STATE_ROOT_KEY);
-        logStateChange(LOGGER, prefix(), organ, KEY_BOUND, state.setBoolean(KEY_BOUND, true));
+        logStateChange(LOGGER, prefix(), organ, KEY_BOUND, OrganStateOps.setBoolean(state, cc, organ, KEY_BOUND, true, false));
         if (cc.owner != null) {
             UUID ownerId = cc.owner.getUUID();
-            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_MSB, state.setLong(KEY_OWNER_MSB, ownerId.getMostSignificantBits()));
-            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_LSB, state.setLong(KEY_OWNER_LSB, ownerId.getLeastSignificantBits()));
-            logStateChange(LOGGER, prefix(), organ, KEY_BOUND_TIME, state.setLong(KEY_BOUND_TIME, cc.owner.level().getGameTime()));
+            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_MSB, OrganStateOps.setLong(state, cc, organ, KEY_OWNER_MSB, ownerId.getMostSignificantBits(), value -> value, 0L));
+            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_LSB, OrganStateOps.setLong(state, cc, organ, KEY_OWNER_LSB, ownerId.getLeastSignificantBits(), value -> value, 0L));
+            logStateChange(LOGGER, prefix(), organ, KEY_BOUND_TIME, OrganStateOps.setLong(state, cc, organ, KEY_BOUND_TIME, cc.owner.level().getGameTime(), value -> value, 0L));
         }
-        logStateChange(LOGGER, prefix(), organ, KEY_ACTIVE, state.setBoolean(KEY_ACTIVE, true));
+        logStateChange(LOGGER, prefix(), organ, KEY_ACTIVE, OrganStateOps.setBoolean(state, cc, organ, KEY_ACTIVE, true, false));
     }
 
     /**
@@ -221,11 +223,11 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             return;
         }
         OrganState state = organState(organ, STATE_ROOT_KEY);
-        logStateChange(LOGGER, prefix(), organ, KEY_ACTIVE, state.setBoolean(KEY_ACTIVE, true));
+        logStateChange(LOGGER, prefix(), organ, KEY_ACTIVE, OrganStateOps.setBoolean(state, cc, organ, KEY_ACTIVE, true, false));
         if (state.getLong(KEY_OWNER_MSB, 0L) == 0L && state.getLong(KEY_OWNER_LSB, 0L) == 0L) {
             UUID uuid = player.getUUID();
-            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_MSB, state.setLong(KEY_OWNER_MSB, uuid.getMostSignificantBits()));
-            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_LSB, state.setLong(KEY_OWNER_LSB, uuid.getLeastSignificantBits()));
+            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_MSB, OrganStateOps.setLong(state, cc, organ, KEY_OWNER_MSB, uuid.getMostSignificantBits(), value -> value, 0L));
+            logStateChange(LOGGER, prefix(), organ, KEY_OWNER_LSB, OrganStateOps.setLong(state, cc, organ, KEY_OWNER_LSB, uuid.getLeastSignificantBits(), value -> value, 0L));
         }
         ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
         SoulBeastStateManager.setActive(player, true);

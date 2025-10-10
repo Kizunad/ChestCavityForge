@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOr
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.OrganPresenceUtil;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -137,15 +138,12 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private boolean applyBurningBenefits(LivingEntity entity, ItemStack organ, OrganState state) {
         boolean dirty = false;
         if (entity instanceof Player player) {
-            Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-            if (handleOpt.isPresent()) {
-                OptionalDouble result = handleOpt.get().adjustJingli(JINGLI_RESTORE_PER_SECOND, true);
-                if (result.isEmpty()) {
-                    LOGGER.debug("{} Failed to restore jingli for {}", LOG_PREFIX, player.getScoreboardName());
-                }
+            OptionalDouble result = ResourceOps.tryAdjustJingli(player, JINGLI_RESTORE_PER_SECOND, true);
+            if (result.isEmpty()) {
+                LOGGER.debug("{} Failed to restore jingli for {}", LOG_PREFIX, player.getScoreboardName());
             }
         } else {
-            GuzhenrenResourceBridge.open(entity).ifPresent(handle -> handle.adjustJingli(JINGLI_RESTORE_PER_SECOND, true));
+            ResourceOps.tryAdjustJingli(entity, JINGLI_RESTORE_PER_SECOND, true);
         }
 
         if (entity.hasEffect(MobEffects.POISON) && entity.getRandom().nextDouble() < DETOXIFICATION_CHANCE) {

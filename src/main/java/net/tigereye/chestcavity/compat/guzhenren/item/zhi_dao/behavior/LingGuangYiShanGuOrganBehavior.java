@@ -11,7 +11,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.zhi_dao.ZhiDaoOrganRegistr
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import org.slf4j.Logger;
 
@@ -54,7 +56,7 @@ public final class LingGuangYiShanGuOrganBehavior extends AbstractGuzhenrenOrgan
             return;
         }
 
-        ConsumptionResult payment = GuzhenrenResourceCostHelper.consumeStrict(player, BASE_ZHENYUAN_COST_PER_SECOND, 0.0);
+        ConsumptionResult payment = ResourceOps.consumeStrict(player, BASE_ZHENYUAN_COST_PER_SECOND, 0.0);
         if (!payment.succeeded()) {
             logDebug("zhenyuan payment failed", player, 0.0, 0.0, payment);
             return;
@@ -107,7 +109,7 @@ public final class LingGuangYiShanGuOrganBehavior extends AbstractGuzhenrenOrgan
         }
 
         double appliedAmount = amount;
-        OptionalDouble adjusted = handle.adjustDouble("niantou", appliedAmount, true, "niantou_zuida");
+        OptionalDouble adjusted = ResourceOps.tryAdjustDouble(handle, "niantou", appliedAmount, true, "niantou_zuida");
         adjusted.ifPresent(result -> logDebug("recovered", player, appliedAmount, result, null));
         return adjusted;
     }
