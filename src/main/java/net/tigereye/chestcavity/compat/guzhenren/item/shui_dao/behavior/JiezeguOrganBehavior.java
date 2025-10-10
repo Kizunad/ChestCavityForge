@@ -18,11 +18,8 @@ import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.Mode;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -179,12 +176,7 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (entity == null) return false;
         // Health cost uses 1 stack baseline per trigger of Flow Break; scale by 1 for now.
         float healthCost = BASE_HEALTH_COST_PER_SECOND;
-        boolean drained = GuzhenrenResourceCostHelper.drainHealth(
-                entity,
-                healthCost,
-                MIN_HEALTH_RESERVE,
-                entity.damageSources().generic()
-        );
+        boolean drained = ResourceOps.drainHealth(entity, healthCost, MIN_HEALTH_RESERVE, entity.damageSources().generic());
         if (!drained) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[compat/guzhenren][shui_dao][jiezegu] upkeepHealth failed for {}", entity.getName().getString());

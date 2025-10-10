@@ -24,7 +24,6 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -300,7 +299,7 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
             return;
         }
         if (!tryConsumeHunger(player, ACTIVE_HUNGER_COST)) {
-            GuzhenrenResourceCostHelper.refund(player, payment);
+            ResourceOps.refund(player, payment);
             return;
         }
 
