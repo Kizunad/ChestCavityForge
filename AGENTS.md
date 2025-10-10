@@ -28,7 +28,7 @@
 - **资源桥入口**：所有 Guzhenren 真元/精力/念头 等附件都通过 `ChestCavityForge/src/main/java/net/tigereye/chestcavity/guzhenren/resource/GuzhenrenResourceBridge.java` 访问。打开后使用 `GuzhenrenResourceBridge.open(player)` 拿到 `ResourceHandle`。默认真元扣减统一调用 `ResourceHandle#consumeScaledZhenyuan(baseCost)`（按境界缩放），不要直接走 `adjustZhenyuan`，否则会绕过缩放公式。
 - **监听器选择**：行为逻辑放在 `compat/guzhenren` 对应包，并在 `ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/GuzhenrenOrganHandlers.java` 里挂载。常用监听点包含 `listeners/OrganSlowTickListener`（持续回血/充能）、`listeners/OrganOnHitListener` / `OrganIncomingDamageListener`（命中/受击触发）、`listeners/OrganRemovalListener`（OnEquip/OnRemove 增益）。参考同文件现有蛊类（如水肾、血眼蛊）了解注册方式，确保缓存/Linkage 与移除逻辑配套。
 - **Linkage 通道**：共享增益走 `LinkageChannel`。阅读 `ChestCavityForge/src/main/java/net/tigereye/chestcavity/linkage/LinkageChannel.java` 了解 API，通过 `LinkageManager.getContext(cc).channel(id)` 获得通道，再调用 `adjust()`/`set()`。新的 `INCREASE EFFECT` 数值在 `guzhenren:linkage/*` 命名空间统一管理。
-- **公式/辅助工具**：回复/扣血等公共逻辑优先复用 `util` 与 `compat/guzhenren/resource` 下的 helper。例如持续回血可结合 `GuzhenrenResourceCostHelper` 或 `NBTCharge`，避免重复造轮子。
+- **公式/辅助工具**：回复/扣血等公共逻辑优先复用 `util` 与 `compat/guzhenren/resource` 下的 helper。例如持续回血可结合 `GuzhenrenResourceCostHelper` 或 `NBTCharge`，避免重复造轮子。新增 `util/AbsorptionHelper` 封装吸收护盾的容量提升与清理流程，记得给护盾时优先复用它。
 - **交付检查**：完成后记得 `/reload` 验证 datapack、`./gradlew compileJava` 编译，必要时在 `AGENTS.md` 记录新的监听或通道 ID，便于下一位 Web Codex 继续扩展。
 
 ## 2025-09-30 GuScript UX & Runtime Additions (usage + notes)

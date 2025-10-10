@@ -32,7 +32,9 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.AbsorptionHelper;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -53,7 +55,7 @@ import java.util.stream.Collectors;
  * and world interactions (placing temporary walls) will be layered on top in a
  * follow-up patch once the groundwork is proven stable.</p>
  */
-public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
+public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener, OrganRemovalListener {
     public static final TuQiangGuOrganBehavior INSTANCE = new TuQiangGuOrganBehavior();
 
     private TuQiangGuOrganBehavior() {
@@ -93,6 +95,8 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/tu_dao_increase_effect");
     private static final ResourceLocation HE_SHI_BI_LINK =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/he_shi_bi");
+    private static final ResourceLocation ABSORPTION_MODIFIER_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/tu_qiang_gu_absorption");
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -166,13 +170,23 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (reserve > 0.0) {
             float currentAbsorption = entity.getAbsorptionAmount();
             if (currentAbsorption + 0.05f < reserve) {
-                entity.setAbsorptionAmount((float) reserve);
+                AbsorptionHelper.applyAbsorption(entity, reserve, ABSORPTION_MODIFIER_ID, true);
             }
+        } else {
+            AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
         }
 
         if (slotUpdate) {
             sendSlotUpdate(cc, organ);
         }
+    }
+
+    @Override
+    public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (!matchesOrgan(organ, ORGAN_ID)) {
+            return;
+        }
+        AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
     }
 
     @Override

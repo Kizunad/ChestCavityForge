@@ -41,6 +41,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.util.AbsorptionHelper;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import org.slf4j.Logger;
 
@@ -73,6 +74,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "bing_ji_gu_iceburst");
     private static final ResourceLocation ICE_BURST_FLOW_ID =
             ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "bing_xue_burst");
+    private static final ResourceLocation ABSORPTION_MODIFIER_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/bing_ji_gu_absorption");
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -85,7 +88,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double JINGLI_PER_TICK = 1.0;
     private static final float HEAL_PER_TICK = 4.5f;
     private static final int SLOW_TICK_INTERVALS_PER_MINUTE = 15; // 15秒
-    private static final float ABSORPTION_PER_TRIGGER = 20.0f;
+    private static final float ABSORPTION_PER_TRIGGER = 5.0f;
+    private static final float ABSORPTION_CAP = 20.0f;
     private static final double BONUS_DAMAGE_FRACTION = 0.04;
     private static final double BONUS_TRIGGER_CHANCE = 0.12;
     private static final int ICE_EFFECT_DURATION_TICKS = 30 * 20;
@@ -200,6 +204,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (!matchesOrgan(organ, ORGAN_ID) && !organ.is(CCItems.GUZHENREN_BING_JI_GU)) {
             return;
         }
+        AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
     }
 
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
@@ -248,12 +253,13 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         int current = timerEntry.getTicks();
         int timer = current + 1;
-        if (timer >= SLOW_TICK_INTERVALS_PER_MINUTE ) {
+        if (timer >= SLOW_TICK_INTERVALS_PER_MINUTE) {
             timer = 0;
             float gain = (float) (ABSORPTION_PER_TRIGGER * Math.max(1, stacks) * Math.max(0.0, efficiency));
             float before = player.getAbsorptionAmount();
-            float updated = before + gain;
-            player.setAbsorptionAmount(updated);
+            double cap = ABSORPTION_CAP;
+            double target = Math.min(cap, before + gain);
+            float updated = AbsorptionHelper.applyAbsorption(player, target, ABSORPTION_MODIFIER_ID, false);
             if (DEBUG) {
                 LOGGER.info("[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
                         String.format(java.util.Locale.ROOT, "%.1f", gain),

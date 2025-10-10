@@ -19,8 +19,9 @@ import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.util.AbsorptionHelper;
+import net.tigereye.chestcavity.util.ChestCavityUtil;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,8 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "quan_yong_ming_gu");
     private static final ResourceLocation SHUI_TI_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "shui_ti_gu");
+    private static final ResourceLocation ABSORPTION_MODIFIER_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/quan_yong_ming_gu_absorption");
     private static final ResourceLocation SHUI_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/shui_dao_increase_effect");
 
@@ -129,6 +132,7 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
                 .ifPresent(channel -> channel.adjust(-removed));
         // Ensure ledger integrity to avoid stale stacked contributions
         ledger.verifyAndRebuildIfNeeded();
+        AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
     }
 
     public void ensureAttached(ChestCavityInstance cc) {
@@ -179,23 +183,15 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
     }
 
     private void ensurePureWaterAbsorption(LivingEntity entity, int stackCount) {
-        // First ensure the capacity (MAX_ABSORPTION) is high enough like SteelBone helper does
-        net.minecraft.world.entity.ai.attributes.AttributeInstance attr =
-                entity.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION);
+        if (entity == null) {
+            return;
+        }
         double desiredCap = (double) PURE_WATER_ABSORPTION * Math.max(1, stackCount);
-        if (attr != null && desiredCap > 0.0 && Math.abs(attr.getBaseValue() - desiredCap) > 1.0E-3) {
-            attr.setBaseValue(desiredCap);
-        }
-        // Then softly raise current absorption up to the target, without clobbering higher values
-        float targetCurrent = (float) desiredCap;
-        if (targetCurrent <= 0.0f) {
+        if (desiredCap <= 0.0D) {
+            AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
             return;
         }
-        float current = entity.getAbsorptionAmount();
-        if (current + 0.01f >= targetCurrent) {
-            return;
-        }
-        entity.setAbsorptionAmount(targetCurrent);
+        AbsorptionHelper.applyAbsorption(entity, desiredCap, ABSORPTION_MODIFIER_ID, true);
     }
 
     private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ, boolean primary) {

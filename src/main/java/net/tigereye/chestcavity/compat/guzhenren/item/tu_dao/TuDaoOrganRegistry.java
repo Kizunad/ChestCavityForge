@@ -32,6 +32,7 @@ public final class TuDaoOrganRegistry {
             OrganIntegrationSpec.builder(TU_QIANG_GU_ID)
                     .addSlowTickListener(TuQiangGuOrganBehavior.INSTANCE)
                     .addIncomingDamageListener(TuQiangGuOrganBehavior.INSTANCE)
+                    .addRemovalListener(TuQiangGuOrganBehavior.INSTANCE)
                     .ensureAttached(TuQiangGuOrganBehavior.INSTANCE::ensureAttached)
                     .build()
     );
