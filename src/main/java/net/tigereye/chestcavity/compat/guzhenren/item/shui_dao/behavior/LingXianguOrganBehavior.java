@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -15,13 +15,11 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -29,8 +27,6 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.util.NBTWriter;
-import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
 
 
@@ -81,83 +77,50 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
     private static final DustParticleOptions NON_PLAYER_GLOW =
             new DustParticleOptions(new Vector3f(60f / 255f, 150f / 255f, 170f / 255f), 0.6f);
 
-    private static final SlowTickHandler handlerPlayer = (entity, organ, state, random) ->
-            handleTick(entity, organ, state, random, (Player) entity);
-
-    private static final SlowTickHandler handlerNonPlayer = (entity, organ, state, random) ->
-            handleTick(entity, organ, state, random, null);
-
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (entity == null || entity.level().isClientSide()) {
             return;
         }
-        if (!entity.isAlive()) {
+        if (!entity.isAlive() || organ == null || organ.isEmpty()) {
             return;
         }
 
-        CooldownState state = readCooldownState(organ);
-        RandomSource random = entity.getRandom();
-        SlowTickHandler handler = entity instanceof Player ? handlerPlayer : handlerNonPlayer;
-        boolean stateChanged = handler.handle(entity, organ, state, random);
-
-        if (stateChanged) {
-            writeCooldownState(organ, state);
-            if (cc != null) {
-                NetworkUtil.sendOrganSlotUpdate(cc, organ);
-            }
-        }
-    }
-
-    private static boolean handleTick(
-            LivingEntity entity,
-            ItemStack organ,
-            CooldownState state,
-            RandomSource random,
-            Player player
-    ) {
-        boolean stateChanged = false;
-
+        Player player = entity instanceof Player ? (Player) entity : null;
         int normalInterval = getNormalIntervalSeconds(player);
         int stressInterval = getStressIntervalSeconds(player);
 
-        if (!state.hasNormal) {
-            state.normal = random.nextInt(normalInterval + 1);
-            state.hasNormal = true;
-            stateChanged = true;
-        }
-        if (!state.hasStress) {
-            state.stress = random.nextInt(stressInterval + 1);
-            state.hasStress = true;
-            stateChanged = true;
-        }
+        OrganState state = OrganState.of(organ, STATE_KEY);
+        MultiCooldown cooldown = MultiCooldown.builder(state)
+                .withSync(cc, organ)
+                .withIntClamp(value -> Math.max(0, value), 0)
+                .build();
 
-        if (state.normal > 0) {
-            state.normal -= 1;
-            stateChanged = true;
-        }
-        if (state.stress > 0) {
-            state.stress -= 1;
-            stateChanged = true;
-        }
+        MultiCooldown.EntryInt normal = cooldown.entryInt(NORMAL_COOLDOWN_KEY);
+        MultiCooldown.EntryInt stress = cooldown.entryInt(STRESS_COOLDOWN_KEY);
 
-        boolean triggered = false;
-        if (state.stress <= 0 && shouldTriggerStress(entity)) {
+        RandomSource random = entity.getRandom();
+        initializeCooldowns(cooldown, normal, stress, random, normalInterval, stressInterval);
+
+        normal.tickDown();
+        stress.tickDown();
+
+        boolean stressTriggered = false;
+        if (stress.getTicks() <= 0 && shouldTriggerStress(entity)) {
             if (attemptStressResponse(entity, organ, player)) {
-                state.stress = stressInterval;
-                state.normal = Math.max(state.normal, normalInterval);
-                triggered = true;
-                stateChanged = true;
-            }
-        }
-        if (!triggered && state.normal <= 0 && shouldTriggerBaseline(entity)) {
-            if (attemptBaselineHeal(entity, organ, player)) {
-                state.normal = normalInterval;
-                stateChanged = true;
+                stress.start(stressInterval);
+                if (normal.getTicks() < normalInterval) {
+                    normal.setTicks(normalInterval);
+                }
+                stressTriggered = true;
             }
         }
 
-        return stateChanged;
+        if (!stressTriggered && normal.getTicks() <= 0 && shouldTriggerBaseline(entity)) {
+            if (attemptBaselineHeal(entity, organ, player)) {
+                normal.start(normalInterval);
+            }
+        }
     }
 
     /** Ensures linkage channels exist for downstream consumers. */
@@ -170,6 +133,22 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         shuiDao.addPolicy(NON_NEGATIVE);
         LinkageChannel xueDao = context.getOrCreateChannel(XUE_DAO_INCREASE_EFFECT);
         xueDao.addPolicy(NON_NEGATIVE);
+    }
+
+    private static void initializeCooldowns(
+            MultiCooldown cooldown,
+            MultiCooldown.EntryInt normal,
+            MultiCooldown.EntryInt stress,
+            RandomSource random,
+            int normalInterval,
+            int stressInterval
+    ) {
+        if (!cooldown.hasInt(NORMAL_COOLDOWN_KEY)) {
+            normal.setTicks(random.nextInt(normalInterval + 1));
+        }
+        if (!cooldown.hasInt(STRESS_COOLDOWN_KEY)) {
+            stress.setTicks(random.nextInt(stressInterval + 1));
+        }
     }
 
     private static boolean attemptBaselineHeal(LivingEntity entity, ItemStack organ, Player player) {
@@ -345,50 +324,5 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         return player != null ? PLAYER_INTERVAL_SECONDS : NON_PLAYER_INTERVAL_SECONDS;
     }
 
-    private static CooldownState readCooldownState(ItemStack stack) {
-        CooldownState state = new CooldownState();
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return state;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return state;
-        }
-        CompoundTag compound = root.getCompound(STATE_KEY);
-        if (compound.contains(NORMAL_COOLDOWN_KEY, Tag.TAG_INT)) {
-            state.normal = Math.max(0, compound.getInt(NORMAL_COOLDOWN_KEY));
-            state.hasNormal = true;
-        }
-        if (compound.contains(STRESS_COOLDOWN_KEY, Tag.TAG_INT)) {
-            state.stress = Math.max(0, compound.getInt(STRESS_COOLDOWN_KEY));
-            state.hasStress = true;
-        }
-        return state;
-    }
 
-    private static void writeCooldownState(ItemStack stack, CooldownState state) {
-        int normal = Math.max(0, state.normal);
-        int stress = Math.max(0, state.stress);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag compound = tag.contains(STATE_KEY, Tag.TAG_COMPOUND)
-                    ? tag.getCompound(STATE_KEY)
-                    : new CompoundTag();
-            compound.putInt(NORMAL_COOLDOWN_KEY, normal);
-            compound.putInt(STRESS_COOLDOWN_KEY, stress);
-            tag.put(STATE_KEY, compound);
-        });
-    }
-
-    @FunctionalInterface
-    private interface SlowTickHandler {
-        boolean handle(LivingEntity entity, ItemStack organ, CooldownState state, RandomSource random);
-    }
-
-    private static final class CooldownState {
-        int normal;
-        int stress;
-        boolean hasNormal;
-        boolean hasStress;
-    }
 }

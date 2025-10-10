@@ -42,7 +42,7 @@ public final class MultiCooldown {
     ) {
         this.state = Objects.requireNonNull(state, "state");
         this.chestCavity = chestCavity;
-        this.organ = organ == null ? ItemStack.EMPTY : organ;
+        this.organ = organ;
         this.longClamp = longClamp == null ? NON_NEGATIVE_LONG : longClamp;
         this.longDefault = longDefault;
         this.intClamp = intClamp == null ? NON_NEGATIVE_INT : intClamp;
@@ -69,9 +69,19 @@ public final class MultiCooldown {
         return longEntries.computeIfAbsent(key, Entry::new);
     }
 
+    /** Whether a long cooldown value is currently stored for the given key. */
+    public boolean hasLong(String key) {
+        return state.getLong(key, Long.MIN_VALUE) != Long.MIN_VALUE;
+    }
+
     /** Retrieve (or lazily create) an int-based countdown entry. */
     public EntryInt entryInt(String key) {
         return intEntries.computeIfAbsent(key, EntryInt::new);
+    }
+
+    /** Whether an int countdown value is currently stored for the given key. */
+    public boolean hasInt(String key) {
+        return state.getInt(key, Integer.MIN_VALUE) != Integer.MIN_VALUE;
     }
 
     /** Clear all tracked cooldown entries. */
@@ -259,7 +269,7 @@ public final class MultiCooldown {
     public static final class Builder {
         private final OrganState state;
         private ChestCavityInstance chestCavity;
-        private ItemStack organ = ItemStack.EMPTY;
+        private ItemStack organ;
         private LongUnaryOperator longClamp = NON_NEGATIVE_LONG;
         private long longDefault = 0L;
         private IntUnaryOperator intClamp = NON_NEGATIVE_INT;
@@ -272,13 +282,13 @@ public final class MultiCooldown {
         /** Attach the owning chest cavity + organ stack for automatic slot sync. */
         public Builder withSync(ChestCavityInstance chestCavity, ItemStack organ) {
             this.chestCavity = chestCavity;
-            this.organ = organ == null ? ItemStack.EMPTY : organ;
+            this.organ = organ;
             return this;
         }
 
         /** Provide the organ stack without enabling sync (useful when cc is not available). */
         public Builder withOrgan(ItemStack organ) {
-            this.organ = organ == null ? ItemStack.EMPTY : organ;
+            this.organ = organ;
             return this;
         }
 

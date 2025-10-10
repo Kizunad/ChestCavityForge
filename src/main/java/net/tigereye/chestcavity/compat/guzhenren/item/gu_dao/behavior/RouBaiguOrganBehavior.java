@@ -26,8 +26,9 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -162,21 +163,25 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
 
-        CompoundTag state = readState(organ);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry biteCooldown = cooldown.entry(LAST_BITE_TICK_KEY)
+                .withDefault(0L)
+                .withClamp(value -> Math.max(0L, value));
+
         int now = player.tickCount;
-        if (!isCooldownReady(state, now) || !shouldTriggerBite(player)) {
+        if (!biteCooldown.isReady(now) || !shouldTriggerBite(player)) {
             return damage;
         }
 
         double increaseSum = resolveIncreaseSum(cc);
         if (wasDodged(player, increaseSum)) {
             playBiteFailure(player);
-            stampLastBiteTick(organ, now);
+            startBiteCooldown(biteCooldown, now);
             return damage;
         }
         if (!hasArmorAdvantage(player, victim, increaseSum)) {
             playBiteFailure(player);
-            stampLastBiteTick(organ, now);
+            startBiteCooldown(biteCooldown, now);
             return damage;
         }
 
@@ -184,7 +189,7 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         applyBiteHealing(player, healAmount);
         applyPlayerExhaustion(player);
         playBiteSuccess(player, victim);
-        stampLastBiteTick(organ, now);
+        startBiteCooldown(biteCooldown, now);
         return damage;
     }
 
@@ -202,28 +207,32 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
 
-        CompoundTag state = readState(organ);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry biteCooldown = cooldown.entry(LAST_BITE_TICK_KEY)
+                .withDefault(0L)
+                .withClamp(value -> Math.max(0L, value));
+
         int now = attacker.tickCount;
-        if (!isCooldownReady(state, now) || !shouldTriggerBite(attacker)) {
+        if (!biteCooldown.isReady(now) || !shouldTriggerBite(attacker)) {
             return damage;
         }
 
         double increaseSum = resolveIncreaseSum(cc);
         if (wasDodged(attacker, increaseSum)) {
             playBiteFailure(attacker);
-            stampLastBiteTick(organ, now);
+            startBiteCooldown(biteCooldown, now);
             return damage;
         }
         if (!hasArmorAdvantage(attacker, victim, increaseSum)) {
             playBiteFailure(attacker);
-            stampLastBiteTick(organ, now);
+            startBiteCooldown(biteCooldown, now);
             return damage;
         }
 
         float healAmount = calculateBiteHealing(victim, increaseSum);
         attacker.heal(healAmount);
         playBiteSuccess(attacker, victim);
-        stampLastBiteTick(organ, now);
+        startBiteCooldown(biteCooldown, now);
         return damage;
     }
 
@@ -273,11 +282,25 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     /**
-     * Ensures the bite cooldown has elapsed before allowing another trigger.
+     * Builds a MultiCooldown container scoped to Rou Bai Gu's organ state.
      */
-    private static boolean isCooldownReady(CompoundTag state, int currentTick) {
-        int lastTick = state.getInt(LAST_BITE_TICK_KEY);
-        return currentTick - lastTick >= BITE_COOLDOWN_TICKS;
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(OrganState.of(organ, STATE_KEY))
+                .withLongClamp(value -> Math.max(0L, value), 0L)
+                .withIntClamp(value -> Math.max(0, value), 0);
+        if (cc != null) {
+            builder.withSync(cc, organ);
+        } else {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Starts the bite cooldown timer measured in game ticks.
+     */
+    private static void startBiteCooldown(MultiCooldown.Entry entry, long currentTick) {
+        entry.setReadyAt(currentTick + BITE_COOLDOWN_TICKS);
     }
 
     /**
@@ -330,13 +353,6 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
      */
     private static void applyPlayerExhaustion(Player player) {
         player.getFoodData().addExhaustion((float)(COST_HUNGER * 0.2f));
-    }
-
-    /**
-     * Records the tick when the bite last succeeded or was blocked, enforcing cooldown.
-     */
-    private static void stampLastBiteTick(ItemStack organ, int tick) {
-        writeState(organ, tag -> tag.putInt(LAST_BITE_TICK_KEY, tick));
     }
 
     /**
@@ -471,93 +487,64 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             ItemStack organ,
             LinkageChannel boneChannel
     ) {
-        if (player == null || cc == null || organ == null) {
+        if (player == null || cc == null || organ == null || organ.isEmpty()) {
             return;
         }
 
-        CompoundTag state = readState(organ);
-        int selectionCooldown = Math.max(0, state.getInt(SELECTION_COOLDOWN_KEY));
-        int targetSlot = state.contains(TARGET_SLOT_KEY, Tag.TAG_INT) ? state.getInt(TARGET_SLOT_KEY) : -1;
-        String targetItemId = state.contains(TARGET_ITEM_KEY, Tag.TAG_STRING) ? state.getString(TARGET_ITEM_KEY) : "";
-        int progress = Math.max(0, state.getInt(PROGRESS_KEY));
-        int workTimer = Math.max(0, state.getInt(WORK_TIMER_KEY));
+        OrganState state = OrganState.of(organ, STATE_KEY);
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt selectionCooldown = cooldown.entryInt(SELECTION_COOLDOWN_KEY)
+                .withDefault(0);
+        MultiCooldown.EntryInt workTimer = cooldown.entryInt(WORK_TIMER_KEY)
+                .withDefault(0);
 
-        boolean dirty = false;
+        selectionCooldown.tickDown();
 
-        if (selectionCooldown > 0) {
-            selectionCooldown--;
-            dirty = true;
-        }
+        int targetSlot = state.getInt(TARGET_SLOT_KEY, -1);
+        String targetItemId = readTargetItemId(organ);
+        int progress = Math.max(0, state.getInt(PROGRESS_KEY, 0));
 
         if (targetSlot < 0 || targetItemId.isEmpty()) {
-            if (selectionCooldown <= 0 && selectMissingOrgan(player, cc, state)) {
-                dirty = true;
-                targetSlot = state.getInt(TARGET_SLOT_KEY);
-                targetItemId = state.getString(TARGET_ITEM_KEY);
-                progress = state.getInt(PROGRESS_KEY);
-                workTimer = state.getInt(WORK_TIMER_KEY);
-                selectionCooldown = state.getInt(SELECTION_COOLDOWN_KEY);
+            if (selectionCooldown.getTicks() <= 0
+                    && selectMissingOrgan(player, cc, state, organ, selectionCooldown, workTimer)) {
+                // target selected; countdowns scheduled inside helper
             }
-        } else {
-            workTimer++;
-            dirty = true;
-
-            if (workTimer >= RESTORATION_WORK_INTERVAL_SECONDS) {
-                boolean hungerAvailable = hasHungerForRestoration(player);
-                if (!hungerAvailable) {
-                    mutateOrganSlot(player, cc, targetSlot);
-                    resetRestorationState(state);
-                    targetSlot = -1;
-                    targetItemId = "";
-                    progress = 0;
-                    workTimer = 0;
-                    selectionCooldown = RESTORATION_SELECTION_INTERVAL_SECONDS;
-                    dirty = true;
-                } else if (consumeRestorationResources(player, boneChannel)) {
-                    consumeRestorationHunger(player);
-                    progress = Math.min(RESTORATION_REQUIRED_PROGRESS, progress + RESTORATION_PROGRESS_PER_STEP);
-                    workTimer = 0;
-                    dirty = true;
-                    spawnRestorationPulse(player);
-                    if (progress >= RESTORATION_REQUIRED_PROGRESS) {
-                        restoreOrgan(player, cc, targetSlot, targetItemId);
-                        resetRestorationState(state);
-                        targetSlot = -1;
-                        targetItemId = "";
-                        progress = 0;
-                        workTimer = 0;
-                        selectionCooldown = RESTORATION_SELECTION_INTERVAL_SECONDS;
-                        dirty = true;
-                    }
-                } else {
-                    workTimer = 0;
-                    dirty = true;
-                }
-            }
+            return;
         }
 
-        if (dirty) {
-            state.putInt(SELECTION_COOLDOWN_KEY, selectionCooldown);
-            if (targetSlot >= 0 && !targetItemId.isEmpty()) {
-                state.putInt(TARGET_SLOT_KEY, targetSlot);
-                state.putString(TARGET_ITEM_KEY, targetItemId);
-                state.putInt(PROGRESS_KEY, progress);
-                state.putInt(WORK_TIMER_KEY, workTimer);
+        if (workTimer.getTicks() > 0) {
+            workTimer.tickDown();
+            return;
+        }
+
+        if (!hasHungerForRestoration(player)) {
+            mutateOrganSlot(player, cc, targetSlot);
+            clearRestorationState(state, cc, organ, selectionCooldown, workTimer);
+            selectionCooldown.start(RESTORATION_SELECTION_INTERVAL_SECONDS);
+            return;
+        }
+
+        if (consumeRestorationResources(player, boneChannel)) {
+            consumeRestorationHunger(player);
+            spawnRestorationPulse(player);
+
+            int newProgress = Math.min(RESTORATION_REQUIRED_PROGRESS, progress + RESTORATION_PROGRESS_PER_STEP);
+            if (newProgress != progress) {
+                OrganStateOps.setInt(state, cc, organ, PROGRESS_KEY, newProgress,
+                        value -> Math.max(0, Math.min(value, RESTORATION_REQUIRED_PROGRESS)), 0);
+            }
+
+            if (newProgress >= RESTORATION_REQUIRED_PROGRESS) {
+                restoreOrgan(player, cc, targetSlot, targetItemId);
+                clearRestorationState(state, cc, organ, selectionCooldown, workTimer);
+                selectionCooldown.start(RESTORATION_SELECTION_INTERVAL_SECONDS);
             } else {
-                state.remove(TARGET_SLOT_KEY);
-                state.remove(TARGET_ITEM_KEY);
-                state.remove(PROGRESS_KEY);
-                state.remove(WORK_TIMER_KEY);
+                workTimer.start(RESTORATION_WORK_INTERVAL_SECONDS);
             }
-            CompoundTag snapshot = state.copy();
-            writeState(organ, updated -> {
-                for (String key : new ArrayList<>(updated.getAllKeys())) {
-                    updated.remove(key);
-                }
-                updated.merge(snapshot);
-            });
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            return;
         }
+
+        workTimer.start(RESTORATION_WORK_INTERVAL_SECONDS);
     }
 
     private static boolean hasSufficientFood(Player player) {
@@ -597,7 +584,14 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         return player.getFoodData().getFoodLevel() >= COST_HUNGER;
     }
 
-    private static boolean selectMissingOrgan(Player player, ChestCavityInstance cc, CompoundTag state) {
+    private static boolean selectMissingOrgan(
+            Player player,
+            ChestCavityInstance cc,
+            OrganState state,
+            ItemStack organ,
+            MultiCooldown.EntryInt selectionCooldown,
+            MultiCooldown.EntryInt workTimer
+    ) {
         ChestCavityInventory defaults = cc.getChestCavityType().getDefaultChestCavity();
         if (defaults == null) {
             return false;
@@ -624,11 +618,11 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
 
         MissingOrgan selected = missing.get(player.getRandom().nextInt(missing.size()));
-        state.putInt(TARGET_SLOT_KEY, selected.slot());
-        state.putString(TARGET_ITEM_KEY, selected.id().toString());
-        state.putInt(PROGRESS_KEY, 0);
-        state.putInt(WORK_TIMER_KEY, 0);
-        state.putInt(SELECTION_COOLDOWN_KEY, RESTORATION_SELECTION_INTERVAL_SECONDS);
+        OrganStateOps.setInt(state, cc, organ, TARGET_SLOT_KEY, selected.slot(), value -> Math.max(-1, value), -1);
+        setTargetItemId(cc, organ, selected.id().toString());
+        OrganStateOps.setInt(state, cc, organ, PROGRESS_KEY, 0, value -> Math.max(0, value), 0);
+        workTimer.start(RESTORATION_WORK_INTERVAL_SECONDS);
+        selectionCooldown.start(RESTORATION_SELECTION_INTERVAL_SECONDS);
         return true;
     }
 
@@ -682,11 +676,52 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         return net.minecraft.core.registries.BuiltInRegistries.ITEM.get(id);
     }
 
-    private static void resetRestorationState(CompoundTag state) {
-        state.remove(TARGET_SLOT_KEY);
-        state.remove(TARGET_ITEM_KEY);
-        state.remove(PROGRESS_KEY);
-        state.remove(WORK_TIMER_KEY);
+    private static void clearRestorationState(
+            OrganState state,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            MultiCooldown.EntryInt selectionCooldown,
+            MultiCooldown.EntryInt workTimer
+    ) {
+        OrganStateOps.setInt(state, cc, organ, TARGET_SLOT_KEY, -1, value -> Math.max(-1, value), -1);
+        setTargetItemId(cc, organ, "");
+        OrganStateOps.setInt(state, cc, organ, PROGRESS_KEY, 0, value -> Math.max(0, value), 0);
+        workTimer.clear();
+        selectionCooldown.clear();
+    }
+
+    private static String readTargetItemId(ItemStack organ) {
+        if (organ == null || organ.isEmpty()) {
+            return "";
+        }
+        CustomData data = organ.get(DataComponents.CUSTOM_DATA);
+        if (data == null) {
+            return "";
+        }
+        CompoundTag root = data.copyTag();
+        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
+            return "";
+        }
+        CompoundTag state = root.getCompound(STATE_KEY);
+        return state.contains(TARGET_ITEM_KEY, Tag.TAG_STRING) ? state.getString(TARGET_ITEM_KEY) : "";
+    }
+
+    private static void setTargetItemId(ChestCavityInstance cc, ItemStack organ, String value) {
+        if (organ == null || organ.isEmpty()) {
+            return;
+        }
+        NBTWriter.updateCustomData(organ, tag -> {
+            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
+            if (value == null || value.isBlank()) {
+                state.remove(TARGET_ITEM_KEY);
+            } else {
+                state.putString(TARGET_ITEM_KEY, value);
+            }
+            tag.put(STATE_KEY, state);
+        });
+        if (cc != null) {
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        }
     }
 
     private static void playRestorationEffects(Player player) {
@@ -797,32 +832,6 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         return context.getOrCreateChannel(id)
                 .addPolicy(NON_NEGATIVE)
                 .addPolicy(SOFT_CAP_POLICY);
-    }
-
-    private static CompoundTag readState(ItemStack organ) {
-        if (organ == null || organ.isEmpty()) {
-            return new CompoundTag();
-        }
-        CustomData data = organ.get(DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return new CompoundTag();
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return new CompoundTag();
-        }
-        return root.getCompound(STATE_KEY).copy();
-    }
-
-    private static void writeState(ItemStack organ, java.util.function.Consumer<CompoundTag> modifier) {
-        if (organ == null || organ.isEmpty()) {
-            return;
-        }
-        NBTWriter.updateCustomData(organ, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            modifier.accept(state);
-            tag.put(STATE_KEY, state);
-        });
     }
 
     private record MissingOrgan(int slot, ResourceLocation id) {}
