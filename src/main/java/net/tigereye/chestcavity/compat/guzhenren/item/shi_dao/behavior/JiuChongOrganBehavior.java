@@ -17,9 +17,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.util.CombatUtil;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
@@ -29,9 +31,6 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCDamageSources;
 
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Behaviour for 酒虫. Manages the alcohol resource, drunken buffs, active breath skill and overcharge.
@@ -68,8 +67,9 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
     private static final ClampPolicy ALCOHOL_CLAMP = new ClampPolicy(0.0, MAX_ALCOHOL);
 
-    private static final Map<UUID, Long> MANIA_EXPIRY = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAST_REGEN_TICK = new ConcurrentHashMap<>();
+    private static final String STATE_ROOT = "JiuChong";
+    private static final String MANIA_EXPIRY_TICK_KEY = "ManiaExpiryTick";
+    private static final String LAST_REGEN_TICK_KEY = "LastRegenTick";
 
     static {
         OrganActivationListeners.register(ABILITY_ID, JiuChongOrganBehavior::activateAbility);
@@ -83,12 +83,15 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (!hasOrgan(cc)) {
             return;
         }
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry maniaEntry = cooldown.entry(MANIA_EXPIRY_TICK_KEY);
+        MultiCooldown.Entry lastRegenEntry = cooldown.entry(LAST_REGEN_TICK_KEY);
         LinkageChannel channel = ensureAlcoholChannel(cc);
         if (entity instanceof Player player) {
-            handlePlayer(player, organ, channel);
+            handlePlayer(player, organ, channel, maniaEntry, lastRegenEntry, cc);
             return;
         }
-        handleNonPlayer(entity, organ, channel);
+        handleNonPlayer(entity, organ, channel, cc);
     }
 
     @Override
@@ -97,14 +100,16 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
         LinkageChannel channel = ensureAlcoholChannel(cc);
-        double alcohol = channel.get();
+        double alcohol = channel == null ? 0.0 : channel.get();
         double multiplier = 1.0;
         if (alcohol >= DRUNK_THRESHOLD) {
             multiplier += ATTACK_BONUS;
             CombatUtil.applyRandomAttackOffset(attacker, ATTACK_YAW_RANGE, ATTACK_PITCH_RANGE, alcohol / MAX_ALCOHOL);
         }
         if (attacker instanceof Player player) {
-            if (isManiaActive(player, player.level().getGameTime())) {
+            MultiCooldown cooldown = createCooldown(cc, organ);
+            MultiCooldown.Entry maniaEntry = cooldown.entry(MANIA_EXPIRY_TICK_KEY);
+            if (isManiaActive(maniaEntry, player.level().getGameTime())) {
                 multiplier *= MANIA_DAMAGE_MULTIPLIER;
             }
         }
@@ -117,7 +122,9 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
         LinkageChannel channel = ensureAlcoholChannel(cc);
-        double alcohol = channel.get();
+        double alcohol = channel == null ? 0.0 : channel.get();
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry maniaEntry = cooldown.entry(MANIA_EXPIRY_TICK_KEY);
         boolean dodged = false;
         if (alcohol >= DRUNK_THRESHOLD) {
             float stacks = Math.max(1, organ.getCount());
@@ -139,18 +146,12 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return 0.0f;
         }
         double multiplier = 1.0;
-        if (victim instanceof Player player && isManiaActive(player, player.level().getGameTime())) {
+        if (victim instanceof Player player && isManiaActive(maniaEntry, player.level().getGameTime())) {
             multiplier *= MANIA_DAMAGE_MULTIPLIER;
         }
         // 非玩家在受击时有 1/10 概率释放随机吐息（需酒精充足，否则不触发，不扣血）。
         if (!(victim instanceof Player)) {
-            if (alcohol >= BREATH_COST) {
-                RandomSource random = victim.getRandom();
-                if (random.nextInt(10) == 0) {
-                    channel.adjust(-BREATH_COST);
-                    performDrunkenBreath(victim);
-                }
-            }
+            tryRandomBreath(victim, cc, organ, channel);
         }
         return (float) (damage * multiplier);
     }
@@ -164,11 +165,14 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
 
         LinkageChannel channel = ensureAlcoholChannel(cc);
-        if (channel.get() < BREATH_COST) {
+        if (channel == null || channel.get() < BREATH_COST) {
             return;
         }
-
-        channel.adjust(-BREATH_COST);
+        ItemStack organStack = resolvePrimaryOrgan(cc, ItemStack.EMPTY);
+        if (organStack.isEmpty()) {
+            return;
+        }
+        adjustAlcohol(cc, organStack, -BREATH_COST);
         performDrunkenBreath(player);
     }
 
@@ -177,8 +181,11 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     private static LinkageChannel ensureAlcoholChannel(ChestCavityInstance cc) {
+        if (cc == null) {
+            return null;
+        }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        return context.getOrCreateChannel(ALCOHOL_CHANNEL).addPolicy(ALCOHOL_CLAMP);
+        return LedgerOps.ensureChannel(context, ALCOHOL_CHANNEL, ALCOHOL_CLAMP);
     }
 
     private static int convertHungerToAlcohol(Player player, int attempts) {
@@ -209,19 +216,25 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         return false;
     }
 
-    private static void tryDrunkenRegeneration(Player player, LinkageChannel channel, long gameTime) {
+    private static void tryDrunkenRegeneration(
+            Player player,
+            ChestCavityInstance cc,
+            ItemStack organ,
+            LinkageChannel channel,
+            long gameTime,
+            MultiCooldown.Entry lastRegenEntry
+    ) {
         if (player.getHealth() > player.getMaxHealth() * 0.3f) {
             return;
         }
-        if (channel.get() < REGEN_COST) {
+        if (channel == null || channel.get() < REGEN_COST) {
             return;
         }
-        long last = LAST_REGEN_TICK.getOrDefault(player.getUUID(), Long.MIN_VALUE);
+        long last = lastRegenEntry == null ? Long.MIN_VALUE : lastRegenEntry.getReadyTick();
         if (gameTime - last < REGEN_INTERVAL_TICKS) {
             return;
         }
-        // Consume from alcohol channel instead of HP for players
-        channel.adjust(-REGEN_COST);
+        adjustAlcohol(cc, organ, -REGEN_COST);
         player.heal(REGEN_HEAL_AMOUNT);
         Level level = player.level();
         RandomSource random = player.getRandom();
@@ -229,20 +242,24 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (level instanceof ServerLevel server) {
             server.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + player.getBbHeight() * 0.6, player.getZ(), 8, 0.2, 0.2, 0.2, 0.01);
         }
-        LAST_REGEN_TICK.put(player.getUUID(), gameTime);
+        if (lastRegenEntry != null) {
+            lastRegenEntry.setReadyAt(gameTime);
+        }
     }
 
-    private static void triggerMania(Player player, long gameTime) {
+    private static void triggerMania(Player player, long gameTime, MultiCooldown.Entry maniaEntry) {
         long endTick = gameTime + MANIA_DURATION_TICKS;
-        MANIA_EXPIRY.put(player.getUUID(), endTick);
+        if (maniaEntry != null) {
+            maniaEntry.setReadyAt(endTick);
+        }
         player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, (int) MANIA_DURATION_TICKS, 0, false, true, true));
         Level level = player.level();
         SoundSource category = SoundSource.PLAYERS;
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WITCH_AMBIENT, category, 1.0f, 1.0f);
     }
 
-    private static void handleManiaLoop(Player player, long gameTime) {
-        if (!isManiaActive(player, gameTime)) {
+    private static void handleManiaLoop(Player player, MultiCooldown.Entry maniaEntry, long gameTime) {
+        if (!isManiaActive(maniaEntry, gameTime)) {
             return;
         }
         RandomSource random = player.getRandom();
@@ -262,13 +279,13 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
     }
 
-    private static boolean isManiaActive(Player player, long gameTime) {
-        Long expiry = MANIA_EXPIRY.get(player.getUUID());
-        if (expiry == null) {
+    private static boolean isManiaActive(MultiCooldown.Entry maniaEntry, long gameTime) {
+        if (maniaEntry == null) {
             return false;
         }
+        long expiry = maniaEntry.getReadyTick();
         if (expiry <= gameTime) {
-            MANIA_EXPIRY.remove(player.getUUID());
+            maniaEntry.clear();
             return false;
         }
         return true;
@@ -298,25 +315,32 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         user.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
     }
 
-    private static void handlePlayer(Player player, ItemStack organ, LinkageChannel channel) {
+    private static void handlePlayer(
+            Player player,
+            ItemStack organ,
+            LinkageChannel channel,
+            MultiCooldown.Entry maniaEntry,
+            MultiCooldown.Entry lastRegenEntry,
+            ChestCavityInstance cc
+    ) {
         long gameTime = player.level().getGameTime();
-        double previousAlcohol = channel.get();
+        double previousAlcohol = channel == null ? 0.0 : channel.get();
         int stackCount = organ == null ? 1 : Math.max(1, organ.getCount());
         int gained = convertHungerToAlcohol(player, stackCount);
         if (gained > 0) {
-            double newAlcohol = channel.adjust(ALCOHOL_PER_FEED * gained);
+            double newAlcohol = adjustAlcohol(cc, organ, ALCOHOL_PER_FEED * gained);
             if (previousAlcohol < MAX_ALCOHOL && newAlcohol >= MAX_ALCOHOL) {
-                triggerMania(player, gameTime);
-            } else if (newAlcohol >= MAX_ALCOHOL && isManiaActive(player, gameTime)) {
+                triggerMania(player, gameTime, maniaEntry);
+            } else if (newAlcohol >= MAX_ALCOHOL && isManiaActive(maniaEntry, gameTime)) {
                 player.hurt(CCDamageSources.alcoholOverdose(player), gained);
             }
         }
-        handleManiaLoop(player, gameTime);
-        tryDrunkenRegeneration(player, channel, gameTime);
+        handleManiaLoop(player, maniaEntry, gameTime);
+        tryDrunkenRegeneration(player, cc, organ, channel, gameTime, lastRegenEntry);
         // 玩家不触发随机吐息（主动技仅限玩家手动触发；随机吐息是生物替代方案）
     }
 
-    private static void handleNonPlayer(LivingEntity entity, ItemStack organ, LinkageChannel channel) {
+    private static void handleNonPlayer(LivingEntity entity, ItemStack organ, LinkageChannel channel, ChestCavityInstance cc) {
         // 随机吐息仅在 OnIncomingDamage 中判定；这里仅以 0.25 效率缓慢恢复酒精。
         if (entity == null || channel == null || !entity.isAlive()) {
             return;
@@ -324,11 +348,11 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         int stacks = organ == null ? 1 : Math.max(1, organ.getCount());
         double recovered = ALCOHOL_PER_FEED * stacks * 0.25;
         if (recovered > 0) {
-            channel.adjust(recovered);
+            adjustAlcohol(cc, organ, recovered);
         }
     }
 
-    private static void tryRandomBreath(LivingEntity entity, LinkageChannel channel) {
+    private static void tryRandomBreath(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, LinkageChannel channel) {
         if (entity == null || channel == null) {
             return;
         }
@@ -340,7 +364,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return;
         }
         // Spend alcohol resource; non-player alcohol is topped up via HP earlier if needed
-        channel.adjust(-BREATH_COST);
+        adjustAlcohol(cc, organ, -BREATH_COST);
         performDrunkenBreath(entity);
     }
 
@@ -398,5 +422,47 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             }
         }
         return false;
+    }
+
+    private static ItemStack resolvePrimaryOrgan(ChestCavityInstance cc, ItemStack fallback) {
+        if (fallback != null && !fallback.isEmpty()) {
+            return fallback;
+        }
+        if (cc != null && cc.inventory != null) {
+            for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+                ItemStack candidate = cc.inventory.getItem(i);
+                if (candidate.isEmpty()) {
+                    continue;
+                }
+                ResourceLocation id = BuiltInRegistries.ITEM.getKey(candidate.getItem());
+                if (ORGAN_ID.equals(id)) {
+                    return candidate;
+                }
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        ItemStack stack = resolvePrimaryOrgan(cc, organ);
+        MultiCooldown.Builder builder = MultiCooldown.builder(stack, STATE_ROOT)
+                .withLongClamp(value -> Math.max(0L, value), 0L);
+        if (cc != null && !stack.isEmpty()) {
+            builder.withSync(cc, stack);
+        } else if (!stack.isEmpty()) {
+            builder.withOrgan(stack);
+        }
+        return builder.build();
+    }
+
+    private static double adjustAlcohol(ChestCavityInstance cc, ItemStack organ, double delta) {
+        LinkageChannel channel = ensureAlcoholChannel(cc);
+        ItemStack stack = resolvePrimaryOrgan(cc, organ);
+        if (cc == null || stack.isEmpty() || delta == 0.0) {
+            return channel == null ? 0.0 : channel.get();
+        }
+        LedgerOps.adjust(cc, stack, ALCOHOL_CHANNEL, delta, ALCOHOL_CLAMP, true);
+        LinkageChannel updatedChannel = ensureAlcoholChannel(cc);
+        return updatedChannel == null ? 0.0 : updatedChannel.get();
     }
 }

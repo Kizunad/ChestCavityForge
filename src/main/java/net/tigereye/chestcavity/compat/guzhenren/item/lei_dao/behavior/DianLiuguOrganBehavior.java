@@ -15,16 +15,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
-import net.tigereye.chestcavity.linkage.LinkageChannel;
-import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.LinkageChannel;
+import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.util.NBTCharge;
-import net.tigereye.chestcavity.util.NetworkUtil;
 
 import java.util.List;
 
@@ -40,7 +40,8 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-    private static final String STATE_KEY = "DianLiugu";
+    private static final String STATE_ROOT = "DianLiugu";
+    private static final String CHARGE_KEY = "Charge";
     private static final int MAX_CHARGE = 10;
 
     private static final double BASE_DAMAGE = 5.0;
@@ -64,36 +65,34 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
     }
 
     private void handlePlayerSlowTick(ChestCavityInstance cc, ItemStack organ) {
-        int currentCharge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt chargeEntry = cooldown.entryInt(CHARGE_KEY);
+        int currentCharge = Math.min(MAX_CHARGE, chargeEntry.getTicks());
         if (currentCharge >= MAX_CHARGE) {
             return;
         }
 
-        double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
+        double efficiency = 1.0 + lookupIncreaseEffect(cc);
         int gained = Math.max(1, (int) Math.floor(efficiency));
         int updatedCharge = Math.min(MAX_CHARGE, currentCharge + gained);
-        if (updatedCharge != currentCharge) {
-            NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        chargeEntry.setTicks(updatedCharge);
     }
 
     private void handleNonPlayerSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (organ == null || organ.isEmpty()) {
             return;
         }
-        int currentCharge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt chargeEntry = cooldown.entryInt(CHARGE_KEY);
+        int currentCharge = Math.min(MAX_CHARGE, chargeEntry.getTicks());
         if (currentCharge >= MAX_CHARGE) {
             return;
         }
 
-        double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
+        double efficiency = 1.0 + lookupIncreaseEffect(cc);
         int gained = Math.max(1, (int) Math.floor(efficiency));
         int updatedCharge = Math.min(MAX_CHARGE, currentCharge + gained);
-        if (updatedCharge != currentCharge) {
-            NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        chargeEntry.setTicks(updatedCharge);
     }
 
     @Override
@@ -126,17 +125,16 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
             ItemStack organ,
             float damage
     ) {
-        int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt chargeEntry = cooldown.entryInt(CHARGE_KEY);
+        int charge = Math.min(MAX_CHARGE, chargeEntry.getTicks());
         if (charge <= 0) {
             return damage;
         }
 
-        double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
+        double efficiency = 1.0 + lookupIncreaseEffect(cc);
         int updated = Math.max(0, charge - 1);
-        if (updated != charge) {
-            NBTCharge.setCharge(organ, STATE_KEY, updated);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        chargeEntry.setTicks(updated);
 
         float bonusDamage = (float)(BASE_DAMAGE * efficiency);
 
@@ -159,17 +157,16 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
             return damage;
         }
 
-        int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.EntryInt chargeEntry = cooldown.entryInt(CHARGE_KEY);
+        int charge = Math.min(MAX_CHARGE, chargeEntry.getTicks());
         if (charge <= 0) {
             return damage;
         }
 
-        double efficiency = 1.0 + ensureChannel(cc, LEI_DAO_INCREASE_EFFECT).get();
+        double efficiency = 1.0 + lookupIncreaseEffect(cc);
         int updated = Math.max(0, charge - 1);
-        if (updated != charge) {
-            NBTCharge.setCharge(organ, STATE_KEY, updated);
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
+        chargeEntry.setTicks(updated);
 
         float bonusDamage = (float) (BASE_DAMAGE * efficiency);
         applyDebuff(target, efficiency);
@@ -188,8 +185,27 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
     }
 
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
+        if (cc == null) {
+            return null;
+        }
         ActiveLinkageContext context = LinkageManager.getContext(cc);
-        return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
+        return LedgerOps.ensureChannel(context, id, NON_NEGATIVE);
+    }
+
+    private static double lookupIncreaseEffect(ChestCavityInstance cc) {
+        LinkageChannel channel = ensureChannel(cc, LEI_DAO_INCREASE_EFFECT);
+        return channel == null ? 0.0 : channel.get();
+    }
+
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(organ, STATE_ROOT)
+                .withIntClamp(value -> Math.max(0, Math.min(MAX_CHARGE, value)), 0);
+        if (cc != null && organ != null && !organ.isEmpty()) {
+            builder.withSync(cc, organ);
+        } else if (organ != null) {
+            builder.withOrgan(organ);
+        }
+        return builder.build();
     }
 
     private static void applyDebuff(LivingEntity target, double efficiency) {
