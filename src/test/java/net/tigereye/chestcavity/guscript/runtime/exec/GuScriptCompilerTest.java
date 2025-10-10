@@ -13,8 +13,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.minecraft.core.NonNullList;
+import net.tigereye.chestcavity.guscript.data.BindingTarget;
+import net.tigereye.chestcavity.guscript.data.GuScriptPageState;
+import net.tigereye.chestcavity.guscript.data.ListenerType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -76,5 +87,59 @@ class GuScriptCompilerTest {
         LeafGuNode scaled = GuScriptCompiler.toScaledLeaf(definition, 1, 0, 0);
         assertEquals(1, scaled.tags().count("骨道"));
 
+    }
+
+    @Test
+    void computeSignature_ignoresFlowParamOrdering() throws Exception {
+        GuScriptPageState forward = newPageState(Map.of(
+                "alpha", "1",
+                "beta", "2"
+        ));
+
+        GuScriptPageState reversed = newPageState(Map.of(
+                "beta", "2",
+                "alpha", "1"
+        ));
+
+        Method computeSignature = GuScriptCompiler.class.getDeclaredMethod("computeSignature", GuScriptPageState.class);
+        computeSignature.setAccessible(true);
+        int forwardSignature = (int) computeSignature.invoke(null, forward);
+        int reversedSignature = (int) computeSignature.invoke(null, reversed);
+
+        assertEquals(forwardSignature, reversedSignature, "Flow parameter ordering should not change signature");
+    }
+
+    private static GuScriptPageState newPageState(Map<String, String> params) throws Exception {
+        GuScriptPageState page = allocatePageState();
+        page.setFlowParams(params);
+        return page;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static GuScriptPageState allocatePageState() throws Exception {
+        Constructor<Object> objectConstructor = Object.class.getDeclaredConstructor();
+        objectConstructor.setAccessible(true);
+        Constructor<GuScriptPageState> serializationCtor = (Constructor<GuScriptPageState>) sun.reflect.ReflectionFactory
+                .getReflectionFactory()
+                .newConstructorForSerialization(GuScriptPageState.class, objectConstructor);
+        serializationCtor.setAccessible(true);
+        GuScriptPageState page = serializationCtor.newInstance();
+        setField(page, "items", NonNullList.create());
+        setField(page, "bindingTarget", BindingTarget.KEYBIND);
+        setField(page, "listenerType", ListenerType.ON_HIT);
+        setField(page, "title", "Page");
+        setField(page, "dirty", true);
+        setField(page, "inventorySignature", 0);
+        setField(page, "compiledProgram", null);
+        setField(page, "listenerCooldowns", new EnumMap<>(ListenerType.class));
+        setField(page, "flowId", null);
+        setField(page, "flowParams", new HashMap<>());
+        return page;
+    }
+
+    private static void setField(Object target, String name, Object value) throws Exception {
+        Field field = GuScriptPageState.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 }

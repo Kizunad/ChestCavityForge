@@ -119,7 +119,15 @@ public final class GuScriptCompiler {
         hash = 31 * hash + page.flowId().map(Object::hashCode).orElse(0);
         Map<String, String> params = page.flowParams();
         if (!params.isEmpty()) {
-            for (Map.Entry<String, String> entry : params.entrySet()) {
+            List<Map.Entry<String, String>> entries = new ArrayList<>(params.entrySet());
+            entries.sort((left, right) -> {
+                int keyComparison = left.getKey().compareTo(right.getKey());
+                if (keyComparison != 0) {
+                    return keyComparison;
+                }
+                return left.getValue().compareTo(right.getValue());
+            });
+            for (Map.Entry<String, String> entry : entries) {
                 hash = 31 * hash + Objects.hash(entry.getKey(), entry.getValue());
             }
         }
