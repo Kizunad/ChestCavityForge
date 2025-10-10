@@ -36,6 +36,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
@@ -439,9 +440,9 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (attribute != null) {
             boolean present = attribute.hasModifier(FOCUS_ATTACK_SPEED_ID);
             if (active && !present) {
-                attribute.addTransientModifier(FOCUS_ATTACK_SPEED_MODIFIER);
+                AttributeOps.replaceTransient(attribute, FOCUS_ATTACK_SPEED_ID, FOCUS_ATTACK_SPEED_MODIFIER);
             } else if (!active && present) {
-                attribute.removeModifier(FOCUS_ATTACK_SPEED_ID);
+                AttributeOps.removeById(attribute, FOCUS_ATTACK_SPEED_ID);
             }
         }
 
@@ -530,7 +531,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static void removeFocusModifier(Player player) {
         AttributeInstance attribute = player.getAttribute(Attributes.ATTACK_SPEED);
         if (attribute != null && attribute.hasModifier(FOCUS_ATTACK_SPEED_ID)) {
-            attribute.removeModifier(FOCUS_ATTACK_SPEED_ID);
+            AttributeOps.removeById(attribute, FOCUS_ATTACK_SPEED_ID);
         }
     }
 

@@ -36,6 +36,9 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.EffectOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.FxOps;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import org.joml.Vector3f;
@@ -329,13 +332,14 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         RandomSource random = user.getRandom();
         float volume = Mth.clamp(0.6f + drops * 0.15f, 0.6f, 2.0f);
         float pitch = Mth.clamp(0.8f - drops * 0.05f + random.nextFloat() * 0.1f, 0.3f, 1.0f);
-        level.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, volume, pitch);
-        level.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.8f, 0.55f + random.nextFloat() * 0.1f);
+        Vec3 pos = new Vec3(user.getX(), user.getY(), user.getZ());
+        FxOps.playSound(level, pos, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, volume, pitch);
+        FxOps.playSound(level, pos, SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.8f, 0.55f + random.nextFloat() * 0.1f);
 
         Vec3 center = user.position().add(0.0, user.getBbHeight() * 0.6, 0.0);
         int mistCount = 24 + drops * 16;
-        server.sendParticles(BLOOD_MIST, center.x, center.y, center.z, mistCount, 0.6, 0.9, 0.6, 0.2);
-        server.sendParticles(ParticleTypes.SONIC_BOOM, center.x, center.y, center.z, Math.min(6, drops), 0.15, 0.15, 0.15, 0.02);
+        FxOps.particles(server, BLOOD_MIST, center, mistCount, 0.6, 0.9, 0.6, 0.2);
+        FxOps.particles(server, ParticleTypes.SONIC_BOOM, center, Math.min(6, drops), 0.15, 0.15, 0.15, 0.02);
     }
 
     private static void scheduleBleedTicks(ServerLevel server, LivingEntity user, List<LivingEntity> victims, int drops, double efficiency) {
@@ -351,7 +355,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         }
         for (int second = 1; second <= BLEED_DURATION_SECONDS; second++) {
             int delay = second * TICKS_PER_SECOND;
-            schedule(server, () -> {
+            TickOps.schedule(server, () -> {
                 for (LivingEntity target : targets) {
                     if (target.isAlive() && !target.isAlliedTo(user)) {
                         applyTrueDamage(user, target, (float) perSecond);
@@ -365,20 +369,10 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         if (drops <= 0 || victims.isEmpty()) {
             return;
         }
-        Optional<Holder.Reference<net.minecraft.world.effect.MobEffect>> effectOpt =
-                BuiltInRegistries.MOB_EFFECT.getHolder(BLEED_EFFECT_ID);
-        if (effectOpt.isEmpty()) {
-            return;
-        }
         double scaled = Math.max(1.0, drops * Math.max(0.0, efficiency));
         int amplifier = Math.max(0, (int) Math.round(scaled) - 1);
         int duration = BLEED_DURATION_SECONDS * TICKS_PER_SECOND;
-        for (LivingEntity target : victims) {
-            if (!target.isAlive()) {
-                continue;
-            }
-            target.addEffect(new MobEffectInstance(effectOpt.get(), duration, amplifier, false, true, true));
-        }
+        EffectOps.applyToAllById(victims, BLEED_EFFECT_ID, duration, amplifier, true, true);
     }
 
     private static void spawnBleedGenerationEffects(LivingEntity entity, int stored, int stackCount) {
@@ -388,8 +382,8 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         }
         Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
         int count = 8 + stored + stackCount * 2;
-        server.sendParticles(BLOOD_MIST, center.x, center.y, center.z, count, 0.25, 0.4, 0.25, 0.05);
-        server.sendParticles(ParticleTypes.DRIPPING_DRIPSTONE_LAVA, center.x, center.y, center.z, Math.min(6, stored), 0.05, 0.35, 0.05, 0.01);
+        FxOps.particles(server, BLOOD_MIST, center, count, 0.25, 0.4, 0.25, 0.05);
+        FxOps.particles(server, ParticleTypes.DRIPPING_DRIPSTONE_LAVA, center, Math.min(6, stored), 0.05, 0.35, 0.05, 0.01);
     }
 
     private static void handleDryState(LivingEntity entity, boolean dry, boolean wasDry) {
@@ -407,10 +401,10 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     private static void playDrynessCues(LivingEntity entity) {
         Level level = entity.level();
         RandomSource random = entity.getRandom();
-        level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.7f, 0.45f + random.nextFloat() * 0.1f);
+        FxOps.playSound(level, new Vec3(entity.getX(), entity.getY(), entity.getZ()), SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.7f, 0.45f + random.nextFloat() * 0.1f);
         if (level instanceof ServerLevel server) {
             Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
-            server.sendParticles(ParticleTypes.SMOKE, center.x, center.y, center.z, DRY_SMOKE_COUNT, 0.3, 0.4, 0.3, 0.01);
+            FxOps.particles(server, ParticleTypes.SMOKE, center, DRY_SMOKE_COUNT, 0.3, 0.4, 0.3, 0.01);
         }
     }
 
@@ -624,13 +618,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         logNbtChange(stack, ANNOUNCED_KEY, previous, value);
     }
 
-    private static void schedule(ServerLevel level, Runnable runnable, int delayTicks) {
-        if (delayTicks <= 0) {
-            runnable.run();
-            return;
-        }
-        level.getServer().execute(() -> schedule(level, runnable, delayTicks - 1));
-    }
+    // replaced by TickOps.schedule
 
     private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {
         if (Objects.equals(oldValue, newValue)) {
