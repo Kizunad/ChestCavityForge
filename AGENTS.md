@@ -21,9 +21,27 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+### Guzhenren Ops 迁移（四步）
+1) 盘点：用 `rg` 搜索 `LinkageManager.getContext|getOrCreateChannel|GuzhenrenResourceBridge.open|NBTCharge`，登记仍未走 `LedgerOps/ResourceOps/MultiCooldown/AbsorptionHelper` 的行为类。
+2) 迁移：按家族（如 炎/力/水）分批替换至对应 Ops，删除重复的钳制/计时/属性清理代码。仅只读查询可暂保留低层 API。
+3) 一致性：确认无直接 `LinkageChannel.adjust`/`ledger.remove` 遗留，冷却集中在 `MultiCooldown`，护盾统一 `AbsorptionHelper`，资源统一 `ResourceOps`。
+4) 验证：`./gradlew compileJava`，进游戏做装备/卸下/触发/护盾刷新实测；若发现 Ledger 重建或负冷却日志，回归对应行为修正并记录到本文件。
+
 ## Web Codex 快速上手（Guzhenren 新器官）
 
-- 进度跟踪：`docs/guzhenren_behavior_migration.md` 维护蛊真人行为迁移表，本次已将 Lei / Shi / Chou / Jiu 家族切换到 `util.behavior` 的 Ledger/MultiCooldown 工具链。
+- 进度跟踪：`docs/guzhenren_behavior_migration.md` 维护蛊真人行为迁移表。本次合并（codex/migrate-guzhenren-behaviours-to-util.behavior）已将雷道/食道/臭道（DianLiugu/JiuChong/ChouPiGu）迁移到 `util.behavior` 工具链：
+  - 使用 `LedgerOps.ensureChannel/adjust` 统一通道与 Ledger 校验
+  - 使用 `MultiCooldown` 替换 `NBTCharge`/散落 Map 计时
+  - 按槽位/主器官抽象整理状态读写（必要时结合 `OrganStateOps`）
+
+ 余下候选（建议后续批量迁移或确认维持现状）
+  - 血道：XieFeigu 仅读取 `xue_dao_increase_effect`（不改写），目前保留 `LinkageManager.lookupChannel` 可接受；其余血道器官（Xiedigu/Tiexuegu）已使用 `LedgerOps` 管理增效，继续关注卸下残留日志。
+  - 炎道：HuoYiGu 多处引用 `GuzhenrenResourceCostHelper`，建议统一走 `ResourceOps.consumeStrict/WithFallback`，并确认冷却是否已集中到 `MultiCooldown`。
+  - 力道：ZiLiGengShengGu 已接入 `MultiCooldown` 与 `ResourceOps`；`AbstractLiDaoOrganBehavior`/`LiDaoHelper` 中对 `LinkageManager` 的只读路径可保留，若新增通道写入请改走 `LedgerOps`。
+  - 水道：LingXiangu/Jiezegu/ShuishenguShield 仍有直接通道/计时逻辑；护盾消耗建议保留 `ShuishenguShield`，其资源路径统一至 `ResourceOps`。
+  - 冰雪道：BingJiGu 已接 `AbsorptionHelper`，ShuangXiGu 使用 `LedgerOps`；检查 `QingReGu` 是否仍直接建通道，必要时改为 `LedgerOps.ensureChannel`。
+  - 空窍：DaoHenSeedHandler 基于种子播种通道，维持低层操作可接受；若仅需“确保存在”，可替换为 `LedgerOps.ensureChannel`。
+  - 模块：`GuzhenrenOrganHandlers`、`GuzhenrenOrganScoreEffects` 侧重全局挂载与资源桥分发，保持当前结构。
 
 - **需求拆解**：收到用户类似 `水体蛊` / `血气蛊` 的 JSON 模板时，先把要做的事情分成数据注册（`organScores` 等静态内容）与行为实现（OnEquip/SlowTick/资源消耗）。模板里的 `itemID`、`organScores` 直接映射到数据驱动文件，行为描述留给 Java 侧的监听器处理。
 - **数据注册路径**：在 `ChestCavityForge/src/main/resources/data/chestcavity/organs/guzhenren/` 下新增或调整对应 `*.json`（人类器官通常位于 `.../human/` 子目录）。对照现有文件（例如 `guzhenren:gucaikongqiao`）复制 `itemID`、`organScores`、`defaultCompatibility` 等字段，必要时同步更新 `assets/chestcavity/lang/zh_cn.json` 里的条目。
