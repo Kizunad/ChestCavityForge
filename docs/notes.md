@@ -1508,3 +1508,38 @@ ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/li
 - 后续可在该 handler 内扩展实际逻辑（如状态门控/FX/增益）。
 
  niantou_rongliang 是念头的容量上限，用于硬性裁剪当前念头并由流程事件提升
+
+
+- 提醒弹窗（HUD 层）
+- 用原生 Toast，最稳且与所有模组兼容。
+- 做法：实现一个 Toast，通过 Minecraft.getInstance().getToasts().addToast(new ReminderToast(...)) 显示 2–5 秒消
+  息，支持图标/标题/正文。
+- 常驻显示（HUD 层）
+- 用 NeoForge 客户端渲染事件在 HUD 顶层绘制一个小部件（右上角/血条下方等）。
+- 做法：监听 RenderGuiEvent.Post（1.21.1），在回调内用 GuiGraphics 画底板与文字；如果需要 ModernUI 风格，可调用相
+  同配色/圆角与文本阴影参数模拟样式。
+- 弹窗（仅限打开 GUI 界面时）
+- ModernUI 自带 Popup/ContextMenu 能在“已有屏幕（Screen）里”弹出模块化菜单。
+- 做法：在 ModernUI 视图树内，通过 UIManager.showContextMenuForChild(view, x, y) 构建并展示；适合“背包/自定义界
+  面”内的右键菜单、提示卡片。
+- 注意：NeoForge 分支的 UIManagerForge.openPopup(...) 已标注弃用/不可用，建议用上面的 ContextMenu 方案或在界面布局
+  中内嵌一个受控的“浮层”View。
+
+代码骨架
+
+- Toast 提醒
+- 新建 ui/ReminderToast.java：
+    - 实现 Toast 接口，持有 title、message、icon、durationMs。
+    - render(GuiGraphics g, ToastComponent c, long timeMs) 中绘制背景与文本，时间到返回 Visibility.HIDE。
+- 显示：Minecraft.getInstance().getToasts().addToast(new ReminderToast(...))。
+- HUD 常驻显示
+- 客户端注册监听：
+    - 在 mod 客户端初始化里 NeoForge.EVENT_BUS.addListener(HudOverlay::onRenderHud)。
+- 回调：
+    - onRenderHud(RenderGuiEvent.Post e) 取 GuiGraphics g，计算锚点坐标，g.fill(...) 画底板，g.drawString(...) 输
+      出文本。
+    - 可接状态（魂魄/念头/冷却计时）并缓存数值，降低每帧开销。
+- ModernUI 弹窗（仅界面内）
+- 在已有 ModernUI Fragment/View 中，准备 ContextMenuBuilder 或自定义 View 作为“卡片”样式。
+- 触发时调用 UIManager.showContextMenuForChild(originalView, x, y) 展示；或在布局层级中切换子 View 的可见性做“内嵌
+  浮层”。
