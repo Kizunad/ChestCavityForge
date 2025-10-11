@@ -16,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.core.component.DataComponents;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
 import net.tigereye.chestcavity.soul.util.SoulLog;
@@ -56,7 +57,6 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
         if (!player.isAlive() || player.level().isClientSide()) return;
         // Do not interfere with normal attacks: skip when eating/drinking or during attack cooldown
         if (player.isUsingItem()) return;
-        if (player.getAttackStrengthScale(0.0f) < 1.0f) return;
 
         float hp = player.getHealth();
         float max = player.getMaxHealth();
@@ -79,7 +79,45 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
      * Keeps the same Guzhenren item set and offhand-first policy.
      */
     public static boolean tryUseAnyHealingItem(SoulPlayer player) {
-        return tryUseGuzhenrenItemStatic(player);
+        float before = player.getHealth();
+        boolean used = false;
+        // 1) Guzhenren quick-use items
+        used = tryUseGuzhenrenItemStatic(player);
+        // 2) Enchanted Golden Apple
+        if (!used) used = useSimpleItem(player, Items.ENCHANTED_GOLDEN_APPLE);
+        // 3) Golden Apple
+        if (!used) used = useSimpleItem(player, Items.GOLDEN_APPLE);
+        // 4) Potions: Instant Health (any strength)
+        if (!used) used = usePotionMatching(player, p -> p == Potions.HEALING || p == Potions.STRONG_HEALING);
+        // 5) Potions: Regeneration (any strength)
+        if (!used) used = usePotionMatching(player, p -> p == Potions.REGENERATION || p == Potions.STRONG_REGENERATION || p == Potions.LONG_REGENERATION);
+
+        float after = player.getHealth();
+        try {
+            SoulLog.info("[soul][heal][attempt] soul={} used={} hp:{}->{}", player.getSoulId(), used,
+                    String.format("%.3f", before), String.format("%.3f", after));
+        } catch (Throwable ignored) {}
+        return used;
+    }
+
+    private static boolean useSimpleItem(SoulPlayer player, Item item) {
+        return net.tigereye.chestcavity.soul.util.SoulPlayerInput.useOffhandIfReady(player, item, true)
+                || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)
+                || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useMainhandIfReady(player, item, true)
+                || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithMainhandSwapIfReady(player, item, true);
+    }
+
+    private static boolean usePotionMatching(SoulPlayer player, java.util.function.Predicate<net.minecraft.world.item.alchemy.Potion> test) {
+        java.util.function.Predicate<ItemStack> matcher = (stack) -> {
+            if (stack.getItem() != Items.POTION) return false;
+            PotionContents pc = stack.get(DataComponents.POTION_CONTENTS);
+            if (pc == null) return false;
+            var opt = pc.potion();
+            if (opt == null || opt.isEmpty()) return false;
+            net.minecraft.world.item.alchemy.Potion pot = opt.get().value();
+            return test.test(pot);
+        };
+        return net.tigereye.chestcavity.soul.util.SoulPlayerInput.useAnyMatchingWithOffhandFirst(player, matcher, true);
     }
 
     private static void ensureGuzhenrenItems() {
@@ -110,7 +148,7 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
                     || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)
                     || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useMainhandIfReady(player, item, true)
                     || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithMainhandSwapIfReady(player, item, true)) {
-                SoulLog.info("[soul][heal][guz] used offhand item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
+                SoulLog.info("[soul][heal][guz] used item={} hand=auto (cooldown by item)", BuiltInRegistries.ITEM.getKey(item));
                 return true;
             }
         }

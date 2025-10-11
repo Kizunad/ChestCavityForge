@@ -29,6 +29,10 @@ public class SoulPlayer extends FakePlayer {
     private final @Nullable UUID ownerId;
     private final UUID soulId;
     private long lastFoodTick = Long.MIN_VALUE;
+    // Force potion/effect ticking for SoulPlayer. Set to false via JVM
+    // property -Dchestcavity.soul.forcePotionTick=false to rely solely on
+    // vanilla paths if needed.
+    private static final boolean FORCE_POTION_TICK = Boolean.parseBoolean(System.getProperty("chestcavity.soul.forcePotionTick", "true"));
 
     private SoulPlayer(ServerLevel level, GameProfile profile, UUID soulId, @Nullable UUID ownerId) {
         super(level, profile);
@@ -110,6 +114,19 @@ public class SoulPlayer extends FakePlayer {
         this.setNoGravity(false);
         SoulRuntimeHandlerRegistry.onTickStart(this);
         super.tick();
+        // Ensure MobEffect ticking runs for FakePlayer-based souls. In some
+        // environments, procedures add effects (e.g., Regeneration) but the
+        // engine does not advance them for FakePlayer; explicitly tick them.
+        // Guarded by FORCE_POTION_TICK to avoid double-ticking if upstream
+        // behavior changes.
+        if (FORCE_POTION_TICK && !this.level().isClientSide) {
+            try {
+                this.tickEffects();
+            } catch (Throwable t) {
+                // Swallow to keep Soul ticking robust even if another mod
+                // interferes with effect iteration.
+            }
+        }
         this.travel(Vec3.ZERO);
         // TODO: AI / behaviour tree hooks
         SoulRuntimeHandlerRegistry.onTickEnd(this);

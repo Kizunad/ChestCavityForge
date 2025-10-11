@@ -222,4 +222,47 @@ public final class SoulPlayerInput {
             player.drop(copy, false);
         }
     }
+
+    // --- Matching helpers for stacks with NBT (e.g., specific potions) ---
+
+    /**
+     * Try to use an offhand stack that matches the given predicate; otherwise swap a matching inventory stack into the offhand and use it once.
+     */
+    public static boolean useAnyMatchingWithOffhandFirst(SoulPlayer player, java.util.function.Predicate<ItemStack> matcher, boolean forceFinish) {
+        if (player == null || player.level().isClientSide()) return false;
+        // Offhand direct
+        ItemStack off = player.getOffhandItem();
+        if (!off.isEmpty() && matcher.test(off)) {
+            return rightMouseItemUse(player, InteractionHand.OFF_HAND, forceFinish);
+        }
+        // Mainhand direct
+        ItemStack main = player.getMainHandItem();
+        if (!main.isEmpty() && matcher.test(main)) {
+            return rightMouseItemUse(player, InteractionHand.MAIN_HAND, forceFinish);
+        }
+        // Find a matching stack in inventory
+        int slot = -1;
+        int size = player.getInventory().getContainerSize();
+        for (int i = 0; i < size; i++) {
+            ItemStack s = player.getInventory().getItem(i);
+            if (!s.isEmpty() && matcher.test(s)) { slot = i; break; }
+        }
+        if (slot == -1) return false;
+
+        // Swap into offhand, use, then restore
+        ItemStack prevOff = off.copy();
+        ItemStack hot = player.getInventory().getItem(slot);
+        player.setItemInHand(InteractionHand.OFF_HAND, hot);
+        player.getInventory().setItem(slot, ItemStack.EMPTY);
+        boolean ok = false;
+        try {
+            ok = rightMouseItemUse(player, InteractionHand.OFF_HAND, forceFinish);
+        } finally {
+            ItemStack remain = player.getOffhandItem();
+            player.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+            safeReturnToInventory(player, slot, remain);
+            player.setItemInHand(InteractionHand.OFF_HAND, prevOff);
+        }
+        return ok;
+    }
 }

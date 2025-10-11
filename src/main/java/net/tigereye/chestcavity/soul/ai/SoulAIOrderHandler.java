@@ -30,7 +30,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
     private static final double SPEED = 1.2;               // nav speed
     private static final double GUARD_RADIUS = 16.0;       // blocks
     // Kiting preferences
-    private static final double KITE_MIN_DIST = 3.0;        // start kiting if closer than this
+    private static final double KITE_MIN_DIST = 1.5;        // blink/spacing only if closer than this
     private static final double KITE_TARGET_DIST = 6.0;     // preferred distance when kiting
 
     @Override
@@ -101,22 +101,24 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         if (!soul.isUsingItem()) {
             attacked = SoulAttackRegistry.attackIfInRange(soul, target);
         }
-        if (!attacked) {
-            // Basic kiting: if too close and not attacking, step away to preferred distance
-            double d = soul.distanceTo(target);
-            if (d < KITE_MIN_DIST) {
-                var away = soul.position().subtract(target.position());
-                if (away.lengthSqr() > 1.0e-6) {
-                    var goal = target.position().add(away.normalize().scale(KITE_TARGET_DIST));
-                    SoulNavigationMirror.setGoal(soul, goal, SPEED, STOP_DIST);
-                } else {
-                    SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
-                }
-            } else {
-                SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
-            }
+        // Maintain a ring around the target to avoid body-collisions while still allowing attacks
+        double d = soul.distanceTo(target);
+        double maxRange = net.tigereye.chestcavity.soul.combat.SoulAttackRegistry.maxRange(soul, target);
+        // Keep orbit slightly inside maxRange so attacks can land while moving
+        double desired = Math.max(1.25, Math.min(maxRange - 0.15, 3.0));
+        // If extremely close, try an evade blink (consumes 50 jingli, 5s cooldown)
+        double tooClose = Math.max(KITE_MIN_DIST, 0.5 + (soul.getBbWidth() + target.getBbWidth()) * 0.5);
+        if (d <= tooClose && net.tigereye.chestcavity.soul.ai.SoulEvadeHelper.tryEvade(soul, target)) {
+            return; // evaded this tick
+        }
+        // Compute a position on the ring around target, pointing away from it
+        var away = soul.position().subtract(target.position());
+        if (away.lengthSqr() > 1.0e-6) {
+            var goal = target.position().add(away.normalize().scale(desired));
+            double stopDist = Math.max(0.5, desired - 0.5);
+            SoulNavigationMirror.setGoal(soul, goal, SPEED, stopDist);
         } else {
-            SoulNavigationMirror.clearGoal(soul);
+            SoulNavigationMirror.setGoal(soul, target.position(), SPEED, 0.75);
         }
     }
 
@@ -197,28 +199,25 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
             SoulLook.faceTowards(soul, anchor);
             return;
         }
-        // If in attack range, use attack registry; otherwise, path or kite towards the target
+        // If in attack range, attack; always keep a navigation goal to avoid collision pushing
         SoulLook.faceTowards(soul, target.position());
         boolean attacked = false;
         if (!soul.isUsingItem()) {
             attacked = SoulAttackRegistry.attackIfInRange(soul, target);
         }
-        if (!attacked) {
-            double d = soul.distanceTo(target);
-            if (d < KITE_MIN_DIST) {
-                var away = soul.position().subtract(target.position());
-                if (away.lengthSqr() > 1.0e-6) {
-                    var goal = target.position().add(away.normalize().scale(KITE_TARGET_DIST));
-                    SoulNavigationMirror.setGoal(soul, goal, SPEED, STOP_DIST);
-                } else {
-                    SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
-                }
-            } else {
-                SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
-            }
+        double maxRange2 = net.tigereye.chestcavity.soul.combat.SoulAttackRegistry.maxRange(soul, target);
+        double desired2 = Math.max(2.5, Math.min(maxRange2 - 0.25, KITE_TARGET_DIST));
+        double d2 = soul.distanceTo(target);
+        double tooClose2 = Math.max(KITE_MIN_DIST, 0.5 + (soul.getBbWidth() + target.getBbWidth()) * 0.5);
+        if (d2 <= tooClose2 && net.tigereye.chestcavity.soul.ai.SoulEvadeHelper.tryEvade(soul, target)) {
+            return; // evaded this tick
+        }
+        var away2 = soul.position().subtract(target.position());
+        if (away2.lengthSqr() > 1.0e-6) {
+            var goal2 = target.position().add(away2.normalize().scale(desired2));
+            SoulNavigationMirror.setGoal(soul, goal2, SPEED, STOP_DIST);
         } else {
-            // while attacking, do not move goal to avoid pushback fighting navigation
-            SoulNavigationMirror.clearGoal(soul);
+            SoulNavigationMirror.setGoal(soul, target.position(), SPEED, STOP_DIST);
         }
     }
 
@@ -241,6 +240,14 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
             if (attacked) {
                 SoulNavigationMirror.clearGoal(soul);
             }
+        }
+        // Keep orbit close enough to keep landing attacks on subsequent ticks
+        var away = soul.position().subtract(nearest.position());
+        if (away.lengthSqr() > 1.0e-6) {
+            double desired = Math.max(1.25, Math.min(maxRange - 0.15, KITE_TARGET_DIST));
+            var goal = nearest.position().add(away.normalize().scale(desired));
+            double stopDist = Math.max(0.5, desired - 0.5);
+            SoulNavigationMirror.setGoal(soul, goal, SPEED, stopDist);
         }
     }
 }
