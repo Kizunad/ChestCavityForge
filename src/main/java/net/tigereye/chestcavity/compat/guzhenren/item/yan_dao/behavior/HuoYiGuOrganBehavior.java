@@ -20,7 +20,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
@@ -30,6 +30,8 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Objects;
@@ -38,9 +40,8 @@ import java.util.function.Predicate;
 /**
  * Behaviour for 火衣蛊 – provides a pulsing fire aura and an activated flame burst.
  */
-public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior implements OrganSlowTickListener {
-
-    public static final HuoYiGuOrganBehavior INSTANCE = new HuoYiGuOrganBehavior();
+public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
+    INSTANCE;
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_gu");
@@ -73,8 +74,11 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
     private static final int PASSIVE_DOWNTIME_TICKS = 100; // 5s off
 
     private static final Predicate<LivingEntity> HOSTILE_TARGET = entity -> entity != null && entity.isAlive();
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String LOG_PREFIX = "[compat/guzhenren][yan_dao][huo_yi_gu]";
 
-    private HuoYiGuOrganBehavior() {
+    static {
+        // Register attack ability activation following JianYing pattern
         OrganActivationListeners.register(ABILITY_ID, HuoYiGuOrganBehavior::activateAbility);
     }
 
@@ -87,10 +91,10 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         if (!(level instanceof ServerLevel serverLevel) || level.isClientSide()) {
             return;
         }
-        if (!matchesOrgan(organ, ORGAN_ID)) {
+        if (!matchesOrganSimple(organ, ORGAN_ID)) {
             return;
         }
-        OrganState state = organState(organ, STATE_ROOT);
+        OrganState state = OrganState.of(organ, STATE_ROOT);
         MultiCooldown cooldown = createCooldown(cc, organ);
         long gameTime = level.getGameTime();
         double multiplier = resolveYanDaoMultiplier(cc);
@@ -100,8 +104,16 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         dirty |= tickPassivePulse(serverLevel, entity, state, cooldown, gameTime, multiplier);
 
         if (dirty) {
-            sendSlotUpdate(cc, organ);
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
+    }
+
+    private static boolean matchesOrganSimple(ItemStack stack, ResourceLocation organId) {
+        if (stack == null || stack.isEmpty() || organId == null) {
+            return false;
+        }
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return organId.equals(id);
     }
 
     private boolean tickActiveAura(ServerLevel level,
@@ -263,18 +275,22 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
         if (!(entity instanceof Player player) || cc == null || entity.level().isClientSide()) {
+            LOGGER.debug("{} early-return: not valid server player or cc missing (isPlayer={}, ccNull={}, clientSide={})",
+                    LOG_PREFIX, (entity instanceof Player), (cc == null), entity.level().isClientSide());
             return;
         }
         ItemStack organ = findOrgan(cc);
         if (organ.isEmpty()) {
+            LOGGER.debug("{} early-return: organ not found in chest cavity for {}", LOG_PREFIX, player.getScoreboardName());
             return;
         }
         Level level = entity.level();
         if (!(level instanceof ServerLevel serverLevel)) {
+            LOGGER.debug("{} early-return: not a server level (clientSide={})", LOG_PREFIX, level.isClientSide());
             return;
         }
         long gameTime = level.getGameTime();
-        OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+        OrganState state = OrganState.of(organ, STATE_ROOT);
         MultiCooldown cooldown = INSTANCE.createCooldown(cc, organ);
         MultiCooldown.Entry cooldownUntilEntry = cooldown.entry(KEY_COOLDOWN_UNTIL);
         MultiCooldown.Entry activeUntilEntry = cooldown.entry(KEY_ACTIVE_UNTIL);
@@ -285,22 +301,25 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
             long clamped = Mth.clamp(remaining, 0L, ACTIVE_COOLDOWN_TICKS);
             if (clamped != remaining) {
                 cooldownUntilEntry.setReadyAt(gameTime + clamped);
-                INSTANCE.sendSlotUpdate(cc, organ);
+                NetworkUtil.sendOrganSlotUpdate(cc, organ);
             }
+            LOGGER.debug("{} early-return: on cooldown (remaining={}t clamped={}t)", LOG_PREFIX, remaining, clamped);
             return;
         }
 
         if (cooldownUntil > 0L) {
             cooldownUntilEntry.setReadyAt(0L);
-            INSTANCE.sendSlotUpdate(cc, organ);
+            NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
         ConsumptionResult payment = ResourceOps.consumeStrict(player, ACTIVE_ZHENYUAN_COST, 0.0);
         if (!payment.succeeded()) {
+            LOGGER.debug("{} early-return: zhenyuan payment failed (required={})", LOG_PREFIX, ACTIVE_ZHENYUAN_COST);
             return;
         }
         if (!tryConsumeHunger(player, ACTIVE_HUNGER_COST)) {
             ResourceOps.refund(player, payment);
+            LOGGER.debug("{} early-return: hunger insufficient (required={})", LOG_PREFIX, ACTIVE_HUNGER_COST);
             return;
         }
 
@@ -308,10 +327,13 @@ public final class HuoYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior i
         activeUntilEntry.setReadyAt(activeUntil);
         activeNextEntry.setReadyAt(gameTime);
         cooldownUntilEntry.setReadyAt(gameTime + ACTIVE_COOLDOWN_TICKS);
-        INSTANCE.sendSlotUpdate(cc, organ);
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
         // Visual feedback: a small burst of flames on activation
         spawnActivationParticles(serverLevel, entity);
+
+        LOGGER.debug("{} activated: duration={}t cooldown={}t radius={} damagePerSec={} player={}",
+                LOG_PREFIX, ACTIVE_DURATION_TICKS, ACTIVE_COOLDOWN_TICKS, ACTIVE_RADIUS, ACTIVE_DAMAGE_PER_SECOND, player.getScoreboardName());
 
         if (player instanceof ServerPlayer serverPlayer) {
             AbilityFxDispatcher.play(serverPlayer, FIRE_HUO_YI_FX, Vec3.ZERO, 1.0F);

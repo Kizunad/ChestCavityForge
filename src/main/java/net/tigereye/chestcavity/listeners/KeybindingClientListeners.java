@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCKeybindings;
 import net.tigereye.chestcavity.guscript.network.packets.FlowInputPayload;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowInput;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptOpenPayload;
 import net.tigereye.chestcavity.ChestCavity;
@@ -73,6 +74,9 @@ public class KeybindingClientListeners {
         while(CCKeybindings.ATTACK_ABILITIES != null && CCKeybindings.ATTACK_ABILITIES.consumeClick()) {
             if(player != null) {
                 for(ResourceLocation i : CCKeybindings.ATTACK_ABILITY_LIST) {
+                    if (i.equals(ChestCavity.id("attack_abilities"))) {
+                        continue; // skip category id
+                    }
                     sendHotkeyToServer(new ChestCavityHotkeyPayload(i));
                 }
             }

@@ -27,6 +27,23 @@
 3) 一致性：确认无直接 `LinkageChannel.adjust`/`ledger.remove` 遗留，冷却集中在 `MultiCooldown`，护盾统一 `AbsorptionHelper`，资源统一 `ResourceOps`。
 4) 验证：`./gradlew compileJava`，进游戏做装备/卸下/触发/护盾刷新实测；若发现 Ledger 重建或负冷却日志，回归对应行为修正并记录到本文件。
 
+### Attack Ability 注册规范（统一做法）
+- 注册模式（强制）：
+  - 行为类使用 `enum` 单例（例如 `JianYingGuOrganBehavior`、`LiandaoGuOrganBehavior`），在 `static { ... }` 中调用
+    `OrganActivationListeners.register(ABILITY_ID, <Behavior>::activateAbility)` 完成注册。
+  - 禁止在构造函数里做注册或重逻辑，避免客户端早期类加载触发崩溃。
+- 客户端热键列表：
+  - 在各 `*ClientAbilities.onClientSetup(FMLClientSetupEvent)` 中仅以字面 `ResourceLocation` 加入 `CCKeybindings.ATTACK_ABILITY_LIST`；
+  - 不要引用行为类常量（避免 classloading）；跳过占位 `chestcavity:attack_abilities`。
+- 服务端激活链路：
+  - 网络包 `ChestCavityHotkeyPayload.handle` 调用 `OrganActivationListeners.activate(id, cc)`；代码保持静音（INFO 以下）。
+  - `OrganActivationListeners` 可保留“懒注册”兜底（按需加载行为类并重试），但默认静默失败，不打日志。
+- Soul 攻击处理器：
+  - `GuzhenrenAttackAbilityHandler.ABILITY_IDS` 使用字符串 `ResourceLocation` 列出可尝试的主动技 id，避免静态引用行为类触发不安全的 `<clinit>`。
+- 日志约定：
+  - 激活早退/成功默认使用 `DEBUG`，不使用 `INFO`。
+  - 若需临时诊断，可临时提升单类日志级别，修复后恢复静音。
+
 ## Web Codex 快速上手（Guzhenren 新器官）
 
 - 进度跟踪：`docs/guzhenren_behavior_migration.md` 维护蛊真人行为迁移表。本次合并（codex/migrate-guzhenren-behaviours-to-util.behavior）已将雷道/食道/臭道（DianLiugu/JiuChong/ChouPiGu）迁移到 `util.behavior` 工具链：

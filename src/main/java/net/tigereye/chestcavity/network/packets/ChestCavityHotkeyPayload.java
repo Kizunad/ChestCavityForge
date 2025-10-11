@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
 public record ChestCavityHotkeyPayload(ResourceLocation abilityId) implements CustomPacketPayload {
@@ -26,7 +27,8 @@ public record ChestCavityHotkeyPayload(ResourceLocation abilityId) implements Cu
     public static void handle(ChestCavityHotkeyPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() != null) {
-                OrganActivationListeners.activate(payload.abilityId, CCAttachments.getChestCavity(context.player()));
+                var cc = CCAttachments.getChestCavity(context.player());
+                OrganActivationListeners.activate(payload.abilityId, cc);
             }
         });
     }

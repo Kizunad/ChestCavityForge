@@ -50,9 +50,45 @@ public class OrganActivationListeners {
             }
             return true;
         }
+        // Fallback: try lazy-register known abilities by class name to avoid early classloading
+        // silent fallback
+        if (tryLazyRegister(id)) {
+            for (BiConsumer<LivingEntity, ChestCavityInstance> ability : abilityIDMap.getOrDefault(id, List.of())) {
+                ability.accept(cc.owner, cc);
+            }
+            return abilityIDMap.containsKey(id);
+        }
         else{
             return false;
         }
+    }
+
+    // Best-effort lazy registration for optional compat abilities, to avoid <clinit> crashes at mod init.
+    private static boolean tryLazyRegister(ResourceLocation id) {
+        if (id == null) return false;
+        String ns = id.getNamespace();
+        String path = id.getPath();
+        try {
+            if ("guzhenren".equals(ns)) {
+                if ("huo_gu".equals(path)) {
+                    Class<?> clazz = Class.forName("net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior");
+                    // Force initialise and touch static fields to ensure constructor ran
+                    try {
+                        java.lang.reflect.Field f = clazz.getDeclaredField("INSTANCE");
+                        f.setAccessible(true);
+                        Object inst = f.get(null);
+                        ChestCavity.LOGGER.info("[compat][activate] loaded class {} instancePresent={} after forName",
+                                clazz.getName(), inst != null);
+                    } catch (Throwable ignored) {}
+                    boolean present = abilityIDMap.containsKey(id);
+                    ChestCavity.LOGGER.info("[compat][activate] post-load ability present={} for id={}", present, id);
+                    return present;
+                }
+            }
+        } catch (Throwable t) {
+            // keep silent on fallback failures
+        }
+        return false;
     }
 
     public static void ActivateCreepy(LivingEntity entity, ChestCavityInstance cc){

@@ -18,30 +18,29 @@ import net.tigereye.chestcavity.soul.util.SoulLog;
  */
 public final class GuzhenrenAttackAbilityHandler implements SoulAttackHandler {
 
-    // Curated list of Guzhenren active attack abilities to attempt.
-    // Referencing the constants ensures their classes are loaded and registered.
+    // Avoid class-loading optional compat behaviours during static init to prevent crashes when mods are absent.
+    // Start conservatively with HuoYiGu; more abilities can be appended as string IDs here without touching classes.
     private static final ResourceLocation[] ABILITY_IDS = new ResourceLocation[] {
             // 血道
-            net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior.ABILITY_ID,
-            net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior.ABILITY_ID,
-            // 剑道（分身）
-            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior.ABILITY_ID,
-            // 木道（镰刀波）
-            net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior.ABILITY_ID,
-            // 炎道（火衣蛊火域）
-            net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior.ABILITY_ID,
-            // 石道（酒气吐息等主动）
-            net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.behavior.JiuChongOrganBehavior.ABILITY_ID,
-            // 蛊道（螺旋骨枪、肋骨盾）
-            net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior.ABILITY_ID,
-            net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuOrganBehavior.ABILITY_ID,
-            // 土道（土墙蛊土牢）
-            net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.TuQiangGuOrganBehavior.ABILITY_ID,
-            // 冰雪道（冰棘/霜息）
-            net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior.ABILITY_ID,
-            net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior.ABILITY_ID,
-            // 魂道（鬼气涌动）
-            net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior.ABILITY_ID
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "xie_fei_gu"),            // 血肺蛊（主动同 organId）
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "xie_di_gu_detonate"),   // 血滴蛊引爆
+            // 剑道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "jian_ying_fenshen"),    // 剑影分身
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "liandaogu"),            // 镰刀蛊（主动同 organId）
+            // 炎道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "huo_gu"),               // 火衣蛊（主动同 organId）
+            // 石道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "jiu_chong"),            // 酒虫（主动同 organId）
+            // 蛊道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "luo_xuan_gu_qiang_gu"), // 螺旋骨枪蛊（主动同 organId）
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "le_gu_dun_gu"),         // 肋骨盾蛊（主动同 organId）
+            // 土道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "tu_qiang_gu"),          // 土墙蛊（主动同 organId）
+            // 冰雪道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "bing_ji_gu_iceburst"),  // 冰棘蛊冰爆
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "shuang_xi_gu_frost_breath"), // 霜息蛊吐息
+            // 魂道
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "gui_wu")                // 鬼雾（主动）
     };
 
     private final double range;
@@ -87,4 +86,3 @@ public final class GuzhenrenAttackAbilityHandler implements SoulAttackHandler {
         return false;
     }
 }
-
