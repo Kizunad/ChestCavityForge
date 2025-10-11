@@ -309,6 +309,24 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         LedgerOps.ensureChannel(cc, TU_DAO_INCREASE_EFFECT, NON_NEGATIVE);
         LedgerOps.ensureChannel(cc, HE_SHI_BI_LINK, NON_NEGATIVE);
+
+        if (cc.inventory == null) {
+            return;
+        }
+
+        int size = cc.inventory.getContainerSize();
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = cc.inventory.getItem(i);
+            if (stack == null || stack.isEmpty()) {
+                continue;
+            }
+            if (!matchesOrgan(stack, ORGAN_ID)) {
+                continue;
+            }
+            OrganState state = organState(stack, STATE_ROOT);
+            int stored = Math.max(0, state.getInt(EMERALD_BLOCKS_KEY, 0));
+            updateHeShiBiChannel(cc, stack, stored);
+        }
     }
 
     /** Utility that checks whether a specific Guzhenren organ is present in the chest cavity. */
