@@ -47,7 +47,7 @@ public final class EffectOps {
         if (effect == null) {
             return;
         }
-        ensure(target, effect.builtInRegistryHolder(), durationTicks, amplifier, showParticles, showIcon);
+        ensure(target, holderOf(effect), durationTicks, amplifier, showParticles, showIcon);
     }
 
     public static void remove(LivingEntity target, Holder<MobEffect> effect) {
@@ -57,11 +57,20 @@ public final class EffectOps {
         target.removeEffect(effect);
     }
 
+    private static Holder<MobEffect> holderOf(MobEffect effect) {
+        if (effect == null) {
+            throw new IllegalArgumentException("effect");
+        }
+        return BuiltInRegistries.MOB_EFFECT.getResourceKey(effect)
+                .flatMap(BuiltInRegistries.MOB_EFFECT::getHolder)
+                .orElseThrow(() -> new IllegalStateException("Unregistered effect: " + effect));
+    }
+
     public static void remove(LivingEntity target, MobEffect effect) {
         if (effect == null) {
             return;
         }
-        remove(target, effect.builtInRegistryHolder());
+        remove(target, holderOf(effect));
     }
 
     public static int applyToAllById(List<LivingEntity> targets, ResourceLocation effectId, int durationTicks, int amplifier,

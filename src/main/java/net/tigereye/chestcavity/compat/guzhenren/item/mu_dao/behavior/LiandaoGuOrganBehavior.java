@@ -4,8 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -19,28 +17,22 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.util.NBTWriter;
-import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalDouble;
 
 /**
  * Active behaviour for 镰刀蛊. Handles resource consumption, cooldown management
@@ -60,6 +52,7 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
+    private static final String STATE_KEY = "LiandaoGu";
     private static final String COOLDOWN_KEY = "LiandaoGuCooldown";
 
     private static final double BASE_DAMAGE = 30.0;
@@ -123,8 +116,8 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
     }
 
     public void ensureAttached(ChestCavityInstance cc) {
-        ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT);
-        ensureChannel(cc, JIN_DAO_INCREASE_EFFECT);
+        LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        LedgerOps.ensureChannel(cc, JIN_DAO_INCREASE_EFFECT, NON_NEGATIVE);
     }
 
     @Override
@@ -134,8 +127,7 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
     }
 
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
+        return LedgerOps.ensureChannel(cc, id, NON_NEGATIVE);
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -156,8 +148,8 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
         }
 
         long gameTime = level.getGameTime();
-        long nextAllowed = readCooldown(organ);
-        if (nextAllowed > gameTime) {
+        MultiCooldown.Entry cooldownEntry = abilityCooldown(cc, organ);
+        if (!cooldownEntry.isReady(gameTime)) {
             return;
         }
 
@@ -170,8 +162,7 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
         if (COOLDOWN_VARIANCE_TICKS > 0) {
             cooldown += random.nextInt(COOLDOWN_VARIANCE_TICKS + 1);
         }
-        writeCooldown(organ, gameTime + cooldown);
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        cooldownEntry.setReadyAt(gameTime + cooldown);
 
         double swordMultiplier = 1.0 + ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
         double metalMultiplier = 1.0 + ensureChannel(cc, JIN_DAO_INCREASE_EFFECT).get();
@@ -198,14 +189,14 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
         Vec3 shiftedOrigin = origin.add(0.0, 1.0, 0.0).add(dir.scale(1.0));
         playChargeStartEffects(serverLevel, player);
         spawnChargeParticles(serverLevel, player, 0);
-        schedule(serverLevel, () -> spawnChargeParticles(serverLevel, player, 1), 1);
-        schedule(serverLevel, () -> spawnChargeParticles(serverLevel, player, 2), 2);
+        TickOps.schedule(serverLevel, () -> spawnChargeParticles(serverLevel, player, 1), 1);
+        TickOps.schedule(serverLevel, () -> spawnChargeParticles(serverLevel, player, 2), 2);
 
         Vec3 telegraphOrigin = shiftedOrigin.add(dir.scale(0.6)); // 用 dir 而不是 forward
-        schedule(serverLevel, () -> playTelegraph(serverLevel, telegraphOrigin, dir, wAxis), CHARGE_DURATION_TICKS);
+        TickOps.schedule(serverLevel, () -> playTelegraph(serverLevel, telegraphOrigin, dir, wAxis), CHARGE_DURATION_TICKS);
 
         Vec3 impactCenter = shiftedOrigin.add(dir.scale(WAVE_LENGTH * 0.75));
-        schedule(serverLevel, () -> applyBladeWave(
+        TickOps.schedule(serverLevel, () -> applyBladeWave(
                 serverLevel, player, cc, origin, dir, wAxis, damageAmount, impactCenter
         ), RELEASE_TELEGRAPH_TICKS);
     }
@@ -226,8 +217,8 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
             return damage;
         }
         long gameTime = server.getGameTime();
-        long nextAllowed = readCooldown(organ);
-        if (nextAllowed > gameTime) {
+        MultiCooldown.Entry cooldownEntry = abilityCooldown(cc, organ);
+        if (!cooldownEntry.isReady(gameTime)) {
             return damage;
         }
         RandomSource random = victim.getRandom();
@@ -268,8 +259,7 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
 
         // 写入冷却并同步
         int cooldown = MIN_COOLDOWN_TICKS + (COOLDOWN_VARIANCE_TICKS > 0 ? random.nextInt(COOLDOWN_VARIANCE_TICKS + 1) : 0);
-        writeCooldown(organ, gameTime + cooldown);
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        cooldownEntry.setReadyAt(gameTime + cooldown);
 
         // 立即释放刀光，指向攻击者
         applyBladeWave(server, victim, cc, origin, dir, wAxis, damageAmount, impactCenter);
@@ -490,24 +480,18 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
         return ResourceOps.consumeStrict(player, BASE_ZHENYUAN_COST, BASE_JINGLI_COST).succeeded();
     }
 
-    private static void schedule(ServerLevel level, Runnable runnable, int delayTicks) {
-        if (delayTicks <= 0) {
-            runnable.run();
-            return;
-        }
-        level.getServer().execute(() -> schedule(level, runnable, delayTicks - 1));
+    private static MultiCooldown.Entry abilityCooldown(ChestCavityInstance cc, ItemStack organ) {
+        return createCooldown(cc, organ).entry(COOLDOWN_KEY);
     }
 
-    private static long readCooldown(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0L;
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        MultiCooldown.Builder builder = MultiCooldown.builder(organ, STATE_KEY)
+                .withLongClamp(value -> Math.max(0L, value), 0L);
+        if (cc != null && organ != null && !organ.isEmpty()) {
+            builder.withSync(cc, organ);
+        } else if (organ != null) {
+            builder.withOrgan(organ);
         }
-        CompoundTag tag = data.copyTag();
-        return tag.getLong(COOLDOWN_KEY);
-    }
-
-    private static void writeCooldown(ItemStack stack, long value) {
-        NBTWriter.updateCustomData(stack, tag -> tag.putLong(COOLDOWN_KEY, value));
+        return builder.build();
     }
 }

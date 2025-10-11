@@ -23,8 +23,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -40,7 +38,9 @@ import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +59,8 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/xue_dao_increase_effect");
     public static final ResourceLocation ABILITY_ID = ORGAN_ID;
+
+    private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String LOG_PREFIX = "[Xie Fei Gu]";
@@ -144,10 +146,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (cc == null) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context != null) {
-            context.getOrCreateChannel(XUE_DAO_INCREASE_EFFECT);
-        }
+        LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
     }
 
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
@@ -498,11 +497,7 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (cc == null) {
             return 1.0;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return 1.0;
-        }
-        Optional<LinkageChannel> channel = context.lookupChannel(XUE_DAO_INCREASE_EFFECT);
+        Optional<LinkageChannel> channel = LedgerOps.lookupChannel(cc, XUE_DAO_INCREASE_EFFECT);
         double effect = channel.map(LinkageChannel::get).orElse(0.0);
         if (effect < 0.0) {
             effect = 0.0;
