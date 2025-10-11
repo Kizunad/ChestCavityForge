@@ -26,9 +26,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageChannel;
-import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -187,6 +185,7 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
         AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
+        LedgerOps.remove(cc, organ, HE_SHI_BI_LINK, NON_NEGATIVE, true);
     }
 
     @Override
@@ -280,7 +279,7 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (slotUpdate) {
             sendSlotUpdate(cc, organ);
         }
-        updateHeShiBiChannel(cc, updated);
+        updateHeShiBiChannel(cc, organ, updated);
     }
 
     /** Activates the temporary barrier that grants local hardening. */
@@ -308,18 +307,8 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (cc == null) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return;
-        }
-        LinkageChannel tuDaoChannel = ensureChannel(context, TU_DAO_INCREASE_EFFECT);
-        if (tuDaoChannel != null) {
-            tuDaoChannel.addPolicy(NON_NEGATIVE);
-        }
-        LinkageChannel heShiBiChannel = ensureChannel(context, HE_SHI_BI_LINK);
-        if (heShiBiChannel != null) {
-            heShiBiChannel.addPolicy(NON_NEGATIVE);
-        }
+        LedgerOps.ensureChannel(cc, TU_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        LedgerOps.ensureChannel(cc, HE_SHI_BI_LINK, NON_NEGATIVE);
     }
 
     /** Utility that checks whether a specific Guzhenren organ is present in the chest cavity. */
@@ -545,11 +534,11 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                     INSTANCE.sendSlotUpdate(cc, organ);
                 }
             }
-            INSTANCE.updateHeShiBiChannel(cc, stored);
+            INSTANCE.updateHeShiBiChannel(cc, organ, stored);
             return false;
         }
         if (state.getBoolean(JADE_PRISON_UNLOCKED_KEY, false)) {
-            INSTANCE.updateHeShiBiChannel(cc, stored);
+            INSTANCE.updateHeShiBiChannel(cc, organ, stored);
             return false;
         }
         if (!player.isShiftKeyDown()) {
@@ -605,15 +594,12 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         server.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.7f, pitch);
     }
 
-    private void updateHeShiBiChannel(ChestCavityInstance cc, int emeraldBlocks) {
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
+    private void updateHeShiBiChannel(ChestCavityInstance cc, ItemStack organ, int emeraldBlocks) {
+        if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
-        LinkageChannel channel = ensureChannel(context, HE_SHI_BI_LINK);
-        if (channel != null) {
-            channel.set(Math.max(0, emeraldBlocks));
-        }
+        double value = Math.max(0, emeraldBlocks);
+        LedgerOps.set(cc, organ, HE_SHI_BI_LINK, Math.max(1, organ.getCount()), value, NON_NEGATIVE, true);
     }
 
     public ItemStack locateOrgan(ChestCavityInstance cc) {
