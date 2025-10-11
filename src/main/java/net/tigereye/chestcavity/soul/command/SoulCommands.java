@@ -40,6 +40,27 @@ public final class SoulCommands {
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("enable")
                         .executes(SoulCommands::enableSoulSystem))
+                .then(Commands.literal("brain")
+                        // /soul brain mode <idOrName> <mode>
+                        .then(Commands.literal("mode")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .then(Commands.argument("mode", StringArgumentType.word())
+                                                .executes(SoulCommands::brainSetMode))))
+                        // /soul brain intent combat <idOrName> <style> [ttl]
+                        .then(Commands.literal("intent")
+                                .then(Commands.literal("combat")
+                                        .then(Commands.argument("idOrName", StringArgumentType.string())
+                                                .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                                .then(Commands.argument("style", StringArgumentType.word())
+                                                        .executes(ctx -> brainIntentCombat(ctx, /*ttl*/200))
+                                                        .then(Commands.argument("ttl", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1))
+                                                                .executes(ctx -> brainIntentCombat(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "ttl"))))))))
+                        // /soul brain clear <idOrName>
+                        .then(Commands.literal("clear")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::brainClear))))
                 .then(Commands.literal("action")
                         .then(Commands.literal("start")
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
@@ -237,6 +258,92 @@ public final class SoulCommands {
             context.getSource().sendFailure(Component.literal("[soul] 无法启动，可能已在运行或条件不满足。"));
             return 0;
         }
+    }
+
+    // ----- brain 命令实现 -----
+    private static int brainSetMode(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再设置 brain 模式."));
+            return 0;
+        }
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        String modeToken = unquote(StringArgumentType.getString(context, "mode"));
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode mode;
+        try {
+            mode = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.valueOf(modeToken.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            context.getSource().sendFailure(Component.literal("[soul] 无效模式: " + modeToken + " (可用: AUTO|COMBAT|SURVIVAL|IDLE)"));
+            return 0;
+        }
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(soul.getUUID(), mode);
+        // 持久化到容器
+        net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(executor).setBrainMode(executor, soul.getUUID(), mode, "command-brain-mode");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 brain 模式为 " + mode + "（已持久化）。"), true);
+        return 1;
+    }
+
+    private static int brainIntentCombat(CommandContext<CommandSourceStack> context, int ttl) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再设置意图。"));
+            return 0;
+        }
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        String styleToken = unquote(StringArgumentType.getString(context, "style"));
+        net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle style;
+        switch (styleToken.toLowerCase(java.util.Locale.ROOT)) {
+            case "guard":
+            case "g":
+                style = net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle.GUARD; break;
+            case "force_fight":
+            case "forcefight":
+            case "ff":
+            default:
+                style = net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle.FORCE_FIGHT; break;
+        }
+        var intent = new net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent(style, null, Math.max(1, ttl));
+        // 同步运行时 + 持久化
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().pushIntent(soul.getUUID(), intent);
+        net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(executor).setBrainIntent(executor, soul.getUUID(), intent, "command-brain-intent-combat");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 Combat 意图: " + style + "，持续 " + Math.max(1, ttl) + "t（已持久化）。"), true);
+        return 1;
+    }
+
+    private static int brainClear(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().clearIntents(soul.getUUID());
+        net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(executor).clearBrainIntent(executor, soul.getUUID(), "command-brain-intent-clear");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已清除该 Soul 的主动意图（已持久化）。"), true);
+        return 1;
     }
 
     private static int actionCancel(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {

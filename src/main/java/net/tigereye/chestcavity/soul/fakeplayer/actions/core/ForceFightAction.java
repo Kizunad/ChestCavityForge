@@ -23,26 +23,23 @@ public final class ForceFightAction implements Action {
     }
 
     @Override
-    public void start(ActionContext ctx) {
-        apply(ctx.level(), ctx.soul(), ctx.owner(), SoulAIOrders.Order.FORCE_FIGHT);
-        tryStartHealing(ctx);
-    }
+    public void start(ActionContext ctx) { tryStartHealing(ctx); }
 
     @Override
     public ActionResult tick(ActionContext ctx) {
-        apply(ctx.level(), ctx.soul(), ctx.owner(), SoulAIOrders.Order.FORCE_FIGHT);
+        net.tigereye.chestcavity.soul.ai.SoulCombatOps.applyForceFightTick(ctx.soul(), ctx.owner());
         tryStartHealing(ctx);
         return ActionResult.RUNNING;
     }
 
     @Override
-    public void cancel(ActionContext ctx) { apply(ctx.level(), ctx.soul(), ctx.owner(), SoulAIOrders.Order.IDLE); }
+    public void cancel(ActionContext ctx) { /* no-op: order persists until changed elsewhere */ }
 
     @Override
     public String cooldownKey() { return null; }
 
     @Override
-    public long nextReadyAt(ActionContext ctx, long now) { return now + 20; }
+    public long nextReadyAt(ActionContext ctx, long now) { return now + 1; }
 
     private static void apply(ServerLevel level, SoulPlayer soul, ServerPlayer owner, SoulAIOrders.Order order) {
         if (owner == null) return;

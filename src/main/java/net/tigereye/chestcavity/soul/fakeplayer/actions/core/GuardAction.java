@@ -26,32 +26,23 @@ public final class GuardAction implements Action {
     }
 
     @Override
-    public void start(ActionContext ctx) {
-        applyOrder(ctx.level(), ctx.soul(), ctx.owner(), SoulAIOrders.Order.GUARD);
-        // Opportunistically ensure concurrent healing is running if needed
-        tryStartHealing(ctx);
-    }
+    public void start(ActionContext ctx) { tryStartHealing(ctx); }
 
     @Override
     public ActionResult tick(ActionContext ctx) {
-        // Reassert order to be safe; AI handler executes actual logic.
-        applyOrder(ctx.level(), ctx.soul(), ctx.owner(), SoulAIOrders.Order.GUARD);
-        // Keep healing running while guarding when below threshold
+        net.tigereye.chestcavity.soul.ai.SoulCombatOps.applyGuardTick(ctx.soul(), ctx.owner());
         tryStartHealing(ctx);
         return ActionResult.RUNNING;
     }
 
     @Override
-    public void cancel(ActionContext ctx) {
-        // Drop to IDLE only if we were the one holding GUARD; simpler: always set IDLE.
-        applyOrder(ctx.level(), ctx.soul(), ctx.owner(), SoulAIOrders.Order.IDLE);
-    }
+    public void cancel(ActionContext ctx) { /* no-op: order persists until changed elsewhere */ }
 
     @Override
     public String cooldownKey() { return null; }
 
     @Override
-    public long nextReadyAt(ActionContext ctx, long now) { return now + 20; }
+    public long nextReadyAt(ActionContext ctx, long now) { return now + 1; }
 
     private static void applyOrder(ServerLevel level, SoulPlayer soul, ServerPlayer owner, SoulAIOrders.Order order) {
         if (owner == null) return;

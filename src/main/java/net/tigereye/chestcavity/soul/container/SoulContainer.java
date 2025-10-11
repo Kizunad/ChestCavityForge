@@ -45,6 +45,10 @@ public final class SoulContainer {
     private final Map<UUID, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order> orders = new HashMap<>();
     // Souls to auto-respawn as shells when owner logs in
     private final Set<UUID> autospawnSouls = new HashSet<>();
+    // Persistent Brain mode per soulId (forced mode; AUTO by default)
+    private final Map<UUID, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode> brainModes = new HashMap<>();
+    // Persistent Brain intent per soulId (encoded as NBT; minimal: CombatIntent)
+    private final Map<UUID, net.minecraft.nbt.CompoundTag> brainIntents = new HashMap<>();
 
     public SoulContainer(Player owner) {
         this.owner = owner;
@@ -179,6 +183,8 @@ public final class SoulContainer {
                 .map(this::getProfile)
                 .filter(java.util.Objects::nonNull)
                 .forEach(SoulProfile::clearDirty);
+        // 同步持久化 Brain 状态到运行时控制器
+        applyBrainRuntimeAfterRestore(ownerPlayer);
 
         SoulProfileOps.markContainerDirty(ownerPlayer, this, "login-restore-all");
     }
@@ -206,6 +212,14 @@ public final class SoulContainer {
         CompoundTag orderTag = new CompoundTag();
         orders.forEach((uuid, order) -> orderTag.putString(uuid.toString(), order.name()));
         root.put("orders", orderTag);
+        // brainModes
+        CompoundTag modesTag = new CompoundTag();
+        brainModes.forEach((uuid, mode) -> modesTag.putString(uuid.toString(), mode.name()));
+        root.put("brainModes", modesTag);
+        // brainIntents (per-soul encoded tag)
+        CompoundTag intentsTag = new CompoundTag();
+        brainIntents.forEach((uuid, itag) -> intentsTag.put(uuid.toString(), itag.copy()));
+        root.put("brainIntents", intentsTag);
         return root;
     }
 
@@ -251,6 +265,27 @@ public final class SoulContainer {
                 }
             } catch (IllegalArgumentException ignored) {
             }
+        }
+        brainModes.clear();
+        CompoundTag modesTag = tag.getCompound("brainModes");
+        for (String key : modesTag.getAllKeys()) {
+            try {
+                UUID id = UUID.fromString(key);
+                String name = modesTag.getString(key);
+                try {
+                    var mode = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.valueOf(name);
+                    brainModes.put(id, mode);
+                } catch (IllegalArgumentException ignored2) {}
+            } catch (IllegalArgumentException ignored) {}
+        }
+        brainIntents.clear();
+        CompoundTag intentsTag = tag.getCompound("brainIntents");
+        for (String key : intentsTag.getAllKeys()) {
+            try {
+                UUID id = UUID.fromString(key);
+                CompoundTag itag = intentsTag.getCompound(key);
+                brainIntents.put(id, itag.copy());
+            } catch (IllegalArgumentException ignored) {}
         }
     }
 
@@ -304,9 +339,85 @@ public final class SoulContainer {
         names.remove(soulId);
         orders.remove(soulId);
         autospawnSouls.remove(soulId);
+        brainModes.remove(soulId);
+        brainIntents.remove(soulId);
         if (activeProfileId != null && activeProfileId.equals(soulId)) {
             activeProfileId = ownerId; // fall back to owner base
         }
         SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "remove-profile");
+    }
+
+    // -------- Brain Mode (persistent) --------
+    public net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode getBrainMode(UUID soulId) {
+        return brainModes.getOrDefault(soulId, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.AUTO);
+    }
+    public void setBrainMode(ServerPlayer ownerPlayer, UUID soulId, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode mode, String reason) {
+        if (mode == null) mode = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.AUTO;
+        brainModes.put(soulId, mode);
+        // 同步到运行时控制器
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(soulId, mode);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "brain-mode-set");
+    }
+
+    // -------- Brain Intent (persistent, minimal typed) --------
+    public void setBrainIntent(ServerPlayer ownerPlayer, UUID soulId, net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent intent, String reason) {
+        if (intent == null) return;
+        net.minecraft.nbt.CompoundTag itag = encodeIntent(intent);
+        if (itag != null) {
+            brainIntents.put(soulId, itag);
+            // 同步到运行时控制器
+            net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().pushIntent(soulId, intent);
+            SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "brain-intent-set");
+        }
+    }
+
+    public void clearBrainIntent(ServerPlayer ownerPlayer, UUID soulId, String reason) {
+        brainIntents.remove(soulId);
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().clearIntents(soulId);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "brain-intent-clear");
+    }
+
+    private static net.minecraft.nbt.CompoundTag encodeIntent(net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent intent) {
+        net.minecraft.nbt.CompoundTag t = new net.minecraft.nbt.CompoundTag();
+        if (intent instanceof net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent ci) {
+            t.putString("type", "combat");
+            t.putString("style", ci.style().name());
+            if (ci.focusTarget() != null) t.putUUID("focus", ci.focusTarget());
+            t.putInt("ttl", Math.max(0, ci.ttlTicks()));
+            return t;
+        }
+        // 其他类型暂未实现，返回 null 不保存
+        return null;
+    }
+
+    private static net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent decodeIntent(net.minecraft.nbt.CompoundTag t) {
+        if (t == null || !t.contains("type")) return null;
+        String type = t.getString("type");
+        if ("combat".equalsIgnoreCase(type)) {
+            net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle style;
+            try {
+                style = net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle.valueOf(t.getString("style"));
+            } catch (IllegalArgumentException ex) {
+                style = net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle.FORCE_FIGHT;
+            }
+            java.util.UUID focus = t.hasUUID("focus") ? t.getUUID("focus") : null;
+            int ttl = t.getInt("ttl");
+            return new net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent(style, focus, ttl);
+        }
+        return null;
+    }
+
+    /** 在登录恢复后，同步持久化的 BrainMode/Intent 到运行时控制器。 */
+    public void applyBrainRuntimeAfterRestore(ServerPlayer ownerPlayer) {
+        for (Map.Entry<UUID, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode> e : brainModes.entrySet()) {
+            net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<UUID, net.minecraft.nbt.CompoundTag> e : brainIntents.entrySet()) {
+            var intent = decodeIntent(e.getValue());
+            if (intent != null) {
+                net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().pushIntent(e.getKey(), intent);
+            }
+        }
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, "brain-apply-runtime");
     }
 }

@@ -35,6 +35,14 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
 
     @Override
     public void onTickEnd(SoulPlayer soul) {
+        // If an action is actively driving combat, skip order-based logic
+        var mgr = net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager.of(soul);
+        if (mgr.isActive(new net.tigereye.chestcavity.soul.fakeplayer.actions.api.ActionId(
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(net.tigereye.chestcavity.ChestCavity.MODID, "action/force_fight")))
+            || mgr.isActive(new net.tigereye.chestcavity.soul.fakeplayer.actions.api.ActionId(
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(net.tigereye.chestcavity.ChestCavity.MODID, "action/guard")))) {
+            return;
+        }
         UUID ownerId = soul.getOwnerId().orElse(null);
         if (ownerId == null) return;
         ServerPlayer owner = soul.serverLevel().getServer().getPlayerList().getPlayer(ownerId);

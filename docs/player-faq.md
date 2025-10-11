@@ -70,7 +70,10 @@
   - `/soulbeast info`：查看当前启用/永久/激活状态
 - 分魂系统（需服务器启用）：
   - `/soul enable`：启用分魂系统（一次性开关）
-  - `/soul order follow|guard|forcefight|idle <idOrName|@a>`：下达分魂行为指令（可对 @a 作用于全部自有分魂）
+  - `/soul brain mode <idOrName> <AUTO|COMBAT|SURVIVAL|IDLE>`：设置分魂的“子脑模式”（仅选脑，不直接触发动作；会持久化）
+  - `/soul brain intent combat <idOrName> <guard|force_fight> [ttlTicks]`：下达战斗意图（优先于旧 order，持续 ttlTicks，默认 200t；会持久化）
+  - `/soul brain clear <idOrName>`：清除当前主动意图（回落 AUTO 或旧 order；会持久化）
+  - 兼容指令：`/soul order follow|guard|forcefight|idle <idOrName|@a>` 仍可用，后续将逐步被 /soul brain 取代
   - `/soul name set <idOrName> <newName>`、`/soul name apply <idOrName>`：设置并应用分魂显示名
   - `/soul skin set <idOrName> <mojangName>`、`/soul skin apply <idOrName>`：设置并应用分魂皮肤
   - `/soul control owner`、`/soul control <idOrName>`：切回本体/切换附身分魂

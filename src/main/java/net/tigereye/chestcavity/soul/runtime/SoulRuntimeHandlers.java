@@ -14,6 +14,10 @@ public final class SoulRuntimeHandlers {
         if (BOOT.compareAndSet(false, true)) {
             // Install Actions registry (self-contained autonomy API)
             net.tigereye.chestcavity.soul.fakeplayer.actions.SoulActions.bootstrap();
+            // Install unified Brain controller (AUTO/COMBAT orchestration over Actions)
+            net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry.register(
+                    net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get()
+            );
             // Reactive hurt must run before default APPLY handler
             SoulRuntimeHandlerRegistry.register(new HurtRetaliateOrFleeHandler());
             SoulRuntimeHandlerRegistry.register(new DefaultSoulRuntimeHandler());
