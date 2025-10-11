@@ -5,6 +5,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -163,6 +164,22 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
             cooldown += random.nextInt(COOLDOWN_VARIANCE_TICKS + 1);
         }
         cooldownEntry.setReadyAt(gameTime + cooldown);
+        // Cooldown toast: notify at the end of cooldown
+        if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+            long readyAt = gameTime + cooldown;
+            cooldownEntry.onReady(serverLevel, gameTime, () -> {
+                try {
+                    var itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
+                            true,
+                            itemId,
+                            "技能就绪",
+                            organ.getHoverName().getString()
+                    );
+                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
+                } catch (Throwable ignored) { }
+            });
+        }
 
         double swordMultiplier = 1.0 + ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
         double metalMultiplier = 1.0 + ensureChannel(cc, JIN_DAO_INCREASE_EFFECT).get();

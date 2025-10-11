@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHelper;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -31,7 +32,8 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     public static final GangjinguOrganBehavior INSTANCE = new GangjinguOrganBehavior();
 
     private static final String STATE_ROOT = "Gangjingu";
-    private static final String ABSORPTION_KEY = "LastAbsorptionTick";
+    private static final String ABSORPTION_KEY = "LastAbsorptionTick"; // legacy stamp
+    private static final String ABSORPTION_READY_AT_KEY = "AbsorptionReadyAt"; // scheduling key
     private static final int ABSORPTION_INTERVAL_TICKS = 20 * 120; // 2 minutes
     public static final float ABSORPTION_PER_STACK = 60.0f;
     private static final double JINGLI_PER_SECOND = 1.0;
@@ -132,7 +134,7 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             );
         }
 
-        applyAbsorption(entity, cc, organ, steelStacks);
+        scheduleSteelAbsorptionIfNeeded(entity, cc, organ, steelStacks);
 
         if (SteelBoneComboHelper.hasActiveCombo(comboState)) {
             applyResistance(entity, cc);
@@ -161,48 +163,39 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return drained;
     }
 
-    private void applyAbsorption(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, int steelStacks) {
+    private void scheduleSteelAbsorptionIfNeeded(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, int steelStacks) {
+        if (!(entity.level() instanceof ServerLevel server)) return;
         OrganState state = organState(organ, STATE_ROOT);
-        long gameTime = entity.level().getGameTime();
-        long lastTick = state.getLong(ABSORPTION_KEY, Long.MIN_VALUE);
-        boolean firstApplication = (lastTick == Long.MIN_VALUE);
-        if (!firstApplication) {
-            long delta = gameTime - lastTick;
-            if (delta < ABSORPTION_INTERVAL_TICKS) {
-                if (DEBUG_METAL_BONE) {
-                    ChestCavity.LOGGER.info(
-                            "[compat/guzhenren][steel_bone] interval gate: delta={} interval={} for {}",
-                            delta,
-                            ABSORPTION_INTERVAL_TICKS,
-                            describeStack(organ)
-                    );
+        MultiCooldown mc = MultiCooldown.builder(state).withSync(cc, organ).build();
+        MultiCooldown.Entry ready = mc.entry(ABSORPTION_READY_AT_KEY);
+        long now = server.getGameTime();
+        if (ready.getReadyTick() <= 0L || now >= ready.getReadyTick()) {
+            ready.setReadyAt(now + Math.max(1, ABSORPTION_INTERVAL_TICKS));
+        }
+        ready.onReady(server, now, () -> {
+            try {
+                float required = Math.max(0.0f, ABSORPTION_PER_STACK * Math.max(1, steelStacks));
+                if (required > 0.0f) {
+                    float current = entity.getAbsorptionAmount();
+                    if (current + 1.0E-3f < required) {
+                        entity.setAbsorptionAmount(Math.max(current, required));
+                        if (DEBUG_METAL_BONE) {
+                            ChestCavity.LOGGER.info(
+                                    "[compat/guzhenren][steel_bone] apply absorption -> {} (stacks={})",
+                                    String.format(java.util.Locale.ROOT, "%.1f", required),
+                                    steelStacks
+                            );
+                        }
+                    }
                 }
-                return;
+            } finally {
+                long next = server.getGameTime() + Math.max(1, ABSORPTION_INTERVAL_TICKS);
+                MultiCooldown.Entry e = MultiCooldown.builder(state).withSync(cc, organ).build().entry(ABSORPTION_READY_AT_KEY);
+                e.setReadyAt(next);
+                e.onReady(server, server.getGameTime(), () -> {});
+                OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, server.getGameTime(), v -> v, Long.MIN_VALUE);
             }
-        } else if (DEBUG_METAL_BONE) {
-            ChestCavity.LOGGER.info(
-                    "[compat/guzhenren][steel_bone] first absorption pass (interval {} ticks) for {}",
-                    ABSORPTION_INTERVAL_TICKS,
-                    describeStack(organ)
-            );
-        }
-        float required = Math.max(0.0f, ABSORPTION_PER_STACK * steelStacks);
-        if (required <= 0.0f) {
-            OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
-            return;
-        }
-        float current = entity.getAbsorptionAmount();
-        if (current + 1.0E-3f < required) {
-            entity.setAbsorptionAmount(Math.max(current, required));
-            if (DEBUG_METAL_BONE) {
-                ChestCavity.LOGGER.info(
-                        "[compat/guzhenren][steel_bone] apply absorption -> {} (stacks={})",
-                        String.format(java.util.Locale.ROOT, "%.1f", required),
-                        steelStacks
-                );
-            }
-        }
-        OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
+        });
     }
 
     private void applyResistance(LivingEntity entity, ChestCavityInstance cc) {

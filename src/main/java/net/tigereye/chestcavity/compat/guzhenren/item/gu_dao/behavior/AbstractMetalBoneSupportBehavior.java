@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
@@ -16,6 +17,7 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -29,7 +31,8 @@ import java.util.Locale;
 abstract class AbstractMetalBoneSupportBehavior extends AbstractGuzhenrenOrganBehavior
         implements OrganSlowTickListener, OrganRemovalListener, IncreaseEffectContributor {
 
-    private static final String ABSORPTION_KEY = "LastAbsorptionTick";
+    private static final String ABSORPTION_KEY = "LastAbsorptionTick"; // legacy stamp for logging
+    private static final String ABSORPTION_READY_AT_KEY = "AbsorptionReadyAt"; // timestamp-style scheduling
 
     private static final ResourceLocation GU_DAO_CHANNEL =
             ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/gu_dao_increase_effect");
@@ -56,100 +59,50 @@ abstract class AbstractMetalBoneSupportBehavior extends AbstractGuzhenrenOrganBe
         refreshIncreaseContribution(cc, organ);
         SteelBoneComboHelper.ensureAbsorptionCapacity(entity, cc);
 
-        long gameTime = entity.level().getGameTime();
+        if (!(entity.level() instanceof ServerLevel server)) {
+            return;
+        }
+        long gameTime = server.getGameTime();
         OrganState state = organState(organ, stateRootKey());
-        long lastApplied = state.getLong(ABSORPTION_KEY, Long.MIN_VALUE);
-        boolean firstApplication = lastApplied == Long.MIN_VALUE;
-        long intervalTicks = absorptionIntervalTicks();
-        if (!firstApplication) {
-            long delta = gameTime - lastApplied;
-            if (delta < intervalTicks) {
-                if (debug) {
-                    ChestCavity.LOGGER.info(
-                            "[compat/guzhenren] [metal_bone_debug] Interval gate blocked ({} < {}) for {}",
-                            delta, intervalTicks, describeStack(organ)
-                    );
+        long intervalTicks = Math.max(1L, absorptionIntervalTicks());
+        // schedule via readyAt
+        MultiCooldown mc = MultiCooldown.builder(state).withSync(cc, organ).build();
+        MultiCooldown.Entry ready = mc.entry(ABSORPTION_READY_AT_KEY);
+        if (ready.getReadyTick() <= 0L || gameTime >= ready.getReadyTick()) {
+            ready.setReadyAt(gameTime + intervalTicks);
+        }
+
+        ready.onReady(server, gameTime, () -> {
+            try {
+                int stacks = Math.max(1, organ.getCount());
+                double energyCost = Math.max(0.0, boneEnergyCostPerStack()) * stacks;
+                if (!SteelBoneComboHelper.tryConsumeBoneEnergy(cc, energyCost)) {
+                    return; // skip this cycle
                 }
-                return;
+                float requiredAbsorption = Math.max(0.0f, absorptionPerStack() * stacks);
+                if (requiredAbsorption <= 0.0f) {
+                    return;
+                }
+                float beforeAbsorption = entity.getAbsorptionAmount();
+                if (beforeAbsorption + 1.0E-3f < requiredAbsorption) {
+                    entity.setAbsorptionAmount(Math.max(beforeAbsorption, requiredAbsorption));
+                    if (debug) {
+                        ChestCavity.LOGGER.debug(
+                                "[compat/guzhenren] [metal_bone_debug] Applied absorption: {} -> {} for {}",
+                                String.format(Locale.ROOT, "%.1f", beforeAbsorption),
+                                String.format(Locale.ROOT, "%.1f", entity.getAbsorptionAmount()),
+                                describeStack(organ)
+                        );
+                    }
+                }
+            } finally {
+                long next = server.getGameTime() + Math.max(1L, absorptionIntervalTicks());
+                MultiCooldown.Entry e = MultiCooldown.builder(organState(organ, stateRootKey())).withSync(cc, organ).build().entry(ABSORPTION_READY_AT_KEY);
+                e.setReadyAt(next);
+                e.onReady(server, server.getGameTime(), () -> {});
+                OrganStateOps.setLong(organState(organ, stateRootKey()), cc, organ, ABSORPTION_KEY, server.getGameTime(), v -> v, Long.MIN_VALUE);
             }
-        } else if (debug) {
-            ChestCavity.LOGGER.info(
-                    "[compat/guzhenren] [metal_bone_debug] First absorption check for {} (interval {} ticks)",
-                    describeStack(organ), intervalTicks
-            );
-        }
-
-        int stackCount = Math.max(1, organ.getCount());
-        double energyCost = Math.max(0.0, boneEnergyCostPerStack()) * stackCount;
-        if (!SteelBoneComboHelper.tryConsumeBoneEnergy(cc, energyCost)) {
-            if (debug) {
-                ChestCavity.LOGGER.info(
-                        "[compat/guzhenren] [metal_bone_debug] Insufficient bone energy: need {} for {}",
-                        String.format(Locale.ROOT, "%.2f", energyCost), describeStack(organ)
-                );
-            }
-            return;
-        }
-
-        float requiredAbsorption = Math.max(0.0f, absorptionPerStack() * stackCount);
-        if (requiredAbsorption <= 0.0f) {
-            if (debug) {
-                ChestCavity.LOGGER.info(
-                        "[compat/guzhenren] [metal_bone_debug] No absorption target ({}); skipping {}",
-                        requiredAbsorption, describeStack(organ)
-                );
-            }
-            OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
-            return;
-        }
-
-        float beforeAbsorption = entity.getAbsorptionAmount();
-        if (debug) {
-            ChestCavity.LOGGER.debug(
-                    "[compat/guzhenren] [metal_bone_debug] Candidate absorption: before={} target={} for {}",
-                    String.format(Locale.ROOT, "%.1f", beforeAbsorption),
-                    String.format(Locale.ROOT, "%.1f", requiredAbsorption),
-                    describeStack(organ)
-            );
-        }
-
-        if (beforeAbsorption + 1.0E-3f < requiredAbsorption) {
-            float applied = Math.max(beforeAbsorption, requiredAbsorption);
-            entity.setAbsorptionAmount(applied);
-            ChestCavity.LOGGER.debug(
-                    "[compat/guzhenren] Applied metal bone absorption {} -> {} for {}",
-                    String.format(java.util.Locale.ROOT, "%.1f", entity.getAbsorptionAmount()),
-                    String.format(java.util.Locale.ROOT, "%.1f", requiredAbsorption),
-                    describeStack(organ)
-            );
-            if (debug) {
-                ChestCavity.LOGGER.debug(
-                        "[compat/guzhenren] [metal_bone_debug] Set absorption to {} (applied {} -> {}) for {}",
-                        String.format(Locale.ROOT, "%.1f", entity.getAbsorptionAmount()),
-                        String.format(Locale.ROOT, "%.1f", beforeAbsorption),
-                        String.format(Locale.ROOT, "%.1f", applied),
-                        describeStack(organ)
-                );
-            }
-        } else if (debug) {
-            ChestCavity.LOGGER.info(
-                    "[compat/guzhenren] [metal_bone_debug] Absorption already meets target ({} >= {}) for {}",
-                    String.format(Locale.ROOT, "%.1f", beforeAbsorption),
-                    String.format(Locale.ROOT, "%.1f", requiredAbsorption),
-                    describeStack(organ)
-            );
-        }
-        float afterAbsorption = entity.getAbsorptionAmount();
-        if (debug) {
-            ChestCavity.LOGGER.debug(
-                    "[compat/guzhenren] [metal_bone_debug] Absorption tick completed: target={} before={} after={} for {}",
-                    String.format(Locale.ROOT, "%.1f", requiredAbsorption),
-                    String.format(Locale.ROOT, "%.1f", beforeAbsorption),
-                    String.format(Locale.ROOT, "%.1f", afterAbsorption),
-                    describeStack(organ)
-            );
-        }
-        OrganStateOps.setLong(state, cc, organ, ABSORPTION_KEY, gameTime, value -> value, Long.MIN_VALUE);
+        });
     }
 
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {

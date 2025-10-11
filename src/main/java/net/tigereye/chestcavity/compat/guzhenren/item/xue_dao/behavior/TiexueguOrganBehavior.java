@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import net.tigereye.chestcavity.registration.CCItems;
@@ -57,6 +58,8 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
     private static final String STATE_KEY = "Tiexuegu";
     private static final String TIMER_KEY = "Timer";
+    private static final ResourceLocation READY_AT_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/tiexuegu_effect");
     private static final String EFFECT_KEY = "Effect";
 
     private static final int TRIGGER_INTERVAL_SLOW_TICKS = 60;
@@ -121,18 +124,40 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             return;
         }
 
+        scheduleEffectIfNeeded(entity, cc, organ);
+    }
+
+    private void scheduleEffectIfNeeded(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (entity == null || entity.level().isClientSide() || cc == null || organ == null || organ.isEmpty()) return;
+        if (!(entity.level() instanceof ServerLevel server)) return;
         OrganState state = organState(organ, STATE_KEY);
+        // Preserve legacy int timer for UI/compat, but drive via readyAt schedule
         int timer = Math.max(0, state.getInt(TIMER_KEY, 0));
         if (timer > 0) {
-            var change = OrganStateOps.setInt(state, cc, organ, TIMER_KEY, timer - 1, value -> Math.max(0, value), 0);
-            logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
-            return;
+            // normalise to a readyAt future tick and clear int timer
+            long nextAt = server.getGameTime() + timer;
+            MultiCooldown mc = MultiCooldown.builder(state).withSync(cc, organ).build();
+            MultiCooldown.Entry e = mc.entry(READY_AT_ID.toString());
+            e.setReadyAt(nextAt);
+            OrganStateOps.setInt(state, cc, organ, TIMER_KEY, 0, v -> Math.max(0, v), 0);
         }
-
-        triggerEffect(entity, cc, organ, state);
-        var change = OrganStateOps.setInt(state, cc, organ, TIMER_KEY, TRIGGER_INTERVAL_SLOW_TICKS, value -> Math.max(0, value), 0);
-        logStateChange(LOGGER, LOG_PREFIX, organ, TIMER_KEY, change);
-        sendSlotUpdate(cc, organ);
+        MultiCooldown mc = MultiCooldown.builder(state).withSync(cc, organ).build();
+        MultiCooldown.Entry ready = mc.entry(READY_AT_ID.toString());
+        long now = server.getGameTime();
+        if (ready.getReadyTick() <= 0L || now >= ready.getReadyTick()) {
+            ready.setReadyAt(now + TRIGGER_INTERVAL_SLOW_TICKS);
+        }
+        ready.onReady(server, now, () -> {
+            try {
+                triggerEffect(entity, cc, organ, state);
+                // re-arm next
+                long next = server.getGameTime() + TRIGGER_INTERVAL_SLOW_TICKS;
+                MultiCooldown.Entry e2 = mc.entry(READY_AT_ID.toString());
+                e2.setReadyAt(next);
+                e2.onReady(server, server.getGameTime(), () -> {});
+                sendSlotUpdate(cc, organ);
+            } catch (Throwable ignored) { }
+        });
     }
 
     @Override

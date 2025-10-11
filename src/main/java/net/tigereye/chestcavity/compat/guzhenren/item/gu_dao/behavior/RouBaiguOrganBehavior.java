@@ -74,6 +74,10 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final String PROGRESS_KEY = "Progress";
     private static final String WORK_TIMER_KEY = "WorkTimer";
     private static final String SELECTION_COOLDOWN_KEY = "SelectionCooldown";
+    private static final ResourceLocation SELECTION_READY_AT_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/rou_bai_gu_selection");
+    private static final ResourceLocation WORK_READY_AT_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/rou_bai_gu_work");
     private static final String LAST_BITE_TICK_KEY = "LastBiteTick";
 
     private static final double COST_BONE_GROWTH = 20.0;
@@ -498,22 +502,29 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         MultiCooldown.EntryInt workTimer = cooldown.entryInt(WORK_TIMER_KEY)
                 .withDefault(0);
 
-        selectionCooldown.tickDown();
+        // Use readyAt scheduling instead of per-tick decrement
+        ServerLevel server = player.level() instanceof ServerLevel s ? s : null;
+        long now = server == null ? 0L : server.getGameTime();
+        MultiCooldown.Entry selectionReady = cooldown.entry(SELECTION_READY_AT_ID.toString());
+        MultiCooldown.Entry workReady = cooldown.entry(WORK_READY_AT_ID.toString());
 
         int targetSlot = state.getInt(TARGET_SLOT_KEY, -1);
         String targetItemId = readTargetItemId(organ);
         int progress = Math.max(0, state.getInt(PROGRESS_KEY, 0));
 
         if (targetSlot < 0 || targetItemId.isEmpty()) {
-            if (selectionCooldown.getTicks() <= 0
-                    && selectMissingOrgan(player, cc, state, organ, selectionCooldown, workTimer)) {
-                // target selected; countdowns scheduled inside helper
+            if (server != null && (selectionReady.getReadyTick() <= 0L || now >= selectionReady.getReadyTick())) {
+                boolean selected = selectMissingOrgan(player, cc, state, organ, selectionCooldown, workTimer);
+                long nextSel = now + RESTORATION_SELECTION_INTERVAL_SECONDS;
+                selectionReady.setReadyAt(nextSel);
+                if (selected) {
+                    workReady.setReadyAt(now + RESTORATION_WORK_INTERVAL_SECONDS);
+                }
             }
             return;
         }
 
-        if (workTimer.getTicks() > 0) {
-            workTimer.tickDown();
+        if (server != null && workReady.getReadyTick() > now) {
             return;
         }
 
@@ -521,6 +532,9 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             mutateOrganSlot(player, cc, targetSlot);
             clearRestorationState(state, cc, organ, selectionCooldown, workTimer);
             selectionCooldown.start(RESTORATION_SELECTION_INTERVAL_SECONDS);
+            if (server != null) {
+                selectionReady.setReadyAt(server.getGameTime() + RESTORATION_SELECTION_INTERVAL_SECONDS);
+            }
             return;
         }
 
@@ -538,13 +552,22 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
                 restoreOrgan(player, cc, targetSlot, targetItemId);
                 clearRestorationState(state, cc, organ, selectionCooldown, workTimer);
                 selectionCooldown.start(RESTORATION_SELECTION_INTERVAL_SECONDS);
+                if (server != null) {
+                    selectionReady.setReadyAt(server.getGameTime() + RESTORATION_SELECTION_INTERVAL_SECONDS);
+                }
             } else {
                 workTimer.start(RESTORATION_WORK_INTERVAL_SECONDS);
+                if (server != null) {
+                    workReady.setReadyAt(server.getGameTime() + RESTORATION_WORK_INTERVAL_SECONDS);
+                }
             }
             return;
         }
 
         workTimer.start(RESTORATION_WORK_INTERVAL_SECONDS);
+        if (server != null) {
+            workReady.setReadyAt(server.getGameTime() + RESTORATION_WORK_INTERVAL_SECONDS);
+        }
     }
 
     private static boolean hasSufficientFood(Player player) {

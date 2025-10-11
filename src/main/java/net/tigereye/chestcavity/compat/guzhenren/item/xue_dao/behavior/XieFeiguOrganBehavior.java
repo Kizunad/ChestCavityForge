@@ -357,6 +357,22 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         cooldown.setReadyAt(gameTime + COOLDOWN_TICKS);
         INSTANCE.sendSlotUpdate(cc, organ);
+        // Cooldown toast on end (player-only)
+        if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+            long now = gameTime;
+            cooldown.onReady(sp.serverLevel(), now, () -> {
+                try {
+                    var itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
+                            true,
+                            itemId,
+                            "技能就绪",
+                            organ.getHoverName().getString()
+                    );
+                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
+                } catch (Throwable ignored) { }
+            });
+        }
 
         Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);
         boolean hasPoison = hasPoisonOrgan(cc);
@@ -591,4 +607,3 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
     // Cooldown fully encapsulated by util.behavior.Cooldown
 }
-

@@ -44,20 +44,8 @@ public record AdjustLinkageChannelTemporaryAction(ResourceLocation channelId, do
         linkage.getOrCreateChannel(channelId).adjust(amount);
 
         if (performer.level() instanceof ServerLevel server && durationTicks > 0) {
-            schedule(server, () -> LinkageManager.getContext(CCAttachments.getChestCavity(performer))
+            net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps.schedule(server, () -> LinkageManager.getContext(CCAttachments.getChestCavity(performer))
                     .getOrCreateChannel(channelId).adjust(-amount), durationTicks);
         }
     }
-
-    private static void schedule(ServerLevel level, Runnable runnable, int delayTicks) {
-        if (level == null || runnable == null || delayTicks < 0) {
-            return;
-        }
-        if (delayTicks == 0) {
-            runnable.run();
-            return;
-        }
-        level.getServer().execute(() -> schedule(level, runnable, delayTicks - 1));
-    }
 }
-

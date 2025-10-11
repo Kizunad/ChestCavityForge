@@ -30,6 +30,8 @@ import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 
@@ -77,6 +79,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     private static final float CLONE_DAMAGE_RATIO = 0.25f;
     private static final int CLONE_DURATION_TICKS = 100;
     private static final int CLONE_COOLDOWN_TICKS = 400;
+    private static final String STATE_ROOT = "JianYingGu";
+    private static final String ACTIVE_READY_KEY = "ActiveReadyAt";
 
     private static final double AFTERIMAGE_CHANCE = 0.1;
     private static final int AFTERIMAGE_DELAY_TICKS = 20;
@@ -414,6 +418,30 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
                         zhenSpent
                 )
         );
+
+        // 使用 MultiCooldown 记录就绪时间并在结束时触发 Toast（内置 onReady，无需全局轮询）
+        if (player instanceof ServerPlayer sp) {
+            ItemStack organIcon = findOrgan(cc);
+            ItemStack stateStack = organIcon.isEmpty() ? new ItemStack(net.tigereye.chestcavity.registration.CCItems.GUZHENREN_JIAN_YING_GU) : organIcon;
+            MultiCooldown cooldown = MultiCooldown.builder(OrganState.of(stateStack, STATE_ROOT))
+                    .withSync(cc, stateStack)
+                    .build();
+            long nowTick = server.getGameTime();
+            MultiCooldown.Entry ready = cooldown.entry(ACTIVE_READY_KEY);
+            ready.setReadyAt(nowTick + CLONE_COOLDOWN_TICKS);
+            ready.onReady(server, nowTick, () -> {
+                try {
+                    var itemId = BuiltInRegistries.ITEM.getKey(stateStack.getItem());
+                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
+                            true,
+                            itemId,
+                            "技能就绪",
+                            stateStack.getHoverName().getString()
+                    );
+                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
+                } catch (Throwable ignored) { }
+            });
+        }
     }
 
     private static boolean hasOrgan(ChestCavityInstance cc) {
@@ -456,6 +484,33 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         return total;
     }
 
+    private static ItemStack findOrgan(ChestCavityInstance cc) {
+        if (cc == null || cc.inventory == null) {
+            return ItemStack.EMPTY;
+        }
+        for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+            ItemStack stack = cc.inventory.getItem(i);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            if (ORGAN_ID.equals(id)) {
+                return stack;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    // Expose cooldown head for external watchers (server-side toast on countdown end)
+    public static Long peekCooldownHead(UUID playerId) {
+        var q = COOLDOWN_HISTORY.get(playerId);
+        if (q == null || q.isEmpty()) return null;
+        return q.peekFirst();
+    }
+
+    public static int getCloneCooldownTicks() {
+        return CLONE_COOLDOWN_TICKS;
+    }
     private static boolean isMeleeAttack(DamageSource source) {
         return !source.is(DamageTypeTags.IS_PROJECTILE);
     }

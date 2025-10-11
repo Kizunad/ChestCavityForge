@@ -80,8 +80,10 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final String STATE_ROOT = "BingJiGu";
-    private static final String ABSORPTION_TIMER_KEY = "AbsorptionTimer";
-    private static final String INVULN_COOLDOWN_KEY = "InvulnCooldown";
+    private static final String ABSORPTION_TIMER_KEY = "AbsorptionTimer"; // legacy int (unused for scheduling)
+    private static final String ABSORPTION_READY_AT_KEY = "AbsorptionReadyAt"; // timestamp-style scheduling
+    private static final String INVULN_COOLDOWN_KEY = "InvulnCooldown"; // legacy int key (unused)
+    private static final String INVULN_READY_AT_KEY = "InvulnReadyAt"; // timestamp-style readyAt
     private static final boolean DEBUG = false;
 
     private static final double ZHENYUAN_BASE_COST = 200.0;
@@ -140,22 +142,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                     String.format(java.util.Locale.ROOT, "%.1f", ZHENYUAN_BASE_COST * stackCount));
         }
         MultiCooldown cooldown = createCooldown(cc, organ);
-        MultiCooldown.EntryInt absorptionTimer = cooldown.entryInt(ABSORPTION_TIMER_KEY);
-        MultiCooldown.EntryInt invulnCooldown = cooldown.entryInt(INVULN_COOLDOWN_KEY)
-                .withOnChange((prev, curr) -> {
-                    if (prev != null && prev > 0 && curr == 0 && !player.level().isClientSide()) {
-                        if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
-                            var itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(organ.getItem());
-                            var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                                    true,
-                                    itemId,
-                                    "技能就绪",
-                                    organ.getHoverName().getString()
-                            );
-                            net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
-                        }
-                    }
-                });
+        MultiCooldown.Entry absorptionReady = cooldown.entry(ABSORPTION_READY_AT_KEY);
+        MultiCooldown.Entry invulnReady = cooldown.entry(INVULN_READY_AT_KEY);
 
         if (paid) {
             ResourceOps.adjustJingli(player, JINGLI_PER_TICK * stackCount);
@@ -166,7 +154,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                     LOGGER.info("[compat/guzhenren][ice_skin] healed +{} and added jingli +{}", healAmount, JINGLI_PER_TICK * stackCount);
                 }
             }
-            tickAbsorption(player, absorptionTimer, stackCount, efficiency);
+            scheduleAbsorptionIfNeeded(player, cc, organ, absorptionReady, stackCount, efficiency);
             if (hasJadeBone(cc)) {
                 clearBleed(player);
                 if (DEBUG) {
@@ -175,7 +163,9 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             }
         }
 
-        tickInvulnerability(player, invulnCooldown, cc);
+        if (player.level() instanceof ServerLevel serverLevel) {
+            tickInvulnerability(player, invulnReady, cc, serverLevel);
+        }
     }
 
     @Override
@@ -221,7 +211,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
     }
 
-    public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
+        public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
@@ -232,7 +222,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (!registration.alreadyRegistered()) {
             MultiCooldown cooldown = createCooldown(cc, organ);
             cooldown.entryInt(ABSORPTION_TIMER_KEY).clear();
-            cooldown.entryInt(INVULN_COOLDOWN_KEY).clear();
+            cooldown.entry(INVULN_READY_AT_KEY).setReadyAt(0L);
         }
     }
 
@@ -261,47 +251,63 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return context.lookupChannel(BING_XUE_INCREASE_EFFECT).map(LinkageChannel::get).orElse(0.0);
     }
 
-    private static void tickAbsorption(Player player, MultiCooldown.EntryInt timerEntry, int stacks, double efficiency) {
-        if (player == null || timerEntry == null) {
-            return;
+    private static void scheduleAbsorptionIfNeeded(Player player, ChestCavityInstance cc, ItemStack organ,
+                                                   MultiCooldown.Entry ready, int stacks, double efficiency) {
+        if (player == null || player.level().isClientSide() || ready == null) return;
+        if (!(player.level() instanceof ServerLevel server)) return;
+        long now = server.getGameTime();
+        if (ready.getReadyTick() <= now) {
+            ready.setReadyAt(now + SLOW_TICK_INTERVALS_PER_MINUTE);
         }
-        int current = timerEntry.getTicks();
-        int timer = current + 1;
-        if (timer >= SLOW_TICK_INTERVALS_PER_MINUTE) {
-            timer = 0;
-            float gain = (float) (ABSORPTION_PER_TRIGGER * Math.max(1, stacks) * Math.max(0.0, efficiency));
-            float before = player.getAbsorptionAmount();
-            double cap = ABSORPTION_CAP;
-            double target = Math.min(cap, before + gain);
-            float updated = AbsorptionHelper.applyAbsorption(player, target, ABSORPTION_MODIFIER_ID, false);
-            if (DEBUG) {
-                LOGGER.info("[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
-                        String.format(java.util.Locale.ROOT, "%.1f", gain),
-                        String.format(java.util.Locale.ROOT, "%.3f", efficiency),
-                        stacks,
-                        String.format(java.util.Locale.ROOT, "%.1f", before),
-                        String.format(java.util.Locale.ROOT, "%.1f", updated));
-            }
-        }
-        timerEntry.setTicks(timer);
+        ready.onReady(server, now, () -> {
+            try {
+                double eff = efficiency; // recompute live
+                ActiveLinkageContext context = LinkageManager.getContext(cc);
+                if (context != null) {
+                    eff = 1.0 + lookupIncreaseEffect(context);
+                }
+                int sc = Math.max(1, organ == null ? stacks : organ.getCount());
+                float gain = (float) (ABSORPTION_PER_TRIGGER * Math.max(1, sc) * Math.max(0.0, eff));
+                float before = player.getAbsorptionAmount();
+                double cap = ABSORPTION_CAP;
+                double target = Math.min(cap, before + gain);
+                AbsorptionHelper.applyAbsorption(player, (float) target, ABSORPTION_MODIFIER_ID, false);
+                if (DEBUG) {
+                    LOGGER.info("[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
+                            String.format(java.util.Locale.ROOT, "%.1f", gain),
+                            String.format(java.util.Locale.ROOT, "%.3f", eff),
+                            sc,
+                            String.format(java.util.Locale.ROOT, "%.1f", before),
+                            String.format(java.util.Locale.ROOT, "%.1f", player.getAbsorptionAmount()));
+                }
+                long nextAt = server.getGameTime() + SLOW_TICK_INTERVALS_PER_MINUTE;
+                MultiCooldown.Entry e = createCooldown(cc, organ).entry(ABSORPTION_READY_AT_KEY);
+                e.setReadyAt(nextAt);
+                e.onReady(server, server.getGameTime(), () -> {});
+            } catch (Throwable ignored) {}
+        });
     }
 
-    private static boolean tickInvulnerability(Player player, MultiCooldown.EntryInt cooldownEntry, ChestCavityInstance cc) {
-        if (player == null || cooldownEntry == null) {
+    private static boolean tickInvulnerability(Player player, MultiCooldown.Entry invulnReady, ChestCavityInstance cc, ServerLevel server) {
+        if (player == null || invulnReady == null || server == null) {
             return false;
         }
-        boolean changed = cooldownEntry.tickDown();
-        if (cooldownEntry.isReady() && hasJadeBone(cc) && isBeimingConstitution(player)
+        long now = server.getGameTime();
+        long readyAt = Math.max(0L, invulnReady.getReadyTick());
+        if (now < readyAt) {
+            return false;
+        }
+        if (hasJadeBone(cc) && isBeimingConstitution(player)
                 && player.getHealth() <= player.getMaxHealth() * LOW_HEALTH_THRESHOLD) {
             player.invulnerableTime = Math.max(player.invulnerableTime, INVULN_DURATION_TICKS);
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, INVULN_DURATION_TICKS, 4, false, true, true));
-            cooldownEntry.start(INVULN_COOLDOWN_TICKS);
-            changed = true;
+            invulnReady.setReadyAt(now + INVULN_COOLDOWN_TICKS);
             if (DEBUG) {
                 LOGGER.info("[compat/guzhenren][ice_skin] invulnerability granted: duration={}t, cooldown={}t", INVULN_DURATION_TICKS, INVULN_COOLDOWN_TICKS);
             }
+            return true;
         }
-        return changed;
+        return false;
     }
 
     private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {

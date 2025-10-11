@@ -55,6 +55,8 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
     private static final String STATE_KEY = "ShiPiGu";
     private static final ResourceLocation RECHARGE_COOLDOWN_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "cooldowns/shi_pi_gu_recharge");
+    private static final ResourceLocation RECHARGE_READY_AT_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/shi_pi_gu_recharge");
     private static final ResourceLocation ABSORPTION_MODIFIER_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/shi_pi_gu_absorption");
     private static final double ABSORPTION_PER_LEVEL = 4.0D;
@@ -79,38 +81,10 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
             return;
         }
 
+        // Switch to readyAt + onReady 链式调度：不再在 onSlowTick 中自减
+        scheduleRechargeIfNeeded(entity, cc, organ);
+
         int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
-        boolean chargeChanged = false;
-
-        MultiCooldown.EntryInt rechargeEntry = rechargeTimer(cc, organ);
-
-        if (charge < MAX_CHARGE) {
-            int remaining = rechargeEntry.getTicks();
-            if (remaining > 0) {
-                rechargeEntry.tickDown();
-                remaining = rechargeEntry.getTicks();
-            }
-            if (remaining <= 0) {
-                charge = Math.min(MAX_CHARGE, charge + 1);
-                chargeChanged = true;
-                playRechargeCue(entity);
-                if (charge < MAX_CHARGE) {
-                    rechargeEntry.start(RECOVERY_INTERVAL_SLOW_TICKS);
-                } else {
-                    rechargeEntry.clear();
-                }
-            }
-        } else if (!rechargeEntry.isReady()) {
-            rechargeEntry.clear();
-        }
-
-        if (chargeChanged) {
-            NBTCharge.setCharge(organ, STATE_KEY, charge);
-        }
-        if (chargeChanged) {
-            NetworkUtil.sendOrganSlotUpdate(cc, organ);
-        }
-
         applyAbsorption(entity, cc, charge);
     }
 
@@ -133,8 +107,9 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         int updated = Math.max(0, charge - 1);
         if (updated != charge) {
             NBTCharge.setCharge(organ, STATE_KEY, updated);
-            rechargeTimer(cc, organ).start(RECOVERY_INTERVAL_SLOW_TICKS);
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            // re-arm readyAt schedule after a charge is consumed
+            scheduleRechargeIfNeeded(victim, cc, organ);
         }
 
         Level level = victim.level();
@@ -199,6 +174,46 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         }
         // Stone break handled in dropCobblestone when charge was consumed.
     }
+
+    private void scheduleRechargeIfNeeded(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (entity == null || entity.level().isClientSide() || cc == null || organ == null || organ.isEmpty()) return;
+        if (!(entity.level() instanceof ServerLevel server)) return;
+        int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+        MultiCooldown cooldown = MultiCooldown.builder(OrganState.of(organ, STATE_KEY)).withSync(cc, organ).build();
+        MultiCooldown.Entry ready = cooldown.entry(RECHARGE_READY_AT_ID.toString());
+        long now = server.getGameTime();
+
+        if (charge >= MAX_CHARGE) {
+            if (ready.getReadyTick() != 0L) ready.setReadyAt(0L);
+            return;
+        }
+
+        if (ready.getReadyTick() <= now) {
+            ready.setReadyAt(now + RECOVERY_INTERVAL_SLOW_TICKS);
+        }
+        ready.onReady(server, now, () -> {
+            try {
+                int cur = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+                if (cur < MAX_CHARGE) {
+                    int next = Math.min(MAX_CHARGE, cur + 1);
+                    if (next != cur) {
+                        NBTCharge.setCharge(organ, STATE_KEY, next);
+                        playRechargeCue(entity);
+                        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+                    }
+                }
+                int after = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
+                if (after < MAX_CHARGE) {
+                    long nextAt = server.getGameTime() + RECOVERY_INTERVAL_SLOW_TICKS;
+                    MultiCooldown.Entry e = cooldown.entry(RECHARGE_READY_AT_ID.toString());
+                    e.setReadyAt(nextAt);
+                    e.onReady(server, server.getGameTime(), this::noop);
+                }
+            } catch (Throwable ignored) { }
+        });
+    }
+
+    private void noop() {}
 
     private static void spawnDamageParticles(Level level, LivingEntity entity) {
         if (!(level instanceof ServerLevel server)) {

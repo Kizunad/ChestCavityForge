@@ -55,6 +55,8 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
 
     private static final String STATE_ROOT = "ChouPiGu";
     private static final String INTERVAL_KEY = "NextIntervalTicks";
+    private static final ResourceLocation READY_AT_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/chou_pi_gu_interval");
     private static final int RANDOM_INTERVAL_MIN_TICKS = 100;
     private static final int RANDOM_INTERVAL_MAX_TICKS = 400;
     private static final int SLOW_TICK_STEP = 20;
@@ -84,9 +86,9 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             return;
         }
         MultiCooldown cooldown = createCooldown(cc, organ);
-        MultiCooldown.EntryInt intervalEntry = cooldown.entryInt(INTERVAL_KEY);
+        MultiCooldown.Entry ready = cooldown.entry(READY_AT_ID.toString());
         if (!(entity instanceof Player player)) {
-            handleNonPlayerSlowTick(entity, cc, organ, intervalEntry);
+            handleNonPlayerSlowTick(entity, cc, organ, ready);
             return;
         }
         if (!player.isAlive()) {
@@ -94,22 +96,26 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         }
 
         RandomSource random = player.getRandom();
-        int remaining = Math.max(0, intervalEntry.getTicks());
-        if (remaining <= 0) {
-            if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
-                intervalEntry.setTicks(randomInterval(random));
+        ServerLevel server = player.level() instanceof ServerLevel s ? s : null;
+        if (server != null) {
+            long now = server.getGameTime();
+            if (ready.getReadyTick() <= 0L || now >= ready.getReadyTick()) {
+                int interval = randomInterval(random);
+                ready.setReadyAt(now + interval);
             }
-            return;
-        }
-
-        int updated = Math.max(0, remaining - SLOW_TICK_STEP);
-        intervalEntry.setTicks(updated);
-        if (updated > 0) {
-            return;
-        }
-
-        if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
-            intervalEntry.setTicks(randomInterval(random));
+            ready.onReady(server, server.getGameTime(), () -> {
+                if (!releaseGas(player, cc, organ, random, TriggerCause.RANDOM)) {
+                    int interval = randomInterval(random);
+                    MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                    e.setReadyAt(server.getGameTime() + interval);
+                    e.onReady(server, server.getGameTime(), () -> {});
+                } else {
+                    int interval = randomInterval(random);
+                    MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                    e.setReadyAt(server.getGameTime() + interval);
+                    e.onReady(server, server.getGameTime(), () -> {});
+                }
+            });
         }
     }
 
@@ -117,33 +123,30 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             LivingEntity entity,
             ChestCavityInstance cc,
             ItemStack organ,
-            MultiCooldown.EntryInt intervalEntry
+            MultiCooldown.Entry ready
     ) {
-        if (entity == null || organ == null || organ.isEmpty()) {
+        if (entity == null || organ == null || organ.isEmpty() || !entity.isAlive()) {
             return;
         }
-        if (!entity.isAlive()) {
+        if (!(entity.level() instanceof ServerLevel server)) {
             return;
         }
-
         RandomSource random = entity.getRandom();
-        int remaining = Math.max(0, intervalEntry.getTicks());
-        if (remaining <= 0) {
-            if (!releaseGas(entity, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
-                intervalEntry.setTicks(randomInterval(random));
+        long now = server.getGameTime();
+        if (ready.getReadyTick() <= 0L || now >= ready.getReadyTick()) {
+            ready.setReadyAt(now + randomInterval(random));
+        }
+        ready.onReady(server, now, () -> {
+            if (!releaseGas(entity, cc, organ, random, TriggerCause.RANDOM)) {
+                MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                e.setReadyAt(server.getGameTime() + randomInterval(random));
+                e.onReady(server, server.getGameTime(), () -> {});
+            } else {
+                MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                e.setReadyAt(server.getGameTime() + randomInterval(random));
+                e.onReady(server, server.getGameTime(), () -> {});
             }
-            return;
-        }
-
-        int updated = Math.max(0, remaining - SLOW_TICK_STEP);
-        intervalEntry.setTicks(updated);
-        if (updated > 0) {
-            return;
-        }
-
-        if (!releaseGas(entity, cc, organ, intervalEntry, random, TriggerCause.RANDOM)) {
-            intervalEntry.setTicks(randomInterval(random));
-        }
+        });
     }
 
     @Override
@@ -158,8 +161,12 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             double increase = Math.max(0.0, getPoisonIncrease(cc));
             double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
             if (random.nextDouble() < Math.min(1.0, chance)) {
-                if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.DAMAGE)) {
-                    intervalEntry.setTicks(randomInterval(random));
+                releaseGas(player, cc, organ, random, TriggerCause.DAMAGE);
+                if (player.level() instanceof ServerLevel server) {
+                    int interval = randomInterval(random);
+                    MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                    e.setReadyAt(server.getGameTime() + interval);
+                    e.onReady(server, server.getGameTime(), () -> {});
                 }
             }
             return damage;
@@ -185,8 +192,12 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         double increase = Math.max(0.0, getPoisonIncrease(cc));
         double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
         if (random.nextDouble() < Math.min(1.0, chance)) {
-            if (!releaseGas(victim, cc, organ, intervalEntry, random, TriggerCause.DAMAGE)) {
-                intervalEntry.setTicks(randomInterval(random));
+            releaseGas(victim, cc, organ, random, TriggerCause.DAMAGE);
+            if (victim.level() instanceof ServerLevel server) {
+                int interval = randomInterval(random);
+                MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                e.setReadyAt(server.getGameTime() + interval);
+                e.onReady(server, server.getGameTime(), () -> {});
             }
         }
     }
@@ -204,10 +215,12 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
                 continue;
             }
             if (random.nextDouble() < chance) {
-                MultiCooldown cooldown = createCooldown(cc, organ);
-                MultiCooldown.EntryInt intervalEntry = cooldown.entryInt(INTERVAL_KEY);
-                if (!releaseGas(player, cc, organ, intervalEntry, random, TriggerCause.FOOD)) {
-                    intervalEntry.setTicks(randomInterval(random));
+                releaseGas(player, cc, organ, random, TriggerCause.FOOD);
+                if (player.level() instanceof ServerLevel server) {
+                    int interval = randomInterval(random);
+                    MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+                    e.setReadyAt(server.getGameTime() + interval);
+                    e.onReady(server, server.getGameTime(), () -> {});
                 }
                 break;
             }
@@ -225,7 +238,6 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             LivingEntity entity,
             ChestCavityInstance cc,
             ItemStack organ,
-            MultiCooldown.EntryInt intervalEntry,
             RandomSource random,
             TriggerCause cause
     ) {
@@ -237,9 +249,6 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             return false;
         }
         performEffects(server, entity, cc, organ, random, cause);
-        if (intervalEntry != null) {
-            intervalEntry.setTicks(randomInterval(random));
-        }
         return true;
     }
 

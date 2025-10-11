@@ -71,6 +71,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final String STATE_KEY = "Xieyangu";
     private static final ResourceLocation HEALTH_DRAIN_COOLDOWN_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "cooldowns/xieyangu_health_drain");
+    private static final ResourceLocation HEALTH_DRAIN_READY_AT_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/xieyangu_health_drain");
 
     private static final int HEALTH_DRAIN_INTERVAL_SLOW_TICKS = 60; // once per minute
     private static final float BASE_CRIT_MULTIPLIER = 1.5f;
@@ -115,15 +117,7 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return;
         }
 
-        MultiCooldown.EntryInt drainTimer = healthDrainTimer(cc, organ);
-        if (drainTimer.getTicks() <= 0) {
-            int initial = HEALTH_DRAIN_INTERVAL_SLOW_TICKS;
-            if (cc.owner != null) {
-                RandomSource random = cc.owner.getRandom();
-                initial = 1 + random.nextInt(Math.max(1, HEALTH_DRAIN_INTERVAL_SLOW_TICKS));
-            }
-            drainTimer.start(initial);
-        }
+        scheduleHealthDrainIfNeeded(cc, organ, true);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
@@ -167,15 +161,15 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
 
         if (entity instanceof Player player) {
-            decrementAndTriggerDrain(player, cc, organ);
+            scheduleHealthDrainIfNeeded(cc, organ, true);
             updateFocusState(player, cc);
-            LOGGER.info("{} [slow-tick] EXIT owner={} reason=success_player", LOG_PREFIX, ownerName);
+            LOGGER.info("{} [slow-tick] EXIT owner={} reason=armed_player", LOG_PREFIX, ownerName);
             return;
         }
 
-        // Non-player path: apply periodic health drain scaled by linkage, no focus handling.
-        decrementAndTriggerDrain(entity, cc, organ);
-        LOGGER.info("{} [slow-tick] EXIT owner={} reason=success_non_player", LOG_PREFIX, ownerName);
+        // Non-player path: ensure scheduled drain armed
+        scheduleHealthDrainIfNeeded(cc, organ, false);
+        LOGGER.info("{} [slow-tick] EXIT owner={} reason=armed_non_player", LOG_PREFIX, ownerName);
     }
 
     @Override
@@ -235,27 +229,11 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     }
 
     private void decrementAndTriggerDrain(Player player, ChestCavityInstance cc, ItemStack organ) {
-        MultiCooldown.EntryInt timer = healthDrainTimer(cc, organ);
-        int remaining = timer.getTicks();
-        if (remaining > 0) {
-            timer.tickDown();
-        } else {
-            triggerHealthDrain(player, cc);
-            timer.start(HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
-        }
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        scheduleHealthDrainIfNeeded(cc, organ, true);
     }
 
     private void decrementAndTriggerDrain(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        MultiCooldown.EntryInt timer = healthDrainTimer(cc, organ);
-        int remaining = timer.getTicks();
-        if (remaining > 0) {
-            timer.tickDown();
-        } else {
-            triggerHealthDrainNonPlayer(entity, cc);
-            timer.start(HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
-        }
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        scheduleHealthDrainIfNeeded(cc, organ, false);
     }
 
     private float handleNonPlayerAttack(
@@ -552,6 +530,37 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
                 .withIntClamp(value -> Math.max(0, value), 0)
                 .build();
     }
+
+    private void scheduleHealthDrainIfNeeded(ChestCavityInstance cc, ItemStack organ, boolean isPlayer) {
+        if (cc == null || cc.owner == null || cc.owner.level().isClientSide() || organ == null || organ.isEmpty()) return;
+        if (!(cc.owner.level() instanceof ServerLevel server)) return;
+        MultiCooldown cooldown = createCooldown(cc, organ);
+        MultiCooldown.Entry ready = cooldown.entry(HEALTH_DRAIN_READY_AT_ID.toString());
+        long now = server.getGameTime();
+        long readyAt = ready.getReadyTick();
+        if (readyAt <= 0L || now >= readyAt) {
+            int initial = HEALTH_DRAIN_INTERVAL_SLOW_TICKS;
+            RandomSource random = cc.owner.getRandom();
+            initial = 1 + random.nextInt(Math.max(1, HEALTH_DRAIN_INTERVAL_SLOW_TICKS));
+            ready.setReadyAt(now + initial);
+        }
+        ready.onReady(server, now, () -> {
+            try {
+                if (isPlayer && cc.owner instanceof Player p) {
+                    triggerHealthDrain(p, cc);
+                } else {
+                    triggerHealthDrainNonPlayer(cc.owner, cc);
+                }
+                long nextAt = server.getGameTime() + HEALTH_DRAIN_INTERVAL_SLOW_TICKS;
+                MultiCooldown.Entry e = cooldown.entry(HEALTH_DRAIN_READY_AT_ID.toString());
+                e.setReadyAt(nextAt);
+                e.onReady(server, server.getGameTime(), this::noop);
+                NetworkUtil.sendOrganSlotUpdate(cc, organ);
+            } catch (Throwable ignored) { }
+        });
+    }
+
+    private void noop() {}
 
     private MultiCooldown.EntryInt healthDrainTimer(ChestCavityInstance cc, ItemStack organ) {
         return createCooldown(cc, organ)

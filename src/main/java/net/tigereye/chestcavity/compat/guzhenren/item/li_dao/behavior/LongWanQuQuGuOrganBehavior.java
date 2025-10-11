@@ -151,6 +151,23 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
                 0.8f,
                 1.1f
         );
+
+        // Cooldown toast at end of recharge window
+        if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+            long now = gameTime;
+            nextReadyEntry.onReady(sp.serverLevel(), now, () -> {
+                try {
+                    var itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(organ.getItem());
+                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
+                            true,
+                            itemId,
+                            "技能就绪",
+                            organ.getHoverName().getString()
+                    );
+                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
+                } catch (Throwable ignored) { }
+            });
+        }
     }
 
     private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {

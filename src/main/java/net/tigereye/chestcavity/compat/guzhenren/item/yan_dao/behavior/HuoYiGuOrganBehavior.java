@@ -341,6 +341,23 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
             BuiltInRegistries.SOUND_EVENT.getOptional(FIRE_HUO_YI_FX).ifPresent(sound ->
                     serverLevel.playSound(null, entity.blockPosition(), sound, SoundSource.PLAYERS, 1.0F, 1.0F));
         }
+
+        // Cooldown toast: notify at the end of cooldown
+        if (player instanceof ServerPlayer sp) {
+            long now = gameTime;
+            cooldownUntilEntry.onReady(serverLevel, now, () -> {
+                try {
+                    var itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
+                            true,
+                            itemId,
+                            "技能就绪",
+                            organ.getHoverName().getString()
+                    );
+                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
+                } catch (Throwable ignored) { }
+            });
+        }
     }
 
     private static void spawnActivationParticles(ServerLevel level, LivingEntity user) {

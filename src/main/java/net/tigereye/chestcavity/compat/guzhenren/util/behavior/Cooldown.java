@@ -65,6 +65,15 @@ public final class Cooldown {
         return true;
     }
 
+    /** Register a one-shot runnable when this timestamp-style cooldown becomes ready (relative to {@code now}). */
+    public Cooldown onReady(net.minecraft.server.level.ServerLevel level, long now, Runnable task) {
+        if (level == null || task == null) return this;
+        long remaining = Math.max(0L, getReadyTick() - now);
+        int delay = remaining > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) remaining;
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps.schedule(level, task, delay);
+        return this;
+    }
+
     /** Remaining ticks until ready; 0 if already ready. */
     public long remaining(long gameTime) {
         long next = getReadyTick();
@@ -91,5 +100,8 @@ public final class Cooldown {
         public boolean isReady() { return getTicks() <= 0; }
         public void start(int durationTicks) { setTicks(Math.max(0, durationTicks)); }
         public boolean tickDown() { int cur = getTicks(); if (cur <= 0) return false; setTicks(cur - 1); return true; }
+
+        /** Attach a callback invoked when the countdown crosses from >0 to 0 (no polling). */
+        public Int onReady(Runnable task) { return new Int(this.state, this.key, (prev, curr) -> { if (prev != null && prev > 0 && curr != null && curr == 0) { task.run(); } }); }
     }
 }

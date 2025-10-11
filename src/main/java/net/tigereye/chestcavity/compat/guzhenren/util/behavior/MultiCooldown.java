@@ -176,6 +176,15 @@ public final class MultiCooldown {
             return true;
         }
 
+        /** Register a one-shot runnable when this timestamp-style cooldown becomes ready (relative to {@code now}). */
+        public Entry onReady(net.minecraft.server.level.ServerLevel level, long now, Runnable task) {
+            if (level == null || task == null) return this;
+            long remaining = Math.max(0L, getReadyTick() - now);
+            int delay = remaining > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) remaining;
+            net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps.schedule(level, task, delay);
+            return this;
+        }
+
         private long resolveDefault() {
             return defaultOverride == null ? longDefault : defaultOverride;
         }
@@ -254,6 +263,19 @@ public final class MultiCooldown {
             }
             setTicks(current - 1);
             return true;
+        }
+
+        /** Attach a callback invoked when the countdown crosses from >0 to 0 (no polling). */
+        public EntryInt onReady(Runnable task) {
+            if (task == null) return this;
+            BiConsumer<Integer, Integer> prevHook = this.onChange;
+            this.onChange = (prev, curr) -> {
+                if (prevHook != null) prevHook.accept(prev, curr);
+                if (prev != null && prev > 0 && curr != null && curr == 0) {
+                    task.run();
+                }
+            };
+            return this;
         }
 
         private int resolveDefault() {

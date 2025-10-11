@@ -56,6 +56,8 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
     private static final String STATE_KEY = "LingXiangu";
     private static final String NORMAL_COOLDOWN_KEY = "NormalCooldown";
     private static final String STRESS_COOLDOWN_KEY = "StressCooldown";
+    private static final String NORMAL_READY_AT_KEY = "NormalReadyAt";
+    private static final String STRESS_READY_AT_KEY = "StressReadyAt";
 
     private static final int PLAYER_INTERVAL_SECONDS = 30;
     private static final int NON_PLAYER_INTERVAL_SECONDS = PLAYER_INTERVAL_SECONDS * 2;
@@ -95,31 +97,9 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
                 .withIntClamp(value -> Math.max(0, value), 0)
                 .build();
 
-        MultiCooldown.EntryInt normal = cooldown.entryInt(NORMAL_COOLDOWN_KEY);
-        MultiCooldown.EntryInt stress = cooldown.entryInt(STRESS_COOLDOWN_KEY);
-
-        RandomSource random = entity.getRandom();
-        initializeCooldowns(cooldown, normal, stress, random, normalInterval, stressInterval);
-
-        normal.tickDown();
-        stress.tickDown();
-
-        boolean stressTriggered = false;
-        if (stress.getTicks() <= 0 && shouldTriggerStress(entity)) {
-            if (attemptStressResponse(entity, organ, player)) {
-                stress.start(stressInterval);
-                if (normal.getTicks() < normalInterval) {
-                    normal.setTicks(normalInterval);
-                }
-                stressTriggered = true;
-            }
-        }
-
-        if (!stressTriggered && normal.getTicks() <= 0 && shouldTriggerBaseline(entity)) {
-            if (attemptBaselineHeal(entity, organ, player)) {
-                normal.start(normalInterval);
-            }
-        }
+        // Switch to readyAt + onReady chain for both tracks
+        scheduleBaselineIfNeeded(entity, cc, organ, cooldown, normalInterval);
+        scheduleStressIfNeeded(entity, cc, organ, cooldown, stressInterval);
     }
 
     /** Ensures linkage channels exist for downstream consumers. */
@@ -134,20 +114,62 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         xueDao.addPolicy(NON_NEGATIVE);
     }
 
-    private static void initializeCooldowns(
-            MultiCooldown cooldown,
-            MultiCooldown.EntryInt normal,
-            MultiCooldown.EntryInt stress,
-            RandomSource random,
-            int normalInterval,
-            int stressInterval
-    ) {
-        if (!cooldown.hasInt(NORMAL_COOLDOWN_KEY)) {
-            normal.setTicks(random.nextInt(normalInterval + 1));
+    private static void scheduleBaselineIfNeeded(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, MultiCooldown cooldown, int intervalSeconds) {
+        if (!(entity.level() instanceof ServerLevel server)) return;
+        long now = server.getGameTime();
+        MultiCooldown.Entry ready = cooldown.entry(NORMAL_READY_AT_KEY);
+        if (ready.getReadyTick() <= now) {
+            // randomize first trigger within interval
+            int offset = entity.getRandom().nextInt(intervalSeconds + 1);
+            ready.setReadyAt(now + offset);
         }
-        if (!cooldown.hasInt(STRESS_COOLDOWN_KEY)) {
-            stress.setTicks(random.nextInt(stressInterval + 1));
+        ready.onReady(server, now, () -> {
+            try {
+                Player player = entity instanceof Player ? (Player) entity : null;
+                if (shouldTriggerBaseline(entity)) {
+                    if (attemptBaselineHeal(entity, organ, player)) {
+                        // success: re-arm next tick
+                        long nextAt = server.getGameTime() + intervalSeconds;
+                        MultiCooldown.Entry e = cooldown.entry(NORMAL_READY_AT_KEY);
+                        e.setReadyAt(nextAt);
+                        e.onReady(server, server.getGameTime(), () -> {});
+                        return;
+                    }
+                }
+                // if not triggered due to guard, retry shortly (1s) to check again
+                MultiCooldown.Entry e = cooldown.entry(NORMAL_READY_AT_KEY);
+                e.setReadyAt(server.getGameTime() + 20);
+                e.onReady(server, server.getGameTime(), () -> {});
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    private static void scheduleStressIfNeeded(LivingEntity entity, ChestCavityInstance cc, ItemStack organ, MultiCooldown cooldown, int intervalSeconds) {
+        if (!(entity.level() instanceof ServerLevel server)) return;
+        long now = server.getGameTime();
+        MultiCooldown.Entry ready = cooldown.entry(STRESS_READY_AT_KEY);
+        if (ready.getReadyTick() <= now) {
+            int offset = entity.getRandom().nextInt(intervalSeconds + 1);
+            ready.setReadyAt(now + offset);
         }
+        ready.onReady(server, now, () -> {
+            try {
+                Player player = entity instanceof Player ? (Player) entity : null;
+                if (shouldTriggerStress(entity)) {
+                    if (attemptStressResponse(entity, organ, player)) {
+                        long nextAt = server.getGameTime() + intervalSeconds;
+                        MultiCooldown.Entry e = cooldown.entry(STRESS_READY_AT_KEY);
+                        e.setReadyAt(nextAt);
+                        e.onReady(server, server.getGameTime(), () -> {});
+                        return;
+                    }
+                }
+                // Retry check in 1s until guard satisfied
+                MultiCooldown.Entry e = cooldown.entry(STRESS_READY_AT_KEY);
+                e.setReadyAt(server.getGameTime() + 20);
+                e.onReady(server, server.getGameTime(), () -> {});
+            } catch (Throwable ignored) {}
+        });
     }
 
     private static boolean attemptBaselineHeal(LivingEntity entity, ItemStack organ, Player player) {

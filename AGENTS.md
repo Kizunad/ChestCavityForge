@@ -46,9 +46,11 @@
 
 - 组B：时间戳型（Entry/或自定义 NBT long，存“readyAt = gameTime + 冷却”）
   - 代表：
-    - 火衣蛊 HuoYiGu：`cooldownUntilEntry`（MultiCooldown.Entry long）ACTIVE_COOLDOWN_TICKS=220。
-    - 镰刀蛊 LiandaoGu：`LiandaoGuCooldown`（自管 NBT long），160–240t。
-    - 剑影蛊 JianYingGu：内部 `COOLDOWN_HISTORY`（仅内存映射，不落 NBT）。
+    - 火衣蛊 HuoYiGu：`cooldownUntilEntry`（MultiCooldown.Entry long）ACTIVE_COOLDOWN_TICKS=220。（已接入 onReady → 结束弹 Toast）
+    - 镰刀蛊 LiandaoGu：`LiandaoGuCooldown`（MultiCooldown.Entry long），160–240t。（已接入 onReady → 结束弹 Toast）
+    - 剑影蛊 JianYingGu：内部 `COOLDOWN_HISTORY`（仅内存映射，不落 NBT，已在 onReady 内发 Toast）。
+    - 血肺蛊 XieFeigu：`Cooldown`（时间戳型）已在激活后通过 onReady 发送 Toast。
+    - 龙丸蛐蛐蛊 LongWanQuQuGu：`NextReadyTick`（时间戳型）已在激活后通过 onReady 发送 Toast。
   - 嵌入点：时间自然流逝不会触发 onChange，需“到时回调”。
   - 计划：实现服务端轻量调度器 CooldownToastScheduler
     - API：`scheduleReadyToast(ServerPlayer, long readyTick, ItemStack|textureId, titleKey, sub)`
