@@ -66,6 +66,9 @@ public final class NetworkHandler {
         registrar.playToClient(GeckoFxEventPayload.TYPE, GeckoFxEventPayload.STREAM_CODEC, GeckoFxEventPayload::handle);
         registrar.playToClient(SoulBeastSyncPayload.TYPE, SoulBeastSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleSyncPayload);
         registrar.playToClient(SoulConfigSyncPayload.TYPE, SoulConfigSyncPayload.STREAM_CODEC, SoulConfigSyncPayload::handle);
+        registrar.playToClient(net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.TYPE,
+                net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.STREAM_CODEC,
+                net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload::handle);
     }
 
 
@@ -90,6 +93,10 @@ public final class NetworkHandler {
     }
 
     public static void sendGeckoFx(ServerPlayer player, GeckoFxEventPayload payload) {
+        player.connection.send(payload);
+    }
+
+    public static void sendCooldownToast(ServerPlayer player, net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload payload) {
         player.connection.send(payload);
     }
 }

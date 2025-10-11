@@ -11,6 +11,10 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.tigereye.chestcavity.client.modernui.TestModernUIFragment;
 import net.tigereye.chestcavity.client.modernui.config.ChestCavityConfigFragment;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import icyllis.modernui.mc.MuiModApi;
 import icyllis.modernui.fragment.Fragment;
 
@@ -31,7 +35,54 @@ public final class ModernUIClientCommands {
                 .executes(context -> openTestScreen())
                 .then(Commands.literal("screen").executes(context -> openTestScreen()))
                 .then(Commands.literal("container").executes(context -> requestContainer()))
-                .then(Commands.literal("config").executes(context -> openConfigScreen())));
+                .then(Commands.literal("config").executes(context -> openConfigScreen()))
+                .then(Commands.literal("toast").executes(ctx -> {
+                    var mc = net.minecraft.client.Minecraft.getInstance();
+                    if (mc != null && mc.getToasts() != null) {
+                        net.tigereye.chestcavity.client.ui.ReminderToast.show(
+                                "ModernUI Toast",
+                                "This is a PNG toast demo.",
+                                net.minecraft.resources.ResourceLocation.parse("modernui:textures/item/project_builder.png")
+                        );
+                        return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                    }
+                    return 0;
+                }))
+                .then(Commands.literal("toastitem")
+                        .then(Commands.argument("itemId", com.mojang.brigadier.arguments.StringArgumentType.string())
+                                .executes(ctx -> {
+                                    String idStr = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "itemId");
+                                    ResourceLocation id = ResourceLocation.parse(idStr);
+                                    var opt = BuiltInRegistries.ITEM.getOptional(id);
+                                    if (opt.isEmpty()) return 0;
+                                    Item item = opt.get();
+                                    net.tigereye.chestcavity.client.ui.ReminderToast.showItem(
+                                            "ModernUI Toast",
+                                            "Item icon demo: " + idStr,
+                                            new ItemStack(item)
+                                    );
+                                    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                                })))
+                .then(Commands.literal("hui")
+                        .then(Commands.argument("enabled", com.mojang.brigadier.arguments.BoolArgumentType.bool())
+                                .executes(ctx -> {
+                                    boolean enabled = com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "enabled");
+                                    net.tigereye.chestcavity.client.hud.TestHudOverlay.setEnabled(enabled);
+                                    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                                })))
+                .then(Commands.literal("huiitem")
+                        .then(Commands.argument("itemId", com.mojang.brigadier.arguments.StringArgumentType.string())
+                                .executes(ctx -> {
+                                    String idStr = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "itemId");
+                                    ResourceLocation id = ResourceLocation.parse(idStr);
+                                    var opt = BuiltInRegistries.ITEM.getOptional(id);
+                                    if (opt.isEmpty()) return 0;
+                                    Item item = opt.get();
+                                    net.tigereye.chestcavity.client.hud.TestHudOverlay.setItemIcon(new ItemStack(item));
+                                    // 不强制开启，由用户用 /testmodernUI hui true 控制
+                                    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                                })))
+        );
     }
 
     private static int openTestScreen() {

@@ -141,7 +141,21 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         MultiCooldown cooldown = createCooldown(cc, organ);
         MultiCooldown.EntryInt absorptionTimer = cooldown.entryInt(ABSORPTION_TIMER_KEY);
-        MultiCooldown.EntryInt invulnCooldown = cooldown.entryInt(INVULN_COOLDOWN_KEY);
+        MultiCooldown.EntryInt invulnCooldown = cooldown.entryInt(INVULN_COOLDOWN_KEY)
+                .withOnChange((prev, curr) -> {
+                    if (prev != null && prev > 0 && curr == 0 && !player.level().isClientSide()) {
+                        if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                            var itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(organ.getItem());
+                            var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
+                                    true,
+                                    itemId,
+                                    "技能就绪",
+                                    organ.getHoverName().getString()
+                            );
+                            net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
+                        }
+                    }
+                });
 
         if (paid) {
             ResourceOps.adjustJingli(player, JINGLI_PER_TICK * stackCount);

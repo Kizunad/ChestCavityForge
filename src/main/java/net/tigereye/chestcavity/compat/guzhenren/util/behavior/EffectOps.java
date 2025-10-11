@@ -47,7 +47,9 @@ public final class EffectOps {
         if (effect == null) {
             return;
         }
-        ensure(target, effect.builtInRegistryHolder(), durationTicks, amplifier, showParticles, showIcon);
+        // Fallback path using a direct holder wrapper
+        Holder<MobEffect> holder = Holder.direct(effect);
+        target.addEffect(new MobEffectInstance(holder, durationTicks, Math.max(0, amplifier), false, showParticles, showIcon));
     }
 
     public static void remove(LivingEntity target, Holder<MobEffect> effect) {
@@ -61,7 +63,7 @@ public final class EffectOps {
         if (effect == null) {
             return;
         }
-        remove(target, effect.builtInRegistryHolder());
+        target.removeEffect(Holder.direct(effect));
     }
 
     public static int applyToAllById(List<LivingEntity> targets, ResourceLocation effectId, int durationTicks, int amplifier,

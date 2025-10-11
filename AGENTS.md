@@ -21,6 +21,82 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+### ModernUI HUD/Toast 统一样式（当前状态）
+- 范围：仅实现 HUD 常驻与 Toast 提醒；ModernUI 界面内弹窗暂缓。
+- 命令：
+  - `/testmodernUI toast` 显示 PNG 图标的 Toast 提醒。
+  - `/testmodernUI hui true|false` 开关 HUD 常驻卡片。
+- 代码：
+  - 样式工具：`ChestCavityForge/src/main/java/net/tigereye/chestcavity/client/ui/HudUiPaint.java`
+    - `drawCard(...)` 统一阴影+底板配色；`drawIcon24(...)` 统一图标绘制；`TEXT_TITLE/TEXT_SUB` 文本色常量。
+  - Toast：`client/ui/ReminderToast.java`（改用 HudUiPaint）。
+  - HUD：`client/hud/TestHudOverlay.java`（改用 HudUiPaint）。
+- 注意：圆角目前为占位（方形卡片），后续可用 9-slice/mesh 实现真圆角与阴影模糊。
+
+### AttackAbility 冷却统计与 Toast 嵌入计划（分阶段）
+
+目标
+- 主动技能（AttackAbility）冷却结束时，客户端弹出“技能就绪”Toast（物品图标或 PNG）。
+
+现状分类（按冷却存储与触发方式）
+- 组A：倒计时型（EntryInt，显式 tickDown）
+  - 代表：冰肌蛊 BingJiGu 的无敌冷却 `INVULN_COOLDOWN_KEY`（MultiCooldown.EntryInt）等。
+  - 嵌入点：EntryInt.withOnChange(prev>0 && curr==0) 服务端发包。
+  - 进度：已在 BingJiGu 接入（onChange→CooldownReadyToastPayload）。
+
+- 组B：时间戳型（Entry/或自定义 NBT long，存“readyAt = gameTime + 冷却”）
+  - 代表：
+    - 火衣蛊 HuoYiGu：`cooldownUntilEntry`（MultiCooldown.Entry long）ACTIVE_COOLDOWN_TICKS=220。
+    - 镰刀蛊 LiandaoGu：`LiandaoGuCooldown`（自管 NBT long），160–240t。
+    - 剑影蛊 JianYingGu：内部 `COOLDOWN_HISTORY`（仅内存映射，不落 NBT）。
+  - 嵌入点：时间自然流逝不会触发 onChange，需“到时回调”。
+  - 计划：实现服务端轻量调度器 CooldownToastScheduler
+    - API：`scheduleReadyToast(ServerPlayer, long readyTick, ItemStack|textureId, titleKey, sub)`
+    - 机制：`ServerTickEvent.Post` 每秒扫描最近 64 条；到时发 `CooldownReadyToastPayload`，并从队列移除。
+    - 接入：在设置 `setReadyAt(gameTime + cooldown)` 的同一处调用 `scheduleReadyToast(...)`。
+
+- 组C：状态效果型（利用 CCStatusEffects 作为冷却）
+  - 代表（OrganActivationListeners 内置）：
+    - `ARROW_DODGE_COOLDOWN`, `DRAGON_BOMB_COOLDOWN`, `DRAGON_BREATH_COOLDOWN`, `EXPLOSION_COOLDOWN`,
+      `FORCEFUL_SPIT_COOLDOWN`, `GHASTLY_COOLDOWN`, `IRON_REPAIR_COOLDOWN`, `PYROMANCY_COOLDOWN`,
+      `SHULKER_BULLET_COOLDOWN`, `SILK_COOLDOWN` 等（对应 CCConfig 中秒表）。
+  - 嵌入点（无网络改造版本）：客户端每 tick 观察本地玩家的效果有无→由“有→无”转变时弹 Toast（每个效果保持 1 个最近状态，避免抖动）。
+
+数据与位置速记
+- 客户端能力登记（热键触发名单）：
+  - `compat/guzhenren/item/xue_dao/XueDaoClientAbilities.java`（血道：血肺蛊、血滴蛊）
+  - `compat/guzhenren/item/mu_dao/MuDaoClientAbilities.java`（木道：镰刀蛊）
+  - `compat/guzhenren/item/tu_dao/TuDaoClientAbilities.java`（土道：土墙蛊）
+  - `compat/guzhenren/item/yan_dao/YanDaoClientAbilities.java`（炎道：火衣蛊）
+- 代表性冷却键值：
+  - 冰肌蛊：`INVULN_COOLDOWN_KEY`（EntryInt，已接入 Toast）
+  - 火衣蛊：`cooldownUntilEntry`（Entry long）
+  - 镰刀蛊：`LiandaoGuCooldown`（自定义 NBT long）
+  - 剑影蛊：`CLONE_COOLDOWN_TICKS` + `COOLDOWN_HISTORY`（内存）
+  - 血肺蛊：`STATE_KEY/COOLDOWN_KEY`（Cooldown long）
+
+阶段性落地（建议顺序）
+1) 完成组A（EntryInt）批量接入：
+   - 模式：`entryInt(...).withOnChange((prev,curr) -> if(prev>0 && curr==0) sendCooldownToast)`
+   - 图标：优先 `organ.getItem()`，副标题用 `organ.getHoverName()`。
+2) 引入 CooldownToastScheduler（服务端）：
+   - 在火衣蛊与镰刀蛊设置冷却的同一处 `scheduleReadyToast(player, readyTick, icon, titleKey, sub)`。
+   - 剑影蛊可在成功激活时 `scheduleReadyToast(now + CLONE_COOLDOWN_TICKS, ...)`（从 `COOLDOWN_HISTORY` 推导）。
+3) 组C（状态效果）客户端观察器：
+   - 新建 `client/hud/CooldownEffectWatcher`：维护一组目标效果 `Holder<MobEffect>` 的上帧存在标记。
+   - 在 `ClientTickEvent.Post` 检测“从有到无”，调用 `ReminderToast.show(...)`。
+
+客户端展示协议（已实现）
+- Payload：`network/packets/CooldownReadyToastPayload`
+  - 服务器端构造：`useItemIcon` + `iconId`（物品或 PNG）+ `title` + `subtitle`
+  - 客户端处理：优先用物品图标，其次用 PNG；调用 `ReminderToast`（统一 HUD 样式）。
+
+验收清单
+- 冰肌蛊：无敌冷却就绪 → 弹物品图标 Toast。
+- 火衣蛊/镰刀蛊：冷却就绪（不提前/不重复）→ 弹 Toast。
+- CC 基础能力（火球/龙息等）：效果消失即 Toast（不刷屏）。
+- 文案：后续改为翻译键（title/subkey），当前可先用“技能就绪 + 器官名”。
+
 ### Guzhenren Ops 迁移（四步）
 1) 盘点：用 `rg` 搜索 `LinkageManager.getContext|getOrCreateChannel|GuzhenrenResourceBridge.open|NBTCharge`，登记仍未走 `LedgerOps/ResourceOps/MultiCooldown/AbsorptionHelper` 的行为类。
 2) 迁移：按家族（如 炎/力/水）分批替换至对应 Ops，删除重复的钳制/计时/属性清理代码。仅只读查询可暂保留低层 API。

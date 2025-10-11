@@ -111,6 +111,8 @@ public class TestModernUIContainerFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
+        // GUI 弹窗（ModernUI）暂时搁置，后续按需求恢复
+
         return root;
     }
 
@@ -184,6 +186,8 @@ public class TestModernUIContainerFragment extends Fragment {
         ClickType type = quickMove ? ClickType.QUICK_MOVE : ClickType.PICKUP;
         minecraft.gameMode.handleInventoryMouseClick(menu.containerId, slot.index, button, type, clientPlayer);
     }
+
+    // 弹窗类移除
 
     private void handleKeyInteraction(int keyCode) {
         // Map keyboard keys to vanilla container operations
