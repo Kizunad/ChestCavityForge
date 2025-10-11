@@ -1558,7 +1558,7 @@ public final class CapabilitySnapshotRegistry {
   - Swapped Shi Pi Gu’s absorption potion buff for `AbsorptionHelper` capacity management with a persistent modifier id.
 - Extended `EffectOps`/`LedgerOps` utility surfaces to support the migration (new ensure/lookup overloads).
 - Follow-up backlog:
-  - Batch A remaining items (`XieFeigu`, `TuQiangGu`, `LiandaoGu`) still need conversion.
+  - ✅ Batch A remaining items (`XieFeigu`, `TuQiangGu`, `LiandaoGu`) migrated to the shared Ops stack (LedgerOps/MultiCooldown/ResourceOps cleanup, absorption + linkage contributions unified).
   - Re-run `./gradlew compileJava` once the Gradle cache contention on `decompile_*` resolves (current run aborted after a long lock wait).
 
 Purpose
