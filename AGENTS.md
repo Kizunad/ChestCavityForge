@@ -1467,3 +1467,111 @@ public final class CapabilitySnapshotRegistry {
 3) 实现 ChestCavitySnapshot 与 GuzhenrenSnapshot 的空壳（只做 NBT 结构与开关）；
 4) 为两者逐步补充 capture/apply 逻辑，先从只读指标开始（不写回），再扩展到完整恢复；
 5) 提供一组单元测试：capture→save→load→apply 的往返一致性；切换/后台保存/登出流程的幂等与防覆盖验证。
+
+
+
+---
+
+## Guzhenren Ops Migration Plan (step-by-step)
+
+Purpose
+- Unify compat/guzhenren behaviours on shared Ops: `LedgerOps`, `ResourceOps`, `MultiCooldown`/`CooldownOps`, `EffectOps`, `AttributeOps`, `TargetingOps`, `TickOps`, and the global `AbsorptionHelper`.
+- Eliminate manual `LinkageManager`/direct resource writes/bespoke timers/hand-rolled attribute and potion logic.
+
+Phases
+- Phase 0 — Inventory (once):
+  - Search patterns: `LinkageManager`, `increase_effect`, `GuzhenrenResourceBridge.open`, `new MobEffectInstance`, `addEffect/removeEffect`, `getAttribute/new AttributeModifier`, `Timer|Cooldown|ticks|last|next` in behaviours.
+  - Produce a short list per family: Blood(Xue), Bone(Gu), Earth(Tu), Wood(Mu), Water(Shui), Fire(Yan), Ice(Bing), Stone(Shi), Poison(Du), Sword(Jian), Soul(Hun), Kongqiao, etc.
+
+- Phase 1 — Migration per bucket (repeat until done):
+  1) LedgerOps (Increase Effects)
+     - Implement `IncreaseEffectContributor` when the organ contributes to any `*_increase_effect` channel.
+     - Replace direct `LinkageManager.getContext(cc).increaseEffects().set/remove` with:
+       - `LedgerOps.set(cc, channelId, contributorId, value)` on equip/enable paths.
+       - `LedgerOps.remove(cc, channelId, contributorId)` on remove/disable paths.
+       - Call `LedgerOps.rebuildIncreaseEffects(cc)` after bulk toggles or when drift is detected.
+     - Normative snippet:
+       - On equip: `LedgerOps.set(cc, CHANNEL_ID, CONTRIBUTOR_ID, 0.10);`
+       - On remove: `LedgerOps.remove(cc, CHANNEL_ID, CONTRIBUTOR_ID);`
+       - On tick end: optionally `LedgerOps.verifyAndRebuildIfNeeded(cc)` when debugging ledger mismatches.
+
+  2) ResourceOps (Zhenyuan/Jingli/Hunpo)
+     - Replace `GuzhenrenResourceBridge.open(...).get()/write(...)` with `ResourceOps`:
+       - Read: `ResourceOps.readDouble(player, key, fallback)`.
+       - Adjust: `ResourceOps.adjustDouble(player, key, delta)` or `consumeStrict` helpers when no HP fallback is allowed.
+       - Player vs. non-player: keep separate handler paths; for non-player fallback, centralise in `GuzhenrenResourceCostHelper` (if available) or add a util method next to the behavior.
+
+  3) MultiCooldown/CooldownOps (Timers)
+     - Replace ad-hoc NBT `Timer/Cooldown/last/next` with `MultiCooldown` entries keyed by `ResourceLocation`.
+     - Normative snippet:
+       - Define keys: `private static final ResourceLocation COOLDOWN_KEY = rl("modid:path");`
+       - Read: `long next = MultiCooldown.entry(state, COOLDOWN_KEY).getReadyTick();`
+       - Arm: `MultiCooldown.entry(state, COOLDOWN_KEY).arm(gameTime + ticks);`
+       - Guard: `if (gameTime < next) return;`
+
+  4) EffectOps (Potions)
+     - Replace direct `addEffect/removeEffect/new MobEffectInstance` with `EffectOps`:
+       - Give: `EffectOps.give(entity, effect, durationTicks, amplifier, showIcon, showParticles)`.
+       - Remove: `EffectOps.remove(entity, effect)`.
+       - Toggle patterns use `EffectOps.ensure(entity, effect, duration, amp, visibility)`.
+
+  5) AttributeOps/AbsorptionHelper (Attributes + Shield)
+     - Avoid hand-rolled attribute modifiers. For absorption, always use `AbsorptionHelper`:
+       - Ensure capacity: `AbsorptionHelper.applyAbsorption(entity, cap, modifierId, true)`.
+       - Set/refresh value: `AbsorptionHelper.applyAbsorption(entity, value, modifierId, false)`.
+       - Clear on removal: `AbsorptionHelper.clearAbsorptionCapacity(entity, modifierId)`.
+     - Prerequisite: `SteelBoneAttributeHooks` must inject `MAX_ABSORPTION` for players. Keep helper null-safe for entities missing the attribute.
+
+  6) TargetingOps/TickOps (Iteration + selection)
+     - Use `TargetingOps` for sphere/ring/line scans and entity filters; avoid custom AABB math unless specialised.
+     - Use `TickOps.every(serverLevel, periodTicks, key)` for periodic tasks instead of manual modulo counters when possible.
+
+Registration & Activation (AttackAbility)
+- Follow JianYingGu pattern strictly:
+  - Enum singleton behavior with a static block: `OrganActivationListeners.register(ABILITY_ID, Behavior::activateAbility)`.
+  - No constructor side-effects; avoid `<clinit>` heavy logic.
+  - Client adds literal ability ids to `ATTACK_ABILITY_LIST` (string `ResourceLocation`), never class references.
+  - Server hotkey path logs remain DEBUG; INFO only when diagnosing.
+
+Validation Checklist
+- Build: `./gradlew compileJava` (always before yield).
+- Manual checks (single-player or test server):
+  - Equip/unequip: ledger totals update and fully reset on removal; no `Rebuilt increase effects ... totals=0` after final removal.
+  - Cooldowns: no negative ticks; re-equip doesn’t resurrect stale timers; multi-organ stacks don’t share one timer unless design says so.
+  - Absorption: caps respected (e.g., 20) and cleared on removal; no stacking beyond cap; steel-bone combo capacity registered.
+  - Effects: durations and amplifier follow spec; detach clears buffs/debuffs as intended.
+  - Soul/soulbeast: early-return paths present; non-player handlers avoid accessing player-only resources.
+
+Concrete Targets (first three batches)
+- Batch A (high drift/old paths):
+  - XueDao: `XiediguOrganBehavior`, `XieFeiguOrganBehavior`, `XieyanguOrganBehavior` → LedgerOps, MultiCooldown, EffectOps, AttributeOps where applicable.
+  - TuDao: `ShiPiGuOrganBehavior`, `TuQiangGuOrganBehavior` → LedgerOps/AbsorptionHelper (TuQiangGu 已部分迁移，以 Helper 统一)。
+  - MuDao: `LiandaoGuOrganBehavior` → MultiCooldown + ResourceOps where it spends/arms.
+- Batch B (resource/attr unification):
+  - GuDao: `YuGuguOrganBehavior`, `LeGuDunGuOrganBehavior`, `GangjinguOrganBehavior` → ResourceOps + LedgerOps; attributes to AttributeOps where needed.
+  - SanZhuan/WuHang: `JinfeiguOrganBehavior` → AbsorptionHelper (替换药水型吸收)。
+- Batch C (registries/seed/aux):
+  - Kongqiao: `DaoHenBehavior`, `DaoHenClientBehavior`, `DaoHenSeedHandler` → ResourceOps + guard logs; avoid direct bridge writes.
+  - Remaining families with direct `LinkageManager` calls → LedgerOps.
+
+Coding Conventions (normative)
+- Never mutate `LinkageChannel` directly in behaviours; always go through `LedgerOps`.
+- Separate `handlerPlayer(...)` and `handlerNonPlayer(...)` for Guzhenren resources; centralise fallback to HP if design requires (via shared helper).
+- Use unique `ResourceLocation` keys for every cooldown/attribute modifier to avoid collisions.
+- Keep INFO logs minimal; prefer DEBUG with clear early-return reasons guarded by a feature toggle when diagnosing.
+
+Exit Criteria per file
+- No direct imports of `LinkageManager`, `GuzhenrenResourceBridge` (outside ResourceOps), `new MobEffectInstance`/`addEffect/removeEffect`, `new AttributeModifier/getAttribute` in behaviours after migration.
+- All timers expressed as `MultiCooldown` or `CooldownOps` entries.
+- Equip/unequip paths call the right `LedgerOps.set/remove` and `AbsorptionHelper.clear...` when applicable.
+
+How to verify (fast loop)
+- Compile: `./gradlew compileJava`.
+- In-game quick script:
+  - Equip organ A → observe expected increase/shield/effects.
+  - Unequip organ A → observe totals return to baseline; no lingering shields/effects.
+  - Re-equip organ A twice → ensure unique keys don’t collide; cooldowns remain per-instance if intended.
+  - Trigger abilities (hotkey + soul handler) → activation path logs only on DEBUG.
+
+
+---
