@@ -20,15 +20,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
@@ -37,7 +35,6 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
-import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
 import org.joml.Vector3f;
@@ -72,7 +69,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final String STATE_KEY = "Xieyangu";
-    private static final String TIMER_KEY = "Timer";
+    private static final ResourceLocation HEALTH_DRAIN_COOLDOWN_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "cooldowns/xieyangu_health_drain");
 
     private static final int HEALTH_DRAIN_INTERVAL_SLOW_TICKS = 60; // once per minute
     private static final float BASE_CRIT_MULTIPLIER = 1.5f;
@@ -117,13 +115,14 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return;
         }
 
-        if (readTimer(organ) <= 0) {
+        MultiCooldown.EntryInt drainTimer = healthDrainTimer(cc, organ);
+        if (drainTimer.getTicks() <= 0) {
             int initial = HEALTH_DRAIN_INTERVAL_SLOW_TICKS;
             if (cc.owner != null) {
                 RandomSource random = cc.owner.getRandom();
                 initial = 1 + random.nextInt(Math.max(1, HEALTH_DRAIN_INTERVAL_SLOW_TICKS));
             }
-            writeTimer(organ, initial);
+            drainTimer.start(initial);
         }
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
@@ -232,27 +231,29 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (cc == null) {
             return;
         }
-        ensureChannel(LinkageManager.getContext(cc));
+        LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
     }
 
     private void decrementAndTriggerDrain(Player player, ChestCavityInstance cc, ItemStack organ) {
-        int timer = Math.max(0, readTimer(organ));
-        if (timer > 0) {
-            writeTimer(organ, timer - 1);
+        MultiCooldown.EntryInt timer = healthDrainTimer(cc, organ);
+        int remaining = timer.getTicks();
+        if (remaining > 0) {
+            timer.tickDown();
         } else {
             triggerHealthDrain(player, cc);
-            writeTimer(organ, HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
+            timer.start(HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
         }
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
     private void decrementAndTriggerDrain(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        int timer = Math.max(0, readTimer(organ));
-        if (timer > 0) {
-            writeTimer(organ, timer - 1);
+        MultiCooldown.EntryInt timer = healthDrainTimer(cc, organ);
+        int remaining = timer.getTicks();
+        if (remaining > 0) {
+            timer.tickDown();
         } else {
             triggerHealthDrainNonPlayer(entity, cc);
-            writeTimer(organ, HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
+            timer.start(HEALTH_DRAIN_INTERVAL_SLOW_TICKS);
         }
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
@@ -285,12 +286,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             return damage;
         }
 
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return damage;
-        }
-        LinkageChannel channel = ensureChannel(context);
-        double effectBonus = Math.max(0.0, channel.get());
+        LinkageChannel channel = LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        double effectBonus = Math.max(0.0, channel == null ? 0.0 : channel.get());
         int stackCount = Math.max(1, organ.getCount());
         double scaling = stackCount * (1.0 + effectBonus);
 
@@ -377,7 +374,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (player == null || cc == null) {
             return;
         }
-        double increase = 1.0 + Math.max(0.0, ensureChannel(LinkageManager.getContext(cc)).get());
+        LinkageChannel channel = LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        double increase = 1.0 + Math.max(0.0, channel == null ? 0.0 : channel.get());
         float damage = (float) (1.0 / Math.max(increase, 1.0));
         if (damage <= 0.0f) {
             return;
@@ -407,7 +405,8 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         if (entity == null || cc == null) {
             return;
         }
-        double increase = 1.0 + Math.max(0.0, ensureChannel(LinkageManager.getContext(cc)).get());
+        LinkageChannel channel = LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        double increase = 1.0 + Math.max(0.0, channel == null ? 0.0 : channel.get());
         float damage = (float) (1.0 / Math.max(increase, 1.0));
         if (damage <= 0.0f) {
             return;
@@ -546,36 +545,18 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
         return ORGAN_ID.equals(id);
     }
-
-    private static LinkageChannel ensureChannel(ActiveLinkageContext context) {
-        LinkageChannel channel = context.getOrCreateChannel(XUE_DAO_INCREASE_EFFECT);
-        channel.addPolicy(NON_NEGATIVE);
-        return channel;
+    
+    private MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        return MultiCooldown.builder(OrganState.of(organ, STATE_KEY))
+                .withSync(cc, organ)
+                .withIntClamp(value -> Math.max(0, value), 0)
+                .build();
     }
 
-    private static int readTimer(ItemStack stack) {
-        CustomData data = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return 0;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        return state.getInt(TIMER_KEY);
-    }
-
-    private static void writeTimer(ItemStack stack, int value) {
-        int clamped = Math.max(0, value);
-        int previous = readTimer(stack);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ?
-                    tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putInt(TIMER_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
-        logNbtChange(stack, TIMER_KEY, previous, clamped);
+    private MultiCooldown.EntryInt healthDrainTimer(ChestCavityInstance cc, ItemStack organ) {
+        return createCooldown(cc, organ)
+                .entryInt(HEALTH_DRAIN_COOLDOWN_ID.toString())
+                .withClamp(value -> Math.max(0, value));
     }
 
     private static void logNbtChange(ItemStack stack, String key, Object oldValue, Object newValue) {

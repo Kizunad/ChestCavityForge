@@ -10,8 +10,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -22,21 +20,17 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
-import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.util.AbsorptionHelper;
 import org.joml.Vector3f;
-
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.component.CustomData;
 
 /**
  * Behaviour implementation for 石皮蛊 (Shi Pi Gu).
@@ -59,11 +53,14 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final String STATE_KEY = "ShiPiGu";
-    private static final String TIMER_KEY = "RechargeTimer";
+    private static final ResourceLocation RECHARGE_COOLDOWN_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "cooldowns/shi_pi_gu_recharge");
+    private static final ResourceLocation ABSORPTION_MODIFIER_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/shi_pi_gu_absorption");
+    private static final double ABSORPTION_PER_LEVEL = 4.0D;
 
     private static final int MAX_CHARGE = 10;
     private static final int RECOVERY_INTERVAL_SLOW_TICKS = 10; // 10 seconds (slow tick fires once per second)
-    private static final int RESIST_EFFECT_DURATION = 40; // maintain coverage between slow ticks
 
     private static final int BLOCK_PARTICLE_MIN = 15;
     private static final int BLOCK_PARTICLE_MAX = 20;
@@ -83,39 +80,38 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         }
 
         int charge = Math.min(MAX_CHARGE, NBTCharge.getCharge(organ, STATE_KEY));
-        int timer = readRechargeTimer(organ);
         boolean chargeChanged = false;
-        boolean timerChanged = false;
+
+        MultiCooldown.EntryInt rechargeEntry = rechargeTimer(cc, organ);
 
         if (charge < MAX_CHARGE) {
-            timer += 1;
-            if (timer >= RECOVERY_INTERVAL_SLOW_TICKS) {
-                timer = 0;
+            int remaining = rechargeEntry.getTicks();
+            if (remaining > 0) {
+                rechargeEntry.tickDown();
+                remaining = rechargeEntry.getTicks();
+            }
+            if (remaining <= 0) {
                 charge = Math.min(MAX_CHARGE, charge + 1);
                 chargeChanged = true;
-                timerChanged = true;
                 playRechargeCue(entity);
-            } else {
-                timerChanged = true;
+                if (charge < MAX_CHARGE) {
+                    rechargeEntry.start(RECOVERY_INTERVAL_SLOW_TICKS);
+                } else {
+                    rechargeEntry.clear();
+                }
             }
-        } else if (timer != 0) {
-            timer = 0;
-            timerChanged = true;
+        } else if (!rechargeEntry.isReady()) {
+            rechargeEntry.clear();
         }
 
         if (chargeChanged) {
             NBTCharge.setCharge(organ, STATE_KEY, charge);
         }
-        if (timerChanged) {
-            writeRechargeTimer(organ, timer);
-        }
         if (chargeChanged) {
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
-        if (charge > 0) {
-            applyAbsorption(entity, cc, charge);
-        }
+        applyAbsorption(entity, cc, charge);
     }
 
     @Override
@@ -137,7 +133,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         int updated = Math.max(0, charge - 1);
         if (updated != charge) {
             NBTCharge.setCharge(organ, STATE_KEY, updated);
-            writeRechargeTimer(organ, 0);
+            rechargeTimer(cc, organ).start(RECOVERY_INTERVAL_SLOW_TICKS);
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
@@ -158,14 +154,12 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
     }
 
     private static void applyAbsorption(LivingEntity entity, ChestCavityInstance cc, int charge) {
-        double ratio = Math.max(0.0, (double) charge / (double) MAX_CHARGE);
-        int baseLevel = charge > 0 ? Math.max(1, (int) Math.round(ratio)) : 0;
-        LinkageChannel increaseChannel = ensureChannel(cc, TU_DAO_INCREASE_EFFECT);
-        double increaseTotal = 1.0 + Math.max(0.0, increaseChannel.get());
-        double scaledLevel = baseLevel * increaseTotal;
-        int finalLevel = Math.max(1, (int) Math.round(scaledLevel));
-        int amplifier = Math.max(0, finalLevel - 1);
-        entity.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, RESIST_EFFECT_DURATION, amplifier, true, true));
+        LinkageChannel channel = LedgerOps.ensureChannel(cc, TU_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        double increase = channel == null ? 0.0 : channel.get();
+        double baseLevel = charge > 0 ? Math.max(1.0, Math.round((double) charge / (double) MAX_CHARGE)) : 0.0;
+        double effectiveLevel = baseLevel * (1.0 + Math.max(0.0, increase));
+        double absorptionAmount = Math.max(0.0, effectiveLevel * ABSORPTION_PER_LEVEL);
+        AbsorptionHelper.applyAbsorption(entity, absorptionAmount, ABSORPTION_MODIFIER_ID, false);
     }
 
     private static void playRechargeCue(LivingEntity entity) {
@@ -295,30 +289,20 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         }
     }
 
+    private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+        return MultiCooldown.builder(OrganState.of(organ, STATE_KEY))
+                .withSync(cc, organ)
+                .withIntClamp(value -> Mth.clamp(value, 0, RECOVERY_INTERVAL_SLOW_TICKS), 0)
+                .build();
+    }
+
+    private static MultiCooldown.EntryInt rechargeTimer(ChestCavityInstance cc, ItemStack organ) {
+        return createCooldown(cc, organ)
+                .entryInt(RECHARGE_COOLDOWN_ID.toString())
+                .withClamp(value -> Mth.clamp(value, 0, RECOVERY_INTERVAL_SLOW_TICKS));
+    }
+
     private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
-    }
-
-    private static int readRechargeTimer(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return 0;
-        }
-        CompoundTag root = data.copyTag();
-        if (!root.contains(STATE_KEY, Tag.TAG_COMPOUND)) {
-            return 0;
-        }
-        CompoundTag state = root.getCompound(STATE_KEY);
-        return state.getInt(TIMER_KEY);
-    }
-
-    private static void writeRechargeTimer(ItemStack stack, int value) {
-        int clamped = Math.max(0, value);
-        NBTWriter.updateCustomData(stack, tag -> {
-            CompoundTag state = tag.contains(STATE_KEY, Tag.TAG_COMPOUND) ? tag.getCompound(STATE_KEY) : new CompoundTag();
-            state.putInt(TIMER_KEY, clamped);
-            tag.put(STATE_KEY, state);
-        });
+        return LedgerOps.ensureChannel(cc, id, NON_NEGATIVE);
     }
 }

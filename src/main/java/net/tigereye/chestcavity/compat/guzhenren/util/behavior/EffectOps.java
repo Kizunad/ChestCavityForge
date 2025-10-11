@@ -30,6 +30,40 @@ public final class EffectOps {
         return true;
     }
 
+    public static void ensure(LivingEntity target, Holder<MobEffect> effect, int durationTicks, int amplifier,
+                              boolean showParticles, boolean showIcon) {
+        if (target == null || effect == null) {
+            return;
+        }
+        if (durationTicks <= 0) {
+            remove(target, effect);
+            return;
+        }
+        target.addEffect(new MobEffectInstance(effect, durationTicks, Math.max(0, amplifier), false, showParticles, showIcon));
+    }
+
+    public static void ensure(LivingEntity target, MobEffect effect, int durationTicks, int amplifier,
+                              boolean showParticles, boolean showIcon) {
+        if (effect == null) {
+            return;
+        }
+        ensure(target, effect.builtInRegistryHolder(), durationTicks, amplifier, showParticles, showIcon);
+    }
+
+    public static void remove(LivingEntity target, Holder<MobEffect> effect) {
+        if (target == null || effect == null) {
+            return;
+        }
+        target.removeEffect(effect);
+    }
+
+    public static void remove(LivingEntity target, MobEffect effect) {
+        if (effect == null) {
+            return;
+        }
+        remove(target, effect.builtInRegistryHolder());
+    }
+
     public static int applyToAllById(List<LivingEntity> targets, ResourceLocation effectId, int durationTicks, int amplifier,
                                       boolean showParticles, boolean showIcon) {
         if (targets == null || targets.isEmpty()) {

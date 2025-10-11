@@ -10,6 +10,8 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 
+import java.util.Optional;
+
 /**
  * Helpers around IncreaseEffectLedger + LinkageChannel operations.
  */
@@ -33,6 +35,32 @@ public final class LedgerOps {
         return channel;
     }
 
+    /** Ensure the channel exists on the provided chest cavity. */
+    public static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation channelId, ClampPolicy... policies) {
+        return ensureChannel(context(cc), channelId, policies);
+    }
+
+    /** Lookup a channel if it exists without creating it. */
+    public static Optional<LinkageChannel> lookupChannel(ActiveLinkageContext context, ResourceLocation channelId) {
+        if (context == null || channelId == null) {
+            return Optional.empty();
+        }
+        return context.lookupChannel(channelId);
+    }
+
+    /** Lookup a channel if it exists without creating it. */
+    public static Optional<LinkageChannel> lookupChannel(ChestCavityInstance cc, ResourceLocation channelId) {
+        return lookupChannel(context(cc), channelId);
+    }
+
+    /** Resolve the linkage context associated with the chest cavity. */
+    public static ActiveLinkageContext context(ChestCavityInstance cc) {
+        if (cc == null) {
+            return null;
+        }
+        return LinkageManager.getContext(cc);
+    }
+
     /** Register the organ as a contributor for one or more channels. */
     public static void registerContributor(ChestCavityInstance cc, ItemStack organ,
                                            IncreaseEffectContributor contributor,
@@ -40,7 +68,7 @@ public final class LedgerOps {
         if (cc == null || organ == null || organ.isEmpty() || contributor == null) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        ActiveLinkageContext context = context(cc);
         if (context == null) {
             return;
         }
@@ -54,7 +82,7 @@ public final class LedgerOps {
         if (cc == null || organ == null || organ.isEmpty() || channelId == null || delta == 0.0) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        ActiveLinkageContext context = context(cc);
         if (context == null) {
             return;
         }
@@ -77,7 +105,7 @@ public final class LedgerOps {
         if (cc == null || organ == null || organ.isEmpty() || channelId == null) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
+        ActiveLinkageContext context = context(cc);
         if (context == null) {
             return;
         }
