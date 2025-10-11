@@ -1474,6 +1474,17 @@ public final class CapabilitySnapshotRegistry {
 
 ## Guzhenren Ops Migration Plan (step-by-step)
 
+### 2025-02-15 Implementation Record (web Codex)
+- Migrated `XiediguOrganBehavior`, `XieyanguOrganBehavior`, and `ShiPiGuOrganBehavior` to the shared Ops stack:
+  - Replaced direct `LinkageManager` usage with `LedgerOps` helpers and added context-safe channel lookups.
+  - Ported organ timers to `MultiCooldown` (health drain cadence + Shi Pi Gu recharge) and removed bespoke NBT counters.
+  - Standardised effect application via the extended `EffectOps.ensure/remove` helpers (blood weakness aura, etc.).
+  - Swapped Shi Pi Gu’s absorption potion buff for `AbsorptionHelper` capacity management with a persistent modifier id.
+- Extended `EffectOps`/`LedgerOps` utility surfaces to support the migration (new ensure/lookup overloads).
+- Follow-up backlog:
+  - Batch A remaining items (`XieFeigu`, `TuQiangGu`, `LiandaoGu`) still need conversion.
+  - Re-run `./gradlew compileJava` once the Gradle cache contention on `decompile_*` resolves (current run aborted after a long lock wait).
+
 Purpose
 - Unify compat/guzhenren behaviours on shared Ops: `LedgerOps`, `ResourceOps`, `MultiCooldown`/`CooldownOps`, `EffectOps`, `AttributeOps`, `TargetingOps`, `TickOps`, and the global `AbsorptionHelper`.
 - Eliminate manual `LinkageManager`/direct resource writes/bespoke timers/hand-rolled attribute and potion logic.

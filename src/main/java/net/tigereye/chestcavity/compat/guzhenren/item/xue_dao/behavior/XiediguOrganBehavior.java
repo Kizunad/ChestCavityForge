@@ -15,7 +15,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -26,9 +25,8 @@ import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TargetingOps;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
@@ -139,7 +137,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         if (cc == null) {
             return;
         }
-        ensureChannel(LinkageManager.getContext(cc));
+        LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
     }
 
     /** Called when the organ is evaluated inside the chest cavity. */
@@ -235,7 +233,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         writeStoredDrops(organ, 0);
         writeDry(organ, false);
         writeEquipMessageShown(organ, false);
-        entity.removeEffect(MobEffects.WEAKNESS);
+        EffectOps.remove(entity, MobEffects.WEAKNESS);
     }
 
     private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -276,7 +274,7 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
         writeStoredDrops(organ, 0);
         writeDry(organ, false);
         writeTimer(organ, GENERATION_INTERVAL_SLOW_TICKS);
-        entity.removeEffect(MobEffects.WEAKNESS);
+        EffectOps.remove(entity, MobEffects.WEAKNESS);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
@@ -307,8 +305,9 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     }
 
     private static double computeXueDaoMultiplier(ChestCavityInstance cc) {
-        LinkageChannel channel = ensureChannel(LinkageManager.getContext(cc));
-        return Math.max(0.0, 1.0 + channel.get());
+        LinkageChannel channel = LedgerOps.ensureChannel(cc, XUE_DAO_INCREASE_EFFECT, NON_NEGATIVE);
+        double increase = channel == null ? 0.0 : channel.get();
+        return Math.max(0.0, 1.0 + increase);
     }
 
     private static void applyRecovery(Player player, int drops) {
@@ -388,10 +387,10 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             return;
         }
         if (dry) {
-            entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, WEAKNESS_DURATION_TICKS, 1, false, true, true));
+            EffectOps.ensure(entity, MobEffects.WEAKNESS, WEAKNESS_DURATION_TICKS, 1, true, true);
             if (!wasDry) { playDrynessCues(entity); }
         } else if (wasDry) {
-            entity.removeEffect(MobEffects.WEAKNESS);
+            EffectOps.remove(entity, MobEffects.WEAKNESS);
         }
     }
 
@@ -506,10 +505,6 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             }
         }
         return ItemStack.EMPTY;
-    }
-
-    private static LinkageChannel ensureChannel(ActiveLinkageContext context) {
-        return context.getOrCreateChannel(XUE_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
     }
 
     private static int clampStoredDrops(ItemStack stack, int capacity) {
