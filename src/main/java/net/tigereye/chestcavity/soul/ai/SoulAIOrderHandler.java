@@ -108,7 +108,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         double desired = Math.max(1.25, Math.min(maxRange - 0.15, 3.0));
         // If extremely close, try an evade blink (consumes 50 jingli, 5s cooldown)
         double tooClose = Math.max(KITE_MIN_DIST, 0.5 + (soul.getBbWidth() + target.getBbWidth()) * 0.5);
-        if (d <= tooClose && net.tigereye.chestcavity.soul.ai.SoulEvadeHelper.tryEvade(soul, target)) {
+        if (d <= tooClose && net.tigereye.chestcavity.soul.ai.SoulEvadeHelper.tryEvade(soul, target, d, tooClose)) {
             return; // evaded this tick
         }
         // Compute a position on the ring around target, pointing away from it
@@ -209,7 +209,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         double desired2 = Math.max(2.5, Math.min(maxRange2 - 0.25, KITE_TARGET_DIST));
         double d2 = soul.distanceTo(target);
         double tooClose2 = Math.max(KITE_MIN_DIST, 0.5 + (soul.getBbWidth() + target.getBbWidth()) * 0.5);
-        if (d2 <= tooClose2 && net.tigereye.chestcavity.soul.ai.SoulEvadeHelper.tryEvade(soul, target)) {
+        if (d2 <= tooClose2 && net.tigereye.chestcavity.soul.ai.SoulEvadeHelper.tryEvade(soul, target, d2, tooClose2)) {
             return; // evaded this tick
         }
         var away2 = soul.position().subtract(target.position());

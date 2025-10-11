@@ -20,9 +20,7 @@ public final class SoulLog {
     private static final Logger LOGGER = ChestCavity.LOGGER;
 
     public static void info(String message, Object... args) {
-        if (DEBUG_LOGS) {
-            LOGGER.info(message, args);
-        }
+        LOGGER.info(message, args);
     }
 
     public static void warn(String message, Object... args) {

@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
@@ -20,8 +21,10 @@ import net.minecraft.core.component.DataComponents;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
 import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.neoforged.fml.util.ObfuscationReflectionHelper;
 
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -81,23 +84,70 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     public static boolean tryUseAnyHealingItem(SoulPlayer player) {
         float before = player.getHealth();
         boolean used = false;
+        String reason = "none";
+        String reasonDetail = "";
         // 1) Guzhenren quick-use items
-        used = tryUseGuzhenrenItemStatic(player);
+        AttemptResult guz = tryUseGuzhenrenItemStatic(player);
+        used = guz.used;
+        if (used) {
+            reason = guz.reason;
+            reasonDetail = guz.detail;
+        } else if (!guz.detail.isEmpty()) {
+            reasonDetail = append(reasonDetail, guz.detail);
+        }
         // 2) Enchanted Golden Apple
-        if (!used) used = useSimpleItem(player, Items.ENCHANTED_GOLDEN_APPLE);
+        if (!used && checkHasItem(player, Items.ENCHANTED_GOLDEN_APPLE)) {
+            used = useSimpleItem(player, Items.ENCHANTED_GOLDEN_APPLE);
+            reason = used ? "enchanted_golden_apple" : "enchanted_golden_apple-cooldown";
+        } else if (!used) {
+            reasonDetail = append(reasonDetail, "missing enchanted_golden_apple");
+        }
         // 3) Golden Apple
-        if (!used) used = useSimpleItem(player, Items.GOLDEN_APPLE);
+        if (!used && checkHasItem(player, Items.GOLDEN_APPLE)) {
+            used = useSimpleItem(player, Items.GOLDEN_APPLE);
+            reason = used ? "golden_apple" : merge(reason, "golden_apple-cooldown");
+        } else if (!used) {
+            reasonDetail = append(reasonDetail, "missing golden_apple");
+        }
         // 4) Potions: Instant Health (any strength)
-        if (!used) used = usePotionMatching(player, p -> p == Potions.HEALING || p == Potions.STRONG_HEALING);
+        if (!used) {
+            PotionMatchResult res = usePotionMatching(player, p -> p == Potions.HEALING || p == Potions.STRONG_HEALING);
+            used = res.used;
+            reason = used ? "potion_healing" : merge(reason, res.reason);
+            if (!res.detail.isEmpty()) reasonDetail = append(reasonDetail, res.detail);
+        }
         // 5) Potions: Regeneration (any strength)
-        if (!used) used = usePotionMatching(player, p -> p == Potions.REGENERATION || p == Potions.STRONG_REGENERATION || p == Potions.LONG_REGENERATION);
+        if (!used) {
+            PotionMatchResult res = usePotionMatching(player, p -> p == Potions.REGENERATION || p == Potions.STRONG_REGENERATION || p == Potions.LONG_REGENERATION);
+            used = res.used;
+            reason = used ? "potion_regeneration" : merge(reason, res.reason);
+            if (!res.detail.isEmpty()) reasonDetail = append(reasonDetail, res.detail);
+        }
 
         float after = player.getHealth();
         try {
-            SoulLog.info("[soul][heal][attempt] soul={} used={} hp:{}->{}", player.getSoulId(), used,
-                    String.format("%.3f", before), String.format("%.3f", after));
+            SoulLog.info("[soul][heal][attempt] soul={} used={} hp:{}->{} reason={} detail={}", player.getSoulId(), used,
+                    String.format("%.3f", before), String.format("%.3f", after), reason,
+                    reasonDetail.isEmpty() ? "-" : reasonDetail);
         } catch (Throwable ignored) {}
         return used;
+    }
+
+    private static boolean checkHasItem(SoulPlayer player, Item item) {
+        if (player.getCooldowns().isOnCooldown(item)) return true; // treat as present but cooling
+        return player.getInventory().contains(new ItemStack(item));
+    }
+
+    private static String merge(String base, String addition) {
+        if (addition == null || addition.isEmpty()) return base;
+        if (base.equals("none")) return addition;
+        return base + "," + addition;
+    }
+
+    private static String append(String base, String addition) {
+        if (addition == null || addition.isEmpty()) return base;
+        if (base == null || base.isEmpty()) return addition;
+        return base + "," + addition;
     }
 
     private static boolean useSimpleItem(SoulPlayer player, Item item) {
@@ -107,7 +157,11 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
                 || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithMainhandSwapIfReady(player, item, true);
     }
 
-    private static boolean usePotionMatching(SoulPlayer player, java.util.function.Predicate<net.minecraft.world.item.alchemy.Potion> test) {
+    private record AttemptResult(boolean used, String reason, String detail) {}
+
+    private record PotionMatchResult(boolean used, String reason, String detail) {}
+
+    private static PotionMatchResult usePotionMatching(SoulPlayer player, java.util.function.Predicate<net.minecraft.world.item.alchemy.Potion> test) {
         java.util.function.Predicate<ItemStack> matcher = (stack) -> {
             if (stack.getItem() != Items.POTION) return false;
             PotionContents pc = stack.get(DataComponents.POTION_CONTENTS);
@@ -117,7 +171,16 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
             net.minecraft.world.item.alchemy.Potion pot = opt.get().value();
             return test.test(pot);
         };
-        return net.tigereye.chestcavity.soul.util.SoulPlayerInput.useAnyMatchingWithOffhandFirst(player, matcher, true);
+        boolean used = net.tigereye.chestcavity.soul.util.SoulPlayerInput.useAnyMatchingWithOffhandFirst(player, matcher, true);
+        if (used) {
+            return new PotionMatchResult(true, "potion-used", "");
+        }
+        boolean has = player.getInventory().items.stream().anyMatch(matcher);
+        if (has) {
+            String cd = describeCooldown(player, Items.POTION);
+            return new PotionMatchResult(false, "potion-cooldown", cd == null ? "" : cd);
+        }
+        return new PotionMatchResult(false, "missing potion", "");
     }
 
     private static void ensureGuzhenrenItems() {
@@ -138,21 +201,37 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
         }
     }
 
-    private static boolean tryUseGuzhenrenItemStatic(SoulPlayer player) {
+    private static AttemptResult tryUseGuzhenrenItemStatic(SoulPlayer player) {
         ensureGuzhenrenItems();
-        if (GUZ_HEAL_ITEMS.isEmpty()) return false;
+        if (GUZ_HEAL_ITEMS.isEmpty()) return new AttemptResult(false, "guzhenren-none", "");
+        java.util.List<String> cooldowns = new java.util.ArrayList<>();
+        java.util.List<String> missing = new java.util.ArrayList<>();
         for (Item item : GUZ_HEAL_ITEMS) {
-            if (player.getCooldowns().isOnCooldown(item)) continue;
+            if (player.getCooldowns().isOnCooldown(item)) {
+                cooldowns.add(describeCooldown(player, item));
+                continue;
+            }
+            if (!player.getInventory().contains(new ItemStack(item)) && player.getOffhandItem().getItem() != item && player.getMainHandItem().getItem() != item) {
+                missing.add(BuiltInRegistries.ITEM.getKey(item).toString());
+                continue;
+            }
             // Prefer offhand, then fallback to mainhand (some mods only handle mainhand use)
             if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useOffhandIfReady(player, item, true)
                     || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)
                     || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useMainhandIfReady(player, item, true)
                     || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithMainhandSwapIfReady(player, item, true)) {
                 SoulLog.info("[soul][heal][guz] used item={} hand=auto (cooldown by item)", BuiltInRegistries.ITEM.getKey(item));
-                return true;
+                return new AttemptResult(true, "guzhenren", BuiltInRegistries.ITEM.getKey(item).toString());
             }
         }
-        return false;
+        String detail = "";
+        if (!cooldowns.isEmpty()) {
+            detail = append(detail, "cooldown=" + String.join(";", cooldowns));
+        }
+        if (!missing.isEmpty()) {
+            detail = append(detail, "missing=" + String.join(";", missing));
+        }
+        return new AttemptResult(false, "guzhenren-none", detail);
     }
 
     private static void addIfPresent(ResourceLocation id) {
@@ -190,5 +269,51 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
             if (x > hi) return hi;
             return x;
         } catch (Throwable ignored) { return def; }
+    }
+
+    private static String describeCooldown(SoulPlayer player, Item item) {
+        String key = BuiltInRegistries.ITEM.getKey(item).toString();
+        if (!player.getCooldowns().isOnCooldown(item)) return key + "@ready";
+        OptionalLong ticks = CooldownIntrospector.remainingTicks(player, item);
+        return ticks.isPresent() ? key + "@" + ticks.getAsLong() + "t" : key + "@cooldown";
+    }
+
+    private static final class CooldownIntrospector {
+        private static java.lang.reflect.Field COOLDOWN_MAP_FIELD;
+        private static java.lang.reflect.Field COOLDOWN_END_FIELD;
+        private static boolean INITIALISED;
+
+        private static OptionalLong remainingTicks(SoulPlayer player, Item item) {
+            if (!player.getCooldowns().isOnCooldown(item)) return OptionalLong.empty();
+            init();
+            if (COOLDOWN_MAP_FIELD == null || COOLDOWN_END_FIELD == null) return OptionalLong.empty();
+            try {
+                @SuppressWarnings("unchecked")
+                Map<Item, ?> map = (Map<Item, ?>) COOLDOWN_MAP_FIELD.get(player.getCooldowns());
+                if (map == null) return OptionalLong.empty();
+                Object instance = map.get(item);
+                if (instance == null) return OptionalLong.empty();
+                long end = COOLDOWN_END_FIELD.getLong(instance);
+                long now = player.level().getGameTime();
+                return OptionalLong.of(Math.max(0L, end - now));
+            } catch (IllegalAccessException e) {
+                return OptionalLong.empty();
+            }
+        }
+
+        private static void init() {
+            if (INITIALISED) return;
+            INITIALISED = true;
+            try {
+                COOLDOWN_MAP_FIELD = net.neoforged.fml.util.ObfuscationReflectionHelper.findField(ItemCooldowns.class, "cooldowns");
+                COOLDOWN_MAP_FIELD.setAccessible(true);
+                Class<?> inner = Class.forName("net.minecraft.world.item.ItemCooldowns$CooldownInstance");
+                COOLDOWN_END_FIELD = net.neoforged.fml.util.ObfuscationReflectionHelper.findField(inner, "endTick");
+                COOLDOWN_END_FIELD.setAccessible(true);
+            } catch (Exception e) {
+                COOLDOWN_MAP_FIELD = null;
+                COOLDOWN_END_FIELD = null;
+            }
+        }
     }
 }

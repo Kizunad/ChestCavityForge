@@ -34,7 +34,7 @@ public final class SoulEvadeHelper {
     private static final Map<UUID, Long> LAST_EVADE = new ConcurrentHashMap<>();
 
     /** Attempt an evade blink if off cooldown and resource is available. */
-    public static boolean tryEvade(SoulPlayer soul, LivingEntity hazard) {
+    public static boolean tryEvade(SoulPlayer soul, LivingEntity hazard, double distance, double threshold) {
         if (soul == null || hazard == null) return false;
         if (soul.level().isClientSide()) return false;
         ServerLevel level = soul.serverLevel();
@@ -46,8 +46,8 @@ public final class SoulEvadeHelper {
         GuzhenrenResourceCostHelper.ConsumptionResult cost = ResourceOps.consumeStrict(soul, 0.0, 50.0);
         if (!cost.succeeded()) {
             net.tigereye.chestcavity.soul.util.SoulLog.info(
-                    "[soul][evade] denied: soul={} reason={}", soul.getSoulId(),
-                    cost.failureReason());
+                    "[soul][evade] denied: soul={} reason={} dist={}/{}", soul.getSoulId(),
+                    cost.failureReason(), String.format("%.2f", distance), String.format("%.2f", threshold));
             return false;
         }
 
@@ -55,6 +55,7 @@ public final class SoulEvadeHelper {
         RandomSource rng = soul.getRandom();
         boolean found = false;
         double bestX = 0, bestY = Double.NEGATIVE_INFINITY, bestZ = 0;
+        double bestDist = 0;
 
         // Prefer directions away from the hazard but allow randomness
         Vec3 away = from.subtract(hazard.position());
@@ -93,12 +94,18 @@ public final class SoulEvadeHelper {
             AABB moved = soul.getBoundingBox().move(cx - soul.getX(), ly - soul.getY(), cz - soul.getZ());
             if (!level.noCollision(moved)) continue;
 
+            double actualHorizontal = Math.sqrt(Math.pow(cx - from.x, 2) + Math.pow(cz - from.z, 2));
+            if (actualHorizontal < MIN_DIST * 0.9) {
+                continue; // not far enough to count as an evade
+            }
+
             // Prefer highest landing Y among valid candidates
             if (ly > bestY) {
                 bestY = ly;
                 bestX = cx;
                 bestZ = cz;
                 found = true;
+                bestDist = actualHorizontal;
             }
         }
 
@@ -106,14 +113,17 @@ public final class SoulEvadeHelper {
             // Refund resource if we couldn't find a spot
             ResourceOps.refund(soul, cost);
             net.tigereye.chestcavity.soul.util.SoulLog.info(
-                    "[soul][evade] no-spot soul={} refunded", soul.getSoulId());
+                    "[soul][evade] no-spot soul={} dist={}/{} refunded", soul.getSoulId(),
+                    String.format("%.2f", distance), String.format("%.2f", threshold));
             return false;
         }
 
         // Teleport to the chosen position
         soul.teleportTo(level, bestX, bestY, bestZ, soul.getYRot(), soul.getXRot());
         net.tigereye.chestcavity.soul.util.SoulLog.info(
-                "[soul][evade] success soul={} to=({},{},{})", soul.getSoulId(),
+                "[soul][evade] success soul={} dist={}/{} actual={} to=({},{},{})", soul.getSoulId(),
+                String.format("%.2f", distance), String.format("%.2f", threshold),
+                String.format("%.2f", bestDist),
                 String.format("%.2f", bestX), bestY, String.format("%.2f", bestZ));
         LAST_EVADE.put(soul.getSoulId(), now);
         return true;
