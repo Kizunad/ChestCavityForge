@@ -72,8 +72,14 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
         }
     }
 
-    private boolean tryUseHealingItem(SoulPlayer player) {
-        return tryUseGuzhenrenItem(player);
+    private boolean tryUseHealingItem(SoulPlayer player) { return tryUseAnyHealingItem(player); }
+
+    /**
+     * Exposed for Actions: attempt a single healing-item use.
+     * Keeps the same Guzhenren item set and offhand-first policy.
+     */
+    public static boolean tryUseAnyHealingItem(SoulPlayer player) {
+        return tryUseGuzhenrenItemStatic(player);
     }
 
     private static void ensureGuzhenrenItems() {
@@ -94,32 +100,28 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
         }
     }
 
+    private static boolean tryUseGuzhenrenItemStatic(SoulPlayer player) {
+        ensureGuzhenrenItems();
+        if (GUZ_HEAL_ITEMS.isEmpty()) return false;
+        for (Item item : GUZ_HEAL_ITEMS) {
+            if (player.getCooldowns().isOnCooldown(item)) continue;
+            // Prefer offhand, then fallback to mainhand (some mods only handle mainhand use)
+            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useOffhandIfReady(player, item, true)
+                    || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)
+                    || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useMainhandIfReady(player, item, true)
+                    || net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithMainhandSwapIfReady(player, item, true)) {
+                SoulLog.info("[soul][heal][guz] used offhand item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void addIfPresent(ResourceLocation id) {
         Item item = BuiltInRegistries.ITEM.get(id);
         if (item != null && item != Items.AIR) {
             GUZ_HEAL_ITEMS.add(item);
         }
-    }
-
-    private boolean tryUseGuzhenrenItem(SoulPlayer player) {
-        ensureGuzhenrenItems();
-        if (GUZ_HEAL_ITEMS.isEmpty()) return false;
-
-        for (Item item : GUZ_HEAL_ITEMS) {
-            if (player.getCooldowns().isOnCooldown(item)) continue;
-            // 1) 优先从副手直接使用（不影响主手攻击）
-            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useOffhandIfReady(player, item, true)) {
-                SoulLog.info("[soul][heal][guz] used offhand item={} (cooldown handled by item)", BuiltInRegistries.ITEM.getKey(item));
-                return true;
-            }
-            // 2) 不在副手时，从热键栏或背包临时搬到副手使用一次并还原
-            if (net.tigereye.chestcavity.soul.util.SoulPlayerInput.useWithOffhandSwapIfReady(player, item, true)) {
-                SoulLog.info("[soul][heal][guz] swapped from inventory to offhand and used item={}", BuiltInRegistries.ITEM.getKey(item));
-                return true;
-            }
-        }
-
-        return false;
     }
 
 

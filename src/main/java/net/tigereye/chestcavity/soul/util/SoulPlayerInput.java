@@ -162,6 +162,50 @@ public final class SoulPlayerInput {
         return ok;
     }
 
+    /** Uses the specified item from mainhand if present and not on cooldown. */
+    public static boolean useMainhandIfReady(SoulPlayer player, Item item, boolean forceFinish) {
+        if (player == null || player.level().isClientSide()) return false;
+        if (player.getCooldowns().isOnCooldown(item)) return false;
+        ItemStack main = player.getMainHandItem();
+        if (main.isEmpty() || main.getItem() != item) return false;
+        return rightMouseItemUse(player, InteractionHand.MAIN_HAND, forceFinish);
+    }
+
+    /** Swap a matching stack into mainhand, use once, then restore. */
+    public static boolean useWithMainhandSwapIfReady(SoulPlayer player, Item item, boolean forceFinish) {
+        if (player == null || player.level().isClientSide()) return false;
+        if (player.getCooldowns().isOnCooldown(item)) return false;
+        if (useMainhandIfReady(player, item, forceFinish)) return true;
+        int slot = -1;
+        int size = player.getInventory().getContainerSize();
+        for (int i = 0; i < Math.min(9, size); i++) {
+            ItemStack s = player.getInventory().getItem(i);
+            if (!s.isEmpty() && s.getItem() == item) { slot = i; break; }
+        }
+        if (slot == -1) {
+            for (int i = 9; i < size; i++) {
+                ItemStack s = player.getInventory().getItem(i);
+                if (!s.isEmpty() && s.getItem() == item) { slot = i; break; }
+            }
+        }
+        if (slot == -1) return false;
+
+        ItemStack prevMain = player.getMainHandItem().copy();
+        ItemStack hot = player.getInventory().getItem(slot);
+        player.setItemInHand(InteractionHand.MAIN_HAND, hot);
+        player.getInventory().setItem(slot, ItemStack.EMPTY);
+        boolean ok = false;
+        try {
+            ok = rightMouseItemUse(player, InteractionHand.MAIN_HAND, forceFinish);
+        } finally {
+            ItemStack remain = player.getMainHandItem();
+            player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            safeReturnToInventory(player, slot, remain);
+            player.setItemInHand(InteractionHand.MAIN_HAND, prevMain);
+        }
+        return ok;
+    }
+
     private static void safeReturnToInventory(SoulPlayer player, int preferredSlot, ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
         var inv = player.getInventory();

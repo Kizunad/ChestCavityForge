@@ -85,6 +85,43 @@ public class TestModernUIFragment extends Fragment {
         incrementParams.topMargin = root.dp(14);
         root.addView(incrementButton, incrementParams);
 
+        // Toggles row
+        var toggleToasts = new Button(context);
+        toggleToasts.setText("Toggle Toasts");
+        toggleToasts.setOnClickListener(v -> {
+            boolean next = !net.tigereye.chestcavity.client.ui.ModernUiClientState.showToasts();
+            net.tigereye.chestcavity.client.ui.ModernUiClientState.setShowToasts(next);
+        });
+        var toggleHud = new Button(context);
+        toggleHud.setText("Toggle Action HUD");
+        toggleHud.setOnClickListener(v -> {
+            boolean next = !net.tigereye.chestcavity.client.ui.ModernUiClientState.showActionHud();
+            net.tigereye.chestcavity.client.ui.ModernUiClientState.setShowActionHud(next);
+        });
+        var toggleHints = new Button(context);
+        toggleHints.setText("Toggle Action Hints");
+        toggleHints.setOnClickListener(v -> {
+            boolean next = !net.tigereye.chestcavity.client.ui.ModernUiClientState.showActionHints();
+            net.tigereye.chestcavity.client.ui.ModernUiClientState.setShowActionHints(next);
+        });
+        var row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_HORIZONTAL);
+        row.addView(toggleToasts);
+        var spacer1 = new View(context);
+        spacer1.setLayoutParams(new LinearLayout.LayoutParams(root.dp(8), 1));
+        row.addView(spacer1);
+        row.addView(toggleHud);
+        var spacer2 = new View(context);
+        spacer2.setLayoutParams(new LinearLayout.LayoutParams(root.dp(8), 1));
+        row.addView(spacer2);
+        row.addView(toggleHints);
+        var rowParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowParams.topMargin = root.dp(12);
+        root.addView(row, rowParams);
+
         var closeButton = new Button(context);
         closeButton.setText("Close Screen");
         closeButton.setOnClickListener(v -> minecraft.execute(() -> minecraft.setScreen(null)));

@@ -32,7 +32,7 @@ public class TestHudOverlay {
 
     @SubscribeEvent
     public static void onRenderHud(RenderGuiEvent.Post event) {
-        if (!enabled) return;
+        if (!enabled && !net.tigereye.chestcavity.client.ui.ModernUiClientState.showActionHud()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.options.hideGui) return;
 

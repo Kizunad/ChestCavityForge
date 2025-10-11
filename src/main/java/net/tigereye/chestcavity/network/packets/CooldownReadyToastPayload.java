@@ -48,6 +48,7 @@ public record CooldownReadyToastPayload(
         context.enqueueWork(() -> {
             if (!FMLEnvironment.dist.isClient()) return;
             try {
+                if (!net.tigereye.chestcavity.client.ui.ModernUiClientState.showToasts()) return;
                 if (payload.useItemIcon) {
                     var opt = BuiltInRegistries.ITEM.getOptional(payload.iconId);
                     if (opt.isPresent()) {
@@ -64,4 +65,3 @@ public record CooldownReadyToastPayload(
         });
     }
 }
-

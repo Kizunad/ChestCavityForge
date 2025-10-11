@@ -40,11 +40,34 @@ public final class SoulCommands {
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("enable")
                         .executes(SoulCommands::enableSoulSystem))
+                .then(Commands.literal("action")
+                        .then(Commands.literal("start")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .then(Commands.argument("actionId", StringArgumentType.string())
+                                                .executes(SoulCommands::actionStart))))
+                        .then(Commands.literal("cancel")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .then(Commands.argument("actionId", StringArgumentType.string())
+                                                .executes(SoulCommands::actionCancel))
+                                        .executes(SoulCommands::actionCancelAll)))
+                        .then(Commands.literal("status")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::actionStatus))))
                 .then(Commands.literal("order")
                         .then(Commands.literal("follow")
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
                                         .executes(SoulCommands::orderFollow)))
+                .then(Commands.literal("testheal")
+                        .then(Commands.argument("idOrName", StringArgumentType.string())
+                                .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                .then(Commands.argument("type", StringArgumentType.word())
+                                        .executes(SoulCommands::testHealDefaultOffhand)
+                                        .then(Commands.argument("hand", StringArgumentType.word())
+                                                .executes(SoulCommands::testHeal)))))
                         .then(Commands.literal("guard")
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
@@ -116,6 +139,156 @@ public final class SoulCommands {
                                                         .executes(SoulCommands::createSoulAt)))))
                         .then(Commands.literal("saveAll")
                                 .executes(SoulCommands::saveAll))));
+    }
+
+    private static int testHealDefaultOffhand(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        return testHealWithHand(context, "offhand");
+    }
+
+    private static int testHeal(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        String hand = StringArgumentType.getString(context, "hand");
+        return testHealWithHand(context, hand);
+    }
+
+    private static int testHealWithHand(CommandContext<CommandSourceStack> context, String handToken) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        String type = StringArgumentType.getString(context, "type");
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(
+                SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+
+        net.minecraft.world.InteractionHand hand = switch (handToken.toLowerCase(Locale.ROOT)) {
+            case "main", "mainhand", "m", "0" -> net.minecraft.world.InteractionHand.MAIN_HAND;
+            default -> net.minecraft.world.InteractionHand.OFF_HAND;
+        };
+
+        net.minecraft.world.item.ItemStack stack;
+        switch (type.toLowerCase(Locale.ROOT)) {
+            case "potion", "heal_potion", "instant_health", "healing" -> {
+                // Instant health potion (drinkable)
+                stack = net.minecraft.world.item.alchemy.PotionContents.createItemStack(
+                        net.minecraft.world.item.Items.POTION,
+                        net.minecraft.world.item.alchemy.Potions.HEALING
+                );
+            }
+            case "gap", "golden_apple", "ga" -> {
+                stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLDEN_APPLE);
+            }
+            case "egap", "enchanted_golden_apple", "ega" -> {
+                stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE);
+            }
+            default -> {
+                context.getSource().sendFailure(Component.literal("[soul] 未知类型: " + type + " (可用: potion|golden_apple|enchanted_golden_apple)"));
+                return 0;
+            }
+        }
+
+        float beforeHp = soul.getHealth();
+        net.minecraft.world.item.ItemStack prev = soul.getItemInHand(hand).copy();
+        soul.setItemInHand(hand, stack);
+        boolean used = net.tigereye.chestcavity.soul.util.SoulPlayerInput.rightMouseItemUse(soul, hand, true);
+        // return remain to inventory, then restore previous hand
+        net.minecraft.world.item.ItemStack remain = soul.getItemInHand(hand);
+        soul.setItemInHand(hand, net.minecraft.world.item.ItemStack.EMPTY);
+        if (!remain.isEmpty()) {
+            var inv = soul.getInventory();
+            if (!inv.add(remain.copy())) {
+                soul.drop(remain.copy(), false);
+            }
+        }
+        soul.setItemInHand(hand, prev);
+        float afterHp = soul.getHealth();
+        String msg = String.format("[soul] testheal type=%s hand=%s used=%s hp: %.1f -> %.1f", type, hand.name().toLowerCase(Locale.ROOT), used, beforeHp, afterHp);
+        context.getSource().sendSuccess(() -> Component.literal(msg), true);
+        return used ? 1 : 0;
+    }
+
+    private static int actionStart(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再下达动作。"));
+            return 0;
+        }
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        String actionStr = StringArgumentType.getString(context, "actionId");
+        var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(
+                net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        var id = net.minecraft.resources.ResourceLocation.parse(actionStr);
+        var action = net.tigereye.chestcavity.soul.fakeplayer.actions.registry.ActionRegistry.resolveOrCreate(id);
+        if (action == null) { context.getSource().sendFailure(Component.literal("[soul] 未注册的 Action: " + actionStr)); return 0; }
+        boolean ok = net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager.of(soul)
+                .tryStart(soul.serverLevel(), soul, action, executor);
+        if (ok) {
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 已启动动作: " + actionStr), true);
+            return 1;
+        } else {
+            context.getSource().sendFailure(Component.literal("[soul] 无法启动，可能已在运行或条件不满足。"));
+            return 0;
+        }
+    }
+
+    private static int actionCancel(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        String actionStr = StringArgumentType.getString(context, "actionId");
+        var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(
+                net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        var id = net.minecraft.resources.ResourceLocation.parse(actionStr);
+        var action = net.tigereye.chestcavity.soul.fakeplayer.actions.registry.ActionRegistry.find(id);
+        if (action == null) { context.getSource().sendFailure(Component.literal("[soul] 未注册的 Action: " + actionStr)); return 0; }
+        net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager.of(soul)
+                .cancel(soul.serverLevel(), soul, action, executor);
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已取消动作: " + actionStr), true);
+        return 1;
+    }
+
+    private static int actionCancelAll(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(
+                net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        var mgr = net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager.of(soul);
+        for (var rt : new java.util.ArrayList<>(mgr.active())) {
+            var act = net.tigereye.chestcavity.soul.fakeplayer.actions.registry.ActionRegistry.find(rt.id);
+            if (act != null) mgr.cancel(soul.serverLevel(), soul, act, executor);
+        }
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已取消全部动作。"), true);
+        return 1;
+    }
+
+    private static int actionStatus(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        var soulOpt = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.findSoulPlayer(
+                net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        var mgr = net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager.of(soul);
+        int count = 0;
+        for (var rt : mgr.active()) {
+            context.getSource().sendSuccess(() -> Component.literal("- " + rt.id + " step=" + rt.step + " next=" + rt.nextReadyAt), false);
+            count++;
+        }
+        if (count == 0) {
+            context.getSource().sendSuccess(() -> Component.literal("[soul] 当前没有运行的动作。"), false);
+        }
+        return 1;
     }
 
     private static String unquote(String s) {
