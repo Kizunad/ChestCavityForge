@@ -85,14 +85,20 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         MultiCooldown.EntryInt rechargeEntry = rechargeTimer(cc, organ);
 
         if (charge < MAX_CHARGE) {
-            if (rechargeEntry.getTicks() <= 0) {
-                rechargeEntry.start(RECOVERY_INTERVAL_SLOW_TICKS);
+            int remaining = rechargeEntry.getTicks();
+            if (remaining > 0) {
+                rechargeEntry.tickDown();
+                remaining = rechargeEntry.getTicks();
             }
-            if (!rechargeEntry.tickDown()) {
-                rechargeEntry.start(RECOVERY_INTERVAL_SLOW_TICKS);
+            if (remaining <= 0) {
                 charge = Math.min(MAX_CHARGE, charge + 1);
                 chargeChanged = true;
                 playRechargeCue(entity);
+                if (charge < MAX_CHARGE) {
+                    rechargeEntry.start(RECOVERY_INTERVAL_SLOW_TICKS);
+                } else {
+                    rechargeEntry.clear();
+                }
             }
         } else if (!rechargeEntry.isReady()) {
             rechargeEntry.clear();
@@ -127,7 +133,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         int updated = Math.max(0, charge - 1);
         if (updated != charge) {
             NBTCharge.setCharge(organ, STATE_KEY, updated);
-            rechargeTimer(cc, organ).clear();
+            rechargeTimer(cc, organ).start(RECOVERY_INTERVAL_SLOW_TICKS);
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
         }
 
