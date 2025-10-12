@@ -13,8 +13,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Stores pending soul profile snapshots for owners that log out or when the server shuts down.
- * Snapshots are merged back into the owner's container the next time they log in.
+ * 灵魂离线存储。
+ *
+ * <p>当宿主玩家离线或服务器重启时，将其最新的灵魂快照写入 {@link SavedData}，等下一次玩家登录时再回填至容器。
+ * 这样可以避免在停服过程中丢失 FakePlayer 状态或跨维位置等敏感数据。</p>
  */
 public final class SoulOfflineStore extends SavedData {
 
@@ -22,6 +24,9 @@ public final class SoulOfflineStore extends SavedData {
 
     private final Map<UUID, Map<UUID, CompoundTag>> pending = new HashMap<>();
 
+    /**
+     * 从主世界的数据存储加载（或创建）离线存储实例。
+     */
     public static SoulOfflineStore get(MinecraftServer server) {
         ServerLevel overworld = server.getLevel(Level.OVERWORLD);
         if (overworld == null) {
@@ -35,6 +40,9 @@ public final class SoulOfflineStore extends SavedData {
     private SoulOfflineStore() {
     }
 
+    /**
+     * SavedData 反序列化入口。将嵌套结构展开为 owner → soul → snapshot。
+     */
     private static SoulOfflineStore load(CompoundTag tag, HolderLookup.Provider provider) {
         SoulOfflineStore store = new SoulOfflineStore();
         if (tag == null) {
@@ -62,6 +70,9 @@ public final class SoulOfflineStore extends SavedData {
     }
 
     @Override
+    /**
+     * SavedData 序列化入口。按 owner → soul 分组写回所有待处理的快照。
+     */
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         for (Map.Entry<UUID, Map<UUID, CompoundTag>> e : pending.entrySet()) {
             CompoundTag byOwner = new CompoundTag();
@@ -74,7 +85,7 @@ public final class SoulOfflineStore extends SavedData {
     }
 
     /**
-     * Replace all stored snapshots for an owner with the provided map.
+     * 用提供的快照映射替换指定玩家的所有离线数据。
      */
     public void putAll(UUID owner, Map<UUID, CompoundTag> profiles) {
         if (profiles.isEmpty()) {
@@ -87,13 +98,16 @@ public final class SoulOfflineStore extends SavedData {
     }
 
     /**
-     * Store/overwrite a single profile snapshot for an owner.
+     * 更新单个灵魂的离线快照。
      */
     public void put(UUID owner, UUID soul, CompoundTag profileTag) {
         pending.computeIfAbsent(owner, id -> new HashMap<>()).put(soul, profileTag.copy());
         setDirty();
     }
 
+    /**
+     * 取回并清除某个玩家的所有离线快照，通常在玩家重新登录时调用。
+     */
     public Map<UUID, CompoundTag> consume(UUID owner) {
         Map<UUID, CompoundTag> stored = pending.remove(owner);
         if (stored == null) {

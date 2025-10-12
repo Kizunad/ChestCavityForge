@@ -27,13 +27,30 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Temporary soul command entry point; provides only the test hook until the soul system is fully implemented.
+ * 灵魂系统的临时指令入口。
+ *
+ * <p>当前阶段仅面向开发与调试，暴露“启用/禁用”、“生成/切换/移除”SoulPlayer 以及 AI 行为试验等命令。
+ * 正式版本将迁移到数据驱动 UI 与玩家可见的引导流程，本类中的命令树与输出仍以内部诊断信息为主。</p>
+ *
+ * <p>维护者须关注：</p>
+ * <ul>
+ *     <li>所有命令均要求 {@code permission level >= 2}，避免在正式服被误用；</li>
+ *     <li>涉及 SoulPlayer 的操作应先通过
+ *     {@link net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner#resolveSoulUuidFlexible(ServerPlayer, String)}
+ *     做身份解析，再校验所有权；</li>
+ *     <li>调试命令执行后需以 {@link net.tigereye.chestcavity.soul.util.SoulLog} 记录关键信息，以便问题复盘。</li>
+ * </ul>
  */
 public final class SoulCommands {
 
     private SoulCommands() {
     }
 
+    /**
+     * 注册 {@code /soul} 指令树，按子命令分组覆盖启用开关、AI、动作、命令式移动与调试工具。
+     *
+     * @param event NeoForge 注入的注册事件，提供 {@link CommandDispatcher} 上下文。
+     */
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("soul")
@@ -162,15 +179,27 @@ public final class SoulCommands {
                                 .executes(SoulCommands::saveAll))));
     }
 
+    /**
+     * {@code /soul testheal <id> <type>} 的便捷入口，默认使用副手。
+     */
     private static int testHealDefaultOffhand(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         return testHealWithHand(context, "offhand");
     }
 
+    /**
+     * {@code /soul testheal <id> <type> <hand>} 的通用处理入口。
+     */
     private static int testHeal(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         String hand = StringArgumentType.getString(context, "hand");
         return testHealWithHand(context, hand);
     }
 
+    /**
+     * 让目标 SoulPlayer 模拟使用治疗道具，用于在无 GUI 场景下快速验证 AI 的治疗行为。
+     *
+     * @param context Brigadier 命令上下文。
+     * @param handToken 指定使用的手（main/offhand 别名均可）。
+     */
     private static int testHealWithHand(CommandContext<CommandSourceStack> context, String handToken) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -230,6 +259,9 @@ public final class SoulCommands {
         return used ? 1 : 0;
     }
 
+    /**
+     * 启动指定 {@code action}，允许运营或 QA 强制触发灵魂动作状态机。
+     */
     private static int actionStart(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -261,6 +293,9 @@ public final class SoulCommands {
     }
 
     // ----- brain 命令实现 -----
+    /**
+     * 将灵魂的 AI 模式切换为指定枚举值，并即时持久化到容器。
+     */
     private static int brainSetMode(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -292,6 +327,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 注入临时战斗意图（CombatStyle），供 AI 在给定的 TTL 内优先执行相应策略。
+     */
     private static int brainIntentCombat(CommandContext<CommandSourceStack> context, int ttl) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -328,6 +366,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 清空灵魂的 AI 意图堆栈，恢复到默认模式。
+     */
     private static int brainClear(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String token = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -346,6 +387,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 取消特定动作，常用于调试动作状态机卡死的问题。
+     */
     private static int actionCancel(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -363,6 +407,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 强制停止所有正在运行的动作，用于紧急恢复灵魂的可控性。
+     */
     private static int actionCancelAll(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -379,6 +426,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 列出当前所有动作及其阶段，便于观察状态机推进情况。
+     */
     private static int actionStatus(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -398,6 +448,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 去除命令补全产生的引号，便于兼容 {@code idOrName} 中的空格。
+     */
     private static String unquote(String s) {
         if (s == null) return null;
         String t = s.trim();
@@ -407,6 +460,9 @@ public final class SoulCommands {
         return t;
     }
 
+    /**
+     * 设置灵魂为 FOLLOW 模式，支持单个或全部灵魂批量下达。
+     */
     private static int orderFollow(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -443,6 +499,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 设置灵魂为 IDLE 模式，自动清空导航目标。
+     */
     private static int orderIdle(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -481,6 +540,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 指示灵魂守卫当前站位，维持战斗警戒。
+     */
     private static int orderGuard(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -517,6 +579,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 强制灵魂进入激进战斗模式，寻找并攻击附近敌人。
+     */
     private static int orderForceFight(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -553,6 +618,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 临时修改灵魂的昵称，仅存储于容器并等待下次应用。
+     */
     private static int renameSoul(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -576,6 +644,9 @@ public final class SoulCommands {
         return 0;
     }
 
+    /**
+     * 立即对在线的 SoulPlayer 应用已保存的昵称设置。
+     */
     private static int applyNameNow(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String token = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -595,6 +666,9 @@ public final class SoulCommands {
         return 0;
     }
 
+    /**
+     * 记录灵魂应当使用的皮肤用户名；实际拉取会在 apply 阶段完成。
+     */
     private static int skinSet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -618,6 +692,9 @@ public final class SoulCommands {
         return 0;
     }
 
+    /**
+     * 立即从 Mojang API 拉取皮肤并广播给在线的 SoulPlayer。
+     */
     private static int skinApply(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String token = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -636,6 +713,9 @@ public final class SoulCommands {
         return 0;
     }
 
+    /**
+     * 设置灵魂在宿主登录时是否自动生成实体。
+     */
     private static int setAutospawn(CommandContext<CommandSourceStack> context, boolean value) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!net.tigereye.chestcavity.soul.engine.SoulFeatureToggle.isEnabled()) {
@@ -655,6 +735,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 显式启用灵魂系统，记录审计日志并返回提示。
+     */
     private static int enableSoulSystem(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         SoulFeatureToggle.enable(executor);
@@ -664,6 +747,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 生成一个临时 FakePlayer（仅限测试），不带任何持久化。
+     */
     private static int spawnFakePlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
         ServerPlayer executor = source.getPlayerOrException();
@@ -683,6 +769,9 @@ public final class SoulCommands {
     }
 
     // Create a new soul with empty inventory and default stats at the player's current position, then spawn it.
+    /**
+     * 以宿主当前位置为模板生成新的灵魂实体并立即部署。
+     */
     private static int createSoulDefault(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -716,6 +805,9 @@ public final class SoulCommands {
     }
 
     // Create a new soul with default stats and empty inventory at a given position in current dimension, then spawn it.
+    /**
+     * 在指定坐标生成新的灵魂实体，用于定位测试或剧情脚本。
+     */
     private static int createSoulAt(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -754,6 +846,9 @@ public final class SoulCommands {
         return 0;
     }
 
+    /**
+     * 输出当前服务器上所有活跃的 SoulPlayer 列表。
+     */
     private static int listSoulPlayers(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -776,6 +871,9 @@ public final class SoulCommands {
         return entries.size();
     }
 
+    /**
+     * 在玩家与其灵魂之间切换操控权，用于体验“夺舍”流程。
+     */
     private static int switchOwner(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -797,6 +895,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 强制宿主转入指定灵魂，常用于验证多灵魂切换。 
+     */
     private static int switchSoulPlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -828,6 +929,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 移除指定灵魂实体并写回快照，主要用于调试回收逻辑。
+     */
     private static int removeSoulPlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {
@@ -852,6 +956,9 @@ public final class SoulCommands {
         return 1;
     }
 
+    /**
+     * 强制将所有活跃灵魂的快照持久化到容器，用于宕机前的手动保险。
+     */
     private static int saveAll(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         if (!SoulFeatureToggle.isEnabled()) {

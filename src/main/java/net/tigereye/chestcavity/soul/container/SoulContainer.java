@@ -121,10 +121,19 @@ public final class SoulContainer {
         return profiles.get(id);
     }
 
+    /**
+     * 获取所有灵魂存档的快照并序列化为 NBT。
+     *
+     * @param ownerPlayer 持有该容器的玩家（仅服务端有效）。
+     * @param clearDirty 是否在成功写出后清除脏标记。
+     */
     public Map<UUID, CompoundTag> snapshotAll(ServerPlayer ownerPlayer, boolean clearDirty) {
         return snapshotProfiles(ownerPlayer, false, clearDirty);
     }
 
+    /**
+     * 获取仅被标记为“脏”的灵魂快照，减少增量保存成本。
+     */
     public Map<UUID, CompoundTag> snapshotDirty(ServerPlayer ownerPlayer, boolean clearDirty) {
         return snapshotProfiles(ownerPlayer, true, clearDirty);
     }
@@ -153,6 +162,9 @@ public final class SoulContainer {
         return snapshots;
     }
 
+    /**
+     * 将快照写回容器并应用到宿主玩家，同时尝试按需重生分魂实体。
+     */
     public void restoreAll(ServerPlayer ownerPlayer, Map<UUID, CompoundTag> snapshots) {
         if (snapshots.isEmpty()) {
             return;
@@ -189,6 +201,9 @@ public final class SoulContainer {
         SoulProfileOps.markContainerDirty(ownerPlayer, this, "login-restore-all");
     }
 
+    /**
+     * 序列化容器的完整状态，包括存档、名称、AI 设定与自动生成标记。
+     */
     public CompoundTag saveNBT(HolderLookup.Provider provider) {
         // 序列化：写出激活 ID 与所有存档的内容
         CompoundTag root = new CompoundTag();
@@ -223,6 +238,9 @@ public final class SoulContainer {
         return root;
     }
 
+    /**
+     * 反序列化容器状态。会清空现有缓存后重新写入。
+     */
     public void loadNBT(CompoundTag tag, HolderLookup.Provider provider) {
         // 反序列化：恢复激活 ID 与存档列表；非法 UUID 键将被忽略
         profiles.clear();
@@ -294,6 +312,9 @@ public final class SoulContainer {
         return orders.getOrDefault(soulId, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE);
     }
 
+    /**
+     * 持久化灵魂当前的 AI 指令，并标记容器脏状态。
+     */
     public void setOrder(ServerPlayer ownerPlayer, UUID soulId, net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order order, String reason) {
         if (order == null) order = net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.IDLE;
         orders.put(soulId, order);
@@ -305,6 +326,9 @@ public final class SoulContainer {
         return names.getOrDefault(soulId, "");
     }
 
+    /**
+     * 设置灵魂在 UI 与网络广播中使用的名称。
+     */
     public void setName(ServerPlayer ownerPlayer, UUID soulId, String displayName, String reason) {
         if (displayName == null) displayName = "";
         // Trim to 16 chars for vanilla tab-list compatibility
@@ -321,12 +345,18 @@ public final class SoulContainer {
 
     // -------- Autospawn flag (persistent)
     public boolean isAutospawn(UUID soulId) { return autospawnSouls.contains(soulId); }
+    /**
+     * 控制灵魂在宿主登录时是否自动生成实体。
+     */
     public void setAutospawn(ServerPlayer ownerPlayer, UUID soulId, boolean value, String reason) {
         if (value) autospawnSouls.add(soulId); else autospawnSouls.remove(soulId);
         SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : (value ? "autospawn-on" : "autospawn-off"));
     }
 
     // -------- Profile removal (safe)
+    /**
+     * 从容器中删除指定的灵魂存档及其衍生数据。
+     */
     public void removeProfile(ServerPlayer ownerPlayer, UUID soulId, String reason) {
         if (soulId == null) return;
         UUID ownerId = ownerPlayer.getUUID();
@@ -351,6 +381,9 @@ public final class SoulContainer {
     public net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode getBrainMode(UUID soulId) {
         return brainModes.getOrDefault(soulId, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.AUTO);
     }
+    /**
+     * 设置灵魂的长期 AI 模式，并同步至运行时控制器。
+     */
     public void setBrainMode(ServerPlayer ownerPlayer, UUID soulId, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode mode, String reason) {
         if (mode == null) mode = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.AUTO;
         brainModes.put(soulId, mode);
@@ -360,6 +393,9 @@ public final class SoulContainer {
     }
 
     // -------- Brain Intent (persistent, minimal typed) --------
+    /**
+     * 记录灵魂的主动意图快照，同时推送至运行时控制器。
+     */
     public void setBrainIntent(ServerPlayer ownerPlayer, UUID soulId, net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent intent, String reason) {
         if (intent == null) return;
         net.minecraft.nbt.CompoundTag itag = encodeIntent(intent);
@@ -371,6 +407,9 @@ public final class SoulContainer {
         }
     }
 
+    /**
+     * 清除灵魂的主动意图（容器 + 运行时）。
+     */
     public void clearBrainIntent(ServerPlayer ownerPlayer, UUID soulId, String reason) {
         brainIntents.remove(soulId);
         net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().clearIntents(soulId);
