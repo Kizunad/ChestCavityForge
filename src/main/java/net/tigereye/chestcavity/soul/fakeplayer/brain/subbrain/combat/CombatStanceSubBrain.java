@@ -7,6 +7,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.actions.api.ActionContext;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.registry.ActionRegistry;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.BrainActionStep;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
 
@@ -14,22 +15,21 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
  * Maintains the primary combat stance action (force fight or guard) based on the
  * most up-to-date intent snapshot and legacy order system.
  */
-public final class CombatStanceSubBrain implements SubBrain {
+public final class CombatStanceSubBrain extends SubBrain {
 
     private static final ResourceLocation FORCE_FIGHT = ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "action/force_fight");
     private static final ResourceLocation GUARD = ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "action/guard");
 
-    @Override public String id() { return "combat.stance"; }
+    public CombatStanceSubBrain() {
+        super("combat.stance");
+        addStep(BrainActionStep.always(this::ensureDesiredAction));
+    }
 
-    @Override
-    public void tick(SubBrainContext ctx) {
+    private void ensureDesiredAction(SubBrainContext ctx) {
         var mgr = ctx.actions();
         ResourceLocation desired = resolveDesiredAction(ctx);
         var action = ActionRegistry.find(desired);
-        if (action == null) {
-            return;
-        }
-        if (mgr.isActive(action.id())) {
+        if (action == null || mgr.isActive(action.id())) {
             return;
         }
         var actionCtx = new ActionContext(ctx.level(), ctx.soul(), ctx.owner());

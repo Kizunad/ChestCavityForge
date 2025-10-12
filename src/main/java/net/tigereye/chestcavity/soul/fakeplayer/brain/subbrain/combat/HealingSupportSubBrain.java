@@ -4,23 +4,26 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.api.ActionContext;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.registry.ActionRegistry;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.BrainActionStep;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
 
 /** Ensures the passive healing routine is running while in combat. */
-public final class HealingSupportSubBrain implements SubBrain {
+public final class HealingSupportSubBrain extends SubBrain {
 
     private static final ResourceLocation HEAL = ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "action/heal");
 
-    @Override public String id() { return "combat.heal"; }
+    public HealingSupportSubBrain() {
+        super("combat.heal");
+        addStep(BrainActionStep.always(this::ensureHealingAction));
+    }
 
     @Override
     public boolean shouldTick(SubBrainContext ctx) {
         return ActionRegistry.find(HEAL) != null;
     }
 
-    @Override
-    public void tick(SubBrainContext ctx) {
+    private void ensureHealingAction(SubBrainContext ctx) {
         var action = ActionRegistry.find(HEAL);
         if (action == null) {
             return;
