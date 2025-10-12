@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.soul.fakeplayer.brain;
 
 import net.minecraft.server.level.ServerPlayer;
-import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
@@ -15,8 +14,9 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.IntentSnapshot;
 
 /**
- * A lightweight coordinator that behaves like a "brain": selects a sub-brain per soul
- * (e.g., Combat) and lets it orchestrate Actions. Modes can be AUTO or forced.
+ * A lightweight coordinator that behaves like a "brain": selects the appropriate
+ * top-level {@link Brain} implementation per soul (e.g., Combat) which in turn
+ * orchestrates its registered sub-brains and actions. Modes can be AUTO or forced.
  */
 public final class BrainController implements SoulRuntimeHandler {
 
