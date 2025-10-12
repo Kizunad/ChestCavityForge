@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.soul.fakeplayer.brain;
 
-/** Interface for sub-brains that drive a SoulPlayer under a given mode. */
+/** Top-level coordinator that orchestrates one or more sub-brains. */
 public interface Brain {
     String id();
     BrainMode mode();
@@ -8,4 +8,3 @@ public interface Brain {
     void onExit(BrainContext ctx);
     void tick(BrainContext ctx);
 }
-
