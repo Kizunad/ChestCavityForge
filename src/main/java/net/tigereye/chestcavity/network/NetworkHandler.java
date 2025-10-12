@@ -69,6 +69,14 @@ public final class NetworkHandler {
         registrar.playToClient(net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.TYPE,
                 net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.STREAM_CODEC,
                 net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload::handle);
+
+        // Soul navigation Baritone planning bridge
+        registrar.playToClient(net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanRequestPayload.TYPE,
+                net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanRequestPayload.STREAM_CODEC,
+                net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanRequestPayload::handle);
+        registrar.playToServer(net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanResponsePayload.TYPE,
+                net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanResponsePayload.STREAM_CODEC,
+                net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanResponsePayload::handle);
     }
 
 

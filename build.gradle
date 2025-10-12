@@ -2,10 +2,22 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'net.neoforged.moddev' version '2.0.14-beta'
+    // 使用 GradleUp Shadow 做可选依赖重定位与打包（支持 Java 21 / Gradle 8+）
+    id 'com.gradleup.shadow' version '9.2.2'
 }
+
 
 version = mod_version
 group = mod_group_id
+
+// 默认内嵌的 Baritone 本地 Jar（如存在则自动启用，无需 -Pbaritone_local）
+def __baritoneLocalDefault = file('libs/baritone-api-neoforge-1.11.2.jar')
+// 可选的源码子模块 external/Baritone
+def __baritoneProject = findProject(':external:Baritone')
+// 统一开关：任一来源（源码子模块 / -Pbaritone_dep / -Pbaritone_local / 默认 libs jar）存在即启用打包
+def __baritoneOff = project.hasProperty('baritone_off')
+def __useBaritone = !__baritoneOff && 
+        ((__baritoneProject != null) || project.hasProperty('baritone_dep') || project.hasProperty('baritone_local') || __baritoneLocalDefault.exists())
 
 repositories {
     mavenLocal()
@@ -21,6 +33,14 @@ repositories {
 
     // Modern UI
     maven { url = "https://maven.izzel.io/releases" }
+    // Optional: Baritone (enable via -Pbaritone_dep=group:artifact:version)
+    if (project.hasProperty('baritone_dep')) {
+        maven { url = "https://impactdevelopment.github.io/maven" }
+        // Some forks publish to JitPack; add only if requested to avoid slowdown
+        if (project.hasProperty('baritone_repo_jitpack')) {
+            maven { url = "https://jitpack.io" }
+        }
+    }
 }
 
 base {
@@ -150,6 +170,25 @@ dependencies {
 
 
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
+
+    // ===== Baritone（可选：源码子模块 / 远程坐标 / 本地 Jar） =====
+    // 1) 源码子模块：仅编译期可见，避免在常规运行时产生第二个模组
+    if (__baritoneProject != null) {
+        compileOnly project(":external:Baritone")
+        testImplementation project(":external:Baritone")
+    }
+    // 2) 远程坐标：通过 -Pbaritone_dep=group:artifact:version 指定
+    //    例如 -Pbaritone_dep=cabaletta:baritone-api:1.21.1-SNAPSHOT
+    if (project.hasProperty('baritone_dep')) {
+        implementation project.property('baritone_dep')
+        testImplementation project.property('baritone_dep')
+    }
+    // 3) 本地 Jar：通过 -Pbaritone_local=/path/to/baritone.jar 指定
+    if (project.hasProperty('baritone_local')) {
+        def jarPath = project.property('baritone_local')
+        implementation files(jarPath)
+        testImplementation files(jarPath)
+    }
 }
 
 test {
@@ -195,6 +234,103 @@ jar {
         )
     }
 }
+
+// 可选嵌入依赖（Baritone）
+configurations { embed }
+
+dependencies {
+    // 1) 源码子模块：将产物打包进主 jar，并进行重定位；不引入其依赖（transitive=false），避免把 NeoForge 等塞入
+    if (__baritoneProject != null) {
+        embed(project(":external:Baritone")) { transitive = false }
+    }
+    // 2) 本地 Jar 优先
+    if (project.hasProperty('baritone_local')) {
+        def jarPath = project.property('baritone_local')
+        embed files(jarPath)
+    } else if (__baritoneLocalDefault.exists()) {
+        // 3) 回退到默认 libs 目录下的 jar（存在即自动启用）
+        embed files(__baritoneLocalDefault)
+    }
+    // 4) 远程坐标打包（不建议生产使用）
+    if (project.hasProperty('baritone_dep')) {
+        embed project.property('baritone_dep')
+    }
+}
+
+// 当提供 baritone 依赖时，使用 Shadow 产出主 jar 并进行重定位
+tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure { sh ->
+    if (__useBaritone) {
+        zip64 true
+        // 仅打包 embed 里的依赖，避免将 runtimeClasspath（NeoForge 等）塞进主包
+        configurations = [project.configurations.embed]
+        archiveClassifier.set('')
+        // 全局排除：避免把 Baritone 作为独立模组入口被识别
+        // 1) Baritone 模组入口路径（无论是否重定位，名称模式也排除）
+        sh.exclude 'baritone/launch/**'
+        sh.exclude 'com/github/cabaletta/baritone/launch/**'
+        sh.exclude 'baritone/neoforge/**'
+        sh.exclude 'com/github/cabaletta/baritone/neoforge/**'
+        sh.exclude 'baritone/forge/**'
+        sh.exclude 'com/github/cabaletta/baritone/forge/**'
+        // 2) 兜底：直接排除常见入口类名（不管包名如何，包含重定位后的场景）
+        sh.exclude '**/BaritoneForgeMod*.class'
+        sh.exclude '**/BaritoneMod*.class'
+        sh.exclude '**/BaritoneForge*.class'
+        // 仅打包 embed 配置里的依赖，避免把运行时所有依赖都塞进来
+        from({ project.configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } }) {
+            // 注意：只在依赖内容里排除 META-INF 与无关资源，保留本模组自己的 META-INF
+            exclude 'META-INF/**'
+            exclude 'pack.mcmeta'
+            exclude 'baritone/launch/**'
+            exclude 'com/github/cabaletta/baritone/launch/**'
+            exclude 'baritone/neoforge/**'
+            exclude 'com/github/cabaletta/baritone/neoforge/**'
+            exclude 'baritone/forge/**'
+            exclude 'com/github/cabaletta/baritone/forge/**'
+            exclude '**/BaritoneForgeMod*.class'
+            exclude '**/BaritoneMod*.class'
+            exclude '**/BaritoneForge*.class'
+        }
+        // 复制原 jar 的 manifest（保持 Mixin 配置与 mod 元信息）
+        manifest.attributes([
+                'Specification-Title'   : mod_id,
+                'Specification-Vendor'  : mod_group_id,
+                'Specification-Version' : '1',
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': mod_version,
+                'Implementation-Vendor' : mod_group_id,
+                'MixinConfigs'          : "${mod_id}.mixins.json"
+        ])
+        mergeServiceFiles()
+        // 重定位（若存在这些包名则生效）
+        relocate 'baritone', 'net.tigereye.chestcavity.shadow.baritone'
+        relocate 'com.github.cabaletta.baritone', 'net.tigereye.chestcavity.shadow.com.github.cabaletta.baritone'
+    } else {
+        enabled = false
+    }
+}
+
+// 启用 shadow 产物替代常规 jar（仅在提供 baritone 依赖时）
+tasks.named('jar').configure { it.enabled = !__useBaritone }
+tasks.named('assemble').configure { t ->
+    if (__useBaritone) {
+        dependsOn tasks.named('shadowJar')
+    }
+}
+
+// 备注：如需改用 Shadow 做重定位，请等待外网插件仓库可用后再切换。
+
+tasks.named('jar').configure { t ->
+    if (project.hasProperty('baritone_dep') || project.hasProperty('baritone_local')) {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        from({ project.configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } }) {
+            // 避免覆盖 manifest 与签名、及与我们无关的元数据
+            exclude 'META-INF/**'
+            exclude 'pack.mcmeta'
+        }
+    }
+}
+
 
 idea {
     module {

@@ -22,6 +22,7 @@ import net.tigereye.chestcavity.soul.util.SoulProfileOps;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -425,6 +426,7 @@ public final class SoulFakePlayerSpawner {
      * Excludes the soul the owner is currently possessing to avoid double work in the hot path.
      */
     public static void runBackgroundSnapshots(MinecraftServer server) {
+        final boolean LOG_SNAPSHOT = Boolean.getBoolean("chestcavity.debugSoul.snapshot");
         if (ACTIVE_SOUL_PLAYERS.isEmpty()) {
             return;
         }
@@ -487,7 +489,7 @@ public final class SoulFakePlayerSpawner {
             savedSouls += offlineSouls.size();
         }
 
-        if (savedSouls > 0) {
+        if (LOG_SNAPSHOT && savedSouls > 0) {
             SoulLog.info("[soul] background-snapshot savedSouls={} ownersTouched={} offlineSouls={}",
                     savedSouls,
                     ownersTouched,
@@ -554,9 +556,15 @@ public final class SoulFakePlayerSpawner {
                 SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=policy-deny-soul", owner, soulId);
                 return;
             }
-            SoulLog.info("[soul] refreshSnapshot soul=OK owner={} soulId={}", owner, soulId);
+            final boolean LOG_REFRESH = Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot");
+            if (LOG_REFRESH) {
+                SoulLog.info("[soul] refreshSnapshot soul=OK owner={} soulId={}", owner, soulId);
+            }
         } else {
-            SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=noActiveSoulOrWrongOwner", owner, soulId);
+            final boolean LOG_REFRESH = Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot");
+            if (LOG_REFRESH) {
+                SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=noActiveSoulOrWrongOwner", owner, soulId);
+            }
         }
     }
 
@@ -813,6 +821,41 @@ public final class SoulFakePlayerSpawner {
             return builder.buildFuture();
         }
         ACTIVE_SOUL_PLAYERS.keySet().forEach(uuid -> builder.suggest(uuid.toString()));
+        return builder.buildFuture();
+    }
+
+    /**
+     * Brigadier completion for UUID-only arguments. Provides plain UUID strings that directly map to
+     * either the soul profile ID or the active entity UUID, ensuring compatibility with {@link UuidArgument}.
+     */
+    public static CompletableFuture<Suggestions> suggestSoulPlayerUuidLiterals(CommandSourceStack source, SuggestionsBuilder builder) {
+        java.util.Set<String> literals = new LinkedHashSet<>();
+        if (source.getEntity() instanceof ServerPlayer player) {
+            UUID owner = player.getUUID();
+            var container = CCAttachments.getSoulContainer(player);
+            if (container != null) {
+                for (UUID sid : container.getKnownSoulIds()) {
+                    if (sid == null || sid.equals(owner)) continue;
+                    literals.add(sid.toString());
+                    SoulPlayer sp = ACTIVE_SOUL_PLAYERS.get(sid);
+                    if (sp != null) {
+                        literals.add(sp.getUUID().toString());
+                    }
+                }
+            }
+            ACTIVE_SOUL_PLAYERS.values().stream()
+                    .filter(sp -> sp.getOwnerId().map(owner::equals).orElse(false))
+                    .forEach(sp -> {
+                        literals.add(sp.getSoulId().toString());
+                        literals.add(sp.getUUID().toString());
+                    });
+        } else {
+            ACTIVE_SOUL_PLAYERS.values().forEach(sp -> {
+                literals.add(sp.getSoulId().toString());
+                literals.add(sp.getUUID().toString());
+            });
+        }
+        literals.forEach(builder::suggest);
         return builder.buildFuture();
     }
 

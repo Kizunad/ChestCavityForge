@@ -9,6 +9,8 @@ import net.minecraft.server.level.ServerLevel;
 
 public final class SoulProfileOps {
 
+    private static final boolean LOG_CONTAINER_DIRTY = Boolean.getBoolean("chestcavity.debugSoul.containerDirty");
+
     private SoulProfileOps() {
     }
 
@@ -16,10 +18,12 @@ public final class SoulProfileOps {
                                           SoulContainer container,
                                           String reason) {
         player.setData(CCAttachments.SOUL_CONTAINER.get(), container);
-        SoulLog.info("[soul] container-dirty reason={} owner={} active={}",
-                reason,
-                player.getUUID(),
-                container.getActiveProfileId().orElse(player.getUUID()));
+        if (LOG_CONTAINER_DIRTY) {
+            SoulLog.info("[soul] container-dirty reason={} owner={} active={}",
+                    reason,
+                    player.getUUID(),
+                    container.getActiveProfileId().orElse(player.getUUID()));
+        }
     }
 
     public static void applyProfileToPlayer(SoulProfile profile,

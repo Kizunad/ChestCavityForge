@@ -9,3 +9,12 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
+
+// 可选：本地源码子模块（external/Baritone）
+// 若存在该目录，则将其作为子工程参与构建，以便源码级依赖与打包。
+def __baritoneDir = file('external/Baritone')
+if (__baritoneDir.exists()) {
+    rootProject.name = 'ChestCavityForge'
+    include(':external:Baritone')
+    project(':external:Baritone').projectDir = __baritoneDir
+}

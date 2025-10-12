@@ -13,7 +13,8 @@ public final class SoulLog {
     }
 
     /**
-     * Master toggle for soul module diagnostics. Flip to {@code false} to silence INFO logs.
+     * Master toggle for soul module diagnostics. 留作高级调试开关，但不全局屏蔽 info，
+     * 仅用于少数需要的点位（例如 Baritone 初始化详情）。
      */
     public static boolean DEBUG_LOGS = Boolean.getBoolean("chestcavity.debugSoul");
 

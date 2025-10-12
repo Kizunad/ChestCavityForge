@@ -13,6 +13,10 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.soul.engine.SoulFeatureToggle;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.SoulPlayerInfo;
+import net.tigereye.chestcavity.soul.navigation.SoulGoalPlanner;
+import net.tigereye.chestcavity.soul.navigation.SoulNavEngine;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationTestHarness;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
 import net.tigereye.chestcavity.registration.CCAttachments;
@@ -23,6 +27,7 @@ import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -47,6 +52,48 @@ public final class SoulCommands {
     }
 
     /**
+     * /soul nav engine <idOrName> <engine|clear>
+     */
+    private static int navSetEngine(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        String engineToken = StringArgumentType.getString(context, "engine");
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(
+                SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+
+        if (engineToken.equalsIgnoreCase("clear")) {
+            SoulNavigationMirror.setEngine(soul, null);
+        } else {
+            SoulNavEngine engine = SoulNavEngine.fromProperty(engineToken);
+            SoulNavigationMirror.setEngine(soul, engine);
+        }
+        SoulNavEngine effective = SoulNavigationMirror.getEngine(soul);
+        context.getSource().sendSuccess(() -> Component.literal("[soul] nav engine -> " + effective.name().toLowerCase(java.util.Locale.ROOT)), true);
+        return 1;
+    }
+
+    private static int navDump(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(
+                SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
+        var soul = soulOpt.get();
+        var engine = SoulNavigationMirror.getEngine(soul);
+        boolean baritoneAvail = net.tigereye.chestcavity.soul.navigation.barintegrate.BaritoneFacade.isAvailable();
+        String line = net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.debugLine(soul);
+        String broker = net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanBroker.debugSummary();
+        context.getSource().sendSuccess(() -> Component.literal("[soul] nav dump: " + line + ", baritoneAvailable=" + baritoneAvail + ", broker{" + broker + "}"), false);
+        return 1;
+    }
+
+    /**
      * 注册 {@code /soul} 指令树，按子命令分组覆盖启用开关、AI、动作、命令式移动与调试工具。
      *
      * @param event NeoForge 注入的注册事件，提供 {@link CommandDispatcher} 上下文。
@@ -57,6 +104,22 @@ public final class SoulCommands {
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("enable")
                         .executes(SoulCommands::enableSoulSystem))
+                .then(Commands.literal("nav")
+                        .then(Commands.literal("engine")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .then(Commands.argument("engine", StringArgumentType.word())
+                                                .suggests((ctx, builder) -> {
+                                                    builder.suggest("vanilla");
+                                                    builder.suggest("baritone");
+                                                    builder.suggest("clear");
+                                                    return builder.buildFuture();
+                                                })
+                                                .executes(SoulCommands::navSetEngine))))
+                        .then(Commands.literal("dump")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::navDump))))
                 .then(Commands.literal("brain")
                         // /soul brain mode <idOrName> <mode>
                         .then(Commands.literal("mode")
@@ -175,8 +238,62 @@ public final class SoulCommands {
                                         .then(Commands.argument("y", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
                                                 .then(Commands.argument("z", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
                                                         .executes(SoulCommands::createSoulAt)))))
+                        .then(Commands.literal("TestCollectEntityGoals")
+                                .then(Commands.argument("uuid", UuidArgument.uuid())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuidLiterals(ctx.getSource(), builder))
+                                        .executes(SoulCommands::testCollectEntityGoals)))
                         .then(Commands.literal("saveAll")
                                 .executes(SoulCommands::saveAll))));
+    }
+
+    /**
+     * {@code /soul test TestCollectEntityGoals <uuid>} 导航测试入口。
+     */
+    private static int testCollectEntityGoals(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        ServerPlayer executor = source.getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            source.sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再运行导航测试。"));
+            return 0;
+        }
+        UUID token = UuidArgument.getUuid(context, "uuid");
+        UUID soulId = SoulFakePlayerSpawner.resolveSoulUuid(token).orElse(token);
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(soulId);
+        if (soulOpt.isEmpty()) {
+            source.sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。"));
+            return 0;
+        }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            source.sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+
+        double range = 24.0;
+        double speed = 1.15;
+        List<SoulGoalPlanner.NavigationGoal> goals =
+                SoulGoalPlanner.collectEntityGoals(
+                        soul,
+                        range,
+                        target -> target != null && target.isAlive(),
+                        speed
+                );
+        if (goals.isEmpty()) {
+            source.sendFailure(Component.literal(String.format(Locale.ROOT,
+                    "[soul] 范围内没有可用目标（range=%.1f）。", range)));
+            return 0;
+        }
+
+        boolean scheduled = SoulNavigationTestHarness.schedule(soul, goals);
+        if (!scheduled) {
+            source.sendFailure(Component.literal("[soul] 无法调度导航测试。"));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] TestCollectEntityGoals -> %d targets (range %.1f, speed %.2f)",
+                goals.size(), range, speed)), true);
+        return goals.size();
     }
 
     /**

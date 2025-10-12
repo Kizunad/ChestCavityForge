@@ -155,4 +155,11 @@ public class SoulPlayer extends FakePlayer {
     public void setLastFoodTick(long tick) {
         this.lastFoodTick = tick;
     }
+
+    /**
+     * Allows server-side tooling to trigger a vanilla jump without relying on client input.
+     */
+    public void forceJump() {
+        this.jumpFromGround();
+    }
 }

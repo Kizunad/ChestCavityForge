@@ -29,7 +29,7 @@ import javax.annotation.Nullable;
  * - No world entity is created; collision and block checks still work as they query Level state.
  * - Movement speed parity comes from copying the SoulPlayer MOVEMENT_SPEED attribute onto the DummyMob.
  */
-final class VirtualSoulNavigator {
+final class VirtualSoulNavigator implements ISoulNavigator {
 
     private final DummyMob dummy;
     private final GroundPathNavigation navGround;
@@ -61,7 +61,8 @@ final class VirtualSoulNavigator {
         // Note: step-height tuning relies on navigation/jump control; direct setter may not be available in this mapping.
     }
 
-    void setGoal(SoulPlayer soul, Vec3 target, double speedModifier, double stopDistance) {
+    @Override
+    public void setGoal(SoulPlayer soul, Vec3 target, double speedModifier, double stopDistance) {
         this.speedModifier = speedModifier;
         this.stopDistance = stopDistance;
         this.target = target;
@@ -72,7 +73,8 @@ final class VirtualSoulNavigator {
         this.navCurrent.moveTo(target.x, target.y, target.z, speedModifier);
     }
 
-    void clearGoal() {
+    @Override
+    public void clearGoal() {
         this.target = null;
         this.navCurrent.stop();
         this.stuckTicks = 0;
@@ -82,7 +84,8 @@ final class VirtualSoulNavigator {
     /**
      * Advance navigation one tick and apply the resulting movement to the SoulPlayer.
      */
-    void tick(SoulPlayer soul) {
+    @Override
+    public void tick(SoulPlayer soul) {
         if (this.target == null) return;
         if (soul.isRemoved()) return;
         Level level = soul.level();

@@ -12,5 +12,6 @@ public final class SoulNavigationEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         SoulNavigationMirror.serverTick(event.getServer());
+        SoulNavigationTestHarness.tick(event.getServer());
     }
 }

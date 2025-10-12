@@ -17,6 +17,8 @@ import java.util.OptionalDouble;
  */
 public final class GuzhenrenZhuanshuSecondHandler implements SoulPerSecondListener {
 
+    private static final boolean LOG_PERIODIC = Boolean.getBoolean("chestcavity.debugSoul.periodic");
+
     private static final String FIELD_ZHUANSHU = "zhuanshu";
     private static final double ZHENYUAN_RECOVERY = 1.0D;
     private static final double HUNPO_RECOVERY = 0.05D;
@@ -41,7 +43,9 @@ public final class GuzhenrenZhuanshuSecondHandler implements SoulPerSecondListen
         if (zhuanshu > 0.0D) {
             newZhenyuan = handle.adjustDouble("zhenyuan", ZHENYUAN_RECOVERY, true, "zuida_zhenyuan");
         }
-        logRecovery(player, zhuanshu, gameTime, newZhenyuan, newHunpo, newJingli, newNiantou);
+        if (LOG_PERIODIC) {
+            logRecovery(player, zhuanshu, gameTime, newZhenyuan, newHunpo, newJingli, newNiantou);
+        }
     }
 
     private static void logRecovery(SoulPlayer player,
