@@ -20,8 +20,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Minimal FOLLOW/IDLE handler: when a soul is ordered to FOLLOW and is farther than 5 blocks
- * from the owner's current controlled body (ServerPlayer), it pathfinds to that position.
+ * 灵魂基础指令（FOLLOW/IDLE/GUARD/FORCE_FIGHT）处理器。
+ *
+ * <p>负责监听容器内持久化的 AI 指令，并在每个 tick 根据指令下达基础移动/战斗行为。</p>
  */
 public final class SoulAIOrderHandler implements SoulRuntimeHandler {
 
@@ -76,6 +77,9 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         }
     }
 
+    /**
+     * 激进模式：在半径 16 格内寻找任意活体目标并主动接战。
+     */
     private void handleForceFight(SoulPlayer soul, ServerPlayer owner) {
         ServerLevel level = soul.serverLevel();
         Vec3 anchor = owner.position();
@@ -130,6 +134,9 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         }
     }
 
+    /**
+     * 激进模式的尾随补刀逻辑，补发一次近战攻击尝试。
+     */
     private void postForceFightAttack(SoulPlayer soul, ServerPlayer owner) {
         ServerLevel level = soul.serverLevel();
         Vec3 anchor = owner.position();
@@ -152,6 +159,9 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         }
     }
 
+    /**
+     * 判断目标是否为同一宿主的灵魂，用于避免误伤友方。
+     */
     private static boolean isSameOwnerSoul(LivingEntity entity, ServerPlayer owner) {
         if (entity instanceof net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer spSoul) {
             return spSoul.getOwnerId().map(owner.getUUID()::equals).orElse(false);
@@ -159,6 +169,9 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         return false;
     }
 
+    /**
+     * 守卫模式：优先守在宿主身边，遇到威胁时在血量安全前提下主动迎击。
+     */
     private void handleGuard(SoulPlayer soul, ServerPlayer owner) {
         ServerLevel level = soul.serverLevel();
         Vec3 anchor = owner.position();

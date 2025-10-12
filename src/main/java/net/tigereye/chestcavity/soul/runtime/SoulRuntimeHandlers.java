@@ -4,12 +4,21 @@ import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 灵魂运行时组件的统一引导入口。
+ *
+ * <p>在服务器生命周期内调用一次 {@link #bootstrap()}，注册 AI、动作、战斗与周期处理器，确保 FakePlayer
+ * 所需的各项子系统全部就绪。</p>
+ */
 public final class SoulRuntimeHandlers {
 
     private static final AtomicBoolean BOOT = new AtomicBoolean(false);
 
     private SoulRuntimeHandlers() {}
 
+    /**
+     * 安装所有默认的灵魂运行时处理器。通过 {@link AtomicBoolean} 保证仅执行一次。
+     */
     public static void bootstrap() {
         if (BOOT.compareAndSet(false, true)) {
             // Install Actions registry (self-contained autonomy API)

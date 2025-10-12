@@ -816,7 +816,12 @@ public final class SoulFakePlayerSpawner {
         return builder.buildFuture();
     }
 
-    /** Resolve by UUID (profile/entity) or by name (owner-scoped). */
+    /**
+     * 根据多种标识解析灵魂 UUID：支持 profile-UUID、实体 UUID 以及玩家自定义名称。
+     *
+     * @param owner 当前指令执行者（用于限定名称空间与默认 owner）。
+     * @param token 用户输入的标识（可带 {@code profile-}、{@code entity-} 前缀）。
+     */
     public static Optional<UUID> resolveSoulUuidFlexible(ServerPlayer owner, String token) {
         token = unquote(token);
         if (token == null || token.isBlank()) return Optional.empty();
