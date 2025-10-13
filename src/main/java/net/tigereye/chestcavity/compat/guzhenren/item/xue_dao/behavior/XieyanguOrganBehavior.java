@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -74,15 +76,15 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final ResourceLocation HEALTH_DRAIN_READY_AT_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/xieyangu_health_drain");
 
-    private static final int HEALTH_DRAIN_INTERVAL_SLOW_TICKS = 60; // once per minute
-    private static final float BASE_CRIT_MULTIPLIER = 1.5f;
+    private static final int HEALTH_DRAIN_INTERVAL_SLOW_TICKS = BehaviorConfigAccess.getInt(XieyanguOrganBehavior.class, "HEALTH_DRAIN_INTERVAL_SLOW_TICKS", 60); // once per minute
+    private static final float BASE_CRIT_MULTIPLIER = BehaviorConfigAccess.getFloat(XieyanguOrganBehavior.class, "BASE_CRIT_MULTIPLIER", 1.5f);
     private static final double NON_PLAYER_BASE_ZHENYUAN_COST = 20.0;
     private static final double NON_PLAYER_BASE_JINGLI_COST = 10.0;
     private static final double RESOURCE_TO_HEALTH_RATIO = 100.0;
-    private static final int BLOOD_TRAIL_DURATION_TICKS = 200; // 10 seconds
-    private static final float FOCUS_THRESHOLD_RATIO = 0.3f;
-    private static final float FOCUS_ATTACK_SPEED_BONUS = 0.2f;
-    private static final float FOCUS_EXHAUSTION_PER_TICK = 2.5f; // applied once per slow tick when active
+    private static final int BLOOD_TRAIL_DURATION_TICKS = BehaviorConfigAccess.getInt(XieyanguOrganBehavior.class, "BLOOD_TRAIL_DURATION_TICKS", 200); // 10 seconds
+    private static final float FOCUS_THRESHOLD_RATIO = BehaviorConfigAccess.getFloat(XieyanguOrganBehavior.class, "FOCUS_THRESHOLD_RATIO", 0.3f);
+    private static final float FOCUS_ATTACK_SPEED_BONUS = BehaviorConfigAccess.getFloat(XieyanguOrganBehavior.class, "FOCUS_ATTACK_SPEED_BONUS", 0.2f);
+    private static final float FOCUS_EXHAUSTION_PER_TICK = BehaviorConfigAccess.getFloat(XieyanguOrganBehavior.class, "FOCUS_EXHAUSTION_PER_TICK", 2.5f); // applied once per slow tick when active
 
     private static final ResourceLocation FOCUS_ATTACK_SPEED_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/xieyangu_focus_attack_speed");

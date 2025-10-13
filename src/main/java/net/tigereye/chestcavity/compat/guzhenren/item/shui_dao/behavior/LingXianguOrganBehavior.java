@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 
@@ -59,19 +61,19 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
     private static final String NORMAL_READY_AT_KEY = "NormalReadyAt";
     private static final String STRESS_READY_AT_KEY = "StressReadyAt";
 
-    private static final int PLAYER_INTERVAL_SECONDS = 30;
-    private static final int NON_PLAYER_INTERVAL_SECONDS = PLAYER_INTERVAL_SECONDS * 2;
+    private static final int PLAYER_INTERVAL_SECONDS = BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "PLAYER_INTERVAL_SECONDS", 30);
+    private static final int NON_PLAYER_INTERVAL_SECONDS = BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "NON_PLAYER_INTERVAL_SECONDS", PLAYER_INTERVAL_SECONDS * 2);
 
     private static final double BASE_NORMAL_ZHENYUAN_COST = 30.0;
     private static final double BASE_STRESS_ZHENYUAN_COST = 60.0;
 
-    private static final float BASE_NORMAL_HEAL = 10.0f;
-    private static final float BASE_STRESS_HEAL = 20.0f;
+    private static final float BASE_NORMAL_HEAL = BehaviorConfigAccess.getFloat(LingXianguOrganBehavior.class, "BASE_NORMAL_HEAL", 10.0f);
+    private static final float BASE_STRESS_HEAL = BehaviorConfigAccess.getFloat(LingXianguOrganBehavior.class, "BASE_STRESS_HEAL", 20.0f);
 
-    private static final float STRESS_THRESHOLD_RATIO = 0.30f;
-    private static final int WEAKNESS_DURATION_TICKS = 5 * 20;
-    private static final int PLAYER_STRESS_AMPLIFIER = 0;
-    private static final int NON_PLAYER_STRESS_AMPLIFIER = 2;
+    private static final float STRESS_THRESHOLD_RATIO = BehaviorConfigAccess.getFloat(LingXianguOrganBehavior.class, "STRESS_THRESHOLD_RATIO", 0.30f);
+    private static final int WEAKNESS_DURATION_TICKS = BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "WEAKNESS_DURATION_TICKS", 5 * 20);
+    private static final int PLAYER_STRESS_AMPLIFIER = BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "PLAYER_STRESS_AMPLIFIER", 0);
+    private static final int NON_PLAYER_STRESS_AMPLIFIER = BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "NON_PLAYER_STRESS_AMPLIFIER", 2);
 
     private static final DustParticleOptions PLAYER_GLOW =
             new DustParticleOptions(new Vector3f(90f / 255f, 210f / 255f, 215f / 255f), 1.0f);

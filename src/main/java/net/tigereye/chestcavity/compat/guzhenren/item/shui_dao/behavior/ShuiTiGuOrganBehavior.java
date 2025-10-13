@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -42,9 +44,9 @@ public final class ShuiTiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final double INCREASE_PER_STACK = 0.01;
-    private static final float HEAL_PER_SECOND = 3.0f;
+    private static final float HEAL_PER_SECOND = BehaviorConfigAccess.getFloat(ShuiTiGuOrganBehavior.class, "HEAL_PER_SECOND", 3.0f);
     private static final double ZHENYUAN_PER_SECOND = 200.0;
-    private static final int SHIELD_CHARGE_PER_TICK = 1;
+    private static final int SHIELD_CHARGE_PER_TICK = BehaviorConfigAccess.getInt(ShuiTiGuOrganBehavior.class, "SHIELD_CHARGE_PER_TICK", 1);
 
     private ShuiTiGuOrganBehavior() {
     }

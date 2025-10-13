@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -35,10 +37,10 @@ public final class QuanLiYiFuGuOrganBehavior extends AbstractLiDaoOrganBehavior 
     private static final double BASE_JINGLI_RESTORE = 5.0;
     private static final double MUSCLE_BONUS_PER_SLOT = 0.5;
     private static final double MUSCLE_BONUS_CAP_BASE = 25.0;
-    private static final int PULSE_INTERVAL_SECONDS = 15;
-    private static final int RETRY_INTERVAL_SECONDS = 3;
+    private static final int PULSE_INTERVAL_SECONDS = BehaviorConfigAccess.getInt(QuanLiYiFuGuOrganBehavior.class, "PULSE_INTERVAL_SECONDS", 15);
+    private static final int RETRY_INTERVAL_SECONDS = BehaviorConfigAccess.getInt(QuanLiYiFuGuOrganBehavior.class, "RETRY_INTERVAL_SECONDS", 3);
 
-    private static final int MAX_STORED_COOLDOWN = PULSE_INTERVAL_SECONDS;
+    private static final int MAX_STORED_COOLDOWN = BehaviorConfigAccess.getInt(QuanLiYiFuGuOrganBehavior.class, "MAX_STORED_COOLDOWN", PULSE_INTERVAL_SECONDS);
 
     private QuanLiYiFuGuOrganBehavior() {
     }

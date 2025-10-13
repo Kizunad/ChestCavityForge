@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.ParticleOptions;
@@ -69,14 +71,14 @@ public final class HuorenguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
     private static final double HEALTH_RESTORE_RATIO = 0.005;
     private static final double JINGLI_RESTORE = 4.0;
-    private static final int FIRE_RESIST_DURATION_TICKS = 60;
-    private static final int HASTE_DURATION_TICKS = 60;
+    private static final int FIRE_RESIST_DURATION_TICKS = BehaviorConfigAccess.getInt(HuorenguOrganBehavior.class, "FIRE_RESIST_DURATION_TICKS", 60);
+    private static final int HASTE_DURATION_TICKS = BehaviorConfigAccess.getInt(HuorenguOrganBehavior.class, "HASTE_DURATION_TICKS", 60);
     private static final double SYNERGY_INCREASE = 0.26;
-    private static final int FIRE_LINGER_SECONDS = 600;
-    private static final int BURN_SOUND_INTERVAL_TICKS = 40;
+    private static final int FIRE_LINGER_SECONDS = BehaviorConfigAccess.getInt(HuorenguOrganBehavior.class, "FIRE_LINGER_SECONDS", 600);
+    private static final int BURN_SOUND_INTERVAL_TICKS = BehaviorConfigAccess.getInt(HuorenguOrganBehavior.class, "BURN_SOUND_INTERVAL_TICKS", 40);
 
-    private static final float SHOOT_SOUND_VOLUME = 0.8f;
-    private static final float BURN_SOUND_VOLUME_BASE = 0.25f;
+    private static final float SHOOT_SOUND_VOLUME = BehaviorConfigAccess.getFloat(HuorenguOrganBehavior.class, "SHOOT_SOUND_VOLUME", 0.8f);
+    private static final float BURN_SOUND_VOLUME_BASE = BehaviorConfigAccess.getFloat(HuorenguOrganBehavior.class, "BURN_SOUND_VOLUME_BASE", 0.25f);
 
     private static final double EPSILON = 1.0E-6;
 

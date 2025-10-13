@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -45,7 +47,7 @@ public enum GuQiangguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     private static final String STATE_KEY = "GuQiangCharge";
     private static final double ENERGY_PER_CHARGE = 60.0;
-    private static final int MAX_CHARGE = 10;
+    private static final int MAX_CHARGE = BehaviorConfigAccess.getInt(GuQiangguOrganBehavior.class, "MAX_CHARGE", 10);
 
     private static final ResourceLocation EMERALD_BONE_GROWTH_CHANNEL =
         ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/emerald_bone_growth");

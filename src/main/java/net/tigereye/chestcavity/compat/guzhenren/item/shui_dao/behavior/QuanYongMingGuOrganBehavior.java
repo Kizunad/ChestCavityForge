@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -50,7 +52,7 @@ public final class QuanYongMingGuOrganBehavior extends AbstractGuzhenrenOrganBeh
     private static final double ZHENYUAN_COST_PER_SECOND = 800.0;
     private static final double JINGLI_GAIN_PER_SECOND = 5.0;
     private static final double HEALTH_PERCENT_PER_SECOND = 0.0075;
-    private static final float PURE_WATER_ABSORPTION = 10.0f;
+    private static final float PURE_WATER_ABSORPTION = BehaviorConfigAccess.getFloat(QuanYongMingGuOrganBehavior.class, "PURE_WATER_ABSORPTION", 10.0f);
 
     private QuanYongMingGuOrganBehavior() {
     }

@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -48,22 +50,22 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final double HUNGER_COST = 0.1;
     private static final double DRUNK_THRESHOLD = 20.0;
     private static final double ATTACK_BONUS = 1;
-    private static final float BASE_DODGE_CHANCE = 0.1f;
-    private static final float MIN_DODGE_DISTANCE = 0.5f;
-    private static final float MAX_DODGE_DISTANCE = 1.0f;
-    private static final float DODGE_YAW_RANGE = 60.0f;
-    private static final float ATTACK_YAW_RANGE = 15.0f;
-    private static final float ATTACK_PITCH_RANGE = 5.0f;
+    private static final float BASE_DODGE_CHANCE = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "BASE_DODGE_CHANCE", 0.1f);
+    private static final float MIN_DODGE_DISTANCE = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "MIN_DODGE_DISTANCE", 0.5f);
+    private static final float MAX_DODGE_DISTANCE = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "MAX_DODGE_DISTANCE", 1.0f);
+    private static final float DODGE_YAW_RANGE = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "DODGE_YAW_RANGE", 60.0f);
+    private static final float ATTACK_YAW_RANGE = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "ATTACK_YAW_RANGE", 15.0f);
+    private static final float ATTACK_PITCH_RANGE = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "ATTACK_PITCH_RANGE", 5.0f);
 
     private static final double BREATH_COST = 30.0;
     private static final double REGEN_COST = 10.0;
-    private static final float REGEN_HEAL_AMOUNT = 2.0f;
+    private static final float REGEN_HEAL_AMOUNT = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "REGEN_HEAL_AMOUNT", 2.0f);
     private static final long REGEN_INTERVAL_TICKS = 40L;
 
-    private static final float HEALTH_EPSILON = 1.0E-4f;
+    private static final float HEALTH_EPSILON = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "HEALTH_EPSILON", 1.0E-4f);
 
     private static final long MANIA_DURATION_TICKS = 20L * 20L;
-    private static final float MANIA_DAMAGE_MULTIPLIER = 2.0f;
+    private static final float MANIA_DAMAGE_MULTIPLIER = BehaviorConfigAccess.getFloat(JiuChongOrganBehavior.class, "MANIA_DAMAGE_MULTIPLIER", 2.0f);
 
     private static final ClampPolicy ALCOHOL_CLAMP = new ClampPolicy(0.0, MAX_ALCOHOL);
 

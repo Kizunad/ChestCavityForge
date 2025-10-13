@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -60,17 +62,17 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
     private static final double BASE_ZHENYUAN_COST = 120.0;
     private static final double BASE_JINGLI_COST = 30.0;
 
-    private static final int CHARGE_DURATION_TICKS = 20;
-    private static final int RELEASE_TELEGRAPH_TICKS = 5;
-    private static final int MIN_COOLDOWN_TICKS = 160; // 8 seconds
-    private static final int COOLDOWN_VARIANCE_TICKS = 80; // +0-80 ticks (8-12s window)
+    private static final int CHARGE_DURATION_TICKS = BehaviorConfigAccess.getInt(LiandaoGuOrganBehavior.class, "CHARGE_DURATION_TICKS", 20);
+    private static final int RELEASE_TELEGRAPH_TICKS = BehaviorConfigAccess.getInt(LiandaoGuOrganBehavior.class, "RELEASE_TELEGRAPH_TICKS", 5);
+    private static final int MIN_COOLDOWN_TICKS = BehaviorConfigAccess.getInt(LiandaoGuOrganBehavior.class, "MIN_COOLDOWN_TICKS", 160); // 8 seconds
+    private static final int COOLDOWN_VARIANCE_TICKS = BehaviorConfigAccess.getInt(LiandaoGuOrganBehavior.class, "COOLDOWN_VARIANCE_TICKS", 80); // +0-80 ticks (8-12s window)
 
     private static final double WAVE_LENGTH = 8.0;
     private static final double WAVE_HALF_WIDTH = 1.2;
     private static final double WAVE_HALF_HEIGHT = 1.5;
     private static final double KNOCKBACK_FORCE = 1.2;
 
-    private static final int EFFECT_DURATION_TICKS = 20; // 1 second
+    private static final int EFFECT_DURATION_TICKS = BehaviorConfigAccess.getInt(LiandaoGuOrganBehavior.class, "EFFECT_DURATION_TICKS", 20); // 1 second
 
     private static final double EPSILON = 1.0E-4;
 

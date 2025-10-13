@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -23,8 +25,8 @@ public enum TupiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickL
 
     private static final double BASE_COST = 400.0;
     private static final double JINGLI_PER_TRIGGER = 10.0;
-    private static final int JUMP_EFFECT_TICKS = 20;
-    private static final int JUMP_AMPLIFIER = 0;
+    private static final int JUMP_EFFECT_TICKS = BehaviorConfigAccess.getInt(TupiguOrganBehavior.class, "JUMP_EFFECT_TICKS", 20);
+    private static final int JUMP_AMPLIFIER = BehaviorConfigAccess.getInt(TupiguOrganBehavior.class, "JUMP_AMPLIFIER", 0);
 
     @Override
     public void onGroundTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {

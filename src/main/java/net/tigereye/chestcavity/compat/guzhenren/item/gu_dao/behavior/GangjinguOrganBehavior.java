@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -34,20 +36,20 @@ public final class GangjinguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final String STATE_ROOT = "Gangjingu";
     private static final String ABSORPTION_KEY = "LastAbsorptionTick"; // legacy stamp
     private static final String ABSORPTION_READY_AT_KEY = "AbsorptionReadyAt"; // scheduling key
-    private static final int ABSORPTION_INTERVAL_TICKS = 20 * 120; // 2 minutes
+    private static final int ABSORPTION_INTERVAL_TICKS = BehaviorConfigAccess.getInt(GangjinguOrganBehavior.class, "ABSORPTION_INTERVAL_TICKS", 20 * 120); // 2 minutes
     public static final float ABSORPTION_PER_STACK = 60.0f;
     private static final double JINGLI_PER_SECOND = 1.0;
     private static final double BONUS_DAMAGE_CHANCE = 0.15;
     private static final double BONUS_DAMAGE_RATIO = 0.08;
-    private static final int EFFECT_DURATION_TICKS = 60;
+    private static final int EFFECT_DURATION_TICKS = BehaviorConfigAccess.getInt(GangjinguOrganBehavior.class, "EFFECT_DURATION_TICKS", 60);
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
     /**
      * Non-player upkeep cost expressed in health per slow tick (~0.1 heart). Keeps mobs from
      * maintaining steel plating for free while avoiding lethal drain.
      */
-    private static final float NON_PLAYER_MAINTENANCE_HEALTH_COST = 0.2f;
+    private static final float NON_PLAYER_MAINTENANCE_HEALTH_COST = BehaviorConfigAccess.getFloat(GangjinguOrganBehavior.class, "NON_PLAYER_MAINTENANCE_HEALTH_COST", 0.2f);
     /** Leaves at least one heart to prevent upkeep from finishing off weakened mobs. */
-    private static final float NON_PLAYER_MINIMUM_HEALTH_RESERVE = 2.0f;
+    private static final float NON_PLAYER_MINIMUM_HEALTH_RESERVE = BehaviorConfigAccess.getFloat(GangjinguOrganBehavior.class, "NON_PLAYER_MINIMUM_HEALTH_RESERVE", 2.0f);
     private static final boolean DEBUG_METAL_BONE = Boolean.getBoolean("chestcavity.debugMetalBoneAbsorption");
 
     private static final ResourceLocation GU_DAO_CHANNEL =

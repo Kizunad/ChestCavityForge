@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
@@ -33,12 +35,12 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
     private static final String NEXT_READY_TICK_KEY = "NextReadyTick";
     private static final String INVULN_EXPIRE_TICK_KEY = "InvulnExpireTick";
 
-    private static final int MAX_CHARGES = 3;
+    private static final int MAX_CHARGES = BehaviorConfigAccess.getInt(LongWanQuQuGuOrganBehavior.class, "MAX_CHARGES", 3);
     private static final long COOLDOWN_TICKS = 30L * 20L; // 30 seconds
     private static final long INVULN_WINDOW_TICKS = 10L; // half a second
-    private static final float MIN_DODGE_DISTANCE = 0.9f;
-    private static final float MAX_DODGE_DISTANCE = 1.4f;
-    private static final float DODGE_YAW_RANGE = 100.0f;
+    private static final float MIN_DODGE_DISTANCE = BehaviorConfigAccess.getFloat(LongWanQuQuGuOrganBehavior.class, "MIN_DODGE_DISTANCE", 0.9f);
+    private static final float MAX_DODGE_DISTANCE = BehaviorConfigAccess.getFloat(LongWanQuQuGuOrganBehavior.class, "MAX_DODGE_DISTANCE", 1.4f);
+    private static final float DODGE_YAW_RANGE = BehaviorConfigAccess.getFloat(LongWanQuQuGuOrganBehavior.class, "DODGE_YAW_RANGE", 100.0f);
 
     static {
         OrganActivationListeners.register(ABILITY_ID, LongWanQuQuGuOrganBehavior::activateAbility);

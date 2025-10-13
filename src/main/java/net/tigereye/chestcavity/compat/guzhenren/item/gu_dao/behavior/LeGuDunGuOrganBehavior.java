@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -58,11 +60,11 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final double BONE_GROWTH_PER_SECOND = 60.0;
     private static final double GU_DAO_INCREASE_PER_STACK = 0.08;
-    private static final int MAX_EFFECTIVE_STACKS = 1;
-    private static final int MAX_BU_QU = 10;
+    private static final int MAX_EFFECTIVE_STACKS = BehaviorConfigAccess.getInt(LeGuDunGuOrganBehavior.class, "MAX_EFFECTIVE_STACKS", 1);
+    private static final int MAX_BU_QU = BehaviorConfigAccess.getInt(LeGuDunGuOrganBehavior.class, "MAX_BU_QU", 10);
 
     private static final double BASE_ZHENYUAN_COST_PER_SECOND = 200.0;
-    private static final int INVULN_DURATION_TICKS = 40;
+    private static final int INVULN_DURATION_TICKS = BehaviorConfigAccess.getInt(LeGuDunGuOrganBehavior.class, "INVULN_DURATION_TICKS", 40);
 
     static {
         OrganActivationListeners.register(ABILITY_ID, LeGuDunGuOrganBehavior::activateAbility);

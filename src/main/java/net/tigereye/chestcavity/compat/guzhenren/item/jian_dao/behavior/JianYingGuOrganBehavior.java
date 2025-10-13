@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
@@ -70,22 +72,22 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     private static final double ACTIVE_ZHENYUAN_MULTIPLIER = 2.0;
     private static final double ACTIVE_JINGLI_COST = 50.0;
 
-    private static final float BASE_DAMAGE = 150.0f;
-    private static final float PASSIVE_INITIAL_MULTIPLIER = 0.40f;
-    private static final float PASSIVE_MIN_MULTIPLIER = 0.15f;
-    private static final float PASSIVE_DECAY_STEP = 0.05f;
+    private static final float BASE_DAMAGE = BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "BASE_DAMAGE", 150.0f);
+    private static final float PASSIVE_INITIAL_MULTIPLIER = BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "PASSIVE_INITIAL_MULTIPLIER", 0.40f);
+    private static final float PASSIVE_MIN_MULTIPLIER = BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "PASSIVE_MIN_MULTIPLIER", 0.15f);
+    private static final float PASSIVE_DECAY_STEP = BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "PASSIVE_DECAY_STEP", 0.05f);
     private static final long PASSIVE_RESET_WINDOW = 40L;
 
-    private static final float CLONE_DAMAGE_RATIO = 0.25f;
-    private static final int CLONE_DURATION_TICKS = 100;
-    private static final int CLONE_COOLDOWN_TICKS = 400;
+    private static final float CLONE_DAMAGE_RATIO = BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "CLONE_DAMAGE_RATIO", 0.25f);
+    private static final int CLONE_DURATION_TICKS = BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "CLONE_DURATION_TICKS", 100);
+    private static final int CLONE_COOLDOWN_TICKS = BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "CLONE_COOLDOWN_TICKS", 400);
     private static final String STATE_ROOT = "JianYingGu";
     private static final String ACTIVE_READY_KEY = "ActiveReadyAt";
 
     private static final double AFTERIMAGE_CHANCE = 0.1;
-    private static final int AFTERIMAGE_DELAY_TICKS = 20;
+    private static final int AFTERIMAGE_DELAY_TICKS = BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "AFTERIMAGE_DELAY_TICKS", 20);
     private static final double AFTERIMAGE_DAMAGE_RATIO = 0.20;
-    private static final int AFTERIMAGE_DURATION_TICKS = 20;
+    private static final int AFTERIMAGE_DURATION_TICKS = BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "AFTERIMAGE_DURATION_TICKS", 20);
     private static final double AFTERIMAGE_RADIUS = 3.0;
 
     private static final Map<UUID, SwordShadowState> SWORD_STATES = new ConcurrentHashMap<>();

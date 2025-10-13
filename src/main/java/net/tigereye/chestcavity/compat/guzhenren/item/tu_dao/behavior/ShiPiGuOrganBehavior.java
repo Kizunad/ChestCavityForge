@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -61,12 +63,12 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/shi_pi_gu_absorption");
     private static final double ABSORPTION_PER_LEVEL = 4.0D;
 
-    private static final int MAX_CHARGE = 10;
-    private static final int RECOVERY_INTERVAL_SLOW_TICKS = 10; // 10 seconds (slow tick fires once per second)
+    private static final int MAX_CHARGE = BehaviorConfigAccess.getInt(ShiPiGuOrganBehavior.class, "MAX_CHARGE", 10);
+    private static final int RECOVERY_INTERVAL_SLOW_TICKS = BehaviorConfigAccess.getInt(ShiPiGuOrganBehavior.class, "RECOVERY_INTERVAL_SLOW_TICKS", 10); // 10 seconds (slow tick fires once per second)
 
-    private static final int BLOCK_PARTICLE_MIN = 15;
-    private static final int BLOCK_PARTICLE_MAX = 20;
-    private static final int DUST_PARTICLE_COUNT = 5;
+    private static final int BLOCK_PARTICLE_MIN = BehaviorConfigAccess.getInt(ShiPiGuOrganBehavior.class, "BLOCK_PARTICLE_MIN", 15);
+    private static final int BLOCK_PARTICLE_MAX = BehaviorConfigAccess.getInt(ShiPiGuOrganBehavior.class, "BLOCK_PARTICLE_MAX", 20);
+    private static final int DUST_PARTICLE_COUNT = BehaviorConfigAccess.getInt(ShiPiGuOrganBehavior.class, "DUST_PARTICLE_COUNT", 5);
 
     private static final DustParticleOptions STONE_DUST =
             new DustParticleOptions(new Vector3f(100f / 255f, 100f / 255f, 100f / 255f), 1.0f);
@@ -262,7 +264,7 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
      */
     private static final class EmbeddedTuDaoNonPlayerHandler {
         private static final double DEFAULT_RATIO = 100.0;
-        private static final float EPS = 1.0E-4f;
+        private static final float EPS = BehaviorConfigAccess.getFloat(ShiPiGuOrganBehavior.class, "EPS", 1.0E-4f);
 
         static boolean payWithHealth(LivingEntity entity, double zhenyuanCost, double jingliCost) {
             if (entity == null || !entity.isAlive()) {

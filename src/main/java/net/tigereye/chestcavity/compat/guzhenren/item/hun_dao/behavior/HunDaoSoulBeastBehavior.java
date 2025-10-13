@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -68,7 +70,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     private static final double PASSIVE_HUNPO_LEAK = 3.0;
     private static final double ATTACK_HUNPO_COST = 18.0;
     private static final double SOUL_FLAME_PERCENT = 0.01;
-    private static final int SOUL_FLAME_DURATION_SECONDS = 5;
+    private static final int SOUL_FLAME_DURATION_SECONDS = BehaviorConfigAccess.getInt(HunDaoSoulBeastBehavior.class, "SOUL_FLAME_DURATION_SECONDS", 5);
 
     private static final String STATE_ROOT_KEY = "HunDaoSoulBeast";
     private static final String KEY_BOUND = "bound";
