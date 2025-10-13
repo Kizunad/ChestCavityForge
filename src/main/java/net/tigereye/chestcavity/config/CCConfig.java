@@ -118,6 +118,10 @@ public class CCConfig implements ConfigData {
     @ConfigEntry.Category("integration")
     public boolean GUZHENREN_NUDAO_LOGGING = true;
 
+    @ConfigEntry.Category("guzhenren_bing_xue_dao")
+    @ConfigEntry.Gui.CollapsibleObject
+    public GuzhenrenBingXueDaoConfig GUZHENREN_BING_XUE_DAO = new GuzhenrenBingXueDaoConfig();
+
     @ConfigEntry.Category("guscript_ui")
     @ConfigEntry.Gui.CollapsibleObject
     public GuScriptUIConfig GUSCRIPT_UI = new GuScriptUIConfig();
@@ -231,6 +235,78 @@ public class CCConfig implements ConfigData {
         public double slashAlpha = 0.85D;
         @ConfigEntry.Gui.Tooltip
         public double slashEndAlpha = 0.3D;
+    }
+
+    public static class GuzhenrenBingXueDaoConfig {
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public BingJiGuConfig BING_JI_GU = new BingJiGuConfig();
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public QingReGuConfig QING_RE_GU = new QingReGuConfig();
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public ShuangXiGuConfig SHUANG_XI_GU = new ShuangXiGuConfig();
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public BingBuGuConfig BING_BU_GU = new BingBuGuConfig();
+
+        public static class BingJiGuConfig {
+            public double zhenyuanBaseCost = 200.0D;
+            public double jingliPerTick = 1.0D;
+            public float healPerTick = 4.5F;
+            public int slowTickIntervalsPerMinute = 15;
+            public float absorptionPerTrigger = 5.0F;
+            public float absorptionCap = 20.0F;
+            public double bonusDamageFraction = 0.04D;
+            public double bonusTriggerChance = 0.12D;
+            public int iceEffectDurationTicks = 600;
+            public double iceBurstBaseDamage = 18.0D;
+            public double iceBurstRadius = 6.0D;
+            public double iceBurstRadiusPerStack = 0.5D;
+            public double iceBurstStackDamageScale = 0.65D;
+            public double iceBurstBingBaoMultiplier = 0.35D;
+            public float iceBurstSlowAmplifier = 1.0F;
+            public int iceBurstSlowDurationTicks = 160;
+            public int invulnerabilityDurationTicks = 40;
+            public int invulnerabilityCooldownTicks = 600;
+            public double lowHealthThreshold = 0.30D;
+        }
+
+        public static class QingReGuConfig {
+            public double baseZhenyuanCost = 100.0D;
+            public double jingliPerTick = 1.0D;
+            public float healPerTick = 3.0F;
+            public double poisonClearChance = 0.10D;
+            public double fireDamageReduction = 0.03D;
+        }
+
+        public static class ShuangXiGuConfig {
+            public double increasePerStack = 0.02D;
+            public double frostbiteChance = 0.15D;
+            public double frostbiteDamagePercent = 0.05D;
+            public int frostbiteDurationSeconds = 4;
+            public int coldDurationTicks = 60;
+            public int freezeReductionTicks = 40;
+            public double abilityRange = 6.0D;
+            public double coneDotThreshold = 0.45D;
+            public int breathParticleSteps = 12;
+            public double breathParticleSpacing = 0.45D;
+            public double baseZhenyuanCost = 800.0D;
+        }
+
+        public static class BingBuGuConfig {
+            public int playerRegenDurationTicks = 100;
+            public int playerRegenAmplifier = 1;
+            public int nonPlayerRegenDurationTicks = 200;
+            public int nonPlayerRegenAmplifier = 1;
+            public int saturationDurationTicks = 20;
+            public int effectRefreshThresholdTicks = 40;
+            public int nonPlayerIntervalSeconds = 120;
+            public float burpVolume = 0.6F;
+            public float burpPitchMin = 0.9F;
+            public float burpPitchVariance = 0.1F;
+        }
     }
 
 }

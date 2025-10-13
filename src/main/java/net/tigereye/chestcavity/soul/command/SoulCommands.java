@@ -216,6 +216,25 @@ public final class SoulCommands {
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
                                         .executes(ctx -> setAutospawn(ctx, false)))))
+                .then(Commands.literal("vacuum")
+                        .then(Commands.literal("on").executes(ctx -> {
+                            net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.setEnabled(true);
+                            ctx.getSource().sendSuccess(() -> Component.literal("[soul] vacuum -> on"), true);
+                            return 1;
+                        }))
+                        .then(Commands.literal("off").executes(ctx -> {
+                            net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.setEnabled(false);
+                            ctx.getSource().sendSuccess(() -> Component.literal("[soul] vacuum -> off"), true);
+                            return 1;
+                        }))
+                        .then(Commands.literal("radius")
+                                .then(Commands.argument("r", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg(0.5, 24.0))
+                                        .executes(ctx -> {
+                                            double r = com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(ctx, "r");
+                                            net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.setRadius(r);
+                                            ctx.getSource().sendSuccess(() -> Component.literal("[soul] vacuum radius -> " + String.format(java.util.Locale.ROOT, "%.2f", r)), true);
+                                            return 1;
+                                        }))))
                 .then(Commands.literal("test")
                         .then(Commands.literal("SoulPlayerList")
                                 .executes(SoulCommands::listSoulPlayers))

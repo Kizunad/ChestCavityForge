@@ -12,7 +12,7 @@
     },
     {
       "item": "guzhenren:gucaiyuanshi",
-      "count": 1
+      "count": 64
     },
     {
       "item": "minecraft:book",
@@ -21,10 +21,14 @@
     {
       "item": "minecraft:paper",
       "count": 1
+    },
+    {
+      "item": "guzhenren:liu_shen_cao",
+      "count": 1
     }
   ],
   "output": {
-    "item": "minecraft:air",
-    "count": 0
+    "item": "guzhenren:erzhansuijigu",
+    "count": 1
   }
 }

@@ -26,7 +26,7 @@ public final class YuanLaoGuHelper {
 
     private YuanLaoGuHelper() {}
 
-    /** Returns true if the stack appears to be a Guzhenren Yuan Lao Gu item. */
+    /** Returns true if the stack是元老蛊基础形态。 */
     public static boolean isYuanLaoGu(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         Item item = stack.getItem();
@@ -34,8 +34,18 @@ public final class YuanLaoGuHelper {
         if (key == null) return false;
         if (!"guzhenren".equals(key.getNamespace())) return false;
         String path = key.getPath().toLowerCase(Locale.ROOT);
-        // Known ids include: yuan_lao_gu_1 / 4 / 5 and some “wei_lian_hua_yuan_lao_gu_*” variants
+        // Known ids include: yuan_lao_gu_1 / 4 / 5 等
         return path.startsWith("yuan_lao_gu_");
+    }
+
+    /** Returns true when the stack is the 二转元老蛊（e_yuanlaogurzhuan). */
+    public static boolean isSecondTierYuanLaoGu(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+        if (key == null) return false;
+        return "guzhenren".equals(key.getNamespace())
+                && "e_yuanlaogurzhuan".equals(key.getPath().toLowerCase(Locale.ROOT));
     }
 
     /** Reads the current stored amount. Absent key yields 0. */
@@ -104,4 +114,3 @@ public final class YuanLaoGuHelper {
         stack.set(DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal(label));
     }
 }
-

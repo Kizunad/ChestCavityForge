@@ -1,7 +1,32 @@
 {
   "gufang_id": "guzhenren:e_nian_gu_5_gu_fang",
   "base_success": 0.5,
-  "inputs": [],
+  "inputs": [
+    {
+      "item": "guzhenren:sizhuaneniangu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sanzhuanshexingu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 256
+    },
+    {
+      "item": "minecraft:book",
+      "count": 20
+    },
+    {
+      "item": "minecraft:paper",
+      "count": 20
+    },
+    {
+      "item": "minecraft:ink_sac",
+      "count": 10
+    }
+  ],
   "output": {
     "item": "guzhenren:e_nian_gu_5",
     "count": 1

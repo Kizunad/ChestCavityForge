@@ -4,7 +4,7 @@
   "inputs": [
     {
       "item": "minecraft:book",
-      "count": 1
+      "count": 10
     },
     {
       "item": "minecraft:ink_sac",
@@ -16,6 +16,10 @@
     },
     {
       "item": "minecraft:paper",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:liu_shen_cao",
       "count": 1
     }
   ],

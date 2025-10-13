@@ -17,9 +17,12 @@ import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.PagerAdapter;
 import icyllis.modernui.widget.Spinner;
+import icyllis.modernui.widget.CheckBox;
+import icyllis.modernui.widget.SeekBar;
 import icyllis.modernui.widget.TabLayout;
 import icyllis.modernui.widget.TextView;
 import icyllis.modernui.widget.ViewPager;
+import icyllis.modernui.widget.ScrollView;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -88,7 +91,7 @@ public class ChestCavityConfigFragment extends Fragment {
         @NonNull
         @Override
         public Object instantiateItem(@NonNull ViewGroup container, int position) {
-            LinearLayout layout = switch (position) {
+            View layout = switch (position) {
                 case 0 -> createHomePage(container);
                 case 1 -> createGuScriptPage(container);
                 default -> createSoulPlayerPage(container);
@@ -137,9 +140,13 @@ public class ChestCavityConfigFragment extends Fragment {
             return layout;
         }
 
-        private LinearLayout createSoulPlayerPage(ViewGroup container) {
+        private View createSoulPlayerPage(ViewGroup container) {
             var context = container.getContext();
+            var scroll = new ScrollView(context);
             var layout = baseLayout(context);
+            scroll.addView(layout, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
 
             addHeadline(layout, "分魂系统", 18);
             addRefreshRow(layout);
@@ -167,7 +174,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 SoulConfigDataClient.INSTANCE.requestSync();
             }
 
-            return layout;
+            return scroll;
         }
 
         private void addRefreshRow(LinearLayout layout) {
@@ -201,6 +208,9 @@ public class ChestCavityConfigFragment extends Fragment {
             for (SoulConfigDataClient.SoulEntry entry : snapshot.entries()) {
                 layout.addView(createSoulCard(layout.getContext(), entry), soulCardLayoutParams(layout));
             }
+
+            // 底部设置栏（全局）：掉落物吸取 + 半径滑动条
+            layout.addView(createBottomSettings(layout), bottomSettingsLayoutParams(layout));
         }
 
         private LinearLayout.LayoutParams soulCardLayoutParams(LinearLayout parent) {
@@ -386,6 +396,92 @@ public class ChestCavityConfigFragment extends Fragment {
             card.addView(actions, params);
 
             return card;
+        }
+
+        private LinearLayout.LayoutParams bottomSettingsLayoutParams(LinearLayout parent) {
+            var params = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.topMargin = parent.dp(14);
+            params.bottomMargin = parent.dp(18);
+            return params;
+        }
+
+        private View createBottomSettings(LinearLayout parent) {
+            var context = parent.getContext();
+            var panel = new LinearLayout(context);
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setPadding(panel.dp(10), panel.dp(10), panel.dp(10), panel.dp(10));
+            ShapeDrawable bg = new ShapeDrawable();
+            bg.setCornerRadius(panel.dp(10));
+            bg.setColor(0xFF17202A);
+            panel.setBackground(bg);
+
+            addHeadline(panel, "设置", 16);
+
+            // 吸取开关
+            var row1 = new LinearLayout(context);
+            row1.setOrientation(LinearLayout.HORIZONTAL);
+            row1.setGravity(Gravity.CENTER_VERTICAL);
+            var label1 = new TextView(context);
+            label1.setText("掉落物吸取");
+            label1.setTextSize(13);
+            row1.addView(label1, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            var toggle = new CheckBox(context);
+            toggle.setChecked(net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.isEnabled());
+            row1.addView(toggle, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            panel.addView(row1, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            // 半径滑动条
+            var row2 = new LinearLayout(context);
+            row2.setOrientation(LinearLayout.VERTICAL);
+            var label2 = new TextView(context);
+            double initRadius = net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.getRadius();
+            label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", initRadius));
+            label2.setTextSize(13);
+            row2.addView(label2, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            var seek = new SeekBar(context);
+            seek.setMax(235); // 映射 0.5..24.0 -> 0..235 (步长0.1)
+            int progress = (int) Math.round((Math.max(0.5, Math.min(24.0, initRadius)) - 0.5) * 10.0);
+            seek.setProgress(progress);
+            row2.addView(seek, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            panel.addView(row2, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            // 交互：任一变更即下发到服务端
+            final Runnable send = () -> {
+                double radius = 0.5 + (seek.getProgress() / 10.0);
+                boolean enabled = toggle.isChecked();
+                var mc = net.minecraft.client.Minecraft.getInstance();
+                var conn = mc.getConnection();
+                if (conn != null) {
+                    conn.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetVacuumPayload(enabled, radius));
+                }
+                label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", radius));
+            };
+
+            toggle.setOnCheckedChangeListener((buttonView, isChecked) -> send.run());
+            seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                    if (fromUser) {
+                        double radius = 0.5 + (progress / 10.0);
+                        label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", radius));
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar bar) { }
+                @Override public void onStopTrackingTouch(SeekBar bar) { send.run(); }
+            });
+
+            return panel;
         }
 
         private void addCardLine(LinearLayout card, String text) {

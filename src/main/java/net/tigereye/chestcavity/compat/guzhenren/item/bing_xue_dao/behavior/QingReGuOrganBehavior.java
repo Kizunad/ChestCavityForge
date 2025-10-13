@@ -10,6 +10,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -38,15 +40,23 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu");
     private static final ResourceLocation BING_XUE_INCREASE_EFFECT =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bing_xue_dao_increase_effect");
-    private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
+   private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-    private static final double BASE_ZHENYUAN_COST = 100.0;
-    private static final double JINGLI_PER_TICK = 1.0;
-    private static final float HEAL_PER_TICK = 3.0f;
-    private static final double POISON_CLEAR_CHANCE = 0.10;
-    private static final double FIRE_DAMAGE_REDUCTION = 0.03;
+    private static final CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig DEFAULTS =
+            new CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig();
 
     private QingReGuOrganBehavior() {
+    }
+
+    private static CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig cfg() {
+        CCConfig root = ChestCavity.config;
+        if (root != null) {
+            CCConfig.GuzhenrenBingXueDaoConfig group = root.GUZHENREN_BING_XUE_DAO;
+            if (group != null && group.QING_RE_GU != null) {
+                return group.QING_RE_GU;
+            }
+        }
+        return DEFAULTS;
     }
 
     @Override
@@ -59,7 +69,8 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
         int stackCount = Math.max(1, organ.getCount());
-        double zhenyuanCost = BASE_ZHENYUAN_COST * stackCount;
+        CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig config = cfg();
+        double zhenyuanCost = config.baseZhenyuanCost * stackCount;
         OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(entity, zhenyuanCost);
         if (consumed.isEmpty()) {
             if (entity instanceof Player) {
@@ -67,16 +78,16 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 return;
             }
         } else if (entity instanceof Player playerWithHandle) {
-            ResourceOps.adjustJingli(playerWithHandle, JINGLI_PER_TICK * stackCount);
+            ResourceOps.adjustJingli(playerWithHandle, config.jingliPerTick * stackCount);
         }
-        float healAmount = HEAL_PER_TICK * stackCount;
+        float healAmount = config.healPerTick * stackCount;
         if (healAmount > 0.0f) {
             LivingEntity target = entity;
             ChestCavityUtil.runWithOrganHeal(() -> target.heal(healAmount));
         }
 
         if (hasJadeBone(cc)) {
-            maybeClearPoison(entity);
+            maybeClearPoison(entity, config);
 
         }
     }
@@ -99,8 +110,9 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return damage;
         }
 
+        CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig config = cfg();
         double increase = Math.max(0.0, lookupIncreaseEffect(cc));
-        double reductionFraction = FIRE_DAMAGE_REDUCTION * (1.0 + increase);
+        double reductionFraction = config.fireDamageReduction * (1.0 + increase);
         double multiplier = Math.max(0.0, 1.0 - reductionFraction);
         return (float) (damage * multiplier);
     }
@@ -116,11 +128,14 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         context.getOrCreateChannel(BING_XUE_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
     }
 
-    private static void maybeClearPoison(LivingEntity entity) {
+    private static void maybeClearPoison(
+            LivingEntity entity,
+            CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig config
+    ) {
         if (entity == null || !entity.hasEffect(MobEffects.POISON)) {
             return;
         }
-        if (entity.getRandom().nextDouble() < POISON_CLEAR_CHANCE) {
+        if (entity.getRandom().nextDouble() < config.poisonClearChance) {
             entity.removeEffect(MobEffects.POISON);
 
         }

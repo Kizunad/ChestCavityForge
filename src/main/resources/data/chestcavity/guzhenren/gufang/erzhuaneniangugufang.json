@@ -4,11 +4,7 @@
   "inputs": [
     {
       "item": "guzhenren:suiyigu",
-      "count": 1
-    },
-    {
-      "item": "guzhenren:suiyigu",
-      "count": 1
+      "count": 2
     },
     {
       "item": "guzhenren:shexingu",
@@ -16,11 +12,15 @@
     },
     {
       "item": "guzhenren:gucaiyuanshi",
-      "count": 1
+      "count": 64
     },
     {
       "item": "minecraft:paper",
-      "count": 1
+      "count": 10
+    },
+    {
+      "item": "guzhenren:liu_shen_cao",
+      "count": 10
     }
   ],
   "output": {

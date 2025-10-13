@@ -41,6 +41,8 @@ public final class SoulRuntimeHandlers {
             );
             // Opportunistic self-heal (food/potion/golden apples)
             SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.runtime.SelfHealHandler());
+            // Item vacuum (optional, default off)
+            SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler());
             // Minimal AI orders (FOLLOW/IDLE/GUARD)
             SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.ai.SoulAIOrderHandler());
             // Install default combat registries (buff items + guzhenren actives + melee + simple flee)

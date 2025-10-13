@@ -1,7 +1,32 @@
 {
   "gufang_id": "guzhenren:erzhuanzhanyigugufang",
   "base_success": 0.5,
-  "inputs": [],
+  "inputs": [
+    {
+      "item": "guzhenren:zhanyigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shexingu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 50
+    },
+    {
+      "item": "minecraft:book",
+      "count": 10
+    },
+    {
+      "item": "minecraft:ink_sac",
+      "count": 10
+    },
+    {
+      "item": "minecraft:glowstone_dust",
+      "count": 10
+    }
+  ],
   "output": {
     "item": "guzhenren:erzhuanzhanyigu",
     "count": 1

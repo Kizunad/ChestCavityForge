@@ -34,6 +34,7 @@ import net.tigereye.chestcavity.client.modernui.container.network.TestModernUICo
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRequestPayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetVacuumPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSyncPayload;
 
@@ -58,6 +59,7 @@ public final class NetworkHandler {
         registrar.playToServer(SoulConfigActivatePayload.TYPE, SoulConfigActivatePayload.STREAM_CODEC, SoulConfigActivatePayload::handle);
         registrar.playToServer(SoulConfigRenamePayload.TYPE, SoulConfigRenamePayload.STREAM_CODEC, SoulConfigRenamePayload::handle);
         registrar.playToServer(SoulConfigSetOrderPayload.TYPE, SoulConfigSetOrderPayload.STREAM_CODEC, SoulConfigSetOrderPayload::handle);
+        registrar.playToServer(SoulConfigSetVacuumPayload.TYPE, SoulConfigSetVacuumPayload.STREAM_CODEC, SoulConfigSetVacuumPayload::handle);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);

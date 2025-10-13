@@ -4,11 +4,7 @@
   "inputs": [
     {
       "item": "guzhenren:erzhuanshexingu",
-      "count": 1
-    },
-    {
-      "item": "guzhenren:erzhuanshexingu",
-      "count": 1
+      "count": 2
     },
     {
       "item": "guzhenren:shexingu",
@@ -16,27 +12,23 @@
     },
     {
       "item": "guzhenren:gucaiyuanshi",
-      "count": 1
-    },
-    {
-      "item": "guzhenren:gucaiyuanshi",
-      "count": 1
+      "count": 100
     },
     {
       "item": "minecraft:book",
-      "count": 1
+      "count": 10
     },
     {
       "item": "minecraft:paper",
-      "count": 1
+      "count": 10
     },
     {
       "item": "minecraft:ink_sac",
-      "count": 1
+      "count": 10
     }
   ],
   "output": {
-    "item": "minecraft:air",
-    "count": 0
+    "item": "guzhenren:e_nian_gu",
+    "count": 1
   }
 }

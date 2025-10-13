@@ -4,19 +4,19 @@
   "inputs": [
     {
       "item": "guzhenren:gucaiyuanshi",
-      "count": 1
+      "count": 30
     },
     {
       "item": "minecraft:book",
-      "count": 1
+      "count": 5
     },
     {
       "item": "minecraft:paper",
-      "count": 1
+      "count": 5
     },
     {
       "item": "minecraft:glowstone_dust",
-      "count": 1
+      "count": 10
     }
   ],
   "output": {
