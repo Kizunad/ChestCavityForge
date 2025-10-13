@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:shi_qiao_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:chi_tie_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:chi_tie_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:pan_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:wei_lian_hua_qing_tong_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:wei_lian_hua_qing_tong_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shi_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:shi_qiao_gu",
+    "count": 1
+  }
+}

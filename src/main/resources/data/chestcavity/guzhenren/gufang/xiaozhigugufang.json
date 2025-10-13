@@ -1,0 +1,14 @@
+{
+  "gufang_id": "guzhenren:xiaozhigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "minecraft:book",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:xiaozhigu",
+    "count": 1
+  }
+}

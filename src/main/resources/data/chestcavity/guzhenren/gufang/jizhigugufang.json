@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:jizhigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:dazhigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:dazhigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:dazhigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sanzhunhunpo",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:jizhigu",
+    "count": 1
+  }
+}

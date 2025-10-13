@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:sanzhuanyuanlaogugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:e_yuanlaogurzhuan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:e_yuanlaogurzhuan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:e_yuanlaogurzhuan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yuan_lao_gu_1",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yuan_lao_gu_1",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yuan_lao_gu_1",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:sanzhuanyuanlaogu",
+    "count": 1
+  }
+}

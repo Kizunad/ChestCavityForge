@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:xueyingugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:xueqigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tiexuegu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tiexuegu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:xueyingu",
+    "count": 1
+  }
+}

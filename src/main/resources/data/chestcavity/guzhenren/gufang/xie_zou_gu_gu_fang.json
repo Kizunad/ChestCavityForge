@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:xie_zou_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:xueqigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xueqigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xuan_feng_lun_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:xie_zou_gu",
+    "count": 1
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:tupigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:bai_yu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:pan_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:lin_jia_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xinzang",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaikongqiao",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:tupigu",
+    "count": 1
+  }
+}

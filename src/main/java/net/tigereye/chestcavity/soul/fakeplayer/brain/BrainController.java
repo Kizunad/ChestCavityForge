@@ -29,6 +29,7 @@ public final class BrainController implements SoulRuntimeHandler {
     private final Map<UUID, IntentRecord> intents = new ConcurrentHashMap<>();
 
     private final Brain combat = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.CombatBrain();
+    private final Brain idle = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.IdleBrain();
 
     private BrainController() {}
 
@@ -101,7 +102,8 @@ public final class BrainController implements SoulRuntimeHandler {
     private Brain selectBrain(BrainMode mode) {
         return switch (mode) {
             case COMBAT -> combat;
-            case SURVIVAL, IDLE, AUTO -> null; // AUTO handled earlier; IDLE/SURVIVAL to be filled later
+            case IDLE -> idle;
+            case SURVIVAL, AUTO -> null; // AUTO handled earlier; SURVIVAL to be filled later
         };
     }
 

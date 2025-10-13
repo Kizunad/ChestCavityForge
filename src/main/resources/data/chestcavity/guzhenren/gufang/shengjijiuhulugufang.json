@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:shengjijiuhulugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:canfenggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jiu_xie_sheng_ji_cao",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:si_wei_jiu_chong",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sheng_ji_xie",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sheng_ji_xie",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sheng_ji_xie",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:shengjijiuhulu",
+    "count": 1
+  }
+}

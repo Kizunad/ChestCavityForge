@@ -39,6 +39,8 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     private static final float HEALTH_MISSING_MIN = getFloatProp("chestcavity.soul.selfHealMinMissing", 4.0f, 0.0f, 1000.0f);
 
     private static final Map<UUID, Long> LAST_ATTEMPT = new ConcurrentHashMap<>();
+    // Silence noisy heal attempt logs unless explicitly enabled
+    private static final boolean LOG_ATTEMPTS = Boolean.getBoolean("chestcavity.debugHealAttempt");
 
     // Guzhenren-specific quick-use healing items (right-click use). Cooldown is handled by the item itself.
     private static final java.util.Set<Item> GUZ_HEAL_ITEMS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -126,9 +128,11 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
 
         float after = player.getHealth();
         try {
-            SoulLog.info("[soul][heal][attempt] soul={} used={} hp:{}->{} reason={} detail={}", player.getSoulId(), used,
-                    String.format("%.3f", before), String.format("%.3f", after), reason,
-                    reasonDetail.isEmpty() ? "-" : reasonDetail);
+            if (LOG_ATTEMPTS) {
+                SoulLog.info("[soul][heal][attempt] soul={} used={} hp:{}->{} reason={} detail={}", player.getSoulId(), used,
+                        String.format("%.3f", before), String.format("%.3f", after), reason,
+                        reasonDetail.isEmpty() ? "-" : reasonDetail);
+            }
         } catch (Throwable ignored) {}
         return used;
     }

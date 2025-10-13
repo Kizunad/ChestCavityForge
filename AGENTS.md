@@ -23,6 +23,11 @@
 
 ### ModernUI HUD/Toast 统一样式（当前状态）
 - 范围：仅实现 HUD 常驻与 Toast 提醒；ModernUI 界面内弹窗暂缓。
+
+### SubBrain 桥接（Soul Order ↔ 行为）
+- FOLLOW 已接入 SubBrain：新增 `FollowSubBrain`，并由 `IdleBrain` 驱动；当 UI/命令将分魂指令设置为 FOLLOW 时，SubBrain 负责靠近宿主（半径约 2 格，超 5 格追随）。
+- Brain 选择：`BrainController` 现在在 `IDLE` 模式下启用 `IdleBrain`（原先仅 COMBAT）。显式意图（Intent）优先于 Order；GUARD/FORCE_FIGHT 仍走 Combat 管线。
+- 兼容性：保留了 `SoulAIOrderHandler` 的最小 FOLLOW 逻辑作为兜底（同向目标，不冲突）。后续如需完全迁移到 SubBrain，可在该 Handler 中跳过 FOLLOW 分支。
 - 命令：
   - `/testmodernUI toast` 显示 PNG 图标的 Toast 提醒。
   - `/testmodernUI hui true|false` 开关 HUD 常驻卡片。

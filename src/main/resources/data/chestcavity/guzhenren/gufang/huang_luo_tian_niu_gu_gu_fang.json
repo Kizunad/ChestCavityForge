@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:huang_luo_tian_niu_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:beef",
+      "count": 1
+    },
+    {
+      "item": "minecraft:leather",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:huang_luo_tian_niu_gu",
+    "count": 1
+  }
+}

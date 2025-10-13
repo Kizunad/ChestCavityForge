@@ -529,21 +529,21 @@ public final class SoulFakePlayerSpawner {
             if (!isOwnerPossessing(owner)) {
                 if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get().allowOwnerSelfWrite(owner)) {
                     profile.updateFrom(ownerPlayer);
-                    SoulLog.info("[soul] refreshSnapshot owner=SELF ownerId={}", owner);
+                    logRefresh("[soul] refreshSnapshot owner=SELF ownerId={}", owner);
                 } else {
-                    SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-self", owner);
+                    logRefresh("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-self", owner);
                 }
             } else {
                 Optional<SoulPlayer> shell = getOwnerShell(owner);
                 if (shell.isPresent()) {
                     if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get().allowOwnerShellWrite(owner)) {
                         profile.updateFrom(shell.get());
-                        SoulLog.info("[soul] refreshSnapshot owner=SHELL ownerId={}", owner);
+                        logRefresh("[soul] refreshSnapshot owner=SHELL ownerId={}", owner);
                     } else {
-                        SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-shell", owner);
+                        logRefresh("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-shell", owner);
                     }
                 } else {
-                    SoulLog.info("[soul] refreshSnapshot owner=SKIP ownerId={} reason=noShellWhilePossessing", owner);
+                    logRefresh("[soul] refreshSnapshot owner=SKIP ownerId={} reason=noShellWhilePossessing", owner);
                 }
             }
             return;
@@ -553,7 +553,7 @@ public final class SoulFakePlayerSpawner {
             if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get().allowSoulWrite(owner, soulId)) {
                 profile.updateFrom(soulPlayer);
             } else {
-                SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=policy-deny-soul", owner, soulId);
+                logRefresh("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=policy-deny-soul", owner, soulId);
                 return;
             }
             final boolean LOG_REFRESH = Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot");
@@ -566,6 +566,11 @@ public final class SoulFakePlayerSpawner {
                 SoulLog.info("[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=noActiveSoulOrWrongOwner", owner, soulId);
             }
         }
+    }
+
+    private static void logRefresh(String fmt, Object... args) {
+        if (!Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot")) return;
+        SoulLog.info(fmt, args);
     }
 
     public static Set<UUID> getOwnedSoulIds(UUID ownerId) {

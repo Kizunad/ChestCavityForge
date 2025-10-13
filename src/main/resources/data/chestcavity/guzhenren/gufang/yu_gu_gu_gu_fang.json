@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:yu_gu_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gu_zhu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_zhu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yu_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:baishouwanghugu",
+      "count": 1
+    },
+    {
+      "item": "minecraft:emerald",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:yu_gu_gu",
+    "count": 1
+  }
+}

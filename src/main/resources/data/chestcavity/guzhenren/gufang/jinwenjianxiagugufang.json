@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:jinwenjianxiagugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:jianxiagu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianxiagu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:gold_ingot",
+      "count": 1
+    },
+    {
+      "item": "minecraft:golden_sword",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

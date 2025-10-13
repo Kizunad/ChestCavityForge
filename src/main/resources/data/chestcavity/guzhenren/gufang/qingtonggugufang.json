@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:qingtonggugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:raw_copper",
+      "count": 1
+    },
+    {
+      "item": "minecraft:copper_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:qingtonggu",
+    "count": 1
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:bing_zhui_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:shui_jian_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:snowball",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:bing_zhui_gu",
+    "count": 1
+  }
+}

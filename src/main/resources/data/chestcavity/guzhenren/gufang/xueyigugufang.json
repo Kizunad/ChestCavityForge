@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:xueyigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:huo_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tiexuegu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tiexuegu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:xueyigu",
+    "count": 1
+  }
+}

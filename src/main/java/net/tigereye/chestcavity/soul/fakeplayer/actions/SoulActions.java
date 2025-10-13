@@ -17,6 +17,9 @@ public final class SoulActions {
         ActionRegistry.register(new GuardAction());
         ActionRegistry.register(new ForceFightAction());
         ActionRegistry.register(new HealingAction());
+        ActionRegistry.register(new net.tigereye.chestcavity.soul.fakeplayer.actions.core.CultivateAction());
+        ActionRegistry.register(new net.tigereye.chestcavity.soul.fakeplayer.actions.core.RefineGuAction());
         ActionRegistry.registerFactory(new net.tigereye.chestcavity.soul.fakeplayer.actions.core.UseItemActionFactory());
+        ActionRegistry.registerFactory(new net.tigereye.chestcavity.soul.fakeplayer.actions.core.RefineGuActionFactory());
     }
 }

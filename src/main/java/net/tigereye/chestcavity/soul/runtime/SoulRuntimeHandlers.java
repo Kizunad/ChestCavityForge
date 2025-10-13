@@ -32,9 +32,12 @@ public final class SoulRuntimeHandlers {
             SoulRuntimeHandlerRegistry.register(new DefaultSoulRuntimeHandler());
             // Periodic callbacks (per-second / per-minute)
             SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.runtime.SoulPeriodicDispatcher());
-            // Per-second Guzhenren hooks (e.g., zhuanshu gate)
+            // Per-second Guzhenren hooks (e.g., zhuanshu gate, passive cultivation)
             net.tigereye.chestcavity.soul.registry.SoulPeriodicRegistry.registerPerSecond(
                     new net.tigereye.chestcavity.soul.runtime.GuzhenrenZhuanshuSecondHandler()
+            );
+            net.tigereye.chestcavity.soul.registry.SoulPeriodicRegistry.registerPerSecond(
+                    new net.tigereye.chestcavity.soul.runtime.CultivationHandler()
             );
             // Opportunistic self-heal (food/potion/golden apples)
             SoulRuntimeHandlerRegistry.register(new net.tigereye.chestcavity.soul.runtime.SelfHealHandler());

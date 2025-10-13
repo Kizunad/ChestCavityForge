@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:dianliugugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:langrou",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:llangpi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_cai_lei_ji_mu",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:dianliugu",
+    "count": 1
+  }
+}

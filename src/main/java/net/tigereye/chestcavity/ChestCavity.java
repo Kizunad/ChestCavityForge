@@ -181,6 +181,7 @@ public class ChestCavity {
           event.addListener(new GuScriptRuleLoader());
           event.addListener(new GuScriptFlowLoader());
           event.addListener(new RecipeResourceProbe());
+          event.addListener(new net.tigereye.chestcavity.compat.guzhenren.gufang.GuFangRecipeLoader());
           // FX definitions are client-only; do not register on server reload
   }
 

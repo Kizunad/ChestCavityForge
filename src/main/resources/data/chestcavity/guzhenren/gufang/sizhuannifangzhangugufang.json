@@ -1,0 +1,9 @@
+{
+  "gufang_id": "guzhenren:sizhuannifangzhangugufang",
+  "base_success": 0.5,
+  "inputs": [],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

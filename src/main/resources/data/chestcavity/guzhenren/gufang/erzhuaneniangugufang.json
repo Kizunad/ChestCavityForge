@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:erzhuaneniangugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:suiyigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:suiyigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shexingu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:paper",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:erzhuaneniangu",
+    "count": 1
+  }
+}

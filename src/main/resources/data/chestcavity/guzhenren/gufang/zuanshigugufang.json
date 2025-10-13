@@ -1,0 +1,9 @@
+{
+  "gufang_id": "guzhenren:zuanshigugufang",
+  "base_success": 0.5,
+  "inputs": [],
+  "output": {
+    "item": "guzhenren:zuanshigu",
+    "count": 1
+  }
+}

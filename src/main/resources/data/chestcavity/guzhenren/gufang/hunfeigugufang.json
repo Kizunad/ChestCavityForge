@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:hunfeigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:xiao_hun_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:fanrenhunpo",
+      "count": 1
+    },
+    {
+      "item": "minecraft:ghast_tear",
+      "count": 1
+    },
+    {
+      "item": "minecraft:feather",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:hunfeigu",
+    "count": 1
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:yangshenggugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:canfenggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:fan_dai_cao_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jiu_nang_hua_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:sweet_berries",
+      "count": 1
+    },
+    {
+      "item": "minecraft:apple",
+      "count": 1
+    },
+    {
+      "item": "minecraft:beetroot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:yangshenggu",
+    "count": 1
+  }
+}

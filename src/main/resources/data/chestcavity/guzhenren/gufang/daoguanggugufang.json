@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:daoguanggugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gu_cai_yuan_ci_jing_yuan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_cai_yue_bai_hong_jin",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jin_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jin_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jin_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:netherite_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

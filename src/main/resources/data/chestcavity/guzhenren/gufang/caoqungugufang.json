@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:caoqungugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:sheng_ji_xie",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:string",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:caoqungu",
+    "count": 1
+  }
+}
