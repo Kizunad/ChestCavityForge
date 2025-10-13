@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -60,18 +62,18 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
     private static final String KEY_PASSIVE_NEXT_TICK = "PassiveNextTick";
 
     private static final double ACTIVE_ZHENYUAN_COST = 50.0;
-    private static final int ACTIVE_HUNGER_COST = 5; // hunger points
-    private static final int ACTIVE_DURATION_TICKS = 200; // 10s
-    private static final int ACTIVE_COOLDOWN_TICKS = 220; // 11s (10s active + 1s downtime)
+    private static final int ACTIVE_HUNGER_COST = BehaviorConfigAccess.getInt(HuoYiGuOrganBehavior.class, "ACTIVE_HUNGER_COST", 5); // hunger points
+    private static final int ACTIVE_DURATION_TICKS = BehaviorConfigAccess.getInt(HuoYiGuOrganBehavior.class, "ACTIVE_DURATION_TICKS", 200); // 10s
+    private static final int ACTIVE_COOLDOWN_TICKS = BehaviorConfigAccess.getInt(HuoYiGuOrganBehavior.class, "ACTIVE_COOLDOWN_TICKS", 220); // 11s (10s active + 1s downtime)
     private static final double ACTIVE_RADIUS = 6.0;
     private static final double ACTIVE_DAMAGE_PER_SECOND = 5.0;
     private static final double ACTIVE_SLOWNESS_BASE = 1.0;
-    private static final int ACTIVE_SLOWNESS_DURATION_TICKS = 200;
+    private static final int ACTIVE_SLOWNESS_DURATION_TICKS = BehaviorConfigAccess.getInt(HuoYiGuOrganBehavior.class, "ACTIVE_SLOWNESS_DURATION_TICKS", 200);
 
     private static final double PASSIVE_RADIUS = 10.0;
     private static final double PASSIVE_DAMAGE_PER_SECOND = 0.5;
-    private static final int PASSIVE_ACTIVE_DURATION_TICKS = 100; // 5s on
-    private static final int PASSIVE_DOWNTIME_TICKS = 100; // 5s off
+    private static final int PASSIVE_ACTIVE_DURATION_TICKS = BehaviorConfigAccess.getInt(HuoYiGuOrganBehavior.class, "PASSIVE_ACTIVE_DURATION_TICKS", 100); // 5s on
+    private static final int PASSIVE_DOWNTIME_TICKS = BehaviorConfigAccess.getInt(HuoYiGuOrganBehavior.class, "PASSIVE_DOWNTIME_TICKS", 100); // 5s off
 
     private static final Predicate<LivingEntity> HOSTILE_TARGET = entity -> entity != null && entity.isAlive();
     private static final Logger LOGGER = LogUtils.getLogger();

@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -46,7 +48,7 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior implem
     private static final double SOUL_INTENT_MAX = 0.15;
     private static final double WEILING_ATTACK_COST_REDUCTION = 10.0;
     private static final double WEILING_RADIUS = 8.0D;
-    private static final int WEILING_EFFECT_DURATION_TICKS = 100;
+    private static final int WEILING_EFFECT_DURATION_TICKS = BehaviorConfigAccess.getInt(DaHunGuBehavior.class, "WEILING_EFFECT_DURATION_TICKS", 100);
 
     private static final String STATE_ROOT_KEY = "HunDaoDaHunGu";
     private static final String KEY_LAST_SYNC_TICK = "last_sync_tick";

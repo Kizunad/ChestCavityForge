@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.DamageTypeTags;
@@ -27,7 +29,7 @@ public final class XuLiGuOrganBehavior extends AbstractLiDaoOrganBehavior implem
 
     private static final double BASE_TRIGGER_CHANCE = 0.12;
     private static final double BONUS_PER_MUSCLE_GROUP = 0.005;
-    private static final int MUSCLES_PER_GROUP = 16;
+    private static final int MUSCLES_PER_GROUP = BehaviorConfigAccess.getInt(XuLiGuOrganBehavior.class, "MUSCLES_PER_GROUP", 16);
     private static final double MAX_TRIGGER_CHANCE = 0.23;
     private static final double DAMAGE_MULTIPLIER_BASE = 1.4;
 

@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -62,17 +64,17 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/tiexuegu_effect");
     private static final String EFFECT_KEY = "Effect";
 
-    private static final int TRIGGER_INTERVAL_SLOW_TICKS = 60;
-    private static final float HEALTH_DRAIN_PER_STACK = 5.0f;
+    private static final int TRIGGER_INTERVAL_SLOW_TICKS = BehaviorConfigAccess.getInt(TiexueguOrganBehavior.class, "TRIGGER_INTERVAL_SLOW_TICKS", 60);
+    private static final float HEALTH_DRAIN_PER_STACK = BehaviorConfigAccess.getFloat(TiexueguOrganBehavior.class, "HEALTH_DRAIN_PER_STACK", 5.0f);
     private static final double BASE_EFFICIENCY_MIN = 0.5;
     private static final double BASE_EFFICIENCY_MAX = 1.0;
     private static final double EFFICIENCY_INCREMENT = 0.1;
     private static final double ZHENYUAN_BASE = 10.0;
     private static final double JINGLI_BASE = 5.0;
-    private static final float MINIMUM_HEALTH_RESERVE = 1.0f;
+    private static final float MINIMUM_HEALTH_RESERVE = BehaviorConfigAccess.getFloat(TiexueguOrganBehavior.class, "MINIMUM_HEALTH_RESERVE", 1.0f);
 
-    private static final int DAMAGE_PARTICLE_COUNT = 24;
-    private static final int BLOOD_PARTICLE_COUNT = 32;
+    private static final int DAMAGE_PARTICLE_COUNT = BehaviorConfigAccess.getInt(TiexueguOrganBehavior.class, "DAMAGE_PARTICLE_COUNT", 24);
+    private static final int BLOOD_PARTICLE_COUNT = BehaviorConfigAccess.getInt(TiexueguOrganBehavior.class, "BLOOD_PARTICLE_COUNT", 32);
     private static final DustParticleOptions BLOOD_DUST =
             new DustParticleOptions(new Vector3f(0.8f, 0.05f, 0.05f), 1.0f);
 

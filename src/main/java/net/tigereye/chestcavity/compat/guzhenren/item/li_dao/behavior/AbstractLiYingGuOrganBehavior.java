@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -37,7 +39,7 @@ abstract class AbstractLiYingGuOrganBehavior extends AbstractLiDaoOrganBehavior
         implements OrganSlowTickListener, OrganOnHitListener {
 
     private static final double TRIGGER_CHANCE = 1;
-    private static final float BASE_CLONE_DAMAGE = 10.0f;
+    private static final float BASE_CLONE_DAMAGE = BehaviorConfigAccess.getFloat(AbstractLiYingGuOrganBehavior.class, "BASE_CLONE_DAMAGE", 10.0f);
     private static final double DAMAGE_RATIO = 0.10;
     private static final long COOLDOWN_TICKS = 20L * 20L; // 20 seconds
     private static final long REGEN_INTERVAL_TICKS = 3L * 20L; // 3 seconds

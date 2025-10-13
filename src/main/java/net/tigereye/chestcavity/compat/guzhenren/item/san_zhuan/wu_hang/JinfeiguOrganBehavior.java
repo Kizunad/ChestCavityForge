@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.san_zhuan.wu_hang;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -19,10 +21,10 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 public enum JinfeiguOrganBehavior implements OrganOnGroundListener, OrganSlowTickListener, IncreaseEffectContributor {
     INSTANCE;
 
-    private static final int FULL_FOOD_LEVEL = 20;
-    private static final int HUNGER_COST = 4;
+    private static final int FULL_FOOD_LEVEL = BehaviorConfigAccess.getInt(JinfeiguOrganBehavior.class, "FULL_FOOD_LEVEL", 20);
+    private static final int HUNGER_COST = BehaviorConfigAccess.getInt(JinfeiguOrganBehavior.class, "HUNGER_COST", 4);
     private static final double ABSORPTION_HEARTS = 4.0;
-    private static final int EFFECT_DURATION_TICKS = 20 * 60;
+    private static final int EFFECT_DURATION_TICKS = BehaviorConfigAccess.getInt(JinfeiguOrganBehavior.class, "EFFECT_DURATION_TICKS", 20 * 60);
 
     @Override
     public void onGroundTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {

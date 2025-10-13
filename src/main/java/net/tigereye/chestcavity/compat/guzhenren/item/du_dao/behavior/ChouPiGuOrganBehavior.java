@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.du_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -57,9 +59,9 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
     private static final String INTERVAL_KEY = "NextIntervalTicks";
     private static final ResourceLocation READY_AT_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/chou_pi_gu_interval");
-    private static final int RANDOM_INTERVAL_MIN_TICKS = 100;
-    private static final int RANDOM_INTERVAL_MAX_TICKS = 400;
-    private static final int SLOW_TICK_STEP = 20;
+    private static final int RANDOM_INTERVAL_MIN_TICKS = BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "RANDOM_INTERVAL_MIN_TICKS", 100);
+    private static final int RANDOM_INTERVAL_MAX_TICKS = BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "RANDOM_INTERVAL_MAX_TICKS", 400);
+    private static final int SLOW_TICK_STEP = BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "SLOW_TICK_STEP", 20);
     private static final double DAMAGE_TRIGGER_BASE_CHANCE = 0.20;
     private static final double SELF_DEBUFF_CHANCE = 0.10;
     private static final double ATTRACT_CHANCE = 0.01;
@@ -67,8 +69,8 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
     private static final double PANIC_DISTANCE = 6.0;
     private static final double PARTICLE_BACK_OFFSET = 0.8;
     private static final double PARTICLE_VERTICAL_OFFSET = 0.1;
-    private static final int PARTICLE_SMOKE_COUNT = 18;
-    private static final int PARTICLE_SNEEZE_COUNT = 10;
+    private static final int PARTICLE_SMOKE_COUNT = BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "PARTICLE_SMOKE_COUNT", 18);
+    private static final int PARTICLE_SNEEZE_COUNT = BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "PARTICLE_SNEEZE_COUNT", 10);
     private static final ResourceLocation[] ATTRACTABLE_ENTITIES = new ResourceLocation[] {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "choupifeichonggu"),
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "aibieli")

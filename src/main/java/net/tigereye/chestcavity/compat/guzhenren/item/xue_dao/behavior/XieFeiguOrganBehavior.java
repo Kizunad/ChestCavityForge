@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -70,9 +72,9 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     private static final String SLOT_KEY = "Slot";
     private static final String COOLDOWN_KEY = "Cooldown";
 
-    private static final int MODE_NEUTRAL = 0;
-    private static final int MODE_HIGH = 1;
-    private static final int MODE_LOW = 2;
+    private static final int MODE_NEUTRAL = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "MODE_NEUTRAL", 0);
+    private static final int MODE_HIGH = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "MODE_HIGH", 1);
+    private static final int MODE_LOW = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "MODE_LOW", 2);
 
     private static final double HIGH_HEALTH_THRESHOLD = 0.5;
     private static final double LOW_HEALTH_THRESHOLD = 0.3;
@@ -81,24 +83,24 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     private static final double SPEED_BONUS_PER_STACK = 0.10;
     private static final double ATTACK_SPEED_BONUS_PER_STACK = 0.15;
 
-    private static final float BASE_EXHAUSTION_PER_SLOW_TICK = 0.10f;
-    private static final float RAPID_BREATH_EXHAUSTION = 0.6f;
+    private static final float BASE_EXHAUSTION_PER_SLOW_TICK = BehaviorConfigAccess.getFloat(XieFeiguOrganBehavior.class, "BASE_EXHAUSTION_PER_SLOW_TICK", 0.10f);
+    private static final float RAPID_BREATH_EXHAUSTION = BehaviorConfigAccess.getFloat(XieFeiguOrganBehavior.class, "RAPID_BREATH_EXHAUSTION", 0.6f);
 
-    private static final float HEALTH_COST = 10.0f;
+    private static final float HEALTH_COST = BehaviorConfigAccess.getFloat(XieFeiguOrganBehavior.class, "HEALTH_COST", 10.0f);
     private static final double ZHENYUAN_COST = 20.0;
     private static final double RESOURCE_TO_HEALTH_RATIO = 100.0;
-    private static final float NEAR_DEATH_THRESHOLD = 4.0f;
+    private static final float NEAR_DEATH_THRESHOLD = BehaviorConfigAccess.getFloat(XieFeiguOrganBehavior.class, "NEAR_DEATH_THRESHOLD", 4.0f);
     private static final double HEART_FAILURE_CHANCE = 0.35;
-    private static final float AUTO_TRIGGER_CHANCE = 0.1f;
+    private static final float AUTO_TRIGGER_CHANCE = BehaviorConfigAccess.getFloat(XieFeiguOrganBehavior.class, "AUTO_TRIGGER_CHANCE", 0.1f);
 
-    private static final int COOLDOWN_TICKS = 200; // 10 seconds
+    private static final int COOLDOWN_TICKS = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "COOLDOWN_TICKS", 200); // 10 seconds
 
-    private static final int FOG_DURATION_SECONDS = 8;
+    private static final int FOG_DURATION_SECONDS = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "FOG_DURATION_SECONDS", 8);
     private static final double FOG_RADIUS = 6.0;
-    private static final float FOG_DAMAGE = 4.0f;
-    private static final int BLINDNESS_DURATION_TICKS = 60;
-    private static final int POISON_DURATION_TICKS = 160;
-    private static final int FOG_PARTICLE_COUNT = 120;
+    private static final float FOG_DAMAGE = BehaviorConfigAccess.getFloat(XieFeiguOrganBehavior.class, "FOG_DAMAGE", 4.0f);
+    private static final int BLINDNESS_DURATION_TICKS = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "BLINDNESS_DURATION_TICKS", 60);
+    private static final int POISON_DURATION_TICKS = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "POISON_DURATION_TICKS", 160);
+    private static final int FOG_PARTICLE_COUNT = BehaviorConfigAccess.getInt(XieFeiguOrganBehavior.class, "FOG_PARTICLE_COUNT", 120);
 
     private static final DustParticleOptions BLOOD_DUST =
             new DustParticleOptions(new Vector3f(0.85f, 0.1f, 0.1f), 1.3f);

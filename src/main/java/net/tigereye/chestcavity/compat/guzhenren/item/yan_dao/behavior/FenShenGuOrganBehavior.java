@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -51,10 +53,10 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final double JINGLI_RESTORE_PER_SECOND = 3.0;
     private static final double DETOXIFICATION_CHANCE = 0.20;
-    private static final float DAMAGE_REDUCTION_PER_STACK = 12.0f;
-    private static final int MAX_STACKS = 2;
-    private static final int PERMANENT_FIRE_TICKS = 60; // 3 seconds of burn upkeep
-    private static final int FIRE_RESIST_DURATION_TICKS = 220; // 11 seconds, refreshed every slow tick
+    private static final float DAMAGE_REDUCTION_PER_STACK = BehaviorConfigAccess.getFloat(FenShenGuOrganBehavior.class, "DAMAGE_REDUCTION_PER_STACK", 12.0f);
+    private static final int MAX_STACKS = BehaviorConfigAccess.getInt(FenShenGuOrganBehavior.class, "MAX_STACKS", 2);
+    private static final int PERMANENT_FIRE_TICKS = BehaviorConfigAccess.getInt(FenShenGuOrganBehavior.class, "PERMANENT_FIRE_TICKS", 60); // 3 seconds of burn upkeep
+    private static final int FIRE_RESIST_DURATION_TICKS = BehaviorConfigAccess.getInt(FenShenGuOrganBehavior.class, "FIRE_RESIST_DURATION_TICKS", 220); // 11 seconds, refreshed every slow tick
 
     private FenShenGuOrganBehavior() {
     }

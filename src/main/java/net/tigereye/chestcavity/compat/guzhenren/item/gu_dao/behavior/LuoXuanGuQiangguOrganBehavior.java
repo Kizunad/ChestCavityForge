@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -61,7 +63,7 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final String STATE_KEY = "LuoXuanGuCharge";
-    private static final int MAX_CHARGE = 3;
+    private static final int MAX_CHARGE = BehaviorConfigAccess.getInt(LuoXuanGuQiangguOrganBehavior.class, "MAX_CHARGE", 3);
     private static final double BASE_ZHENYUAN_COST = 50.0;
     private static final double BASE_JINGLI_COST = 50.0;
 

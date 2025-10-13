@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.Holder;
@@ -61,11 +63,11 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double BONUS_TRIGGER_CHANCE = 0.18;
     private static final double BONUS_DAMAGE_RATIO = 0.08;
     private static final double FLOW_BREAK_TRIGGER_CHANCE = 0.08;
-    private static final int FLOW_BREAK_DURATION_TICKS = 4 * 20;
+    private static final int FLOW_BREAK_DURATION_TICKS = BehaviorConfigAccess.getInt(JiezeguOrganBehavior.class, "FLOW_BREAK_DURATION_TICKS", 4 * 20);
 
     private static final double BASE_ZHENYUAN_COST_PER_SECOND = 500.0;
-    private static final float BASE_HEALTH_COST_PER_SECOND = 25.0f;
-    private static final float MIN_HEALTH_RESERVE = 1.0f;
+    private static final float BASE_HEALTH_COST_PER_SECOND = BehaviorConfigAccess.getFloat(JiezeguOrganBehavior.class, "BASE_HEALTH_COST_PER_SECOND", 25.0f);
+    private static final float MIN_HEALTH_RESERVE = BehaviorConfigAccess.getFloat(JiezeguOrganBehavior.class, "MIN_HEALTH_RESERVE", 1.0f);
 
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {

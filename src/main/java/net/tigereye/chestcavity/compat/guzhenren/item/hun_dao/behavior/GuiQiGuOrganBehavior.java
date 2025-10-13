@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -60,7 +62,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
     private static final double TRUE_DAMAGE_RATIO = 0.015D;
     private static final double GUI_WU_RADIUS = 4.0D;
-    private static final int GUI_WU_COOLDOWN_TICKS = 160;
+    private static final int GUI_WU_COOLDOWN_TICKS = BehaviorConfigAccess.getInt(GuiQiGuOrganBehavior.class, "GUI_WU_COOLDOWN_TICKS", 160);
 
     private static final String STATE_ROOT_KEY = "GuiQiGu";
     private static final String KEY_COOLDOWN_UNTIL = "CooldownUntil";

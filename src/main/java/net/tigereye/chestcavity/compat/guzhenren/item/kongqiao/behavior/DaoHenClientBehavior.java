@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
@@ -22,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class DaoHenClientBehavior implements GuzhenrenPayloadListener {
     private static final AtomicBoolean CLIENT_INITIALISED = new AtomicBoolean(false);
     private static final Map<UUID, Map<String, Double>> CLIENT_SNAPSHOTS = new ConcurrentHashMap<>();
-    private static final int POLL_INTERVAL_TICKS = 20; // ~1s at 20 TPS
+    private static final int POLL_INTERVAL_TICKS = BehaviorConfigAccess.getInt(DaoHenClientBehavior.class, "POLL_INTERVAL_TICKS", 20); // ~1s at 20 TPS
     private static int clientTickCounter = 0;
 
     private static final DaoHenClientBehavior INSTANCE = new DaoHenClientBehavior();

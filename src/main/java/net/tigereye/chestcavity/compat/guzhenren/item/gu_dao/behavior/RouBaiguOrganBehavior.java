@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -87,19 +89,19 @@ public enum RouBaiguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
     private static final double COST_HUNGER = 10.0;
 
     private static final double DIGEST_GROWTH_PER_SECOND = 60.0;
-    private static final float DIGEST_EXHAUSTION_PER_SECOND = (float)(COST_HUNGER / 60.0);
-    private static final float BASE_EXTRA_HEAL = 0.5f;
+    private static final float DIGEST_EXHAUSTION_PER_SECOND = BehaviorConfigAccess.getFloat(RouBaiguOrganBehavior.class, "DIGEST_EXHAUSTION_PER_SECOND", (float)(COST_HUNGER / 60.0));
+    private static final float BASE_EXTRA_HEAL = BehaviorConfigAccess.getFloat(RouBaiguOrganBehavior.class, "BASE_EXTRA_HEAL", 0.5f);
     private static final double BASE_REGEN_BONUS = 0.5;
-    private static final int OUT_OF_COMBAT_THRESHOLD_TICKS = 20 * 5;
+    private static final int OUT_OF_COMBAT_THRESHOLD_TICKS = BehaviorConfigAccess.getInt(RouBaiguOrganBehavior.class, "OUT_OF_COMBAT_THRESHOLD_TICKS", 20 * 5);
 
     private static final double BITE_TRIGGER_CHANCE = 0.10;
-    private static final int BITE_COOLDOWN_TICKS = 20 * 5;
+    private static final int BITE_COOLDOWN_TICKS = BehaviorConfigAccess.getInt(RouBaiguOrganBehavior.class, "BITE_COOLDOWN_TICKS", 20 * 5);
     private static final double BITE_MAX_DISTANCE_SQR = 10.0 * 10.0;
 
-    private static final int RESTORATION_SELECTION_INTERVAL_SECONDS = 180;
-    private static final int RESTORATION_WORK_INTERVAL_SECONDS = 120;
-    private static final int RESTORATION_PROGRESS_PER_STEP = 10;
-    private static final int RESTORATION_REQUIRED_PROGRESS = 100;
+    private static final int RESTORATION_SELECTION_INTERVAL_SECONDS = BehaviorConfigAccess.getInt(RouBaiguOrganBehavior.class, "RESTORATION_SELECTION_INTERVAL_SECONDS", 180);
+    private static final int RESTORATION_WORK_INTERVAL_SECONDS = BehaviorConfigAccess.getInt(RouBaiguOrganBehavior.class, "RESTORATION_WORK_INTERVAL_SECONDS", 120);
+    private static final int RESTORATION_PROGRESS_PER_STEP = BehaviorConfigAccess.getInt(RouBaiguOrganBehavior.class, "RESTORATION_PROGRESS_PER_STEP", 10);
+    private static final int RESTORATION_REQUIRED_PROGRESS = BehaviorConfigAccess.getInt(RouBaiguOrganBehavior.class, "RESTORATION_REQUIRED_PROGRESS", 100);
 
     private static final DustParticleOptions DIGEST_PARTICLE =
             new DustParticleOptions(new Vector3f(0.9f, 0.2f, 0.2f), 1.0f);

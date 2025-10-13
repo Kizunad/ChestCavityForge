@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
@@ -42,7 +44,7 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
 
     private static final String STATE_ROOT = "DianLiugu";
     private static final String CHARGE_KEY = "Charge";
-    private static final int MAX_CHARGE = 10;
+    private static final int MAX_CHARGE = BehaviorConfigAccess.getInt(DianLiuguOrganBehavior.class, "MAX_CHARGE", 10);
 
     private static final double BASE_DAMAGE = 5.0;
     private static final double BASE_DEBUFF_SECONDS = 3.0;

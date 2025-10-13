@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -49,12 +51,12 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private static final String STATE_KEY = "HuGuguCharge";
-    private static final int CHARGE_SCALE = 100; // store hundredths in NBT
-    private static final int MAX_CHARGE_UNITS = 20 * CHARGE_SCALE;
-    private static final int HALF_CHARGE_UNITS = MAX_CHARGE_UNITS / 2;
-    private static final int BASE_RECOVERY_LOW_UNITS = (int)Math.round(0.25 * CHARGE_SCALE);
-    private static final int BONUS_RECOVERY_LOW_UNITS = (int)Math.round(0.25 * CHARGE_SCALE);
-    private static final int RECOVERY_HIGH_UNITS = (int)Math.round(0.10 * CHARGE_SCALE);
+    private static final int CHARGE_SCALE = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "CHARGE_SCALE", 100); // store hundredths in NBT
+    private static final int MAX_CHARGE_UNITS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "MAX_CHARGE_UNITS", 20 * CHARGE_SCALE);
+    private static final int HALF_CHARGE_UNITS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "HALF_CHARGE_UNITS", MAX_CHARGE_UNITS / 2);
+    private static final int BASE_RECOVERY_LOW_UNITS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "BASE_RECOVERY_LOW_UNITS", (int)Math.round(0.25 * CHARGE_SCALE));
+    private static final int BONUS_RECOVERY_LOW_UNITS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "BONUS_RECOVERY_LOW_UNITS", (int)Math.round(0.25 * CHARGE_SCALE));
+    private static final int RECOVERY_HIGH_UNITS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "RECOVERY_HIGH_UNITS", (int)Math.round(0.10 * CHARGE_SCALE));
 
 
     private static final double MIN_DAMAGE_THRESHOLD = 10.0;
@@ -67,16 +69,16 @@ public enum HuGuguOrganBehavior implements OrganSlowTickListener, OrganIncomingD
     private static final double RESOURCE_EPSILON = 1.0E-4;
     private static final double BASE_ZHENYUAN_COST = 500.0;
 
-    private static final int LOW_CHARGE_DEBUFF_DURATION = 60; // 3 seconds refresh per slow tick
+    private static final int LOW_CHARGE_DEBUFF_DURATION = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "LOW_CHARGE_DEBUFF_DURATION", 60); // 3 seconds refresh per slow tick
 
-    private static final int BASE_BUFF_DURATION = 20 * 60; // 1 minute in ticks
+    private static final int BASE_BUFF_DURATION = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "BASE_BUFF_DURATION", 20 * 60); // 1 minute in ticks
 
-    private static final int DAMAGE_TRIGGER_COST_UNITS = CHARGE_SCALE;
+    private static final int DAMAGE_TRIGGER_COST_UNITS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "DAMAGE_TRIGGER_COST_UNITS", CHARGE_SCALE);
 
     private static final double HU_GUGU_CONE_HALF_ANGLE_RADIANS = Math.toRadians(20.0);
     private static final double HU_GUGU_CONE_MIN_DISTANCE = 0.6;
     private static final double HU_GUGU_CONE_MAX_DISTANCE = 6.0;
-    private static final int HU_GUGU_CONE_STEPS = 12;
+    private static final int HU_GUGU_CONE_STEPS = BehaviorConfigAccess.getInt(HuGuguOrganBehavior.class, "HU_GUGU_CONE_STEPS", 12);
     private static final DustParticleOptions HU_GUGU_CORE_DUST =
         new DustParticleOptions(new Vector3f(1.0f, 0.5f, 0.0f), 1.35f);
     private static final DustParticleOptions HU_GUGU_EDGE_DUST_YELLOW =

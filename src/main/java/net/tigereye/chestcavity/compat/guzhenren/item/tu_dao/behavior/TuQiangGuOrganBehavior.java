@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -81,9 +83,9 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double BARRIER_DAMAGE_RATIO = 0.10; // 10% local hardening while barrier active
     private static final double BARRIER_MAX_ABSORPTION = 10.0; // 最大吸收10点
 
-    private static final int ABILITY_RANGE = 10;
-    private static final int PRISON_RADIUS = 4;
-    private static final int PRISON_DURATION_TICKS = 20 * 60; // 60 seconds
+    private static final int ABILITY_RANGE = BehaviorConfigAccess.getInt(TuQiangGuOrganBehavior.class, "ABILITY_RANGE", 10);
+    private static final int PRISON_RADIUS = BehaviorConfigAccess.getInt(TuQiangGuOrganBehavior.class, "PRISON_RADIUS", 4);
+    private static final int PRISON_DURATION_TICKS = BehaviorConfigAccess.getInt(TuQiangGuOrganBehavior.class, "PRISON_DURATION_TICKS", 20 * 60); // 60 seconds
 
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tu_qiang_gu");
     private static final ResourceLocation YU_PI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_pi_gu");

@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.Holder;
@@ -74,29 +76,29 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
     private static final String DRY_KEY = "Dry";
     private static final String ANNOUNCED_KEY = "Announced";
 
-    private static final int GENERATION_INTERVAL_SLOW_TICKS = 10;
-    private static final int DRY_RETRY_INTERVAL_SLOW_TICKS = 1;
-    private static final float HEALTH_COST_PER_DROP = 5.0f;
-    private static final int DROP_CAPACITY_PER_STACK = 5;
+    private static final int GENERATION_INTERVAL_SLOW_TICKS = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "GENERATION_INTERVAL_SLOW_TICKS", 10);
+    private static final int DRY_RETRY_INTERVAL_SLOW_TICKS = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "DRY_RETRY_INTERVAL_SLOW_TICKS", 1);
+    private static final float HEALTH_COST_PER_DROP = BehaviorConfigAccess.getFloat(XiediguOrganBehavior.class, "HEALTH_COST_PER_DROP", 5.0f);
+    private static final int DROP_CAPACITY_PER_STACK = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "DROP_CAPACITY_PER_STACK", 5);
 
     private static final double DETONATION_RADIUS = 5.0;
-    private static final float DETONATION_DAMAGE_PER_DROP = 6.0f;
-    private static final int BLEED_DURATION_SECONDS = 3;
-    private static final int TICKS_PER_SECOND = 20;
+    private static final float DETONATION_DAMAGE_PER_DROP = BehaviorConfigAccess.getFloat(XiediguOrganBehavior.class, "DETONATION_DAMAGE_PER_DROP", 6.0f);
+    private static final int BLEED_DURATION_SECONDS = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "BLEED_DURATION_SECONDS", 3);
+    private static final int TICKS_PER_SECOND = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "TICKS_PER_SECOND", 20);
     private static final double BLEED_DAMAGE_PER_SECOND = 1.0;
 
     private static final double ZHENYUAN_PER_DROP = 20.0;
     private static final double JINGLI_PER_DROP = 20.0;
-    private static final float HEAL_PER_DROP = 2.0f;
+    private static final float HEAL_PER_DROP = BehaviorConfigAccess.getFloat(XiediguOrganBehavior.class, "HEAL_PER_DROP", 2.0f);
 
-    private static final int WEAKNESS_DURATION_TICKS = 60;
-    private static final int DRY_SMOKE_COUNT = 12;
+    private static final int WEAKNESS_DURATION_TICKS = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "WEAKNESS_DURATION_TICKS", 60);
+    private static final int DRY_SMOKE_COUNT = BehaviorConfigAccess.getInt(XiediguOrganBehavior.class, "DRY_SMOKE_COUNT", 12);
     private static final DustParticleOptions BLOOD_MIST =
             new DustParticleOptions(new Vector3f(0.85f, 0.06f, 0.06f), 1.0f);
 
     private static final Component EQUIP_MESSAGE =
             Component.translatable("message.guzhenren.xie_di_gu.on_equip");
-    private static final float AUTO_TRIGGER_CHANCE = 0.1f;
+    private static final float AUTO_TRIGGER_CHANCE = BehaviorConfigAccess.getFloat(XiediguOrganBehavior.class, "AUTO_TRIGGER_CHANCE", 0.1f);
 
     static {
         OrganActivationListeners.register(ABILITY_ID, XiediguOrganBehavior::activateAbility);

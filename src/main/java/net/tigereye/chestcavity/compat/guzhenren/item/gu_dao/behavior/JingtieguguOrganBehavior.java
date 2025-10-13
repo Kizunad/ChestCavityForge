@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 /**
  * Behaviour for 精铁骨蛊 – enhanced absorption and efficiency compared to the base iron bone.
@@ -16,7 +18,7 @@ public final class JingtieguguOrganBehavior extends AbstractMetalBoneSupportBeha
 
     public static final float ABSORPTION_PER_STACK = 40.0f;
     private static final double ENERGY_COST_PER_STACK = 40.0;
-    private static final int ABSORPTION_INTERVAL_TICKS = 20 * 45; // 1 minute
+    private static final int ABSORPTION_INTERVAL_TICKS = BehaviorConfigAccess.getInt(JingtieguguOrganBehavior.class, "ABSORPTION_INTERVAL_TICKS", 20 * 45); // 1 minute
     private static final double GU_DAO_EFFECT = 0.10;
     private static final double JIN_DAO_EFFECT = 0.10;
 

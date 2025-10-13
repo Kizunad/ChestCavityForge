@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.tigereye.chestcavity.ChestCavity;
 
@@ -74,7 +76,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
     private static final double ENERGY_PER_CHARGE = 20.0;
 
     /** 最大充能上限 */
-    private static final int MAX_CHARGE = 100;
+    private static final int MAX_CHARGE = BehaviorConfigAccess.getInt(YuGuguOrganBehavior.class, "MAX_CHARGE", 100);
 
     /** 玉骨蛊提供的最大效率增益。 */
     private static final double EFFECT_MAX_BONUS = 0.1;
@@ -83,7 +85,7 @@ public enum YuGuguOrganBehavior implements OrganSlowTickListener, OrganOnHitList
     private static final double DECAY_FRACTION = 0.05;
 
     private static final double YU_GUGU_BEAM_SEGMENT_LENGTH = 0.35;
-    private static final int YU_GUGU_BEAM_MIN_SEGMENTS = 6;
+    private static final int YU_GUGU_BEAM_MIN_SEGMENTS = BehaviorConfigAccess.getInt(YuGuguOrganBehavior.class, "YU_GUGU_BEAM_MIN_SEGMENTS", 6);
     private static final DustParticleOptions YU_GUGU_CORE_DUST =
         new DustParticleOptions(new Vector3f(0.56f, 1.0f, 0.82f), 1.25f);
     private static final DustParticleOptions YU_GUGU_GILDED_DUST =

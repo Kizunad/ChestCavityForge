@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -38,15 +40,15 @@ public enum JianjitengOrganBehavior implements OrganSlowTickListener {
     private static final String MOD_ID = "guzhenren";
 
     private static final String STATE_KEY = "JianjitengCharge";
-    private static final int MAX_CHARGE = 100;
+    private static final int MAX_CHARGE = BehaviorConfigAccess.getInt(JianjitengOrganBehavior.class, "MAX_CHARGE", 100);
 
-    private static final float HEALTH_COST = 0.1f;
+    private static final float HEALTH_COST = BehaviorConfigAccess.getFloat(JianjitengOrganBehavior.class, "HEALTH_COST", 0.1f);
     private static final double ZHENYUAN_COST = 2.0;
 
     // TODO: Reintroduce Jianjiteng linkage energy consumption once a producer exists.
 
 
-    private static final int BONUS_ROLL = 100;
+    private static final int BONUS_ROLL = BehaviorConfigAccess.getInt(JianjitengOrganBehavior.class, "BONUS_ROLL", 100);
     private static final Component BONUS_MESSAGE = Component.translatable("message.guzhenren.jianjiteng.bonus");
     private static final String LOG_PREFIX = "[Jianjiteng]";
 

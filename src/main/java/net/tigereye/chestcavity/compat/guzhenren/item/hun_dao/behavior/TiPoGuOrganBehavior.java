@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -54,7 +56,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double SOUL_BEAST_HUNPO_COST_PERCENT = 0.001D;
     private static final double ZI_HUN_INCREASE_BONUS = 0.10D;
     private static final double SHIELD_PERCENT = 0.005D;
-    private static final int SHIELD_REFRESH_INTERVAL_TICKS = 200;
+    private static final int SHIELD_REFRESH_INTERVAL_TICKS = BehaviorConfigAccess.getInt(TiPoGuOrganBehavior.class, "SHIELD_REFRESH_INTERVAL_TICKS", 200);
     private static final double EPSILON = 1.0E-4D;
 
     private static final ResourceLocation SHIELD_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/ti_po_gu_shield");

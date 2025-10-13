@@ -6,6 +6,9 @@ import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import net.tigereye.chestcavity.ChestCavity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 
 @Config(name = ChestCavity.MODID)
 public class CCConfig implements ConfigData {
@@ -117,6 +120,10 @@ public class CCConfig implements ConfigData {
     public boolean BIOME_MAKEOVER_INTEGRATION = true;
     @ConfigEntry.Category("integration")
     public boolean GUZHENREN_NUDAO_LOGGING = true;
+
+    @ConfigEntry.Category("guzhenren_behavior")
+    @ConfigEntry.Gui.CollapsibleObject
+    public GuzhenrenBehaviorTuningConfig GUZHENREN_BEHAVIOR = new GuzhenrenBehaviorTuningConfig();
 
     @ConfigEntry.Category("guzhenren_bing_xue_dao")
     @ConfigEntry.Gui.CollapsibleObject
@@ -309,4 +316,16 @@ public class CCConfig implements ConfigData {
         }
     }
 
+    public static class GuzhenrenBehaviorTuningConfig {
+        public Map<String, Integer> ints = new LinkedHashMap<>();
+        public Map<String, Float> floats = new LinkedHashMap<>();
+
+        public int resolveInt(String key, int defaultValue) {
+            return ints.computeIfAbsent(key, k -> defaultValue);
+        }
+
+        public float resolveFloat(String key, float defaultValue) {
+            return floats.computeIfAbsent(key, k -> defaultValue);
+        }
+    }
 }

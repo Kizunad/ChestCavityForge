@@ -1,4 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -48,11 +50,11 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final double INCREASE_PER_STACK = 0.1;
     private static final double JINGLI_PER_SECOND = 2.5;
-    private static final float HEAL_PER_SECOND = 3.0f;
-    private static final float HEALTH_DRAIN_PER_MINUTE = 8.0f;
-    private static final float HEALTH_DRAIN_RESERVE = 1.0f;
-    private static final int SLOW_TICKS_PER_MINUTE = 60;
-    private static final int FAILURE_RETRY_TICKS = 5;
+    private static final float HEAL_PER_SECOND = BehaviorConfigAccess.getFloat(XueqiguOrganBehavior.class, "HEAL_PER_SECOND", 3.0f);
+    private static final float HEALTH_DRAIN_PER_MINUTE = BehaviorConfigAccess.getFloat(XueqiguOrganBehavior.class, "HEALTH_DRAIN_PER_MINUTE", 8.0f);
+    private static final float HEALTH_DRAIN_RESERVE = BehaviorConfigAccess.getFloat(XueqiguOrganBehavior.class, "HEALTH_DRAIN_RESERVE", 1.0f);
+    private static final int SLOW_TICKS_PER_MINUTE = BehaviorConfigAccess.getInt(XueqiguOrganBehavior.class, "SLOW_TICKS_PER_MINUTE", 60);
+    private static final int FAILURE_RETRY_TICKS = BehaviorConfigAccess.getInt(XueqiguOrganBehavior.class, "FAILURE_RETRY_TICKS", 5);
 
     private static final String STATE_KEY = "Xueqigu";
     private static final String TIMER_KEY = "DrainTimer";
