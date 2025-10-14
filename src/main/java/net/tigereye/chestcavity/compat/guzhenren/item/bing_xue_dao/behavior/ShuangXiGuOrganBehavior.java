@@ -30,7 +30,6 @@ import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
@@ -40,7 +39,6 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import org.slf4j.Logger;
 
@@ -100,13 +98,8 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
             return;
         }
 
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return;
-        }
-        context.getOrCreateChannel(BING_XUE_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
-        IncreaseEffectLedger ledger = context.increaseEffects();
-        ledger.registerContributor(organ, this, BING_XUE_INCREASE_EFFECT);
+        LedgerOps.ensureChannel(cc, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE);
+        LedgerOps.registerContributor(cc, organ, this, BING_XUE_INCREASE_EFFECT);
 
         registerRemovalHook(cc, organ, this, staleRemovalContexts);
         refreshIncreaseContribution(cc, organ);
@@ -154,15 +147,11 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         if (!matchesOrgan(organ, CCItems.GUZHENREN_SHUANG_XI_GU, ORGAN_ID)) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return;
+        LedgerOps.remove(cc, organ, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE, true);
+        ActiveLinkageContext context = LedgerOps.context(cc);
+        if (context != null) {
+            context.increaseEffects().unregisterContributor(organ);
         }
-        IncreaseEffectLedger ledger = context.increaseEffects();
-        double removed = ledger.remove(organ, BING_XUE_INCREASE_EFFECT);
-        ledger.unregisterContributor(organ);
-        context.lookupChannel(BING_XUE_INCREASE_EFFECT)
-                .ifPresent(channel -> channel.adjust(-removed));
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
@@ -170,11 +159,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         if (cc == null) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return;
-        }
-        context.getOrCreateChannel(BING_XUE_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
+        LedgerOps.ensureChannel(cc, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE);
     }
 
     @Override
@@ -190,6 +175,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig config = cfg();
         int count = Math.max(1, organ.getCount());
         double perStack = Math.max(0.0D, config.increasePerStack);
+        LedgerOps.ensureChannel(context, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE);
         registrar.record(BING_XUE_INCREASE_EFFECT, count, count * perStack);
     }
 
@@ -197,19 +183,11 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
         }
-        ActiveLinkageContext context = LinkageManager.getContext(cc);
-        if (context == null) {
-            return;
-        }
         CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig config = cfg();
+        int count = Math.max(1, organ.getCount());
         double perStack = Math.max(0.0D, config.increasePerStack);
-        IncreaseEffectLedger ledger = context.increaseEffects();
-        double previous = ledger.adjust(organ, BING_XUE_INCREASE_EFFECT, 0.0);
-        double target = Math.max(1, organ.getCount()) * perStack;
-        double delta = target - previous;
-        if (delta != 0.0) {
-            LedgerOps.adjust(cc, organ, BING_XUE_INCREASE_EFFECT, delta, NON_NEGATIVE, true);
-        }
+        double target = count * perStack;
+        LedgerOps.set(cc, organ, BING_XUE_INCREASE_EFFECT, count, target, NON_NEGATIVE, true);
     }
 
     private static void clearColdEffects(
@@ -354,12 +332,9 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
             applyColdEffect(target, config);
             if (entity.getRandom().nextDouble() < frostbiteChance) {
                 double increase = 0.0;
-                ActiveLinkageContext ctx = LinkageManager.getContext(cc);
-                if (ctx != null) {
-                    increase = ctx.lookupChannel(BING_XUE_INCREASE_EFFECT)
-                            .map(LinkageChannel::get)
-                            .orElse(0.0);
-                }
+                increase = LedgerOps.lookupChannel(cc, BING_XUE_INCREASE_EFFECT)
+                        .map(LinkageChannel::get)
+                        .orElse(0.0);
                 double percent = Math.max(0.0, frostbiteBasePercent + increase);
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info("[compat/guzhenren][shuang_xi] apply frostbite DoT: base={} increase={} final={} target={}",

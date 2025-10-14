@@ -289,7 +289,7 @@ public class CCConfig implements ConfigData {
         }
 
         public static class ShuangXiGuConfig {
-            public double increasePerStack = 0.02D;
+            public double increasePerStack = 0.12D;
             public double frostbiteChance = 0.3D;
             public double frostbiteDamagePercent = 0.05D;
             public int frostbiteDurationSeconds = 4;

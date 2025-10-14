@@ -25,7 +25,8 @@ public final class HuoxinguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huoxingu");
     private static final double BURN_ZHENYUAN_COST = 100.0;
-    private static final float BURN_HEAL_AMOUNT = BehaviorConfigAccess.getFloat(HuoxinguOrganBehavior.class, "BURN_HEAL_AMOUNT", 5.0f);
+    private static final float BURN_HEAL_AMOUNT = BehaviorConfigAccess.getFloat(HuoxinguOrganBehavior.class, "BURN_HEAL_AMOUNT", 4.0f);
+    private static final float BURN_JINGLI_REPLENISH = BehaviorConfigAccess.getFloat(HuoxinguOrganBehavior.class, "BURN_JINGLI_REPLENISH", 3.0f);
 
     private HuoxinguOrganBehavior() {}
 
@@ -51,6 +52,9 @@ public final class HuoxinguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         if (BURN_HEAL_AMOUNT > 0.0f && entity.getHealth() < entity.getMaxHealth()) {
             entity.heal(BURN_HEAL_AMOUNT);
+        }
+        if (BURN_JINGLI_REPLENISH > 0.0f) {
+            ResourceOps.tryAdjustJingli(entity, BURN_JINGLI_REPLENISH, true);
         }
     }
 }
