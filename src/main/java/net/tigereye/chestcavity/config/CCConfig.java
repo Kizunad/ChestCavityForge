@@ -265,8 +265,8 @@ public class CCConfig implements ConfigData {
             public int slowTickIntervalsPerMinute = 15;
             public float absorptionPerTrigger = 5.0F;
             public float absorptionCap = 20.0F;
-            public double bonusDamageFraction = 0.04D;
-            public double bonusTriggerChance = 0.12D;
+            public double bonusDamageFraction = 0.24D;
+            public double bonusTriggerChance = 0.25D;
             public int iceEffectDurationTicks = 600;
             public double iceBurstBaseDamage = 18.0D;
             public double iceBurstRadius = 6.0D;
@@ -290,7 +290,7 @@ public class CCConfig implements ConfigData {
 
         public static class ShuangXiGuConfig {
             public double increasePerStack = 0.02D;
-            public double frostbiteChance = 0.15D;
+            public double frostbiteChance = 0.3D;
             public double frostbiteDamagePercent = 0.05D;
             public int frostbiteDurationSeconds = 4;
             public int coldDurationTicks = 60;
@@ -319,6 +319,7 @@ public class CCConfig implements ConfigData {
     public static class GuzhenrenBehaviorTuningConfig {
         public Map<String, Integer> ints = new LinkedHashMap<>();
         public Map<String, Float> floats = new LinkedHashMap<>();
+        public Map<String, Boolean> bools = new LinkedHashMap<>();
 
         public int resolveInt(String key, int defaultValue) {
             return ints.computeIfAbsent(key, k -> defaultValue);
@@ -326,6 +327,10 @@ public class CCConfig implements ConfigData {
 
         public float resolveFloat(String key, float defaultValue) {
             return floats.computeIfAbsent(key, k -> defaultValue);
+        }
+
+        public boolean resolveBoolean(String key, boolean defaultValue) {
+            return bools.computeIfAbsent(key, k -> defaultValue);
         }
     }
 }

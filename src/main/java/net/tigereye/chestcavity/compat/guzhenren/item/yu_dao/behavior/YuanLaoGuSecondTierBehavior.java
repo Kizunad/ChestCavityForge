@@ -27,12 +27,12 @@ public final class YuanLaoGuSecondTierBehavior extends AbstractYuanLaoGuBehavior
 
     @Override
     protected double zhenyuanPerStone() {
-        return 250.0;
+        return 200.0;
     }
 
     @Override
     protected double stoneRegenPerSlowTick() {
-        return 1.0;
+        return 0.5;
     }
 
     @Override

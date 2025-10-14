@@ -59,7 +59,7 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final String BU_QU_KEY = "BuQu";
 
     private static final double BONE_GROWTH_PER_SECOND = 60.0;
-    private static final double GU_DAO_INCREASE_PER_STACK = 0.08;
+    private static final double GU_DAO_INCREASE_PER_STACK = 0.14;
     private static final int MAX_EFFECTIVE_STACKS = BehaviorConfigAccess.getInt(LeGuDunGuOrganBehavior.class, "MAX_EFFECTIVE_STACKS", 1);
     private static final int MAX_BU_QU = BehaviorConfigAccess.getInt(LeGuDunGuOrganBehavior.class, "MAX_BU_QU", 10);
 

@@ -40,7 +40,8 @@ public final class GuzhenrenAttackAbilityHandler implements SoulAttackHandler {
             ResourceLocation.fromNamespaceAndPath("guzhenren", "bing_ji_gu_iceburst"),  // 冰棘蛊冰爆
             ResourceLocation.fromNamespaceAndPath("guzhenren", "shuang_xi_gu_frost_breath"), // 霜息蛊吐息
             // 魂道
-            ResourceLocation.fromNamespaceAndPath("guzhenren", "gui_wu")                // 鬼雾（主动）
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "gui_wu"),               // 鬼雾（主动）
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yuan_lao_gu_5_attack") // 元老蛊·五转
     };
 
     private final double range;

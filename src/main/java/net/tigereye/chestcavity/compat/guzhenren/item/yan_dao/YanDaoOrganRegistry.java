@@ -38,6 +38,9 @@ public final class YanDaoOrganRegistry {
             list.add(OrganIntegrationSpec.builder(FEN_SHEN_GU_ID)
                     .addSlowTickListener(FenShenGuOrganBehavior.INSTANCE)
                     .addIncomingDamageListener(FenShenGuOrganBehavior.INSTANCE)
+                    .addRemovalListener(FenShenGuOrganBehavior.INSTANCE)
+                    .ensureAttached(FenShenGuOrganBehavior.INSTANCE::ensureAttached)
+                    .onEquip(FenShenGuOrganBehavior.INSTANCE::onEquip)
                     .build());
         } catch (Throwable t) {
             ChestCavity.LOGGER.warn("[compat/guzhenren][yan_dao] skip FenShenGu registration due to init error", t);

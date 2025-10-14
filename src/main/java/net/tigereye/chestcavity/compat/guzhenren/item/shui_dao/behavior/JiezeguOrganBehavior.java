@@ -60,8 +60,8 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final String STATE_ROOT = "Jiezegu";
     private static final String ACTIVE_KEY = "Active";
 
-    private static final double BONUS_TRIGGER_CHANCE = 0.18;
-    private static final double BONUS_DAMAGE_RATIO = 0.08;
+    private static final double BONUS_TRIGGER_CHANCE = 0.4;
+    private static final double BONUS_DAMAGE_RATIO = 0.238;
     private static final double FLOW_BREAK_TRIGGER_CHANCE = 0.08;
     private static final int FLOW_BREAK_DURATION_TICKS = BehaviorConfigAccess.getInt(JiezeguOrganBehavior.class, "FLOW_BREAK_DURATION_TICKS", 4 * 20);
 

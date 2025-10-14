@@ -1078,6 +1078,21 @@ public final class GuzhenrenResourceBridge {
             return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_ZHENYUAN);
         }
 
+        /** 当前魂魄 */
+        public OptionalDouble getHunpo() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.HUNPO);
+        }
+
+        /** 魂魄上限 */
+        public OptionalDouble getMaxHunpo() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_HUNPO);
+        }
+
+        /** 魂魄增减（可选非负，自动对齐上限） */
+        public OptionalDouble adjustHunpo(double delta, boolean clampZero) {
+            return adjustDouble(PlayerField.HUNPO, delta, clampZero, PlayerField.MAX_HUNPO);
+        }
+
         /** 阶段（阶位） */
         public OptionalDouble getJieduan() {
             return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JIEDUAN);
@@ -1136,6 +1151,21 @@ public final class GuzhenrenResourceBridge {
         /** 将魂魄稳定度限制在对应上限内 */
         public OptionalDouble clampHunpoStabilityToMax() {
             return clampToMax(PlayerField.HUNPO_STABILITY, PlayerField.MAX_HUNPO_STABILITY);
+        }
+
+        /** 当前念头 */
+        public OptionalDouble getNiantou() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.NIANTOU);
+        }
+
+        /** 念头上限 */
+        public OptionalDouble getMaxNiantou() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_NIANTOU);
+        }
+
+        /** 念头增减（可选非负，自动对齐上限） */
+        public OptionalDouble adjustNiantou(double delta, boolean clampZero) {
+            return adjustDouble(PlayerField.NIANTOU, delta, clampZero, PlayerField.MAX_NIANTOU);
         }
 
         private double scaleZhenyuanByCultivation(double baseAmount) {

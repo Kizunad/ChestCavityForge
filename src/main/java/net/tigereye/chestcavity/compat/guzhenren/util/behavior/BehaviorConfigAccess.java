@@ -27,6 +27,14 @@ public final class BehaviorConfigAccess {
         return tuning.resolveFloat(key(owner, fieldName), defaultValue);
     }
 
+    public static boolean getBoolean(Class<?> owner, String fieldName, boolean defaultValue) {
+        CCConfig.GuzhenrenBehaviorTuningConfig tuning = tuning();
+        if (tuning == null) {
+            return defaultValue;
+        }
+        return tuning.resolveBoolean(key(owner, fieldName), defaultValue);
+    }
+
     private static CCConfig.GuzhenrenBehaviorTuningConfig tuning() {
         CCConfig config = ChestCavity.config;
         if (config == null) {

@@ -23,7 +23,7 @@ public enum JinfeiguOrganBehavior implements OrganOnGroundListener, OrganSlowTic
 
     private static final int FULL_FOOD_LEVEL = BehaviorConfigAccess.getInt(JinfeiguOrganBehavior.class, "FULL_FOOD_LEVEL", 20);
     private static final int HUNGER_COST = BehaviorConfigAccess.getInt(JinfeiguOrganBehavior.class, "HUNGER_COST", 4);
-    private static final double ABSORPTION_HEARTS = 4.0;
+    private static final double ABSORPTION_HEARTS = 30.0;
     private static final int EFFECT_DURATION_TICKS = BehaviorConfigAccess.getInt(JinfeiguOrganBehavior.class, "EFFECT_DURATION_TICKS", 20 * 60);
 
     @Override

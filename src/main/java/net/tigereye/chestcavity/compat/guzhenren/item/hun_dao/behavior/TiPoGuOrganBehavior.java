@@ -52,7 +52,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final double PASSIVE_HUNPO_PER_SECOND = 3.0D;
     private static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
-    private static final double SOUL_BEAST_DAMAGE_PERCENT = 0.015D;
+    private static final double SOUL_BEAST_DAMAGE_PERCENT = 0.03D;
     private static final double SOUL_BEAST_HUNPO_COST_PERCENT = 0.001D;
     private static final double ZI_HUN_INCREASE_BONUS = 0.10D;
     private static final double SHIELD_PERCENT = 0.005D;

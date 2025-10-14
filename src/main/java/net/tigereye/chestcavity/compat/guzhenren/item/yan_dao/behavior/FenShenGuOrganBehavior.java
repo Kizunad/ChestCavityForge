@@ -1,7 +1,4 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
-
-
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -17,15 +14,25 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.OrganPresenceUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
+import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
+import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
+import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
+
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -34,7 +41,7 @@ import java.util.OptionalDouble;
  * Behaviour for 焚身蛊（炎道·肾脏）。
  */
 public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
-        implements OrganSlowTickListener, OrganIncomingDamageListener {
+        implements OrganSlowTickListener, OrganIncomingDamageListener, OrganRemovalListener, IncreaseEffectContributor {
 
     public static final FenShenGuOrganBehavior INSTANCE = new FenShenGuOrganBehavior();
 
@@ -45,11 +52,14 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "fen_shen_gu");
     private static final ResourceLocation HUOXINGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huoxingu");
     private static final ResourceLocation HUORENGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huorengu");
+    private static final ResourceLocation YAN_DAO_INCREASE_CHANNEL =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/yan_dao_increase_effect");
     private static final ResourceLocation FLAME_AURA_FX = ResourceLocation.parse("chestcavity:fire_huo_yi");
 
     private static final String STATE_ROOT = "FenShenGu";
     private static final String STACKS_KEY = "LinghuoStacks";
     private static final String SYNERGY_KEY = "SynergyActive";
+    private static final String INCREASE_KEY = "YanDaoIncrease";
 
     private static final double JINGLI_RESTORE_PER_SECOND = 3.0;
     private static final double DETOXIFICATION_CHANCE = 0.20;
@@ -57,6 +67,9 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final int MAX_STACKS = BehaviorConfigAccess.getInt(FenShenGuOrganBehavior.class, "MAX_STACKS", 2);
     private static final int PERMANENT_FIRE_TICKS = BehaviorConfigAccess.getInt(FenShenGuOrganBehavior.class, "PERMANENT_FIRE_TICKS", 60); // 3 seconds of burn upkeep
     private static final int FIRE_RESIST_DURATION_TICKS = BehaviorConfigAccess.getInt(FenShenGuOrganBehavior.class, "FIRE_RESIST_DURATION_TICKS", 220); // 11 seconds, refreshed every slow tick
+    private static final double SYNERGY_INCREASE = 0.2;
+    private static final double EPSILON = 1.0E-6;
+    private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
     private FenShenGuOrganBehavior() {
     }
@@ -84,11 +97,14 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         if (synergyActive) {
+            collector.record(applySynergyIncrease(cc, organ, state, SYNERGY_INCREASE));
             maintainPermanentFlames(entity);
             grantFireResistance(entity);
             if (entity.level() instanceof ServerLevel serverLevel) {
                 playFlameAura(serverLevel, entity);
             }
+        } else {
+            collector.record(applySynergyIncrease(cc, organ, state, 0.0));
         }
 
         if (entity.isOnFire() || synergyActive) {
@@ -133,6 +149,70 @@ public final class FenShenGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return damage;
         }
         return Math.max(0.0f, damage - reduction);
+    }
+
+    @Override
+    public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+        if (!matchesOrgan(organ, ORGAN_ID)) {
+            return;
+        }
+        OrganState state = organState(organ, STATE_ROOT);
+        double stored = state.getDouble(INCREASE_KEY, 0.0);
+        if (Math.abs(stored) > EPSILON) {
+            applyIncreaseDelta(cc, organ, -stored);
+            var change = state.setDouble(INCREASE_KEY, 0.0, value -> Math.max(0.0, value), 0.0);
+            logStateChange(LOGGER, LOG_PREFIX, organ, INCREASE_KEY, change);
+        }
+        LedgerOps.remove(cc, organ, YAN_DAO_INCREASE_CHANNEL, NON_NEGATIVE, true);
+    }
+
+    @Override
+    public void rebuildIncreaseEffects(ChestCavityInstance cc, ActiveLinkageContext context,
+                                       ItemStack organ, IncreaseEffectLedger.Registrar registrar) {
+        if (organ == null || organ.isEmpty() || registrar == null) {
+            return;
+        }
+        OrganState state = organState(organ, STATE_ROOT);
+        double effect = state.getDouble(INCREASE_KEY, 0.0);
+        if (Math.abs(effect) <= EPSILON) {
+            return;
+        }
+        registrar.record(YAN_DAO_INCREASE_CHANNEL, Math.max(1, organ.getCount()), effect);
+    }
+
+    public void ensureAttached(ChestCavityInstance cc) {
+        if (cc == null) {
+            return;
+        }
+        LedgerOps.ensureChannel(cc, YAN_DAO_INCREASE_CHANNEL, NON_NEGATIVE);
+    }
+
+    public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return;
+        }
+        if (!matchesOrgan(organ, ORGAN_ID)) {
+            return;
+        }
+        LedgerOps.registerContributor(cc, organ, this, YAN_DAO_INCREASE_CHANNEL);
+    }
+
+    private boolean applySynergyIncrease(ChestCavityInstance cc, ItemStack organ, OrganState state, double target) {
+        double stored = state.getDouble(INCREASE_KEY, 0.0);
+        if (Math.abs(stored - target) <= EPSILON) {
+            return false;
+        }
+        applyIncreaseDelta(cc, organ, target - stored);
+        var change = state.setDouble(INCREASE_KEY, target, value -> Math.max(0.0, value), 0.0);
+        logStateChange(LOGGER, LOG_PREFIX, organ, INCREASE_KEY, change);
+        return change.changed();
+    }
+
+    private void applyIncreaseDelta(ChestCavityInstance cc, ItemStack organ, double delta) {
+        if (cc == null || Math.abs(delta) <= EPSILON) {
+            return;
+        }
+        LedgerOps.adjust(cc, organ, YAN_DAO_INCREASE_CHANNEL, delta, NON_NEGATIVE, true);
     }
 
     private boolean applyBurningBenefits(LivingEntity entity, ItemStack organ, OrganState state) {

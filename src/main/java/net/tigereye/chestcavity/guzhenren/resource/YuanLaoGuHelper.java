@@ -48,6 +48,36 @@ public final class YuanLaoGuHelper {
                 && "e_yuanlaogurzhuan".equals(key.getPath().toLowerCase(Locale.ROOT));
     }
 
+    /** Returns true when the stack is 三转元老蛊（sanzhuanyuanlaogu). */
+    public static boolean isThirdTierYuanLaoGu(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+        if (key == null) return false;
+        return "guzhenren".equals(key.getNamespace())
+                && "sanzhuanyuanlaogu".equals(key.getPath().toLowerCase(Locale.ROOT));
+    }
+
+    /** Returns true when the stack is 四转元老蛊（yuan_lao_gu_4). */
+    public static boolean isFourthTierYuanLaoGu(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+        if (key == null) return false;
+        return "guzhenren".equals(key.getNamespace())
+                && "yuan_lao_gu_4".equals(key.getPath().toLowerCase(Locale.ROOT));
+    }
+
+    /** Returns true when the stack is 五转元老蛊（yuan_lao_gu_5). */
+    public static boolean isFifthTierYuanLaoGu(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+        if (key == null) return false;
+        return "guzhenren".equals(key.getNamespace())
+                && "yuan_lao_gu_5".equals(key.getPath().toLowerCase(Locale.ROOT));
+    }
+
     /** Reads the current stored amount. Absent key yields 0. */
     public static double readAmount(ItemStack stack) {
         CustomData data = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
