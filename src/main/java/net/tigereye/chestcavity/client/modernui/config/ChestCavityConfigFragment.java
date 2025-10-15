@@ -28,6 +28,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
@@ -209,7 +210,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 layout.addView(createSoulCard(layout.getContext(), entry), soulCardLayoutParams(layout));
             }
 
-            // 底部设置栏（全局）：掉落物吸取 + 半径滑动条
+            // 底部设置栏（全局）：掉落物吸取、跟随/传送调优
             layout.addView(createBottomSettings(layout), bottomSettingsLayoutParams(layout));
         }
 
@@ -375,6 +376,20 @@ public class ChestCavityConfigFragment extends Fragment {
             var actions = new LinearLayout(context);
             actions.setOrientation(LinearLayout.HORIZONTAL);
             actions.setGravity(Gravity.END);
+            var teleportButton = new Button(context);
+            teleportButton.setText("强制传送");
+            teleportButton.setEnabled(!entry.owner());
+            teleportButton.setOnClickListener(v -> {
+                if (!entry.owner()) {
+                    requestForceTeleport(entry.soulId());
+                }
+            });
+            var tpParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            tpParams.rightMargin = actions.dp(6);
+            actions.addView(teleportButton, tpParams);
+
             var button = new Button(context);
             if (entry.active()) {
                 button.setText("当前附身");
@@ -417,7 +432,48 @@ public class ChestCavityConfigFragment extends Fragment {
             bg.setColor(0xFF17202A);
             panel.setBackground(bg);
 
-            addHeadline(panel, "设置", 16);
+            // 标题 + 保存按钮
+            var headerRow = new LinearLayout(context);
+            headerRow.setOrientation(LinearLayout.HORIZONTAL);
+            headerRow.setGravity(Gravity.CENTER_VERTICAL);
+            var title = new TextView(context);
+            title.setText("设置");
+            title.setTextSize(16);
+            headerRow.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            var saveButton = new Button(context);
+            saveButton.setText("保存");
+            saveButton.setEnabled(false);
+            headerRow.addView(saveButton, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            panel.addView(headerRow, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            // ---- 本地暂存状态 ----
+            var vacuumInit = SoulConfigDataClient.INSTANCE.vacuum();
+            final boolean[] baseVacEnabled = {vacuumInit.enabled()};
+            final double[] baseVacRadius = {clampVacuumRadius(vacuumInit.radius())};
+            final boolean[] stagedVacEnabled = {baseVacEnabled[0]};
+            final double[] stagedVacRadius = {baseVacRadius[0]};
+
+            var initTuning = SoulConfigDataClient.INSTANCE.followTp();
+            final boolean[] baseTpEnabled = {initTuning.teleportEnabled()};
+            final double[] baseFollowDist = {clampFollowDist(initTuning.followDist())};
+            final double[] baseTeleportDist = {clampTeleportDist(initTuning.teleportDist())};
+            final boolean[] stagedTpEnabled = {baseTpEnabled[0]};
+            final double[] stagedFollowDist = {baseFollowDist[0]};
+            final double[] stagedTeleportDist = {baseTeleportDist[0]};
+
+            Runnable updateSaveEnabled = () -> {
+                boolean changed =
+                        stagedVacEnabled[0] != baseVacEnabled[0]
+                                || Math.abs(stagedVacRadius[0] - baseVacRadius[0]) > 1.0e-6
+                                || stagedTpEnabled[0] != baseTpEnabled[0]
+                                || Math.abs(stagedFollowDist[0] - baseFollowDist[0]) > 1.0e-6
+                                || Math.abs(stagedTeleportDist[0] - baseTeleportDist[0]) > 1.0e-6;
+                saveButton.setEnabled(changed);
+            };
 
             // 吸取开关
             var row1 = new LinearLayout(context);
@@ -428,7 +484,7 @@ public class ChestCavityConfigFragment extends Fragment {
             label1.setTextSize(13);
             row1.addView(label1, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             var toggle = new CheckBox(context);
-            toggle.setChecked(net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.isEnabled());
+            toggle.setChecked(stagedVacEnabled[0]);
             row1.addView(toggle, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -440,15 +496,14 @@ public class ChestCavityConfigFragment extends Fragment {
             var row2 = new LinearLayout(context);
             row2.setOrientation(LinearLayout.VERTICAL);
             var label2 = new TextView(context);
-            double initRadius = net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.getRadius();
-            label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", initRadius));
+            label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", stagedVacRadius[0]));
             label2.setTextSize(13);
             row2.addView(label2, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
             var seek = new SeekBar(context);
             seek.setMax(235); // 映射 0.5..24.0 -> 0..235 (步长0.1)
-            int progress = (int) Math.round((Math.max(0.5, Math.min(24.0, initRadius)) - 0.5) * 10.0);
+            int progress = (int) Math.round((stagedVacRadius[0] - 0.5) * 10.0);
             seek.setProgress(progress);
             row2.addView(seek, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -457,31 +512,123 @@ public class ChestCavityConfigFragment extends Fragment {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
 
-            // 交互：任一变更即下发到服务端
-            final Runnable send = () -> {
-                double radius = 0.5 + (seek.getProgress() / 10.0);
-                boolean enabled = toggle.isChecked();
-                var mc = net.minecraft.client.Minecraft.getInstance();
-                var conn = mc.getConnection();
-                if (conn != null) {
-                    conn.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetVacuumPayload(enabled, radius));
-                }
-                label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", radius));
-            };
-
-            toggle.setOnCheckedChangeListener((buttonView, isChecked) -> send.run());
+            toggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                stagedVacEnabled[0] = isChecked;
+                updateSaveEnabled.run();
+            });
             seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                    double radius = 0.5 + (progress / 10.0);
+                    label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", radius));
                     if (fromUser) {
-                        double radius = 0.5 + (progress / 10.0);
-                        label2.setText(String.format(java.util.Locale.ROOT, "吸取半径: %.1f", radius));
+                        stagedVacRadius[0] = radius;
+                        updateSaveEnabled.run();
                     }
                 }
                 @Override public void onStartTrackingTouch(SeekBar bar) { }
-                @Override public void onStopTrackingTouch(SeekBar bar) { send.run(); }
+                @Override public void onStopTrackingTouch(SeekBar bar) { }
+            });
+            // --- 分魂跟随/传送 ---
+            addHeadline(panel, "分魂跟随/传送", 15);
+            var tpRow = new LinearLayout(context);
+            tpRow.setOrientation(LinearLayout.HORIZONTAL);
+            tpRow.setGravity(Gravity.CENTER_VERTICAL);
+            var tpToggle = new CheckBox(context);
+            tpToggle.setText("超距传送到主人身边（>阈值）");
+            tpToggle.setChecked(stagedTpEnabled[0]);
+            tpRow.addView(tpToggle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            panel.addView(tpRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var followLabel = new TextView(context);
+            followLabel.setText(String.format(java.util.Locale.ROOT, "启动跟随距离: %.1fr", stagedFollowDist[0]));
+            followLabel.setTextSize(13);
+            panel.addView(followLabel, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            var followSeek = new SeekBar(context);
+            followSeek.setMax(70); // 1.0 ~ 8.0，以 0.1 步进
+            int initFollowProgress = (int)Math.round((stagedFollowDist[0] - 1.0) * 10.0);
+            followSeek.setProgress(initFollowProgress);
+            panel.addView(followSeek, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var tpDistLabel = new TextView(context);
+            tpDistLabel.setText(String.format(java.util.Locale.ROOT, "超距传送阈值: %.1fr", stagedTeleportDist[0]));
+            tpDistLabel.setTextSize(13);
+            panel.addView(tpDistLabel, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            var tpDistSeek = new SeekBar(context);
+            tpDistSeek.setMax(1200); // 8.0 ~ 128.0，以 0.1 步进
+            int initTpProgress = (int)Math.round((stagedTeleportDist[0] - 8.0) * 10.0);
+            tpDistSeek.setProgress(initTpProgress);
+            panel.addView(tpDistSeek, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            tpToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                stagedTpEnabled[0] = isChecked;
+                updateSaveEnabled.run();
+            });
+            followSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                    double followDist = 1.0 + (progress / 10.0);
+                    followLabel.setText(String.format(java.util.Locale.ROOT, "启动跟随距离: %.1fr", followDist));
+                    if (fromUser) {
+                        stagedFollowDist[0] = followDist;
+                        updateSaveEnabled.run();
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar bar) { }
+                @Override public void onStopTrackingTouch(SeekBar bar) { }
+            });
+            tpDistSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                    double tpDist = 8.0 + (progress / 10.0);
+                    tpDistLabel.setText(String.format(java.util.Locale.ROOT, "超距传送阈值: %.1fr", tpDist));
+                    if (fromUser) {
+                        stagedTeleportDist[0] = tpDist;
+                        updateSaveEnabled.run();
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar bar) { }
+                @Override public void onStopTrackingTouch(SeekBar bar) { }
+            });
+
+            saveButton.setOnClickListener(v -> {
+                if (!saveButton.isEnabled()) {
+                    return;
+                }
+                var mc = net.minecraft.client.Minecraft.getInstance();
+                var conn = mc.getConnection();
+                if (conn != null) {
+                    conn.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetVacuumPayload(
+                            stagedVacEnabled[0], stagedVacRadius[0]));
+                    conn.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetFollowTeleportPayload(
+                            stagedTpEnabled[0], stagedFollowDist[0], stagedTeleportDist[0]));
+                }
+                // 更新本地基线
+                baseVacEnabled[0] = stagedVacEnabled[0];
+                baseVacRadius[0] = stagedVacRadius[0];
+                baseTpEnabled[0] = stagedTpEnabled[0];
+                baseFollowDist[0] = stagedFollowDist[0];
+                baseTeleportDist[0] = stagedTeleportDist[0];
+                SoulConfigDataClient.INSTANCE.updateVacuum(new SoulConfigDataClient.VacuumTuning(
+                        stagedVacEnabled[0], stagedVacRadius[0]));
+                SoulConfigDataClient.INSTANCE.updateFollowTp(new SoulConfigDataClient.FollowTpTuning(
+                        stagedTpEnabled[0], stagedFollowDist[0], stagedTeleportDist[0]));
+                updateSaveEnabled.run();
             });
 
             return panel;
+        }
+
+        private double clampVacuumRadius(double value) {
+            double clamped = Math.max(0.5, Math.min(24.0, value));
+            return 0.5 + Math.round((clamped - 0.5) * 10.0) / 10.0;
+        }
+
+        private double clampFollowDist(double value) {
+            double clamped = Math.max(1.0, Math.min(8.0, value));
+            return 1.0 + Math.round((clamped - 1.0) * 10.0) / 10.0;
+        }
+
+        private double clampTeleportDist(double value) {
+            double clamped = Math.max(8.0, Math.min(128.0, value));
+            return 8.0 + Math.round((clamped - 8.0) * 10.0) / 10.0;
         }
 
         private void addCardLine(LinearLayout card, String text) {
@@ -548,6 +695,23 @@ public class ChestCavityConfigFragment extends Fragment {
                 ClientPacketListener conn = mc.getConnection();
                 if (conn != null) {
                     conn.send(new SoulConfigSetOrderPayload(soulId, order));
+                }
+            });
+        }
+
+        private void requestForceTeleport(UUID soulId) {
+            if (soulId == null) {
+                return;
+            }
+            Minecraft mc = Minecraft.getInstance();
+            ClientPacketListener connection = mc.getConnection();
+            if (connection == null) {
+                return;
+            }
+            mc.execute(() -> {
+                ClientPacketListener conn = mc.getConnection();
+                if (conn != null) {
+                    conn.send(new SoulConfigForceTeleportPayload(soulId));
                 }
             });
         }

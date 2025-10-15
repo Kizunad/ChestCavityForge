@@ -44,13 +44,22 @@ final class VirtualSoulNavigator implements ISoulNavigator {
     private static final float MAX_UP_STEP = 1.5f; // allow stepping up ~1.5 blocks
     // Auto step-up cooldown (similar to vanilla auto-jump debounce)
     private int stepAssistCooldown = 0; // ticks remaining
+    private final StepPolicy stepPolicy;
+    private Mode currentMode = Mode.GROUND;
 
     private enum Mode { GROUND, SWIMMING, FLYING }
 
+    enum StepPolicy { DEFAULT, AGGRESSIVE }
+
     VirtualSoulNavigator(ServerLevel level) {
+        this(level, StepPolicy.DEFAULT);
+    }
+
+    VirtualSoulNavigator(ServerLevel level, StepPolicy stepPolicy) {
         this.dummy = new DummyMob(level);
         this.navGround = new GroundPathNavigation(this.dummy, level);
         this.navWater = new WaterBoundPathNavigation(this.dummy, level);
+        this.stepPolicy = stepPolicy == null ? StepPolicy.DEFAULT : stepPolicy;
         // Ground defaults
         this.navGround.setCanPassDoors(true);
         this.navGround.setCanOpenDoors(true);
@@ -86,7 +95,11 @@ final class VirtualSoulNavigator implements ISoulNavigator {
      */
     @Override
     public void tick(SoulPlayer soul) {
-        if (this.target == null) return;
+        if (this.target == null) {
+            // 关闭冲刺状态，避免在无目标时保持冲刺
+            if (soul.isSprinting()) soul.setSprinting(false);
+            return;
+        }
         if (soul.isRemoved()) return;
         Level level = soul.level();
         if (!(level instanceof ServerLevel serverLevel)) return;
@@ -104,6 +117,9 @@ final class VirtualSoulNavigator implements ISoulNavigator {
 
         // Mode selection and navigation tick
         Mode mode = selectNavFor(soul);
+        this.currentMode = mode;
+        // 在地面模式时打开冲刺，其它模式关闭（如游泳/飞行）
+        soul.setSprinting(mode == Mode.GROUND);
 
         Vec3 beforePlayer = soul.position();
         Vec3 delta;
@@ -166,8 +182,8 @@ final class VirtualSoulNavigator implements ISoulNavigator {
             } else {
                 delta = toNode;
             }
-            // Apply move with step assist when grounded
-            applyMoveWithStepAssist(soul, delta, mode);
+            // Apply move；在需要时先触发“跳跃”来跨越前方阻挡，再走步进辅助
+            applyMoveWithStepAssist(soul, delta, mode, nextCenter);
         }
 
         // Align facing towards actual movement
@@ -218,7 +234,11 @@ final class VirtualSoulNavigator implements ISoulNavigator {
     private double currentBlocksPerTick() {
         AttributeInstance d = this.dummy.getAttribute(Attributes.MOVEMENT_SPEED);
         double base = d != null ? d.getValue() : 0.1;
-        return base * this.speedModifier;
+        double v = base * this.speedModifier;
+        if (this.currentMode == Mode.GROUND) {
+            v *= getRunMultiplier();
+        }
+        return v;
     }
 
     private Mode selectNavFor(SoulPlayer soul) {
@@ -281,18 +301,31 @@ final class VirtualSoulNavigator implements ISoulNavigator {
      * attempt an auto-jump style step-up up to 2 blocks high by splitting the move into
      * vertical then horizontal components.
      */
-    private void applyMoveWithStepAssist(SoulPlayer soul, Vec3 delta, Mode mode) {
+    private void applyMoveWithStepAssist(SoulPlayer soul, Vec3 delta, Mode mode, @Nullable Vec3 nextCenter) {
         if (delta.lengthSqr() <= 0) return;
         Vec3 start = soul.position();
+        boolean jumped = false;
+        // 若目标明显在斜上方，且脚前确有阻挡，先触发一次原版跳跃以取得更自然的抬升效果
+        if (mode == Mode.GROUND && soul.onGround() && shouldJumpToClimb(soul, nextCenter)) {
+            soul.forceJump();
+            jumped = true;
+            // 简短冷却避免连跳
+            this.stepAssistCooldown = Math.max(this.stepAssistCooldown, 4);
+        }
         // Try plain move first
         soul.move(MoverType.SELF, delta);
         Vec3 after = soul.position();
         double intended2 = delta.lengthSqr();
         double moved2 = after.distanceToSqr(start);
         if (mode != Mode.GROUND) return; // only assist on ground
+        // 仅在玩家明确“踩在地上”且下一路径节点确实上台阶时，才进行步进辅助，避免“频繁小跳”。
+        if (!soul.onGround()) return;
+        // 如果本 tick 已经执行过“跳跃”，则不再做垂直抬升尝试
+        if (jumped) return;
+        if (!isStepUpNeeded(soul)) return;
         if (moved2 >= Math.min(intended2, 0.25)) return; // moved enough
 
-        // Respect step assist cooldown
+        // Respect step assist cooldown (AGGRESSIVE 模式可更短甚至为 0)
         if (stepAssistCooldown > 0) {
             // On cooldown: do not attempt step-up; keep current (possibly blocked) result
             return;
@@ -303,7 +336,7 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         Vec3 revert = start.subtract(after);
         if (revert.lengthSqr() > 0) soul.move(MoverType.SELF, revert);
 
-        double[] heights = new double[]{1.0, 1.5, 2.0};
+        double[] heights = buildStepHeights(getStepMaxUpBlocks());
         for (double h : heights) {
             // Raise up by h, then apply only horizontal component
             Vec3 up = new Vec3(0.0, h, 0.0);
@@ -316,7 +349,7 @@ final class VirtualSoulNavigator implements ISoulNavigator {
             double movedTry2 = pos.distanceToSqr(start);
             if (movedTry2 >= Math.min(intended2, 0.25)) {
                 // Success: start cooldown
-                int maxCd = getStepAssistCooldownMax();
+                int maxCd = getStepAssistCooldownMax(this.stepPolicy);
                 if (maxCd < 0) maxCd = 0;
                 if (maxCd > 200) maxCd = 200;
                 this.stepAssistCooldown = maxCd;
@@ -329,16 +362,116 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         // All failed: stay at start (already reverted)
     }
 
-    private static int getStepAssistCooldownMax() {
+    /**
+     * 满足以下条件时建议触发跳跃：
+     * - 存在有效的 nextCenter（或最终目标），且其 Y 高于当前脚下（上坡）且不超过允许的最大抬升；
+     * - 面前脚前半格~一格范围内存在“可碰撞”的方块（阻挡前进）。
+     */
+    private boolean shouldJumpToClimb(SoulPlayer soul, @Nullable Vec3 nextCenter) {
+        if (nextCenter == null) return false;
+        final var level = soul.level();
+        if (!(level instanceof ServerLevel)) return false;
+        int footY = Mth.floor(soul.getY());
+        double yDiff = nextCenter.y - footY;
+        if (yDiff <= 0.25) return false; // 非上坡
+        if (yDiff > getStepMaxUpBlocks() + 1e-3) return false; // 超过允许抬升高度
+
+        // 取朝向 nextCenter 的单位水平向量
+        Vec3 dir = nextCenter.subtract(soul.position());
+        double lenH = Math.hypot(dir.x, dir.z);
+        if (lenH < 1.0e-6) return false;
+        double nx = dir.x / lenH;
+        double nz = dir.z / lenH;
+        // 在脚前约 0.6 格处采样阻挡（略大于半格，避免贴脸误判）
+        double ahead = 0.6;
+        BlockPos front = BlockPos.containing(soul.getX() + nx * ahead, footY, soul.getZ() + nz * ahead);
+        var state = level.getBlockState(front);
+        boolean blocking = !state.getCollisionShape(level, front).isEmpty();
+        if (!blocking) return false;
+        // 头顶空间需有余量
+        BlockPos above = front.above();
+        if (!level.getBlockState(above).getCollisionShape(level, above).isEmpty()) return false;
+        // 若需要 1.5 格抬升，再多查一格空间
+        if (yDiff > 1.0) {
+            BlockPos above2 = above.above();
+            if (!level.getBlockState(above2).getCollisionShape(level, above2).isEmpty()) return false;
+        }
+        return true;
+    }
+
+    /**
+     * 判断是否需要进行“上台阶”式的抬升：
+     * - 存在有效的下一路径节点，且该节点的 Y 明显高于当前脚下（>0.5 格）。
+     * 这样可以与 Baritone 的路径规划更一致：只有需要抬升时才尝试“跳跃/上台阶”。
+     */
+    private boolean isStepUpNeeded(SoulPlayer soul) {
+        var path = this.navCurrent.getPath();
+        if (path == null || path.isDone()) return false;
+        var nodePos = path.getNextNodePos();
+        if (nodePos == null) return false;
+        int currentFootY = Mth.floor(soul.getY());
+        double threshold = (this.stepPolicy == StepPolicy.AGGRESSIVE) ? 0.25 : 0.5;
+        return (nodePos.getY() - currentFootY) > threshold;
+    }
+
+    private static int getStepAssistCooldownMax(StepPolicy policy) {
         String v = System.getProperty("chestcavity.soul.stepAssistCooldown");
-        if (v == null) return 8; // ~0.4s at 20 TPS
+        if (v == null) {
+            // 默认：普通 8t，AGGRESSIVE 0t（更贴近 autostep）
+            return policy == StepPolicy.AGGRESSIVE ? 0 : 8; // ~0.4s at 20 TPS
+        }
         try {
             int parsed = Integer.parseInt(v);
             if (parsed < 0) return 0;
             if (parsed > 200) return 200;
             return parsed;
         } catch (NumberFormatException e) {
-            return 8;
+            return policy == StepPolicy.AGGRESSIVE ? 0 : 8;
+        }
+    }
+
+    private static double getStepMaxUpBlocks() {
+        // 可通过 -Dchestcavity.soul.stepMaxUpBlocks 或 stepMaxUp 配置（单位：方块数，默认 1.5）
+        String v = System.getProperty("chestcavity.soul.stepMaxUpBlocks");
+        if (v == null) v = System.getProperty("chestcavity.soul.stepMaxUp");
+        double def = 1.5;
+        if (v == null) return def;
+        try {
+            double d = Double.parseDouble(v);
+            if (d < 1.0) d = 1.0; // 最小 1 格
+            if (d > 2.0) d = 2.0; // 最大 2 格（安全）
+            return d;
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    private static double[] buildStepHeights(double maxUp) {
+        // 以 0.5 递增，起点 1.0，直至不超过 maxUp（并上限到 2.0）
+        double cap = Math.min(2.0, Math.max(1.0, maxUp));
+        java.util.List<Double> hs = new java.util.ArrayList<>();
+        for (double h = 1.0; h <= cap + 1e-6; h += 0.5) {
+            // 避免浮点误差带来的 1.5000000002
+            double rounded = Math.round(h * 2.0) / 2.0;
+            if (rounded > cap + 1e-9) break;
+            hs.add(rounded);
+        }
+        if (hs.isEmpty()) hs.add(1.0);
+        double[] arr = new double[hs.size()];
+        for (int i = 0; i < hs.size(); i++) arr[i] = hs.get(i);
+        return arr;
+    }
+
+    private static double getRunMultiplier() {
+        // 近似原版冲刺倍率（约 1.3），可通过 JVM 配置调整
+        String v = System.getProperty("chestcavity.soul.runMultiplier", "1.3");
+        try {
+            double d = Double.parseDouble(v);
+            if (d < 1.0) d = 1.0; // 不低于行走速度
+            if (d > 2.0) d = 2.0; // 避免过高
+            return d;
+        } catch (NumberFormatException e) {
+            return 1.3;
         }
     }
 }

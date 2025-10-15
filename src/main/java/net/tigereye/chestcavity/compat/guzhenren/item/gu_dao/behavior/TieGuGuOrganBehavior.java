@@ -19,7 +19,7 @@ public final class TieGuGuOrganBehavior extends AbstractMetalBoneSupportBehavior
 
     public static final float ABSORPTION_PER_STACK = 20.0f;
     private static final double ENERGY_COST_PER_STACK = 20.0;
-    private static final int ABSORPTION_INTERVAL_TICKS = BehaviorConfigAccess.getInt(TieGuGuOrganBehavior.class, "ABSORPTION_INTERVAL_TICKS", 20 * 30);
+    private static final int ABSORPTION_INTERVAL_TICKS = BehaviorConfigAccess.getInt(TieGuGuOrganBehavior.class, "ABSORPTION_INTERVAL_TICKS", 20 * 15);
     private static final double GU_DAO_EFFECT = 0.05;
     private static final double JIN_DAO_EFFECT = 0.05;
 

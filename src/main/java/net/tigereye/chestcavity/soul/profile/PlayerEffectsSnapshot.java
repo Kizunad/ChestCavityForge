@@ -26,19 +26,28 @@ public record PlayerEffectsSnapshot(List<MobEffectInstance> effects) {
     }
 
     public void restore(Player player) {
-        // 安全清除：逐个移除，避免部分模组对 removeAllEffects 的事件嵌套修改引发 CME
+        // 仅替换“快照中包含”的效果类型，保留快照未声明（unexpected/其他模组）效果，最小化对外部状态的破坏。
         try {
-            java.util.List<Holder<MobEffect>> toRemove = new java.util.ArrayList<>();
-            for (MobEffectInstance active : player.getActiveEffects()) {
-                if (active != null && active.getEffect() != null) {
-                    toRemove.add(active.getEffect());
+            java.util.Set<Holder<MobEffect>> snapshotTypes = new java.util.HashSet<>();
+            for (MobEffectInstance inst : effects) {
+                if (inst != null && inst.getEffect() != null) {
+                    snapshotTypes.add(inst.getEffect());
                 }
             }
-            for (Holder<MobEffect> effect : toRemove) {
-                player.removeEffect(effect);
+            // 移除这些类型的现有效果（不触碰其他类型）
+            if (!snapshotTypes.isEmpty()) {
+                java.util.List<Holder<MobEffect>> toRemove = new java.util.ArrayList<>();
+                for (MobEffectInstance active : player.getActiveEffects()) {
+                    if (active != null && active.getEffect() != null && snapshotTypes.contains(active.getEffect())) {
+                        toRemove.add(active.getEffect());
+                    }
+                }
+                for (Holder<MobEffect> effect : toRemove) {
+                    player.removeEffect(effect);
+                }
             }
         } catch (Exception e) {
-            SoulLog.warn("[soul] effects-clear encountered exception: {}", e.toString());
+            SoulLog.warn("[soul] effects-partial-clear encountered exception: {}", e.toString());
         }
 
         // 重放快照内效果

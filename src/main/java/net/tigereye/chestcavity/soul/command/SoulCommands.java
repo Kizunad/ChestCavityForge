@@ -112,6 +112,7 @@ public final class SoulCommands {
                                                 .suggests((ctx, builder) -> {
                                                     builder.suggest("vanilla");
                                                     builder.suggest("baritone");
+                                                    builder.suggest("autostep");
                                                     builder.suggest("clear");
                                                     return builder.buildFuture();
                                                 })

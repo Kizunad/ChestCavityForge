@@ -30,7 +30,14 @@ public final class SoulOfflineStore extends SavedData {
     public static SoulOfflineStore get(MinecraftServer server) {
         ServerLevel overworld = server.getLevel(Level.OVERWORLD);
         if (overworld == null) {
-            throw new IllegalStateException("Overworld is null while accessing SoulOfflineStore");
+            // 极端阶段（例如某些停服/早期阶段）可能出现主世界未就绪的情况：回退到任意已注册的维度；
+            // 若仍不可用，则返回一个临时实例，避免抛异常导致整体存档损坏。
+            java.util.Iterator<ServerLevel> it = server.getAllLevels().iterator();
+            if (it.hasNext()) {
+                overworld = it.next();
+            } else {
+                return new SoulOfflineStore();
+            }
         }
         return overworld.getDataStorage().computeIfAbsent(
                 new SavedData.Factory<>(SoulOfflineStore::new, SoulOfflineStore::load),

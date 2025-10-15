@@ -47,7 +47,7 @@ public final class YuanLaoGuFifthTierBehavior extends AbstractYuanLaoGuBehavior
     private static final double DAMAGE_EFFICIENCY = 0.2;
     private static final double DAMAGE_PER_STONE = (DAMAGE_EFFICIENCY / DAMAGE_STONES_PER_UNIT); // 0.02
 
-    private static final double ON_HIT_MAX_STONE_RATIO = 0.001; // 0.1%
+    private static final double ON_HIT_MAX_STONE_RATIO = 0.0001; // 0.01%
     private static final double ON_HIT_STONES_PER_DAMAGE = 15.0;
     private static final double ON_HIT_EFFICIENCY = 0.15;
     private static final double ON_HIT_DAMAGE_PER_STONE = (ON_HIT_EFFICIENCY / ON_HIT_STONES_PER_DAMAGE); // 0.01

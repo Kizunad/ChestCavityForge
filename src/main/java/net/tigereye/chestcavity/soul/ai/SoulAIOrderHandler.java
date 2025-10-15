@@ -8,6 +8,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.util.ConstantMobs;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
 import net.tigereye.chestcavity.soul.util.SoulLook;
@@ -26,10 +27,11 @@ import java.util.UUID;
  */
 public final class SoulAIOrderHandler implements SoulRuntimeHandler {
 
-    private static final double FOLLOW_TRIGGER_DIST = 5.0; // blocks
+    // FOLLOW_TRIGGER_DIST 改为运行时可配（见 SoulFollowTeleportTuning）
     private static final double STOP_DIST = 2.0;            // blocks
     private static final double SPEED = 1.2;               // nav speed
     private static final double GUARD_RADIUS = 16.0;       // blocks
+    private static final double TELEPORT_TO_OWNER_DIST = 20.0; // 超过该距离直接传送回到主人身边
     // Kiting preferences
     private static final double KITE_MIN_DIST = 1.5;        // blink/spacing only if closer than this
     private static final double KITE_TARGET_DIST = 6.0;     // preferred distance when kiting
@@ -48,12 +50,14 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         if (ownerId == null) return;
         ServerPlayer owner = soul.serverLevel().getServer().getPlayerList().getPlayer(ownerId);
         if (owner == null) return; // offline
+        // 若与主人距离过大（>阈值），尝试直接传送至主人身边，避免“无法导航”的极端路径
+        tryTeleportNearOwnerIfFar(soul, owner);
 
         SoulAIOrders.Order order = SoulAIOrders.get(owner, soul.getSoulId());
         switch (order) {
             case FOLLOW -> {
                 double dist = soul.distanceTo(owner);
-                if (dist > FOLLOW_TRIGGER_DIST) {
+                if (dist > net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.followTriggerDist()) {
                     Vec3 target = owner.position();
                     SoulNavigationMirror.setGoal(soul, target, SPEED, STOP_DIST);
                 } else {
@@ -78,6 +82,50 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
     }
 
     /**
+     * 当 Soul 与主人距离超过阈值时，尝试将其直接传送至主人身边的安全位置。
+     * 使用 TeleportOps 做目的地碰撞/高度探测，优先选择“背后-右侧-左侧-正前”四个相邻点。
+     */
+    private void tryTeleportNearOwnerIfFar(SoulPlayer soul, ServerPlayer owner) {
+        if (!soul.level().dimension().equals(owner.level().dimension())) return; // 跨维不处理
+        double dist = soul.distanceTo(owner);
+        if (!net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.teleportEnabled()) return;
+        double teleDist = net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.teleportDist();
+        if (dist <= teleDist) return;
+        Vec3 ownerPos = owner.position();
+        // 先尝试直接贴身传送至主人当前位置
+        if (TeleportOps.blinkTo(soul, ownerPos, /*verticalAttempts*/6, /*step*/0.5D).isPresent()) {
+            SoulLook.faceTowards(soul, ownerPos);
+            return;
+        }
+        // 若直接落点失败，再按多个半径尝试围绕主人落位，优先更贴近的半径
+        double[] radii = new double[]{0.75, 1.0, 1.25};
+        double yawRad = Math.toRadians(owner.getYRot());
+        double fx = -Math.sin(yawRad);
+        double fz = Math.cos(yawRad);
+        double rx = -fz;
+        double rz = fx;
+        for (double radius : radii) {
+            Vec3[] candidates = new Vec3[]{
+                    new Vec3(ownerPos.x - fx * radius, ownerPos.y, ownerPos.z - fz * radius), // 背后
+                    new Vec3(ownerPos.x + rx * radius, ownerPos.y, ownerPos.z + rz * radius), // 右侧
+                    new Vec3(ownerPos.x - rx * radius, ownerPos.y, ownerPos.z - rz * radius), // 左侧
+                    new Vec3(ownerPos.x + fx * radius, ownerPos.y, ownerPos.z + fz * radius)  // 正前
+            };
+            for (Vec3 target : candidates) {
+                if (TeleportOps.blinkTo(soul, target, 6, 0.5D).isPresent()) {
+                    SoulLook.faceTowards(soul, ownerPos);
+                    return;
+                }
+            }
+        }
+        // 仍失败则强制传送至主人脚下（忽略碰撞检查），避免远距离卡死
+        soul.teleportTo(ownerPos.x, ownerPos.y, ownerPos.z);
+        soul.setDeltaMovement(Vec3.ZERO);
+        soul.fallDistance = 0.0F;
+        SoulLook.faceTowards(soul, ownerPos);
+    }
+
+    /**
      * 激进模式：在半径 16 格内寻找任意活体目标并主动接战。
      */
     private void handleForceFight(SoulPlayer soul, ServerPlayer owner) {
@@ -90,7 +138,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         if (candidates.isEmpty()) {
             // No entities: hover near owner
             double dist = soul.distanceTo(owner);
-            if (dist > FOLLOW_TRIGGER_DIST) {
+            if (dist > net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.followTriggerDist()) {
                 SoulNavigationMirror.setGoal(soul, anchor, SPEED, STOP_DIST);
             } else {
                 SoulNavigationMirror.clearGoal(soul);
@@ -181,7 +229,7 @@ public final class SoulAIOrderHandler implements SoulRuntimeHandler {
         if (candidates.isEmpty()) {
             // No hostiles in radius, stay near owner
             double dist = soul.distanceTo(owner);
-            if (dist > FOLLOW_TRIGGER_DIST) {
+            if (dist > net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.followTriggerDist()) {
                 SoulNavigationMirror.setGoal(soul, anchor, SPEED, STOP_DIST);
             } else {
                 SoulNavigationMirror.clearGoal(soul);

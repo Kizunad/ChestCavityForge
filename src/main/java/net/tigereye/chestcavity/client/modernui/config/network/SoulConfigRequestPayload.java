@@ -26,6 +26,16 @@ public record SoulConfigRequestPayload() implements CustomPacketPayload {
             if (!(context.player() instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) {
                 return;
             }
+            // 先同步全局调优到客户端，保证 UI 初始值一致
+            boolean vacEnabled = net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.isEnabled();
+            double vacRadius = net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.getRadius();
+            serverPlayer.connection.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigVacuumSyncPayload(vacEnabled, vacRadius));
+            // 跟随/传送
+            boolean tp = net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.teleportEnabled();
+            double follow = net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.followTriggerDist();
+            double tpDist = net.tigereye.chestcavity.soul.util.SoulFollowTeleportTuning.teleportDist();
+            serverPlayer.connection.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigFollowTeleportSyncPayload(tp, follow, tpDist));
+            // 最后同步分魂列表，触发 UI 重绘
             List<Entry> entries = SoulConfigNetworkHelper.buildEntries(serverPlayer);
             serverPlayer.connection.send(new SoulConfigSyncPayload(entries));
         });

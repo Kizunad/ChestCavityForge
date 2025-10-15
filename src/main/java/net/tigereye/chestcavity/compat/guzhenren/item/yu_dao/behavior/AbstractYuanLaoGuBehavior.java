@@ -596,7 +596,9 @@ abstract class AbstractYuanLaoGuBehavior implements OrganSlowTickListener {
     }
 
     private static void debug(String message, Object... args) {
-            ChestCavity.LOGGER.info(message, args);
+        if (ChestCavity.LOGGER.isDebugEnabled()) {
+            ChestCavity.LOGGER.debug(message, args);
+        }
     }
 
     private double resolveActualPerBase(GuzhenrenResourceBridge.ResourceHandle handle) {

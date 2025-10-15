@@ -30,10 +30,14 @@ public record SoulConfigSetVacuumPayload(boolean enabled, double radius) impleme
 
     public static void handle(SoulConfigSetVacuumPayload payload, net.neoforged.neoforge.network.handling.IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (!(context.player() instanceof net.minecraft.server.level.ServerPlayer sp)) return;
             // Server-side toggle of global vacuum behaviour
             net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.setEnabled(payload.enabled());
             net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.setRadius(payload.radius());
+            // 回发一次同步，确保 UI 立即反映服务器最终值
+            sp.connection.send(new net.tigereye.chestcavity.client.modernui.config.network.SoulConfigVacuumSyncPayload(
+                    net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.isEnabled(),
+                    net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.getRadius()));
         });
     }
 }
-

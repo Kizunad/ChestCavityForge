@@ -1,4 +1,7 @@
 {
   "itemID": "guzhenren:shan_guang_gu",
-  "organScores": []
+  "organScores": [
+    {"id": "chestcavity:nerves", "value": "0.5"},
+    {"id": "chestcavity:speed", "value": "0.2"}
+  ]
 }

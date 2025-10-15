@@ -34,7 +34,8 @@ final class BaritoneSoulNavigator implements ISoulNavigator {
     private volatile Vec3 pendingTarget;
 
     BaritoneSoulNavigator(net.minecraft.server.level.ServerLevel level) {
-        this.fallback = new VirtualSoulNavigator(level);
+        // 使用“激进步进”策略作为 Baritone 规划的跟随执行器（autostep 效果）
+        this.fallback = new VirtualSoulNavigator(level, VirtualSoulNavigator.StepPolicy.AGGRESSIVE);
         // 反射检测 Baritone，并应用一次安全基线配置
         this.baritoneAvailable = BaritoneFacade.isAvailable();
         if (this.baritoneAvailable) {
@@ -134,32 +135,33 @@ final class BaritoneSoulNavigator implements ISoulNavigator {
         if (this.goalTarget == null) return;
         if (this.waypointIndex >= this.waypoints.size()) return;
         Vec3 next = this.waypoints.get(this.waypointIndex);
-        Vec3 to = next.subtract(soul.position());
-        double dist = Math.sqrt(to.lengthSqr());
-        // Advance to next waypoint if close enough (tolerate entity size & current speed)
+        double dist = Math.sqrt(next.distanceToSqr(soul.position()));
+        // 到达判定采用实体宽度/速度自适应松弛
         double advSlack = advanceSlackThreshold(soul);
         if (dist <= advSlack) {
             this.waypointIndex++;
+            this.fallback.clearGoal();
             if (this.waypointIndex >= this.waypoints.size()) {
-                // Final check: if已到终点范围，则清除目标；否则让虚拟导航收尾
+                // 到达终点或进入最终停靠范围
                 double remain2 = soul.position().distanceToSqr(this.goalTarget);
                 if (remain2 <= (this.goalStopDistance * this.goalStopDistance)) {
                     clearGoal();
-                    return;
                 }
             }
             return;
         }
-        // Move towards next waypoint with a capped step per tick
-        double maxStep = Math.max(0.05, blocksPerTick(soul) * 1.0);
-        Vec3 step = dist > maxStep ? to.scale(maxStep / dist) : to;
-        soul.move(net.minecraft.world.entity.MoverType.SELF, step);
+        // 使用 autostep 虚拟导航器跟随当前路径点（不直接位移，避免跳跃抖动）
+        this.fallback.setGoal(soul, next, this.goalSpeedModifier, advSlack);
+        this.fallback.tick(soul);
     }
 
     private double blocksPerTick(SoulPlayer soul) {
         var attr = soul.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);
         double base = (attr != null) ? attr.getValue() : 0.1;
-        return base * this.goalSpeedModifier;
+        double v = base * this.goalSpeedModifier;
+        // 与虚拟导航保持一致：在地面推进阶段按“冲刺”倍率估算阈值
+        v *= getRunMultiplier();
+        return v;
     }
 
     private double advanceSlackThreshold(SoulPlayer soul) {
@@ -190,5 +192,17 @@ final class BaritoneSoulNavigator implements ISoulNavigator {
     private static int getReplanStuckTicks() {
         String v = System.getProperty("chestcavity.soul.baritone.replanStuckTicks", "60");
         try { int n = Integer.parseInt(v); return Math.max(20, Math.min(400, n)); } catch (NumberFormatException e) { return 60; }
+    }
+
+    private static double getRunMultiplier() {
+        String v = System.getProperty("chestcavity.soul.runMultiplier", "1.3");
+        try {
+            double d = Double.parseDouble(v);
+            if (d < 1.0) d = 1.0;
+            if (d > 2.0) d = 2.0;
+            return d;
+        } catch (NumberFormatException e) {
+            return 1.3;
+        }
     }
 }

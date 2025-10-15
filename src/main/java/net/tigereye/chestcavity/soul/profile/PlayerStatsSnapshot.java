@@ -64,9 +64,15 @@ public record PlayerStatsSnapshot(
         player.getFoodData().setSaturation(saturation);
         player.getFoodData().setExhaustion(exhaustion);
 
-        // 回写生命/吸收（生命值不超过当前最大生命）
-        player.setAbsorptionAmount(absorption);
-        player.setHealth(Math.min(health, player.getMaxHealth()));
+        // 回写生命/吸收（生命值夹取 [0, max health]）
+        float maxHp = player.getMaxHealth();
+        float safeHp = health;
+        if (!Float.isFinite(safeHp)) safeHp = maxHp;
+        safeHp = Math.max(0f, Math.min(maxHp, safeHp));
+        float safeAbs = absorption;
+        if (!Float.isFinite(safeAbs)) safeAbs = 0f;
+        player.setAbsorptionAmount(safeAbs);
+        player.setHealth(safeHp);
 
         // 回写可同步属性的基值
         var lookup = provider.lookupOrThrow(Registries.ATTRIBUTE);

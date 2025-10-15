@@ -113,6 +113,7 @@ public final class SoulNavigationMirror {
         ISoulNavigator created = switch (engine) {
             case BARITONE -> new BaritoneSoulNavigator(level);
             case VANILLA -> new VirtualSoulNavigator(level);
+            case AUTOSTEP -> new VirtualSoulNavigator(level, VirtualSoulNavigator.StepPolicy.AGGRESSIVE);
         };
         NAVS.put(id, created);
         return created;

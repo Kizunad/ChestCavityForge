@@ -7,7 +7,12 @@ package net.tigereye.chestcavity.soul.navigation;
  */
 public enum SoulNavEngine {
     VANILLA,
-    BARITONE;
+    BARITONE,
+    /**
+     * 虚拟导航的“自动步进”策略：更偏向台阶抬升而非跳跃，
+     * 放宽步进判定阈值并缩短冷却，尽量模拟“autostep”体验。
+     */
+    AUTOSTEP;
 
     public static SoulNavEngine fromProperty(String v) {
         if (v == null) return VANILLA;
@@ -18,6 +23,9 @@ public enum SoulNavEngine {
         }
         if (s.equals("vanilla") || s.equals("v")) {
             return VANILLA;
+        }
+        if (s.equals("autostep") || s.equals("auto") || s.equals("as") || s.contains("autostep")) {
+            return AUTOSTEP;
         }
         return VANILLA;
     }

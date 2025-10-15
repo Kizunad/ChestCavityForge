@@ -31,4 +31,6 @@ public class CCStatusEffects {
     public static final DeferredHolder<MobEffect, MobEffect> VENOM_COOLDOWN = MOB_EFFECTS.register("venom_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
     public static final DeferredHolder<MobEffect, MobEffect> WATER_VULNERABILITY = MOB_EFFECTS.register("water_vulnerability", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
     public static final DeferredHolder<MobEffect, MobEffect> SOUL_BEAST_INTIMIDATED = MOB_EFFECTS.register("soul_beast_intimidated", SoulBeastIntimidatedEffect::new);
+    // 黄骆天牛蛊 主动增益：精力消耗减少（默认显示为益处，隐藏粒子/图标由添加实例控制）
+    public static final DeferredHolder<MobEffect, MobEffect> HLTN_STAMINA_REDUCE = MOB_EFFECTS.register("huang_luo_tian_niu_gu_1", () -> new CCStatusEffect(MobEffectCategory.BENEFICIAL, 0xFFE680));
 }

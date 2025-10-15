@@ -10,6 +10,7 @@ import net.tigereye.chestcavity.entity.SwordSlashProjectile;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneGunProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.entity.MadBullEntity;
 
 
 /**
@@ -54,5 +55,13 @@ public final class CCEntities {
                     .clientTrackingRange(64)
                     .updateInterval(1)
                     .build(ChestCavity.MODID + ":sword_slash"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<MadBullEntity>> MAD_BULL =
+            ENTITY_TYPES.register("mad_bull", () -> EntityType.Builder
+                    .<MadBullEntity>of(MadBullEntity::new, MobCategory.MISC)
+                    .sized(0.9f, 0.9f)
+                    .clientTrackingRange(48)
+                    .updateInterval(1)
+                    .build(ChestCavity.MODID + ":mad_bull"));
 
 }

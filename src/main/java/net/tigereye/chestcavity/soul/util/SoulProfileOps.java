@@ -43,9 +43,18 @@ public final class SoulProfileOps {
     private static void teleportToSnapshot(PlayerPositionSnapshot snapshot, ServerPlayer player) {
         ServerLevel targetLevel = player.server.getLevel(snapshot.dimension());
         if (targetLevel != null) {
+            // 夹取 Y，避免越界/NaN 导致的“无效玩家数据”。
+            double minY = targetLevel.getMinBuildHeight() + 1;
+            double maxY = targetLevel.getMaxBuildHeight() - 2;
+            double safeY = snapshot.y();
+            if (!Double.isFinite(safeY)) {
+                safeY = Math.max(minY, Math.min(maxY, player.getY()));
+            } else {
+                safeY = Math.max(minY, Math.min(maxY, safeY));
+            }
             player.teleportTo(targetLevel,
                     snapshot.x(),
-                    snapshot.y(),
+                    safeY,
                     snapshot.z(),
                     snapshot.yaw(),
                     snapshot.pitch());

@@ -124,7 +124,12 @@ public final class CCAttachments {
             }
             SoulContainer container = new SoulContainer(player);
             if (!tag.isEmpty()) {
-                container.loadNBT(tag, provider);
+                try {
+                    container.loadNBT(tag, provider);
+                } catch (Throwable t) {
+                    // 容错：任何读取异常都不应导致玩家数据整体损坏，回退为空容器并记录错误日志。
+                    net.tigereye.chestcavity.ChestCavity.LOGGER.error("[soul] Failed to read SoulContainer for player {} — resetting to empty container", player.getGameProfile().getName(), t);
+                }
             }
             return container;
         }

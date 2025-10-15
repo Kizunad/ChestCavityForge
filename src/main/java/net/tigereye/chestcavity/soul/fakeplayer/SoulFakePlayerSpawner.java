@@ -8,9 +8,11 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
@@ -19,6 +21,8 @@ import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.util.SoulPersistence;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
+import net.tigereye.chestcavity.soul.util.SoulLook;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -216,11 +220,6 @@ public final class SoulFakePlayerSpawner {
         });
     }
 
-    private static boolean isOwner(UUID soulId, UUID ownerId) {
-        SoulPlayer soul = ACTIVE_SOUL_PLAYERS.get(soulId);
-        return soul != null && soul.getOwnerId().map(ownerId::equals).orElse(false);
-    }
-
     public static Optional<SoulPlayer> respawnSoulFromProfile(ServerPlayer owner,
                                                             UUID profileId,
                                                             GameProfile sourceProfile,
@@ -269,6 +268,9 @@ public final class SoulFakePlayerSpawner {
         profile.restoreBase(soulPlayer);
         net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(soulPlayer);
 
+        // 4.1️⃣ 刚生成/复原的 Soul 给予短暂无敌保护，避免生成位置轻微卡方块/落差导致的瞬时死亡错觉。
+        applySpawnShield(soulPlayer);
+
         // 5️⃣ 再传送分魂到记录位置（注意：这里传送的是 soulPlayer 自身）
         profile.position().ifPresent(snapshot -> {
             ServerLevel targetLevel = server.getLevel(snapshot.dimension());
@@ -298,6 +300,29 @@ public final class SoulFakePlayerSpawner {
         return Optional.of(soulPlayer);
     }
 
+    private static void applySpawnShield(SoulPlayer soulPlayer) {
+        int ticks = getSpawnShieldTicks();
+        if (ticks <= 0) return;
+        try {
+            soulPlayer.fallDistance = 0f;
+            // 使用抗性V，隐藏图标与粒子，持续 ticks；等价于“短暂无敌帧”。
+            soulPlayer.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                    net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE,
+                    ticks,
+                    4,
+                    false,
+                    false,
+                    true
+            ));
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static int getSpawnShieldTicks() {
+        String v = System.getProperty("chestcavity.soul.spawnShieldTicks", "40");
+        try { int n = Integer.parseInt(v); return Math.max(0, Math.min(400, n)); } catch (NumberFormatException e) { return 40; }
+    }
+
 
 
     /**
@@ -307,6 +332,58 @@ public final class SoulFakePlayerSpawner {
         GameProfile identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
         boolean forceDerived = !SOUL_IDENTITIES.containsKey(soulId);
         return respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+    }
+
+    /**
+     * 强制将指定分魂传送到主人当前位置，必要时重生该分魂。
+     */
+    public static boolean forceTeleportToOwner(ServerPlayer ownerPlayer, UUID soulId) {
+        if (ownerPlayer == null || soulId == null) {
+            return false;
+        }
+        UUID ownerId = ownerPlayer.getUUID();
+        if (soulId.equals(ownerId)) {
+            return false;
+        }
+        SoulPlayer soul = ACTIVE_SOUL_PLAYERS.get(soulId);
+        if (soul == null || soul.isRemoved()) {
+            soul = respawnForOwner(ownerPlayer, soulId).orElse(null);
+        }
+        if (soul == null) {
+            return false;
+        }
+        if (!soul.getOwnerId().map(ownerId::equals).orElse(false)) {
+            return false;
+        }
+
+        ServerLevel targetLevel = ownerPlayer.serverLevel();
+        double minY = targetLevel.getMinBuildHeight() + 1;
+        double maxY = targetLevel.getMaxBuildHeight() - 2;
+        double safeY = Math.max(minY, Math.min(maxY, ownerPlayer.getY()));
+        Vec3 ownerPos = ownerPlayer.position();
+        Vec3 desiredPos = new Vec3(ownerPos.x, safeY, ownerPos.z);
+
+        BlockPos chunkPos = BlockPos.containing(desiredPos);
+        targetLevel.getChunkAt(chunkPos);
+
+        soul.unRide();
+        if (soul.level() != targetLevel) {
+            soul.teleportTo(targetLevel, desiredPos.x, desiredPos.y, desiredPos.z, ownerPlayer.getYRot(), ownerPlayer.getXRot());
+        } else {
+            soul.moveTo(desiredPos.x, desiredPos.y, desiredPos.z, ownerPlayer.getYRot(), ownerPlayer.getXRot());
+        }
+        soul.setYHeadRot(ownerPlayer.getYHeadRot());
+        soul.setDeltaMovement(Vec3.ZERO);
+        soul.fallDistance = 0.0F;
+        soul.hurtMarked = true;
+        SoulNavigationMirror.clearGoal(soul);
+        SoulLook.faceTowards(soul, ownerPos);
+        SoulLog.info("[soul] force-teleport owner={} soul={} dim={} pos=({},{},{})",
+                ownerId,
+                soulId,
+                targetLevel.dimension().location(),
+                desiredPos.x, desiredPos.y, desiredPos.z);
+        return true;
     }
 
     /**

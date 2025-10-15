@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
 import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
 import net.tigereye.chestcavity.client.modernui.container.network.TestModernUIContainerRequestPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
+import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRequestPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetVacuumPayload;
@@ -60,6 +61,13 @@ public final class NetworkHandler {
         registrar.playToServer(SoulConfigRenamePayload.TYPE, SoulConfigRenamePayload.STREAM_CODEC, SoulConfigRenamePayload::handle);
         registrar.playToServer(SoulConfigSetOrderPayload.TYPE, SoulConfigSetOrderPayload.STREAM_CODEC, SoulConfigSetOrderPayload::handle);
         registrar.playToServer(SoulConfigSetVacuumPayload.TYPE, SoulConfigSetVacuumPayload.STREAM_CODEC, SoulConfigSetVacuumPayload::handle);
+        registrar.playToServer(SoulConfigForceTeleportPayload.TYPE, SoulConfigForceTeleportPayload.STREAM_CODEC, SoulConfigForceTeleportPayload::handle);
+        registrar.playToClient(net.tigereye.chestcavity.client.modernui.config.network.SoulConfigVacuumSyncPayload.TYPE,
+                net.tigereye.chestcavity.client.modernui.config.network.SoulConfigVacuumSyncPayload.STREAM_CODEC,
+                net.tigereye.chestcavity.client.modernui.config.network.SoulConfigVacuumSyncPayload::handle);
+        registrar.playToServer(net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetFollowTeleportPayload.TYPE,
+                net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetFollowTeleportPayload.STREAM_CODEC,
+                net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetFollowTeleportPayload::handle);
         registrar.playToClient(ChestCavityUpdatePayload.TYPE, ChestCavityUpdatePayload.STREAM_CODEC, ChestCavityUpdatePayload::handle);
         registrar.playToClient(OrganDataPayload.TYPE, OrganDataPayload.STREAM_CODEC, OrganDataPayload::handle);
         registrar.playToClient(ChestCavityOrganSlotUpdatePayload.TYPE, ChestCavityOrganSlotUpdatePayload.STREAM_CODEC, ChestCavityOrganSlotUpdatePayload::handle);
@@ -68,6 +76,9 @@ public final class NetworkHandler {
         registrar.playToClient(GeckoFxEventPayload.TYPE, GeckoFxEventPayload.STREAM_CODEC, GeckoFxEventPayload::handle);
         registrar.playToClient(SoulBeastSyncPayload.TYPE, SoulBeastSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleSyncPayload);
         registrar.playToClient(SoulConfigSyncPayload.TYPE, SoulConfigSyncPayload.STREAM_CODEC, SoulConfigSyncPayload::handle);
+        registrar.playToClient(net.tigereye.chestcavity.client.modernui.config.network.SoulConfigFollowTeleportSyncPayload.TYPE,
+                net.tigereye.chestcavity.client.modernui.config.network.SoulConfigFollowTeleportSyncPayload.STREAM_CODEC,
+                net.tigereye.chestcavity.client.modernui.config.network.SoulConfigFollowTeleportSyncPayload::handle);
         registrar.playToClient(net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.TYPE,
                 net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.STREAM_CODEC,
                 net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload::handle);

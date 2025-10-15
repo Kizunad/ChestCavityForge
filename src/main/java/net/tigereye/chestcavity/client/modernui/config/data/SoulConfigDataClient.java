@@ -14,6 +14,7 @@ public final class SoulConfigDataClient {
     public static final SoulConfigDataClient INSTANCE = new SoulConfigDataClient();
 
     private volatile Snapshot snapshot = Snapshot.empty();
+    private volatile FollowTpTuning followTp = new FollowTpTuning(true, 3.0, 20.0);
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     private SoulConfigDataClient() {}
@@ -46,6 +47,16 @@ public final class SoulConfigDataClient {
         mc.execute(() -> connection.send(new SoulConfigRequestPayload()));
     }
 
+    public FollowTpTuning followTp() {
+        return followTp;
+    }
+
+    public void updateFollowTp(FollowTpTuning tuning) {
+        if (tuning == null) return;
+        this.followTp = tuning;
+        // 不广播 UI 列表监听者，页面按需读取
+    }
+
     public record Snapshot(List<SoulEntry> entries) {
         public static Snapshot empty() {
             return new Snapshot(List.of());
@@ -70,6 +81,18 @@ public final class SoulConfigDataClient {
             float xpProgress,
             SoulAIOrders.Order order
     ) {}
+
+    public record FollowTpTuning(boolean teleportEnabled, double followDist, double teleportDist) {}
+
+    // ---- Vacuum tuning ----
+    private volatile VacuumTuning vacuum = new VacuumTuning(
+            net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.isEnabled(),
+            net.tigereye.chestcavity.soul.runtime.ItemVacuumHandler.getRadius());
+
+    public VacuumTuning vacuum() { return vacuum; }
+    public void updateVacuum(VacuumTuning tuning) { if (tuning != null) this.vacuum = tuning; }
+
+    public record VacuumTuning(boolean enabled, double radius) {}
 
     @FunctionalInterface
     public interface Listener {

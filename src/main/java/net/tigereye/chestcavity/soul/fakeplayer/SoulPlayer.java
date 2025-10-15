@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
@@ -74,6 +75,29 @@ public class SoulPlayer extends FakePlayer {
 
     public UUID getSoulId() {
         return soulId;
+    }
+
+    @Override
+    public boolean isAlliedTo(Entity entity) {
+        if (entity == this) {
+            return true;
+        }
+        // 与主人互为同盟
+        if (entity instanceof Player player) {
+            if (this.getOwnerId().isPresent() && this.getOwnerId().get().equals(player.getUUID())) {
+                return true;
+            }
+        }
+        // 与主人的同盟也视作同盟
+        if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
+            if (this.getOwnerId().isPresent()) {
+                Player owner = this.level().getPlayerByUUID(this.getOwnerId().get());
+                if (owner != null && living.isAlliedTo(owner)) {
+                    return true;
+                }
+            }
+        }
+        return super.isAlliedTo(entity);
     }
 
     @Override

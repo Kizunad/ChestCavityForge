@@ -1,42 +1,8 @@
 {
-  "custom.sword.break_air": {
+  "custom.common.dong_dong": {
     "sounds": [
-      {
-        "name": "chestcavity:custom/sword/break_air",
-        "stream": false
-      }
-    ]
-  },
-  "custom.soulbeast.fail_to_soulbeast": {
-    "sounds": [
-      {
-        "name": "chestcavity:custom/soulbeast/fail_soulbeast_transform",
-        "stream": false
-      }
-    ]
-  },
-  "custom.soulbeast.dot": {
-    "sounds": [
-      {
-        "name": "chestcavity:custom/soulbeast/soulbeast_dot",
-        "stream": false
-      }
-    ]
-  },
-  "custom.fire.huo_yi": {
-    "sounds": [
-      {
-        "name": "chestcavity:custom/fire/fire_huo_yi",
-        "stream": false
-      }
-    ]
-  },
-  "custom.fight.punch": {
-    "sounds": [
-      {
-        "name": "chestcavity:custom/fight/punch",
-        "stream": false
-      }
+      { "name": "chestcavity:custom/common/dong_dong" }
     ]
   }
 }
+

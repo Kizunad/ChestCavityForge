@@ -1,7 +1,7 @@
 {
   "arity": 3,
   "priority": 100,
-  "required": { "御剑":1 ,"斩击": 1, "远程伤害": 1},
+  "required": { "御剑":1 ,"斩击": 1, "伤害": 1},
   "result": {
     "name": "杀招·御剑",
     "operator_id": "chestcavity:sword_slash",

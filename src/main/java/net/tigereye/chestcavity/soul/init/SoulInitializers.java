@@ -85,6 +85,29 @@ public final class SoulInitializers {
         values.putDouble("zuida_hunpo", maxHunpo);
         values.putDouble("niantou_zhida", maxNiantou);
 
+        // 安全基线：将“魂魄稳定度(当前/上限)”设置为“最大魂魄 + 1”。
+        // 依据上游逻辑：当稳定度 < 魂魄值时可能触发强制击杀；因此让稳定度严格大于最大魂魄，避免初始即进入危险区间。
+        double stabilitySafe = maxHunpo + 1.0D;
+        if (!Double.isFinite(stabilitySafe) || stabilitySafe <= 0.0D) {
+            stabilitySafe = 1.0D;
+        }
+        values.putDouble("hunpo_kangxing", stabilitySafe);
+        values.putDouble("hunpo_kangxing_shangxian", stabilitySafe);
+
+        // 当前魂魄：设为 (0, maxHunpo) 区间的随机值，严格小于上限，且避免 0 以规避“hunpoxiaosuan”判定。
+        if (Double.isFinite(maxHunpo) && maxHunpo > 0.0D) {
+            double r = owner.getRandom().nextDouble(); // [0,1)
+            double eps = Math.max(0.01D, maxHunpo * 1.0E-6D);
+            double candidate = r * maxHunpo;
+            if (candidate >= maxHunpo) {
+                candidate = maxHunpo - eps;
+            }
+            if (candidate <= 0.0D) {
+                candidate = Math.min(maxHunpo - eps, Math.max(eps, maxHunpo * 0.5D));
+            }
+            values.putDouble("hunpo", candidate);
+        }
+
         root.put("values", values);
         snapshotOpt.get().load(root, owner.registryAccess());
     }

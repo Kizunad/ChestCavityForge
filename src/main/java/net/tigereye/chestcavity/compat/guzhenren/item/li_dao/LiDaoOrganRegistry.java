@@ -4,6 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.BaiShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HeiShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.QuanLiYiFuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XuLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
@@ -26,6 +27,8 @@ public final class LiDaoOrganRegistry {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "quan_li_yi_fu_gu");
     private static final ResourceLocation LONG_WAN_QU_QU_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "long_wan_qu_qu_gu");
+    private static final ResourceLocation HUANG_LUO_TIAN_NIU_GU_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "huang_luo_tian_niu_gu");
     private static final ResourceLocation ZI_LI_GENG_SHENG_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "zi_li_geng_sheng_gu_3");
     private static final ResourceLocation XU_LI_GU_ID =
@@ -47,6 +50,9 @@ public final class LiDaoOrganRegistry {
                     .build(),
             OrganIntegrationSpec.builder(LONG_WAN_QU_QU_GU_ID)
                     .addIncomingDamageListener(LongWanQuQuGuOrganBehavior.INSTANCE)
+                    .build(),
+            OrganIntegrationSpec.builder(HUANG_LUO_TIAN_NIU_GU_ID)
+                    .addSlowTickListener(HuangLuoTianNiuGuOrganBehavior.INSTANCE)
                     .build(),
             OrganIntegrationSpec.builder(XU_LI_GU_ID)
                     .addOnHitListener(XuLiGuOrganBehavior.INSTANCE)

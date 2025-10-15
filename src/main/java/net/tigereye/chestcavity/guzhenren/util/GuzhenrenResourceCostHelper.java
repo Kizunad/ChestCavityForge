@@ -374,6 +374,17 @@ public final class GuzhenrenResourceCostHelper {
             if (!Double.isFinite(before) || before + EPSILON < cost) {
                 return FailureReason.INSUFFICIENT_JINGLI;
             }
+            // 若拥有“精力消耗减少”效果，则按配置倍率降低消耗（默认0.7倍成本 → 30%减耗）。
+            try {
+                if (player != null && player.hasEffect(net.tigereye.chestcavity.registration.CCStatusEffects.HLTN_STAMINA_REDUCE)) {
+                    // 采用行为级配置，若未提供则默认0.7
+                    double multiplier = net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess
+                            .getFloat(net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior.class,
+                                    "ACTIVE_STAMINA_REDUCTION_MULTIPLIER", 0.7f);
+                    multiplier = Math.max(0.0D, Math.min(1.0D, multiplier));
+                    cost *= multiplier;
+                }
+            } catch (Throwable ignored) {}
             OptionalDouble afterOpt = handle.adjustJingli(-cost, true);
             if (afterOpt.isEmpty()) {
                 return FailureReason.INSUFFICIENT_JINGLI;
