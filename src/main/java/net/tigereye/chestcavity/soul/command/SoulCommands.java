@@ -39,7 +39,6 @@ import java.util.UUID;
  *
  * <p>维护者须关注：</p>
  * <ul>
- *     <li>所有命令均要求 {@code permission level >= 2}，避免在正式服被误用；</li>
  *     <li>涉及 SoulPlayer 的操作应先通过
  *     {@link net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner#resolveSoulUuidFlexible(ServerPlayer, String)}
  *     做身份解析，再校验所有权；</li>
@@ -101,7 +100,7 @@ public final class SoulCommands {
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("soul")
-                .requires(source -> source.hasPermission(2))
+                .requires(source -> source.hasPermission(0))
                 .then(Commands.literal("enable")
                         .executes(SoulCommands::enableSoulSystem))
                 .then(Commands.literal("nav")

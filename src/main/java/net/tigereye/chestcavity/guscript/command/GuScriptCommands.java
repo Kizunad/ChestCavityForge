@@ -60,7 +60,7 @@ public final class GuScriptCommands {
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("guscript")
-                .requires(stack -> stack.hasPermission(2))
+                .requires(stack -> stack.hasPermission(0))
                 .then(Commands.literal("run").executes(GuScriptCommands::runDemo))
                 .then(Commands.literal("flow")
                         .then(Commands.literal("start")
