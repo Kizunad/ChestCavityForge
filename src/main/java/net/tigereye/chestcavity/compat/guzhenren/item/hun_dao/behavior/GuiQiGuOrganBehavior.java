@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
@@ -212,21 +213,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         long readyAt = currentTick + GUI_WU_COOLDOWN_TICKS;
         OrganStateOps.setLong(state, cc, organ, KEY_COOLDOWN_UNTIL, readyAt, value -> Math.max(0L, value), 0L);
-        // schedule a ready-toast at cooldown end
-        cooldown.onReady(server, currentTick, () -> {
-            try {
-                var id = BuiltInRegistries.ITEM.getKey(organ.getItem());
-                var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                        true,
-                        id,
-                        "技能就绪",
-                        organ.getHoverName().getString()
-                );
-                net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(serverPlayer, payload);
-            } catch (Throwable t) {
-                ChestCavity.LOGGER.debug("[hun_dao][gui_qi_gu] failed to send ready toast: {}", t.toString());
-            }
-        });
+        ActiveSkillRegistry.scheduleReadyToast(serverPlayer, ABILITY_ID, readyAt, currentTick);
         INSTANCE.sendSlotUpdate(cc, organ);
     }
 

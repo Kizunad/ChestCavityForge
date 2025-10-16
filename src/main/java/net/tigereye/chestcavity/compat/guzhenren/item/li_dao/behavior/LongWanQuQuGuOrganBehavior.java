@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.util.CombatUtil;
 
@@ -137,7 +138,8 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
         boolean dirty = false;
         dirty |= OrganStateOps.setBoolean(state, cc, organ, ACTIVE_KEY, true, false).changed();
         dirty |= OrganStateOps.setInt(state, cc, organ, CHARGES_KEY, MAX_CHARGES, value -> Math.max(0, Math.min(value, MAX_CHARGES)), 0).changed();
-        nextReadyEntry.setReadyAt(gameTime + COOLDOWN_TICKS);
+        long readyAt = gameTime + COOLDOWN_TICKS;
+        nextReadyEntry.setReadyAt(readyAt);
         invulnExpireEntry.setReadyAt(0L);
         if (dirty) {
             INSTANCE.sendSlotUpdate(cc, organ);
@@ -154,21 +156,8 @@ public final class LongWanQuQuGuOrganBehavior extends AbstractLiDaoOrganBehavior
                 1.1f
         );
 
-        // Cooldown toast at end of recharge window
         if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
-            long now = gameTime;
-            nextReadyEntry.onReady(sp.serverLevel(), now, () -> {
-                try {
-                    var itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(organ.getItem());
-                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                            true,
-                            itemId,
-                            "技能就绪",
-                            organ.getHoverName().getString()
-                    );
-                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
-                } catch (Throwable ignored) { }
-            });
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, gameTime);
         }
     }
 

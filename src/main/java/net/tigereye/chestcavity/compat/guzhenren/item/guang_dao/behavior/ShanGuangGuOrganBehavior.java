@@ -33,6 +33,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TargetingOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTWriter;
@@ -283,7 +284,8 @@ public final class ShanGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
             return;
         }
 
-        readyEntry.setReadyAt(gameTime + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = gameTime + ACTIVE_COOLDOWN_TICKS;
+        readyEntry.setReadyAt(readyAt);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
         DamageSource source = resolveDamageSource(entity);
@@ -301,6 +303,7 @@ public final class ShanGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
 
         ShanGuangFx.playBurst(entity);
         if (entity instanceof ServerPlayer serverPlayer) {
+            ActiveSkillRegistry.scheduleReadyToast(serverPlayer, ABILITY_ID, readyAt, gameTime);
             serverLevel.playSound(null, serverPlayer.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0F, 1.2F);
         } else {
             level.playSound(null, entity.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0F, 1.2F);

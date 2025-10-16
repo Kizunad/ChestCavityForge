@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TargetingOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
@@ -116,7 +117,11 @@ public final class HuangLuoTianNiuGuOrganBehavior extends AbstractLiDaoOrganBeha
             server.playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.ANVIL_PLACE, net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.1f);
         }
 
-        nextReady.setReadyAt(now + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = now + ACTIVE_COOLDOWN_TICKS;
+        nextReady.setReadyAt(readyAt);
+        if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+        }
     }
 
     private static void spawnMadBull(ServerLevel server, Player owner) {

@@ -31,6 +31,7 @@ import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
@@ -328,7 +329,8 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
         long activeUntil = gameTime + ACTIVE_DURATION_TICKS;
         activeUntilEntry.setReadyAt(activeUntil);
         activeNextEntry.setReadyAt(gameTime);
-        cooldownUntilEntry.setReadyAt(gameTime + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = gameTime + ACTIVE_COOLDOWN_TICKS;
+        cooldownUntilEntry.setReadyAt(readyAt);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
         // Visual feedback: a small burst of flames on activation
@@ -344,21 +346,8 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
                     serverLevel.playSound(null, entity.blockPosition(), sound, SoundSource.PLAYERS, 1.0F, 1.0F));
         }
 
-        // Cooldown toast: notify at the end of cooldown
         if (player instanceof ServerPlayer sp) {
-            long now = gameTime;
-            cooldownUntilEntry.onReady(serverLevel, now, () -> {
-                try {
-                    var itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
-                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                            true,
-                            itemId,
-                            "技能就绪",
-                            organ.getHoverName().getString()
-                    );
-                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
-                } catch (Throwable ignored) { }
-            });
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, gameTime);
         }
     }
 

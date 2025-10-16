@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
@@ -77,7 +78,11 @@ public enum BaiYinSheLiGuOrganBehavior implements OrganSlowTickListener, OrganIn
         // 10s 抗性II
         entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, ACTIVE_DURATION_TICKS, 1, false, true, true));
         cd.entry(KEY_ACTIVE_UNTIL).setReadyAt(now + ACTIVE_DURATION_TICKS);
-        cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).setReadyAt(now + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = now + ACTIVE_COOLDOWN_TICKS;
+        cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).setReadyAt(readyAt);
+        if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+        }
         // 重置一次性“保命”标记
         OrganState state = OrganState.of(organ, STATE_ROOT);
         state.setBoolean(KEY_ACTIVE_CHEAT_USED, false, false);
@@ -176,4 +181,3 @@ public enum BaiYinSheLiGuOrganBehavior implements OrganSlowTickListener, OrganIn
         return b.build();
     }
 }
-

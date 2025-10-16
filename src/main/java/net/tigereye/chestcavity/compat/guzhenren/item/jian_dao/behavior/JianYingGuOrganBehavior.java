@@ -35,6 +35,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.ArrayDeque;
@@ -421,7 +422,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
                 )
         );
 
-        // 使用 MultiCooldown 记录就绪时间并在结束时触发 Toast（内置 onReady，无需全局轮询）
+        // 使用 MultiCooldown 记录冷却，同时借助 ActiveSkillRegistry 统一调度就绪提示
         if (player instanceof ServerPlayer sp) {
             ItemStack organIcon = findOrgan(cc);
             ItemStack stateStack = organIcon.isEmpty() ? new ItemStack(net.tigereye.chestcavity.registration.CCItems.GUZHENREN_JIAN_YING_GU) : organIcon;
@@ -430,19 +431,9 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
                     .build();
             long nowTick = server.getGameTime();
             MultiCooldown.Entry ready = cooldown.entry(ACTIVE_READY_KEY);
-            ready.setReadyAt(nowTick + CLONE_COOLDOWN_TICKS);
-            ready.onReady(server, nowTick, () -> {
-                try {
-                    var itemId = BuiltInRegistries.ITEM.getKey(stateStack.getItem());
-                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                            true,
-                            itemId,
-                            "技能就绪",
-                            stateStack.getHoverName().getString()
-                    );
-                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
-                } catch (Throwable ignored) { }
-            });
+            long readyAt = nowTick + CLONE_COOLDOWN_TICKS;
+            ready.setReadyAt(readyAt);
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, nowTick);
         }
     }
 

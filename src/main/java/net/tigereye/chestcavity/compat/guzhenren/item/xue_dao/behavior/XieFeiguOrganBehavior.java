@@ -27,6 +27,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -357,23 +358,11 @@ public final class XieFeiguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             return;
         }
 
-        cooldown.setReadyAt(gameTime + COOLDOWN_TICKS);
+        long readyAt = gameTime + COOLDOWN_TICKS;
+        cooldown.setReadyAt(readyAt);
         INSTANCE.sendSlotUpdate(cc, organ);
-        // Cooldown toast on end (player-only)
         if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
-            long now = gameTime;
-            cooldown.onReady(sp.serverLevel(), now, () -> {
-                try {
-                    var itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
-                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                            true,
-                            itemId,
-                            "技能就绪",
-                            organ.getHoverName().getString()
-                    );
-                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
-                } catch (Throwable ignored) { }
-            });
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, gameTime);
         }
 
         Vec3 center = player.position().add(0.0, player.getBbHeight() * 0.5, 0.0);

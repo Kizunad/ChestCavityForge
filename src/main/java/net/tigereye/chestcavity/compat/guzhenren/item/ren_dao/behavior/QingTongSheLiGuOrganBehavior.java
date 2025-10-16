@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 /**
@@ -88,7 +89,11 @@ public enum QingTongSheLiGuOrganBehavior implements OrganSlowTickListener {
         entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, ACTIVE_DURATION_TICKS, RESIST_AMP, false, true, true));
 
         cd.entry(KEY_ACTIVE_UNTIL).setReadyAt(now + ACTIVE_DURATION_TICKS);
-        cd.entry(KEY_COOLDOWN_UNTIL).setReadyAt(now + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = now + ACTIVE_COOLDOWN_TICKS;
+        cd.entry(KEY_COOLDOWN_UNTIL).setReadyAt(readyAt);
+        if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+        }
     }
 
     private static boolean matchesOrgan(ItemStack stack) {
@@ -128,4 +133,3 @@ public enum QingTongSheLiGuOrganBehavior implements OrganSlowTickListener {
         entity.removeEffect(MobEffects.BLINDNESS);
     }
 }
-

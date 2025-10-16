@@ -24,6 +24,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.SoundOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import com.mojang.math.Axis;
 import org.joml.Vector3f;
@@ -114,7 +115,11 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
         // 视觉/音效（启动时播放一次基础FX）
         playNirvanaFxStart(server, caster);
         // 冷却
-        cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).setReadyAt(now + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = now + ACTIVE_COOLDOWN_TICKS;
+        cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).setReadyAt(readyAt);
+        if (caster instanceof net.minecraft.server.level.ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+        }
     }
 
     private static boolean consumePassiveCost(LivingEntity entity) {

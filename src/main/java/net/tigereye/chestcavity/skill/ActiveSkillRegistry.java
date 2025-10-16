@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.skill;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -16,6 +17,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGua
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
@@ -33,6 +36,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.Bai
 import net.tigereye.chestcavity.compat.guzhenren.item.yu_dao.behavior.YuanLaoGuFifthTierBehavior;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.CountdownOps;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,7 +65,8 @@ public final class ActiveSkillRegistry {
             ResourceLocation organId,
             List<String> tags,
             String description,
-            String sourceHint
+            String sourceHint,
+            CooldownHint cooldownHint
     ) {
         public ActiveSkillEntry {
             tags = List.copyOf(tags);
@@ -93,7 +98,8 @@ public final class ActiveSkillRegistry {
                 tags("控制", "输出"),
                 "启动鬼雾脚本，黑雾范围施加失明与缓慢",
                 "compat/guzhenren/item/hun_dao/behavior/GuiQiGuOrganBehavior.java:57",
-                () -> { ensureClassLoaded(GuiQiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(GuiQiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:le_gu_dun_gu", "guzhenren:le_gu_dun_gu", "guzhenren:le_gu_dun_gu",
                 tags("防御"),
@@ -123,67 +129,78 @@ public final class ActiveSkillRegistry {
                 tags("输出", "控制"),
                 "付出生命与真元喷出血雾，造成持续伤害并施加失明/中毒",
                 "compat/guzhenren/item/xue_dao/behavior/XieFeiguOrganBehavior.java:63",
-                () -> { ensureClassLoaded(XieFeiguOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(XieFeiguOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:liandaogu", "guzhenren:liandaogu", "guzhenren:liandaogu",
                 tags("输出"),
                 "蓄力释放长条刀光，对面前敌人造成高额斩击与击退",
                 "compat/guzhenren/item/mu_dao/behavior/LiandaoGuOrganBehavior.java:49",
-                () -> { ensureClassLoaded(LiandaoGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(LiandaoGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:qing_tong_she_li_gu", "guzhenren:qing_tong_she_li_gu", "guzhenren:qing_tong_she_li_gu",
                 tags("防御"),
                 "入定 3 秒获得抗性 II，并重置冷却计时",
                 "compat/guzhenren/item/ren_dao/behavior/QingTongSheLiGuOrganBehavior.java:26",
-                () -> { ensureClassLoaded(QingTongSheLiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(QingTongSheLiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:zi_jin_she_li_gu", "guzhenren:zi_jin_she_li_gu", "guzhenren:zi_jin_she_li_gu",
                 tags("辅助", "治疗"),
                 "燃烧 50% 生命与真元展开 15 秒领域，每秒恢复友方 10% 资源",
                 "compat/guzhenren/item/ren_dao/behavior/ZaijinSheLiGuOrganBehavior.java:44",
-                () -> { ensureClassLoaded(ZaijinSheLiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(ZaijinSheLiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:shan_guang_gu_flash", "guzhenren:shan_guang_gu_flash", "guzhenren:shan_guang_gu",
                 tags("输出", "控制"),
                 "闪现造成范围伤害并致盲减速，施放者获得短暂加速",
                 "compat/guzhenren/item/guang_dao/behavior/ShanGuangGuOrganBehavior.java:61",
-                () -> { ensureClassLoaded(ShanGuangGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(ShanGuangGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:bai_yin_she_li_gu", "guzhenren:bai_yin_she_li_gu", "guzhenren:bai_yin_she_li_gu",
                 tags("防御"),
                 "激活十秒抗性 II，期间一次致命伤改判为 1 HP + 1 秒无敌",
                 "compat/guzhenren/item/ren_dao/behavior/BaiYinSheLiGuOrganBehavior.java:34",
-                () -> { ensureClassLoaded(BaiYinSheLiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(BaiYinSheLiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:chi_tie_she_li_gu", "guzhenren:chi_tie_she_li_gu", "guzhenren:chi_tie_she_li_gu",
                 tags("辅助", "治疗"),
                 "消耗真元与魂魄即刻回复 20%（上限 200）生命",
                 "compat/guzhenren/item/ren_dao/behavior/ChiTieSheLiGuOrganBehavior.java:30",
-                () -> { ensureClassLoaded(ChiTieSheLiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(ChiTieSheLiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:huang_jin_she_li_gu", "guzhenren:huang_jin_she_li_gu", "guzhenren:huang_jin_she_li_gu",
                 tags("防御", "控制"),
                 "6 秒抗性 III + 免击退，自身缓慢并对 8 格敌人施加缓慢 IV",
                 "compat/guzhenren/item/ren_dao/behavior/HuangJinSheLiGuOrganBehavior.java:31",
-                () -> { ensureClassLoaded(HuangJinSheLiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(HuangJinSheLiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:huo_gu", "guzhenren:huo_gu", "guzhenren:huo_gu",
                 tags("输出", "控制"),
                 "扣除真元与饥饿后激活灼烧光环，对敌灼烧并叠加缓慢",
                 "compat/guzhenren/item/yan_dao/behavior/HuoYiGuOrganBehavior.java:50",
-                () -> { ensureClassLoaded(HuoYiGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(HuoYiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:jian_ying_fenshen", "guzhenren:jian_ying_fenshen", "guzhenren:jian_ying_gu",
                 tags("输出", "召唤"),
                 "支付真元与精力召唤剑影分身协同作战，随器官数量扩充",
                 "compat/guzhenren/item/jian_dao/behavior/JianYingGuOrganBehavior.java:61",
-                () -> { ensureClassLoaded(JianYingGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(JianYingGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:yuan_lao_gu_5_attack", "guzhenren:yuan_lao_gu_5_attack", "guzhenren:yuan_lao_gu_5",
                 tags("输出"),
                 "按消耗元石对大范围敌人造成伤害，量随消耗线性提升",
                 "compat/guzhenren/item/yu_dao/behavior/YuanLaoGuFifthTierBehavior.java:40",
-                () -> { ensureClassLoaded(YuanLaoGuFifthTierBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(YuanLaoGuFifthTierBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:tu_qiang_gu", "guzhenren:tu_qiang_gu", "guzhenren:tu_qiang_gu",
                 tags("控制", "防御"),
@@ -201,13 +218,28 @@ public final class ActiveSkillRegistry {
                 tags("防御", "机动"),
                 "启动后获得 3 次短距闪避机会并提供短暂无敌窗口",
                 "compat/guzhenren/item/li_dao/behavior/LongWanQuQuGuOrganBehavior.java:30",
-                () -> { ensureClassLoaded(LongWanQuQuGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(LongWanQuQuGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:huang_luo_tian_niu_gu", "guzhenren:huang_luo_tian_niu_gu", "guzhenren:huang_luo_tian_niu_gu",
                 tags("召唤", "辅助"),
                 "召唤发疯天牛冲锋并给予 30 秒精力消耗减免",
                 "compat/guzhenren/item/li_dao/behavior/HuangLuoTianNiuGuOrganBehavior.java:38",
-                () -> { ensureClassLoaded(HuangLuoTianNiuGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(HuangLuoTianNiuGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:xiong_hao_gu", "guzhenren:xiong_hao_gu", "guzhenren:xiong_hao_gu",
+                tags("输出", "爆发"),
+                "消耗 300 真元进入 10 秒激怒，每次近战命中额外消耗 6 精力并造成 +10 伤害",
+                "compat/guzhenren/item/li_dao/behavior/XiongHaoGuOrganBehavior.java:28",
+                () -> { ensureClassLoaded(XiongHaoGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:hua_shi_gu", "guzhenren:hua_shi_gu", "guzhenren:hua_shi_gu",
+                tags("辅助", "增益"),
+                "被动每 5 秒消耗 200 真元恢复 3 精力；主动消耗 300 真元获得 10 秒力量 III",
+                "compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java:24",
+                () -> { ensureClassLoaded(HuaShiGuOrganBehavior.INSTANCE); });
 
         register("guzhenren:shuang_xi_gu_frost_breath", "guzhenren:shuang_xi_gu_frost_breath", "guzhenren:shuang_xi_gu",
                 tags("输出", "控制"),
@@ -229,11 +261,22 @@ public final class ActiveSkillRegistry {
                                  String description,
                                  String sourceHint,
                                  Runnable initializer) {
+        register(skillId, abilityId, organId, tags, description, sourceHint, initializer, null);
+    }
+
+    private static void register(String skillId,
+                                 String abilityId,
+                                 String organId,
+                                 List<String> tags,
+                                 String description,
+                                 String sourceHint,
+                                 Runnable initializer,
+                                 CooldownHint cooldownHint) {
         initializer.run();
         ResourceLocation skill = ResourceLocation.parse(skillId);
         ResourceLocation ability = ResourceLocation.parse(abilityId);
         ResourceLocation organ = ResourceLocation.parse(organId);
-        ActiveSkillEntry previous = ENTRIES.put(skill, new ActiveSkillEntry(skill, ability, organ, tags, description, sourceHint));
+        ActiveSkillEntry previous = ENTRIES.put(skill, new ActiveSkillEntry(skill, ability, organ, tags, description, sourceHint, cooldownHint));
         if (previous != null) {
             ChestCavity.LOGGER.warn("[skill][registry] duplicate registration for {} (previous organ={})", skill, previous.organId());
         }
@@ -306,5 +349,44 @@ public final class ActiveSkillRegistry {
         }
         boolean activated = OrganActivationListeners.activate(entry.abilityId(), cc);
         return activated ? TriggerResult.SUCCESS : TriggerResult.ABILITY_NOT_REGISTERED;
+    }
+
+    public static void scheduleReadyToast(ServerPlayer player, ResourceLocation skillId, long readyAtTick, long nowTick) {
+        if (player == null) {
+            return;
+        }
+        bootstrap();
+        ActiveSkillEntry entry = ENTRIES.get(skillId);
+        if (entry == null) {
+            return;
+        }
+        CooldownHint hint = entry.cooldownHint();
+        if (hint == null) {
+            return;
+        }
+        ResourceLocation iconId = hint.iconOverride() != null ? hint.iconOverride() : entry.organId();
+        ItemStack iconStack = ItemStack.EMPTY;
+        if (iconId != null) {
+            Item item = BuiltInRegistries.ITEM.getOptional(iconId).orElse(null);
+            if (item != null) {
+                iconStack = new ItemStack(item);
+            }
+        }
+        String title = hint.title();
+        if (title == null || title.isBlank()) {
+            title = "技能就绪";
+        }
+        String subtitle = hint.subtitle();
+        if ((subtitle == null || subtitle.isBlank()) && !iconStack.isEmpty()) {
+            subtitle = iconStack.getHoverName().getString();
+        }
+        ServerLevel level = player.serverLevel();
+        CountdownOps.scheduleToastAt(level, player, readyAtTick, nowTick, iconStack, title, subtitle);
+    }
+
+    public record CooldownHint(ResourceLocation iconOverride, String title, String subtitle) {
+        public static CooldownHint useOrgan(String title, String subtitle) {
+            return new CooldownHint(null, title, subtitle);
+        }
     }
 }

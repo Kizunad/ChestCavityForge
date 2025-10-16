@@ -28,6 +28,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -165,22 +166,10 @@ public enum LiandaoGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
         if (COOLDOWN_VARIANCE_TICKS > 0) {
             cooldown += random.nextInt(COOLDOWN_VARIANCE_TICKS + 1);
         }
-        cooldownEntry.setReadyAt(gameTime + cooldown);
-        // Cooldown toast: notify at the end of cooldown
+        long readyAt = gameTime + cooldown;
+        cooldownEntry.setReadyAt(readyAt);
         if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
-            long readyAt = gameTime + cooldown;
-            cooldownEntry.onReady(serverLevel, gameTime, () -> {
-                try {
-                    var itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
-                    var payload = new net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload(
-                            true,
-                            itemId,
-                            "技能就绪",
-                            organ.getHoverName().getString()
-                    );
-                    net.tigereye.chestcavity.network.NetworkHandler.sendCooldownToast(sp, payload);
-                } catch (Throwable ignored) { }
-            });
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, gameTime);
         }
 
         double swordMultiplier = 1.0 + ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();

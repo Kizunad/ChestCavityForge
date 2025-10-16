@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
@@ -73,7 +74,11 @@ public enum HuangJinSheLiGuOrganBehavior implements OrganSlowTickListener, Organ
             }
         }
 
-        cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).setReadyAt(now + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = now + ACTIVE_COOLDOWN_TICKS;
+        cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).setReadyAt(readyAt);
+        if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+        }
     }
 
     @Override

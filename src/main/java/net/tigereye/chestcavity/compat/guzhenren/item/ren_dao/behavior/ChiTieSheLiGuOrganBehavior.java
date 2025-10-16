@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 
 import java.util.Optional;
@@ -122,7 +123,11 @@ public enum ChiTieSheLiGuOrganBehavior implements OrganSlowTickListener {
         if (heal > 0.0f) {
             entity.heal(heal);
         }
-        cd.entry(KEY_COOLDOWN_UNTIL).setReadyAt(now + ACTIVE_COOLDOWN_TICKS);
+        long readyAt = now + ACTIVE_COOLDOWN_TICKS;
+        cd.entry(KEY_COOLDOWN_UNTIL).setReadyAt(readyAt);
+        if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+        }
     }
 
     private static boolean matchesOrgan(ItemStack stack) {

@@ -22,6 +22,7 @@ import net.tigereye.chestcavity.guzhenren.resource.YuanLaoGuHelper;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 
 import java.util.List;
 import java.util.Locale;
@@ -237,7 +238,8 @@ public final class YuanLaoGuFifthTierBehavior extends AbstractYuanLaoGuBehavior
         if (!YuanLaoGuHelper.consume(organ, stonesToSpend)) {
             return;
         }
-        OrganStateOps.setLongSync(cc, organ, STATE_ROOT, LAST_ABILITY_TICK_KEY, now + ABILITY_COOLDOWN_TICKS, v -> v, now);
+        long nextReady = now + ABILITY_COOLDOWN_TICKS;
+        OrganStateOps.setLongSync(cc, organ, STATE_ROOT, LAST_ABILITY_TICK_KEY, nextReady, v -> v, now);
         INSTANCE.pushOrganUpdate(cc, organ);
 
         double radius = Mth.clamp(stonesToSpend / ABILITY_RADIUS_DIVISOR, 2.0, 64.0);
@@ -251,6 +253,7 @@ public final class YuanLaoGuFifthTierBehavior extends AbstractYuanLaoGuBehavior
                 fmt(damage),
                 fmt(stonesToSpend)
         );
+        ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, nextReady, now);
     }
 
     private static void applyAreaDamage(ServerPlayer player, double radius, float damage) {
