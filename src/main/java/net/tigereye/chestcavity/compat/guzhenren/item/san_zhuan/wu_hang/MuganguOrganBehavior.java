@@ -39,8 +39,8 @@ public enum MuganguOrganBehavior implements OrganOnGroundListener, OrganSlowTick
     private static final ClampPolicy UNIT_CLAMP = new ClampPolicy(0.0, 1.0);
     private static final DecayPolicy REGEN_DECAY = new DecayPolicy(0.05);
 
-    private static final double BASE_ZHENYUAN_RESTORE = 12000;
-    private static final double BASE_JINGLI_COST = 1.0;
+    private static final double BASE_ZHENYUAN_RESTORE = 120000;
+    private static final double BASE_JINGLI_COST = 10.0;
     private static final double DISCOUNT_FACTOR = 0.8;
     private static final double REGEN_ALPHA = 3.0;
 

@@ -104,6 +104,52 @@
 - CC 基础能力（火球/龙息等）：效果消失即 Toast（不刷屏）。
 - 文案：后续改为翻译键（title/subkey），当前可先用“技能就绪 + 器官名”。
 
+## 2025-10-17 Guzhenren 主动技 ModernUI 快捷键规划（首版草图）
+
+- 目标：把蛊真人全部主动技从物品右键/原生按键触发迁移到 ModernUI 自定义快捷键层，统一键位配置、冷却展示与资源反馈。并行 agent 正在整理技能清单，本节聚焦框架与 UI 草图。
+
+### 分层方案回顾
+- ModernUI 快捷键层：提供默认 6 个槽位（可扩展），记录 `skillId + keycode`，支持未来拖拽/分页。
+- 客户端触发分发：监听 GLFW 按键 → 查找绑定 → 发送 `ActiveSkillTriggerPayload`。
+- ModernUI 技能槽配置已上线：`/testmodernUI config` → “蛊虫技能” 分栏，可增删 skillId、捕获新键位并本地持久化。
+- 无 GUI 监听验收清单（F8 调试首版）：
+  - 无 GUI、未暂停时按 F8 只打一次 `[hotkey] F8 pressed (no GUI)` 日志，长按不重复。
+  - GUI / 暂停 / 加载 / level==null 时不触发。
+  - `/testmodernUI keylisten false` 时保持静默。
+  - 死亡或跨维移动期间不抛异常、不刷屏。
+- 技能注册中心：在 `compat/guzhenren` 下建立 `ActiveSkillRegistry`，各行为类在初始化时注册对应 skillId。
+- 服务器执行：校验装备/冷却/资源后触发原主动技逻辑，失败时反馈 Toast/音效；未配置快捷键时保留原生触发兜底。
+
+### ModernUI UI 结构草图
+- 入口：ModernUI 设置页新增“蛊虫主动技”分栏，布局为 2×3 网格（预留拓展）。
+- 槽位元素：
+  - 左侧 24×24 图标（器官物品或自定义 PNG）。
+  - 右侧上下双行文本：上行显示技能名，下行为冷却/资源提示（例：“冷却 12s｜真元 50”）。
+  - 右上角圆角徽标显示绑定键位，点击后弹出键位捕获对话框；空槽显示“未设置”。
+  - 底部横向冷却条（灰底 + 高亮进度），冷却中高亮闪动。
+  - 右下角提供清除按钮；悬停显示技能描述与所属道系。
+- 面板底部：提供“保存”“恢复默认”“清空全部”按钮；未保存更改时右上角出现黄色提示。
+- 面板右侧：列出技能库（按道系分组），支持点击或拖拽绑定槽位。
+
+### 客户端交互要点
+- 键位捕获：ModernUI 弹窗锁定下一次键/鼠输入，Esc 取消；检测冲突时以橙色文本/提示框标记。
+- 状态同步：服务端定期下发 `ActiveSkillCooldownSyncPayload` 更新冷却条和禁用状态；资源不足/冷却中由 UI 底部提示行显示。
+- 国际化：新增 `modernui.chestcavity.skill_hotkeys.*` 文案键，默认中文，提供英文备选。
+- 持久化：配置写入现有 ModernUI 配置存档（同 Soul 设置），登录时通过同步载荷初始化客户端缓存。
+
+### 后端注意事项
+- `ActiveSkillRegistry` 支持去重与覆盖提示，便于模块化加载。
+- 快捷键触发前必须校验玩家是否装备所需器官，避免恶意包刷。
+- 为未来扩展预留 `skill_category`、排序权重等元数据，方便 UI 分类筛选。
+- 对接现有冷却/资源逻辑后，确保失败反馈（冷却中、资源不足）向客户端发送明确提示。
+
+### 行动项（TODO）
+- [ ] ModernUI：完成技能槽 UI、键位绑定捕获与配置保存/同步。
+- [ ] 客户端：实现快捷键监听与 `ActiveSkillTriggerPayload` 发送流程。
+- [ ] 服务器：落地 `ActiveSkillRegistry`，迁移现有蛊真人主动技并同步冷却状态。
+- [ ] 验证：准备冷却结束提示、资源不足、未绑定兜底等回归测试方案。
+
+
 ### Guzhenren Ops 迁移（四步）
 1) 盘点：用 `rg` 搜索 `LinkageManager.getContext|getOrCreateChannel|GuzhenrenResourceBridge.open|NBTCharge`，登记仍未走 `LedgerOps/ResourceOps/MultiCooldown/AbsorptionHelper` 的行为类。
 2) 迁移：按家族（如 炎/力/水）分批替换至对应 Ops，删除重复的钳制/计时/属性清理代码。仅只读查询可暂保留低层 API。
@@ -257,6 +303,13 @@ Actionable TODOs (assign to web Codex worker)
 - Unit test for helper
   - Path: `ChestCavityForge/src/test/java/net/tigereye/chestcavity/guzhenren/resource/YuanlaoguStoneHelperTest.java`
   - Cases: 默认 0→加 64→到上限→溢出 clamp；上限不存在时 fallback=10000。
+
+- ModernUI 蛊虫主动技快捷键（规划阶段）
+  - [ ] ModernUI 面板：技能槽 UI、键位绑定捕获、保存/恢复默认按钮。
+  - [ ] 客户端触发分发：监听按键并发送 `ActiveSkillTriggerPayload`。
+  - [ ] 服务器执行：实现 `ActiveSkillRegistry` 并迁移现有蛊真人主动技。
+  - [ ] 冷却/资源同步：服务端下发冷却/失败反馈，UI 更新进度与提示。
+  - [ ] SimpleSkillSlotView 暂以纯色方块替代 `slot.png` 背景；待补充官方材质或自绘 PNG 后再切换回贴图方案。
 
 Blood-bone bomb flow didn’t “fire” (root cause analysis)
 - Current logs show flows start: `Root 血骨爆弹#… started flow chestcavity:demo_charge_release`，但没有后续发射日志。
@@ -1668,4 +1721,175 @@ How to verify (fast loop)
   - Trigger abilities (hotkey + soul handler) → activation path logs only on DEBUG.
 
 
+# 🧩 **ModernUI SkillBar 的轻量实现方案**
+
+> 🎯 目标：让 SkillConfigScreen + 快捷键绑定「简单、直接、自动持久化」
+
 ---
+
+## 🌱 一、核心理念
+
+用 **游戏内部存档系统（PlayerData / ClientConfig）** 维护：
+
+| 层级  | 存储位置                         | 特点            |
+| --- | ---------------------------- | ------------- |
+| 客户端 | `ModernUIClientData` (内存+同步) | 登录自动加载，退出自动保存 |
+| 服务端 | Player Capability（或NBT）      | 同步用，保证多人联机一致  |
+| 文件  | 自动保存为 `.dat` 或 `.nbt`        | 玩家无需手动改动      |
+
+---
+
+## 🧩 二、数据结构设计
+
+### 客户端结构（内存中存在）
+
+```java
+public class SkillHotbarState {
+    public static final int MAX_KEYS = 6;
+
+    // key -> [skills]
+    private final Map<String, List<String>> keyBindings = new HashMap<>();
+
+    public void bind(String key, String skillId) {
+        keyBindings.computeIfAbsent(key, k -> new ArrayList<>()).add(skillId);
+        markDirty();
+    }
+
+    public void unbind(String key, String skillId) {
+        keyBindings.getOrDefault(key, List.of()).remove(skillId);
+        markDirty();
+    }
+
+    public List<String> getSkills(String key) {
+        return keyBindings.getOrDefault(key, List.of());
+    }
+
+    public Map<String, List<String>> getAllBindings() {
+        return keyBindings;
+    }
+
+    private boolean dirty = false;
+    public void markDirty() { dirty = true; }
+    public boolean isDirty() { return dirty; }
+}
+```
+
+### 服务端同步用 Payload
+
+```java
+public record SkillHotbarSyncPayload(Map<String, List<String>> bindings)
+        implements CustomPacketPayload { ... }
+```
+
+* 登录时由客户端发送；
+* 服务端验证、保存到 Capability；
+* 服务端→客户端时用于重载技能栏状态。
+
+---
+
+## 💾 三、持久化机制（自动）
+
+* **客户端端存储：**
+
+  * `SkillHotbarState` 通过 `ClientPlayerData`（或 ModernUI 的 ConfigRegistry）自动写入 `.dat`。
+  * 类似于其他保存机制，提供保存按钮；
+
+  示例：
+
+  ```java
+  public class ModernUIClientData {
+      private static SkillHotbarState skillHotbar = new SkillHotbarState();
+
+      public static SkillHotbarState getSkillHotbar() { return skillHotbar; }
+
+      public static void save() {
+          Path file = Minecraft.getInstance().gameDirectory.toPath().resolve("config/chestcavity_hotbar.dat");
+          try (var out = new ObjectOutputStream(Files.newOutputStream(file))) {
+              out.writeObject(skillHotbar);
+          } catch (IOException ignored) {}
+      }
+
+      public static void load() {
+          Path file = Minecraft.getInstance().gameDirectory.toPath().resolve("config/chestcavity_hotbar.dat");
+          if (!Files.exists(file)) return;
+          try (var in = new ObjectInputStream(Files.newInputStream(file))) {
+              skillHotbar = (SkillHotbarState) in.readObject();
+          } catch (Exception ignored) {}
+      }
+  }
+  ```
+
+---
+
+## 🖥️ 四、UI层（SkillConfigScreen）
+
+### 基本交互
+
+* 每个键位是一组 Widget：如 `R`, `F`, `G`。
+* 拖动技能图标到某个键 → 绑定；
+* Shift+点击已绑定的技能 → 解绑；
+* 可选择触发模式（链式/并行）。
+
+### 简化数据交互
+
+SkillConfigScreen 直接操作 `ModernUIClientData.getSkillHotbar()`。
+
+```java
+// 这里字符串改成常量，一并注册
+// 绑定
+state.bind("R", "guzhenren:white_cloud");
+
+// 移除
+state.unbind("R", "guzhenren:white_cloud");
+
+// 渲染
+for (String skillId : state.getSkills("R")) {
+    renderSkillIcon(skillId, x, y);
+}
+```
+
+退出界面时：
+
+```java
+@Override
+public void onClose() {
+    ModernUIClientData.save();
+}
+```
+
+---
+
+## ⌨️ 五、键位触发
+
+同样读取 `ModernUIClientData.getSkillHotbar()`：
+
+```java
+@SubscribeEvent
+public static void onClientTick(TickEvent.ClientTickEvent event) {
+    if (event.phase != TickEvent.Phase.END) return;
+    Minecraft mc = Minecraft.getInstance();
+    if (mc.player == null) return;
+
+    var hotbar = ModernUIClientData.getSkillHotbar();
+    for (var entry : hotbar.getAllBindings().entrySet()) {
+        int keyCode = InputUtil.getKeyCode(entry.getKey());
+        if (InputConstants.isKeyDown(mc.getWindow().getWindow(), keyCode)) {
+            entry.getValue().forEach(skillId -> 
+                NetworkHandler.sendToServer(new ActiveSkillTriggerPayload(skillId))
+            );
+        }
+    }
+}
+```
+一个按键可以触发多个技能（按下时依次或同时触发绑定技能）。
+这种设计在修仙 / 技能类模组里非常常见（比如「连携技」「一键释放」）。
+我们可以在保持 Modular / ModernUI 架构一致的前提下，把这个功能优雅地落地。
+SkillConfigScreen 设计
+[ 键位组: R ]
+ ├── 白云蛊·云爆
+ ├── 雷盾蛊·充能
+ [ + 拖入更多技能 ]
+ 模式: [链式 ▼] [并行]
+---------------------------------
+[ 键位组: F ]
+ ├── 金蚕蛊·蜕壳

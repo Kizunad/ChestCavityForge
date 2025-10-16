@@ -53,9 +53,12 @@ import org.apache.logging.log4j.Logger;
 import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
 import net.tigereye.chestcavity.util.DoTManager;
 import net.tigereye.chestcavity.client.command.ModernUIClientCommands;
+import net.tigereye.chestcavity.client.input.ModernUIKeyDispatcher;
+import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import icyllis.modernui.mc.neoforge.MenuScreenFactory;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 
 
 
@@ -103,6 +106,7 @@ public class ChestCavity {
                 NeoForge.EVENT_BUS.addListener(DoTManager::onServerTick);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
+                        NeoForge.EVENT_BUS.addListener(ModernUIKeyDispatcher::onClientTick);
                         NeoForge.EVENT_BUS.addListener(GeckoFxClient::onClientTick);
                         NeoForge.EVENT_BUS.addListener(GeckoFxClient::onRenderLevel);
                         NeoForge.EVENT_BUS.addListener(ModernUIClientCommands::register);
@@ -135,6 +139,7 @@ public class ChestCavity {
                 net.tigereye.chestcavity.soul.runtime.SoulRuntimeHandlers.bootstrap();
     OrganRetentionRules.registerNamespace(MODID);
     if (ModList.get().isLoaded("guzhenren")) {
+            ActiveSkillRegistry.bootstrap();
             GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
     }
 
@@ -152,6 +157,7 @@ public class ChestCavity {
 
         public void doClientStuff(FMLClientSetupEvent event) {
                 FxClientHooks.init();
+                event.enqueueWork(SkillHotbarClientData::initialize);
         }
 
 	private void registerMenuScreens(RegisterMenuScreensEvent event) {

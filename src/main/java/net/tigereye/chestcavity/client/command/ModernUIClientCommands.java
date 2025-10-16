@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.client.command;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -20,6 +21,7 @@ import icyllis.modernui.fragment.Fragment;
 
 import java.util.function.Supplier;
 import net.tigereye.chestcavity.client.modernui.container.network.TestModernUIContainerRequestPayload;
+import net.tigereye.chestcavity.client.input.ModernUIKeyDispatcher;
 
 /**
  * Client-only brigadier commands for Modern UI bring-up and manual diagnostics.
@@ -61,6 +63,23 @@ public final class ModernUIClientCommands {
                                             "Item icon demo: " + idStr,
                                             new ItemStack(item)
                                     );
+                                    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                                })))
+                .then(Commands.literal("keylisten")
+                        .then(Commands.argument("enabled", BoolArgumentType.bool())
+                                .executes(ctx -> {
+                                    boolean enabled = BoolArgumentType.getBool(ctx, "enabled");
+                                    net.tigereye.chestcavity.client.ui.ModernUiClientState.setKeyListenEnabled(enabled);
+                                    Minecraft mc = Minecraft.getInstance();
+                                    if (mc.player != null) {
+                                        boolean debug = ModernUIKeyDispatcher.isDebugEnabled();
+                                        Component message = Component.literal(
+                                                "ModernUI key listener "
+                                                        + (enabled ? "enabled" : "disabled")
+                                                        + (debug ? "" : " (debugHotkeys=false)")
+                                        );
+                                        mc.player.displayClientMessage(message, true);
+                                    }
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 })))
                 .then(Commands.literal("hui")

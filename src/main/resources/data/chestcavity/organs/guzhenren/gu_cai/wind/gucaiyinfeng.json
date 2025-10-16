@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:gucaiyinfeng",
+  "organScores": [
+    {
+      "id": "chestcavity:health",
+      "value": "-55.753"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "3.727"
+    },
+    {
+      "id": "chestcavity:knockback_resistant",
+      "value": "2"
+    }
+  ]
+}

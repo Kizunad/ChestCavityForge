@@ -1,0 +1,61 @@
+{
+  "itemID": "guzhenren:gu_cai_quan_yan",
+  "organScores": [
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "-1000"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "-100"
+    },
+    {
+      "id": "guzhenren:renqi",
+      "value": "-10"
+    },
+    {
+      "id": "guzhenren:qiyun",
+      "value": "-10"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:breath_recovery",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:detoxification",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:nutrition",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "1000"
+    },
+    {
+      "id": "chestcavity:nerves",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:metabolism",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:digestion",
+      "value": "5"
+    },
+    {
+      "id": "chestcavity:incompatibility",
+      "value": "-5"
+    }
+  ]
+}

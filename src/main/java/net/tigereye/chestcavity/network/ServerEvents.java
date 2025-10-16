@@ -19,6 +19,7 @@ import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
+import net.tigereye.chestcavity.skill.SkillHotbarServerData;
 
 import java.util.List;
 
@@ -32,6 +33,7 @@ public final class ServerEvents {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             grantFirstJoinChestOpener(player);
+            SkillHotbarServerData.sendSnapshot(player);
             scheduleSync(player, true);
         }
     }

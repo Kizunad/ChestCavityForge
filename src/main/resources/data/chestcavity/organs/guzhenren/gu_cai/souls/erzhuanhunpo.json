@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:erzhuanhunpo",
+  "organScores": [
+    {
+      "id": "guzhenren:hunpo",
+      "value": "512"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "512"
+    },
+    {
+      "id": "guzhenren:daohen_hundao",
+      "value": "8"
+    }
+  ]
+}

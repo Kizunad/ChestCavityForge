@@ -38,6 +38,9 @@ import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRequest
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetVacuumPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSyncPayload;
+import net.tigereye.chestcavity.client.modernui.network.ActiveSkillTriggerPayload;
+import net.tigereye.chestcavity.client.modernui.network.SkillHotbarSnapshotPayload;
+import net.tigereye.chestcavity.client.modernui.network.SkillHotbarUpdatePayload;
 
 public final class NetworkHandler {
 
@@ -56,6 +59,8 @@ public final class NetworkHandler {
         registrar.playToServer(PlayerSkinUploadPayload.TYPE, PlayerSkinUploadPayload.STREAM_CODEC, PlayerSkinUploadPayload::handle);
         registrar.playToServer(SoulBeastRequestSyncPayload.TYPE, SoulBeastRequestSyncPayload.STREAM_CODEC, SoulBeastStateManager::handleRequestSyncPayload);
         registrar.playToServer(TestModernUIContainerRequestPayload.TYPE, TestModernUIContainerRequestPayload.STREAM_CODEC, TestModernUIContainerRequestPayload::handle);
+        registrar.playToServer(ActiveSkillTriggerPayload.TYPE, ActiveSkillTriggerPayload.STREAM_CODEC, ActiveSkillTriggerPayload::handle);
+        registrar.playToServer(SkillHotbarUpdatePayload.TYPE, SkillHotbarUpdatePayload.STREAM_CODEC, SkillHotbarUpdatePayload::handle);
         registrar.playToServer(SoulConfigRequestPayload.TYPE, SoulConfigRequestPayload.STREAM_CODEC, SoulConfigRequestPayload::handle);
         registrar.playToServer(SoulConfigActivatePayload.TYPE, SoulConfigActivatePayload.STREAM_CODEC, SoulConfigActivatePayload::handle);
         registrar.playToServer(SoulConfigRenamePayload.TYPE, SoulConfigRenamePayload.STREAM_CODEC, SoulConfigRenamePayload::handle);
@@ -82,6 +87,7 @@ public final class NetworkHandler {
         registrar.playToClient(net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.TYPE,
                 net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.STREAM_CODEC,
                 net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload::handle);
+        registrar.playToClient(SkillHotbarSnapshotPayload.TYPE, SkillHotbarSnapshotPayload.STREAM_CODEC, SkillHotbarSnapshotPayload::handle);
 
         // Soul navigation Baritone planning bridge
         registrar.playToClient(net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanRequestPayload.TYPE,

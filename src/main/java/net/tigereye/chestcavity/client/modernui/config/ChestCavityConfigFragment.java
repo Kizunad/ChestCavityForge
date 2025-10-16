@@ -26,15 +26,29 @@ import icyllis.modernui.widget.ScrollView;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
+import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
+import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
+import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarState;
+import net.tigereye.chestcavity.client.modernui.widget.SimpleSkillSlotView;
+import net.tigereye.chestcavity.client.ui.ModernUiClientState;
 import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 
 /**
  * Top-level configuration hub for Chest Cavity, rendered with Modern UI.
@@ -43,7 +57,7 @@ import java.util.UUID;
  */
 public class ChestCavityConfigFragment extends Fragment {
 
-    private static final int TAB_COUNT = 3;
+    private static final int TAB_COUNT = 4;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -95,6 +109,7 @@ public class ChestCavityConfigFragment extends Fragment {
             View layout = switch (position) {
                 case 0 -> createHomePage(container);
                 case 1 -> createGuScriptPage(container);
+                case 2 -> createSkillHotbarPage(container);
                 default -> createSoulPlayerPage(container);
             };
             container.addView(layout);
@@ -117,6 +132,7 @@ public class ChestCavityConfigFragment extends Fragment {
             return switch (position) {
                 case 0 -> "主页";
                 case 1 -> "自定义杀招";
+                case 2 -> "蛊虫技能";
                 default -> "分魂";
             };
         }
@@ -139,6 +155,391 @@ public class ChestCavityConfigFragment extends Fragment {
                     "· 预留布局用于编辑与管理 GuScript 方案。\n" +
                             "· 后续可在此嵌入脚本列表、快捷启动与资源统计。");
             return layout;
+        }
+
+        private View createSkillHotbarPage(ViewGroup container) {
+            var context = container.getContext();
+            var scroll = new ScrollView(context);
+            var layout = baseLayout(context);
+            scroll.addView(layout, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            addHeadline(layout, "蛊虫主动技快捷键", 18);
+            addBody(layout,
+                    "· 绑定 ModernUI 技能槽后，可在无 GUI 状态下直接释放蛊真人主动技。\n" +
+                            "· 填写 skillId（示例：guzhenren:jiu_chong）后点击“绑定”即可追加该技能。\n" +
+                            "· 可使用 /testmodernUI keylisten true/false 快速启用或停用监听。");
+
+            var statusView = new TextView(context);
+            statusView.setTextSize(12);
+            statusView.setTextColor(0xFFB5C7E3);
+            var statusParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            statusParams.topMargin = layout.dp(4);
+            layout.addView(statusView, statusParams);
+
+            ActiveSkillRegistry.bootstrap();
+
+            var selectedSlotRef = new AtomicReference<SimpleSkillSlotView>();
+            var selectedSkillIdRef = new AtomicReference<ResourceLocation>();
+
+            var iconContainer = new LinearLayout(context);
+            iconContainer.setOrientation(LinearLayout.HORIZONTAL);
+            iconContainer.setGravity(Gravity.START);
+            iconContainer.setPadding(iconContainer.dp(4), iconContainer.dp(4), iconContainer.dp(4), iconContainer.dp(4));
+            var iconContainerParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            iconContainerParams.topMargin = layout.dp(8);
+            layout.addView(iconContainer, iconContainerParams);
+
+            record SkillIcon(SimpleSkillSlotView view, ActiveSkillRegistry.ActiveSkillEntry entry) {}
+
+            var iconRecords = new ArrayList<SkillIcon>();
+
+            var registryEntries = new ArrayList<>(ActiveSkillRegistry.entries());
+            registryEntries.sort(Comparator.comparing(e -> e.skillId().toString()));
+
+            for (ActiveSkillRegistry.ActiveSkillEntry entry : registryEntries) {
+                ResourceLocation organItem = entry.organId();
+                if (!net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(organItem)) {
+                    continue;
+                }
+                var slotView = new SimpleSkillSlotView(context, organItem, statusView, layout.dp(36), clicked -> {
+                    SimpleSkillSlotView previous = selectedSlotRef.getAndSet(clicked);
+                    if (previous != null && previous != clicked) {
+                        previous.setSelected(false);
+                    }
+                    clicked.setSelected(true);
+                    selectedSkillIdRef.set(entry.skillId());
+                    statusView.setText("选中技能：" + entry.skillId() + " ｜ " + entry.description());
+                });
+                iconRecords.add(new SkillIcon(slotView, entry));
+            }
+
+            Runnable rebuildIcons = () -> {
+                iconContainer.removeAllViews();
+                for (SkillIcon icon : iconRecords) {
+                    var params = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT);
+                    params.rightMargin = layout.dp(6);
+                    params.bottomMargin = layout.dp(6);
+                    iconContainer.addView(icon.view(), params);
+                    icon.view().setSelected(icon.view() == selectedSlotRef.get());
+                }
+            };
+
+            rebuildIcons.run();
+
+            if (!iconRecords.isEmpty()) {
+                iconRecords.get(0).view().performClick();
+            }
+
+            var iconActionRow = new LinearLayout(context);
+            iconActionRow.setOrientation(LinearLayout.HORIZONTAL);
+            iconActionRow.setGravity(Gravity.START);
+
+            var sortButton = new Button(context);
+            sortButton.setText("自动排序图标");
+            sortButton.setOnClickListener(v -> {
+                iconRecords.sort(Comparator.comparing(record -> record.entry().skillId().toString()));
+                rebuildIcons.run();
+                statusView.setText("已按 skillId 排列图标。");
+            });
+            iconActionRow.addView(sortButton, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var iconActionParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            iconActionParams.topMargin = layout.dp(4);
+            layout.addView(iconActionRow, iconActionParams);
+
+
+            var sections = new java.util.LinkedHashMap<SkillHotbarKey, SkillSection>();
+            for (SkillHotbarKey key : SkillHotbarKey.values()) {
+                SkillSection section = new SkillSection(context, key, statusView, selectedSkillIdRef::get);
+                sections.put(key, section);
+                layout.addView(section.root(), section.layoutParams(layout));
+            }
+
+            var buttonRow = new LinearLayout(context);
+            buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+            buttonRow.setGravity(Gravity.END);
+
+            var resetButton = new Button(context);
+            resetButton.setText("恢复默认");
+            resetButton.setOnClickListener(v -> {
+                SkillHotbarClientData.resetToDefault();
+                statusView.setText("快捷键已重置为空。");
+            });
+            buttonRow.addView(resetButton, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            var toggleButton = new Button(context);
+            toggleButton.setText("当前：" + (ModernUiClientState.isKeyListenEnabled() ? "监听开启" : "监听关闭"));
+            toggleButton.setOnClickListener(v -> {
+                boolean next = !ModernUiClientState.isKeyListenEnabled();
+                ModernUiClientState.setKeyListenEnabled(next);
+                toggleButton.setText("当前：" + (next ? "监听开启" : "监听关闭"));
+                statusView.setText(next ? "已启用 ModernUI 快捷键监听。" : "已关闭 ModernUI 快捷键监听。");
+            });
+            var toggleParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            toggleParams.leftMargin = buttonRow.dp(8);
+            buttonRow.addView(toggleButton, toggleParams);
+
+            var buttonParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            buttonParams.topMargin = layout.dp(12);
+            layout.addView(buttonRow, buttonParams);
+
+            SkillHotbarClientData.Listener listener = newState -> layout.post(() -> {
+                for (SkillSection section : sections.values()) {
+                    section.refresh(newState);
+                }
+            });
+
+            layout.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(View v) {
+                    SkillHotbarClientData.addListener(listener);
+                    for (SkillSection section : sections.values()) {
+                        section.refresh(SkillHotbarClientData.state());
+                    }
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(View v) {
+                    SkillHotbarClientData.removeListener(listener);
+                }
+            });
+
+            for (SkillSection section : sections.values()) {
+                section.refresh(SkillHotbarClientData.state());
+            }
+
+            return scroll;
+        }
+
+        private final class SkillSection {
+
+            private final SkillHotbarKey key;
+            private final LinearLayout root;
+            private final LinearLayout listContainer;
+            private final EditText input;
+            private final TextView statusView;
+            private final TextView keyLabel;
+            private final Button changeKeyButton;
+            private final Button iconBindButton;
+            private final icyllis.modernui.core.Context context;
+            private final Supplier<ResourceLocation> selectedSkillSupplier;
+
+            SkillSection(icyllis.modernui.core.Context context, SkillHotbarKey key, TextView statusView,
+                         Supplier<ResourceLocation> selectedSkillSupplier) {
+                this.context = context;
+                this.key = key;
+                this.statusView = statusView;
+                this.selectedSkillSupplier = selectedSkillSupplier;
+                root = new LinearLayout(context);
+                root.setOrientation(LinearLayout.VERTICAL);
+                root.setPadding(root.dp(12), root.dp(10), root.dp(12), root.dp(10));
+                ShapeDrawable background = new ShapeDrawable();
+                background.setCornerRadius(root.dp(10));
+                background.setColor(0xFF1C2A3A);
+                root.setBackground(background);
+
+                var header = new TextView(context);
+                header.setText("键位 " + (key.ordinal() + 1));
+                header.setTextSize(16);
+                root.addView(header, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                var keyRow = new LinearLayout(context);
+                keyRow.setOrientation(LinearLayout.HORIZONTAL);
+                keyRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                keyLabel = new TextView(context);
+                keyLabel.setTextSize(13);
+                keyLabel.setTextColor(0xFFDEE5F4);
+                keyRow.addView(keyLabel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+                changeKeyButton = new Button(context);
+                changeKeyButton.setText("设置键位");
+                keyRow.addView(changeKeyButton, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                var keyParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                keyParams.topMargin = root.dp(6);
+                root.addView(keyRow, keyParams);
+
+                listContainer = new LinearLayout(context);
+                listContainer.setOrientation(LinearLayout.VERTICAL);
+                var listParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                listParams.topMargin = root.dp(6);
+                root.addView(listContainer, listParams);
+
+                var inputRow = new LinearLayout(context);
+                inputRow.setOrientation(LinearLayout.HORIZONTAL);
+                inputRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                input = new EditText(context);
+                input.setHint("skillId");
+                inputRow.addView(input, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+                var bindButton = new Button(context);
+                bindButton.setText("绑定");
+                inputRow.addView(bindButton, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                iconBindButton = new Button(context);
+                iconBindButton.setText("图标绑定");
+                var iconParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                iconParams.leftMargin = inputRow.dp(6);
+                inputRow.addView(iconBindButton, iconParams);
+
+                var clearButton = new Button(context);
+                clearButton.setText("清空");
+                var clearParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                clearParams.leftMargin = inputRow.dp(6);
+                inputRow.addView(clearButton, clearParams);
+
+                var inputParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                inputParams.topMargin = root.dp(8);
+                root.addView(inputRow, inputParams);
+
+                bindButton.setOnClickListener(v -> {
+                    String raw = input.getText().toString().trim();
+                    if (raw.isEmpty()) {
+                        statusView.setText("请输入 skillId（示例：guzhenren:jiu_chong）");
+                        return;
+                    }
+                    ResourceLocation id = ResourceLocation.tryParse(raw);
+                    if (id == null) {
+                        statusView.setText("无效的 skillId: " + raw);
+                        return;
+                    }
+                    SkillHotbarClientData.addSkill(key, id);
+                    input.setText("");
+                    statusView.setText("已绑定 " + key.label() + " -> " + id);
+                });
+
+                iconBindButton.setOnClickListener(v -> {
+                    ResourceLocation selected = selectedSkillSupplier.get();
+                    if (selected == null) {
+                        statusView.setText("请先点击上方技能图标进行选择。");
+                        return;
+                    }
+                    if (SkillHotbarClientData.state().getSkills(key).contains(selected)) {
+                        statusView.setText(selected + " 已绑定在 " + key.label() + "。");
+                        return;
+                    }
+                    SkillHotbarClientData.addSkill(key, selected);
+                    statusView.setText("已绑定 " + key.label() + " -> " + selected);
+                });
+
+                clearButton.setOnClickListener(v -> {
+                    SkillHotbarClientData.clearKey(key);
+                    statusView.setText("已清空 " + key.label() + " 快捷键。");
+                });
+
+                changeKeyButton.setOnClickListener(v -> {
+                    if (!changeKeyButton.isEnabled()) {
+                        return;
+                    }
+                    boolean accepted = SkillHotbarClientData.requestKeyCapture(key, code -> {
+                        SkillHotbarClientData.setKeyCode(key, code);
+                        root.post(() -> {
+                            changeKeyButton.setEnabled(true);
+                            statusView.setText("已将 " + key.label() + " 绑定到 " + SkillHotbarClientData.describeKey(code));
+                            refresh(SkillHotbarClientData.state());
+                        });
+                    });
+                    if (accepted) {
+                        changeKeyButton.setEnabled(false);
+                        statusView.setText("请按下 " + key.label() + " 新键位…");
+                    } else {
+                        statusView.setText("键位捕获已在进行中，请先完成再重试。");
+                    }
+                });
+            }
+
+            View root() {
+                return root;
+            }
+
+            LinearLayout.LayoutParams layoutParams(LinearLayout parent) {
+                var params = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                params.topMargin = parent.dp(10);
+                return params;
+            }
+
+            void refresh(SkillHotbarState state) {
+                listContainer.removeAllViews();
+                keyLabel.setText("当前键位：" + SkillHotbarClientData.describeKey(SkillHotbarClientData.getKeyCode(key)));
+                changeKeyButton.setEnabled(!SkillHotbarClientData.isCapturing());
+
+                List<ResourceLocation> skills = state.getSkills(key);
+                if (skills.isEmpty()) {
+                    var placeholder = new TextView(context);
+                    placeholder.setText("尚未绑定技能");
+                    placeholder.setTextSize(13);
+                    placeholder.setTextColor(0xFF8AA2C2);
+                    listContainer.addView(placeholder, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                    return;
+                }
+
+                for (ResourceLocation skillId : skills) {
+                    var row = new LinearLayout(context);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    row.setGravity(Gravity.CENTER_VERTICAL);
+
+                    var label = new TextView(context);
+                    label.setText(skillId.toString());
+                    label.setTextSize(13);
+                    row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+                    var removeButton = new Button(context);
+                    removeButton.setText("移除");
+                    removeButton.setOnClickListener(v -> {
+                        SkillHotbarClientData.removeSkill(key, skillId);
+                        statusView.setText("已移除 " + skillId);
+                    });
+                    row.addView(removeButton, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                    var rowParams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT);
+                    rowParams.bottomMargin = row.dp(4);
+                    listContainer.addView(row, rowParams);
+                }
+            }
         }
 
         private View createSoulPlayerPage(ViewGroup container) {
