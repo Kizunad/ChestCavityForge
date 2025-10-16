@@ -18,6 +18,8 @@ import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.Consu
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * 熊豪蛊（力道·肌肉）：
@@ -132,9 +134,14 @@ public final class XiongHaoGuOrganBehavior extends AbstractLiDaoOrganBehavior im
 
         boolean dirty = OrganStateOps.setBoolean(state, cc, organ, KEY_ACTIVE, true, false).changed();
         expireEntry.setReadyAt(now + ACTIVE_DURATION_TICKS);
-        readyEntry.setReadyAt(now + COOLDOWN_TICKS);
+        long readyAt = now + COOLDOWN_TICKS;
+        readyEntry.setReadyAt(readyAt);
         if (dirty) {
             INSTANCE.sendSlotUpdate(cc, organ);
+        }
+
+        if (player instanceof ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
         }
 
         player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG, player.getSoundSource(), 0.9f, 0.9f);
