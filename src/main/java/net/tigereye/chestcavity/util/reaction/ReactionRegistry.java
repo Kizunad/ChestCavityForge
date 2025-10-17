@@ -46,9 +46,10 @@ public final class ReactionRegistry {
     }
 
     private static void registerDefaults() {
-        // 规则：当触发 DoT 为 火衣光环，目标身上存在 OIL_COATING
+        // 规则：当触发 DoT 为 火衣光环，目标身上存在 OIL_COATING（切换至通用 Tag 判定）
         register(ReactionStatuses.OIL_COATING_TRIGGER_DOT,
-                ctx -> ReactionStatuses.hasStatus(ctx.target(), ReactionStatuses.OIL_COATING),
+                ctx -> net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.has(ctx.target(),
+                        net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.OIL_COATING),
                 ctx -> {
                     ServerLevel level = (ServerLevel) ctx.target().level();
                     double x = ctx.target().getX();
@@ -62,8 +63,9 @@ public final class ReactionRegistry {
                         LOGGER.warn("[reaction] explosion failed: {}", t.toString());
                     }
                     ReactionEvents.fireOil(ctx);
-                    // 移除油涂层
-                    ReactionStatuses.clearStatus(ctx.target(), ReactionStatuses.OIL_COATING);
+                    // 移除油涂层（通用 Tag 清理）
+                    net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.clear(ctx.target(),
+                            net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.OIL_COATING);
                     // 短暂屏蔽来自该攻击者的火衣 DoT（视为去除火衣），默认 3s
                     // 将屏蔽窗口设为 0（不做连锁抑制）
                     long now = ctx.server().getTickCount();
@@ -119,8 +121,8 @@ public final class ReactionRegistry {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         long now = event.getServer().getTickCount();
-        // 清理过期状态
-        purgeStatuses(now);
+        // 清理过期状态（委托 TagOps）
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.purge(now);
         // 清理过期屏蔽
         FIRE_AURA_BLOCK_UNTIL.entrySet().removeIf(e -> e.getValue() <= now);
     }
@@ -142,18 +144,22 @@ public final class ReactionRegistry {
         }
     }
 
-    // -------- 状态 API（转发给 ReactionStatuses） --------
+    // -------- 状态 API（过渡：统一走 TagOps） --------
 
     public static void addStatus(LivingEntity entity, ResourceLocation statusId, int durationTicks) {
-        ReactionStatuses.addStatus(entity, statusId, durationTicks);
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(entity,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagAliases.resolve(statusId),
+                durationTicks);
     }
 
     public static boolean hasStatus(LivingEntity entity, ResourceLocation statusId) {
-        return ReactionStatuses.hasStatus(entity, statusId);
+        return net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.has(entity,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagAliases.resolve(statusId));
     }
 
     public static void clearStatus(LivingEntity entity, ResourceLocation statusId) {
-        ReactionStatuses.clearStatus(entity, statusId);
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.clear(entity,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagAliases.resolve(statusId));
     }
 
     /** 指定攻击者在给定时长内禁止触发火衣-油涂层反应。 */
