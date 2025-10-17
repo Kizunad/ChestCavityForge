@@ -58,6 +58,7 @@ public final class SimpleSkillSlotView extends LinearLayout {
         label.setTextSize(11);
         label.setTextColor(0xFFE6F3FF);
         label.setGravity(Gravity.CENTER_HORIZONTAL);
+        label.setSingleLine();
         label.setPadding(0, label.dp(4), 0, 0);
         addView(label, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
 
@@ -124,8 +125,11 @@ public final class SimpleSkillSlotView extends LinearLayout {
 
             if (selected) {
                 int color = 0xAA6F7A8A;
-                graphics.fill(0, 0, guiWidth, 1, color);
-                graphics.fill(0, guiHeight - 1, guiWidth, guiHeight, color);
+                int th = 2; // 上下边框加粗 2px
+                // Top / Bottom thicker
+                graphics.fill(0, 0, guiWidth, th, color);
+                graphics.fill(0, guiHeight - th, guiWidth, guiHeight, color);
+                // Left / Right 保持 1px
                 graphics.fill(0, 0, 1, guiHeight, color);
                 graphics.fill(guiWidth - 1, 0, guiWidth, guiHeight, color);
             }

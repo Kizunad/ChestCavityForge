@@ -23,6 +23,7 @@ import icyllis.modernui.widget.TabLayout;
 import icyllis.modernui.widget.TextView;
 import icyllis.modernui.widget.ViewPager;
 import icyllis.modernui.widget.ScrollView;
+import icyllis.modernui.widget.HorizontalScrollView;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -58,6 +59,9 @@ import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 public class ChestCavityConfigFragment extends Fragment {
 
     private static final int TAB_COUNT = 4;
+    // 引用技能页中的图标滚动容器，用于切页时显式隐藏避免跨页溢出
+    @Nullable
+    private icyllis.modernui.view.View skillIconScrollRef;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -68,10 +72,16 @@ public class ChestCavityConfigFragment extends Fragment {
         root.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+        // 防止子视图在切页时越界绘制
+        root.setClipToPadding(true);
+        root.setClipChildren(true);
 
         var pager = new ViewPager(context);
         pager.setId(View.generateViewId());
         pager.setAdapter(new ConfigPagerAdapter());
+        // 防越界绘制至相邻页
+        pager.setClipToPadding(true);
+        pager.setClipChildren(true);
 
         var pagerParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -84,6 +94,20 @@ public class ChestCavityConfigFragment extends Fragment {
         tabs.setTabMode(TabLayout.MODE_AUTO);
         tabs.setTabGravity(TabLayout.GRAVITY_CENTER);
         tabs.setupWithViewPager(pager);
+
+        // 监听选项卡切换，控制技能页图标的显隐，避免 SurfaceView 跨页绘制
+        tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                updateSkillIconVisibility(tab.getPosition());
+            }
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) { }
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) { }
+        });
+        // 初始化一次
+        updateSkillIconVisibility(0);
 
         var tabParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -160,6 +184,8 @@ public class ChestCavityConfigFragment extends Fragment {
         private View createSkillHotbarPage(ViewGroup container) {
             var context = container.getContext();
             var scroll = new ScrollView(context);
+            scroll.setClipToPadding(true);
+            scroll.setFillViewport(true);
             var layout = baseLayout(context);
             scroll.addView(layout, new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -185,15 +211,18 @@ public class ChestCavityConfigFragment extends Fragment {
             var selectedSlotRef = new AtomicReference<SimpleSkillSlotView>();
             var selectedSkillIdRef = new AtomicReference<ResourceLocation>();
 
-            var iconContainer = new LinearLayout(context);
-            iconContainer.setOrientation(LinearLayout.HORIZONTAL);
-            iconContainer.setGravity(Gravity.START);
-            iconContainer.setPadding(iconContainer.dp(4), iconContainer.dp(4), iconContainer.dp(4), iconContainer.dp(4));
-            var iconContainerParams = new LinearLayout.LayoutParams(
+            // 图标容器：竖向网格（自动换行），占据实际高度，向下推后续内容
+            var iconGrid = new LinearLayout(context);
+            iconGrid.setOrientation(LinearLayout.VERTICAL);
+            iconGrid.setGravity(Gravity.START);
+            iconGrid.setPadding(iconGrid.dp(4), iconGrid.dp(4), iconGrid.dp(4), iconGrid.dp(4));
+            var iconGridParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);
-            iconContainerParams.topMargin = layout.dp(8);
-            layout.addView(iconContainer, iconContainerParams);
+            iconGridParams.topMargin = layout.dp(8);
+            layout.addView(iconGrid, iconGridParams);
+            // 保存引用供切页时显式隐藏/显示
+            ChestCavityConfigFragment.this.skillIconScrollRef = iconGrid;
 
             record SkillIcon(SimpleSkillSlotView view, ActiveSkillRegistry.ActiveSkillEntry entry) {}
 
@@ -219,20 +248,45 @@ public class ChestCavityConfigFragment extends Fragment {
                 iconRecords.add(new SkillIcon(slotView, entry));
             }
 
+            final int slotSizePx = layout.dp(36);
+            final int cellWidthPx = Math.max(slotSizePx + layout.dp(12), layout.dp(72));
+
             Runnable rebuildIcons = () -> {
-                iconContainer.removeAllViews();
+                int available = layout.getWidth() - layout.getPaddingLeft() - layout.getPaddingRight();
+                if (available <= 0) { return; }
+                int gap = layout.dp(6);
+                int colWidth = cellWidthPx + gap * 2;
+                int columns = Math.max(1, available / colWidth);
+
+                iconGrid.removeAllViews();
+                LinearLayout currentRow = null;
+                int col = 0;
                 for (SkillIcon icon : iconRecords) {
-                    var params = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT);
-                    params.rightMargin = layout.dp(6);
-                    params.bottomMargin = layout.dp(6);
-                    iconContainer.addView(icon.view(), params);
+                    if (currentRow == null || col >= columns) {
+                        currentRow = new LinearLayout(context);
+                        currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                        currentRow.setGravity(Gravity.START);
+                        var rowParams = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT);
+                        if (iconGrid.getChildCount() > 0) {
+                            rowParams.topMargin = gap;
+                        }
+                        iconGrid.addView(currentRow, rowParams);
+                        col = 0;
+                    }
+                    var params = new LinearLayout.LayoutParams(cellWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    params.leftMargin = gap;
+                    params.rightMargin = gap;
+                    params.bottomMargin = gap;
+                    currentRow.addView(icon.view(), params);
                     icon.view().setSelected(icon.view() == selectedSlotRef.get());
+                    col++;
                 }
             };
 
-            rebuildIcons.run();
+            // 等待测量完成后再构建网格
+            layout.post(rebuildIcons);
 
             if (!iconRecords.isEmpty()) {
                 iconRecords.get(0).view().performClick();
@@ -1122,6 +1176,8 @@ public class ChestCavityConfigFragment extends Fragment {
             layout.setOrientation(LinearLayout.VERTICAL);
             int padding = layout.dp(16);
             layout.setPadding(padding, padding, padding, padding);
+            layout.setClipToPadding(true);
+            layout.setClipChildren(true);
             layout.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
@@ -1150,5 +1206,12 @@ public class ChestCavityConfigFragment extends Fragment {
             params.topMargin = layout.dp(8);
             layout.addView(tv, params);
         }
+    }
+
+    private void updateSkillIconVisibility(int pageIndex) {
+        if (skillIconScrollRef == null) return;
+        // 技能页索引=2，其它页隐藏以规避 SurfaceView 叠绘
+        boolean visible = (pageIndex == 2);
+        skillIconScrollRef.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 }
