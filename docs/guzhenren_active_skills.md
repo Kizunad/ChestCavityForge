@@ -14,6 +14,7 @@
 | `guzhenren:huang_jin_she_li_gu` | `guzhenren:huang_jin_she_li_gu` | 防御, 控制 | 6 秒抗性 III + 免击退，自身缓慢并对 8 格敌人施加缓慢 IV | `compat/guzhenren/item/ren_dao/behavior/HuangJinSheLiGuOrganBehavior.java:31` |
 | `guzhenren:huang_luo_tian_niu_gu` | `guzhenren:huang_luo_tian_niu_gu` | 召唤, 辅助 | 召唤发疯天牛冲锋并给予 30 秒精力消耗减免 | `compat/guzhenren/item/li_dao/behavior/HuangLuoTianNiuGuOrganBehavior.java:38` |
 | `guzhenren:huo_gu` | `guzhenren:huo_gu` | 输出, 控制 | 扣除真元与饥饿后激活灼烧光环，对敌灼烧并叠加缓慢 | `compat/guzhenren/item/yan_dao/behavior/HuoYiGuOrganBehavior.java:50` |
+| `guzhenren:huo_you_gu` | `guzhenren:huo_you_gu` | 输出, 反应 | 消耗全部燃油喷射火焰波；命中油涂层且火衣激活时爆炸并短暂禁用火衣 | `compat/guzhenren/item/yan_dao/behavior/HuoYouGuOrganBehavior.java` |
 | `guzhenren:jian_ying_fenshen` | `guzhenren:jian_ying_gu` | 输出, 召唤 | 支付真元与精力召唤剑影分身协同作战，随器官数量扩充 | `compat/guzhenren/item/jian_dao/behavior/JianYingGuOrganBehavior.java:61` |
 | `guzhenren:jiu_chong` | `guzhenren:jiu_chong` | 输出 | 消耗酒精储备施放醉酒吐息，触发醉拳循环 | `compat/guzhenren/item/shi_dao/behavior/JiuChongOrganBehavior.java:46` |
 | `guzhenren:le_gu_dun_gu` | `guzhenren:le_gu_dun_gu` | 防御 | 满"不屈"后消耗真元获得短暂无敌与高抗性 | `compat/guzhenren/item/gu_dao/behavior/LeGuDunGuOrganBehavior.java:49` |

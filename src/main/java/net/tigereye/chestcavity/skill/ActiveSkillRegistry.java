@@ -38,6 +38,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguO
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.BaiYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.YinYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yu_dao.behavior.YuanLaoGuFifthTierBehavior;
@@ -242,6 +243,13 @@ public final class ActiveSkillRegistry {
                 "扣除真元与饥饿后激活灼烧光环，对敌灼烧并叠加缓慢",
                 "compat/guzhenren/item/yan_dao/behavior/HuoYiGuOrganBehavior.java:50",
                 () -> { ensureClassLoaded(HuoYiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_you_gu", "guzhenren:huo_you_gu", "guzhenren:huo_you_gu",
+                tags("输出", "反应"),
+                "消耗全部燃油喷射火焰波；命中油涂层且火衣激活时引爆并暂时禁用火衣",
+                "compat/guzhenren/item/yan_dao/behavior/HuoYouGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoYouGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:jian_ying_fenshen", "guzhenren:jian_ying_fenshen", "guzhenren:jian_ying_gu",

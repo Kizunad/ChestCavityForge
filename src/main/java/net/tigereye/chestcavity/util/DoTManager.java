@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import java.util.*;
 
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
+import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
 
 /**
  * Central manager for simple time-based damage pulses (DoT).
@@ -34,15 +35,89 @@ public final class DoTManager {
 
     private static final NavigableMap<Integer, List<Pulse>> SCHEDULE = new TreeMap<>();
 
-    public static void schedulePerSecond(LivingEntity attacker,
-                                         LivingEntity target,
-                                         double perSecondDamage,
-                                         int durationSeconds,
-                                         @javax.annotation.Nullable SoundEvent tickSound,
-                                         float volume,
-                                         float pitch) {
-        schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch,
-                null, FxAnchor.TARGET, Vec3.ZERO, 1.0f);
+    /**
+     * 可用于外部调试/查询的轻量视图。仅包含脉冲的关键信息，不暴露可变内部结构。
+     */
+    public record DoTEntry(
+            int dueTick,
+            UUID attackerUuid,
+            UUID targetUuid,
+            float amount,
+            ResourceLocation typeId,
+            @javax.annotation.Nullable ResourceLocation soundId,
+            @javax.annotation.Nullable ResourceLocation fxId,
+            FxAnchor fxAnchor
+    ) {}
+
+    /**
+     * 针对某个目标（被 DoT 作用的实体）列出所有待执行脉冲的只读快照。
+     * 仅在服务端有意义；调用时会复制当前队列，线程安全。
+     */
+    public static List<DoTEntry> getPendingForTarget(UUID targetUuid) {
+        if (targetUuid == null) return List.of();
+        List<DoTEntry> out = new ArrayList<>();
+        synchronized (DoTManager.class) {
+            for (Map.Entry<Integer, List<Pulse>> e : SCHEDULE.entrySet()) {
+                for (Pulse p : e.getValue()) {
+                    if (targetUuid.equals(p.targetUuid)) {
+                        out.add(toEntry(p));
+                    }
+                }
+            }
+        }
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * 针对某个攻击者（施加 DoT 的实体）列出所有待执行脉冲的只读快照。
+     */
+    public static List<DoTEntry> getPendingForAttacker(UUID attackerUuid) {
+        if (attackerUuid == null) return List.of();
+        List<DoTEntry> out = new ArrayList<>();
+        synchronized (DoTManager.class) {
+            for (Map.Entry<Integer, List<Pulse>> e : SCHEDULE.entrySet()) {
+                for (Pulse p : e.getValue()) {
+                    if (attackerUuid.equals(p.attackerUuid)) {
+                        out.add(toEntry(p));
+                    }
+                }
+            }
+        }
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * 汇总某个目标的 DoT：总脉冲数、预计总伤害、下一次触发 tick。
+     */
+    public static DoTSummary summarizeForTarget(UUID targetUuid) {
+        if (targetUuid == null) return new DoTSummary(0, 0f, -1);
+        int pulses = 0;
+        float total = 0f;
+        int next = -1;
+        synchronized (DoTManager.class) {
+            for (Map.Entry<Integer, List<Pulse>> e : SCHEDULE.entrySet()) {
+                int due = e.getKey();
+                for (Pulse p : e.getValue()) {
+                    if (targetUuid.equals(p.targetUuid)) {
+                        pulses++;
+                        total += p.amount;
+                        if (next == -1 || due < next) next = due;
+                    }
+                }
+            }
+        }
+        return new DoTSummary(pulses, total, next);
+    }
+
+    public record DoTSummary(int pulses, float totalExpectedDamage, int nextDueTick) {}
+
+    private static DoTEntry toEntry(Pulse p) {
+        ResourceLocation soundId = null;
+        if (p.sound != null) {
+            // SoundEvent#getLocation 在 1.21 可用；不同版本可视需要调整。
+            soundId = p.sound.getLocation();
+        }
+        return new DoTEntry(p.dueTick, p.attackerUuid, p.targetUuid, p.amount, p.typeId, soundId, p.fxId, p.fxAnchor);
     }
 
     public static void schedulePerSecond(LivingEntity attacker,
@@ -52,10 +127,14 @@ public final class DoTManager {
                                          @javax.annotation.Nullable SoundEvent tickSound,
                                          float volume,
                                          float pitch,
+                                         ResourceLocation typeId,
                                          @javax.annotation.Nullable ResourceLocation fxId,
                                          FxAnchor fxAnchor,
                                          Vec3 fxOffset,
                                          float fxIntensity) {
+        if (typeId == null) {
+            throw new IllegalArgumentException("DoT typeId must not be null. Register a proper DoTTypes id.");
+        }
         if (attacker == null || target == null || durationSeconds <= 0 || perSecondDamage <= 0.0) {
             return;
         }
@@ -72,6 +151,7 @@ public final class DoTManager {
                     attacker.getUUID(),
                     target.getUUID(),
                     (float) perSecondDamage,
+                    typeId,
                     tickSound,
                     volume,
                     pitch,
@@ -81,7 +161,8 @@ public final class DoTManager {
                     intensity));
         }
         if (DEBUG) {
-            LOGGER.info("[dot] queued DoT pulses seconds={} attacker={} target={} amountPerSecond={}",
+            LOGGER.info("[dot] queued DoT type={} seconds={} attacker={} target={} dps={}",
+                    typeId,
                     durationSeconds,
                     attacker.getName().getString(),
                     target.getName().getString(),
@@ -153,6 +234,13 @@ public final class DoTManager {
         } else {
             source = target.damageSources().generic();
         }
+        // 先走反应系统：若触发了反应且要求取消本次伤害，则直接返回
+        if (!ReactionRegistry.preApplyDoT(server, pulse.typeId, attacker, target)) {
+            if (DEBUG) {
+                LOGGER.info("[dot] cancelled by reaction: type={} target={}", pulse.typeId, target.getName().getString());
+            }
+            return;
+        }
         target.hurt(source, pulse.amount);
         if (pulse.sound != null) {
             ServerLevel level = (ServerLevel) target.level();
@@ -192,6 +280,7 @@ public final class DoTManager {
         final UUID attackerUuid;
         final UUID targetUuid;
         final float amount;
+        final ResourceLocation typeId;
         final SoundEvent sound;
         final float volume;
         final float pitch;
@@ -200,12 +289,14 @@ public final class DoTManager {
         final Vec3 fxOffset;
         final float fxIntensity;
         Pulse(int dueTick, UUID attackerUuid, UUID targetUuid, float amount,
+              ResourceLocation typeId,
               SoundEvent sound, float volume, float pitch,
               ResourceLocation fxId, FxAnchor fxAnchor, Vec3 fxOffset, float fxIntensity) {
             this.dueTick = dueTick;
             this.attackerUuid = attackerUuid;
             this.targetUuid = targetUuid;
             this.amount = amount;
+            this.typeId = (typeId == null ? DoTTypes.GENERIC : typeId);
             this.sound = sound;
             this.volume = volume;
             this.pitch = pitch;

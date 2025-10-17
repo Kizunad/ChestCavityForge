@@ -25,6 +25,9 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
+import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.util.DoTTypes;
+import net.tigereye.chestcavity.registration.CCSoundEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
@@ -157,7 +160,14 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
             if (target == user || target.isAlliedTo(user)) {
                 continue;
             }
-            target.hurt(source, (float) damage);
+            // 以 DoT 统一调度 1s 脉冲并携带类型标识；保留燃烧与减速效果
+            DoTManager.schedulePerSecond(user, target, damage, 1,
+                    CCSoundEvents.CUSTOM_FIRE_HUO_YI.get(), 0.6f, 1.0f,
+                    DoTTypes.YAN_DAO_HUO_YI_AURA,
+                    null,
+                    DoTManager.FxAnchor.TARGET,
+                    Vec3.ZERO,
+                    1.0f);
             target.setRemainingFireTicks(4 * 20);
             target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,
                     ACTIVE_SLOWNESS_DURATION_TICKS,
@@ -214,12 +224,17 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
         double damage = Math.max(0.0, PASSIVE_DAMAGE_PER_SECOND * multiplier);
         if (damage > 0.0) {
             List<LivingEntity> targets = collectTargets(level, user, PASSIVE_RADIUS, HOSTILE_TARGET);
-            DamageSource source = resolveDamageSource(user);
             for (LivingEntity target : targets) {
                 if (target == user || target.isAlliedTo(user)) {
                     continue;
                 }
-                target.hurt(source, (float) damage);
+                DoTManager.schedulePerSecond(user, target, damage, 1,
+                        CCSoundEvents.CUSTOM_FIRE_HUO_YI.get(), 0.35f, 1.1f,
+                        DoTTypes.YAN_DAO_HUO_YI_AURA,
+                        null,
+                        DoTManager.FxAnchor.TARGET,
+                        Vec3.ZERO,
+                        0.8f);
                 target.setRemainingFireTicks(2 * 20);
             }
         }

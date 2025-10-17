@@ -59,6 +59,7 @@ import icyllis.modernui.mc.neoforge.MenuScreenFactory;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
 
 
 
@@ -141,6 +142,7 @@ public class ChestCavity {
     if (ModList.get().isLoaded("guzhenren")) {
             ActiveSkillRegistry.bootstrap();
             GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
+            ReactionRegistry.bootstrap();
     }
 
 

@@ -49,6 +49,7 @@ public final class HunDaoMiddleware {
                 SOUL_FLAME_SOUND,
                 0.6f,
                 1.0f,
+                net.tigereye.chestcavity.util.DoTTypes.HUN_DAO_SOUL_FLAME,
                 SOUL_FLAME_FX,
                 FxAnchor.TARGET,
                 Vec3.ZERO,

@@ -86,8 +86,46 @@ public final class DamageOverTimeHelper {
             return;
         }
 
-        // Queue per-second pulses centrally to avoid stacking many tasks immediately
-        DoTManager.schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch);
+        // 默认类型：按攻击力百分比的通用 DoT
+        applyBaseAttackPercentDoT(attacker, target, percentPerSecond, durationSeconds, tickSound, volume, pitch,
+                net.tigereye.chestcavity.util.DoTTypes.ATTACK_BASE_PERCENT);
+    }
+
+    /**
+     * 带类型标识的 DoT（基于攻击力百分比）。
+     */
+    public static void applyBaseAttackPercentDoT(
+            LivingEntity attacker,
+            LivingEntity target,
+            double percentPerSecond,
+            int durationSeconds,
+            SoundEvent tickSound,
+            float volume,
+            float pitch,
+            net.minecraft.resources.ResourceLocation dotTypeId
+    ) {
+        if (attacker == null || target == null) {
+            return;
+        }
+        if (percentPerSecond <= 0.0 || durationSeconds <= 0) {
+            return;
+        }
+        Level level = target.level();
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+        AttributeInstance attackAttribute = attacker.getAttribute(Attributes.ATTACK_DAMAGE);
+        double baseAttack = attackAttribute != null ? attackAttribute.getBaseValue() : 0.0;
+        if (baseAttack <= 0.0) {
+            return;
+        }
+        double perSecondDamage = baseAttack * percentPerSecond;
+        if (perSecondDamage <= 0.0) {
+            return;
+        }
+
+        DoTManager.schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch,
+                dotTypeId, null, net.tigereye.chestcavity.util.DoTManager.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
     }
 
     // Legacy local scheduler retained for reference; avoid using for DoT.

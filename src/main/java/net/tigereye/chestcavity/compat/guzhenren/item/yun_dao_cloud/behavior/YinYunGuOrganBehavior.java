@@ -213,7 +213,9 @@ public final class YinYunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (attacker == null || target == null) {
             return;
         }
-        DoTManager.schedulePerSecond(attacker, target, DOT_DAMAGE_PER_SECOND, DOT_DURATION_SECONDS, null, 1.0f, 1.0f);
+        DoTManager.schedulePerSecond(attacker, target, DOT_DAMAGE_PER_SECOND, DOT_DURATION_SECONDS, null, 1.0f, 1.0f,
+                net.tigereye.chestcavity.util.DoTTypes.YIN_YUN_CORROSION,
+                null, net.tigereye.chestcavity.util.DoTManager.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
     }
 
     private void applyLifesteal(LivingEntity attacker, float damage, int stacks) {

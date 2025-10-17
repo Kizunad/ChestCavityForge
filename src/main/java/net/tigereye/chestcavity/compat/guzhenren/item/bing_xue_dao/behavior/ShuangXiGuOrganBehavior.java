@@ -350,7 +350,8 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
                         frostbiteDurationSeconds,
                         SoundEvents.GLASS_BREAK,
                         0.55f,
-                        1.25f
+                        1.25f,
+                        net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE
                 );
             }
         }

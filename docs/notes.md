@@ -2326,3 +2326,78 @@ private void decayOrgan(Player player, OrganInstance organ) {
 | **沉浸表现** | 粒子、音效、渐变光效强化“灵植共生”主题；       |
 | **修炼感**  | 结合境界、真元与主动技表现形成成长路径；        |
 | **生态循环** | 由“生→盛→竭→枯→生”构成闭环，仿佛器官自身有生命； |
+
+  "item.guzhenren.huo_you_gu": "火油蛊",
+火油蛊（胃脏）·反应驱动版 
+🧩 一转 ·「燃心」
+
+被动机制：
+每次造成火属性攻击（nonProjectile）时，生成 1 层【燃油】，最多 10 层。
+每层提升：
+攻击 +2%。
+真元恢复 + 100 BASE 
+
+击中附加：
+若当前拥有 ≥3 层【燃油】，下一次攻击（投射或非投射）命中敌方时，为目标附加：
+ReactionStatuses.OIL_COATING.apply(target, duration = 120);
+并消耗 3 层燃油。
+视觉表现： 胸口出现流动油光粒子；击中目标时喷溅橘红火花。
+
+二转 ·「炼焰」
+被动强化：
+当玩家生命值 < 50% 时，ReactionStatuses.OIL_COATING 施加时长 +50%。
+主动技能「喷焰」
+冷却：15 秒
+消耗全部【燃油】，向前喷射火焰波（projectile 扇形域）。
+命中目标自动尝试触发：
+
+if (target.hasStatus(OIL_COATING) && player.hasStatus(FIRE_COAT)) {
+    ReactionOps.triggerExplosion(target, scaleByFuelLayers());
+    target.removeStatus(OIL_COATING);
+    player.addStatus(FIRE_COAT_DISABLED, 60); // 屏蔽火衣反应短暂冷却
+}
+若无油层，仅造成常规火属性反应。
+
+三转 ·「油尽灯明」
+被动：
+每当有敌方单位因“火衣 + 油涂层”爆炸死亡，恢复玩家 5% 真元，并重新获得 1 层【燃油】。
+死亡触发：
+若自身死亡时仍有【燃油】≥10，自动生成一次 ReactionOps.explode(player, power=medium)，并移除所有燃油层。
+环境反馈：
+Nether 环境下，燃油积累效率 ×1.5。
+雨天 / 水下环境下，OIL_COATING 施加概率减半。
+
+四转 ·「烈源」
+联动机制：
+与「火心蛊」共鸣 → 火衣反应爆炸半径 +1 格。
+
+高阶特性：燃场余烬
+【烈源态】结束时，自动生成一个燃场残余域（3 格范围，持续 4 秒）：
+区域内敌方实体每秒受到火焰反应伤害（由 ReactionOps 统一计算）。
+若区域内仍存在未触发的 OIL_COATING 状态，会被点燃引爆一次弱爆（非连锁）。
+
+体验文本（突破提示）
+升阶触发：「烈焰之心在胸中翻涌，火油开始自炼！」
+突破成功：「真元灼心，油焰凝形，火油蛊晋入新阶！」
+失败衰减：「火意不稳，燃炼未成。」
+
+1. 燃炼积蓄（FireRefine Points, FRP）
+火油蛊内部存在一个隐性资源值：fire_refine_points。
+以下事件会累积 FRP：
+| 触发条件             | 增加FRP      |
+| ---------------- | ---------- |
+| 触发「火衣 + 油涂层」反应爆炸 | +25        |
+| 主动技能“喷焰”命中≥3个目标  | +15        |
+| 在烈源态下持续完整5秒      | +10        |
+| 身处地狱或高温环境每分钟     | +2         |
+| 死亡时油量满层（自爆）      | +30（一次性事件） |
+FRP 有上限（随当前转数提升而提高），达到上限后触发晋阶判定。
+
+{
+  "itemID": "guzhenren:huo_you_gu",
+  "organScores": [
+    {"id":"chestcavity:heat_resistance","value":"1.5"},
+    {"id":"chestcavity:digestion","value": ".75"}
+  ],  
+  "defaultCompatibility": 0.85
+}

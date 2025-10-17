@@ -21,6 +21,24 @@
 - Document any new decisions, assumptions, or TODOs back into this repo (update this file or add notes) so the next agent inherits the context.
 - Before yielding or completing a task, run `./gradlew compileJava` to validate the current changeset.
 
+### DoT Reaction 规范（重要）
+- 统一要求：所有 DoT 必须携带 `typeId`。
+  - 使用 `DoTTypes` 中的常量或新增条目（`chestcavity:dot/...`）。
+  - 仅使用带 `typeId` 的重载：
+    - `DoTManager.schedulePerSecond(attacker, target, dps, seconds, sound, volume, pitch, typeId, fxId, fxAnchor, fxOffset, fxIntensity)`
+  - `typeId == null` 会抛出非法参数异常；项目内已移除无 `typeId` 的旧重载。
+- ReactionRegistry（反应系统）
+  - 入口：`util/reaction/ReactionRegistry` 与 `ReactionStatuses`。
+  - 默认规则：`YAN_DAO_HUO_YI_AURA`（火衣光环）+ `status/oil_coating` → 立即爆炸，并移除油层；不设置连锁屏蔽窗（窗口=0）。
+  - 在 DoT 伤害执行前会调用 `ReactionRegistry.preApplyDoT(...)`，可取消当次 DoT 伤害。
+  - 轻量状态：`ReactionStatuses.addStatus/hasStatus/clearStatus`（静态表，后续可迁 Capability）。
+- 常用类型标识（见 `DoTTypes`）
+  - `YAN_DAO_HUO_YI_AURA`（火衣光环）、`HUN_DAO_SOUL_FLAME`（魂焰）、`SHUANG_XI_FROSTBITE`（霜蚀）、`YIN_YUN_CORROSION`（阴云灼蚀）。
+- 开发约定
+  - 新增 DoT 时务必先在 `DoTTypes` 注册类型，再在调用处传入。
+  - 若需新增反应，调用 `ReactionRegistry.register(typeId, predicate, action)`。
+  - 日志：队列日志已输出 `typeId`，便于排查。
+
 ### ModernUI HUD/Toast 统一样式（当前状态）
 - 范围：仅实现 HUD 常驻与 Toast 提醒；ModernUI 界面内弹窗暂缓。
 
