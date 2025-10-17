@@ -3,13 +3,14 @@ package net.tigereye.chestcavity.compat.guzhenren.item.li_dao;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.BaiShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HeiShiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.QuanLiYiFuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XuLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.List;
@@ -39,6 +40,8 @@ public final class LiDaoOrganRegistry {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "zi_li_geng_sheng_gu_3");
     private static final ResourceLocation XU_LI_GU_ID =
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "xu_li_gu");
+    private static final ResourceLocation ZHI_ZHUANG_GU_ID =
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "zhi_zhuang_gu");
 
     private static final List<OrganIntegrationSpec> SPECS = List.of(
             OrganIntegrationSpec.builder(BAI_SHI_GU_ID)
@@ -75,6 +78,9 @@ public final class LiDaoOrganRegistry {
                     .addSlowTickListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
                     .addRemovalListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
                     .ensureAttached(ZiLiGengShengGuOrganBehavior.INSTANCE::ensureAttached)
+                    .build(),
+            OrganIntegrationSpec.builder(ZHI_ZHUANG_GU_ID)
+                    .addSlowTickListener(ZhiZhuangGuOrganBehavior.INSTANCE)
                     .build()
     );
 

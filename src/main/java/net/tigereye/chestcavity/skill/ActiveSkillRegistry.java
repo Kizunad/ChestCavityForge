@@ -17,10 +17,11 @@ import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGua
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.BaiYinSheLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.ChiTieSheLiGuOrganBehavior;
@@ -29,10 +30,13 @@ import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.QingTongS
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.ZaijinSheLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.shi_dao.behavior.JiuChongOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.TuQiangGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.tian_dao.behavior.ShouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.BaiYunGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.YinYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yu_dao.behavior.YuanLaoGuFifthTierBehavior;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
@@ -107,6 +111,34 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/gu_dao/behavior/LeGuDunGuOrganBehavior.java:49",
                 () -> { ensureClassLoaded(LeGuDunGuOrganBehavior.INSTANCE); });
 
+        register("guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu",
+                tags("输出", "控制"),
+                "消耗全部阴纹拉扯周围敌人并延迟引下多道雷狱，对范围敌人造成雷击并施加虚弱",
+                "compat/guzhenren/item/yun_dao_cloud/behavior/YinYunGuOrganBehavior.java:166",
+                () -> { ensureClassLoaded(YinYunGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:shou_gu", "guzhenren:shou_gu", "guzhenren:shou_gu",
+                tags("防御", "续命"),
+                "清空最多三层寿纹，6 秒内将 50% 伤害转为寿债并快速回血，结束时返还缓死冷却时间",
+                "compat/guzhenren/item/tian_dao/behavior/ShouGuOrganBehavior.java",
+                () -> { ensureClassLoaded(ShouGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:shi_nian_shou_gu", "guzhenren:shi_nian_shou_gu", "guzhenren:shi_nian_shou_gu",
+                tags("防御", "续命"),
+                "换命・续命进阶版：持续 6 秒转化 60% 伤害为寿债并强化治疗，缓死冷却额外回填",
+                "compat/guzhenren/item/tian_dao/behavior/ShouGuOrganBehavior.java",
+                () -> { ensureClassLoaded(ShouGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:bainianshougu", "guzhenren:bainianshougu", "guzhenren:bainianshougu",
+                tags("防御", "续命"),
+                "百年寿蛊版主动技：将 65% 伤害延后偿还并大幅自愈，风险更高但回报最大",
+                "compat/guzhenren/item/tian_dao/behavior/ShouGuOrganBehavior.java",
+                () -> { ensureClassLoaded(ShouGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
         register("guzhenren:bai_yun_gu/cloud_step", "guzhenren:bai_yun_gu/cloud_step", "guzhenren:bai_yun_gu",
                 tags("输出", "防御"),
                 "引爆云堆造成范围伤害并赋予抗性，层数高时生成雾域",
@@ -118,6 +150,13 @@ public final class ActiveSkillRegistry {
                 "引爆储存血滴造成真实伤害与流血，同时回复资源",
                 "compat/guzhenren/item/xue_dao/behavior/XiediguOrganBehavior.java:63",
                 () -> { ensureClassLoaded(XiediguOrganBehavior.INSTANCE); });
+
+        register("guzhenren:xuezhangu", "guzhenren:xuezhangu", "guzhenren:xuezhangu",
+                tags("输出", "增强"),
+                "消耗生命与真元爆发血誓，斩击周围敌人并瞬时灌满战血，短时间内大幅提升吸血与攻击",
+                "compat/guzhenren/item/xue_dao/behavior/XueZhanGuOrganBehavior.java:264",
+                () -> { ensureClassLoaded(XueZhanGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:luo_xuan_gu_qiang_gu", "guzhenren:luo_xuan_gu_qiang_gu", "guzhenren:luo_xuan_gu_qiang_gu",
                 tags("输出"),
@@ -219,6 +258,13 @@ public final class ActiveSkillRegistry {
                 "启动后获得 3 次短距闪避机会并提供短暂无敌窗口",
                 "compat/guzhenren/item/li_dao/behavior/LongWanQuQuGuOrganBehavior.java:30",
                 () -> { ensureClassLoaded(LongWanQuQuGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:zhi_zhuang_gu", "guzhenren:zhi_zhuang_gu", "guzhenren:zhi_zhuang_gu",
+                tags("输出", "位移"),
+                "直线冲锋命中刷新冷却并累积惯性层数，魂道加持下触发灵魂回声与连锁爆发",
+                "compat/guzhenren/item/li_dao/behavior/ZhiZhuangGuOrganBehavior.java:120",
+                () -> { ensureClassLoaded(ZhiZhuangGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:huang_luo_tian_niu_gu", "guzhenren:huang_luo_tian_niu_gu", "guzhenren:huang_luo_tian_niu_gu",
