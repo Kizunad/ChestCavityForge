@@ -1103,6 +1103,16 @@ public final class GuzhenrenResourceBridge {
             return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHUANSHU);
         }
 
+        /** 道德 */
+        public OptionalDouble getDaode() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.DAODE);
+        }
+
+        /** 寿元 */
+        public OptionalDouble getShouyuan() {
+            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.SHOUYUAN);
+        }
+
         /** 当前精力 */
         public OptionalDouble getJingli() {
             return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JINGLI);

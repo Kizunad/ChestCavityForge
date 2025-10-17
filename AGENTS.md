@@ -156,6 +156,10 @@
 3) 一致性：确认无直接 `LinkageChannel.adjust`/`ledger.remove` 遗留，冷却集中在 `MultiCooldown`，护盾统一 `AbsorptionHelper`，资源统一 `ResourceOps`。
 4) 验证：`./gradlew compileJava`，进游戏做装备/卸下/触发/护盾刷新实测；若发现 Ledger 重建或负冷却日志，回归对应行为修正并记录到本文件。
 
+### 木道·生机系器官（生机叶 & 九叶生机草）
+- 生机叶：濒死共鸣为 5 秒 ×3 回复倍率（30 秒冷却），环境与木道流派加成已落地；依赖 tooltip 解析木道标签。
+- 九叶生机草：主动技“催生”已接入 ActiveSkillRegistry（`guzhenren:jiu_xie_sheng_ji_cao_cui_sheng`），按阶段扩展治疗/抗性/护盾并触发冷却 Toast；晋阶需稳定供养并累计 3 次成功施放，退化或沉眠会重置计数。
+
 ### Attack Ability 注册规范（统一做法）
 - 注册模式（强制）：
   - 行为类使用 `enum` 单例（例如 `JianYingGuOrganBehavior`、`LiandaoGuOrganBehavior`），在 `static { ... }` 中调用

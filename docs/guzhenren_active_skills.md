@@ -18,6 +18,8 @@
 | `guzhenren:jiu_chong` | `guzhenren:jiu_chong` | 输出 | 消耗酒精储备施放醉酒吐息，触发醉拳循环 | `compat/guzhenren/item/shi_dao/behavior/JiuChongOrganBehavior.java:46` |
 | `guzhenren:le_gu_dun_gu` | `guzhenren:le_gu_dun_gu` | 防御 | 满"不屈"后消耗真元获得短暂无敌与高抗性 | `compat/guzhenren/item/gu_dao/behavior/LeGuDunGuOrganBehavior.java:49` |
 | `guzhenren:liandaogu` | `guzhenren:liandaogu` | 输出 | 蓄力释放长条刀光，对面前敌人造成高额斩击与击退 | `compat/guzhenren/item/mu_dao/behavior/LiandaoGuOrganBehavior.java:49` |
+| `guzhenren:sheng_ji_xie_burst` | `guzhenren:sheng_ji_xie` | 辅助, 治疗 | 催动生机叶释放生机脉冲，治疗自身与友方并赋予短时间抗性/再生 | `compat/guzhenren/item/mu_dao/behavior/ShengJiYeOrganBehavior.java` |
+| `guzhenren:jiu_xie_sheng_ji_cao_cui_sheng` | `guzhenren:jiu_xie_sheng_ji_cao` | 辅助, 治疗 | 催动九叶生机治疗自身与友方，并按阶段赋予抗性/吸收护盾 | `compat/guzhenren/item/mu_dao/behavior/JiuYeShengJiCaoOrganBehavior.java` |
 | `guzhenren:long_wan_qu_qu_gu` | `guzhenren:long_wan_qu_qu_gu` | 防御, 机动 | 启动后获得 3 次短距闪避机会并提供短暂无敌窗口 | `compat/guzhenren/item/li_dao/behavior/LongWanQuQuGuOrganBehavior.java:30` |
 | `guzhenren:luo_xuan_gu_qiang_gu` | `guzhenren:luo_xuan_gu_qiang_gu` | 输出 | 消耗骨枪充能发射穿刺投射物，受骨道/力道增益影响 | `compat/guzhenren/item/gu_dao/behavior/LuoXuanGuQiangguOrganBehavior.java:54` |
 | `guzhenren:qing_tong_she_li_gu` | `guzhenren:qing_tong_she_li_gu` | 防御 | 入定 3 秒获得抗性 II，并重置冷却计时 | `compat/guzhenren/item/ren_dao/behavior/QingTongSheLiGuOrganBehavior.java:26` |
@@ -35,4 +37,3 @@
 | `guzhenren:zhi_zhuang_gu` | `guzhenren:zhi_zhuang_gu` | 输出, 位移 | 直线冲锋命中刷新冷却并累积惯性层数，魂道加持下触发灵魂回声与连锁爆发 | `compat/guzhenren/item/li_dao/behavior/ZhiZhuangGuOrganBehavior.java:120` |
 | `guzhenren:zi_jin_she_li_gu` | `guzhenren:zi_jin_she_li_gu` | 辅助, 治疗 | 燃烧 50% 生命与真元展开 15 秒领域，每秒恢复友方 10% 资源 | `compat/guzhenren/item/ren_dao/behavior/ZaijinSheLiGuOrganBehavior.java:44` |
 | `guzhenren:zi_li_geng_sheng_gu_3` | `guzhenren:zi_li_geng_sheng_gu_3` | 辅助, 治疗 | 消耗力道肌肉后持续再生 30 秒，结束附带虚弱 | `compat/guzhenren/item/li_dao/behavior/ZiLiGengShengGuOrganBehavior.java:45` |
-

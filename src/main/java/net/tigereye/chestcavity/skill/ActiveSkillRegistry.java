@@ -22,7 +22,10 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.JiuYeShengJiCaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.ShengJiYeOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.synergy.SheShengQuYiSynergyBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.BaiYinSheLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.ChiTieSheLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.HuangJinSheLiGuOrganBehavior;
@@ -178,6 +181,20 @@ public final class ActiveSkillRegistry {
                 () -> { ensureClassLoaded(LiandaoGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
+        register("guzhenren:sheng_ji_xie_burst", "guzhenren:sheng_ji_xie_burst", "guzhenren:sheng_ji_xie",
+                tags("辅助", "治疗"),
+                "催动生机叶，瞬发生机脉冲治疗自身与附近友方并赋予短时抗性/再生",
+                "compat/guzhenren/item/mu_dao/behavior/ShengJiYeOrganBehavior.java",
+                () -> { ensureClassLoaded(ShengJiYeOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:jiu_xie_sheng_ji_cao_cui_sheng", "guzhenren:jiu_xie_sheng_ji_cao_cui_sheng", "guzhenren:jiu_xie_sheng_ji_cao",
+                tags("辅助", "治疗"),
+                "催动九叶生机，治疗周围友方并赋予防御增益，阶段越高效果越强",
+                "compat/guzhenren/item/mu_dao/behavior/JiuYeShengJiCaoOrganBehavior.java:0",
+                () -> { ensureClassLoaded(JiuYeShengJiCaoOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
         register("guzhenren:qing_tong_she_li_gu", "guzhenren:qing_tong_she_li_gu", "guzhenren:qing_tong_she_li_gu",
                 tags("防御"),
                 "入定 3 秒获得抗性 II，并重置冷却计时",
@@ -298,6 +315,14 @@ public final class ActiveSkillRegistry {
                 "拥有玉骨时引爆寒冰冲击波，对范围敌人造成伤害与高额减速",
                 "compat/guzhenren/item/bing_xue_dao/behavior/BingJiGuOrganBehavior.java:75",
                 () -> { ensureClassLoaded(BingJiGuOrganBehavior.INSTANCE); });
+
+        // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
+        register("guzhenren:synergy/she_sheng_qu_yi", "guzhenren:synergy/she_sheng_qu_yi", "guzhenren:sheng_ji_xie",
+                tags("联动", "道德", "誓约"),
+                "舍利蛊 + 生机系联动：被动将道德转化为攻击力；主动消耗寿元换取大量道德并暂时降低上限",
+                "compat/guzhenren/item/synergy/SheShengQuYiSynergyBehavior.java",
+                () -> { ensureClassLoaded(SheShengQuYiSynergyBehavior.INSTANCE); },
+                CooldownHint.useOrgan("誓约就绪", null));
     }
 
     private static void register(String skillId,
