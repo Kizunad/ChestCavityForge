@@ -93,7 +93,7 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
     private static final int FIRE_COAT_DISABLE_TICKS = 60;
 
     private static final int FIRE_REFINE_CAP = 1200;
-    private static final int[] FIRE_REFINE_REQUIREMENTS = {0, 0, 1, 2, 3};
+    private static final int[] FIRE_REFINE_REQUIREMENTS = {0, 0, 200, 450, 800};
 
     private static final int SELF_BREW_ZHENYUAN_COST = 20;
     private static final int SELF_BREW_JINGLI_COST = 1;
