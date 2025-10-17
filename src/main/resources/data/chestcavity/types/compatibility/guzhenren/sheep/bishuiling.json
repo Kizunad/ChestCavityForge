@@ -1,11 +1,11 @@
 {
   "defaultChestCavity": [
     {
-      "item": "chestcavity:animal_muscle",
+      "item": "guzhenren:baishouwanglingrou",
       "position": 0
     },
     {
-      "item": "chestcavity:animal_rib",
+      "item": "guzhenren:bbaishoulingyangjiao",
       "position": 1
     },
     {
@@ -25,19 +25,19 @@
       "position": 5
     },
     {
-      "item": "chestcavity:animal_rib",
+      "item": "guzhenren:bbaishoulingyangjiao",
       "position": 7
     },
     {
-      "item": "chestcavity:animal_muscle",
+      "item": "guzhenren:baishouwanglingrou",
       "position": 8
     },
     {
-      "item": "chestcavity:animal_muscle",
+      "item": "guzhenren:lingrou",
       "position": 9
     },
     {
-      "item": "chestcavity:animal_rib",
+      "item": "guzhenren:baishouwanglingpi",
       "position": 10
     },
     {
@@ -61,15 +61,15 @@
       "position": 15
     },
     {
-      "item": "chestcavity:animal_rib",
+      "item": "guzhenren:baishouwanglingpi",
       "position": 16
     },
     {
-      "item": "chestcavity:animal_muscle",
+      "item": "guzhenren:baishouwanglingrou",
       "position": 17
     },
     {
-      "item": "chestcavity:animal_muscle",
+      "item": "guzhenren:lingrou",
       "position": 18
     },
     {
@@ -97,12 +97,56 @@
       "position": 24
     },
     {
-      "item": "chestcavity:animal_muscle",
+      "item": "guzhenren:lingrou",
       "position": 25
     },
     {
       "item": "chestcavity:animal_muscle",
       "position": 26
+    }
+  ],
+  "randomGenerators": [
+    {
+      "id": "chestcavity:sheep/shui_dao",
+      "count": {
+        "min": 0,
+        "max": 2
+      },
+      "items": [
+        "guzhenren:ling_xian_gu",
+        "guzhenren:shui_ti_gu",
+        "guzhenren:jiezegu",
+        "guzhenren:quan_yong_ming_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:sheep/bing_xue_dao",
+      "count": {
+        "min": 0,
+        "max": 2
+      },
+      "items": [
+        "guzhenren:bing_bu_gu",
+        "guzhenren:bing_ji_gu",
+        "guzhenren:shuang_xi_gu",
+        "guzhenren:qing_re_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:sheep/assorted_dao",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:dianliugu",
+        "guzhenren:fen_shen_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:liandaogu",
+        "guzhenren:ling_guang_yi_shan_gu",
+        "guzhenren:ganjingu",
+        "guzhenren:huorengu"
+      ]
     }
   ]
 }
