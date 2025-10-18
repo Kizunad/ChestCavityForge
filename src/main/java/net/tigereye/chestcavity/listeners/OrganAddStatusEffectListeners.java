@@ -14,6 +14,7 @@ public class OrganAddStatusEffectListeners {
     public static MobEffectInstance callMethods(LivingEntity livingEntity, ChestCavityInstance chestCavityInstance, MobEffectInstance mobEffectInstance){
         ApplyBuffPurging(livingEntity, chestCavityInstance, mobEffectInstance);
         ApplyDetoxification(livingEntity, chestCavityInstance, mobEffectInstance);
+        ApplyFiltration(livingEntity, chestCavityInstance, mobEffectInstance);
         ApplyWithered(livingEntity, chestCavityInstance, mobEffectInstance);
         return mobEffectInstance;
     }

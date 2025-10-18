@@ -63,4 +63,24 @@ class OrganHealingEventsTest {
         OrganHealingEvents.HungerRefund refund = snapshot.computeRefund(after);
         assertTrue(refund.isEmpty());
     }
+
+    @Test
+    void computeRefundIgnoresImprovements() {
+        FoodData baseline = new FoodData();
+        baseline.setFoodLevel(16);
+        baseline.setSaturation(3.0f);
+        baseline.addExhaustion(4.0f);
+
+        OrganHealingEvents.HungerSnapshot snapshot = OrganHealingEvents.HungerSnapshot.capture(baseline);
+
+        FoodData after = new FoodData();
+        after.setFoodLevel(17);
+        after.setSaturation(4.5f);
+        after.addExhaustion(2.0f);
+
+        OrganHealingEvents.HungerRefund refund = snapshot.computeRefund(after);
+        assertEquals(0, refund.foodLevels());
+        assertEquals(0.0f, refund.saturation(), 1.0E-4f);
+        assertEquals(0.0f, refund.exhaustion(), 1.0E-4f);
+    }
 }

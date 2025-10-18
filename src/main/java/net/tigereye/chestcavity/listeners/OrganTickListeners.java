@@ -44,7 +44,7 @@ public class OrganTickListeners {
 
     public static void TickCrystalsynthesis(LivingEntity entity, ChestCavityInstance cc){
         float crystalsynthesis = cc.getOrganScore(CCOrganScores.CRYSTALSYNTHESIS);
-        //if the old crystal had been exploded, suffer
+        //if the previously bound crystal has been removed, suffer backlash
         if (cc.connectedCrystal != null) {
             if(cc.connectedCrystal.isRemoved()) {
                 entity.hurt(entity.damageSources().starve(), crystalsynthesis * 2);
