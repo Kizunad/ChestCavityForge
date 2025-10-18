@@ -32,6 +32,8 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -108,6 +110,7 @@ public final class YinYunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         ServerLevel level = entity.level() instanceof ServerLevel s ? s : null;
         entity.heal((float) HEAL_PER_SECOND);
+        ReactionTagOps.add(entity, ReactionTagKeys.CLOUD_SHROUD, 80);
 
         drainNearbyJingli(entity);
 
@@ -238,6 +241,7 @@ public final class YinYunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         float heal = damage * ratio;
         if (heal > 0.0F) {
             attacker.heal(heal);
+            ReactionTagOps.add(attacker, ReactionTagKeys.CLOUD_SHROUD, 60);
         }
     }
 

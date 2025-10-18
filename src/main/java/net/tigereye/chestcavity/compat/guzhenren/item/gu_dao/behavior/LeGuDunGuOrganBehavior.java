@@ -11,6 +11,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
@@ -26,6 +27,7 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -34,13 +36,15 @@ import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 
 /**
  * Behaviour for 肋骨盾蛊 – a defensive bone Gu that fuels bone growth, grants increase effect and
  * stores "不屈" stacks for the Bone Guard active ability.
  */
 public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
-        implements OrganSlowTickListener, OrganRemovalListener, IncreaseEffectContributor {
+        implements OrganSlowTickListener, OrganRemovalListener, IncreaseEffectContributor, OrganIncomingDamageListener {
 
     public static final LeGuDunGuOrganBehavior INSTANCE = new LeGuDunGuOrganBehavior();
 
@@ -218,6 +222,31 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 0.85f + player.getRandom().nextFloat() * 0.3f
         );
         player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, INVULN_DURATION_TICKS, 4, false, true, true));
+        // 自身短时骨系免疫，提示一次
+        ReactionTagOps.add(player, ReactionTagKeys.BONE_IMMUNE, INVULN_DURATION_TICKS + 20);
+        if (!player.level().isClientSide()) {
+            player.sendSystemMessage(Component.translatable("message.chestcavity.gu.rib_shield.activated"));
+        }
+    }
+
+    @Override
+    public float onIncomingDamage(net.minecraft.world.damagesource.DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
+        if (victim == null || victim.level().isClientSide() || cc == null || organ == null || organ.isEmpty()) {
+            return damage;
+        }
+        // 仅近战：direct entity 为生物，排除常见投射物
+        LivingEntity attacker = null;
+        if (source != null) {
+            if (source.getDirectEntity() instanceof LivingEntity le) {
+                attacker = le;
+            }
+        }
+        if (attacker == null) {
+            return damage;
+        }
+        // 标记攻击者骨刺
+        ReactionTagOps.add(attacker, ReactionTagKeys.BONE_MARK, 80);
+        return damage;
     }
 
     private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ, boolean active) {

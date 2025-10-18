@@ -10,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -21,8 +23,10 @@ import net.minecraft.world.item.ArrowItem;
 import net.minecraft.world.item.ProjectileWeaponItem;
 
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.RandomSource;
+import net.minecraft.network.chat.Component;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -41,6 +45,8 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -318,6 +324,29 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
 
     @Override
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
+        if (attacker == null || target == null || attacker.level().isClientSide()) {
+            return damage;
+        }
+        if (cc == null || organ == null || organ.isEmpty()) {
+            return damage;
+        }
+        // 为命中的目标附加骨刺标记，并在命中点对周围目标施加短弱化（表现为骨片飞溅）
+        ReactionTagOps.add(target, ReactionTagKeys.BONE_MARK, 80);
+        Level level = target.level();
+        if (level instanceof ServerLevel server) {
+            AABB area = target.getBoundingBox().inflate(1.5);
+            for (LivingEntity vic : server.getEntitiesOfClass(LivingEntity.class, area, e -> e != attacker && e.isAlive() && !e.isAlliedTo(attacker))) {
+                vic.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40, 0, false, true, true));
+            }
+            server.playSound(null, target.blockPosition(), SoundEvents.BONE_BLOCK_BREAK, SoundSource.PLAYERS, 0.7f, 1.0f);
+            server.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(), 10, 0.3, 0.2, 0.3, 0.02);
+            if (attacker instanceof Player p && !p.level().isClientSide()) {
+                p.sendSystemMessage(Component.translatable("message.chestcavity.gu.bone_mark.attacker", target.getName().getString()));
+            }
+            if (target instanceof Player tp && !tp.level().isClientSide()) {
+                tp.sendSystemMessage(Component.translatable("message.chestcavity.gu.bone_mark.target", attacker.getName().getString()));
+            }
+        }
         return damage;
     }
 

@@ -32,6 +32,8 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.joml.Vector3f;
 
 /**
@@ -137,6 +139,9 @@ public enum ShiPiGuOrganBehavior implements OrganSlowTickListener, OrganIncoming
         double effectiveLevel = baseLevel * (1.0 + Math.max(0.0, increase));
         double absorptionAmount = Math.max(0.0, effectiveLevel * ABSORPTION_PER_LEVEL);
         AbsorptionHelper.applyAbsorption(entity, absorptionAmount, ABSORPTION_MODIFIER_ID, false);
+        if (absorptionAmount > 0.0) {
+            ReactionTagOps.add(entity, ReactionTagKeys.STONE_SHELL, 40);
+        }
     }
 
     private static void playRechargeCue(LivingEntity entity) {

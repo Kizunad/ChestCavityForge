@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:jiu_xie_sheng_ji_cao_cui_sheng",
+  "organScores": [
+    {"id":"chestcavity:health","value": "20"},
+    {"id":"guzhenren:zuida_zhenyuan","value":"8"},
+     {"id":"chestcavity:detoxification","value": "1"}
+  ]
+}

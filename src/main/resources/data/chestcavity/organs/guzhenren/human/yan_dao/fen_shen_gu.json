@@ -1,7 +1,7 @@
 {
   "itemID": "guzhenren:fen_shen_gu",
   "organScores": [
-    {"id": "guzhenren:max_jingli", "value": "20"},
+    {"id": "guzhenren:zuida_jingli", "value": "20"},
     {"id": "chestcavity:fire_resistant", "value": "2"},
     {"id": "chestcavity:detoxification", "value": "1"}
   ]

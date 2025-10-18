@@ -19,4 +19,10 @@ public final class DoTTypes {
     public static final ResourceLocation SHUANG_XI_FROSTBITE = ChestCavity.id("dot/shuang_xi_frostbite");
     public static final ResourceLocation YIN_YUN_CORROSION = ChestCavity.id("dot/yin_yun_corrosion");
     public static final ResourceLocation YAN_DAO_HUO_YI_AURA = ChestCavity.id("dot/yan_dao_huo_yi_aura");
+    // 通用点燃 DoT（由火系命中/余烬/点燃窗口刷新）
+    public static final ResourceLocation IGNITE = ChestCavity.id("dot/ignite");
+
+    // 智道（心智系）
+    public static final ResourceLocation ZHI_DAO_PSYCHIC_BURN = ChestCavity.id("dot/zhi_dao_psychic_burn");
+    public static final ResourceLocation ZHI_DAO_INSIGHT_AURA = ChestCavity.id("dot/zhi_dao_insight_aura");
 }

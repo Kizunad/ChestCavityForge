@@ -15,6 +15,14 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 
 import java.util.Locale;
@@ -69,6 +77,19 @@ public final class LingGuangYiShanGuOrganBehavior extends AbstractGuzhenrenOrgan
         if (handleOpt.isEmpty()) {
             GuzhenrenResourceCostHelper.refund(player, payment);
             logDebug("recovery aborted", player, 0.0, 0.0, payment);
+            return;
+        }
+
+        // 供能成功：短时专注与清理困惑；轻量粒子/音效并提示一次
+        ReactionTagOps.add(player, ReactionTagKeys.FOCUS, 60);
+        ReactionTagOps.clear(player, ReactionTagKeys.CONFUSION);
+        Level level = player.level();
+        if (level instanceof ServerLevel server) {
+            server.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + player.getBbHeight() * 0.8, player.getZ(), 4, 0.2, 0.1, 0.2, 0.01);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.4f, 1.2f);
+            if (!player.level().isClientSide()) {
+                player.sendSystemMessage(Component.translatable("message.chestcavity.zhi.focus_gained"));
+            }
         }
     }
 

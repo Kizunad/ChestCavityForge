@@ -20,6 +20,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 /**
  * 一星半点蛊：濒死受击时触发“残光护体”。
@@ -90,6 +92,7 @@ public enum XingBanDianGuOrganBehavior implements OrganIncomingDamageListener {
         healBurst(victim);
         clearDebuffs(victim);
         playFx(victim);
+        ReactionTagOps.add(victim, ReactionTagKeys.STAR_GLINT, (int) INVULN_DURATION_TICKS + 20);
         // 延迟到下一tick从胸腔背包消耗一枚，规避并发修改异常
         if (victim.level() instanceof ServerLevel server) {
             TickOps.schedule(server, () -> consumeOneOrgan(cc), 1);

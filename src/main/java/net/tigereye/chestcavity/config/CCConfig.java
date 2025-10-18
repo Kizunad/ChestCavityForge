@@ -398,5 +398,45 @@ public class CCConfig implements ConfigData {
         public float fireCorrosionMaxPower = 1.8F;
         public int fireCorrosionCooldownTicks = 40; // 防止连续引爆导致卡顿
         public int fireCorrosionMaxPerTickPerAttacker = 3; // 单攻击者每tick最多触发次数
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public HuoTanConfig HUO_TAN = new HuoTanConfig();
+    }
+
+    public static class HuoTanConfig {
+        // 基础标签时长
+        public int flameMarkDurationTicks = 80; // 燃痕默认时长
+        public int igniteWindowTicks = 40;      // 点燃窗口默认时长
+        // 余烬残留
+        public float emberResidueRadius = 1.6F;
+        public int emberResidueDurationTicks = 60;
+        public int emberTickIntervalTicks = 10; // 每 10t 附加燃痕/点燃
+        public int emberIgniteSeconds = 1;      // 附带点燃秒数（0=禁用）
+        public int emberMarkPerTick = 1;        // 每 tick 附加的燃痕层数
+        public int emberMaxEntitiesPerTick = 16;
+        // 爆阈（按阶可自定义，优先行为侧覆盖）
+        public int burstThresholdTier1 = 2;
+        public int burstThresholdHigh = 3;
+        // Ignite DoT 参数
+        public double igniteBaseDps = 0.6D;
+        public double ignitePerStackK = 0.25D;
+        public int igniteDurationTicks = 60;
+        public double igniteBonusOnPulse = 0.2D; // 近似护甲衰减修正（附加魔法伤害）
+        // 过热爆
+        public float overheatExplosionPower = 2.4F;
+        public int overheatFireImmuneTicks = 8 * 20;
+        // 4转极限技（亦可由行为侧覆盖）
+        public double extremeZhenyuanCost = 1200.0D;
+        public double extremeJingliCost = 20.0D;
+        public float extremeRadius = 6.0F;
+        public int extremeCooldownTicks = 60 * 20;
+        public int extremeFireImmuneTicks = 12 * 20;
+        public float extremeDmgPerPressure = 2.5F;
+        // 链爆
+        public int chainBlastJumps = 3;
+        public float chainBlastRadius = 2.2F;
+        public double chainBlastFirstDamage = 3.5D;
+        public double chainBlastDecay = 0.8D; // 每跳 80%
+        public int chainBlastCooldownTicks = 80;
     }
 }

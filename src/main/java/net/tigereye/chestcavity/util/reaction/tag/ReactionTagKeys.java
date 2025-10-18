@@ -18,13 +18,18 @@ public final class ReactionTagKeys {
         return ChestCavity.id(path);
     }
 
-    // 通用火系标签
-    public static final ResourceLocation FIRE_MARK = tag("reaction/fire_mark");
+    // 通用火系标签（采用统一命名）
+    public static final ResourceLocation FLAME_MARK = tag("reaction/flame_mark");
+    public static final ResourceLocation FIRE_MARK = FLAME_MARK; // 兼容引用
     public static final ResourceLocation OIL_COATING = tag("reaction/oil_coating");
     public static final ResourceLocation FIRE_COAT = tag("reaction/fire_coat");
-    public static final ResourceLocation FIRE_RESIDUE = tag("reaction/fire_residue");
+    public static final ResourceLocation EMBER_RESIDUE = tag("reaction/ember_residue");
+    public static final ResourceLocation FIRE_RESIDUE = EMBER_RESIDUE; // 兼容引用
     public static final ResourceLocation FIRE_EXPLOSION = tag("reaction/fire_explosion");
     public static final ResourceLocation FIRE_IMMUNE = tag("reaction/fire_immune");
+    public static final ResourceLocation IGNITE_WINDOW = tag("reaction/ignite_window");
+    public static final ResourceLocation IGNITE_AMP = tag("reaction/ignite_amp");
+    public static final ResourceLocation CHAR_PRESSURE = tag("reaction/char_pressure");
 
     // 其它元素/学派标签（预留，按需在规则与行为中使用）
     public static final ResourceLocation FROST_MARK = tag("reaction/frost_mark");
@@ -45,6 +50,11 @@ public final class ReactionTagKeys {
     public static final ResourceLocation FOOD_MADNESS = tag("reaction/food_madness");
     public static final ResourceLocation WATER_VEIL = tag("reaction/water_veil");
     public static final ResourceLocation HEAVEN_GRACE = tag("reaction/heaven_grace");
+    public static final ResourceLocation EARTH_GUARD = tag("reaction/earth_guard");
+    public static final ResourceLocation STONE_SHELL = tag("reaction/stone_shell");
+    public static final ResourceLocation STAR_GLINT = tag("reaction/star_glint");
+    public static final ResourceLocation FLAME_TRAIL = tag("reaction/flame_trail");
+    public static final ResourceLocation CLOUD_SHROUD = tag("reaction/cloud_shroud");
 
     // 血道通用标签
     public static final ResourceLocation BLOOD_MARK = tag("reaction/blood_mark");
@@ -66,4 +76,11 @@ public final class ReactionTagKeys {
     public static final ResourceLocation BONE_MARK = tag("reaction/bone_mark");
     public static final ResourceLocation SHARD_FIELD = tag("reaction/shard_field");
     public static final ResourceLocation BONE_IMMUNE = tag("reaction/bone_immune");
+
+    // 智道通用标签（心智/专注/幻像）
+    public static final ResourceLocation WISDOM_MARK = tag("reaction/wisdom_mark");
+    public static final ResourceLocation CONFUSION = tag("reaction/confusion");
+    public static final ResourceLocation ILLUSION = tag("reaction/illusion");
+    public static final ResourceLocation FOCUS = tag("reaction/focus");
+    public static final ResourceLocation MIND_IMMUNE = tag("reaction/mind_immune");
 }

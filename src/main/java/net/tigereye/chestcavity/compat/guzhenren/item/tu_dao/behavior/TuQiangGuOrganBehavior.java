@@ -35,6 +35,8 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -174,6 +176,10 @@ public final class TuQiangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             }
         } else {
             AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
+        }
+
+        if (reserve > 0.0 || barrierTicks > 0 || barrierRemaining > 0.0) {
+            ReactionTagOps.add(entity, ReactionTagKeys.EARTH_GUARD, 40);
         }
 
         if (slotUpdate) {

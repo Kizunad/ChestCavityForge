@@ -254,6 +254,14 @@ public final class ActiveSkillRegistry {
                 () -> { ensureClassLoaded(HuoYouGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
+        // 单窍·火炭蛊：极限技（四转）
+        register("guzhenren:dan_qiao_huo_tan_gu", "guzhenren:dan_qiao_huo_tan_gu", "guzhenren:dan_qiao_huo_tan_gu",
+                tags("输出", "爆发"),
+                "清空范围目标的炭压并按层数引发3段炭核风暴，对命中者施加火免短窗（四转解锁）",
+                "compat/guzhenren/item/yan_dao/behavior/HuoTanGuOrganBehavior.java",
+                () -> { ensureClassLoaded(net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoTanGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
         register("guzhenren:jian_ying_fenshen", "guzhenren:jian_ying_fenshen", "guzhenren:jian_ying_gu",
                 tags("输出", "召唤"),
                 "支付真元与精力召唤剑影分身协同作战，随器官数量扩充",

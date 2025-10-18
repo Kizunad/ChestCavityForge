@@ -36,6 +36,8 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -173,6 +175,7 @@ public final class BaiYunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         ServerLevel serverLevel = (ServerLevel) entity.level();
         entity.heal((float) HEAL_PER_SECOND);
         ResourceOps.tryAdjustJingli(entity, JINGLI_PER_SECOND);
+        ReactionTagOps.add(entity, ReactionTagKeys.CLOUD_SHROUD, 80);
 
         OrganState state = OrganState.of(organ, STATE_ROOT);
         int currentStacks = Mth.clamp(state.getInt(STACKS_KEY, 0), 0, MAX_STACKS);

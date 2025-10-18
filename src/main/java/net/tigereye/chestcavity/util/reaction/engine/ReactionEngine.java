@@ -79,6 +79,12 @@ public final class ReactionEngine {
         QUEUE.add(Job.bloodResidue(level, x, y, z, radius, durationTicks));
     }
 
+    public static void queueFireResidue(ServerLevel level, double x, double y, double z,
+                                        float radius, int durationTicks) {
+        if (level == null || radius <= 0.0F || durationTicks <= 0) return;
+        QUEUE.add(Job.fireResidue(level, x, y, z, radius, durationTicks));
+    }
+
     /**
      * 在 ServerTick(Post) 调用。执行限流/降级并消费队列。
      */
@@ -88,17 +94,19 @@ public final class ReactionEngine {
         int maxJobs = Math.max(1, C.globalMaxJobsPerTick);
         int executed = 0;
 
-        // 简易降级：当队列过长时，降低半径及伤害
-        float degradeFactor = QUEUE.size() > maxJobs ? 0.7F : 1.0F;
+        // 拷贝快照，避免在处理过程中被追加新任务引发 CME；新任务留待下个 tick 处理
+        java.util.List<Job> snapshot = new java.util.ArrayList<>(QUEUE);
+        QUEUE.clear();
+
+        // 简易降级：当队列过长时，降低半径及伤害（基于快照大小）
+        float degradeFactor = snapshot.size() > maxJobs ? 0.7F : 1.0F;
 
         // per-attacker 限流计数（仅对 AoE/Explosion 生效）
         int perAttackerMax = Math.max(1, C.perAttackerMaxJobsPerTick);
         Map<UUID, Integer> attackerBudget = new HashMap<>();
 
-        Iterator<Job> it = QUEUE.iterator();
-        while (it.hasNext() && executed < maxJobs) {
-            Job job = it.next();
-            it.remove();
+        for (int idx = 0; idx < snapshot.size() && executed < maxJobs; idx++) {
+            Job job = snapshot.get(idx);
 
             if (job.kind == JobKind.AOE || job.kind == JobKind.EXPLOSION) {
                 UUID a = job.attackerUuid;
@@ -120,12 +128,11 @@ public final class ReactionEngine {
                         clamp(job.radius * degradeFactor, 0.5F), Math.max(20, job.durationTicks));
                 case RESIDUE_BLOOD -> ResidueManager.spawnOrRefreshBlood(job.level, job.x, job.y, job.z,
                         clamp(job.radius * degradeFactor, 0.5F), Math.max(20, job.durationTicks));
+                case RESIDUE_FIRE -> ResidueManager.spawnOrRefreshFire(job.level, job.x, job.y, job.z,
+                        clamp(job.radius * degradeFactor, 0.5F), Math.max(20, job.durationTicks));
             }
             executed++;
         }
-
-        // 清空未处理的（避免跨 tick 堆积）
-        QUEUE.clear();
     }
 
     private static void runAoE(Job job, CCConfig.ReactionConfig C, float degradeFactor) {
@@ -188,7 +195,7 @@ public final class ReactionEngine {
 
     // -------- Job types --------
     public enum VisualTheme { GENERIC, FIRE, STEAM, FROST, SOUL, CORROSION, BLOOD }
-    private enum JobKind { AOE, EXPLOSION, RESIDUE_FROST, RESIDUE_CORROSION, RESIDUE_BLOOD }
+    private enum JobKind { AOE, EXPLOSION, RESIDUE_FROST, RESIDUE_CORROSION, RESIDUE_BLOOD, RESIDUE_FIRE }
 
     private static final class Job {
         final JobKind kind;
@@ -226,6 +233,9 @@ public final class ReactionEngine {
         }
         static Job bloodResidue(ServerLevel lvl, double x, double y, double z, float r, int dur) {
             return new Job(JobKind.RESIDUE_BLOOD, lvl, x, y, z, r, 0.0F, dur, 0, 0.0F, null, false, VisualTheme.BLOOD);
+        }
+        static Job fireResidue(ServerLevel lvl, double x, double y, double z, float r, int dur) {
+            return new Job(JobKind.RESIDUE_FIRE, lvl, x, y, z, r, 0.0F, dur, 0, 0.0F, null, false, VisualTheme.FIRE);
         }
     }
 

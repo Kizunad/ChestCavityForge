@@ -36,6 +36,8 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
@@ -175,6 +177,7 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
                     false,
                     true,
                     true));
+            ReactionTagOps.add(target, ReactionTagKeys.FLAME_TRAIL, 80);
         }
 
         activeNextEntry.setReadyAt(gameTime + 20L);

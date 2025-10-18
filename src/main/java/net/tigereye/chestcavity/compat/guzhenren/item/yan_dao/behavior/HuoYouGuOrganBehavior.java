@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOr
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ProgressionOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
@@ -202,7 +203,13 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             if (tier >= 3 && isNether(player.level())) {
                 long time = player.level().getGameTime();
                 if (time % (20L * 60L) == 0L) {
-                    addFireRefinePoints(player, cc, organ, state, 2);
+                    ProgressionOps.addPointsAndCheckTier(cc, organ, state,
+                            KEY_FRP, KEY_TIER,
+                            2, FIRE_REFINE_CAP,
+                            1, 4, FIRE_REFINE_REQUIREMENTS,
+                            (player instanceof ServerPlayer sp) ? sp : null,
+                            (sp, cci, org, newTier) -> { sp.displayClientMessage(INSTANCE.tierUpMessage(newTier), true); return true; }
+                    );
                 }
             }
 
@@ -346,7 +353,13 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         }
         OrganState state = organState(organ, STATE_ROOT);
         boolean targetDead = context.target() != null && !context.target().isAlive();
-        addFireRefinePoints(player, cc, organ, state, 25);
+        ProgressionOps.addPointsAndCheckTier(cc, organ, state,
+                KEY_FRP, KEY_TIER,
+                25, FIRE_REFINE_CAP,
+                1, 4, FIRE_REFINE_REQUIREMENTS,
+                (player instanceof ServerPlayer sp) ? sp : null,
+                (sp, cci, org, newTier) -> { sp.displayClientMessage(INSTANCE.tierUpMessage(newTier), true); return true; }
+        );
         if (targetDead) {
             handleExplosionKill(player, cc, organ, state);
         }
@@ -415,7 +428,13 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         INSTANCE.spawnSprayFx(server, player, look, fuelStacks);
 
         if (hits >= 3) {
-            INSTANCE.addFireRefinePoints(player, cc, organ, state, 15);
+            ProgressionOps.addPointsAndCheckTier(cc, organ, state,
+                    KEY_FRP, KEY_TIER,
+                    15, FIRE_REFINE_CAP,
+                    1, 4, FIRE_REFINE_REQUIREMENTS,
+                    (player instanceof ServerPlayer sp) ? sp : null,
+                    (sp, cci, org, newTier) -> { sp.displayClientMessage(INSTANCE.tierUpMessage(newTier), true); return true; }
+            );
         }
 
         OrganStateOps.Collector collector = OrganStateOps.collector(cc, organ);
@@ -603,35 +622,7 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         return newStacks;
     }
 
-    private void addFireRefinePoints(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, int amount) {
-        if (player == null || state == null || amount <= 0) {
-            return;
-        }
-        int current = Math.max(0, state.getInt(KEY_FRP, 0));
-        int capped = Mth.clamp(current + amount, 0, FIRE_REFINE_CAP);
-        if (capped == current) {
-            return;
-        }
-        state.setInt(KEY_FRP, capped, value -> Mth.clamp(value, 0, FIRE_REFINE_CAP), 0);
-        checkTierUpgrade(player, cc, organ, state, capped);
-    }
-
-    private void checkTierUpgrade(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, int frp) {
-        int tier = resolveTier(state);
-        if (tier >= 4) {
-            return;
-        }
-        int index = Math.min(tier + 1, FIRE_REFINE_REQUIREMENTS.length - 1);
-        int required = FIRE_REFINE_REQUIREMENTS[index];
-        if (frp < required) {
-            return;
-        }
-        state.setInt(KEY_TIER, tier + 1, value -> Mth.clamp(value, 1, 4), 1);
-        if (player instanceof ServerPlayer sp) {
-            sp.displayClientMessage(tierUpMessage(tier + 1), true);
-        }
-        sendSlotUpdate(cc, organ);
-    }
+    
 
     private Component tierUpMessage(int tier) {
         return switch (tier) {
