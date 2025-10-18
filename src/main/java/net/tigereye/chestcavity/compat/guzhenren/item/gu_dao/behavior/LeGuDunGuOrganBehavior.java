@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 
 import java.util.List;
 import java.util.Optional;
@@ -93,8 +94,15 @@ public final class LeGuDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         int current = clampBuQu(state.getInt(BU_QU_KEY, 0));
         if (current < MAX_BU_QU) {
-            net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(
-                    cc, organ, STATE_ROOT, BU_QU_KEY, current + 1, v -> clampBuQu(v), 0);
+            int next = clampBuQu(current + 1);
+            if (next != current) {
+                net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(
+                        cc, organ, STATE_ROOT, BU_QU_KEY, next, v -> clampBuQu(v), 0);
+                if (next >= MAX_BU_QU && entity instanceof ServerPlayer sp) {
+                    long now = entity.level().getGameTime();
+                    ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, now, now);
+                }
+            }
         } else if (current != state.getInt(BU_QU_KEY, 0)) {
             net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps.setIntSync(
                     cc, organ, STATE_ROOT, BU_QU_KEY, current, v -> clampBuQu(v), 0);

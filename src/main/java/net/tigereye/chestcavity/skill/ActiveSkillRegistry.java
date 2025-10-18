@@ -113,7 +113,8 @@ public final class ActiveSkillRegistry {
                 tags("防御"),
                 "满\"不屈\"后消耗真元获得短暂无敌与高抗性",
                 "compat/guzhenren/item/gu_dao/behavior/LeGuDunGuOrganBehavior.java:49",
-                () -> { ensureClassLoaded(LeGuDunGuOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(LeGuDunGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("骨盾就绪", null));
 
         register("guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu",
                 tags("输出", "控制"),
@@ -166,7 +167,8 @@ public final class ActiveSkillRegistry {
                 tags("输出"),
                 "消耗骨枪充能发射穿刺投射物，受骨道/力道增益影响",
                 "compat/guzhenren/item/gu_dao/behavior/LuoXuanGuQiangguOrganBehavior.java:54",
-                () -> { ensureClassLoaded(LuoXuanGuQiangguOrganBehavior.INSTANCE); });
+                () -> { ensureClassLoaded(LuoXuanGuQiangguOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("骨枪充能完成", null));
 
         register("guzhenren:xie_fei_gu", "guzhenren:xie_fei_gu", "guzhenren:xie_fei_gu",
                 tags("输出", "控制"),

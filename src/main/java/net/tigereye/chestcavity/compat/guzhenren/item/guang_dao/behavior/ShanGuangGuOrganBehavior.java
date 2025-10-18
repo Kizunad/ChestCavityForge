@@ -38,6 +38,8 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NBTWriter;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -185,6 +187,7 @@ public final class ShanGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
             }
             target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, PASSIVE_AURA_DURATION_TICKS, 0, false, false, false));
             target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, PASSIVE_AURA_DURATION_TICKS, 1, false, false, false));
+            ReactionTagOps.add(target, ReactionTagKeys.LIGHT_DAZE, PASSIVE_AURA_DURATION_TICKS);
         }
     }
 
@@ -297,6 +300,8 @@ public final class ShanGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
             target.hurt(source, ACTIVE_DAMAGE);
             target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, ACTIVE_BLIND_DURATION_TICKS, 0, false, false, false));
             target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ACTIVE_SLOW_DURATION_TICKS, 4, false, false, false));
+            int tagDuration = Math.max(ACTIVE_SLOW_DURATION_TICKS, ACTIVE_BLIND_DURATION_TICKS);
+            ReactionTagOps.add(target, ReactionTagKeys.LIGHT_DAZE, tagDuration);
         }
 
         entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, ACTIVE_SPEED_DURATION_TICKS, Math.max(0, ACTIVE_SPEED_AMPLIFIER - 1), false, false, true));

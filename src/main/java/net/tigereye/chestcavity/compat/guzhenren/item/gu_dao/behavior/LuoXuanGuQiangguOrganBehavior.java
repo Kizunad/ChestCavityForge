@@ -6,6 +6,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
@@ -39,6 +40,7 @@ import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.NBTCharge;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -104,6 +106,10 @@ public enum LuoXuanGuQiangguOrganBehavior implements OrganSlowTickListener, Orga
             NetworkUtil.sendOrganSlotUpdate(cc, organ);
             if (entity instanceof Player) {
                 ChestCavity.LOGGER.info("[LuoXuanGuQiangGu] recharge -> {}/{}", updated, MAX_CHARGE);
+            }
+            if (currentCharge == 0 && updated > 0 && entity instanceof ServerPlayer sp) {
+                long now = entity.level().getGameTime();
+                ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, now, now);
             }
         }
     }

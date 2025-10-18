@@ -37,6 +37,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -90,6 +92,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     private static final double AFTERIMAGE_DAMAGE_RATIO = 0.20;
     private static final int AFTERIMAGE_DURATION_TICKS = BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "AFTERIMAGE_DURATION_TICKS", 20);
     private static final double AFTERIMAGE_RADIUS = 3.0;
+    private static final int SWORD_SCAR_DURATION_TICKS = BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "SWORD_SCAR_DURATION_TICKS", 120);
 
     private static final Map<UUID, SwordShadowState> SWORD_STATES = new ConcurrentHashMap<>();
     private static final Map<UUID, ArrayDeque<Long>> COOLDOWN_HISTORY = new ConcurrentHashMap<>();
@@ -565,6 +568,12 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
             }
         }
         target.hurtTime = 0;
+        if (player != null && !target.level().isClientSide()) {
+            ChestCavityEntity.of(player)
+                    .map(ChestCavityEntity::getChestCavityInstance)
+                    .filter(JianYingGuOrganBehavior::hasOrgan)
+                    .ifPresent(ccIgnored -> ReactionTagOps.add(target, ReactionTagKeys.SWORD_SCAR, SWORD_SCAR_DURATION_TICKS));
+        }
         } finally {
             REENTRY_GUARD.remove();
         }

@@ -28,6 +28,8 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +66,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double TRUE_DAMAGE_RATIO = 0.03D;
     private static final double GUI_WU_RADIUS = 4.0D;
     private static final int GUI_WU_COOLDOWN_TICKS = BehaviorConfigAccess.getInt(GuiQiGuOrganBehavior.class, "GUI_WU_COOLDOWN_TICKS", 160);
+    private static final int SOUL_SCAR_DURATION_TICKS = BehaviorConfigAccess.getInt(GuiQiGuOrganBehavior.class, "SOUL_SCAR_DURATION_TICKS", 160);
 
     private static final String STATE_ROOT_KEY = "GuiQiGu";
     private static final String KEY_COOLDOWN_UNTIL = "CooldownUntil";
@@ -153,6 +156,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             DamageSource trueSource = player.damageSources().magic();
             HunDaoDamageUtil.markHunDaoAttack(trueSource);
             target.hurt(trueSource, extraDamage);
+            ReactionTagOps.add(target, ReactionTagKeys.SOUL_SCAR, SOUL_SCAR_DURATION_TICKS);
         } finally {
             REENTRY_GUARD.set(Boolean.FALSE);
         }

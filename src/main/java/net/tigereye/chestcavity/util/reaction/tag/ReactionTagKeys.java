@@ -34,6 +34,11 @@ public final class ReactionTagKeys {
     public static final ResourceLocation SOUL_IMMUNE = tag("reaction/soul_immune");
     public static final ResourceLocation CORROSION_IMMUNE = tag("reaction/corrosion_immune");
 
+    // 光道/魂道/剑道扩展标签
+    public static final ResourceLocation LIGHT_DAZE = tag("reaction/light_daze");
+    public static final ResourceLocation SOUL_SCAR = tag("reaction/soul_scar");
+    public static final ResourceLocation SWORD_SCAR = tag("reaction/sword_scar");
+
     // 血道通用标签
     public static final ResourceLocation BLOOD_MARK = tag("reaction/blood_mark");
     public static final ResourceLocation HEMORRHAGE = tag("reaction/hemorrhage");
