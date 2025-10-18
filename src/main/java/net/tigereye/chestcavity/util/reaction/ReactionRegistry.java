@@ -535,10 +535,18 @@ public final class ReactionRegistry {
                     // 移除油涂层（通用 Tag 清理）
                     net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.clear(ctx.target(),
                             net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.OIL_COATING);
-                    // 短暂屏蔽来自该攻击者的火衣 DoT（视为去除火衣），默认 3s
-                    // 将屏蔽窗口设为 0（不做连锁抑制）
+                    // 可选：移除火痕，避免后续被其它火源立刻再次连锁
+                    if (C.fireOilClearFlameTrail) {
+                        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.clear(ctx.target(),
+                                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.FLAME_TRAIL);
+                    }
+                    // 为目标添加短暂火系免疫，进一步抑制立即连锁
+                    net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(ctx.target(),
+                            net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.FIRE_IMMUNE,
+                            Math.max(0, C.fireOilImmuneTicks));
+                    // 为攻击者添加火衣屏蔽窗口（对所有目标生效），防止同一攻击者短时间内反复触发
                     long now = ctx.server().getTickCount();
-                    FIRE_AURA_BLOCK_UNTIL.put(ctx.attacker().getUUID(), now);
+                    FIRE_AURA_BLOCK_UNTIL.put(ctx.attacker().getUUID(), now + Math.max(0, C.fireOilBlockTicks));
                     // 取消本次 DoT 伤害，提示
                     {
                         String a = ctx.attacker() != null ? ctx.attacker().getName().getString() : "火衣";
@@ -1356,6 +1364,9 @@ public final class ReactionRegistry {
     }
 
     private static void debugMessage(LivingEntity viewer, String text) {
+        // 受配置 REACTION.debugReactions 控制
+        CCConfig cfg = ChestCavity.config;
+        if (cfg != null && !cfg.REACTION.debugReactions) return;
         if (viewer instanceof Player player && !player.level().isClientSide()) {
             player.sendSystemMessage(Component.literal(text));
         }
@@ -1363,6 +1374,9 @@ public final class ReactionRegistry {
 
     // 使用本地化键发送系统消息（优先用于调试/提示文案），以便与 guzhenren 风格保持一致
     private static void i18nMessage(LivingEntity viewer, String key, Object... args) {
+        // 受配置 REACTION.debugReactions 控制（用于屏蔽反应调试/提示输出）
+        CCConfig cfg = ChestCavity.config;
+        if (cfg != null && !cfg.REACTION.debugReactions) return;
         if (viewer instanceof Player player && !player.level().isClientSide()) {
             player.sendSystemMessage(Component.translatable(key, args));
         }

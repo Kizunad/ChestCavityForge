@@ -354,6 +354,10 @@ public class CCConfig implements ConfigData {
         public int maxAoEEntitiesPerJob = 32;
         public boolean useAoEForAll = false; // 统一将爆炸降级为 AoE（可被各规则覆盖）
         public boolean fireOilUseAoE = false; // 油+火衣：默认使用真实爆炸（已限流/降级），可单独改为AoE
+        // 油+火衣后处理：清标记/免疫/防抖
+        public boolean fireOilClearFlameTrail = true; // 爆炸后清除目标的 flame_trail，避免连锁过快
+        public int fireOilImmuneTicks = 40;          // 目标获得短暂 fire_immune（2s）
+        public int fireOilBlockTicks = 40;           // 攻击者的火衣对所有目标短暂失效（防抖）
         // 视觉与音效
         public boolean vfxEnable = true;
         public boolean sfxEnable = true;

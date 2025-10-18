@@ -50,6 +50,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.config.CCConfig;
+import me.shedaniel.autoconfig.AutoConfig;
 
 /**
  * Top-level configuration hub for Chest Cavity, rendered with Modern UI.
@@ -168,6 +171,36 @@ public class ChestCavityConfigFragment extends Fragment {
             addBody(layout,
                     "· 规划全局配置入口，未来将同步 ModMenu / NeoForge Config。\n" +
                             "· 在此页面添加常用开关、QoL 选项与快速跳转。");
+
+            // 屏蔽 Reaction 调试/提示输出（实时）
+            var row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            var label = new TextView(context);
+            label.setText("显示反应提示/调试输出");
+            label.setTextSize(13);
+            row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            var toggle = new CheckBox(context);
+            boolean init = true;
+            try {
+                CCConfig cfg = ChestCavity.config;
+                if (cfg != null) init = cfg.REACTION.debugReactions;
+            } catch (Throwable ignored) {}
+            toggle.setChecked(init);
+            toggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                try {
+                    var holder = AutoConfig.getConfigHolder(CCConfig.class);
+                    CCConfig cfg = holder.getConfig();
+                    cfg.REACTION.debugReactions = isChecked;
+                    holder.save();
+                } catch (Throwable ignored) {}
+            });
+            row.addView(toggle, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            layout.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
             return layout;
         }
 

@@ -110,9 +110,25 @@
       "id": "chestcavity:sheep/shui_dao",
       "count": {
         "min": 0,
-        "max": 2
+        "max": 1
       },
       "items": [
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
         "guzhenren:ling_xian_gu",
         "guzhenren:shui_ti_gu",
         "guzhenren:jiezegu",
@@ -123,7 +139,7 @@
       "id": "chestcavity:sheep/bing_xue_dao",
       "count": {
         "min": 0,
-        "max": 2
+        "max": 1
       },
       "items": [
         "guzhenren:bing_bu_gu",
