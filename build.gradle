@@ -115,8 +115,15 @@ tasks.register('scanStrengthOrgans', Exec) { task ->
     task.commandLine 'python3', scriptFile.absolutePath
 }
 
+tasks.register('generateCultivatorGuBugPools', Exec) { task ->
+    File scriptFile = project.file('scripts/generate_cultivator_gu_bug_pools.py')
+    task.onlyIf { scriptFile.exists() }
+    task.commandLine 'python3', scriptFile.absolutePath
+}
+
 tasks.named('compileJava', JavaCompile).configure {
     dependsOn tasks.named('scanStrengthOrgans')
+    dependsOn tasks.named('generateCultivatorGuBugPools')
     def refmapFile = generatedRefmapFile.get().asFile
     options.compilerArgs += [
             "-AdefaultObfuscationEnv=${mixinDefaultObfuscation}",
