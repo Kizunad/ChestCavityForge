@@ -42,6 +42,9 @@ public final class ReactionTagKeys {
     public static final ResourceLocation LIGHTNING_IMMUNE = tag("reaction/lightning_immune");
     public static final ResourceLocation WOOD_GROWTH = tag("reaction/wood_growth");
     public static final ResourceLocation HUMAN_AEGIS = tag("reaction/human_aegis");
+    public static final ResourceLocation FOOD_MADNESS = tag("reaction/food_madness");
+    public static final ResourceLocation WATER_VEIL = tag("reaction/water_veil");
+    public static final ResourceLocation HEAVEN_GRACE = tag("reaction/heaven_grace");
 
     // 血道通用标签
     public static final ResourceLocation BLOOD_MARK = tag("reaction/blood_mark");

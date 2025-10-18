@@ -26,6 +26,8 @@ import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 import net.tigereye.chestcavity.util.NBTCharge;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 /**
  * Water Path organ: Shuishengu (水肾蛊) — handles shield charging and FX.
@@ -101,6 +103,7 @@ public enum ShuishenguOrganBehavior implements OrganOnGroundListener, OrganSlowT
         int duration = 60;
         if (existing == null || existing.getDuration() <= 30) {
             player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, duration, amplifier, false, false, true));
+            ReactionTagOps.add(player, ReactionTagKeys.WATER_VEIL, duration);
         }
     }
 

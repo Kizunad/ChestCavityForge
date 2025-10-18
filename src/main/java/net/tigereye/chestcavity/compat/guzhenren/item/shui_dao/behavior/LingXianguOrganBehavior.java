@@ -28,6 +28,8 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.joml.Vector3f;
 
 
@@ -198,6 +200,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         boolean isPlayer = player != null;
         spawnHealingParticles(entity, stackCount, isPlayer, false);
         playHealingSound(entity, isPlayer, false);
+        ReactionTagOps.add(entity, ReactionTagKeys.WATER_VEIL, 100);
         return true;
     }
 
@@ -226,6 +229,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
         spawnHealingParticles(entity, stackCount, isPlayer, true);
         playHealingSound(entity, isPlayer, true);
         applyWeakness(entity, isPlayer);
+        ReactionTagOps.add(entity, ReactionTagKeys.WATER_VEIL, 140);
         return true;
     }
 

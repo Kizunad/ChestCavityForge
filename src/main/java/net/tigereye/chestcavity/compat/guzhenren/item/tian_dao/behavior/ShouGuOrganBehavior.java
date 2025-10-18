@@ -31,6 +31,8 @@ import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
@@ -456,6 +458,7 @@ public final class ShouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior im
         player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 2, false, false, true));
         player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, false, false, true));
         player.level().playSound(null, player.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 0.7F, 1.2F);
+        ReactionTagOps.add(player, ReactionTagKeys.HEAVEN_GRACE, 60);
     }
 
     private void handleAbilityTrigger(ServerPlayer player, ChestCavityInstance cc, ItemStack organ, TierParameters tier) {

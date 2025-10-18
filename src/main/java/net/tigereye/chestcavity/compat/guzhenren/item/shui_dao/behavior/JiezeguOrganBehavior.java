@@ -31,6 +31,8 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.slf4j.Logger;
 
 import java.util.Optional;
@@ -209,6 +211,7 @@ public final class JiezeguOrganBehavior extends AbstractGuzhenrenOrganBehavior
         effectHolder.ifPresent(effect -> {
             int amplifier = Mth.clamp((int) Math.round(Math.max(0.0, increase)), 0, Short.MAX_VALUE);
             target.addEffect(new MobEffectInstance(effect, FLOW_BREAK_DURATION_TICKS, amplifier, false, true, true));
+            ReactionTagOps.add(target, ReactionTagKeys.WATER_VEIL, FLOW_BREAK_DURATION_TICKS);
         });
     }
 

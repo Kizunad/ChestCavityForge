@@ -31,6 +31,8 @@ import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCDamageSources;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.List;
 
@@ -312,6 +314,7 @@ public enum JiuChongOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
             }
             target.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 400, 0, false, true, true));
             target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400, 0, false, true, true));
+            ReactionTagOps.add(target, ReactionTagKeys.FOOD_MADNESS, 400);
         }
         user.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1000, 3, false, true, true));
         user.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1000, 0, false, true, true));
