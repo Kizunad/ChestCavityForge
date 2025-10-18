@@ -89,6 +89,7 @@ final class FxFlowActions {
                             fxId,
                             GeckoFxAnchor.ENTITY,
                             ally.getId(),
+                            ally.getUUID(),
                             base.x,
                             base.y,
                             base.z,
@@ -106,6 +107,9 @@ final class FxFlowActions {
                             sanitizedAlpha,
                             loop,
                             sanitizedDuration,
+                            null,
+                            null,
+                            null,
                             eventId
                     );
                     GeckoFxDispatcher.emit(server, origin, payload);
@@ -242,6 +246,7 @@ final class FxFlowActions {
                                 parameters.fxId(),
                                 anchor,
                                 -1,
+                                null,
                                 basePosition.x,
                                 basePosition.y,
                                 basePosition.z,
@@ -260,6 +265,9 @@ final class FxFlowActions {
                                 alpha,
                                 loop,
                                 duration,
+                                null,
+                                null,
+                                null,
                                 eventId
                         );
                         GeckoFxDispatcher.emit(level, origin, payload);
@@ -291,6 +299,7 @@ final class FxFlowActions {
                         parameters.fxId(),
                         anchor,
                         attachedEntity.getId(),
+                        attachedEntity.getUUID(),
                         basePosition.x,
                         basePosition.y,
                         basePosition.z,
@@ -308,6 +317,9 @@ final class FxFlowActions {
                         alpha,
                         loop,
                         duration,
+                        null,
+                        null,
+                        null,
                         eventId
                 );
 
