@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.IntentSnapshot;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.LLMIntent;
 
 /**
  * A lightweight coordinator that behaves like a "brain": selects the appropriate
@@ -29,6 +30,7 @@ public final class BrainController implements SoulRuntimeHandler {
     private final Map<UUID, IntentRecord> intents = new ConcurrentHashMap<>();
 
     private final Brain combat = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.CombatBrain();
+    private final Brain llm = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.LLMBrain();
     private final Brain idle = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.IdleBrain();
 
     private BrainController() {}
@@ -86,9 +88,12 @@ public final class BrainController implements SoulRuntimeHandler {
     private BrainMode pickMode(SoulPlayer soul, ServerPlayer owner, IntentSnapshot snapshot) {
         BrainMode forced = modes.get(soul.getUUID());
         if (forced != null && forced != BrainMode.AUTO) return forced;
-        // 若存在显式意图，则据此映射子脑（当前仅 CombatIntent 接入）
+        // 若存在显式意图，则据此映射子脑（当前支持 Combat 与 LLM 意图）
         if (snapshot != null && snapshot.isPresent() && snapshot.intent() instanceof CombatIntent) {
             return BrainMode.COMBAT;
+        }
+        if (snapshot != null && snapshot.isPresent() && snapshot.intent() instanceof LLMIntent) {
+            return BrainMode.LLM;
         }
         // AUTO: derive from orders or simple context cues.
         var order = net.tigereye.chestcavity.soul.ai.SoulAIOrders.get(soul.getSoulId());
@@ -102,6 +107,7 @@ public final class BrainController implements SoulRuntimeHandler {
     private Brain selectBrain(BrainMode mode) {
         return switch (mode) {
             case COMBAT -> combat;
+            case LLM -> llm;
             case IDLE -> idle;
             case SURVIVAL, AUTO -> null; // AUTO handled earlier; SURVIVAL to be filled later
         };

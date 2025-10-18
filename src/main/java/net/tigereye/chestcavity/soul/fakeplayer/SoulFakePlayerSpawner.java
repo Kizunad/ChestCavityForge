@@ -427,6 +427,35 @@ public final class SoulFakePlayerSpawner {
     }
 
     /**
+     * 基于 {@link SoulGenerationRequest} 统一处理新分魂生成/复原。
+     * 除了实体生成，还会根据请求参数同步初始 Brain 模式与意图。
+     */
+    public static Optional<SoulPlayer> spawnFromRequest(ServerPlayer owner, SoulGenerationRequest request) {
+        if (owner == null || request == null) {
+            return Optional.empty();
+        }
+        UUID soulId = request.soulId();
+        GameProfile identity = request.identity();
+        boolean forceDerived = request.forceDerivedIdentity();
+        if (identity == null) {
+            identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
+            forceDerived = forceDerived || !SOUL_IDENTITIES.containsKey(soulId);
+        }
+        String reason = request.reason() != null ? request.reason() : "generation-request";
+        Optional<SoulPlayer> spawned = respawnSoulFromProfile(owner, soulId, identity, forceDerived, reason);
+        if (spawned.isPresent()) {
+            var brain = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get();
+            if (request.initialMode() != null) {
+                brain.setMode(soulId, request.initialMode());
+            }
+            if (request.initialIntent() != null) {
+                brain.pushIntent(soulId, request.initialIntent());
+            }
+        }
+        return spawned;
+    }
+
+    /**
      * 强制将指定分魂传送到主人当前位置，必要时重生该分魂。
      */
     public static boolean forceTeleportToOwner(ServerPlayer ownerPlayer, UUID soulId) {

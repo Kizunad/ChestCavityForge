@@ -26,6 +26,7 @@ import net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
 
 import java.util.List;
 import java.util.Locale;
@@ -939,7 +940,8 @@ public final class SoulCommands {
             container.setAutospawn(executor, soulId, true, "autospawn-default-on");
             SoulProfileOps.markContainerDirty(executor, container, "command-createSoulDefault");
         }
-        var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
+        var request = SoulGenerationRequest.create(soulId).withReason("command-createSoulDefault");
+        var spawned = SoulFakePlayerSpawner.spawnFromRequest(executor, request);
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulDefault owner={} soul={}", executor.getUUID(), soulId);
             String name = SoulFakePlayerSpawner.resolveDisplayName(executor, soulId);
@@ -980,7 +982,8 @@ public final class SoulCommands {
             container.setAutospawn(executor, soulId, true, "autospawn-default-on");
             SoulProfileOps.markContainerDirty(executor, container, "command-createSoulAt");
         }
-        var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
+        var request = SoulGenerationRequest.create(soulId).withReason("command-createSoulAt");
+        var spawned = SoulFakePlayerSpawner.spawnFromRequest(executor, request);
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulAt owner={} soul={} pos=({},{},{})",
                     executor.getUUID(), soulId, x, y, z);
