@@ -29,6 +29,8 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.Map;
 import java.util.Optional;
@@ -394,6 +396,9 @@ public final class JiuYeShengJiCaoOrganBehavior extends AbstractGuzhenrenOrganBe
                         target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
                         6, 0.2D, 0.2D, 0.2D, 0.004D);
             }
+            int absorptionDuration = absorptionAmplifier >= 0 ? 8 * 20 : 0;
+            int tagDuration = Math.max(Math.max(resistDuration, absorptionDuration), 40);
+            ReactionTagOps.add(target, ReactionTagKeys.WOOD_GROWTH, tagDuration);
         }
     }
 

@@ -18,6 +18,8 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 /**
  * 黄金舍利蛊（四转）：
@@ -65,6 +67,7 @@ public enum HuangJinSheLiGuOrganBehavior implements OrganSlowTickListener, Organ
         entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, ACTIVE_DURATION_TICKS, 2, false, true, true));
         entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ACTIVE_DURATION_TICKS, 2, false, true, true));
         grantNoKnockback(entity, ACTIVE_DURATION_TICKS);
+        ReactionTagOps.add(entity, ReactionTagKeys.HUMAN_AEGIS, ACTIVE_DURATION_TICKS);
 
         // 敌对：半径8内缓慢IV 6s
         AABB area = entity.getBoundingBox().inflate(8.0);

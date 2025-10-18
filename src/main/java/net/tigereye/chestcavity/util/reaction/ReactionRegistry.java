@@ -61,6 +61,8 @@ public final class ReactionRegistry {
         registerBloodDefaults();
         // 注册光/魂/剑道联动规则
         registerLightSoulSwordDefaults();
+        // 注册雷/木/人道联动规则
+        registerLeiMuRenDefaults();
         // 注册毒道/骨道等扩展规则
         registerToxicDefaults();
         registerBoneDefaults();
@@ -439,6 +441,130 @@ public final class ReactionRegistry {
                     i18nMessage(attacker, "message.chestcavity.reaction.soul_pyre.attacker", t);
                     i18nMessage(target, "message.chestcavity.reaction.soul_pyre.target", a);
                     return ReactionResult.proceed();
+                });
+    }
+
+    private static void registerLeiMuRenDefaults() {
+        final int IMMUNE_SHORT = 40;
+
+        // 雷霜锁链（霜痕 × 雷痕）
+        register(net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.LIGHTNING_CHARGE)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.LIGHTNING_IMMUNE),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().magic(), 3.0F);
+                    } else {
+                        target.hurt(target.damageSources().magic(), 3.0F);
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 4, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 100, 1, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 80, 2, false, true));
+                    ReactionTagOps.clear(target, ReactionTagKeys.LIGHTNING_CHARGE);
+                    ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_IMMUNE, IMMUNE_SHORT);
+                    String a = attacker != null ? attacker.getName().getString() : "霜痕";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.lightning_frost_chain.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.lightning_frost_chain.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // 雷炎爆轰（火衣 × 雷痕）
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_HUO_YI_AURA,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.LIGHTNING_CHARGE)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.LIGHTNING_IMMUNE),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().indirectMagic(attacker, attacker), 4.0F);
+                    } else {
+                        target.hurt(target.damageSources().magic(), 4.0F);
+                    }
+                    if (target.level() instanceof ServerLevel level) {
+                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                                level, target.getX(), target.getY(), target.getZ(), 2.2F, 3.5D, attacker,
+                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                    }
+                    ReactionTagOps.clear(target, ReactionTagKeys.LIGHTNING_CHARGE);
+                    ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_IMMUNE, IMMUNE_SHORT);
+                    String a = attacker != null ? attacker.getName().getString() : "火衣";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.lightning_surge.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.lightning_surge.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // 木灵护熄（火衣 × 木灵）
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_HUO_YI_AURA,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.WOOD_GROWTH),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    target.heal(3.0F);
+                    target.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 80, 0, false, true));
+                    ReactionTagOps.clear(target, ReactionTagKeys.WOOD_GROWTH);
+                    ReactionTagOps.add(target, ReactionTagKeys.FIRE_IMMUNE, IMMUNE_SHORT);
+                    String a = attacker != null ? attacker.getName().getString() : "火衣";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.wood_purify.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.wood_purify.target", a);
+                    return ReactionResult.cancel();
+                });
+
+        // 木灵护体（腐蚀 × 木灵）
+        register(net.tigereye.chestcavity.util.DoTTypes.YIN_YUN_CORROSION,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.WOOD_GROWTH),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    target.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 8 * 20, 1, false, true));
+                    ReactionTagOps.clear(target, ReactionTagKeys.WOOD_GROWTH);
+                    ReactionTagOps.add(target, ReactionTagKeys.CORROSION_IMMUNE, IMMUNE_SHORT);
+                    String a = attacker != null ? attacker.getName().getString() : "腐蚀";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.wood_shield_bloom.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.wood_shield_bloom.target", a);
+                    return ReactionResult.cancel();
+                });
+
+        // 金刚护心（魂焰 × 人道守心）
+        register(net.tigereye.chestcavity.util.DoTTypes.HUN_DAO_SOUL_FLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.HUMAN_AEGIS),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    ReactionTagOps.clear(target, ReactionTagKeys.HUMAN_AEGIS);
+                    ReactionTagOps.add(target, ReactionTagKeys.SOUL_IMMUNE, IMMUNE_SHORT);
+                    target.heal(2.0F);
+                    if (attacker != null && attacker.isAlive()) {
+                        attacker.hurt(attacker.damageSources().indirectMagic(target, target), 2.0F);
+                    }
+                    String a = attacker != null ? attacker.getName().getString() : "魂焰";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.human_aegis_soul.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.human_aegis_soul.target", a);
+                    return ReactionResult.cancel();
+                });
+
+        // 金刚护体（腐蚀 × 人道守心）
+        register(net.tigereye.chestcavity.util.DoTTypes.YIN_YUN_CORROSION,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.HUMAN_AEGIS),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    ReactionTagOps.clear(target, ReactionTagKeys.HUMAN_AEGIS);
+                    ReactionTagOps.add(target, ReactionTagKeys.CORROSION_IMMUNE, IMMUNE_SHORT);
+                    target.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 80, 0, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, false, true));
+                    String a = attacker != null ? attacker.getName().getString() : "腐蚀";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.human_aegis_corrosion.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.human_aegis_corrosion.target", a);
+                    return ReactionResult.cancel();
                 });
     }
 

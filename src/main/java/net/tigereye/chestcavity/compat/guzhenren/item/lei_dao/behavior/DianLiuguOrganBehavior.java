@@ -27,6 +27,8 @@ import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.List;
 
@@ -219,6 +221,8 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
         int duration = Math.max(1, (int)Math.round(scaled));
         target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, duration, 10, false, true, true));
         target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, false, true, true));
+        int tagDuration = Math.max(duration, 40);
+        ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_CHARGE, tagDuration);
     }
 
     private static void playActivationEffects(Level level, LivingEntity target) {
@@ -284,6 +288,8 @@ public enum DianLiuguOrganBehavior implements OrganSlowTickListener, OrganOnHitL
                     0.2,
                     0.1
             );
+            int tagDuration = Math.max(60, (int) Math.round(BASE_DEBUFF_SECONDS * 20.0));
+            ReactionTagOps.add(victim, ReactionTagKeys.LIGHTNING_CHARGE, tagDuration);
         }
     }
 }

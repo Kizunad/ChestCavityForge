@@ -33,6 +33,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.Item.TooltipContext;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -233,6 +235,8 @@ public final class ShengJiYeOrganBehavior extends AbstractGuzhenrenOrganBehavior
                 target.addEffect(new MobEffectInstance(MobEffects.REGENERATION, regenDuration, regenAmplifier, false, true, true));
             }
             level.sendParticles(BASE_PARTICLE, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(), 6, 0.25D, 0.2D, 0.25D, 0.005D);
+            int tagDuration = Math.max(Math.max(resistDuration, regenDuration), 40);
+            ReactionTagOps.add(target, ReactionTagKeys.WOOD_GROWTH, tagDuration);
         }
     }
 

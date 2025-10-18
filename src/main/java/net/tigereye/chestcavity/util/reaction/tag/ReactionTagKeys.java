@@ -38,6 +38,10 @@ public final class ReactionTagKeys {
     public static final ResourceLocation LIGHT_DAZE = tag("reaction/light_daze");
     public static final ResourceLocation SOUL_SCAR = tag("reaction/soul_scar");
     public static final ResourceLocation SWORD_SCAR = tag("reaction/sword_scar");
+    public static final ResourceLocation LIGHTNING_CHARGE = tag("reaction/lightning_charge");
+    public static final ResourceLocation LIGHTNING_IMMUNE = tag("reaction/lightning_immune");
+    public static final ResourceLocation WOOD_GROWTH = tag("reaction/wood_growth");
+    public static final ResourceLocation HUMAN_AEGIS = tag("reaction/human_aegis");
 
     // 血道通用标签
     public static final ResourceLocation BLOOD_MARK = tag("reaction/blood_mark");
