@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffects;
@@ -22,6 +23,13 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.chat.Component;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -88,7 +96,25 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         if (hasJadeBone(cc)) {
             maybeClearPoison(entity, config);
+        }
 
+        // 自护：成功供能后，短时获得“霜免疫”，并清理部分火系标记
+        if (entity.isAlive()) {
+            boolean hadImmune = ReactionTagOps.has(entity, ReactionTagKeys.FROST_IMMUNE);
+            ReactionTagOps.add(entity, ReactionTagKeys.FROST_IMMUNE, 60);
+            ReactionTagOps.clear(entity, ReactionTagKeys.FIRE_MARK);
+            ReactionTagOps.clear(entity, ReactionTagKeys.FIRE_RESIDUE);
+            Level level = entity.level();
+            if (level instanceof ServerLevel server) {
+                // 少量雪花点缀，极低频提示（仅首次授予时提示一次，避免刷屏）
+                server.sendParticles(ParticleTypes.SNOWFLAKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.6, entity.getZ(), 4, 0.2, 0.1, 0.2, 0.01);
+                if (!hadImmune) {
+                    level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.SNOW_STEP, entity instanceof Player ? SoundSource.PLAYERS : SoundSource.NEUTRAL, 0.6f, 1.1f);
+                    if (entity instanceof Player player && !player.level().isClientSide()) {
+                        player.sendSystemMessage(Component.translatable("message.chestcavity.bingxue.qingre_shield"));
+                    }
+                }
+            }
         }
     }
 

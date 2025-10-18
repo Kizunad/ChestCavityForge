@@ -237,6 +237,11 @@ public final class TiexueguOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (entity instanceof Player player && !player.level().isClientSide()) {
             player.sendSystemMessage(DRAIN_MESSAGE);
         }
+        // 吸血成功后给予短暂“血祭窗”，强化部分血道反应
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                entity,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_RITUAL,
+                60);
     }
 
     private static boolean applyHealthDrain(LivingEntity player, float amount) {

@@ -116,6 +116,12 @@ public final class XueqiguOrganBehavior extends AbstractGuzhenrenOrganBehavior
             timer = drained ? SLOW_TICKS_PER_MINUTE : FAILURE_RETRY_TICKS;
         }
         OrganStateOps.setIntSync(cc, organ, STATE_KEY, TIMER_KEY, timer, v -> Math.max(1, v), SLOW_TICKS_PER_MINUTE);
+
+        // 维持血气流转标记，供反应系统加权判定（短时续期）
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                entity,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_FLOW,
+                60);
     }
 
     @Override

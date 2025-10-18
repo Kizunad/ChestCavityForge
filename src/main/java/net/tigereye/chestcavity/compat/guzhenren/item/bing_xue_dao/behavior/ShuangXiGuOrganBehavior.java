@@ -42,6 +42,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -418,6 +419,16 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
                     0.25,
                     0.25,
                     0.04
+            );
+            // 在命中点生成一小团霜雾残留域（轻控场）
+            ReactionEngine.queueFrostResidue(
+                    server,
+                    focus.getX(),
+                    focus.getY(),
+                    focus.getZ(),
+                    Math.max(0.8F, (float) (config.breathParticleSpacing * 6.0F)),
+                    Math.max(40, config.coldDurationTicks / 2),
+                    0
             );
         }
     }

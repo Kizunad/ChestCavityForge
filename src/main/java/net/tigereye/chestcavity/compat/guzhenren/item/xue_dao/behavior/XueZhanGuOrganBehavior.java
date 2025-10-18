@@ -238,6 +238,11 @@ public final class XueZhanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         state.setLong(KEY_RAGE_READY, now + BLOOD_RAGE_COOLDOWN_TICKS, v -> Math.max(0L, v), 0L);
         updateBloodRageModifiers(player, true);
         INSTANCE.sendSlotUpdate(cc, organ);
+        // 标记血怒态用于反应系统增强
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                player,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_RAGE,
+                BLOOD_RAGE_DURATION_TICKS);
     }
 
     private static void updateBloodRageModifiers(Player player, boolean apply) {
@@ -427,6 +432,11 @@ public final class XueZhanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         updateBloodOathModifiers(player, true);
         updateWarBloodAttributes(player, state, MAX_WAR_BLOOD);
         INSTANCE.sendSlotUpdate(cc, organ);
+        // 标记血誓态用于反应系统增强
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                player,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_OATH,
+                BLOOD_OATH_DURATION_TICKS);
 
         if (player instanceof ServerPlayer sp) {
             ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, state.getLong(KEY_OATH_READY, now), now);

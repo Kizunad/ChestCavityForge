@@ -73,6 +73,12 @@ public final class ReactionEngine {
         QUEUE.add(Job.corrosionResidue(level, x, y, z, radius, durationTicks));
     }
 
+    public static void queueBloodResidue(ServerLevel level, double x, double y, double z,
+                                         float radius, int durationTicks) {
+        if (level == null || radius <= 0.0F || durationTicks <= 0) return;
+        QUEUE.add(Job.bloodResidue(level, x, y, z, radius, durationTicks));
+    }
+
     /**
      * 在 ServerTick(Post) 调用。执行限流/降级并消费队列。
      */
@@ -111,6 +117,8 @@ public final class ReactionEngine {
                 case RESIDUE_FROST -> ResidueManager.spawnOrRefreshFrost(job.level, job.x, job.y, job.z,
                         clamp(job.radius * degradeFactor, 0.5F), Math.max(20, job.durationTicks), job.slowAmplifier);
                 case RESIDUE_CORROSION -> ResidueManager.spawnOrRefreshCorrosion(job.level, job.x, job.y, job.z,
+                        clamp(job.radius * degradeFactor, 0.5F), Math.max(20, job.durationTicks));
+                case RESIDUE_BLOOD -> ResidueManager.spawnOrRefreshBlood(job.level, job.x, job.y, job.z,
                         clamp(job.radius * degradeFactor, 0.5F), Math.max(20, job.durationTicks));
             }
             executed++;
@@ -179,8 +187,8 @@ public final class ReactionEngine {
     }
 
     // -------- Job types --------
-    public enum VisualTheme { GENERIC, FIRE, STEAM, FROST, SOUL, CORROSION }
-    private enum JobKind { AOE, EXPLOSION, RESIDUE_FROST, RESIDUE_CORROSION }
+    public enum VisualTheme { GENERIC, FIRE, STEAM, FROST, SOUL, CORROSION, BLOOD }
+    private enum JobKind { AOE, EXPLOSION, RESIDUE_FROST, RESIDUE_CORROSION, RESIDUE_BLOOD }
 
     private static final class Job {
         final JobKind kind;
@@ -216,6 +224,9 @@ public final class ReactionEngine {
         static Job corrosionResidue(ServerLevel lvl, double x, double y, double z, float r, int dur) {
             return new Job(JobKind.RESIDUE_CORROSION, lvl, x, y, z, r, 0.0F, dur, 0, 0.0F, null, false, VisualTheme.CORROSION);
         }
+        static Job bloodResidue(ServerLevel lvl, double x, double y, double z, float r, int dur) {
+            return new Job(JobKind.RESIDUE_BLOOD, lvl, x, y, z, r, 0.0F, dur, 0, 0.0F, null, false, VisualTheme.BLOOD);
+        }
     }
 
     private static void spawnVfx(Job job, float scale, VisualTheme theme) {
@@ -241,6 +252,9 @@ public final class ReactionEngine {
                 case SOUL -> {
                     job.level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, job.x, job.y, job.z, 1, ox, oy, oz, 0.01D);
                 }
+                case BLOOD -> {
+                    job.level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, job.x, job.y + 0.2D, job.z, 1, ox, oy * 0.8D, oz, 0.02D);
+                }
                 case CORROSION, GENERIC -> {
                     job.level.sendParticles(ParticleTypes.SMOKE, job.x, job.y, job.z, 1, ox, oy * 0.4D, oz, 0.005D);
                 }
@@ -257,6 +271,7 @@ public final class ReactionEngine {
             case STEAM -> job.level.playSound(null, job.x, job.y, job.z, SoundEvents.LAVA_EXTINGUISH, SoundSource.PLAYERS, base, pitch);
             case FROST -> job.level.playSound(null, job.x, job.y, job.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, base * 0.8F, pitch + 0.2F);
             case SOUL -> job.level.playSound(null, job.x, job.y, job.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, base * 0.7F, pitch);
+            case BLOOD -> job.level.playSound(null, job.x, job.y, job.z, SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, base * 0.6F, pitch * 0.9F);
             case CORROSION, GENERIC -> job.level.playSound(null, job.x, job.y, job.z, SoundEvents.BREWING_STAND_BREW, SoundSource.PLAYERS, base * 0.7F, pitch);
         }
     }

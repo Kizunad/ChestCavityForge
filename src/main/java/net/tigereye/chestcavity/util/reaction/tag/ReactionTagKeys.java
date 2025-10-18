@@ -33,4 +33,14 @@ public final class ReactionTagKeys {
     public static final ResourceLocation FROST_IMMUNE = tag("reaction/frost_immune");
     public static final ResourceLocation SOUL_IMMUNE = tag("reaction/soul_immune");
     public static final ResourceLocation CORROSION_IMMUNE = tag("reaction/corrosion_immune");
+
+    // 血道通用标签
+    public static final ResourceLocation BLOOD_MARK = tag("reaction/blood_mark");
+    public static final ResourceLocation HEMORRHAGE = tag("reaction/hemorrhage");
+    public static final ResourceLocation BLOOD_TRAIL = tag("reaction/blood_trail");
+    public static final ResourceLocation BLOOD_RESIDUE = tag("reaction/blood_residue");
+    public static final ResourceLocation BLOOD_RAGE = tag("reaction/blood_rage");
+    public static final ResourceLocation BLOOD_OATH = tag("reaction/blood_oath");
+    public static final ResourceLocation BLOOD_RITUAL = tag("reaction/blood_ritual");
+    public static final ResourceLocation BLOOD_FLOW = tag("reaction/blood_flow");
 }

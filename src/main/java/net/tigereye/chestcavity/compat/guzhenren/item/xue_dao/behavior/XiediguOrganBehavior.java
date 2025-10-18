@@ -266,12 +266,27 @@ public enum XiediguOrganBehavior implements OrganSlowTickListener, OrganRemovalL
             }
             scheduleBleedTicks(serverLevel, entity, targets, stored, efficiency);
             applyBleedEffect(targets, stored, efficiency);
+            // 为命中目标挂载血道通用标签（血印/失血）
+            for (LivingEntity target : targets) {
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                        target,
+                        net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_MARK,
+                        100);
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                        target,
+                        net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.HEMORRHAGE,
+                        Math.max(60, BLEED_DURATION_SECONDS * TICKS_PER_SECOND));
+            }
         }
 
         if (entity instanceof Player player) {
             applyRecovery(player, stored);
         }
         playDetonationCues(serverLevel, entity, stored);
+        // 在引爆点生成血雾残留体（规模/时长随血滴数略增）
+        float r = (float) Math.min(4.0, 1.2 + stored * 0.2);
+        int dur = Math.max(60, 60 + stored * 8);
+        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueBloodResidue(serverLevel, entity.getX(), entity.getY(), entity.getZ(), r, dur);
 
         writeStoredDrops(organ, 0);
         writeDry(organ, false);

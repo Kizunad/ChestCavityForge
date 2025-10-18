@@ -210,6 +210,11 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
         }
         playCriticalCues(player, target);
         XieyanguTrailHandler.applyTrail(target, BLOOD_TRAIL_DURATION_TICKS);
+        // 标记血迹（供反应系统/追猎使用）
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                target,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_TRAIL,
+                BLOOD_TRAIL_DURATION_TICKS);
         return scaled;
     }
 
@@ -287,6 +292,10 @@ public enum XieyanguOrganBehavior implements OrganSlowTickListener, OrganOnHitLi
 
         playCriticalCues(attacker.level(), target);
         XieyanguTrailHandler.applyTrail(target, BLOOD_TRAIL_DURATION_TICKS);
+        net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
+                target,
+                net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.BLOOD_TRAIL,
+                BLOOD_TRAIL_DURATION_TICKS);
         return scaled;
     }
 

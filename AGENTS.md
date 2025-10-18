@@ -197,6 +197,23 @@ ChestCavityForge 使用数据驱动的方式定义古真人器官，所有器官
   }
   ```
 
+### BingXue 道（冰雪系）小结（2025-10-18）
+- 霜息蛊（ShuangXiGu）
+  - 命中挂 `reaction/frost_mark`（已接入）并在命中点生成小型霜雾残留（ReactionEngine.queueFrostResidue）。
+  - 轻量粒子与命中音效保持克制，不刷屏。
+- 冰肌蛊（BingJiGu）
+  - `applyColdEffect` 统一挂 `reaction/frost_mark`，从而冰爆/普攻路径也能触发“蒸汽灼烫/霜痕碎裂”。
+  - 冰爆后在爆心留下短时霜雾残留，并向玩家提示“冰爆余寒，地面凝霜”。
+- 清热蛊（QingReGu）
+  - 成功供能后短时 `reaction/frost_immune` 自护，清理 `fire_mark/fire_residue`；首次授予轻提示与雪花粒子。
+- 冰布蛊（BingBuGu）
+  - 成功给予饱和/再生后短时 `reaction/frost_immune`，清理 `fire_mark/fire_residue`；玩家显示轻提示与雪花粒子。
+
+验证建议
+- 霜息/冰肌命中与冰爆均可触发蒸汽/碎裂；
+- 自护免疫仅首次授予提示，避免刷屏；
+- 残留域通过 ReactionEngine 排队，具有限流与合并策略。
+
 ---
 
 ## 快速参考

@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -20,6 +21,10 @@ import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.chat.Component;
 
 /**
  * Behaviour implementation for 冰布蛊 (Bing Bu Gu).
@@ -77,11 +82,31 @@ public final class BingBuGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         if (hasSnowball && tryGrantSaturation(player, config)) {
             playEatingSound(player, config);
+            boolean had = ReactionTagOps.has(player, ReactionTagKeys.FROST_IMMUNE);
+            ReactionTagOps.add(player, ReactionTagKeys.FROST_IMMUNE, Math.max(40, config.effectRefreshThresholdTicks));
+            ReactionTagOps.clear(player, ReactionTagKeys.FIRE_MARK);
+            ReactionTagOps.clear(player, ReactionTagKeys.FIRE_RESIDUE);
+            if (player.level() instanceof ServerLevel server) {
+                server.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + player.getBbHeight() * 0.6, player.getZ(), 4, 0.2, 0.1, 0.2, 0.01);
+                if (!had && !player.level().isClientSide()) {
+                    player.sendSystemMessage(Component.translatable("message.chestcavity.bingxue.bingbu_refresh.saturation"));
+                }
+            }
             return;
         }
 
         if (hasIce && tryGrantPlayerRegeneration(player, config)) {
             playEatingSound(player, config);
+            boolean had = ReactionTagOps.has(player, ReactionTagKeys.FROST_IMMUNE);
+            ReactionTagOps.add(player, ReactionTagKeys.FROST_IMMUNE, Math.max(40, config.effectRefreshThresholdTicks));
+            ReactionTagOps.clear(player, ReactionTagKeys.FIRE_MARK);
+            ReactionTagOps.clear(player, ReactionTagKeys.FIRE_RESIDUE);
+            if (player.level() instanceof ServerLevel server) {
+                server.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + player.getBbHeight() * 0.6, player.getZ(), 4, 0.2, 0.1, 0.2, 0.01);
+                if (!had && !player.level().isClientSide()) {
+                    player.sendSystemMessage(Component.translatable("message.chestcavity.bingxue.bingbu_refresh.regen"));
+                }
+            }
         }
     }
 
@@ -109,6 +134,16 @@ public final class BingBuGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         int interval = Math.max(0, config.nonPlayerIntervalSeconds);
         int nextCooldown = applied ? interval : 1;
         OrganStateOps.setInt(state, cc, organ, NON_PLAYER_COOLDOWN_KEY, nextCooldown, value -> value, -1);
+
+        if (applied) {
+            boolean hadImmune = ReactionTagOps.has(entity, ReactionTagKeys.FROST_IMMUNE);
+            ReactionTagOps.add(entity, ReactionTagKeys.FROST_IMMUNE, Math.max(40, config.effectRefreshThresholdTicks));
+            ReactionTagOps.clear(entity, ReactionTagKeys.FIRE_MARK);
+            ReactionTagOps.clear(entity, ReactionTagKeys.FIRE_RESIDUE);
+            if (entity.level() instanceof ServerLevel server) {
+                server.sendParticles(ParticleTypes.SNOWFLAKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.6, entity.getZ(), 3, 0.2, 0.1, 0.2, 0.01);
+            }
+        }
     }
 
     private boolean tryGrantSaturation(

@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
@@ -44,6 +45,9 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
+import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
@@ -348,6 +352,9 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         holder.ifPresent(effect -> target.addEffect(new MobEffectInstance(effect, config.iceEffectDurationTicks, 0, false, true, true)));
         target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, config.iceEffectDurationTicks, 0, false, true, true));
         target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, config.iceEffectDurationTicks, 0, false, true, true));
+        // 挂霜痕标记，便于“霜痕碎裂/蒸汽灼烫”反应统一触发
+        int frostMarkTicks = ChestCavity.config != null ? Math.max(20, ChestCavity.config.REACTION.frostMarkDurationTicks) : 120;
+        ReactionTagOps.add(target, ReactionTagKeys.FROST_MARK, frostMarkTicks);
     }
 
     private static boolean hasJadeBone(ChestCavityInstance cc) {
@@ -506,6 +513,19 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
 
         triggerBurstFlow(entity, radius, victims.size(), config);
+
+        // 在爆心留下短暂的“霜雾残留域”，用于区域控场（轻量粒子与减速均由引擎处理）
+        if (server != null) {
+            float residueRadius = (float) Math.max(0.5F, radius * 0.6F);
+            int residueDuration = Math.max(40, (int) (config.iceEffectDurationTicks * 0.8));
+            int slowAmp = Math.max(0, (int) Math.round(config.iceBurstSlowAmplifier));
+            ReactionEngine.queueFrostResidue(server, origin.x, origin.y, origin.z, residueRadius, residueDuration, slowAmp);
+            // 少量雪花粒子点缀
+            server.sendParticles(ParticleTypes.SNOWFLAKE, origin.x, origin.y + 0.2, origin.z, 12, 0.4, 0.2, 0.4, 0.02);
+            if (entity instanceof Player p && !p.level().isClientSide()) {
+                p.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.chestcavity.bingxue.iceburst_residue"));
+            }
+        }
 
         // Deduct 1% of player's max health as activation cost
         if (entity instanceof Player player) {

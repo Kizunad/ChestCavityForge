@@ -57,6 +57,8 @@ public final class ReactionRegistry {
         registerDefaults();
         // 注册元素规则（冰/魂/腐蚀/联动）
         registerElementalDefaults();
+        // 注册血道规则（血印/失血 与 各系 DoT 的联动）
+        registerBloodDefaults();
     }
 
     private static void registerDefaults() {
@@ -98,6 +100,112 @@ public final class ReactionRegistry {
                         i18nMessage(ctx.target(), "message.chestcavity.reaction.fire_oil.target", a);
                     }
                     return ReactionResult.cancel();
+                });
+    }
+
+    // 血道联动规则（血印/失血等）
+    private static void registerBloodDefaults() {
+        // 常量：通用免疫时长（防抖）
+        final int IMMUNE_SHORT = 40; // 2秒
+
+        // 沸血（火衣 × 血印/失血）
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_HUO_YI_AURA,
+                ctx -> (ReactionTagOps.has(ctx.target(), ReactionTagKeys.BLOOD_MARK)
+                        || ReactionTagOps.has(ctx.target(), ReactionTagKeys.HEMORRHAGE))
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.FIRE_IMMUNE),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    double bonus = 3.0D;
+                    // 血怒/血誓期间给予小幅加成
+                    if (ReactionTagOps.has(attacker, ReactionTagKeys.BLOOD_RAGE)) bonus += 2.0D;
+                    if (ReactionTagOps.has(attacker, ReactionTagKeys.BLOOD_OATH)) bonus += 2.0D;
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().mobAttack(attacker), (float) Math.max(0.0D, bonus));
+                    } else {
+                        target.hurt(target.damageSources().generic(), (float) Math.max(0.0D, bonus));
+                    }
+                    // 清除血印，短暂火系免疫，提示
+                    ReactionTagOps.clear(target, ReactionTagKeys.BLOOD_MARK);
+                    ReactionTagOps.add(target, ReactionTagKeys.FIRE_IMMUNE, IMMUNE_SHORT);
+                    {
+                        String a = attacker != null ? attacker.getName().getString() : "火衣";
+                        String t = target.getName().getString();
+                        i18nMessage(attacker, "message.chestcavity.reaction.blood_boil.attacker", t);
+                        i18nMessage(target, "message.chestcavity.reaction.blood_boil.target", a);
+                    }
+                    return ReactionResult.proceed();
+                });
+
+        // 凝血碎裂（霜痕 × 血印）
+        register(net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.BLOOD_MARK)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.FROST_IMMUNE),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    // 一次性小额真实/通用伤 + 减速
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().generic(), 4.0F);
+                    } else {
+                        target.hurt(target.damageSources().generic(), 4.0F);
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, false, true));
+                    ReactionTagOps.clear(target, ReactionTagKeys.BLOOD_MARK);
+                    ReactionTagOps.add(target, ReactionTagKeys.FROST_IMMUNE, IMMUNE_SHORT);
+                    {
+                        String a = attacker != null ? attacker.getName().getString() : "寒息";
+                        String t = target.getName().getString();
+                        i18nMessage(attacker, "message.chestcavity.reaction.blood_coag_burst.attacker", t);
+                        i18nMessage(target, "message.chestcavity.reaction.blood_coag_burst.target", a);
+                    }
+                    return ReactionResult.proceed();
+                });
+
+        // 渗魂回声（魂焰 × 血印）
+        register(net.tigereye.chestcavity.util.DoTTypes.HUN_DAO_SOUL_FLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.BLOOD_MARK)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.SOUL_IMMUNE),
+                ctx -> {
+                    // 延迟一次魂伤
+                    scheduleDelayedDamage(ctx.server(), ctx.attacker(), ctx.target(), 6.0D, 40);
+                    ReactionTagOps.clear(ctx.target(), ReactionTagKeys.BLOOD_MARK);
+                    ReactionTagOps.add(ctx.target(), ReactionTagKeys.SOUL_IMMUNE, IMMUNE_SHORT);
+                    {
+                        String a = ctx.attacker() != null ? ctx.attacker().getName().getString() : "魂焰";
+                        String t = ctx.target().getName().getString();
+                        i18nMessage(ctx.attacker(), "message.chestcavity.reaction.blood_echo.attacker", t);
+                        i18nMessage(ctx.target(), "message.chestcavity.reaction.blood_echo.target", a);
+                    }
+                    return ReactionResult.proceed();
+                });
+
+        // 败血激增（腐蚀 × 血印）
+        register(net.tigereye.chestcavity.util.DoTTypes.YIN_YUN_CORROSION,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.BLOOD_MARK)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.CORROSION_IMMUNE),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().mobAttack(attacker), 3.0F);
+                    } else {
+                        target.hurt(target.damageSources().generic(), 3.0F);
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 100, 0, false, true));
+                    if (target.level() instanceof ServerLevel level) {
+                        // 简易残留域（弱化版）
+                        spawnResidueCorrosion(level, target.getX(), target.getY(), target.getZ(), 2.0F, 80);
+                    }
+                    ReactionTagOps.clear(target, ReactionTagKeys.BLOOD_MARK);
+                    ReactionTagOps.add(target, ReactionTagKeys.CORROSION_IMMUNE, IMMUNE_SHORT);
+                    {
+                        String a = attacker != null ? attacker.getName().getString() : "腐蚀";
+                        String t = target.getName().getString();
+                        i18nMessage(attacker, "message.chestcavity.reaction.blood_septic.attacker", t);
+                        i18nMessage(target, "message.chestcavity.reaction.blood_septic.target", a);
+                    }
+                    return ReactionResult.proceed();
                 });
     }
 
