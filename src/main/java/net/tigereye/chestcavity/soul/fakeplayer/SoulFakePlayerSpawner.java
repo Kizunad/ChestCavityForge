@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
+import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
 
 /**
  * 灵魂假人（SoulPlayer）生命周期协调器
@@ -332,6 +333,35 @@ public final class SoulFakePlayerSpawner {
         GameProfile identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
         boolean forceDerived = !SOUL_IDENTITIES.containsKey(soulId);
         return respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+    }
+
+    /**
+     * 基于 {@link SoulGenerationRequest} 统一处理新分魂生成/复原。
+     * 除了实体生成，还会根据请求参数同步初始 Brain 模式与意图。
+     */
+    public static Optional<SoulPlayer> spawnFromRequest(ServerPlayer owner, SoulGenerationRequest request) {
+        if (owner == null || request == null) {
+            return Optional.empty();
+        }
+        UUID soulId = request.soulId();
+        GameProfile identity = request.identity();
+        boolean forceDerived = request.forceDerivedIdentity();
+        if (identity == null) {
+            identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
+            forceDerived = forceDerived || !SOUL_IDENTITIES.containsKey(soulId);
+        }
+        String reason = request.reason() != null ? request.reason() : "generation-request";
+        Optional<SoulPlayer> spawned = respawnSoulFromProfile(owner, soulId, identity, forceDerived, reason);
+        if (spawned.isPresent()) {
+            var brain = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get();
+            if (request.initialMode() != null) {
+                brain.setMode(soulId, request.initialMode());
+            }
+            if (request.initialIntent() != null) {
+                brain.pushIntent(soulId, request.initialIntent());
+            }
+        }
+        return spawned;
     }
 
     /**
