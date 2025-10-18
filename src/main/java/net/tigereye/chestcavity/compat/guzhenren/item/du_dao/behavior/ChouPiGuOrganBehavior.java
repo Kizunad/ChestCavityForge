@@ -38,6 +38,9 @@ import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
 
 import java.util.List;
 
@@ -293,6 +296,8 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             level.sendParticles(ParticleTypes.SMOKE, pos.x, pos.y, pos.z, 1, 0.02, 0.02, 0.02, speed);
         }
         level.sendParticles(ParticleTypes.SNEEZE, base.x, base.y, base.z, PARTICLE_SNEEZE_COUNT, 0.35, 0.15, 0.35, 0.01);
+        // 轻量补充粒子（通用，不依赖颜色参数）
+        level.sendParticles(ParticleTypes.ASH, base.x, base.y, base.z, 3, 0.2, 0.1, 0.2, 0.005);
     }
 
     private static void broadcastMessages(ServerLevel level, LivingEntity entity, RandomSource random, TriggerCause cause) {
@@ -324,11 +329,15 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         AABB area = entity.getBoundingBox().inflate(EFFECT_RADIUS);
         List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, candidate ->
                 candidate != null && candidate.isAlive() && candidate != entity);
+        // 在脚下投放一小团“毒雾残留”（先复用腐蚀残留域实现）
+        ReactionEngine.queueCorrosionResidue(level, entity.getX(), entity.getY(), entity.getZ(), (float)Math.max(1.2F, EFFECT_RADIUS * 0.6F), Math.max(40, duration / 2));
         for (LivingEntity victim : victims) {
             victim.addEffect(new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
             victim.addEffect(new MobEffectInstance(MobEffects.WITHER, duration, 0, false, true, true));
             victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, duration, 0, false, true, true));
             victim.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, false, true, true));
+            ReactionTagOps.add(victim, ReactionTagKeys.STENCH_CLOUD, duration);
+            ReactionTagOps.add(victim, ReactionTagKeys.TOXIC_MARK, Math.max(20, duration / 2));
         }
     }
 
@@ -341,6 +350,7 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         int poisonAmplifier = Math.max(0, Mth.floor(getPoisonIncrease(cc)));
         entity.addEffect(new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
         entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, false, true, true));
+        ReactionTagOps.add(entity, ReactionTagKeys.TOXIC_IMMUNE, Math.max(40, duration / 2));
     }
 
     private void panicNearbyCreatures(ServerLevel level, LivingEntity entity, RandomSource random) {

@@ -216,6 +216,27 @@ ChestCavityForge 使用数据驱动的方式定义古真人器官，所有器官
 
 ---
 
+### Du 道（毒系）小结（2025-10-18）
+- 新增标签：`reaction/toxic_mark`、`reaction/stench_cloud`、`reaction/plague_mark`、`reaction/toxic_immune`。
+- 臭屁蛊（ChouPiGu）：
+  - 施放时为范围内目标附加 `stench_cloud` + `toxic_mark`，并在脚下生成短时“毒雾残留”（临时复用腐蚀残留域）。
+  - 自身有小概率受负面时，短授 `toxic_immune`，避免当下立即反噬。
+  - 轻量粒子：SMOKE/SNEEZE + 少量 ENTITY_EFFECT（绿色）；音效沿用河豚鼓泡 + 史莱姆挤压。
+- 反应规则：
+  - 火衣 × 臭云 => “毒燃闪爆”（AoE 轻伤，清除臭云 + 短免疫）。
+  - 霜痕 × 臭云 => “凝霜毒晶”（取消本次 DoT，直伤+短冻结/致盲，清除臭云）。
+
+### Gu 道（骨系）小结（2025-10-18）
+- 新增标签：`reaction/bone_mark`、`reaction/shard_field`、`reaction/bone_immune`。
+- 预置规则：腐蚀 × 骨刺 => “锈蚀骨裂”（直伤+挖掘疲劳，清除骨刺）。
+- TODO（后续接线）：
+  - 螺旋骨枪：命中/穿透时为目标挂 `bone_mark`，命中点生成“骨片场”。
+  - 肋骨盾：激活授予 `bone_immune`；被近战命中时给攻击者挂 `bone_mark`；护盾破碎时脚下生成“骨片场”。
+
+验证要点
+- 臭屁蛊释放后：目标应带有臭云标记；火衣/霜痕链路可触发对应系统消息与效果；
+- 性能：残留域统一由 ReactionEngine 调度，具有限流与合并；默认粒子/音效克制，不刷屏。
+
 ## 快速参考
 
 ### 项目结构

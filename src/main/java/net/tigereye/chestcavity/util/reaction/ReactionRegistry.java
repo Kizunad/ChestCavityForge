@@ -59,6 +59,76 @@ public final class ReactionRegistry {
         registerElementalDefaults();
         // 注册血道规则（血印/失血 与 各系 DoT 的联动）
         registerBloodDefaults();
+        // 注册毒道/骨道等扩展规则
+        registerToxicDefaults();
+        registerBoneDefaults();
+    }
+
+    private static void registerToxicDefaults() {
+        // 火衣 × 臭云（STENCH_CLOUD）=> 毒燃闪爆
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_HUO_YI_AURA,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.STENCH_CLOUD)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.TOXIC_IMMUNE),
+                ctx -> {
+                    CCConfig.ReactionConfig C = ChestCavity.config.REACTION;
+                    if (ctx.target().level() instanceof ServerLevel level) {
+                        float r = Math.max(1.5F, 2.0F);
+                        double dmg = Math.max(2.0D, 3.5D);
+                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                                level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(), r, dmg, ctx.attacker(),
+                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                    }
+                    ReactionTagOps.clear(ctx.target(), ReactionTagKeys.STENCH_CLOUD);
+                    ReactionTagOps.add(ctx.target(), ReactionTagKeys.TOXIC_IMMUNE, 40);
+                    String a = ctx.attacker() != null ? ctx.attacker().getName().getString() : "火衣";
+                    String t = ctx.target().getName().getString();
+                    i18nMessage(ctx.attacker(), "message.chestcavity.reaction.toxic_flash.attacker", t);
+                    i18nMessage(ctx.target(), "message.chestcavity.reaction.toxic_flash.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // 霜焰 DoT × 臭云 => 凝霜毒晶（取消本次毒蒸发，改为直伤+短冻结/致盲）
+        register(net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.STENCH_CLOUD)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.FROST_IMMUNE),
+                ctx -> {
+                    LivingEntity target = ctx.target();
+                    LivingEntity attacker = ctx.attacker();
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().mobAttack(attacker), 3.0F);
+                    } else {
+                        target.hurt(target.damageSources().generic(), 3.0F);
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, true));
+                    ReactionTagOps.clear(target, ReactionTagKeys.STENCH_CLOUD);
+                    ReactionTagOps.add(target, ReactionTagKeys.FROST_IMMUNE, 40);
+                    String a = attacker != null ? attacker.getName().getString() : "霜";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.toxic_frost_crystal.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.toxic_frost_crystal.target", a);
+                    return ReactionResult.cancel();
+                });
+    }
+
+    private static void registerBoneDefaults() {
+        // 预留骨系规则（后续在各骨系行为挂 BONE_MARK/SHARD_FIELD 后生效）
+        register(net.tigereye.chestcavity.util.DoTTypes.YIN_YUN_CORROSION,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.BONE_MARK),
+                ctx -> {
+                    LivingEntity target = ctx.target();
+                    LivingEntity attacker = ctx.attacker();
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().mobAttack(attacker), 2.0F);
+                    } else {
+                        target.hurt(target.damageSources().generic(), 2.0F);
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60, 0, false, true));
+                    ReactionTagOps.clear(target, ReactionTagKeys.BONE_MARK);
+                    i18nMessage(attacker, "message.chestcavity.reaction.bone_corrosion_crack.attacker", target.getName().getString());
+                    i18nMessage(target, "message.chestcavity.reaction.bone_corrosion_crack.target", attacker != null ? attacker.getName().getString() : "腐蚀");
+                    return ReactionResult.proceed();
+                });
     }
 
     private static void registerDefaults() {

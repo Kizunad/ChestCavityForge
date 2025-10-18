@@ -43,4 +43,15 @@ public final class ReactionTagKeys {
     public static final ResourceLocation BLOOD_OATH = tag("reaction/blood_oath");
     public static final ResourceLocation BLOOD_RITUAL = tag("reaction/blood_ritual");
     public static final ResourceLocation BLOOD_FLOW = tag("reaction/blood_flow");
+
+    // 毒道通用标签
+    public static final ResourceLocation TOXIC_MARK = tag("reaction/toxic_mark");
+    public static final ResourceLocation STENCH_CLOUD = tag("reaction/stench_cloud");
+    public static final ResourceLocation PLAGUE_MARK = tag("reaction/plague_mark");
+    public static final ResourceLocation TOXIC_IMMUNE = tag("reaction/toxic_immune");
+
+    // 骨道通用标签
+    public static final ResourceLocation BONE_MARK = tag("reaction/bone_mark");
+    public static final ResourceLocation SHARD_FIELD = tag("reaction/shard_field");
+    public static final ResourceLocation BONE_IMMUNE = tag("reaction/bone_immune");
 }
