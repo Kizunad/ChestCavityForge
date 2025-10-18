@@ -40,13 +40,22 @@ public final class LLMDrivenSubBrain extends SubBrain {
     private void syncConversationState(SubBrainContext ctx) {
         IntentSnapshot snapshot = ctx.intent();
         if (snapshot == null || !snapshot.isPresent()) {
+            // TTL 结束或意图被清理，丢弃会话缓存，避免陈旧状态长驻内存。
+            ctx.memory().put(MEMORY_KEY_STATE, null);
             return;
         }
         if (!(snapshot.intent() instanceof LLMIntent llmIntent) || !llmIntent.hasInstructions()) {
             return;
         }
         ConversationState state = ctx.memory().get(MEMORY_KEY_STATE, ConversationState::new);
+        if (state.lastIntentRef != llmIntent) {
+            state.reset();
+            state.lastIntentRef = llmIntent;
+        }
         List<String> instructions = llmIntent.instructions();
+        if (state.processedCount > instructions.size()) {
+            state.reset();
+        }
         for (int i = state.processedCount; i < instructions.size(); i++) {
             String line = instructions.get(i);
             if (line == null || line.isBlank()) {
@@ -66,6 +75,12 @@ public final class LLMDrivenSubBrain extends SubBrain {
         private final List<String> history = new ArrayList<>();
         private final int maxHistory = 32;
         private int processedCount = 0;
+        private LLMIntent lastIntentRef = null;
+
+        private void reset() {
+            history.clear();
+            processedCount = 0;
+        }
     }
 }
 
