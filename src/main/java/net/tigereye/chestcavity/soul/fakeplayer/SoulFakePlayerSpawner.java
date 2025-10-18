@@ -12,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
 import net.tigereye.chestcavity.registration.CCAttachments;
@@ -29,6 +30,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories.SoulEntityFactory;
 
 /**
  * 灵魂假人（SoulPlayer）生命周期协调器
@@ -198,6 +201,14 @@ public final class SoulFakePlayerSpawner {
         return false;
     }
 
+    public static boolean hasCachedIdentity(UUID soulId) {
+        return SOUL_IDENTITIES.containsKey(soulId);
+    }
+
+    public static GameProfile fallbackIdentity(ServerPlayer owner, UUID soulId) {
+        return SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
+    }
+
     /**
      * Seeds or updates the cached identity name. If an identity does not yet exist for the soul,
      * this creates one with a derived entity UUID and the provided name so subsequent spawns will
@@ -220,84 +231,165 @@ public final class SoulFakePlayerSpawner {
         });
     }
 
+    public static SoulEntitySpawnRequest.Builder newSpawnRequest(ServerPlayer owner,
+                                                                 UUID soulId,
+                                                                 GameProfile sourceProfile,
+                                                                 boolean forceDerivedId,
+                                                                 String reason) {
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(soulId, "soulId");
+        Objects.requireNonNull(sourceProfile, "sourceProfile");
+        Objects.requireNonNull(reason, "reason");
+        GameProfile identity = ensureIdentity(soulId, sourceProfile, forceDerivedId);
+        GameProfile clone = cloneProfile(identity);
+        return SoulEntitySpawnRequest.builder(owner, soulId, clone, reason)
+                .forceDerivedIdentity(forceDerivedId);
+    }
+
+    public static Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+        return spawnFromRequest(request);
+    }
+
     public static Optional<SoulPlayer> respawnSoulFromProfile(ServerPlayer owner,
                                                             UUID profileId,
                                                             GameProfile sourceProfile,
                                                             boolean forceDerivedId,
                                                             String reason) {
-        // Reject duplicate shell for the same profile to avoid illegal extra instances.
-        SoulPlayer existing = ACTIVE_SOUL_PLAYERS.get(profileId);
+        SoulContainer container = CCAttachments.getSoulContainer(owner);
+        SoulProfile profile = container.getOrCreateProfile(profileId);
+        SoulEntitySpawnRequest request = newSpawnRequest(owner, profileId, sourceProfile, forceDerivedId, reason)
+                .profile(profile)
+                .build();
+        return spawnFromRequest(request).flatMap(SoulEntitySpawnResult::asSoulPlayer);
+    }
+
+    private static Optional<SoulEntitySpawnResult> spawnFromRequest(SoulEntitySpawnRequest request) {
+        if (request == null) {
+            return Optional.empty();
+        }
+        ServerPlayer owner = request.owner();
+        UUID soulId = request.soulId();
+        String reason = request.reason();
+        SoulProfile profile = request.profile();
+
+        if (profile != null) {
+            profile.position().ifPresent(snapshot -> SoulLog.info(
+                    "[soul] respawn-prepare reason={} soul={} snapshot=({}, {}, {}, {}) dim={}",
+                    reason, soulId,
+                    snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(),
+                    snapshot.dimension().location()
+            ));
+        }
+
+        SoulPlayer existing = ACTIVE_SOUL_PLAYERS.get(soulId);
         if (existing != null && !existing.isRemoved()) {
             SoulLog.error("[soul] invariant-violation duplicate-shell prevented soul={} existingEntity={} dim={} pos=({},{},{}) newReason={}",
                     new IllegalStateException("duplicate-shell-prevented"),
-                    profileId, existing.getUUID(), existing.level().dimension().location(),
+                    soulId, existing.getUUID(), existing.level().dimension().location(),
                     existing.getX(), existing.getY(), existing.getZ(), reason);
-            return Optional.of(existing);
+            return Optional.of(new SoulEntitySpawnResult(soulId, existing, existing.getType(), request.geckoModelId(), reason, true));
         }
-        // Do not forcibly remove existing shells here; caller defines lifecycle.
-        SoulContainer container = CCAttachments.getSoulContainer(owner);
-        SoulProfile profile = container.getOrCreateProfile(profileId);
-        GameProfile identity = ensureIdentity(profileId, sourceProfile, forceDerivedId);
-        GameProfile clone = cloneProfile(identity);
 
-        profile.position().ifPresent(snapshot -> SoulLog.info(
-                "[soul] respawn-prepare reason={} soul={} snapshot=({}, {}, {}, {}) dim={}",
-                reason, profileId,
-                snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(),
-                snapshot.dimension().location()
-        ));
-
-        // 1️⃣ 创建实体，但暂不设置位置（否则会被 spawn 逻辑覆盖）
-        SoulPlayer soulPlayer = SoulPlayer.create(owner, profileId, clone);
-
-        ServerLevel ownerLevel = owner.serverLevel();
-        var server = ownerLevel.getServer();
-
-        // 2️⃣ 先注册客户端显示
-        server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(soulPlayer)));
-
-        // 3️⃣ 暂时放在 owner 当前维度中生成（spawn 点只是占位）
-        if (!ownerLevel.tryAddFreshEntityWithPassengers(soulPlayer)) {
-            server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(soulPlayer.getUUID())));
-            soulPlayer.discard();
-            SoulLog.info("[soul] spawn-aborted reason={} soul={} owner={} cause=spawnFailed", reason, profileId, owner.getUUID());
+        SoulEntityFactory factory = SoulEntityFactories.resolve(request.entityType());
+        Entity entity;
+        try {
+            entity = factory.instantiate(request);
+        } catch (Exception e) {
+            SoulLog.error("[soul] spawn-failed reason={} soul={} stage=instantiate", e, reason, soulId);
+            return Optional.empty();
+        }
+        if (entity == null) {
+            SoulLog.error("[soul] spawn-failed reason={} soul={} stage=instantiate result=null",
+                    new IllegalStateException("spawnFromRequest-nullEntity"),
+                    reason, soulId);
             return Optional.empty();
         }
 
-        // 4️⃣ 恢复数据 + 同步装备渲染
-        profile.restoreBase(soulPlayer);
-        net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(soulPlayer);
+        factory.configureEntity(request, entity);
 
-        // 4.1️⃣ 刚生成/复原的 Soul 给予短暂无敌保护，避免生成位置轻微卡方块/落差导致的瞬时死亡错觉。
-        applySpawnShield(soulPlayer);
+        boolean isServerPlayer = entity instanceof ServerPlayer;
+        boolean isSoulPlayer = entity instanceof SoulPlayer;
+        ServerLevel spawnLevel = entity.level() instanceof ServerLevel level ? level : owner.serverLevel();
+        var server = spawnLevel.getServer();
 
-        // 5️⃣ 再传送分魂到记录位置（注意：这里传送的是 soulPlayer 自身）
-        profile.position().ifPresent(snapshot -> {
-            ServerLevel targetLevel = server.getLevel(snapshot.dimension());
-            if (targetLevel != null && targetLevel != soulPlayer.level()) {
-                // ⛔ 不要用 owner 作为 teleport source！
-                soulPlayer.teleportTo(targetLevel, snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
-            } else {
-                soulPlayer.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+        if (isServerPlayer || isSoulPlayer) {
+            ServerPlayer broadcastPlayer = entity instanceof ServerPlayer serverPlayer
+                    ? serverPlayer
+                    : (SoulPlayer) entity;
+            server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(broadcastPlayer)));
+        }
+
+        if (!spawnLevel.tryAddFreshEntityWithPassengers(entity)) {
+            if (isServerPlayer || isSoulPlayer) {
+                server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(entity.getUUID())));
             }
-            soulPlayer.setYHeadRot(snapshot.headYaw());
-            SoulLog.info("[soul] restore-position-complete reason={} soul={} dim={} pos=({},{},{})",
-                    reason, profileId, snapshot.dimension().location(),
-                    snapshot.x(), snapshot.y(), snapshot.z());
-        });
+            entity.discard();
+            SoulLog.info("[soul] spawn-aborted reason={} soul={} owner={} cause=spawnFailed", reason, soulId, owner.getUUID());
+            return Optional.empty();
+        }
 
-        // 6️⃣ 登记映射
-        ACTIVE_SOUL_PLAYERS.put(profileId, soulPlayer);
-        ENTITY_TO_SOUL.put(soulPlayer.getUUID(), profileId);
-        LEGIT_ENTITY_SPAWNS.add(soulPlayer.getUUID());
-        ENTITY_SPAWN_REASON.put(soulPlayer.getUUID(), reason);
+        if (profile != null && (entity instanceof ServerPlayer || entity instanceof SoulPlayer)) {
+            ServerPlayer target = entity instanceof ServerPlayer serverPlayer
+                    ? serverPlayer
+                    : (SoulPlayer) entity;
+            profile.restoreBase(target);
+            net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(target);
+        }
+
+        if (entity instanceof SoulPlayer soulPlayer) {
+            applySpawnShield(soulPlayer);
+        }
+
+        if (profile != null) {
+            var context = request.context() != null ? request.context() : SoulEntitySpawnContext.EMPTY;
+            var snapshotOpt = context.positionOverride().isPresent() ? context.positionOverride() : profile.position();
+            snapshotOpt.ifPresent(snapshot -> {
+                ServerLevel targetLevel = server.getLevel(snapshot.dimension());
+                if (targetLevel != null) {
+                    BlockPos chunkPos = BlockPos.containing(snapshot.x(), snapshot.y(), snapshot.z());
+                    targetLevel.getChunkAt(chunkPos);
+                    if (entity.level() != targetLevel) {
+                        if (entity instanceof ServerPlayer serverPlayer) {
+                            serverPlayer.teleportTo(targetLevel, snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                        } else {
+                            entity.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                        }
+                    } else {
+                        entity.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                    }
+                    if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
+                        living.setYHeadRot(snapshot.headYaw());
+                    }
+                    SoulLog.info("[soul] restore-position-complete reason={} soul={} dim={} pos=({},{},{})",
+                            reason, soulId, snapshot.dimension().location(),
+                            snapshot.x(), snapshot.y(), snapshot.z());
+                }
+            });
+
+            if (snapshotOpt.isEmpty() && context.fallbackPosition().isPresent()) {
+                Vec3 pos = context.fallbackPosition().get();
+                BlockPos chunkPos = BlockPos.containing(pos.x, pos.y, pos.z);
+                spawnLevel.getChunkAt(chunkPos);
+                entity.moveTo(pos.x, pos.y, pos.z, entity.getYRot(), entity.getXRot());
+            }
+        }
+
+        ENTITY_TO_SOUL.put(entity.getUUID(), soulId);
+        LEGIT_ENTITY_SPAWNS.add(entity.getUUID());
+        ENTITY_SPAWN_REASON.put(entity.getUUID(), reason);
+        SoulEntitySpawnResult result = new SoulEntitySpawnResult(soulId, entity, entity.getType(), request.geckoModelId(), reason, false);
+        if (entity instanceof SoulPlayer soulPlayer) {
+            ACTIVE_SOUL_PLAYERS.put(soulId, soulPlayer);
+        }
+
+        factory.onAfterEntitySpawned(request, result);
 
         SoulLog.info("[soul] spawn-complete reason={} soul={} owner={} dim={} pos=({},{},{})",
-                reason, profileId, owner.getUUID(),
-                soulPlayer.level().dimension().location(),
-                soulPlayer.getX(), soulPlayer.getY(), soulPlayer.getZ());
+                reason, soulId, owner.getUUID(),
+                entity.level().dimension().location(),
+                entity.getX(), entity.getY(), entity.getZ());
 
-        return Optional.of(soulPlayer);
+        return Optional.of(result);
     }
 
     private static void applySpawnShield(SoulPlayer soulPlayer) {
@@ -390,7 +482,6 @@ public final class SoulFakePlayerSpawner {
      * 便捷调试：为执行者生成一个测试用的灵魂假人及其可视化外壳，并用新的 SoulProfile 回填状态。
      */
     public static Optional<SpawnResult> spawnTestFakePlayer(ServerPlayer executor) {
-        ServerLevel level = executor.serverLevel();
         UUID soulId = UUID.randomUUID();
         String baseName = executor.getGameProfile().getName();
         if (baseName == null || baseName.isBlank()) {
@@ -402,49 +493,21 @@ public final class SoulFakePlayerSpawner {
         }
         GameProfile spawnProfile = new GameProfile(soulId, name);
         copyProperties(executor.getGameProfile(), spawnProfile);
-
-        SoulPlayer soulPlayer = SoulPlayer.create(executor, soulId, spawnProfile);
-        ensureIdentity(soulId, soulPlayer.getGameProfile(), false);
-
         SoulContainer container = CCAttachments.getSoulContainer(executor);
-        var createdProfile = container.getOrCreateProfile(soulId);
-        createdProfile.restoreBase(soulPlayer);
-        createdProfile.position().ifPresent(snapshot -> {
-            ServerLevel snapshotLevel = executor.server.getLevel(snapshot.dimension());
-            if (snapshotLevel != null && snapshotLevel != soulPlayer.level()) {
-                soulPlayer.teleportTo(snapshotLevel, snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
-            } else {
-                soulPlayer.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
-            }
-            soulPlayer.setYHeadRot(snapshot.headYaw());
-        });
+        SoulProfile profile = container.getOrCreateProfile(soulId);
+        SoulEntitySpawnRequest request = newSpawnRequest(executor, soulId, spawnProfile, false, "spawnTestFakePlayer")
+                .profile(profile)
+                .build();
 
-        var server = level.getServer();
-        server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(soulPlayer)));
-
-        if (!level.tryAddFreshEntityWithPassengers(soulPlayer)) {
-            server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(soulPlayer.getUUID())));
-            soulPlayer.discard();
+        Optional<SoulEntitySpawnResult> resultOpt = spawn(request);
+        if (resultOpt.isEmpty()) {
             SOUL_IDENTITIES.remove(soulId);
-            SoulLog.info("[soul] spawn-aborted reason=spawnTestFakePlayer soul={} owner={} cause=spawnFailed", soulId, executor.getUUID());
             return Optional.empty();
         }
-
-        ACTIVE_SOUL_PLAYERS.put(soulId, soulPlayer);
-        ENTITY_TO_SOUL.put(soulPlayer.getUUID(), soulId);
-        soulPlayer.getOwnerId().ifPresent(owner -> OWNER_ACTIVE_SOUL.putIfAbsent(owner, soulId));
-        SoulLog.info("[soul] spawn-complete reason=spawnTestFakePlayer soul={} owner={} dim={} pos=({},{},{})",
-                soulId,
-                executor.getUUID(),
-                soulPlayer.level().dimension().location(),
-                soulPlayer.getX(),
-                soulPlayer.getY(),
-                soulPlayer.getZ());
-
-        // After entity is fully tracked, broadcast equipment so clients render armor/held items
-        net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(soulPlayer);
-
-        return Optional.of(new SpawnResult(soulPlayer));
+        SoulEntitySpawnResult result = resultOpt.get();
+        Optional<SoulPlayer> soulPlayerOpt = result.asSoulPlayer();
+        soulPlayerOpt.ifPresent(soulPlayer -> soulPlayer.getOwnerId().ifPresent(owner -> OWNER_ACTIVE_SOUL.putIfAbsent(owner, soulId)));
+        return soulPlayerOpt.map(SpawnResult::new);
     }
 
     /**
