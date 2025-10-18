@@ -27,6 +27,10 @@ public final class SoulRuntimeHandlers {
             net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry.register(
                     net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get()
             );
+            // LLM 指令对接
+            net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry.register(
+                    new net.tigereye.chestcavity.soul.runtime.SoulLLMControlHandler()
+            );
             // Reactive hurt must run before default APPLY handler
             SoulRuntimeHandlerRegistry.register(new HurtRetaliateOrFleeHandler());
             SoulRuntimeHandlerRegistry.register(new DefaultSoulRuntimeHandler());
