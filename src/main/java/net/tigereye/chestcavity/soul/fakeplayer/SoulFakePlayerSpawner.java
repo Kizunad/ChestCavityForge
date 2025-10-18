@@ -308,15 +308,19 @@ public final class SoulFakePlayerSpawner {
         factory.configureEntity(request, entity);
 
         boolean isServerPlayer = entity instanceof ServerPlayer;
+        boolean isSoulPlayer = entity instanceof SoulPlayer;
         ServerLevel spawnLevel = entity.level() instanceof ServerLevel level ? level : owner.serverLevel();
         var server = spawnLevel.getServer();
 
-        if (isServerPlayer) {
-            server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of((ServerPlayer) entity)));
+        if (isServerPlayer || isSoulPlayer) {
+            ServerPlayer broadcastPlayer = entity instanceof ServerPlayer serverPlayer
+                    ? serverPlayer
+                    : (SoulPlayer) entity;
+            server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(broadcastPlayer)));
         }
 
         if (!spawnLevel.tryAddFreshEntityWithPassengers(entity)) {
-            if (isServerPlayer) {
+            if (isServerPlayer || isSoulPlayer) {
                 server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(entity.getUUID())));
             }
             entity.discard();
@@ -324,9 +328,12 @@ public final class SoulFakePlayerSpawner {
             return Optional.empty();
         }
 
-        if (profile != null && entity instanceof ServerPlayer serverPlayer) {
-            profile.restoreBase(serverPlayer);
-            net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(serverPlayer);
+        if (profile != null && (entity instanceof ServerPlayer || entity instanceof SoulPlayer)) {
+            ServerPlayer target = entity instanceof ServerPlayer serverPlayer
+                    ? serverPlayer
+                    : (SoulPlayer) entity;
+            profile.restoreBase(target);
+            net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(target);
         }
 
         if (entity instanceof SoulPlayer soulPlayer) {
