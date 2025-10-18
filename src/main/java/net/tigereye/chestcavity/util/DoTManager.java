@@ -29,7 +29,10 @@ import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
 public final class DoTManager {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final boolean DEBUG = true;
+    // 默认关闭 [dot] 调试日志；可通过 JVM 参 "-Dchestcavity.debugDoT=true" 临时启用
+    private static boolean debugEnabled() {
+        return Boolean.getBoolean("chestcavity.debugDoT");
+    }
 
     private DoTManager() {}
 
@@ -160,7 +163,7 @@ public final class DoTManager {
                     safeOffset,
                     intensity));
         }
-        if (DEBUG) {
+        if (debugEnabled()) {
             LOGGER.info("[dot] queued DoT type={} seconds={} attacker={} target={} dps={}",
                     typeId,
                     durationSeconds,
@@ -196,7 +199,7 @@ public final class DoTManager {
                 }
             }
         }
-        if (removed > 0 && DEBUG) {
+        if (removed > 0 && debugEnabled()) {
             LOGGER.info("[dot] cleared {} scheduled pulses for attacker {}", removed, attackerUuid);
         }
         return removed;
@@ -214,9 +217,45 @@ public final class DoTManager {
             }
         }
         if (due.isEmpty()) return;
+        // 聚合同一tick的DoT以减少 hurt 调用次数
+        Map<UUID, Map<UUID, Float>> grouped = new HashMap<>(); // target -> (attacker|null -> totalDamage)
+        Map<UUID, LivingEntity> targetCache = new HashMap<>();
+        Map<UUID, LivingEntity> attackerCache = new HashMap<>();
+        UUID NONE = new UUID(0L, 0L);
         for (Map.Entry<Integer, List<Pulse>> entry : due) {
             for (Pulse pulse : entry.getValue()) {
-                executePulse(event.getServer(), pulse);
+                LivingEntity target = targetCache.computeIfAbsent(pulse.targetUuid, id -> findLiving(event.getServer(), id));
+                if (target == null || !target.isAlive()) continue;
+                LivingEntity attacker = pulse.attackerUuid != null
+                        ? attackerCache.computeIfAbsent(pulse.attackerUuid, id -> findLiving(event.getServer(), id))
+                        : null;
+                if (attacker != null && target.isAlliedTo(attacker)) continue;
+                // 反应判定：若取消，则本次脉冲不计入伤害（但反应已在 preApply 内触发）
+                if (!ReactionRegistry.preApplyDoT(event.getServer(), pulse.typeId, attacker, target)) {
+                    continue;
+                }
+                UUID atkKey = attacker != null ? attacker.getUUID() : NONE;
+                grouped.computeIfAbsent(target.getUUID(), k -> new HashMap<>())
+                        .merge(atkKey, pulse.amount, Float::sum);
+            }
+        }
+        // 统一应用聚合伤害
+        for (Map.Entry<UUID, Map<UUID, Float>> e : grouped.entrySet()) {
+            LivingEntity target = targetCache.get(e.getKey());
+            if (target == null || !target.isAlive()) continue;
+            for (Map.Entry<UUID, Float> g : e.getValue().entrySet()) {
+                float total = g.getValue();
+                if (total <= 0f) continue;
+                LivingEntity attacker = !g.getKey().equals(NONE) ? attackerCache.get(g.getKey()) : null;
+                DamageSource source;
+                if (attacker instanceof Player player) {
+                    source = player.damageSources().playerAttack(player);
+                } else if (attacker != null) {
+                    source = attacker.damageSources().mobAttack(attacker);
+                } else {
+                    source = target.damageSources().generic();
+                }
+                target.hurt(source, total);
             }
         }
     }
@@ -236,7 +275,7 @@ public final class DoTManager {
         }
         // 先走反应系统：若触发了反应且要求取消本次伤害，则直接返回
         if (!ReactionRegistry.preApplyDoT(server, pulse.typeId, attacker, target)) {
-            if (DEBUG) {
+            if (debugEnabled()) {
                 LOGGER.info("[dot] cancelled by reaction: type={} target={}", pulse.typeId, target.getName().getString());
             }
             return;
@@ -255,7 +294,7 @@ public final class DoTManager {
                 AbilityFxDispatcher.play(level, pulse.fxId, origin, direction, direction, performer, anchor, pulse.fxIntensity);
             }
         }
-        if (DEBUG) {
+        if (debugEnabled()) {
             LOGGER.info("[dot] apply DoT dueTick={} attacker={} target={} damage={}",
                     pulse.dueTick,
                     attacker != null ? attacker.getName().getString() : "<none>",

@@ -41,7 +41,8 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.reaction.ReactionEvents;
 import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
-import net.tigereye.chestcavity.util.reaction.ReactionStatuses;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
@@ -266,7 +267,7 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             duration = (int) Math.round(duration * 1.5D);
         }
 
-        ReactionRegistry.addStatus(target, ReactionStatuses.OIL_COATING, duration);
+        ReactionTagOps.add(target, ReactionTagKeys.OIL_COATING, duration);
         playOilApplyFx(server, target);
         return true;
     }
@@ -430,10 +431,10 @@ public final class HuoYouGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
     private boolean handleSprayHit(ServerLevel level, Player player, LivingEntity target, int fuelStacks, boolean fireCoatActive) {
         boolean exploded = false;
-        boolean hasOil = ReactionRegistry.hasStatus(target, ReactionStatuses.OIL_COATING);
+        boolean hasOil = ReactionTagOps.has(target, ReactionTagKeys.OIL_COATING);
         if (hasOil && fireCoatActive) {
             float power = 1.8F + 0.08F * Math.min(fuelStacks, MAX_FUEL_STACKS);
-            ReactionRegistry.clearStatus(target, ReactionStatuses.OIL_COATING);
+            ReactionTagOps.clear(target, ReactionTagKeys.OIL_COATING);
             level.explode(player, target.getX(), target.getY(), target.getZ(), power, Level.ExplosionInteraction.MOB);
             ReactionRegistry.blockFireOil(player, FIRE_COAT_DISABLE_TICKS);
             exploded = true;

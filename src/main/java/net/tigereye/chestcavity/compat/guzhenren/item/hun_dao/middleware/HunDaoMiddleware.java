@@ -41,6 +41,13 @@ public final class HunDaoMiddleware {
         if (perSecondDamage <= 0 || seconds <= 0) {
             return;
         }
+        // 标记魂印，用于触发“魂印回声”等反应规则
+        try {
+            int mark = ChestCavity.config != null ? Math.max(20, ChestCavity.config.REACTION.soulMarkDurationTicks) : 200;
+            net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(target,
+                    net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.SOUL_MARK,
+                    mark);
+        } catch (Throwable ignored) {}
         DoTManager.schedulePerSecond(
                 source,
                 target,

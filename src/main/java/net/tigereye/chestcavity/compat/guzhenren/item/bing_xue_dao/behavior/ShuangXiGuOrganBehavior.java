@@ -40,6 +40,8 @@ import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -372,6 +374,9 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
         holder.ifPresent(effect -> target.addEffect(new MobEffectInstance(effect, duration, 0, false, true, true)));
         target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, duration, 0, false, true, true));
         target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, duration, 0, false, true, true));
+        // 霜痕标记：供“霜痕碎裂/蒸汽灼烫”反应使用
+        int frostMarkTicks = ChestCavity.config != null ? Math.max(20, ChestCavity.config.REACTION.frostMarkDurationTicks) : 120;
+        ReactionTagOps.add(target, ReactionTagKeys.FROST_MARK, frostMarkTicks);
     }
 
     private static void spawnBreathParticles(

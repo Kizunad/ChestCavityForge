@@ -25,5 +25,12 @@ public final class ReactionTagKeys {
     public static final ResourceLocation FIRE_RESIDUE = tag("reaction/fire_residue");
     public static final ResourceLocation FIRE_EXPLOSION = tag("reaction/fire_explosion");
     public static final ResourceLocation FIRE_IMMUNE = tag("reaction/fire_immune");
-}
 
+    // 其它元素/学派标签（预留，按需在规则与行为中使用）
+    public static final ResourceLocation FROST_MARK = tag("reaction/frost_mark");
+    public static final ResourceLocation SOUL_MARK = tag("reaction/soul_mark");
+    public static final ResourceLocation CORROSION_MARK = tag("reaction/corrosion_mark");
+    public static final ResourceLocation FROST_IMMUNE = tag("reaction/frost_immune");
+    public static final ResourceLocation SOUL_IMMUNE = tag("reaction/soul_immune");
+    public static final ResourceLocation CORROSION_IMMUNE = tag("reaction/corrosion_immune");
+}

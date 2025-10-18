@@ -333,4 +333,70 @@ public class CCConfig implements ConfigData {
             return bools.computeIfAbsent(key, k -> defaultValue);
         }
     }
+
+    // -------- Reaction (元素反应/状态) 配置 --------
+
+    @ConfigEntry.Category("reaction")
+    @ConfigEntry.Gui.CollapsibleObject
+    public ReactionConfig REACTION = new ReactionConfig();
+
+    public static class ReactionConfig {
+        @ConfigEntry.Gui.Tooltip public boolean enableFrost = true;
+        @ConfigEntry.Gui.Tooltip public boolean enableSteamScald = true;
+        @ConfigEntry.Gui.Tooltip public boolean enableSoulEcho = true;
+        @ConfigEntry.Gui.Tooltip public boolean enableCorrosionSurge = true;
+        @ConfigEntry.Gui.Tooltip public boolean enableFireCorrosion = true;
+        @ConfigEntry.Gui.Tooltip public boolean debugReactions = true;
+
+        // 全局调度/限流
+        public int globalMaxJobsPerTick = 256;
+        public int perAttackerMaxJobsPerTick = 6;
+        public int maxAoEEntitiesPerJob = 32;
+        public boolean useAoEForAll = false; // 统一将爆炸降级为 AoE（可被各规则覆盖）
+        public boolean fireOilUseAoE = false; // 油+火衣：默认使用真实爆炸（已限流/降级），可单独改为AoE
+        // 视觉与音效
+        public boolean vfxEnable = true;
+        public boolean sfxEnable = true;
+        public float vfxIntensity = 1.0F; // 乘数：粒子数量/半径偏移
+        public float sfxVolume = 0.9F;
+        public float sfxPitchVariance = 0.08F;
+
+        // Frost Shatter
+        public int frostMarkDurationTicks = 120;
+        public int frostImmuneTicks = 40;
+        public double frostShatterDamage = 3.5D;
+        public double frostShatterKnockback = 0.35D;
+        public double frostResidueChance = 0.30D;
+        public int frostResidueDurationTicks = 120;
+        public float frostResidueRadius = 2.0F;
+        public int frostResidueSlowAmplifier = 0; //缓慢 I 默认
+
+        // Steam Scald (fire×ice)
+        public double steamScaldDamage = 2.0D;
+        public float steamScaldRadius = 2.5F;
+        public int steamScaldBlindnessTicks = 10; //0.5s
+
+        // Soul Echo (delayed DoT)
+        public int soulMarkDurationTicks = 200;
+        public int soulImmuneTicks = 60;
+        public int soulEchoDelayTicks = 20; //秒对齐（建议≥20）
+        public double soulEchoDamage = 3.0D;
+
+        // Corrosion Surge
+        public int corrosionMarkDurationTicks = 160;
+        public int corrosionImmuneTicks = 60;
+        public double corrosionSurgeBonusDamage = 2.0D;
+        public int corrosionSurgeWeaknessTicks = 80;
+        public int corrosionResidueDurationTicks = 80;
+        public float corrosionResidueRadius = 2.0F;
+
+        // Fire × Corrosion
+        public boolean fireCorrosionUseAoE = false; // 使用轻量 AoE 替代爆炸
+        public float fireCorrosionAoERadius = 2.4F;
+        public double fireCorrosionAoEDamage = 3.0D;
+        public float fireCorrosionExplosionPower = 1.2F; // 如启用爆炸，默认较低功率
+        public float fireCorrosionMaxPower = 1.8F;
+        public int fireCorrosionCooldownTicks = 40; // 防止连续引爆导致卡顿
+        public int fireCorrosionMaxPerTickPerAttacker = 3; // 单攻击者每tick最多触发次数
+    }
 }

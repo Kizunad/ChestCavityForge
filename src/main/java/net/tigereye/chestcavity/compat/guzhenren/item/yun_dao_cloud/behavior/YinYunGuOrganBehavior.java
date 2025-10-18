@@ -213,6 +213,15 @@ public final class YinYunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (attacker == null || target == null) {
             return;
         }
+        // 标记腐蚀，用于触发“腐蚀激增/火×腐蚀”反应
+        try {
+            int mark = net.tigereye.chestcavity.ChestCavity.config != null
+                    ? Math.max(40, net.tigereye.chestcavity.ChestCavity.config.REACTION.corrosionMarkDurationTicks)
+                    : 160;
+            net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(target,
+                    net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.CORROSION_MARK,
+                    mark);
+        } catch (Throwable ignored) {}
         DoTManager.schedulePerSecond(attacker, target, DOT_DAMAGE_PER_SECOND, DOT_DURATION_SECONDS, null, 1.0f, 1.0f,
                 net.tigereye.chestcavity.util.DoTTypes.YIN_YUN_CORROSION,
                 null, net.tigereye.chestcavity.util.DoTManager.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
