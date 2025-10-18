@@ -4,27 +4,37 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.math.Axis;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
+import net.tigereye.chestcavity.guscript.fx.gecko.GeckoFxDispatcher;
+import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
+import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest.GeckoFx;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
+import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
 import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulLook;
 import net.tigereye.chestcavity.soul.util.SoulPersistence;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
-import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
-import net.tigereye.chestcavity.soul.util.SoulLook;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -39,6 +49,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories.SoulEntityFactory;
 
@@ -392,6 +404,152 @@ public final class SoulFakePlayerSpawner {
         return Optional.of(result);
     }
 
+    private static void applySpawnRequest(ServerPlayer owner, SoulPlayer soulPlayer, @Nullable SoulEntitySpawnRequest request) {
+        if (request == null) {
+            return;
+        }
+        GeckoFx geckoFx = request.geckoFx();
+        if (geckoFx == null || geckoFx.fxId() == null) {
+            return;
+        }
+
+        ServerLevel level = soulPlayer.serverLevel();
+        GeckoFxAnchor anchor = geckoFx.anchor() == null ? GeckoFxAnchor.ENTITY : geckoFx.anchor();
+        Vec3 offset = geckoFx.offset() == null ? Vec3.ZERO : geckoFx.offset();
+        Vec3 relativeOffset = geckoFx.relativeOffset() == null ? Vec3.ZERO : geckoFx.relativeOffset();
+        Vec3 worldPosition = geckoFx.worldPosition();
+        float scale = geckoFx.scale() <= 0.0F ? 1.0F : geckoFx.scale();
+        float alpha = Mth.clamp(geckoFx.alpha(), 0.0F, 1.0F);
+        boolean loop = geckoFx.loop();
+        int duration = Math.max(1, geckoFx.durationTicks());
+
+        Entity anchorEntity = switch (anchor) {
+            case PERFORMER -> owner;
+            case TARGET, ENTITY -> resolveAttachedEntity(level, soulPlayer, geckoFx);
+            case WORLD -> null;
+        };
+
+        Vec3 basePosition;
+        if (anchor == GeckoFxAnchor.WORLD) {
+            basePosition = worldPosition != null ? worldPosition : soulPlayer.position();
+        } else {
+            basePosition = anchorEntity != null ? anchorEntity.position() : soulPlayer.position();
+        }
+
+        float yawInput = geckoFx.yaw() != null
+                ? geckoFx.yaw()
+                : anchorEntity != null ? anchorEntity.getYRot() : soulPlayer.getYRot();
+        float pitchInput = geckoFx.pitch() != null
+                ? geckoFx.pitch()
+                : anchorEntity != null ? anchorEntity.getXRot() : soulPlayer.getXRot();
+        float rollInput = geckoFx.roll() != null ? geckoFx.roll() : 0.0F;
+
+        float payloadYaw = -yawInput;
+        float payloadPitch = -pitchInput;
+        float payloadRoll = -rollInput;
+
+        Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, payloadYaw, payloadPitch, payloadRoll);
+        Vec3 originOffset = offset.add(rotatedRelative);
+        Vec3 origin = basePosition.add(originOffset);
+
+        UUID eventId;
+        if (anchor == GeckoFxAnchor.WORLD) {
+            String seed = geckoFx.fxId() + "|" + basePosition.x + "," + basePosition.y + "," + basePosition.z;
+            eventId = loop ? UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)) : UUID.randomUUID();
+        } else {
+            Entity eventAnchor = anchorEntity != null ? anchorEntity : soulPlayer;
+            eventId = computeFxEventId(geckoFx.fxId(), eventAnchor, loop);
+        }
+
+        int attachedEntityId = anchor == GeckoFxAnchor.WORLD
+                ? -1
+                : (anchorEntity != null ? anchorEntity.getId() : soulPlayer.getId());
+        UUID attachedEntityUuid = anchor == GeckoFxAnchor.WORLD
+                ? null
+                : (anchorEntity != null ? anchorEntity.getUUID() : soulPlayer.getUUID());
+
+        GeckoFxEventPayload payload = new GeckoFxEventPayload(
+                geckoFx.fxId(),
+                anchor,
+                attachedEntityId,
+                attachedEntityUuid,
+                basePosition.x,
+                basePosition.y,
+                basePosition.z,
+                offset.x,
+                offset.y,
+                offset.z,
+                relativeOffset.x,
+                relativeOffset.y,
+                relativeOffset.z,
+                payloadYaw,
+                payloadPitch,
+                payloadRoll,
+                scale,
+                geckoFx.tint(),
+                alpha,
+                loop,
+                duration,
+                geckoFx.modelOverride(),
+                geckoFx.textureOverride(),
+                geckoFx.animationOverride(),
+                eventId
+        );
+
+        GeckoFxDispatcher.emit(level, origin, payload);
+    }
+
+    private static Entity resolveAttachedEntity(ServerLevel level, SoulPlayer fallback, GeckoFx geckoFx) {
+        if (geckoFx.attachedEntityUuid() != null) {
+            Entity byUuid = level.getEntity(geckoFx.attachedEntityUuid());
+            if (byUuid != null && !byUuid.isRemoved()) {
+                return byUuid;
+            }
+        }
+        if (geckoFx.attachedEntityId() >= 0) {
+            Entity byId = level.getEntity(geckoFx.attachedEntityId());
+            if (byId != null && !byId.isRemoved()) {
+                return byId;
+            }
+        }
+        return fallback;
+    }
+
+    private static UUID computeFxEventId(ResourceLocation fxId, Entity anchor, boolean loop) {
+        if (!loop || fxId == null || anchor == null) {
+            return UUID.randomUUID();
+        }
+        String seed = fxId + "|" + anchor.getUUID();
+        return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Vec3 rotateRelativeOffset(Vec3 relativeOffset, float yawDegrees, float pitchDegrees, float rollDegrees) {
+        if (relativeOffset == null || relativeOffset.equals(Vec3.ZERO)) {
+            return Vec3.ZERO;
+        }
+        boolean hasYaw = yawDegrees != 0.0F;
+        boolean hasPitch = pitchDegrees != 0.0F;
+        boolean hasRoll = rollDegrees != 0.0F;
+        if (!hasYaw && !hasPitch && !hasRoll) {
+            return relativeOffset;
+        }
+
+        Quaternionf rotation = new Quaternionf();
+        if (hasYaw) {
+            rotation.mul(Axis.YP.rotationDegrees(yawDegrees));
+        }
+        if (hasPitch) {
+            rotation.mul(Axis.XP.rotationDegrees(pitchDegrees));
+        }
+        if (hasRoll) {
+            rotation.mul(Axis.ZP.rotationDegrees(rollDegrees));
+        }
+
+        Vector3f working = new Vector3f((float) relativeOffset.x, (float) relativeOffset.y, (float) relativeOffset.z);
+        rotation.transform(working);
+        return new Vec3(working.x(), working.y(), working.z());
+    }
+
     private static void applySpawnShield(SoulPlayer soulPlayer) {
         int ticks = getSpawnShieldTicks();
         if (ticks <= 0) return;
@@ -421,9 +579,20 @@ public final class SoulFakePlayerSpawner {
      * Public helper to respawn a soul avatar for its owner using a best-effort identity.
      */
     public static Optional<SoulPlayer> respawnForOwner(ServerPlayer owner, UUID soulId) {
+        return respawnForOwner(owner, soulId, null);
+    }
+
+    /**
+     * Respawn helper with optional spawn request (e.g., Gecko FX attachment directives).
+     */
+    public static Optional<SoulPlayer> respawnForOwner(ServerPlayer owner,
+                                                       UUID soulId,
+                                                       @Nullable SoulEntitySpawnRequest request) {
         GameProfile identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
         boolean forceDerived = !SOUL_IDENTITIES.containsKey(soulId);
-        return respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+        Optional<SoulPlayer> spawned = respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+        spawned.ifPresent(soul -> applySpawnRequest(owner, soul, request));
+        return spawned;
     }
 
     /**
