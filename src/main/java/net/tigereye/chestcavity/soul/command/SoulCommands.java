@@ -841,8 +841,19 @@ public final class SoulCommands {
             return 0;
         }
         UUID soulId = resolved.get();
-        // Force respawn to make clients see current identity properties (textures)
-        if (net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.respawnForOwner(executor, soulId).isPresent()) {
+        SoulContainer container = CCAttachments.getSoulContainer(executor);
+        SoulProfile profile = container.getOrCreateProfile(soulId);
+        boolean forceDerived = !SoulFakePlayerSpawner.hasCachedIdentity(soulId);
+        var request = SoulFakePlayerSpawner.newSpawnRequest(
+                        executor,
+                        soulId,
+                        SoulFakePlayerSpawner.fallbackIdentity(executor, soulId),
+                        forceDerived,
+                        "command:skinApply")
+                .profile(profile)
+                .build();
+        var result = SoulFakePlayerSpawner.spawn(request);
+        if (result.isPresent() && result.get().asSoulPlayer().isPresent()) {
             context.getSource().sendSuccess(() -> Component.literal("[soul] 已尝试重新生成以应用皮肤缓存。"), true);
             return 1;
         }
