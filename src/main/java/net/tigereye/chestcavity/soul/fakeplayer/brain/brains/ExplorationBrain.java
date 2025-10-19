@@ -38,7 +38,7 @@ public final class ExplorationBrain extends HierarchicalBrain {
     );
 
     public ExplorationBrain() {
-        super("exploration", BrainMode.IDLE, PIPELINE); // TODO: replace with dedicated mode when available
+        super("exploration", BrainMode.EXPLORATION, PIPELINE);
     }
 
     private static final class SenseSubBrain extends SubBrain {
@@ -127,7 +127,10 @@ public final class ExplorationBrain extends HierarchicalBrain {
                 double angle = Mth.DEG_TO_RAD * ((time + i * 40L) % 360);
                 double radius = baseRadius + i * 1.5;
                 Vec3 pos = anchor.add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
-                list.add(new ExplorationTarget(pos, 0.55 + 0.15 * i, radius, "orbit" + i));
+                if (pos.distanceToSqr(ctx.soul().position()) < 2.0) {
+                pos = pos.add(Math.cos(angle) * 2.0, 0.0, Math.sin(angle) * 2.0);
+            }
+            list.add(new ExplorationTarget(pos, 0.55 + 0.15 * i, radius, "orbit" + i));
             }
             if (inputs.primaryTarget() != null) {
                 Vec3 targetPos = inputs.primaryTarget().position();
@@ -157,8 +160,9 @@ public final class ExplorationBrain extends HierarchicalBrain {
             }
             Vec3 target = plan.target().position();
             Vec3 last = ctx.memory().getIfPresent(LAST_TARGET_KEY);
-            if (last == null || last.distanceTo(target) > 0.5) {
-                SoulNavigationMirror.setGoal(ctx.soul(), target, 1.1, 2.5);
+            double stop = Math.max(0.8, 0.6 * ctx.soul().getBbWidth());
+            if (last == null || last.distanceTo(target) > 0.5 || ctx.soul().position().distanceToSqr(target) > (stop * stop)) {
+                SoulNavigationMirror.setGoal(ctx.soul(), target, 1.1, stop);
                 ctx.memory().put(LAST_TARGET_KEY, target);
             }
             BrainDebugProbe.recordExploration(ctx.soul(), new ExplorationTelemetry(

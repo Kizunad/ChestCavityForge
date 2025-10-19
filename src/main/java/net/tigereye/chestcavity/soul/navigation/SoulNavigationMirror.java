@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.soul.navigation;
 
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -34,7 +35,14 @@ public final class SoulNavigationMirror {
         if (nav == null) return;
         nav.setGoal(soul, target, speed, stopDistance);
         UUID id = soul.getUUID();
+        if (soul.level() instanceof ServerLevel level) {
+            // 调试粒子：标记当前导航目标
+            level.sendParticles(ParticleTypes.GLOW, target.x, target.y + 0.25, target.z,
+                    6, 0.2, 0.2, 0.2, 0.01);
+        }
         Goal prev = GOALS.put(id, new Goal(target, speed, stopDistance));
+        SoulLog.info("[soul][nav] goal_update soul={} target=({}, {}, {}) speed={} stop={}",
+                id, target.x, target.y, target.z, speed, stopDistance);
         if (NAV_LOGS) {
             boolean changed = true;
             if (prev != null) {

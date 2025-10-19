@@ -6,6 +6,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.commands.arguments.UuidArgument;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -142,6 +145,21 @@ public final class SoulCommands {
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
                                         .then(Commands.argument("mode", StringArgumentType.word())
                                                 .executes(SoulCommands::brainSetMode))))
+                        // /soul brain get <idOrName>
+                        .then(Commands.literal("get")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::brainGet)))
+                        // /soul brain cycle <idOrName>
+                        .then(Commands.literal("cycle")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::brainCycle)))
+                        // /soul brain menu <idOrName>
+                        .then(Commands.literal("menu")
+                                .then(Commands.argument("idOrName", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                        .executes(SoulCommands::brainMenu)))
                         // /soul brain intent combat <idOrName> <style> [ttl]
                         .then(Commands.literal("intent")
                                 .then(Commands.literal("combat")
@@ -531,7 +549,7 @@ public final class SoulCommands {
         try {
             mode = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.valueOf(modeToken.toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            context.getSource().sendFailure(Component.literal("[soul] 无效模式: " + modeToken + " (可用: AUTO|COMBAT|SURVIVAL|IDLE)"));
+            context.getSource().sendFailure(Component.literal("[soul] 无效模式: " + modeToken + " (可用: AUTO|COMBAT|SURVIVAL|EXPLORATION|IDLE)"));
             return 0;
         }
         net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(soul.getUUID(), mode);
@@ -539,6 +557,93 @@ public final class SoulCommands {
         net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(executor).setBrainMode(executor, soul.getUUID(), mode, "command-brain-mode");
         context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 brain 模式为 " + mode + "（已持久化）。"), true);
         return 1;
+    }
+
+
+
+    /** 查询并显示当前 brain 模式（持久化值 + 运行时提示）。 */
+    private static int brainGet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        var container = CCAttachments.getSoulContainer(executor);
+        var persisted = container.getBrainMode(soul.getUUID());
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 当前 brain 模式(持久化): " + persisted), false);
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 提示: AUTO 下受击/低血将进入 SURVIVAL，否则 EXPLORATION。"), false);
+        return 1;
+    }
+
+    /** 在 AUTO->COMBAT->SURVIVAL->EXPLORATION->IDLE->AUTO 之间循环切换并持久化。 */
+    private static int brainCycle(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        var container = CCAttachments.getSoulContainer(executor);
+        var current = container.getBrainMode(soul.getUUID());
+        var next = nextMode(current);
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(soul.getUUID(), next);
+        container.setBrainMode(executor, soul.getUUID(), next, "command-brain-cycle");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已切换 brain 模式为 " + next + "（已持久化）。"), true);
+        return 1;
+    }
+
+    /** 发送一个带可点击选项的“模式切换菜单”。 */
+    private static int brainMenu(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        var container = CCAttachments.getSoulContainer(executor);
+        var current = container.getBrainMode(soul.getUUID());
+        MutableComponent line = Component.literal("[soul] 选择 brain 模式: ");
+        for (var mode : net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.values()) {
+            String label = mode.name();
+            boolean isCurrent = mode == current;
+            String cmd = String.format(Locale.ROOT, "/soul brain mode %s %s", soul.getUUID(), label);
+            MutableComponent btn = Component.literal("[" + label + "]");
+            btn = btn.withStyle(style -> style
+                    .withColor(isCurrent ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.GRAY)
+                    .withUnderlined(!isCurrent)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, cmd))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("点击切换为 " + label))))
+                .append(Component.literal(" "));
+            line = line.append(btn);
+        }
+        final MutableComponent msg = line;
+        context.getSource().sendSuccess(() -> msg, false);
+        return 1;
+    }
+
+    private static net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode nextMode(net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode cur) {
+        var order = new net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode[]{
+                net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.AUTO,
+                net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.COMBAT,
+                net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.SURVIVAL,
+                net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.EXPLORATION,
+                net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.IDLE
+        };
+        int idx = 0;
+        for (int i = 0; i < order.length; i++) { if (order[i] == cur) { idx = i; break; } }
+        return order[(idx + 1) % order.length];
     }
 
     /**

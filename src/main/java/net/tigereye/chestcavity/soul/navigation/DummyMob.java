@@ -61,7 +61,7 @@ final class DummyMob extends Mob {
     // Attribute supplier must match a typical land mob so navigation math is valid.
     public static AttributeSupplier.Builder createAttributes() {
         return Pig.createAttributes()
-                .add(Attributes.MOVEMENT_SPEED, 0.25D)
+                .add(Attributes.MOVEMENT_SPEED, 1.25D)
                 .add(Attributes.FOLLOW_RANGE, 16.0D)
                 .add(Attributes.MAX_HEALTH, 20.0D);
     }

@@ -30,6 +30,8 @@ public final class BrainController implements SoulRuntimeHandler {
     private final Map<UUID, IntentRecord> intents = new ConcurrentHashMap<>();
 
     private final Brain combat = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.CombatBrain();
+    private final Brain survival = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.SurvivalBrain();
+    private final Brain exploration = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.ExplorationBrain();
     private final Brain llm = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.LLMBrain();
     private final Brain idle = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.IdleBrain();
 
@@ -78,6 +80,8 @@ public final class BrainController implements SoulRuntimeHandler {
         Brain current = active.get(player.getUUID());
         Brain target = selectBrain(desired);
         if (current != target) {
+            net.tigereye.chestcavity.soul.fakeplayer.brain.debug.BrainDebugLogger.trace(
+                    "switch", "soul=%s %s -> %s", player.getUUID(), current == null ? "none" : current.id(), target == null ? "none" : target.id());
             if (current != null) current.onExit(new BrainContext(level, player, owner, mgr, snapshot));
             active.put(player.getUUID(), target);
             if (target != null) target.onEnter(new BrainContext(level, player, owner, mgr, snapshot));
@@ -101,15 +105,23 @@ public final class BrainController implements SoulRuntimeHandler {
             order == net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.GUARD) {
             return BrainMode.COMBAT;
         }
-        return BrainMode.IDLE;
+        double max = Math.max(1.0f, soul.getMaxHealth());
+        double hpRatio = soul.getHealth() / max;
+        boolean recentlyHurt = soul.getLastHurtByMob() != null || soul.getLastDamageSource() != null;
+        if (recentlyHurt || hpRatio < 0.55) {
+            return BrainMode.SURVIVAL;
+        }
+        return BrainMode.EXPLORATION;
     }
 
     private Brain selectBrain(BrainMode mode) {
         return switch (mode) {
             case COMBAT -> combat;
+            case SURVIVAL -> survival;
+            case EXPLORATION -> exploration;
             case LLM -> llm;
             case IDLE -> idle;
-            case SURVIVAL, AUTO -> null; // AUTO handled earlier; SURVIVAL to be filled later
+            case AUTO -> null; // AUTO handled earlier
         };
     }
 

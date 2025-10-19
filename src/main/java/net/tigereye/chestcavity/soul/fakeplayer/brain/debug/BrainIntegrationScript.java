@@ -102,8 +102,16 @@ public final class BrainIntegrationScript {
                 ? arbitrator.decide(defaultActionCandidates(combatScore, survivalScore, explorationScore), ActionCandidate::score)
                 : new Arbitrator.Result<>(null, List.of());
 
-        return new Decision(target.id(), target.mode(), combatScore, survivalScore, explorationScore, idleScore,
-                arbitration, allowStateChange, allowPlanning);
+        return new Decision(
+                target.id(),
+                target.mode(),
+                combatScore,
+                survivalScore,
+                explorationScore,
+                idleScore,
+                arbitration,
+                allowStateChange,
+                allowPlanning);
     }
 
     private static String normalizeBrainId(String id) {
