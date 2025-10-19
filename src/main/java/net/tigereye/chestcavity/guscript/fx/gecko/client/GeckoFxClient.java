@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -97,7 +98,7 @@ public final class GeckoFxClient {
                 ChestCavity.LOGGER.warn("[GuScript] Missing Gecko FX definition {}", payload.fxId());
                 return;
             }
-            GeckoFxDefinition definition = definitionOptional.get();
+            GeckoFxDefinition definition = mergeDefinition(definitionOptional.get(), payload);
             float payloadScale = payload.scale() <= 0.0F ? 1.0F : payload.scale();
             float combinedScale = payloadScale * Math.max(0.0001F, definition.defaultScale());
             float combinedAlpha = Mth.clamp(payload.alpha() * definition.defaultAlpha(), 0.0F, 1.0F);
@@ -138,6 +139,9 @@ public final class GeckoFxClient {
                     basePosition = new Vec3(payload.basePosX(), payload.basePosY(), payload.basePosZ());
                 } else {
                     Entity anchor = level.getEntity(payload.attachedEntityId());
+                    if ((anchor == null || anchor.isRemoved()) && payload.attachedEntityUuid() != null && level instanceof ClientLevel clientLevel) {
+                        anchor = clientLevel.getPlayerByUUID(payload.attachedEntityUuid());
+                    }
                     if (anchor == null || anchor.isRemoved()) {
                         iterator.remove();
                         continue;
@@ -174,6 +178,23 @@ public final class GeckoFxClient {
 
         public void clear() {
             active.clear();
+        }
+
+        private static GeckoFxDefinition mergeDefinition(GeckoFxDefinition base, GeckoFxEventPayload payload) {
+            ResourceLocation model = payload.modelOverride() != null ? payload.modelOverride() : base.model();
+            ResourceLocation texture = payload.textureOverride() != null ? payload.textureOverride() : base.texture();
+            ResourceLocation animation = payload.animationOverride() != null ? payload.animationOverride() : base.animation();
+            return new GeckoFxDefinition(
+                    base.id(),
+                    model,
+                    texture,
+                    animation,
+                    base.defaultAnimation(),
+                    base.defaultScale(),
+                    base.defaultTint(),
+                    base.defaultAlpha(),
+                    base.blendMode()
+            );
         }
 
         private static int multiplyTints(int base, int overlay) {

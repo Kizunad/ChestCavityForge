@@ -35,6 +35,7 @@ import net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -917,8 +918,19 @@ public final class SoulCommands {
             return 0;
         }
         UUID soulId = resolved.get();
-        // Force respawn to make clients see current identity properties (textures)
-        if (net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.respawnForOwner(executor, soulId).isPresent()) {
+        SoulContainer container = CCAttachments.getSoulContainer(executor);
+        SoulProfile profile = container.getOrCreateProfile(soulId);
+        boolean forceDerived = !SoulFakePlayerSpawner.hasCachedIdentity(soulId);
+        var request = SoulFakePlayerSpawner.newSpawnRequest(
+                        executor,
+                        soulId,
+                        SoulFakePlayerSpawner.fallbackIdentity(executor, soulId),
+                        forceDerived,
+                        "command:skinApply")
+                .profile(profile)
+                .build();
+        var result = SoulFakePlayerSpawner.spawn(request);
+        if (result.isPresent() && result.get().asSoulPlayer().isPresent()) {
             context.getSource().sendSuccess(() -> Component.literal("[soul] 已尝试重新生成以应用皮肤缓存。"), true);
             return 1;
         }
@@ -1005,7 +1017,8 @@ public final class SoulCommands {
             container.setAutospawn(executor, soulId, true, "autospawn-default-on");
             SoulProfileOps.markContainerDirty(executor, container, "command-createSoulDefault");
         }
-        var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
+        var request = SoulGenerationRequest.create(soulId).withReason("command-createSoulDefault");
+        var spawned = SoulFakePlayerSpawner.spawnFromRequest(executor, request);
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulDefault owner={} soul={}", executor.getUUID(), soulId);
             String name = SoulFakePlayerSpawner.resolveDisplayName(executor, soulId);
@@ -1046,7 +1059,8 @@ public final class SoulCommands {
             container.setAutospawn(executor, soulId, true, "autospawn-default-on");
             SoulProfileOps.markContainerDirty(executor, container, "command-createSoulAt");
         }
-        var spawned = SoulFakePlayerSpawner.respawnForOwner(executor, soulId);
+        var request = SoulGenerationRequest.create(soulId).withReason("command-createSoulAt");
+        var spawned = SoulFakePlayerSpawner.spawnFromRequest(executor, request);
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulAt owner={} soul={} pos=({},{},{})",
                     executor.getUUID(), soulId, x, y, z);

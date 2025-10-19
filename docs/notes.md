@@ -1035,6 +1035,28 @@ OnHit
 在换魂逻辑上，“体外化身”只是另一个 **载体实体**，
 其内部依然存放一个完整 SoulProfile。
 
+### 扩展自定义灵魂实体
+
+2025-10 起，灵魂生成流程统一走 `SoulEntitySpawnRequest → SoulFakePlayerSpawner.spawn(...) → SoulEntitySpawnResult`。
+
+1. **构造请求**：
+   ```java
+   var request = SoulEntitySpawnRequest.builder(owner, soulId, spawnProfile, "my-mod:reason")
+           .profile(container.getOrCreateProfile(soulId))
+           .entityType(myEntityType)
+           .geckoModel(new ResourceLocation("my_mod", "geo/my_entity.geo.json"))
+           .context(SoulEntitySpawnContext.EMPTY)
+           .build();
+   ```
+   - `entityType` 指定要生成的实体类型；
+   - `geckoModelId` 供 GeckoLib/客户端渲染引用；
+   - `context` 可覆写初始坐标或附加自定义键值。
+2. **调用生成器**：`SoulFakePlayerSpawner.spawn(request)` 会执行区块加载、身份校验、位置恢复以及原有的生命周期回调。
+3. **处理结果**：`SoulEntitySpawnResult` 提供 `entity()`、`entityType()`、`geckoModelId()` 与 `reusedExisting()`，可据此做日志或后续逻辑。
+4. **注册工厂**：通过 `SoulEntityFactories.register(type, factory)` 注入自定义构造逻辑；默认工厂继续创建 `SoulPlayer` 并保持旧行为。
+
+> 提示：便捷场景可以使用 `SoulFakePlayerSpawner.newSpawnRequest(...)` 以现有身份缓存为模板快速创建请求。
+
 ---
 
 ## 🧠 八、魂系统与 NBT 同步的整合原则
@@ -1916,7 +1938,6 @@ itemId   "item.guzhenren.bainianshougu": "百年寿蛊",
 
   * +0.5 HP/s 自愈；
   * -2% 延期伤害利息；
-  * +2% 环境伤害减免（火焰/坠落/雷击等）。
 
 ## 💀 缓死（P2）· GraceShift
 
@@ -1930,7 +1951,6 @@ itemId   "item.guzhenren.bainianshougu": "百年寿蛊",
 * 每消耗一层寿纹：清偿 40 DD，并获得 1s 的额外 8HP/s 回复；
 * 利息：每 3s 增长未偿还 DD 的 5%，可被寿纹层数逐层降低 2%；
 * 超出寿债阈值：立刻**强制清算** → 余量真实伤害 + 凋零II 8s。
-
 
 ---
 
@@ -2142,7 +2162,6 @@ private void decayOrgan(Player player, OrganInstance organ) {
 
 * 每秒恢复 `1 点生命值`；
 * 同时恢复 `3 点真元`（通过 `ResourceHandle#addZhenyuan(3)`）；
-* 若生命值已满，则真元恢复加倍（模拟灵气内转）。
 
 **视觉表现：**
 
