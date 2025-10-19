@@ -23,6 +23,7 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
     private static final String MEMORY_STATE = "state";
     private static final String MEMORY_COOLDOWNS = "cooldowns";
     private static final String SAFE_WINDOW_KEY = "safe_window";
+    private static final String SHARED_SNAPSHOT_KEY = "survival.snapshot";
     private static final SafetyWindowPolicy SAFETY_WINDOW = new SafetyWindowPolicy(40, 0.3);
     private static final SimpleFleeHandler FALLBACK_FLEE = new SimpleFleeHandler();
 
@@ -43,7 +44,7 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
     }
 
     private void tickRetreat(SubBrainContext ctx) {
-        SurvivalSnapshot snapshot = ctx.memory().getIfPresent("snapshot");
+        SurvivalSnapshot snapshot = ctx.sharedMemory().getIfPresent(SHARED_SNAPSHOT_KEY);
         if (snapshot == null) {
             return;
         }

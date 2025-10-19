@@ -23,6 +23,7 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
 
     private static final double SCAN_RADIUS = 14.0;
     private static final double MAX_DISTANCE = 18.0;
+    private static final String SHARED_SNAPSHOT_KEY = "survival.snapshot";
 
     private final SurvivalScorecard scorecard;
 
@@ -54,7 +55,7 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
                 .owner(ownerPos)
                 .build();
         SurvivalSnapshot snapshot = scorecard.evaluate(inputs);
-        ctx.memory().put("snapshot", snapshot);
+        ctx.sharedMemory().put(SHARED_SNAPSHOT_KEY, snapshot);
         BrainDebugProbe.emit(BrainDebugEvent.builder("survival")
                 .message("assess")
                 .attribute("score", snapshot.fleeScore())

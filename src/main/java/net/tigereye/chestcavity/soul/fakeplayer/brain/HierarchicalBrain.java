@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.BrainSharedMemory;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainMemory;
@@ -22,6 +23,7 @@ public class HierarchicalBrain implements Brain {
 
     private final Map<UUID, Map<String, SubBrainMemory>> memories = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, Boolean>> activeStates = new ConcurrentHashMap<>();
+    private final Map<UUID, BrainSharedMemory> sharedMemories = new ConcurrentHashMap<>();
 
     public HierarchicalBrain(String id, BrainMode mode, List<SubBrain> pipeline) {
         this.id = id;
@@ -39,6 +41,7 @@ public class HierarchicalBrain implements Brain {
         memories.put(soulId, mems);
         var states = new ConcurrentHashMap<String, Boolean>();
         activeStates.put(soulId, states);
+        sharedMemories.put(soulId, new BrainSharedMemory());
         for (SubBrain sub : pipeline) {
             mems.put(sub.id(), new SubBrainMemory());
             states.put(sub.id(), Boolean.FALSE);
@@ -60,6 +63,10 @@ public class HierarchicalBrain implements Brain {
         var mems = memories.remove(soulId);
         if (mems != null) {
             mems.values().forEach(SubBrainMemory::clear);
+        }
+        var shared = sharedMemories.remove(soulId);
+        if (shared != null) {
+            shared.clear();
         }
     }
 
@@ -99,6 +106,7 @@ public class HierarchicalBrain implements Brain {
         UUID soulId = ctx.soul().getUUID();
         var mems = memories.computeIfAbsent(soulId, unused -> new ConcurrentHashMap<>());
         var mem = mems.computeIfAbsent(sub.id(), unused -> new SubBrainMemory());
-        return new SubBrainContext(ctx, sub, mem);
+        var shared = sharedMemories.computeIfAbsent(soulId, unused -> new BrainSharedMemory());
+        return new SubBrainContext(ctx, sub, mem, shared);
     }
 }
