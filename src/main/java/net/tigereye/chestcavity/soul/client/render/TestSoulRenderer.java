@@ -17,7 +17,7 @@ import net.tigereye.chestcavity.soul.entity.TestSoulEntity;
 public final class TestSoulRenderer extends MobRenderer<TestSoulEntity, HumanoidModel<TestSoulEntity>> {
 
     private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/zombie/zombie.png");
+            ResourceLocation.fromNamespaceAndPath("chestcavity", "textures/entity/yuedao_entity.png");
 
     public TestSoulRenderer(EntityRendererProvider.Context context) {
         super(context, new HumanoidModel<>(context.bakeLayer(ModelLayers.ZOMBIE)), 0.5f);

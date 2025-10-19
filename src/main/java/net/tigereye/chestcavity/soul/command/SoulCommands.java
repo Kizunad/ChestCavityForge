@@ -327,6 +327,8 @@ public final class SoulCommands {
                                 .then(Commands.argument("limit", IntegerArgumentType.integer(1))
                                         .executes(ctx -> setTestSoulLimit(ctx, IntegerArgumentType.getInteger(ctx, "limit"))))
                                 .executes(SoulCommands::getTestSoulLimit))
+                        .then(Commands.literal("TestSoulReport")
+                                .executes(SoulCommands::reportTestSoul))
                         .then(Commands.literal("TestCollectEntityGoals")
                                 .then(Commands.argument("uuid", UuidArgument.uuid())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuidLiterals(ctx.getSource(), builder))
@@ -443,12 +445,12 @@ public final class SoulCommands {
             source.sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再生成 Test 生物。"));
             return 0;
         }
-        if (!TestSoulManager.canSpawn()) {
+        ServerLevel level = source.getLevel();
+        if (!TestSoulManager.canSpawn(level)) {
             source.sendFailure(Component.literal(String.format(Locale.ROOT,
-                    "[soul] Test 生物已达上限 (%d)。", TestSoulManager.getMaxCount())));
+                    "[soul] Test 生物已达上限 (%d)。", TestSoulManager.getMaxCount(level))));
             return 0;
         }
-        ServerLevel level = source.getLevel();
         Vec3 pos = source.getPosition();
         TestSoulEntity entity = CCEntities.TEST_SOUL.get().create(level);
         if (entity == null) {
@@ -462,23 +464,60 @@ public final class SoulCommands {
         }
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "[soul] Test 生物生成成功 (active=%d/%d)",
-                TestSoulManager.getActiveCount(), TestSoulManager.getMaxCount())), true);
+                TestSoulManager.getActiveCount(level), TestSoulManager.getMaxCount(level))), true);
         return 1;
     }
 
     private static int setTestSoulLimit(CommandContext<CommandSourceStack> context, int limit) {
-        TestSoulManager.setMaxCount(limit);
+        ServerLevel level = context.getSource().getLevel();
+        int applied = TestSoulManager.setMaxCount(level, limit);
         context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "[soul] Test 生物上限设置为 %d (当前=%d)",
-                TestSoulManager.getMaxCount(), TestSoulManager.getActiveCount())), true);
-        return TestSoulManager.getMaxCount();
+                applied, TestSoulManager.getActiveCount(level))), true);
+        return applied;
     }
 
     private static int getTestSoulLimit(CommandContext<CommandSourceStack> context) {
+        ServerLevel level = context.getSource().getLevel();
         context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "[soul] Test 生物上限=%d，当前=%d",
-                TestSoulManager.getMaxCount(), TestSoulManager.getActiveCount())), false);
-        return TestSoulManager.getMaxCount();
+                TestSoulManager.getMaxCount(level), TestSoulManager.getActiveCount(level))), false);
+        return TestSoulManager.getMaxCount(level);
+    }
+
+    private static int reportTestSoul(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!SoulFeatureToggle.isEnabled()) {
+            source.sendFailure(Component.literal("[soul] 功能未启用，无法查询 Test 生物。"));
+            return 0;
+        }
+        MinecraftServer server = source.getServer();
+        int index = 0;
+        for (ServerLevel level : server.getAllLevels()) {
+            for (UUID id : TestSoulManager.getActiveIds(level)) {
+                Entity entity = level.getEntity(id);
+                if (entity instanceof TestSoulEntity test) {
+                    index++;
+                    int ordinal = index;
+                    source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                            "[soul] TestSoul #%d [%s] -> %.1f, %.1f, %.1f (%s)",
+                            ordinal,
+                            id,
+                            test.getX(),
+                            test.getY(),
+                            test.getZ(),
+                            level.dimension().location())), false);
+                }
+            }
+        }
+        if (index == 0) {
+            source.sendSuccess(() -> Component.literal("[soul] 当前世界中没有 Test 生物。"), false);
+        } else {
+            int total = index;
+            source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                    "[soul] 共计 %d 只 Test 生物处于活动状态。", total)), false);
+        }
+        return index;
     }
 
     /**

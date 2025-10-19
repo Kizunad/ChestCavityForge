@@ -60,7 +60,12 @@ import icyllis.modernui.mc.neoforge.MenuScreenFactory;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.soul.entity.TestSoulSpawner;
 import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
+import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
+import net.minecraft.world.entity.SpawnPlacements;
+import net.minecraft.world.entity.SpawnPlacementTypes;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 
 
@@ -106,6 +111,7 @@ public class ChestCavity {
                 NeoForge.EVENT_BUS.addListener(SoulCommands::register);
                 // Central DoT manager ticking
                 NeoForge.EVENT_BUS.addListener(DoTManager::onServerTick);
+                NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
                         NeoForge.EVENT_BUS.addListener(ModernUIKeyDispatcher::onClientTick);
@@ -137,6 +143,7 @@ public class ChestCavity {
                 CCStatusEffects.MOB_EFFECTS.register(bus);
                 bus.addListener(CCKeybindings::register);
                 bus.addListener(SoulEntityAttributes::onAttributeCreation);
+                bus.addListener(this::registerSpawnPlacements);
                 CCTagOrgans.init();
                 CapabilitySnapshots.bootstrap();
                 net.tigereye.chestcavity.soul.runtime.SoulRuntimeHandlers.bootstrap();
@@ -195,7 +202,7 @@ public class ChestCavity {
           // FX definitions are client-only; do not register on server reload
   }
 
-  private void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
+	private void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
           event.registerReloadListener(new GuScriptLeafLoader());
           event.registerReloadListener(new GuScriptRuleLoader());
           event.registerReloadListener(new GeckoFxDefinitionLoader());
@@ -217,4 +224,13 @@ public class ChestCavity {
 			System.out.println("DEBUG: " + supplier.get());
 		}
 	}
+    private void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {
+        event.register(
+                CCEntities.TEST_SOUL.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                net.tigereye.chestcavity.soul.entity.TestSoulEntity::checkSpawnRules,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+    }
 }

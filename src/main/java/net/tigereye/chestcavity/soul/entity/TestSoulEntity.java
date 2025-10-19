@@ -26,6 +26,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -33,11 +34,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.Component;
 import net.tigereye.chestcavity.soul.util.ChestCavityInsertOps;
 import net.tigereye.chestcavity.soul.util.EntityChunkLoadOps;
 import net.tigereye.chestcavity.soul.util.EntityDensityOps;
 import net.tigereye.chestcavity.soul.util.ItemAbsorptionOps;
 import net.tigereye.chestcavity.soul.util.ItemFilterOps;
+import net.tigereye.chestcavity.soul.entity.goal.DynamicGoalDispatcher;
 import net.tigereye.chestcavity.soul.util.SurfaceTeleportOps;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
@@ -50,21 +53,26 @@ public class TestSoulEntity extends PathfinderMob {
     private static final double ITEM_RADIUS = 4.0;
     private static final double ITEM_PULL = 0.35;
     private static final int CHUNK_RADIUS = 2;
+    private static final Component DEFAULT_NAME = Component.literal("月道式微");
     private final SoulPersonality personality = SoulPersonalityRegistry.resolve(SoulPersonalityRegistry.CAUTIOUS_ID);
     private SoulChunkLoaderEntity chunkLoader;
     private boolean registered;
+    private LivingEntity recentAggressor;
+    private int reactiveTicks;
+    private ReactiveMode reactiveMode = ReactiveMode.NONE;
 
     public TestSoulEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
         this.setPersistenceRequired();
         this.xpReward = 0;
+        applyDefaultNameIfNeeded();
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 40.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.28)
-                .add(Attributes.ATTACK_DAMAGE, 6.0)
+                .add(Attributes.ATTACK_DAMAGE, 10.0)
                 .add(Attributes.ARMOR, 4.0)
                 .add(Attributes.FOLLOW_RANGE, 32.0);
     }
@@ -72,10 +80,16 @@ public class TestSoulEntity extends PathfinderMob {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.1, true));
-        this.goalSelector.addGoal(2, new TestWanderGoal(this, 1.0));
-        this.goalSelector.addGoal(3, new RandomLookAroundGoal(this));
-        this.goalSelector.addGoal(4, new AvoidEntityGoal<>(this, Player.class, 32.0f, 1.2, 1.4,
+        Goal reactive = new ReactiveDefenseGoal(this);
+        Goal melee = new MeleeAttackGoal(this, 1.0, false);
+        Goal wander = new TestWanderGoal(this, 1.0);
+        this.goalSelector.addGoal(1, DynamicGoalDispatcher.<TestSoulEntity>builder(this)
+                .add("reactive", entity -> entity.reactiveMode != ReactiveMode.NONE, reactive)
+                .add("attack", entity -> entity.getTarget() != null, melee)
+                .add("wander", wander)
+                .build());
+        this.goalSelector.addGoal(2, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Player.class, 32.0f, 1.2, 1.4,
                 player -> player.getHealth() > this.getHealth() * 0.8f));
 
         this.targetSelector.addGoal(1, new HuntLivingGoal(this, LivingEntity.class, 32.0, 0.5f));
@@ -101,7 +115,19 @@ public class TestSoulEntity extends PathfinderMob {
                     SurfaceTeleportOps.tryTeleportToSurface(this, 0.02, 32.0);
                 }
             }
+            if (reactiveTicks > 0) {
+                reactiveTicks--;
+                if (reactiveTicks <= 0 || recentAggressor == null || !recentAggressor.isAlive()) {
+                    clearReactiveState();
+                }
+            }
         }
+    }
+
+    private void clearReactiveState() {
+        reactiveMode = ReactiveMode.NONE;
+        recentAggressor = null;
+        reactiveTicks = 0;
     }
 
     @Override
@@ -149,6 +175,46 @@ public class TestSoulEntity extends PathfinderMob {
     }
 
     @Override
+    public boolean hurt(DamageSource source, float amount) {
+        boolean result = super.hurt(source, amount);
+        if (result && !level().isClientSide) {
+            LivingEntity aggressor = resolveAggressor(source);
+            if (aggressor != null && aggressor.isAlive() && aggressor != this) {
+                this.recentAggressor = aggressor;
+                this.reactiveTicks = 5;
+                double selfHealth = this.getHealth();
+                double aggressorHealth = aggressor.getHealth();
+                double ratio = selfHealth <= 0 ? Double.POSITIVE_INFINITY : aggressorHealth / selfHealth;
+                if (ratio >= 0.9) {
+                    this.reactiveMode = ReactiveMode.EVADE;
+                } else if (ratio <= 0.6) {
+                    this.reactiveMode = ReactiveMode.RETALIATE;
+                } else {
+                    this.reactiveMode = this.getRandom().nextDouble() < 0.5 ? ReactiveMode.RETALIATE : ReactiveMode.EVADE;
+                }
+                if (this.reactiveMode == ReactiveMode.RETALIATE) {
+                    this.setTarget(aggressor);
+                } else {
+                    this.setTarget(null);
+                }
+            }
+        }
+        return result;
+    }
+
+    private LivingEntity resolveAggressor(DamageSource source) {
+        Entity responsible = source.getEntity();
+        if (responsible instanceof LivingEntity living) {
+            return living;
+        }
+        Entity direct = source.getDirectEntity();
+        if (direct instanceof LivingEntity living) {
+            return living;
+        }
+        return null;
+    }
+
+    @Override
     public void awardKillScore(Entity entity, int score, DamageSource source) {
         super.awardKillScore(entity, score, source);
         if (entity instanceof LivingEntity living) {
@@ -174,6 +240,7 @@ public class TestSoulEntity extends PathfinderMob {
                 TestSoulManager.unregister(this);
                 registered = false;
             }
+            clearReactiveState();
         }
         super.remove(reason);
     }
@@ -190,11 +257,19 @@ public class TestSoulEntity extends PathfinderMob {
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor world, DifficultyInstance difficulty, MobSpawnType reason, SpawnGroupData data) {
         this.setHealth(this.getMaxHealth());
+        applyDefaultNameIfNeeded();
         return super.finalizeSpawn(world, difficulty, reason, data);
     }
 
     public SoulPersonality personality() {
         return personality;
+    }
+
+    private void applyDefaultNameIfNeeded() {
+        if (!this.hasCustomName()) {
+            this.setCustomName(DEFAULT_NAME.copy());
+        }
+        this.setCustomNameVisible(true);
     }
 
     private static class HuntLivingGoal extends Goal {
@@ -204,12 +279,15 @@ public class TestSoulEntity extends PathfinderMob {
         private final double range;
         private final double threshold;
         private LivingEntity candidate;
+        private final int maxTicks;
+        private int remainingTicks;
 
         HuntLivingGoal(TestSoulEntity owner, Class<? extends LivingEntity> type, double range, double thresholdRatio) {
             this.owner = owner;
             this.type = type;
             this.range = range;
             this.threshold = thresholdRatio;
+            this.maxTicks = 80;
             this.setFlags(EnumSet.of(Goal.Flag.TARGET));
         }
 
@@ -226,6 +304,7 @@ public class TestSoulEntity extends PathfinderMob {
             }
             entities.sort(Comparator.comparingDouble(owner::distanceToSqr));
             candidate = entities.get(0);
+            remainingTicks = maxTicks;
             return true;
         }
 
@@ -237,14 +316,38 @@ public class TestSoulEntity extends PathfinderMob {
 
         @Override
         public boolean canContinueToUse() {
-            return candidate != null && candidate.isAlive() && owner.distanceToSqr(candidate) <= range * range && filter(candidate);
+            if (candidate == null || !candidate.isAlive()) {
+                return false;
+            }
+            if (remainingTicks-- <= 0) {
+                return false;
+            }
+            return owner.distanceToSqr(candidate) <= range * range && filter(candidate);
         }
 
-        private boolean filter(LivingEntity entity) {
+        @Override
+        public void tick() {
+            super.tick();
+            if (candidate == null || !candidate.isAlive()) {
+                return;
+            }
+            if (owner.getTarget() != candidate) {
+                owner.setTarget(candidate);
+            }
+        }
+
+        protected boolean filter(LivingEntity entity) {
             if (entity instanceof TestSoulEntity) {
                 return false;
             }
             return entity.getHealth() < owner.getHealth() * threshold;
+        }
+
+        @Override
+        public void stop() {
+            super.stop();
+            candidate = null;
+            owner.setTarget(null);
         }
     }
 
@@ -257,6 +360,17 @@ public class TestSoulEntity extends PathfinderMob {
         @Override
         public boolean canUse() {
             return super.canUse();
+        }
+
+        @Override
+        protected boolean filter(LivingEntity entity) {
+            if (!(entity instanceof Player player)) {
+                return false;
+            }
+            if (player.isCreative() || player.isSpectator()) {
+                return false;
+            }
+            return super.filter(entity);
         }
     }
 
@@ -276,7 +390,119 @@ public class TestSoulEntity extends PathfinderMob {
         }
     }
 
+    /**
+     * Reactive defense goal used by TestSoulEntity.
+     *
+     * <p>设计意图：
+     * - 受击后根据 {@link ReactiveMode} 切换“反击”或“脱离”。
+     * - 反击：锁定最近的攻击者，转向并持续寻找攻击机会。
+     * - 脱离：向远离攻击者的位置移动，必要时重新取样逃离路径。
+     *
+     * <p>状态驱动：
+     * - {@link ReactiveMode#RETALIATE} 由实体逻辑设置，Goal 负责目标与朝向。
+     * - {@link ReactiveMode#EVADE} 在 {@link #canUse()} 时会取样逃离点并持续尝试保持距离。
+     * - Goal 在 {@link #canContinueToUse()} 中持续校验攻击者存活与剩余反应时间。
+     */
+    private static final class ReactiveDefenseGoal extends Goal {
+
+        private static final double EVADE_SPEED = 1.35;
+        private static final float RETALIATE_FOCUS = 30.0f;
+        private final TestSoulEntity owner;
+        private Vec3 evadeTarget;
+
+        ReactiveDefenseGoal(TestSoulEntity owner) {
+            this.owner = owner;
+            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK, Flag.TARGET));
+        }
+
+        @Override
+        public boolean canUse() {
+            if (owner.reactiveMode == ReactiveMode.NONE) {
+                return false;
+            }
+            LivingEntity aggressor = owner.recentAggressor;
+            if (aggressor == null || !aggressor.isAlive()) {
+                owner.clearReactiveState();
+                return false;
+            }
+            if (owner.reactiveMode == ReactiveMode.RETALIATE) {
+                return true;
+            }
+            Vec3 away = DefaultRandomPos.getPosAway(owner, 14, 6, aggressor.position());
+            if (away == null) {
+                return false;
+            }
+            evadeTarget = away;
+            return true;
+        }
+
+        @Override
+        public void start() {
+            LivingEntity aggressor = owner.recentAggressor;
+            if (owner.reactiveMode == ReactiveMode.RETALIATE) {
+                // 反击模式：切换攻击目标，交给近战 Goal 处理靠近与挥击。
+                owner.setTarget(aggressor);
+            } else if (evadeTarget != null) {
+                // 脱离模式：朝逃离点移动，优先保持生存。
+                owner.getNavigation().moveTo(evadeTarget.x, evadeTarget.y, evadeTarget.z, EVADE_SPEED);
+            }
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            if (owner.reactiveMode == ReactiveMode.NONE || owner.reactiveTicks <= 0) {
+                return false;
+            }
+            LivingEntity aggressor = owner.recentAggressor;
+            if (aggressor == null || !aggressor.isAlive()) {
+                owner.clearReactiveState();
+                return false;
+            }
+            if (owner.reactiveMode == ReactiveMode.RETALIATE) {
+                // 反击模式：仅在攻击者仍在视野范围且剩余反应时间内继续执行。
+                return owner.distanceToSqr(aggressor) <= 256.0 && owner.reactiveTicks > 0;
+            }
+            return owner.reactiveTicks > 0 && owner.getNavigation().isInProgress();
+        }
+
+        @Override
+        public void tick() {
+            LivingEntity aggressor = owner.recentAggressor;
+            if (aggressor == null) {
+                return;
+            }
+            if (owner.reactiveMode == ReactiveMode.RETALIATE) {
+                // 持续盯准目标，提高近战命中率。
+                owner.getLookControl().setLookAt(aggressor, RETALIATE_FOCUS, RETALIATE_FOCUS);
+            } else if (owner.reactiveMode == ReactiveMode.EVADE) {
+                // 若攻击者逼近但当前路径终止，重新取方向对立的逃离点。
+                if (owner.distanceToSqr(aggressor) < 144.0 && owner.getNavigation().isDone()) {
+                    Vec3 away = DefaultRandomPos.getPosAway(owner, 16, 7, aggressor.position());
+                    if (away != null) {
+                        owner.getNavigation().moveTo(away.x, away.y, away.z, EVADE_SPEED);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void stop() {
+            if (owner.reactiveMode == ReactiveMode.EVADE) {
+                owner.getNavigation().stop();
+            }
+        }
+    }
+
+    private enum ReactiveMode {
+        NONE,
+        RETALIATE,
+        EVADE
+    }
+
     public static boolean checkSpawnRules(EntityType<TestSoulEntity> type, LevelAccessor world, MobSpawnType reason, BlockPos pos, RandomSource random) {
-        return TestSoulManager.canSpawn();
+        if (world instanceof ServerLevel serverLevel) {
+            return TestSoulManager.canSpawn(serverLevel);
+        }
+        return true;
     }
 }
