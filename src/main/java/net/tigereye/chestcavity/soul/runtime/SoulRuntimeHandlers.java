@@ -59,9 +59,6 @@ public final class SoulRuntimeHandlers {
             net.tigereye.chestcavity.soul.combat.SoulAttackRegistry.register(
                     new net.tigereye.chestcavity.soul.combat.handlers.MeleeAttackHandler()
             );
-            net.tigereye.chestcavity.soul.combat.SoulFleeRegistry.register(
-                    new net.tigereye.chestcavity.soul.combat.handlers.SimpleFleeHandler()
-            );
         }
     }
 }

@@ -7,6 +7,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 import net.tigereye.chestcavity.soul.util.SoulLook;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.GoalPriority;
 
 /**
  * Simple follow behaviour: keep within a small radius of the owner while ORDER == FOLLOW.
@@ -35,11 +36,10 @@ public final class FollowSubBrain extends SubBrain {
         double dist = soul.distanceTo(owner);
         if (dist > FOLLOW_TRIGGER_DIST) {
             Vec3 target = owner.position();
-            SoulNavigationMirror.setGoal(soul, target, SPEED, STOP_DIST);
+            SoulNavigationMirror.setGoal(soul, target, SPEED, STOP_DIST, GoalPriority.LOW);
         } else {
             SoulNavigationMirror.clearGoal(soul);
         }
         SoulLook.faceTowards(soul, owner.position());
     }
 }
-

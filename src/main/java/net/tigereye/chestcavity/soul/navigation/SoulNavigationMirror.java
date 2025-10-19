@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.soul.navigation;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -7,6 +8,8 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
+
+import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +23,24 @@ public final class SoulNavigationMirror {
 
     private SoulNavigationMirror() {}
 
-    private record Goal(Vec3 target, double speed, double stopDistance) {}
+    public enum GoalPriority {
+        CRITICAL(3),
+        HIGH(2),
+        NORMAL(1),
+        LOW(0);
+
+        private final int weight;
+
+        GoalPriority(int weight) {
+            this.weight = weight;
+        }
+
+        boolean isHigherThan(GoalPriority other) {
+            return this.weight > other.weight;
+        }
+    }
+
+    private record Goal(Vec3 target, double speed, double stopDistance, GoalPriority priority) {}
 
     private static final Map<UUID, ISoulNavigator> NAVS = new HashMap<>();
     private static final Map<UUID, Goal> GOALS = new HashMap<>();
@@ -31,26 +51,43 @@ public final class SoulNavigationMirror {
             SoulNavEngine.fromProperty(System.getProperty("chestcavity.soul.navEngine"));
 
     public static void setGoal(SoulPlayer soul, Vec3 target, double speed, double stopDistance) {
+        setGoal(soul, target, speed, stopDistance, GoalPriority.NORMAL);
+    }
+
+    public static void setGoal(SoulPlayer soul, Vec3 target, double speed, double stopDistance, GoalPriority priority) {
         ISoulNavigator nav = ensureNavigator(soul);
         if (nav == null) return;
-        nav.setGoal(soul, target, speed, stopDistance);
         UUID id = soul.getUUID();
+        Goal prev = GOALS.get(id);
+        if (prev != null && prev.priority().isHigherThan(priority)) {
+            if (NAV_LOGS) {
+                SoulLog.info("[soul][nav] skip_goal soul={} lower_priority target=({}, {}, {}) speed={} stop={} priority={} currentPriority={}",
+                        id, target.x, target.y, target.z, speed, stopDistance, priority, prev.priority());
+            }
+            return;
+        }
+        nav.setGoal(soul, target, speed, stopDistance);
         if (soul.level() instanceof ServerLevel level) {
-            // 调试粒子：标记当前导航目标
-            level.sendParticles(ParticleTypes.GLOW, target.x, target.y + 0.25, target.z,
+            // 调试粒子：标记当前导航目标（抬高至地表之上以避免埋入方块）
+            BlockPos targetPos = BlockPos.containing(target);
+            double surface = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    targetPos.getX(), targetPos.getZ()) + 0.25;
+            double particleY = Math.max(target.y + 0.25, surface);
+            level.sendParticles(ParticleTypes.GLOW, target.x, particleY, target.z,
                     6, 0.2, 0.2, 0.2, 0.01);
         }
-        Goal prev = GOALS.put(id, new Goal(target, speed, stopDistance));
+        GOALS.put(id, new Goal(target, speed, stopDistance, priority));
         SoulLog.info("[soul][nav] goal_update soul={} target=({}, {}, {}) speed={} stop={}",
                 id, target.x, target.y, target.z, speed, stopDistance);
         if (NAV_LOGS) {
             boolean changed = true;
             if (prev != null) {
-                double dx = prev.target.x - target.x;
-                double dy = prev.target.y - target.y;
-                double dz = prev.target.z - target.z;
+                Vec3 prevTarget = prev.target();
+                double dx = prevTarget.x - target.x;
+                double dy = prevTarget.y - target.y;
+                double dz = prevTarget.z - target.z;
                 double dist2 = dx*dx + dy*dy + dz*dz;
-                changed = dist2 > 0.25 || Math.abs(prev.speed - speed) > 1e-6 || Math.abs(prev.stopDistance - stopDistance) > 1e-6;
+                changed = dist2 > 0.25 || Math.abs(prev.speed() - speed) > 1e-6 || Math.abs(prev.stopDistance() - stopDistance) > 1e-6;
             }
             if (changed) {
                 SoulLog.info("[soul][nav] setGoal soul={} target=({}, {}, {}) speed={} stop={}",

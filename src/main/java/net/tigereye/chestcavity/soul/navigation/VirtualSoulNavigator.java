@@ -4,7 +4,6 @@ import java.util.EnumMap;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.MoverType;
@@ -42,10 +41,6 @@ final class VirtualSoulNavigator implements ISoulNavigator {
     private double speedModifier = 1.0;
     private int stuckTicks;
     private double lastRemain2 = Double.MAX_VALUE;
-    private static final float MAX_UP_STEP = 1.5f; // allow stepping up ~1.5 blocks
-    // Auto step-up cooldown (similar to vanilla auto-jump debounce)
-    private int stepAssistCooldown = 1; // ticks remaining
-    private final StepPolicy stepPolicy;
     private Mode currentMode = Mode.GROUND;
 
     private enum Mode { GROUND, WATER, LAVA, FLYING }
@@ -60,7 +55,6 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         this.dummy = new DummyMob(level);
         this.navGround = new GroundPathNavigation(this.dummy, level);
         this.navWater = new WaterBoundPathNavigation(this.dummy, level);
-        this.stepPolicy = stepPolicy == null ? StepPolicy.DEFAULT : stepPolicy;
         // Ground defaults
         this.navGround.setCanPassDoors(true);
         this.navGround.setCanOpenDoors(true);
@@ -126,9 +120,6 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         if (!(soul.level() instanceof ServerLevel)) {
             return false;
         }
-        if (stepAssistCooldown > 0) {
-            stepAssistCooldown--;
-        }
         this.dummy.setPos(soul.getX(), soul.getY(), soul.getZ());
         this.dummy.setYRot(soul.getYRot());
         this.dummy.setXRot(soul.getXRot());
@@ -142,35 +133,14 @@ final class VirtualSoulNavigator implements ISoulNavigator {
     private Vec3 tickFlying(SoulPlayer soul) {
         soul.setNoGravity(true);
         this.dummy.setNoGravity(true);
-        Vec3 to = new Vec3(target.x - soul.getX(), target.y - soul.getY(), target.z - soul.getZ());
-        double dist = Math.sqrt(to.lengthSqr());
-        double maxStep = Math.max(0.05, currentBlocksPerTick());
-        Vec3 step = dist > maxStep ? to.scale(maxStep / dist) : to;
-        soul.move(MoverType.SELF, step);
-        return step;
+        return Vec3.ZERO;
     }
 
     /**
-     * 地面/水中位移推进：
-     * - 同步/修正重力状态（确保不在飞行无重力状态）
-     * - 维护并推进底层 PathNavigation（必要时重新下达 moveTo）
-     * - 地面模式尝试开门以避免路径被木门阻挡
-     * - 计算“下一目标中心”并按速度限制生成本 tick 的位移向量
-     * - 应用位移；若被阻挡则尝试阶梯辅助（小台阶抬升）
-     * 返回值为期望位移向量（用于后续 finalizeTick 计算朝向/进度）
+     * 地面模式：依据导航器输出的下一节点，按跑步速度做水平推进，必要时触发一次跳跃。
+     * 返回值为本 tick 期望位移向量（用于朝向与进度计算）。
      */
     private Vec3 tickGround(SoulPlayer soul) {
-        /*
-         * 地面模式：
-         * - 确保不处于无重力状态
-         * - 若导航报告“已完成”但仍有目标则补一次 moveTo
-         * - 推进导航器内部状态（包含寻路推进/节点前进/地面行走控制）
-         * - 计算下一步要靠拢的“节点中心”（若路径不可用则回退为最终目标）
-         * - 从当前位置指向下一中心的向量与距离
-         * - 本 tick 允许的最大位移（基于移动速度与冲刺倍率），下限 0.05 以避免被极小数卡住
-         * - 若距离大于可移动步长，则按比例缩放；否则一次到位
-         * - 应用移动；如被方块边沿阻挡，启用“阶梯辅助”尝试抬升通过
-         */
         return tickWithStrategy(soul, Mode.GROUND);
     }
 
@@ -191,7 +161,6 @@ final class VirtualSoulNavigator implements ISoulNavigator {
     }
 
     private Vec3 tickCommonPathing(SoulPlayer soul, BasePathingStrategy strategy) {
-        Mode mode = strategy.mode();
         // 1) 确保不处于无重力：地面/水中模式下应受重力影响
         if (soul.isNoGravity()) {
             soul.setNoGravity(false);
@@ -209,17 +178,16 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         strategy.afterNavigationTick(soul);
         // 5) 计算下一步要靠拢的“节点中心”（若路径不可用则回退为最终目标）
         Vec3 nextCenter = computeNextCenter(soul);
-        // 6) 从当前位置指向下一中心的向量与距离
+        // 6) 从当前位置指向下一中心的向量
         Vec3 toNode = nextCenter.subtract(soul.position());
-        double dist = toNode.length();
         // 7) 本 tick 允许的最大位移（基于移动速度与冲刺倍率），下限 0.05 以避免被极小数卡住
         double maxStep = Math.max(0.05, currentBlocksPerTick());
-        // 8) 若距离大于可移动步长，则按比例缩放；否则一次到位
-        Vec3 delta = dist > maxStep ? toNode.scale(maxStep / dist) : toNode;
-        delta = strategy.adjustDelta(soul, delta, nextCenter);
-        // 9) 应用移动；如被方块边沿阻挡，启用“阶梯辅助”尝试抬升通过
-        applyMoveWithStepAssist(soul, delta, mode, nextCenter);
-        strategy.afterMoveApplied(soul, delta, nextCenter);
+        // 8) 交给策略决定实际移动向量
+        Vec3 delta = strategy.computeDelta(soul, toNode, maxStep, nextCenter);
+        if (delta.lengthSqr() > 0.0) {
+            soul.move(MoverType.SELF, delta);
+        }
+        strategy.afterMove(soul, delta, nextCenter);
         return delta;
     }
 
@@ -243,18 +211,20 @@ final class VirtualSoulNavigator implements ISoulNavigator {
             return tickCommonPathing(soul, this);
         }
 
-        protected void beforeNavigationTick(SoulPlayer soul) {
+        protected void beforeNavigationTick(SoulPlayer soul) {}
+
+        protected void afterNavigationTick(SoulPlayer soul) {}
+
+        protected Vec3 computeDelta(SoulPlayer soul, Vec3 toNode, double maxStep, Vec3 nextCenter) {
+            double distance = toNode.length();
+            if (distance <= 1.0e-6) {
+                return Vec3.ZERO;
+            }
+            double ratio = Math.min(1.0, maxStep / distance);
+            return toNode.scale(ratio);
         }
 
-        protected void afterNavigationTick(SoulPlayer soul) {
-        }
-
-        protected Vec3 adjustDelta(SoulPlayer soul, Vec3 delta, Vec3 nextCenter) {
-            return delta;
-        }
-
-        protected void afterMoveApplied(SoulPlayer soul, Vec3 delta, Vec3 nextCenter) {
-        }
+        protected void afterMove(SoulPlayer soul, Vec3 delta, Vec3 nextCenter) {}
     }
 
     private final class GroundPathingStrategy extends BasePathingStrategy {
@@ -263,10 +233,33 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         }
 
         @Override
-        protected void afterNavigationTick(SoulPlayer soul) {
-            if (soul.level() instanceof ServerLevel level) {
-                tryOpenDoorIfNeeded(level);
+        protected Vec3 computeDelta(SoulPlayer soul, Vec3 toNode, double maxStep, Vec3 nextCenter) {
+            double rise = toNode.y;
+            if (soul.onGround() && rise > 0.6) {
+                soul.forceJump();
             }
+            Vec3 horizontal = new Vec3(toNode.x, 0.0, toNode.z);
+            double horizontalLenSq = horizontal.lengthSqr();
+            if (horizontalLenSq <= 1.0e-6) {
+                Vec3 fallback = new Vec3(
+                        target.x - soul.getX(),
+                        0.0,
+                        target.z - soul.getZ());
+                double fallbackLenSq = fallback.lengthSqr();
+                if (fallbackLenSq > 1.0e-6) {
+                    double fallbackLen = Math.sqrt(fallbackLenSq);
+                    double step = Math.min(fallbackLen, maxStep);
+                    horizontal = fallback.scale(step / fallbackLen);
+                } else {
+                    horizontal = Vec3.ZERO;
+                }
+            } else {
+                double horizontalLen = Math.sqrt(horizontalLenSq);
+                double step = Math.min(horizontalLen, maxStep);
+                horizontal = horizontal.scale(step / horizontalLen);
+            }
+            double descent = Math.min(0.0, rise);
+            return horizontal.add(0.0, descent, 0.0);
         }
     }
 
@@ -274,11 +267,21 @@ final class VirtualSoulNavigator implements ISoulNavigator {
         WaterPathingStrategy() {
             super(Mode.WATER);
         }
+
+        @Override
+        protected Vec3 computeDelta(SoulPlayer soul, Vec3 toNode, double maxStep, Vec3 nextCenter) {
+            return Vec3.ZERO;
+        }
     }
 
     private final class LavaPathingStrategy extends BasePathingStrategy {
         LavaPathingStrategy() {
             super(Mode.LAVA);
+        }
+
+        @Override
+        protected Vec3 computeDelta(SoulPlayer soul, Vec3 toNode, double maxStep, Vec3 nextCenter) {
+            return Vec3.ZERO;
         }
     }
 
@@ -402,229 +405,6 @@ final class VirtualSoulNavigator implements ISoulNavigator {
             this.navCurrent.moveTo(target.x, target.y, target.z, this.speedModifier);
         }
         return mode;
-    }
-
-    // 检查下一节点是否为关闭的木门，若是且靠近则尝试打开
-    private void tryOpenDoorIfNeeded(ServerLevel level) {
-        var path = this.navCurrent.getPath();
-        if (path == null || path.isDone()) return;
-        var nodePos = path.getNextNodePos();
-        // 检查当前与下一格（下/上半门）
-        openDoorAtIfBlocked(level, nodePos);
-        openDoorAtIfBlocked(level, nodePos.above());
-    }
-
-    private void openDoorAtIfBlocked(ServerLevel level, BlockPos pos) {
-        var state = level.getBlockState(pos);
-        if (!(state.getBlock() instanceof net.minecraft.world.level.block.DoorBlock door)) return;
-        if (state.is(net.minecraft.world.level.block.Blocks.IRON_DOOR)) return; // 不处理铁门
-        // 只有在接近门时再尝试开门，避免远程频繁改动
-        if (this.dummy.position().distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 3.0) return;
-        var openProp = net.minecraft.world.level.block.DoorBlock.OPEN;
-        if (!state.hasProperty(openProp)) return;
-        if (state.getValue(openProp)) return; // 已打开
-        // 打开当前半门
-        level.setBlock(pos, state.setValue(openProp, true), 10);
-        // 同步另一半
-        var halfProp = net.minecraft.world.level.block.DoorBlock.HALF;
-        if (state.hasProperty(halfProp)) {
-            var half = state.getValue(halfProp);
-            BlockPos other = (half == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER) ? pos.above() : pos.below();
-            var otherState = level.getBlockState(other);
-            if (otherState.getBlock() instanceof net.minecraft.world.level.block.DoorBlock && otherState.hasProperty(openProp) && !otherState.getValue(openProp)) {
-                if (!otherState.is(net.minecraft.world.level.block.Blocks.IRON_DOOR)) {
-                    level.setBlock(other, otherState.setValue(openProp, true), 10);
-                }
-            }
-        }
-    }
-
-    /**
-     * Apply movement to the SoulPlayer. If on ground mode and the move seems blocked,
-     * attempt an auto-jump style step-up up to 2 blocks high by splitting the move into
-     * vertical then horizontal components.
-     */
-    private void applyMoveWithStepAssist(SoulPlayer soul, Vec3 delta, Mode mode, @Nullable Vec3 nextCenter) {
-        if (delta.lengthSqr() <= 0) {
-            return;
-        }
-        Vec3 start = soul.position();
-        boolean jumped = maybeJumpBeforeMove(soul, mode, nextCenter);
-        Vec3 after = performPrimaryMove(soul, delta);
-        double intended2 = delta.lengthSqr();
-        if (!shouldAttemptStepAssist(mode, soul, jumped, start, after, intended2)) {
-            return;
-        }
-        revertToPosition(soul, start);
-        attemptStepAssist(soul, start, delta, intended2);
-    }
-
-    private boolean maybeJumpBeforeMove(SoulPlayer soul, Mode mode, @Nullable Vec3 nextCenter) {
-        if (mode == Mode.GROUND && soul.onGround() && shouldJumpToClimb(soul, nextCenter)) {
-            Vec3 dir = nextCenter != null ? nextCenter.subtract(soul.position()).normalize() : Vec3.ZERO;
-            soul.forceJump();
-            if (dir.lengthSqr() > 0) soul.move(MoverType.SELF, dir.scale(0.3));
-            this.stepAssistCooldown = Math.max(this.stepAssistCooldown, 4);
-            return true;
-        }
-        return false;
-    }
-
-
-
-    private Vec3 performPrimaryMove(SoulPlayer soul, Vec3 delta) {
-        soul.move(MoverType.SELF, delta);
-        return soul.position();
-    }
-
-    private boolean shouldAttemptStepAssist(Mode mode, SoulPlayer soul, boolean jumped, Vec3 start, Vec3 after, double intended2) {
-        if (mode != Mode.GROUND) {
-            return false;
-        }
-        if (!soul.onGround()) {
-            return false;
-        }
-        if (jumped) {
-            return false;
-        }
-        if (!isStepUpNeeded(soul)) {
-            return false;
-        }
-        double moved2 = after.distanceToSqr(start);
-        if (moved2 >= Math.min(intended2, 0.25)) {
-            return false;
-        }
-        if (stepAssistCooldown > 0) {
-            return false;
-        }
-        return true;
-    }
-
-    private void revertToPosition(SoulPlayer soul, Vec3 targetPos) {
-        Vec3 revert = targetPos.subtract(soul.position());
-        if (revert.lengthSqr() > 0) {
-            soul.move(MoverType.SELF, revert);
-        }
-    }
-
-    private void attemptStepAssist(SoulPlayer soul, Vec3 start, Vec3 delta, double intended2) {
-        double[] heights = buildStepHeights(getStepMaxUpBlocks());
-        for (double h : heights) {
-            Vec3 up = new Vec3(0.0, h, 0.0);
-            soul.move(MoverType.SELF, up);
-            Vec3 horiz = new Vec3(delta.x, 0.0, delta.z);
-            soul.move(MoverType.SELF, horiz);
-            Vec3 pos = soul.position();
-            double movedTry2 = pos.distanceToSqr(start);
-            if (movedTry2 >= Math.min(intended2, 0.25)) {
-                int maxCd = getStepAssistCooldownMax(this.stepPolicy);
-                if (maxCd < 0) maxCd = 0;
-                if (maxCd > 200) maxCd = 200;
-                this.stepAssistCooldown = maxCd;
-                return;
-            }
-            revertToPosition(soul, start);
-        }
-    }
-
-    /**
-     * 满足以下条件时建议触发跳跃：
-     * - 存在有效的 nextCenter（或最终目标），且其 Y 高于当前脚下（上坡）且不超过允许的最大抬升；
-     * - 面前脚前半格~一格范围内存在“可碰撞”的方块（阻挡前进）。
-     */
-
-    private boolean shouldJumpToClimb(SoulPlayer soul, @Nullable Vec3 nextCenter) {
-        if (nextCenter == null) return false;
-        final var level = soul.level();
-        if (!(level instanceof ServerLevel)) return false;
-        int footY = Mth.floor(soul.getY());
-        double yDiff = nextCenter.y - footY;
-        if (yDiff <= 0.1) return false; // 容忍更小坡度
-        if (yDiff > getStepMaxUpBlocks() + 1e-3) return false;
-
-        Vec3 dir = nextCenter.subtract(soul.position());
-        double lenH = Math.hypot(dir.x, dir.z);
-        if (lenH < 1.0e-6) return false;
-        double nx = dir.x / lenH;
-        double nz = dir.z / lenH;
-
-        double ahead = 0.6;
-        // 检测脚前上半格是否阻挡
-        BlockPos front = BlockPos.containing(soul.getX() + nx * ahead, footY + 1, soul.getZ() + nz * ahead);
-        var state = level.getBlockState(front);
-        boolean blocking = !state.getCollisionShape(level, front).isEmpty();
-        if (!blocking) return false;
-
-        // 确认头顶空间足够
-        BlockPos above = front.above();
-        if (!level.getBlockState(above).getCollisionShape(level, above).isEmpty()) return false;
-        if (yDiff > 1.0) {
-            BlockPos above2 = above.above();
-            if (!level.getBlockState(above2).getCollisionShape(level, above2).isEmpty()) return false;
-        }
-        return true;
-    }
-    /**
-     * 判断是否需要进行“上台阶”式的抬升：
-     * - 存在有效的下一路径节点，且该节点的 Y 明显高于当前脚下（>0.5 格）。
-     * 这样可以与 Baritone 的路径规划更一致：只有需要抬升时才尝试“跳跃/上台阶”。
-     */
-    private boolean isStepUpNeeded(SoulPlayer soul) {
-        var path = this.navCurrent.getPath();
-        if (path == null || path.isDone()) return false;
-        var nodePos = path.getNextNodePos();
-        if (nodePos == null) return false;
-        int currentFootY = Mth.floor(soul.getY());
-        double threshold = (this.stepPolicy == StepPolicy.AGGRESSIVE) ? 0.25 : 0.5;
-        return (nodePos.getY() - currentFootY) > threshold;
-    }
-
-    private static int getStepAssistCooldownMax(StepPolicy policy) {
-        String v = System.getProperty("chestcavity.soul.stepAssistCooldown");
-        if (v == null) {
-            // 默认：普通 8t，AGGRESSIVE 0t（更贴近 autostep）
-            return policy == StepPolicy.AGGRESSIVE ? 0 : 8; // ~0.4s at 20 TPS
-        }
-        try {
-            int parsed = Integer.parseInt(v);
-            if (parsed < 0) return 0;
-            if (parsed > 200) return 200;
-            return parsed;
-        } catch (NumberFormatException e) {
-            return policy == StepPolicy.AGGRESSIVE ? 0 : 8;
-        }
-    }
-
-    private static double getStepMaxUpBlocks() {
-        // 可通过 -Dchestcavity.soul.stepMaxUpBlocks 或 stepMaxUp 配置（单位：方块数，默认 1.5）
-        String v = System.getProperty("chestcavity.soul.stepMaxUpBlocks");
-        if (v == null) v = System.getProperty("chestcavity.soul.stepMaxUp");
-        double def = 1.5;
-        if (v == null) return def;
-        try {
-            double d = Double.parseDouble(v);
-            if (d < 1.0) d = 1.0; // 最小 1 格
-            if (d > 2.0) d = 2.0; // 最大 2 格（安全）
-            return d;
-        } catch (NumberFormatException e) {
-            return def;
-        }
-    }
-
-    private static double[] buildStepHeights(double maxUp) {
-        // 以 0.5 递增，起点 1.0，直至不超过 maxUp（并上限到 2.0）
-        double cap = Math.min(2.0, Math.max(1.0, maxUp));
-        java.util.List<Double> hs = new java.util.ArrayList<>();
-        for (double h = 1.0; h <= cap + 1e-6; h += 0.5) {
-            // 避免浮点误差带来的 1.5000000002
-            double rounded = Math.round(h * 2.0) / 2.0;
-            if (rounded > cap + 1e-9) break;
-            hs.add(rounded);
-        }
-        if (hs.isEmpty()) hs.add(1.0);
-        double[] arr = new double[hs.size()];
-        for (int i = 0; i < hs.size(); i++) arr[i] = hs.get(i);
-        return arr;
     }
 
     private static double getRunMultiplier() {
