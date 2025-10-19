@@ -16,16 +16,20 @@ public final class SubBrainContext {
     private final BrainContext brainContext;
     private final SubBrainMemory memory;
     private final SubBrain subBrain;
+    private final BrainSharedMemory sharedMemory;
 
-    public SubBrainContext(BrainContext brainContext, SubBrain subBrain, SubBrainMemory memory) {
+    public SubBrainContext(BrainContext brainContext, SubBrain subBrain, SubBrainMemory memory,
+                           BrainSharedMemory sharedMemory) {
         this.brainContext = brainContext;
         this.subBrain = subBrain;
         this.memory = memory;
+        this.sharedMemory = sharedMemory;
     }
 
     public BrainContext brain() { return brainContext; }
     public SubBrainMemory memory() { return memory; }
     public SubBrain subBrain() { return subBrain; }
+    public BrainSharedMemory sharedMemory() { return sharedMemory; }
 
     public ServerLevel level() { return brainContext.level(); }
     public SoulPlayer soul() { return brainContext.soul(); }
