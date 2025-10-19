@@ -1,277 +1,266 @@
 package net.tigereye.chestcavity.soul.fakeplayer;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
-import org.jetbrains.annotations.Nullable;
-import com.mojang.authlib.GameProfile;
-import java.util.Objects;
-import java.util.UUID;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.soul.storage.SoulEntityArchive;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
-/**
- * 请求在灵魂外壳生成时附带执行的额外效果。目前支持 Gecko FX。
- */
-public record SoulEntitySpawnRequest(@Nullable GeckoFx geckoFx) {
-
-    /**
-     * 便捷构造：返回空请求实例。
-     */
-    public static SoulEntitySpawnRequest empty() {
-        return new SoulEntitySpawnRequest(null);
-    }
-
-    /**
-     * Gecko FX 参数，复用 FlowActions.emitGecko 的结构，并允许覆盖资源。
-     */
-    public record GeckoFx(
-            ResourceLocation fxId,
-            @Nullable ResourceLocation modelOverride,
-            @Nullable ResourceLocation animationOverride,
-            @Nullable ResourceLocation textureOverride,
-            @Nullable GeckoFxAnchor anchor,
-            @Nullable Vec3 offset,
-            @Nullable Vec3 relativeOffset,
-            @Nullable Vec3 worldPosition,
-            @Nullable Float yaw,
-            @Nullable Float pitch,
-            @Nullable Float roll,
-            float scale,
-            int tint,
-            float alpha,
-            boolean loop,
-            int durationTicks,
-            int attachedEntityId,
-            @Nullable UUID attachedEntityUuid
-    ) {
-        public GeckoFx {
-            if (fxId == null) {
-                throw new IllegalArgumentException("Gecko FX id must be provided");
-            }
-            scale = scale <= 0.0F ? 1.0F : scale;
-            alpha = Mth.clamp(alpha <= 0.0F ? 1.0F : alpha, 0.0F, 1.0F);
-            durationTicks = Math.max(1, durationTicks);
-            if (attachedEntityId < 0) {
-                attachedEntityId = -1;
-            }
-        }
-
-        public static Builder builder(ResourceLocation fxId) {
-            return new Builder(fxId);
-        }
-
-        public static final class Builder {
-            private final ResourceLocation fxId;
-            private ResourceLocation modelOverride;
-            private ResourceLocation animationOverride;
-            private ResourceLocation textureOverride;
-            private GeckoFxAnchor anchor;
-            private Vec3 offset = Vec3.ZERO;
-            private Vec3 relativeOffset = Vec3.ZERO;
-            private Vec3 worldPosition;
-            private Float yaw;
-            private Float pitch;
-            private Float roll;
-            private float scale = 1.0F;
-            private int tint = 0xFFFFFF;
-            private float alpha = 1.0F;
-            private boolean loop;
-            private int durationTicks = 40;
-            private int attachedEntityId = -1;
-            private UUID attachedEntityUuid;
-
-            private Builder(ResourceLocation fxId) {
-                this.fxId = fxId;
-            }
-
-            public Builder modelOverride(ResourceLocation modelOverride) {
-                this.modelOverride = modelOverride;
-                return this;
-            }
-
-            public Builder animationOverride(ResourceLocation animationOverride) {
-                this.animationOverride = animationOverride;
-                return this;
-            }
-
-            public Builder textureOverride(ResourceLocation textureOverride) {
-                this.textureOverride = textureOverride;
-                return this;
-            }
-
-            public Builder anchor(GeckoFxAnchor anchor) {
-                this.anchor = anchor;
-                return this;
-            }
-
-            public Builder offset(Vec3 offset) {
-                this.offset = offset == null ? Vec3.ZERO : offset;
-                return this;
-            }
-
-            public Builder relativeOffset(Vec3 relativeOffset) {
-                this.relativeOffset = relativeOffset == null ? Vec3.ZERO : relativeOffset;
-                return this;
-            }
-
-            public Builder worldPosition(Vec3 worldPosition) {
-                this.worldPosition = worldPosition;
-                return this;
-            }
-
-            public Builder yaw(Float yaw) {
-                this.yaw = yaw;
-                return this;
-            }
-
-            public Builder pitch(Float pitch) {
-                this.pitch = pitch;
-                return this;
-            }
-
-            public Builder roll(Float roll) {
-                this.roll = roll;
-                return this;
-            }
-
-            public Builder scale(float scale) {
-                this.scale = scale;
-                return this;
-            }
-
-            public Builder tint(int tint) {
-                this.tint = tint;
-                return this;
-            }
-
-            public Builder alpha(float alpha) {
-                this.alpha = alpha;
-                return this;
-            }
-
-            public Builder loop(boolean loop) {
-                this.loop = loop;
-                return this;
-            }
-
-            public Builder durationTicks(int durationTicks) {
-                this.durationTicks = durationTicks;
-                return this;
-            }
-
-            public Builder attachedEntityId(int attachedEntityId) {
-                this.attachedEntityId = attachedEntityId;
-                return this;
-            }
-
-            public Builder attachedEntityUuid(UUID attachedEntityUuid) {
-                this.attachedEntityUuid = attachedEntityUuid;
-                return this;
-            }
-
-            public GeckoFx build() {
-                return new GeckoFx(
-                        fxId,
-                        modelOverride,
-                        animationOverride,
-                        textureOverride,
-                        anchor,
-                        offset,
-                        relativeOffset,
-                        worldPosition,
-                        yaw,
-                        pitch,
-                        roll,
-                        scale,
-                        tint,
-                        alpha,
-                        loop,
-                        durationTicks,
-                        attachedEntityId,
-                        attachedEntityUuid
-                );
-            }
+import org.jetbrains.annotations.Nullable;
 
 /**
- * 生成灵魂实体所需的请求参数。
+ * 请求对象：描述一次灵魂实体（含 SoulPlayer 与后续扩展实体）的生成参数。
+ *
+ * <p>设计目标：
+ * <ul>
+ *     <li>统一封装生成过程所需的上下文（服务器、优先维度、默认位置、原因等）；</li>
+ *     <li>通过 {@link ResourceLocation} 标识生成工厂，便于按需扩展；</li>
+ *     <li>支持从 {@link SoulEntityArchive} 读取/消费持久化存档，为“非玩家阵营”实体提供落地方案。</li>
+ * </ul>
+ *
+ * <p>本类采用不可变设计，所有扩展属性通过 {@link ResourceLocation} → {@link Object} 传递，
+ * 工厂端按需解析对应类型。</p>
  */
-public record SoulEntitySpawnRequest(
-        ServerPlayer owner,
-        UUID soulId,
-        GameProfile identity,
-        @Nullable SoulProfile profile,
-        EntityType<? extends Entity> entityType,
-        @Nullable ResourceLocation geckoModelId,
-        String reason,
-        boolean forceDerivedIdentity,
-        SoulEntitySpawnContext context
-) {
+public final class SoulEntitySpawnRequest {
 
-    public SoulEntitySpawnRequest {
-        Objects.requireNonNull(owner, "owner");
-        Objects.requireNonNull(soulId, "soulId");
-        Objects.requireNonNull(identity, "identity");
-        Objects.requireNonNull(entityType, "entityType");
-        Objects.requireNonNull(reason, "reason");
-        context = context == null ? SoulEntitySpawnContext.EMPTY : context;
+    /**
+     * 控制是否在生成前访问 {@link SoulEntityArchive}。
+     */
+    public enum ArchiveMode {
+        /** 不访问存档。 */
+        NONE,
+        /** 仅读取，不移除存档。 */
+        READ_ONLY,
+        /** 读取后即移除存档，常用于一次性重建。 */
+        CONSUME
     }
 
-    public static Builder builder(ServerPlayer owner, UUID soulId, GameProfile identity, String reason) {
-        return new Builder(owner, soulId, identity, reason);
+    private final MinecraftServer server;
+    private final ResourceLocation factoryId;
+    private final UUID entityId;
+    @Nullable
+    private final ServerLevel fallbackLevel;
+    private final Vec3 fallbackPosition;
+    private final float yaw;
+    private final float pitch;
+    private final boolean ensureChunkLoaded;
+    @Nullable
+    private final ServerPlayer owner;
+    private final String reason;
+    private final ArchiveMode archiveMode;
+    private final Map<ResourceLocation, Object> attributes;
+
+    private CompoundTag archivedState;
+    private boolean archiveResolved;
+
+    private SoulEntitySpawnRequest(MinecraftServer server,
+                                   ResourceLocation factoryId,
+                                   UUID entityId,
+                                   @Nullable ServerLevel fallbackLevel,
+                                   Vec3 fallbackPosition,
+                                   float yaw,
+                                   float pitch,
+                                   boolean ensureChunkLoaded,
+                                   @Nullable ServerPlayer owner,
+                                   String reason,
+                                   ArchiveMode archiveMode,
+                                   Map<ResourceLocation, Object> attributes) {
+        this.server = Objects.requireNonNull(server, "server");
+        this.factoryId = Objects.requireNonNull(factoryId, "factoryId");
+        this.entityId = Objects.requireNonNull(entityId, "entityId");
+        this.fallbackLevel = fallbackLevel;
+        this.fallbackPosition = fallbackPosition == null ? Vec3.ZERO : fallbackPosition;
+        this.yaw = yaw;
+        this.pitch = pitch;
+        this.ensureChunkLoaded = ensureChunkLoaded;
+        this.owner = owner;
+        this.reason = reason == null || reason.isBlank() ? "unspecified" : reason;
+        this.archiveMode = archiveMode == null ? ArchiveMode.NONE : archiveMode;
+        this.attributes = Collections.unmodifiableMap(new HashMap<>(attributes));
     }
 
+    public MinecraftServer server() {
+        return server;
+    }
+
+    public ResourceLocation factoryId() {
+        return factoryId;
+    }
+
+    public UUID entityId() {
+        return entityId;
+    }
+
+    public Optional<ServerLevel> fallbackLevel() {
+        return Optional.ofNullable(fallbackLevel);
+    }
+
+    public Vec3 fallbackPosition() {
+        return fallbackPosition;
+    }
+
+    public float yaw() {
+        return yaw;
+    }
+
+    public float pitch() {
+        return pitch;
+    }
+
+    public boolean ensureChunkLoaded() {
+        return ensureChunkLoaded;
+    }
+
+    public Optional<ServerPlayer> owner() {
+        return Optional.ofNullable(owner);
+    }
+
+    public String reason() {
+        return reason;
+    }
+
+    public ArchiveMode archiveMode() {
+        return archiveMode;
+    }
+
+    public Map<ResourceLocation, Object> attributes() {
+        return attributes;
+    }
+
+    public <T> Optional<T> attribute(ResourceLocation key, Class<T> type) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(type, "type");
+        Object value = attributes.get(key);
+        if (value == null || !type.isInstance(value)) {
+            return Optional.empty();
+        }
+        return Optional.of(type.cast(value));
+    }
+
+    /**
+     * 按需加载 {@link SoulEntityArchive} 中的快照。调用方获取的是拷贝，可安全修改。
+     */
+    public Optional<CompoundTag> archivedState() {
+        if (archiveMode == ArchiveMode.NONE) {
+            return Optional.empty();
+        }
+        synchronized (this) {
+            if (!archiveResolved) {
+                archiveResolved = true;
+                SoulEntityArchive archive = SoulEntityArchive.get(server);
+                Optional<CompoundTag> fetched = switch (archiveMode) {
+                    case READ_ONLY -> archive.peek(entityId);
+                    case CONSUME -> archive.consume(entityId);
+                    case NONE -> Optional.empty();
+                };
+                archivedState = fetched.map(CompoundTag::copy).orElse(null);
+            }
+        }
+        return archivedState == null ? Optional.empty() : Optional.of(archivedState.copy());
+    }
+
+    public static Builder builder(MinecraftServer server, ResourceLocation factoryId, UUID entityId) {
+        return new Builder(server, factoryId, entityId);
+    }
+
+    /** Builder for {@link SoulEntitySpawnRequest}. */
     public static final class Builder {
-        private final ServerPlayer owner;
-        private final UUID soulId;
-        private final GameProfile identity;
-        private final String reason;
-        private SoulProfile profile;
-        private EntityType<? extends Entity> entityType = EntityType.PLAYER;
-        private ResourceLocation geckoModelId;
-        private boolean forceDerivedIdentity;
-        private SoulEntitySpawnContext context = SoulEntitySpawnContext.EMPTY;
+        private final MinecraftServer server;
+        private final ResourceLocation factoryId;
+        private final UUID entityId;
+        private ServerLevel fallbackLevel;
+        private Vec3 fallbackPosition = Vec3.ZERO;
+        private float yaw;
+        private float pitch;
+        private boolean ensureChunkLoaded = true;
+        private ServerPlayer owner;
+        private String reason = "unspecified";
+        private ArchiveMode archiveMode = ArchiveMode.NONE;
+        private final Map<ResourceLocation, Object> attributes = new HashMap<>();
 
-        private Builder(ServerPlayer owner, UUID soulId, GameProfile identity, String reason) {
-            this.owner = Objects.requireNonNull(owner, "owner");
-            this.soulId = Objects.requireNonNull(soulId, "soulId");
-            this.identity = Objects.requireNonNull(identity, "identity");
-            this.reason = Objects.requireNonNull(reason, "reason");
+        private Builder(MinecraftServer server, ResourceLocation factoryId, UUID entityId) {
+            this.server = Objects.requireNonNull(server, "server");
+            this.factoryId = Objects.requireNonNull(factoryId, "factoryId");
+            this.entityId = Objects.requireNonNull(entityId, "entityId");
         }
 
-        public Builder profile(@Nullable SoulProfile profile) {
-            this.profile = profile;
+        public Builder withFallbackLevel(@Nullable ServerLevel level) {
+            this.fallbackLevel = level;
             return this;
         }
 
-        public Builder entityType(EntityType<? extends Entity> entityType) {
-            this.entityType = Objects.requireNonNull(entityType, "entityType");
+        public Builder withFallbackPosition(Vec3 position) {
+            this.fallbackPosition = position == null ? Vec3.ZERO : position;
             return this;
         }
 
-        public Builder geckoModel(@Nullable ResourceLocation geckoModelId) {
-            this.geckoModelId = geckoModelId;
+        public Builder withYaw(float yaw) {
+            this.yaw = yaw;
             return this;
         }
 
-        public Builder forceDerivedIdentity(boolean value) {
-            this.forceDerivedIdentity = value;
+        public Builder withPitch(float pitch) {
+            this.pitch = pitch;
             return this;
         }
 
-        public Builder context(@Nullable SoulEntitySpawnContext context) {
-            this.context = context == null ? SoulEntitySpawnContext.EMPTY : context;
+        public Builder ensureChunkLoaded(boolean ensure) {
+            this.ensureChunkLoaded = ensure;
+            return this;
+        }
+
+        public Builder withOwner(@Nullable ServerPlayer owner) {
+            this.owner = owner;
+            return this;
+        }
+
+        public Builder withReason(String reason) {
+            if (reason == null || reason.isBlank()) {
+                this.reason = "unspecified";
+            } else {
+                this.reason = reason;
+            }
+            return this;
+        }
+
+        public Builder withArchiveMode(ArchiveMode mode) {
+            this.archiveMode = mode == null ? ArchiveMode.NONE : mode;
+            return this;
+        }
+
+        public Builder withAttribute(ResourceLocation key, Object value) {
+            Objects.requireNonNull(key, "key");
+            if (value == null) {
+                attributes.remove(key);
+            } else {
+                attributes.put(key, value);
+            }
             return this;
         }
 
         public SoulEntitySpawnRequest build() {
-            return new SoulEntitySpawnRequest(owner, soulId, identity, profile, entityType, geckoModelId, reason, forceDerivedIdentity, context);
+            return new SoulEntitySpawnRequest(server,
+                    factoryId,
+                    entityId,
+                    fallbackLevel,
+                    fallbackPosition,
+                    yaw,
+                    pitch,
+                    ensureChunkLoaded,
+                    owner,
+                    reason,
+                    archiveMode,
+                    attributes);
         }
     }
 }
+

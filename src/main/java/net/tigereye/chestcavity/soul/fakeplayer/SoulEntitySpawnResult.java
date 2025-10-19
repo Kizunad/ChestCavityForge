@@ -1,37 +1,31 @@
 package net.tigereye.chestcavity.soul.fakeplayer;
 
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import org.jetbrains.annotations.Nullable;
 
 /**
- * 灵魂实体生成的结果信息。
+ * 描述一次生成调用的结果。
  */
-public record SoulEntitySpawnResult(
-        UUID soulId,
-        Entity entity,
-        EntityType<?> entityType,
-        @Nullable ResourceLocation geckoModelId,
-        String reason,
-        boolean reusedExisting
-) {
+public record SoulEntitySpawnResult(UUID entityId,
+                                    Entity entity,
+                                    ResourceLocation factoryId,
+                                    boolean restoredFromPersistentState,
+                                    String reason) {
 
     public SoulEntitySpawnResult {
-        Objects.requireNonNull(soulId, "soulId");
+        Objects.requireNonNull(entityId, "entityId");
         Objects.requireNonNull(entity, "entity");
-        Objects.requireNonNull(entityType, "entityType");
-        Objects.requireNonNull(reason, "reason");
+        Objects.requireNonNull(factoryId, "factoryId");
+        reason = reason == null || reason.isBlank() ? "unspecified" : reason;
     }
 
     public Optional<SoulPlayer> asSoulPlayer() {
         return entity instanceof SoulPlayer soulPlayer ? Optional.of(soulPlayer) : Optional.empty();
     }
-
-    public boolean isNewSpawn() {
-        return !reusedExisting;
-    }
 }
+

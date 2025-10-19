@@ -9,6 +9,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -85,6 +86,14 @@ public final class SoulFakePlayerSpawner {
     // Track entities spawned via our legal paths and their reasons
     private static final java.util.Set<UUID> LEGIT_ENTITY_SPAWNS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Map<UUID, String> ENTITY_SPAWN_REASON = new ConcurrentHashMap<>();
+
+    public static final ResourceLocation SOUL_PLAYER_FACTORY_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "soul_player");
+    private static final ResourceLocation ATTR_SOURCE_PROFILE = ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/source_profile");
+    private static final ResourceLocation ATTR_FORCE_DERIVED_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/force_derived_id");
+
+    static {
+        SoulEntityFactories.register(SOUL_PLAYER_FACTORY_ID, new SoulPlayerFactory());
+    }
 
     /**
      * Verify owner shell cardinality against autospawn list after a bulk stage (e.g., login restore).
@@ -243,23 +252,95 @@ public final class SoulFakePlayerSpawner {
         });
     }
 
-    public static SoulEntitySpawnRequest.Builder newSpawnRequest(ServerPlayer owner,
-                                                                 UUID soulId,
-                                                                 GameProfile sourceProfile,
-                                                                 boolean forceDerivedId,
-                                                                 String reason) {
-        Objects.requireNonNull(owner, "owner");
-        Objects.requireNonNull(soulId, "soulId");
-        Objects.requireNonNull(sourceProfile, "sourceProfile");
-        Objects.requireNonNull(reason, "reason");
-        GameProfile identity = ensureIdentity(soulId, sourceProfile, forceDerivedId);
-        GameProfile clone = cloneProfile(identity);
-        return SoulEntitySpawnRequest.builder(owner, soulId, clone, reason)
-                .forceDerivedIdentity(forceDerivedId);
-    }
+    private static final class SoulPlayerFactory implements SoulEntityFactory {
 
-    public static Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
-        return spawnFromRequest(request);
+        @Override
+        public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+            UUID profileId = request.entityId();
+            String reason = request.reason();
+
+            ServerPlayer owner = request.owner().orElse(null);
+            if (owner == null) {
+                SoulLog.warn("[soul] spawn-aborted reason={} soul={} cause=noOwner", reason, profileId);
+                return Optional.empty();
+            }
+
+            SoulPlayer existing = ACTIVE_SOUL_PLAYERS.get(profileId);
+            if (existing != null && !existing.isRemoved()) {
+                SoulLog.error("[soul] invariant-violation duplicate-shell prevented soul={} existingEntity={} dim={} pos=({},{},{}) newReason={}",
+                        new IllegalStateException("duplicate-shell-prevented"),
+                        profileId, existing.getUUID(), existing.level().dimension().location(),
+                        existing.getX(), existing.getY(), existing.getZ(), reason);
+                return Optional.of(new SoulEntitySpawnResult(profileId, existing, request.factoryId(), false, reason));
+            }
+
+            SoulContainer container = CCAttachments.getSoulContainer(owner);
+            SoulProfile profile = container.getOrCreateProfile(profileId);
+
+            GameProfile sourceProfile = request.attribute(ATTR_SOURCE_PROFILE, GameProfile.class)
+                    .orElse(owner.getGameProfile());
+            boolean forceDerived = request.attribute(ATTR_FORCE_DERIVED_ID, Boolean.class).orElse(Boolean.FALSE);
+
+            GameProfile identity = ensureIdentity(profileId, sourceProfile, forceDerived);
+            GameProfile clone = cloneProfile(identity);
+
+            SoulPlayer soulPlayer = SoulPlayer.create(owner, profileId, clone);
+
+            MinecraftServer server = request.server();
+            server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(soulPlayer)));
+
+            ServerLevel spawnLevel = request.fallbackLevel().orElse(owner.serverLevel());
+            if (!spawnLevel.tryAddFreshEntityWithPassengers(soulPlayer)) {
+                server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(soulPlayer.getUUID())));
+                soulPlayer.discard();
+                SoulLog.info("[soul] spawn-aborted reason={} soul={} owner={} cause=spawnFailed", reason, profileId, owner.getUUID());
+                return Optional.empty();
+            }
+
+            profile.restoreBase(soulPlayer);
+            net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(soulPlayer);
+            applySpawnShield(soulPlayer);
+
+            profile.position().ifPresent(snapshot -> {
+                ServerLevel targetLevel = server.getLevel(snapshot.dimension());
+                if (targetLevel != null) {
+                    if (request.ensureChunkLoaded()) {
+                        try {
+                            targetLevel.getChunkAt(BlockPos.containing(snapshot.x(), snapshot.y(), snapshot.z()));
+                        } catch (Throwable throwable) {
+                            SoulLog.error("[soul] spawn-chunk-load-failed reason={} soul={} dim={} pos=({},{},{})", throwable,
+                                    reason,
+                                    profileId,
+                                    snapshot.dimension().location(),
+                                    snapshot.x(),
+                                    snapshot.y(),
+                                    snapshot.z());
+                        }
+                    }
+                    if (targetLevel != soulPlayer.level()) {
+                        soulPlayer.teleportTo(targetLevel, snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                    } else {
+                        soulPlayer.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                    }
+                    soulPlayer.setYHeadRot(snapshot.headYaw());
+                    SoulLog.info("[soul] restore-position-complete reason={} soul={} dim={} pos=({},{},{})",
+                            reason, profileId, snapshot.dimension().location(),
+                            snapshot.x(), snapshot.y(), snapshot.z());
+                }
+            });
+
+            ACTIVE_SOUL_PLAYERS.put(profileId, soulPlayer);
+            ENTITY_TO_SOUL.put(soulPlayer.getUUID(), profileId);
+            LEGIT_ENTITY_SPAWNS.add(soulPlayer.getUUID());
+            ENTITY_SPAWN_REASON.put(soulPlayer.getUUID(), reason);
+
+            SoulLog.info("[soul] spawn-complete reason={} soul={} owner={} dim={} pos=({},{},{})",
+                    reason, profileId, owner.getUUID(),
+                    soulPlayer.level().dimension().location(),
+                    soulPlayer.getX(), soulPlayer.getY(), soulPlayer.getZ());
+
+            return Optional.of(new SoulEntitySpawnResult(profileId, soulPlayer, request.factoryId(), false, reason));
+        }
     }
 
     public static Optional<SoulPlayer> respawnSoulFromProfile(ServerPlayer owner,
@@ -267,287 +348,17 @@ public final class SoulFakePlayerSpawner {
                                                             GameProfile sourceProfile,
                                                             boolean forceDerivedId,
                                                             String reason) {
-        SoulContainer container = CCAttachments.getSoulContainer(owner);
-        SoulProfile profile = container.getOrCreateProfile(profileId);
-        SoulEntitySpawnRequest request = newSpawnRequest(owner, profileId, sourceProfile, forceDerivedId, reason)
-                .profile(profile)
+        SoulEntitySpawnRequest request = SoulEntitySpawnRequest.builder(owner.serverLevel().getServer(), SOUL_PLAYER_FACTORY_ID, profileId)
+                .withOwner(owner)
+                .withFallbackLevel(owner.serverLevel())
+                .withFallbackPosition(owner.position())
+                .withYaw(owner.getYRot())
+                .withPitch(owner.getXRot())
+                .withReason(reason)
+                .withAttribute(ATTR_SOURCE_PROFILE, sourceProfile)
+                .withAttribute(ATTR_FORCE_DERIVED_ID, forceDerivedId)
                 .build();
-        return spawnFromRequest(request).flatMap(SoulEntitySpawnResult::asSoulPlayer);
-    }
-
-    private static Optional<SoulEntitySpawnResult> spawnFromRequest(SoulEntitySpawnRequest request) {
-        if (request == null) {
-            return Optional.empty();
-        }
-        ServerPlayer owner = request.owner();
-        UUID soulId = request.soulId();
-        String reason = request.reason();
-        SoulProfile profile = request.profile();
-
-        if (profile != null) {
-            profile.position().ifPresent(snapshot -> SoulLog.info(
-                    "[soul] respawn-prepare reason={} soul={} snapshot=({}, {}, {}, {}) dim={}",
-                    reason, soulId,
-                    snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(),
-                    snapshot.dimension().location()
-            ));
-        }
-
-        SoulPlayer existing = ACTIVE_SOUL_PLAYERS.get(soulId);
-        if (existing != null && !existing.isRemoved()) {
-            SoulLog.error("[soul] invariant-violation duplicate-shell prevented soul={} existingEntity={} dim={} pos=({},{},{}) newReason={}",
-                    new IllegalStateException("duplicate-shell-prevented"),
-                    soulId, existing.getUUID(), existing.level().dimension().location(),
-                    existing.getX(), existing.getY(), existing.getZ(), reason);
-            return Optional.of(new SoulEntitySpawnResult(soulId, existing, existing.getType(), request.geckoModelId(), reason, true));
-        }
-
-        SoulEntityFactory factory = SoulEntityFactories.resolve(request.entityType());
-        Entity entity;
-        try {
-            entity = factory.instantiate(request);
-        } catch (Exception e) {
-            SoulLog.error("[soul] spawn-failed reason={} soul={} stage=instantiate", e, reason, soulId);
-            return Optional.empty();
-        }
-        if (entity == null) {
-            SoulLog.error("[soul] spawn-failed reason={} soul={} stage=instantiate result=null",
-                    new IllegalStateException("spawnFromRequest-nullEntity"),
-                    reason, soulId);
-            return Optional.empty();
-        }
-
-        factory.configureEntity(request, entity);
-
-        boolean isServerPlayer = entity instanceof ServerPlayer;
-        boolean isSoulPlayer = entity instanceof SoulPlayer;
-        ServerLevel spawnLevel = entity.level() instanceof ServerLevel level ? level : owner.serverLevel();
-        var server = spawnLevel.getServer();
-
-        if (isServerPlayer || isSoulPlayer) {
-            ServerPlayer broadcastPlayer = entity instanceof ServerPlayer serverPlayer
-                    ? serverPlayer
-                    : (SoulPlayer) entity;
-            server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(broadcastPlayer)));
-        }
-
-        if (!spawnLevel.tryAddFreshEntityWithPassengers(entity)) {
-            if (isServerPlayer || isSoulPlayer) {
-                server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(entity.getUUID())));
-            }
-            entity.discard();
-            SoulLog.info("[soul] spawn-aborted reason={} soul={} owner={} cause=spawnFailed", reason, soulId, owner.getUUID());
-            return Optional.empty();
-        }
-
-        if (profile != null && (entity instanceof ServerPlayer || entity instanceof SoulPlayer)) {
-            ServerPlayer target = entity instanceof ServerPlayer serverPlayer
-                    ? serverPlayer
-                    : (SoulPlayer) entity;
-            profile.restoreBase(target);
-            net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(target);
-        }
-
-        if (entity instanceof SoulPlayer soulPlayer) {
-            applySpawnShield(soulPlayer);
-        }
-
-        if (profile != null) {
-            var context = request.context() != null ? request.context() : SoulEntitySpawnContext.EMPTY;
-            var snapshotOpt = context.positionOverride().isPresent() ? context.positionOverride() : profile.position();
-            snapshotOpt.ifPresent(snapshot -> {
-                ServerLevel targetLevel = server.getLevel(snapshot.dimension());
-                if (targetLevel != null) {
-                    BlockPos chunkPos = BlockPos.containing(snapshot.x(), snapshot.y(), snapshot.z());
-                    targetLevel.getChunkAt(chunkPos);
-                    if (entity.level() != targetLevel) {
-                        if (entity instanceof ServerPlayer serverPlayer) {
-                            serverPlayer.teleportTo(targetLevel, snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
-                        } else {
-                            entity.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
-                        }
-                    } else {
-                        entity.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
-                    }
-                    if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
-                        living.setYHeadRot(snapshot.headYaw());
-                    }
-                    SoulLog.info("[soul] restore-position-complete reason={} soul={} dim={} pos=({},{},{})",
-                            reason, soulId, snapshot.dimension().location(),
-                            snapshot.x(), snapshot.y(), snapshot.z());
-                }
-            });
-
-            if (snapshotOpt.isEmpty() && context.fallbackPosition().isPresent()) {
-                Vec3 pos = context.fallbackPosition().get();
-                BlockPos chunkPos = BlockPos.containing(pos.x, pos.y, pos.z);
-                spawnLevel.getChunkAt(chunkPos);
-                entity.moveTo(pos.x, pos.y, pos.z, entity.getYRot(), entity.getXRot());
-            }
-        }
-
-        ENTITY_TO_SOUL.put(entity.getUUID(), soulId);
-        LEGIT_ENTITY_SPAWNS.add(entity.getUUID());
-        ENTITY_SPAWN_REASON.put(entity.getUUID(), reason);
-        SoulEntitySpawnResult result = new SoulEntitySpawnResult(soulId, entity, entity.getType(), request.geckoModelId(), reason, false);
-        if (entity instanceof SoulPlayer soulPlayer) {
-            ACTIVE_SOUL_PLAYERS.put(soulId, soulPlayer);
-        }
-
-        factory.onAfterEntitySpawned(request, result);
-
-        SoulLog.info("[soul] spawn-complete reason={} soul={} owner={} dim={} pos=({},{},{})",
-                reason, soulId, owner.getUUID(),
-                entity.level().dimension().location(),
-                entity.getX(), entity.getY(), entity.getZ());
-
-        return Optional.of(result);
-    }
-
-    private static void applySpawnRequest(ServerPlayer owner, SoulPlayer soulPlayer, @Nullable SoulEntitySpawnRequest request) {
-        if (request == null) {
-            return;
-        }
-        GeckoFx geckoFx = request.geckoFx();
-        if (geckoFx == null || geckoFx.fxId() == null) {
-            return;
-        }
-
-        ServerLevel level = soulPlayer.serverLevel();
-        GeckoFxAnchor anchor = geckoFx.anchor() == null ? GeckoFxAnchor.ENTITY : geckoFx.anchor();
-        Vec3 offset = geckoFx.offset() == null ? Vec3.ZERO : geckoFx.offset();
-        Vec3 relativeOffset = geckoFx.relativeOffset() == null ? Vec3.ZERO : geckoFx.relativeOffset();
-        Vec3 worldPosition = geckoFx.worldPosition();
-        float scale = geckoFx.scale() <= 0.0F ? 1.0F : geckoFx.scale();
-        float alpha = Mth.clamp(geckoFx.alpha(), 0.0F, 1.0F);
-        boolean loop = geckoFx.loop();
-        int duration = Math.max(1, geckoFx.durationTicks());
-
-        Entity anchorEntity = switch (anchor) {
-            case PERFORMER -> owner;
-            case TARGET, ENTITY -> resolveAttachedEntity(level, soulPlayer, geckoFx);
-            case WORLD -> null;
-        };
-
-        Vec3 basePosition;
-        if (anchor == GeckoFxAnchor.WORLD) {
-            basePosition = worldPosition != null ? worldPosition : soulPlayer.position();
-        } else {
-            basePosition = anchorEntity != null ? anchorEntity.position() : soulPlayer.position();
-        }
-
-        float yawInput = geckoFx.yaw() != null
-                ? geckoFx.yaw()
-                : anchorEntity != null ? anchorEntity.getYRot() : soulPlayer.getYRot();
-        float pitchInput = geckoFx.pitch() != null
-                ? geckoFx.pitch()
-                : anchorEntity != null ? anchorEntity.getXRot() : soulPlayer.getXRot();
-        float rollInput = geckoFx.roll() != null ? geckoFx.roll() : 0.0F;
-
-        float payloadYaw = -yawInput;
-        float payloadPitch = -pitchInput;
-        float payloadRoll = -rollInput;
-
-        Vec3 rotatedRelative = rotateRelativeOffset(relativeOffset, payloadYaw, payloadPitch, payloadRoll);
-        Vec3 originOffset = offset.add(rotatedRelative);
-        Vec3 origin = basePosition.add(originOffset);
-
-        UUID eventId;
-        if (anchor == GeckoFxAnchor.WORLD) {
-            String seed = geckoFx.fxId() + "|" + basePosition.x + "," + basePosition.y + "," + basePosition.z;
-            eventId = loop ? UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)) : UUID.randomUUID();
-        } else {
-            Entity eventAnchor = anchorEntity != null ? anchorEntity : soulPlayer;
-            eventId = computeFxEventId(geckoFx.fxId(), eventAnchor, loop);
-        }
-
-        int attachedEntityId = anchor == GeckoFxAnchor.WORLD
-                ? -1
-                : (anchorEntity != null ? anchorEntity.getId() : soulPlayer.getId());
-        UUID attachedEntityUuid = anchor == GeckoFxAnchor.WORLD
-                ? null
-                : (anchorEntity != null ? anchorEntity.getUUID() : soulPlayer.getUUID());
-
-        GeckoFxEventPayload payload = new GeckoFxEventPayload(
-                geckoFx.fxId(),
-                anchor,
-                attachedEntityId,
-                attachedEntityUuid,
-                basePosition.x,
-                basePosition.y,
-                basePosition.z,
-                offset.x,
-                offset.y,
-                offset.z,
-                relativeOffset.x,
-                relativeOffset.y,
-                relativeOffset.z,
-                payloadYaw,
-                payloadPitch,
-                payloadRoll,
-                scale,
-                geckoFx.tint(),
-                alpha,
-                loop,
-                duration,
-                geckoFx.modelOverride(),
-                geckoFx.textureOverride(),
-                geckoFx.animationOverride(),
-                eventId
-        );
-
-        GeckoFxDispatcher.emit(level, origin, payload);
-    }
-
-    private static Entity resolveAttachedEntity(ServerLevel level, SoulPlayer fallback, GeckoFx geckoFx) {
-        if (geckoFx.attachedEntityUuid() != null) {
-            Entity byUuid = level.getEntity(geckoFx.attachedEntityUuid());
-            if (byUuid != null && !byUuid.isRemoved()) {
-                return byUuid;
-            }
-        }
-        if (geckoFx.attachedEntityId() >= 0) {
-            Entity byId = level.getEntity(geckoFx.attachedEntityId());
-            if (byId != null && !byId.isRemoved()) {
-                return byId;
-            }
-        }
-        return fallback;
-    }
-
-    private static UUID computeFxEventId(ResourceLocation fxId, Entity anchor, boolean loop) {
-        if (!loop || fxId == null || anchor == null) {
-            return UUID.randomUUID();
-        }
-        String seed = fxId + "|" + anchor.getUUID();
-        return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static Vec3 rotateRelativeOffset(Vec3 relativeOffset, float yawDegrees, float pitchDegrees, float rollDegrees) {
-        if (relativeOffset == null || relativeOffset.equals(Vec3.ZERO)) {
-            return Vec3.ZERO;
-        }
-        boolean hasYaw = yawDegrees != 0.0F;
-        boolean hasPitch = pitchDegrees != 0.0F;
-        boolean hasRoll = rollDegrees != 0.0F;
-        if (!hasYaw && !hasPitch && !hasRoll) {
-            return relativeOffset;
-        }
-
-        Quaternionf rotation = new Quaternionf();
-        if (hasYaw) {
-            rotation.mul(Axis.YP.rotationDegrees(yawDegrees));
-        }
-        if (hasPitch) {
-            rotation.mul(Axis.XP.rotationDegrees(pitchDegrees));
-        }
-        if (hasRoll) {
-            rotation.mul(Axis.ZP.rotationDegrees(rollDegrees));
-        }
-
-        Vector3f working = new Vector3f((float) relativeOffset.x, (float) relativeOffset.y, (float) relativeOffset.z);
-        rotation.transform(working);
-        return new Vec3(working.x(), working.y(), working.z());
+        return SoulEntityFactories.spawn(request).flatMap(SoulEntitySpawnResult::asSoulPlayer);
     }
 
     private static void applySpawnShield(SoulPlayer soulPlayer) {
@@ -692,20 +503,25 @@ public final class SoulFakePlayerSpawner {
         GameProfile spawnProfile = new GameProfile(soulId, name);
         copyProperties(executor.getGameProfile(), spawnProfile);
         SoulContainer container = CCAttachments.getSoulContainer(executor);
-        SoulProfile profile = container.getOrCreateProfile(soulId);
-        SoulEntitySpawnRequest request = newSpawnRequest(executor, soulId, spawnProfile, false, "spawnTestFakePlayer")
-                .profile(profile)
+        container.getOrCreateProfile(soulId);
+
+        SoulEntitySpawnRequest request = SoulEntitySpawnRequest.builder(level.getServer(), SOUL_PLAYER_FACTORY_ID, soulId)
+                .withOwner(executor)
+                .withFallbackLevel(level)
+                .withFallbackPosition(executor.position())
+                .withYaw(executor.getYRot())
+                .withPitch(executor.getXRot())
+                .withReason("spawnTestFakePlayer")
+                .withAttribute(ATTR_SOURCE_PROFILE, spawnProfile)
+                .withAttribute(ATTR_FORCE_DERIVED_ID, Boolean.FALSE)
                 .build();
 
-        Optional<SoulEntitySpawnResult> resultOpt = spawn(request);
-        if (resultOpt.isEmpty()) {
-            SOUL_IDENTITIES.remove(soulId);
-            return Optional.empty();
-        }
-        SoulEntitySpawnResult result = resultOpt.get();
-        Optional<SoulPlayer> soulPlayerOpt = result.asSoulPlayer();
-        soulPlayerOpt.ifPresent(soulPlayer -> soulPlayer.getOwnerId().ifPresent(owner -> OWNER_ACTIVE_SOUL.putIfAbsent(owner, soulId)));
-        return soulPlayerOpt.map(SpawnResult::new);
+        return SoulEntityFactories.spawn(request)
+                .flatMap(SoulEntitySpawnResult::asSoulPlayer)
+                .map(soulPlayer -> {
+                    soulPlayer.getOwnerId().ifPresent(owner -> OWNER_ACTIVE_SOUL.putIfAbsent(owner, soulId));
+                    return new SpawnResult(soulPlayer);
+                });
     }
 
     /**
