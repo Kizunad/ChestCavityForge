@@ -7,7 +7,7 @@
     },
     {
       "id": "guzhenren:zuida_jingli",
-      "value": "-100"
+      "value": "-1000"
     },
     {
       "id": "guzhenren:renqi",
@@ -19,7 +19,7 @@
     },
     {
       "id": "chestcavity:speed",
-      "value": "1"
+      "value": "3"
     },
     {
       "id": "chestcavity:breath_recovery",
@@ -39,7 +39,7 @@
     },
     {
       "id": "chestcavity:health",
-      "value": "1000"
+      "value": "10"
     },
     {
       "id": "chestcavity:nerves",
