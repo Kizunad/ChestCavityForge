@@ -140,7 +140,7 @@ public final class GeckoFxClient {
                 } else {
                     Entity anchor = level.getEntity(payload.attachedEntityId());
                     if ((anchor == null || anchor.isRemoved()) && payload.attachedEntityUuid() != null && level instanceof ClientLevel clientLevel) {
-                        anchor = clientLevel.getEntity(payload.attachedEntityUuid());
+                        anchor = clientLevel.getPlayerByUUID(payload.attachedEntityUuid());
                     }
                     if (anchor == null || anchor.isRemoved()) {
                         iterator.remove();

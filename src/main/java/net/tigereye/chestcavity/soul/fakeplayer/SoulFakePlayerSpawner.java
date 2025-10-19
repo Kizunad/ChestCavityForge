@@ -9,7 +9,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,13 +18,11 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
-import net.tigereye.chestcavity.guscript.fx.gecko.GeckoFxDispatcher;
-import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
-import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest.GeckoFx;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactory;
+import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
@@ -52,8 +49,6 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories.SoulEntityFactory;
 
 /**
  * 灵魂假人（SoulPlayer）生命周期协调器
@@ -435,6 +430,33 @@ public final class SoulFakePlayerSpawner {
         return spawned;
     }
 
+    private static void applySpawnRequest(@Nullable ServerPlayer owner,
+                                          @Nullable SoulPlayer soul,
+                                          @Nullable SoulEntitySpawnRequest request) {
+        if (owner == null || soul == null || request == null) {
+            return;
+        }
+        // TODO: 后续支持 GeckoFx、Brain 预设等附加参数。
+    }
+
+    public static SpawnRequestBuilder newSpawnRequest(ServerPlayer owner,
+                                                      UUID soulId,
+                                                      GameProfile sourceProfile,
+                                                      boolean forceDerivedIdentity,
+                                                      String reason) {
+        return new SpawnRequestBuilder(owner, soulId, sourceProfile, forceDerivedIdentity, reason);
+    }
+
+    public static Optional<SoulEntitySpawnResult> spawn(SpawnRequest request) {
+        if (request == null) {
+            return Optional.empty();
+        }
+        Optional<SoulEntitySpawnResult> result = SoulEntityFactories.spawn(request.request());
+        result.flatMap(SoulEntitySpawnResult::asSoulPlayer)
+                .ifPresent(soul -> applySpawnRequest(request.owner(), soul, request.request()));
+        return result;
+    }
+
     /**
      * 强制将指定分魂传送到主人当前位置，必要时重生该分魂。
      */
@@ -504,6 +526,7 @@ public final class SoulFakePlayerSpawner {
         copyProperties(executor.getGameProfile(), spawnProfile);
         SoulContainer container = CCAttachments.getSoulContainer(executor);
         container.getOrCreateProfile(soulId);
+        ServerLevel level = executor.serverLevel();
 
         SoulEntitySpawnRequest request = SoulEntitySpawnRequest.builder(level.getServer(), SOUL_PLAYER_FACTORY_ID, soulId)
                 .withOwner(executor)
@@ -1387,6 +1410,65 @@ public final class SoulFakePlayerSpawner {
             SoulLog.warn("[soul] handleRemoval could not find tracked soul for id={} reason={}", soulUuid, reason);
         }
     }
+
+    public static final class SpawnRequestBuilder {
+        private final ServerPlayer owner;
+        private final UUID soulId;
+        private final GameProfile sourceProfile;
+        private final boolean forceDerivedIdentity;
+        private final String reason;
+        private SoulProfile profile;
+
+        private SpawnRequestBuilder(ServerPlayer owner,
+                                    UUID soulId,
+                                    GameProfile sourceProfile,
+                                    boolean forceDerivedIdentity,
+                                    String reason) {
+            this.owner = Objects.requireNonNull(owner, "owner");
+            this.soulId = Objects.requireNonNull(soulId, "soulId");
+            this.sourceProfile = Objects.requireNonNull(sourceProfile, "sourceProfile");
+            this.forceDerivedIdentity = forceDerivedIdentity;
+            this.reason = reason == null || reason.isBlank() ? "unspecified" : reason;
+        }
+
+        public SpawnRequestBuilder profile(@Nullable SoulProfile profile) {
+            this.profile = profile;
+            return this;
+        }
+
+        public SpawnRequest build() {
+            ServerLevel ownerLevel = owner.serverLevel();
+            ServerLevel fallbackLevel = ownerLevel;
+            Vec3 fallbackPosition = owner.position();
+            if (profile != null) {
+                var snapshotOpt = profile.position();
+                if (snapshotOpt.isPresent()) {
+                    var snapshot = snapshotOpt.get();
+                    ServerLevel snapshotLevel = ownerLevel.getServer().getLevel(snapshot.dimension());
+                    if (snapshotLevel != null) {
+                        fallbackLevel = snapshotLevel;
+                        fallbackPosition = new Vec3(snapshot.x(), snapshot.y(), snapshot.z());
+                    }
+                }
+            }
+            SoulEntitySpawnRequest.Builder builder = SoulEntitySpawnRequest.builder(ownerLevel.getServer(), SOUL_PLAYER_FACTORY_ID, soulId)
+                    .withOwner(owner)
+                    .withFallbackLevel(fallbackLevel)
+                    .withFallbackPosition(fallbackPosition)
+                    .withYaw(owner.getYRot())
+                    .withPitch(owner.getXRot())
+                    .withReason(reason)
+                    .withAttribute(ATTR_SOURCE_PROFILE, sourceProfile)
+                    .withAttribute(ATTR_FORCE_DERIVED_ID, forceDerivedIdentity);
+            SoulEntitySpawnRequest request = builder.build();
+            return new SpawnRequest(owner, soulId, profile, request);
+        }
+    }
+
+    public record SpawnRequest(ServerPlayer owner,
+                               UUID soulId,
+                               @Nullable SoulProfile profile,
+                               SoulEntitySpawnRequest request) {}
 
     public record SpawnResult(SoulPlayer soulPlayer) {}
 
