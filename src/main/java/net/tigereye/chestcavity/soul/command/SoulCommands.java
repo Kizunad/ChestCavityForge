@@ -3,6 +3,8 @@ package net.tigereye.chestcavity.soul.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -19,12 +21,15 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.soul.engine.SoulFeatureToggle;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnResult;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.SoulPlayerInfo;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
 import net.tigereye.chestcavity.soul.navigation.SoulGoalPlanner;
 import net.tigereye.chestcavity.soul.navigation.SoulNavEngine;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
@@ -32,7 +37,10 @@ import net.tigereye.chestcavity.soul.navigation.SoulNavigationTestHarness;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
 import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.soul.entity.TestSoulEntity;
+import net.tigereye.chestcavity.soul.entity.TestSoulManager;
 import net.tigereye.chestcavity.soul.profile.InventorySnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
@@ -41,6 +49,7 @@ import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -67,6 +76,8 @@ public final class SoulCommands {
     private static final UUID TEST_HOSTILE_ENTITY_ID = UUID.nameUUIDFromBytes("chestcavity:soul/test/hostile".getBytes(StandardCharsets.UTF_8));
 
     private static final String TEST_HOSTILE_REASON = "command:/soul test SpawnHostileEnemy";
+    private static final String TEST_CHUNK_LOADER_REASON = "command:/soul test SpawnChunkLoader";
+    private static final ResourceLocation ATTR_CHUNK_RADIUS = ResourceLocation.fromNamespaceAndPath("chestcavity", "chunk_loader/radius");
 
     /**
      * /soul nav engine <idOrName> <engine|clear>
@@ -160,6 +171,20 @@ public final class SoulCommands {
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
                                         .executes(SoulCommands::brainMenu)))
+                        // /soul brain personality set|get|list ...
+                        .then(Commands.literal("personality")
+                                .then(Commands.literal("set")
+                                        .then(Commands.argument("idOrName", StringArgumentType.string())
+                                                .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                                .then(Commands.argument("personality", StringArgumentType.string())
+                                                        .suggests(SoulCommands::suggestPersonalityTokens)
+                                                        .executes(SoulCommands::brainPersonalitySet))))
+                                .then(Commands.literal("get")
+                                        .then(Commands.argument("idOrName", StringArgumentType.string())
+                                                .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
+                                                .executes(SoulCommands::brainPersonalityGet)))
+                                .then(Commands.literal("list")
+                                        .executes(SoulCommands::brainPersonalityList)))
                         // /soul brain intent combat <idOrName> <style> [ttl]
                         .then(Commands.literal("intent")
                                 .then(Commands.literal("combat")
@@ -292,6 +317,16 @@ public final class SoulCommands {
                                                         .executes(SoulCommands::createSoulAt)))))
                         .then(Commands.literal("SpawnHostileEnemy")
                                 .executes(SoulCommands::spawnHostileEnemy))
+                        .then(Commands.literal("SpawnChunkLoader")
+                                .then(Commands.argument("radius", IntegerArgumentType.integer(1, 8))
+                                        .executes(ctx -> spawnChunkLoader(ctx, IntegerArgumentType.getInteger(ctx, "radius"))))
+                                .executes(ctx -> spawnChunkLoader(ctx, 2)))
+                        .then(Commands.literal("SpawnTestSoul")
+                                .executes(SoulCommands::spawnTestSoul))
+                        .then(Commands.literal("TestSoulLimit")
+                                .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> setTestSoulLimit(ctx, IntegerArgumentType.getInteger(ctx, "limit"))))
+                                .executes(SoulCommands::getTestSoulLimit))
                         .then(Commands.literal("TestCollectEntityGoals")
                                 .then(Commands.argument("uuid", UuidArgument.uuid())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuidLiterals(ctx.getSource(), builder))
@@ -359,6 +394,91 @@ public final class SoulCommands {
                 result.entityId(),
                 result.restoredFromPersistentState())), true);
         return 1;
+    }
+
+    private static int spawnChunkLoader(CommandContext<CommandSourceStack> context, int radius) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        if (!SoulFeatureToggle.isEnabled()) {
+            source.sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再生成 ChunkLoader。"));
+            return 0;
+        }
+        int clampedRadius = Math.max(1, Math.min(8, radius));
+        MinecraftServer server = source.getServer();
+        ServerLevel level = source.getLevel();
+        Vec3 position = source.getPosition();
+        UUID entityId = UUID.randomUUID();
+
+        SoulEntitySpawnRequest request = SoulEntitySpawnRequest.builder(server, SoulFakePlayerSpawner.TEST_CHUNK_LOADER_FACTORY_ID, entityId)
+                .withFallbackLevel(level)
+                .withFallbackPosition(position)
+                .withYaw(source.getRotation().y)
+                .withPitch(source.getRotation().x)
+                .withReason(TEST_CHUNK_LOADER_REASON)
+                .withAttribute(ATTR_CHUNK_RADIUS, clampedRadius)
+                .build();
+
+        var resultOpt = SoulEntityFactories.spawn(request);
+        if (resultOpt.isEmpty()) {
+            source.sendFailure(Component.literal("[soul] 未能生成 ChunkLoader 实体。"));
+            return 0;
+        }
+
+        SoulEntitySpawnResult result = resultOpt.get();
+        Entity entity = result.entity();
+        CompoundTag archive = new CompoundTag();
+        archive.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+        CompoundTag entityData = entity.saveWithoutId(new CompoundTag());
+        archive.put("data", entityData);
+        SoulEntityFactories.persist(server, result.entityId(), archive);
+
+        source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] ChunkLoader 生成 -> %s (radius=%d)",
+                result.entityId(), clampedRadius)), true);
+        return 1;
+    }
+
+    private static int spawnTestSoul(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        if (!SoulFeatureToggle.isEnabled()) {
+            source.sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再生成 Test 生物。"));
+            return 0;
+        }
+        if (!TestSoulManager.canSpawn()) {
+            source.sendFailure(Component.literal(String.format(Locale.ROOT,
+                    "[soul] Test 生物已达上限 (%d)。", TestSoulManager.getMaxCount())));
+            return 0;
+        }
+        ServerLevel level = source.getLevel();
+        Vec3 pos = source.getPosition();
+        TestSoulEntity entity = CCEntities.TEST_SOUL.get().create(level);
+        if (entity == null) {
+            source.sendFailure(Component.literal("[soul] 无法创建 Test 实例。"));
+            return 0;
+        }
+        entity.moveTo(pos.x, pos.y, pos.z, source.getRotation().y, source.getRotation().x);
+        if (!level.addFreshEntity(entity)) {
+            source.sendFailure(Component.literal("[soul] 无法将 Test 生物加入世界。"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] Test 生物生成成功 (active=%d/%d)",
+                TestSoulManager.getActiveCount(), TestSoulManager.getMaxCount())), true);
+        return 1;
+    }
+
+    private static int setTestSoulLimit(CommandContext<CommandSourceStack> context, int limit) {
+        TestSoulManager.setMaxCount(limit);
+        context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] Test 生物上限设置为 %d (当前=%d)",
+                TestSoulManager.getMaxCount(), TestSoulManager.getActiveCount())), true);
+        return TestSoulManager.getMaxCount();
+    }
+
+    private static int getTestSoulLimit(CommandContext<CommandSourceStack> context) {
+        context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] Test 生物上限=%d，当前=%d",
+                TestSoulManager.getMaxCount(), TestSoulManager.getActiveCount())), false);
+        return TestSoulManager.getMaxCount();
     }
 
     /**
@@ -631,6 +751,88 @@ public final class SoulCommands {
         final MutableComponent msg = line;
         context.getSource().sendSuccess(() -> msg, false);
         return 1;
+    }
+
+    private static int brainPersonalitySet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        if (!SoulFeatureToggle.isEnabled()) {
+            context.getSource().sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再配置 personality."));
+            return 0;
+        }
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
+            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
+            return 0;
+        }
+        String personalityToken = unquote(StringArgumentType.getString(context, "personality"));
+        ResourceLocation personalityId = resolvePersonalityId(personalityToken);
+        if (personalityId == null) {
+            context.getSource().sendFailure(Component.literal("[soul] 未找到 personality: " + personalityToken));
+            return 0;
+        }
+        SoulPersonality personality = SoulPersonalityRegistry.resolve(personalityId);
+        SoulContainer container = CCAttachments.getSoulContainer(executor);
+        container.setBrainPersonality(executor, soul.getUUID(), personality.id(), "command-brain-personality-set");
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 已设置 brain personality 为 " + personality.id()), true);
+        return 1;
+    }
+
+    private static int brainPersonalityGet(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer executor = context.getSource().getPlayerOrException();
+        String token = unquote(StringArgumentType.getString(context, "idOrName"));
+        var resolved = SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, token);
+        if (resolved.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到该 SoulPlayer。")); return 0; }
+        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(resolved.get());
+        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 该 SoulPlayer 当前不在线。")); return 0; }
+        var soul = soulOpt.get();
+        SoulContainer container = CCAttachments.getSoulContainer(executor);
+        ResourceLocation persisted = container.getBrainPersonalityId(soul.getUUID());
+        ResourceLocation runtime = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().getPersonalityId(soul.getUUID());
+        context.getSource().sendSuccess(() -> Component.literal("[soul] brain personality(持久化): " + persisted), false);
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 运行时 personality: " + runtime), false);
+        return 1;
+    }
+
+    private static int brainPersonalityList(CommandContext<CommandSourceStack> context) {
+        java.util.List<SoulPersonality> personalities = new ArrayList<>(SoulPersonalityRegistry.all());
+        personalities.sort((a, b) -> a.id().toString().compareToIgnoreCase(b.id().toString()));
+        context.getSource().sendSuccess(() -> Component.literal("[soul] 可用 personality: " + personalities.size()), false);
+        for (SoulPersonality personality : personalities) {
+            String alias = personality.id().getPath();
+            context.getSource().sendSuccess(() -> Component.literal(" - " + personality.id() + " (" + alias + ")"), false);
+        }
+        return personalities.size();
+    }
+
+    private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestPersonalityTokens(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        for (SoulPersonality personality : SoulPersonalityRegistry.all()) {
+            String full = personality.id().toString();
+            if (seen.add(full)) {
+                builder.suggest(full);
+            }
+            String path = personality.id().getPath();
+            if (seen.add(path)) {
+                builder.suggest(path);
+            }
+        }
+        return builder.buildFuture();
+    }
+
+    private static ResourceLocation resolvePersonalityId(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        ResourceLocation parsed = ResourceLocation.tryParse(token.trim());
+        if (parsed != null) {
+            return parsed;
+        }
+        return SoulPersonalityRegistry.lookup(token.trim()).map(SoulPersonality::id).orElse(null);
     }
 
     private static net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode nextMode(net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode cur) {

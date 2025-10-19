@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.scoring.WeightedUtilitySco
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.BrainActionStep;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.BrainTuningKeys;
 
 /**
  * 生存评估子大脑（SurvivalAssessmentSubBrain）
@@ -32,9 +33,6 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
  * - 是否处于“危险”粗判（有威胁/半血/吸收低）。
  */
 public final class SurvivalAssessmentSubBrain extends SubBrain {
-
-    private static final double SCAN_RADIUS = 14.0;
-    private static final double MAX_DISTANCE = 18.0;
     private static final String SHARED_SNAPSHOT_KEY = "survival.snapshot";
 
     private final SurvivalScorecard scorecard;
@@ -55,8 +53,10 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
 
     private void computeSnapshot(SubBrainContext ctx) {
         var soul = ctx.soul();
-        LivingEntity threat = pickThreat(ctx);
-        double distance = threat == null ? MAX_DISTANCE : Math.min(MAX_DISTANCE, soul.distanceTo(threat));
+        double scanRadius = Math.max(6.0, ctx.personality().getDouble(BrainTuningKeys.SURVIVAL_THREAT_SCAN_RADIUS, 18.0));
+        double maxDistance = Math.max(scanRadius, ctx.personality().getDouble(BrainTuningKeys.SURVIVAL_RETREAT_MAX_DISTANCE, 18.0));
+        LivingEntity threat = pickThreat(ctx, scanRadius);
+        double distance = threat == null ? maxDistance : Math.min(maxDistance, soul.distanceTo(threat));
         double healthRatio = soul.getHealth() / soul.getMaxHealth();
         double absorption = soul.getAbsorptionAmount();
         boolean hasRegen = soul.hasEffect(MobEffects.REGENERATION);
@@ -80,7 +80,7 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
                 .build());
     }
 
-    private LivingEntity pickThreat(SubBrainContext ctx) {
+    private LivingEntity pickThreat(SubBrainContext ctx, double scanRadius) {
         var soul = ctx.soul();
         // 1) 优先使用“最近伤害来源”
         LivingEntity recent = soul.getLastHurtByMob();
@@ -88,7 +88,7 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
             return recent;
         }
         Vec3 center = soul.position();
-        AABB box = new AABB(center, center).inflate(SCAN_RADIUS);
+        AABB box = new AABB(center, center).inflate(scanRadius);
         // 2) 否则在扫描半径内寻找最近的敌对
         List<LivingEntity> hostiles = ctx.level().getEntitiesOfClass(LivingEntity.class, box, e ->
                 e.isAlive() && e != soul && (e instanceof Enemy || ConstantMobs.isConsideredHostile(e)));

@@ -1,18 +1,20 @@
 package net.tigereye.chestcavity.soul.fakeplayer.brain;
 
-import net.minecraft.server.level.ServerPlayer;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
-import net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager;
-import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
+import net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.IntentSnapshot;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.LLMIntent;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
+import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
 
 /**
  * A lightweight coordinator that behaves like a "brain": selects the appropriate
@@ -28,6 +30,8 @@ public final class BrainController implements SoulRuntimeHandler {
     private final Map<UUID, Brain> active = new ConcurrentHashMap<>();
     // 单意图槽（最小实现）：每个 soul 仅保留一个主动意图与其 TTL
     private final Map<UUID, IntentRecord> intents = new ConcurrentHashMap<>();
+    // Personality 映射（运行时缓存，持久化来源：SoulContainer）
+    private final Map<UUID, ResourceLocation> personalityIds = new ConcurrentHashMap<>();
 
     private final Brain combat = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.CombatBrain();
     private final Brain survival = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.SurvivalBrain();
@@ -45,6 +49,37 @@ public final class BrainController implements SoulRuntimeHandler {
         if (mode == null) mode = BrainMode.AUTO;
         modes.put(soulId, mode);
         // brain swap handled on next tick
+    }
+
+    public SoulPersonality getPersonality(UUID soulId) {
+        return resolvePersonality(soulId);
+    }
+
+    public ResourceLocation getPersonalityId(UUID soulId) {
+        return personalityIds.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
+    }
+
+    public void setPersonality(UUID soulId, ResourceLocation personalityId) {
+        if (soulId == null) {
+            return;
+        }
+        ResourceLocation id = personalityId == null ? SoulPersonalityRegistry.DEFAULT_ID : personalityId;
+        personalityIds.put(soulId, id);
+    }
+
+    public void clearPersonality(UUID soulId) {
+        if (soulId == null) {
+            return;
+        }
+        personalityIds.remove(soulId);
+    }
+
+    private SoulPersonality resolvePersonality(UUID soulId) {
+        if (soulId == null) {
+            return SoulPersonalityRegistry.defaults();
+        }
+        ResourceLocation id = personalityIds.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
+        return SoulPersonalityRegistry.resolve(id);
     }
 
     /** 设置/覆盖当前 Soul 的主动意图。由命令层调用。 */
@@ -77,16 +112,18 @@ public final class BrainController implements SoulRuntimeHandler {
         IntentSnapshot snapshot = getSnapshot(player.getUUID());
 
         BrainMode desired = pickMode(player, owner, snapshot);
+        SoulPersonality personality = resolvePersonality(player.getUUID());
         Brain current = active.get(player.getUUID());
         Brain target = selectBrain(desired);
+        BrainContext context = new BrainContext(level, player, owner, mgr, snapshot, personality);
         if (current != target) {
             net.tigereye.chestcavity.soul.fakeplayer.brain.debug.BrainDebugLogger.trace(
                     "switch", "soul=%s %s -> %s", player.getUUID(), current == null ? "none" : current.id(), target == null ? "none" : target.id());
-            if (current != null) current.onExit(new BrainContext(level, player, owner, mgr, snapshot));
+            if (current != null) current.onExit(context);
             active.put(player.getUUID(), target);
-            if (target != null) target.onEnter(new BrainContext(level, player, owner, mgr, snapshot));
+            if (target != null) target.onEnter(context);
         }
-        if (target != null) target.tick(new BrainContext(level, player, owner, mgr, snapshot));
+        if (target != null) target.tick(context);
     }
 
     private BrainMode pickMode(SoulPlayer soul, ServerPlayer owner, IntentSnapshot snapshot) {

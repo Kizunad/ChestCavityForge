@@ -11,6 +11,8 @@ import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneG
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.entity.MadBullEntity;
+import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
+import net.tigereye.chestcavity.soul.entity.TestSoulEntity;
 
 
 /**
@@ -63,5 +65,21 @@ public final class CCEntities {
                     .clientTrackingRange(48)
                     .updateInterval(1)
                     .build(ChestCavity.MODID + ":mad_bull"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<SoulChunkLoaderEntity>> SOUL_CHUNK_LOADER =
+            ENTITY_TYPES.register("soul_chunk_loader", () -> EntityType.Builder
+                    .<SoulChunkLoaderEntity>of(SoulChunkLoaderEntity::new, MobCategory.MISC)
+                    .sized(0.1f, 0.1f)
+                    .clientTrackingRange(16)
+                    .updateInterval(20)
+                    .build(ChestCavity.MODID + ":soul_chunk_loader"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<TestSoulEntity>> TEST_SOUL =
+            ENTITY_TYPES.register("test_soul", () -> EntityType.Builder
+                    .<TestSoulEntity>of(TestSoulEntity::new, MobCategory.CREATURE)
+                    .sized(0.6f, 1.8f)
+                    .clientTrackingRange(48)
+                    .updateInterval(2)
+                    .build(ChestCavity.MODID + ":test_soul"));
 
 }

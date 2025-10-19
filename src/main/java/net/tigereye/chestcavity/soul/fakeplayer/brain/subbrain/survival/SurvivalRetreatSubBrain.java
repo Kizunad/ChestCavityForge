@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.debug.BrainDebugEvent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.debug.BrainDebugProbe;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.model.SurvivalSnapshot;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.policy.SafetyWindowPolicy;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.BrainTuningKeys;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.BrainActionStep;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
@@ -81,7 +82,11 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
         long now = ctx.level().getGameTime();
         if (snapshot.shouldRetreat()) {
             // 标记当前为“非安全”，刷新安全窗口计时，并触发撤退
-            SAFETY_WINDOW.refreshUnsafe(safeWindow, now);
+            int windowTicks = ctx.personality().getInt(BrainTuningKeys.SURVIVAL_SAFE_WINDOW_TICKS, SAFETY_WINDOW.windowTicks());
+            if (windowTicks <= 0) {
+                windowTicks = SAFETY_WINDOW.windowTicks();
+            }
+            safeWindow.setReadyAt(now + windowTicks);
             triggerFlee(ctx, snapshot, state);
         } else if (state.fleeing && SAFETY_WINDOW.isSafeToExit(safeWindow, now, snapshot)) {
             // 已在撤退中，但当前满足“可以退出撤退”的安全窗口条件
@@ -142,7 +147,11 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
         }
         Vec3 dir = combined.normalize();
         // 增加少量抖动（jitter）以避免与障碍物/局部最小值纠缠
-        double jitter = (level.random.nextDouble() - 0.5) * (Math.PI / 6.0);
+        double jitterRange = ctx.personality().getDouble(BrainTuningKeys.SURVIVAL_RETREAT_JITTER_RADIANS, Math.PI / 6.0);
+        if (jitterRange < 0.0) {
+            jitterRange = Math.PI / 6.0;
+        }
+        double jitter = (level.random.nextDouble() - 0.5) * (2.0 * jitterRange);
         double cos = Math.cos(jitter);
         double sin = Math.sin(jitter);
         Vec3 rotated = new Vec3(
@@ -153,9 +162,11 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
             rotated = dir;
         }
         Vec3 perpendicular = new Vec3(-rotated.z, 0.0, rotated.x).normalize();
-        // 期望撤退距离范围（可按需要调参）
-        double minDist = 10.0;
-        double maxDist = 14.0;
+        // 期望撤退距离范围（可按 personality 调参）
+        double configuredMin = ctx.personality().getDouble(BrainTuningKeys.SURVIVAL_RETREAT_MIN_DISTANCE, 10.0);
+        double configuredMax = ctx.personality().getDouble(BrainTuningKeys.SURVIVAL_RETREAT_MAX_DISTANCE, 14.0);
+        double minDist = Math.max(2.0, configuredMin);
+        double maxDist = Math.max(minDist + 0.5, configuredMax);
         Vec3 best = null;
         for (int attempt = 0; attempt < 6; attempt++) {
             double forward = Mth.lerp(level.random.nextDouble(), minDist, maxDist);
@@ -188,7 +199,8 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
                 double angle = level.random.nextDouble() * Math.PI * 2.0;
                 anchorOffset = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
             }
-            Vec3 fallback = soulPos.add(anchorOffset.normalize().scale(12.0));
+            double fallbackDistance = Math.max(maxDist, minDist + 2.0);
+            Vec3 fallback = soulPos.add(anchorOffset.normalize().scale(fallbackDistance));
             BlockPos column = BlockPos.containing(fallback.x, fallback.y, fallback.z);
             int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     column.getX(), column.getZ());
@@ -202,8 +214,7 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
         var soul = ctx.soul();
         var level = ctx.level();
         Vec3 center = soul.position();
-        // 搜索半径：18 格，可根据表现再调优
-        double radius = 18.0;
+        double radius = Math.max(6.0, ctx.personality().getDouble(BrainTuningKeys.SURVIVAL_THREAT_SCAN_RADIUS, 18.0));
         AABB box = new AABB(center, center).inflate(radius);
         // 过滤敌对目标（怪物或在 ConstantMobs 定义为敌对）
         // TODO(survival): 敌对合成向量权重加入“生命值因子”（半血降低权重而非忽略），

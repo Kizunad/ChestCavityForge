@@ -44,6 +44,7 @@ import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
 import net.tigereye.chestcavity.command.ModernUIServerCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.soul.command.SoulCommands;
+import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
 import net.tigereye.chestcavity.soulbeast.command.SoulBeastCommands;
 import net.tigereye.chestcavity.debug.RecipeResourceProbe;
@@ -135,6 +136,7 @@ public class ChestCavity {
                 CCListeners.register();
                 CCStatusEffects.MOB_EFFECTS.register(bus);
                 bus.addListener(CCKeybindings::register);
+                bus.addListener(SoulEntityAttributes::onAttributeCreation);
                 CCTagOrgans.init();
                 CapabilitySnapshots.bootstrap();
                 net.tigereye.chestcavity.soul.runtime.SoulRuntimeHandlers.bootstrap();

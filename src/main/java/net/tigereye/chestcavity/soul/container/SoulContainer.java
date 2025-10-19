@@ -2,9 +2,12 @@ package net.tigereye.chestcavity.soul.container;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
 import net.tigereye.chestcavity.soul.profile.InventorySnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
@@ -49,6 +52,8 @@ public final class SoulContainer {
     private final Map<UUID, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode> brainModes = new HashMap<>();
     // Persistent Brain intent per soulId (encoded as NBT; minimal: CombatIntent)
     private final Map<UUID, net.minecraft.nbt.CompoundTag> brainIntents = new HashMap<>();
+    // Persistent Brain personality per soulId
+    private final Map<UUID, ResourceLocation> brainPersonalities = new HashMap<>();
 
     public SoulContainer(Player owner) {
         this.owner = owner;
@@ -231,6 +236,10 @@ public final class SoulContainer {
         CompoundTag modesTag = new CompoundTag();
         brainModes.forEach((uuid, mode) -> modesTag.putString(uuid.toString(), mode.name()));
         root.put("brainModes", modesTag);
+        // brainPersonalities
+        CompoundTag personalityTag = new CompoundTag();
+        brainPersonalities.forEach((uuid, id) -> personalityTag.putString(uuid.toString(), id.toString()));
+        root.put("brainPersonalities", personalityTag);
         // brainIntents (per-soul encoded tag)
         CompoundTag intentsTag = new CompoundTag();
         brainIntents.forEach((uuid, itag) -> intentsTag.put(uuid.toString(), itag.copy()));
@@ -294,6 +303,18 @@ public final class SoulContainer {
                     var mode = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode.valueOf(name);
                     brainModes.put(id, mode);
                 } catch (IllegalArgumentException ignored2) {}
+            } catch (IllegalArgumentException ignored) {}
+        }
+        brainPersonalities.clear();
+        CompoundTag personalityTag = tag.getCompound("brainPersonalities");
+        for (String key : personalityTag.getAllKeys()) {
+            try {
+                UUID id = UUID.fromString(key);
+                String raw = personalityTag.getString(key);
+                ResourceLocation rl = ResourceLocation.tryParse(raw);
+                if (rl != null) {
+                    brainPersonalities.put(id, rl);
+                }
             } catch (IllegalArgumentException ignored) {}
         }
         brainIntents.clear();
@@ -371,6 +392,7 @@ public final class SoulContainer {
         autospawnSouls.remove(soulId);
         brainModes.remove(soulId);
         brainIntents.remove(soulId);
+        brainPersonalities.remove(soulId);
         if (activeProfileId != null && activeProfileId.equals(soulId)) {
             activeProfileId = ownerId; // fall back to owner base
         }
@@ -390,6 +412,28 @@ public final class SoulContainer {
         // 同步到运行时控制器
         net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(soulId, mode);
         SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "brain-mode-set");
+    }
+
+    // -------- Brain Personality (persistent) --------
+    public ResourceLocation getBrainPersonalityId(UUID soulId) {
+        return brainPersonalities.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
+    }
+
+    public SoulPersonality getBrainPersonality(UUID soulId) {
+        return SoulPersonalityRegistry.resolve(getBrainPersonalityId(soulId));
+    }
+
+    public void setBrainPersonality(ServerPlayer ownerPlayer, UUID soulId, ResourceLocation personalityId, String reason) {
+        ResourceLocation id = personalityId == null ? SoulPersonalityRegistry.DEFAULT_ID : personalityId;
+        brainPersonalities.put(soulId, id);
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setPersonality(soulId, id);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "brain-personality-set");
+    }
+
+    public void clearBrainPersonality(ServerPlayer ownerPlayer, UUID soulId, String reason) {
+        brainPersonalities.remove(soulId);
+        net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().clearPersonality(soulId);
+        SoulProfileOps.markContainerDirty(ownerPlayer, this, reason != null ? reason : "brain-personality-clear");
     }
 
     // -------- Brain Intent (persistent, minimal typed) --------
@@ -450,6 +494,9 @@ public final class SoulContainer {
     public void applyBrainRuntimeAfterRestore(ServerPlayer ownerPlayer) {
         for (Map.Entry<UUID, net.tigereye.chestcavity.soul.fakeplayer.brain.BrainMode> e : brainModes.entrySet()) {
             net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setMode(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<UUID, ResourceLocation> e : brainPersonalities.entrySet()) {
+            net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get().setPersonality(e.getKey(), e.getValue());
         }
         for (Map.Entry<UUID, net.minecraft.nbt.CompoundTag> e : brainIntents.entrySet()) {
             var intent = decodeIntent(e.getValue());

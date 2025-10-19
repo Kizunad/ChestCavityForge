@@ -6,6 +6,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.api.Action;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.registry.ActionRegistry;
+import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.BrainIntent;
@@ -14,6 +15,9 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.CombatStyle;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.FollowIntent;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.HoldIntent;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
 
 import java.util.Locale;
 import java.util.Map;
@@ -60,6 +64,7 @@ public final class SoulLLMControlHandler implements SoulRuntimeHandler {
             case "intent:clear" -> clearIntent(player, instruction);
             case "action:start" -> startAction(player, owner, manager, instruction);
             case "action:cancel" -> cancelAction(player, owner, manager, instruction);
+            case "tuning:personality" -> applyPersonality(player, owner, instruction);
             default -> SoulLLMInstructionChannel.Result.ignored(instruction, "unknown_command: " + normalized);
         };
     }
@@ -122,6 +127,33 @@ public final class SoulLLMControlHandler implements SoulRuntimeHandler {
         return SoulLLMInstructionChannel.Result.success(instruction, "intent_cleared");
     }
 
+    private SoulLLMInstructionChannel.Result applyPersonality(SoulPlayer player, ServerPlayer owner,
+                                                               SoulLLMInstructionChannel.Instruction instruction) {
+        String value = optional(instruction, "value", null);
+        if (value == null) {
+            value = optional(instruction, "id", null);
+        }
+        if (value == null) {
+            value = optional(instruction, "personality", null);
+        }
+        if (value == null) {
+            return SoulLLMInstructionChannel.Result.error(instruction, "personality_missing");
+        }
+        ResourceLocation personalityId = resolvePersonalityId(value);
+        if (personalityId == null) {
+            return SoulLLMInstructionChannel.Result.error(instruction, "invalid_personality:" + value);
+        }
+        SoulPersonality personality = SoulPersonalityRegistry.resolve(personalityId);
+        if (owner != null) {
+            SoulContainer container = CCAttachments.getSoulContainer(owner);
+            container.setBrainPersonality(owner, player.getUUID(), personality.id(), "llm-personality-set");
+        } else {
+            BrainController.get().setPersonality(player.getUUID(), personality.id());
+        }
+        Map<String, String> meta = Map.of("personality", personality.id().toString());
+        return SoulLLMInstructionChannel.Result.success(instruction, "personality_set", meta);
+    }
+
     private SoulLLMInstructionChannel.Result startAction(SoulPlayer player, ServerPlayer owner,
                                                          ActionStateManager manager,
                                                          SoulLLMInstructionChannel.Instruction instruction) {
@@ -176,6 +208,17 @@ public final class SoulLLMControlHandler implements SoulRuntimeHandler {
     private static String optional(SoulLLMInstructionChannel.Instruction instruction, String key, String def) {
         String value = instruction.parameter(key);
         return value == null ? def : value;
+    }
+
+    private static ResourceLocation resolvePersonalityId(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        ResourceLocation parsed = ResourceLocation.tryParse(token.trim());
+        if (parsed != null) {
+            return parsed;
+        }
+        return SoulPersonalityRegistry.lookup(token.trim()).map(SoulPersonality::id).orElse(null);
     }
 
     private static CombatStyle parseCombatStyle(String raw) {

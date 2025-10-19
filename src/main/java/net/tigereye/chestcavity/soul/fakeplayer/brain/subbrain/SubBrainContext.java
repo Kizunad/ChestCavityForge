@@ -6,6 +6,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 import net.tigereye.chestcavity.soul.fakeplayer.actions.state.ActionStateManager;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.BrainContext;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.intent.IntentSnapshot;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
 
 /**
  * Wrapper around {@link BrainContext} that provides convenient, sub-brain scoped
@@ -36,4 +37,5 @@ public final class SubBrainContext {
     public ServerPlayer owner() { return brainContext.owner(); }
     public ActionStateManager actions() { return brainContext.actions(); }
     public IntentSnapshot intent() { return brainContext.intent(); }
+    public SoulPersonality personality() { return brainContext.personality(); }
 }

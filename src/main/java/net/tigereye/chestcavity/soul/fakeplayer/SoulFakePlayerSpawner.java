@@ -27,6 +27,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.registration.CCEntities;
+import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactory;
 import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
@@ -91,12 +93,15 @@ public final class SoulFakePlayerSpawner {
 
     public static final ResourceLocation SOUL_PLAYER_FACTORY_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "soul_player");
     public static final ResourceLocation TEST_HOSTILE_FACTORY_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "test_hostile_entity");
+    public static final ResourceLocation TEST_CHUNK_LOADER_FACTORY_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "test_chunk_loader");
     private static final ResourceLocation ATTR_SOURCE_PROFILE = ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/source_profile");
     private static final ResourceLocation ATTR_FORCE_DERIVED_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/force_derived_id");
+    private static final ResourceLocation ATTR_CHUNK_RADIUS = ResourceLocation.fromNamespaceAndPath("chestcavity", "chunk_loader/radius");
 
     static {
         SoulEntityFactories.register(SOUL_PLAYER_FACTORY_ID, new SoulPlayerFactory());
         SoulEntityFactories.register(TEST_HOSTILE_FACTORY_ID, new TestHostileFactory());
+        SoulEntityFactories.register(TEST_CHUNK_LOADER_FACTORY_ID, new TestChunkLoaderFactory());
     }
 
     /**
@@ -425,6 +430,51 @@ public final class SoulFakePlayerSpawner {
             }
 
             return Optional.of(new SoulEntitySpawnResult(request.entityId(), entity, request.factoryId(), restored, request.reason()));
+        }
+    }
+
+    private static final class TestChunkLoaderFactory implements SoulEntityFactory {
+
+        @Override
+        public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+            ServerLevel level = request.fallbackLevel().orElseGet(() -> request.server().getLevel(Level.OVERWORLD));
+            if (level == null) {
+                SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=noLevel", request.reason(), request.entityId());
+                return Optional.empty();
+            }
+
+            Vec3 pos = request.fallbackPosition();
+            SoulChunkLoaderEntity loader = CCEntities.SOUL_CHUNK_LOADER.get().create(level);
+            if (loader == null) {
+                SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=createFailed type=chunk_loader",
+                        request.reason(), request.entityId());
+                return Optional.empty();
+            }
+
+            loader.setUUID(request.entityId());
+            loader.moveTo(pos.x, pos.y, pos.z, request.yaw(), request.pitch());
+            int radius = request.attribute(ATTR_CHUNK_RADIUS, Integer.class).orElse(loader.getTicketRadius());
+            loader.setTicketRadius(Math.max(1, radius));
+
+            Optional<CompoundTag> archived = request.archivedState();
+            archived.ifPresent(tag -> {
+                if (tag.contains("data", net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+                    try {
+                        loader.readAdditionalSaveData(tag.getCompound("data"));
+                    } catch (Throwable throwable) {
+                        SoulLog.warn("[soul] chunk-loader-restore-error entity={} reason={}", request.entityId(), throwable.getMessage());
+                    }
+                }
+            });
+
+            if (!level.tryAddFreshEntityWithPassengers(loader)) {
+                loader.discard();
+                SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=addFailed type=chunk_loader",
+                        request.reason(), request.entityId());
+                return Optional.empty();
+            }
+
+            return Optional.of(new SoulEntitySpawnResult(request.entityId(), loader, request.factoryId(), archived.isPresent(), request.reason()));
         }
     }
 

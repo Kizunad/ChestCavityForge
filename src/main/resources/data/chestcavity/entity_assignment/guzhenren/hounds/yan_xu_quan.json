@@ -1,6 +1,7 @@
 {
   "chestcavity": "chestcavity:types/compatibility/guzhenren/hounds/yan_xu_quan.json",
   "entities": [
-    "guzhenren:yan_xu_quan"
+    "guzhenren:yan_xu_quan",
+    "guzhenren:2yan_xu_quan_biome_modifier"
   ]
 }
