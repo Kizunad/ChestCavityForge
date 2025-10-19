@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.guscript.network.packets;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ class GeckoFxPayloadTest {
                 ChestCavity.id("ghost_dark"),
                 GeckoFxAnchor.PERFORMER,
                 42,
+                UUID.randomUUID(),
                 1.5,
                 2.5,
                 3.5,
@@ -35,6 +37,9 @@ class GeckoFxPayloadTest {
                 0.6F,
                 true,
                 80,
+                ResourceLocation.parse("minecraft:geo/sample.geo.json"),
+                ResourceLocation.parse("minecraft:textures/entity/sample.png"),
+                ResourceLocation.parse("minecraft:animations/sample.animation.json"),
                 UUID.randomUUID()
         );
 

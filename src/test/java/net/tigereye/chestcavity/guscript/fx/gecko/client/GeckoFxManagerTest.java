@@ -44,6 +44,7 @@ class GeckoFxManagerTest {
                 ChestCavity.id("ghost_dark"),
                 GeckoFxAnchor.PERFORMER,
                 1,
+                UUID.randomUUID(),
                 0.0D,
                 0.0D,
                 0.0D,
@@ -61,6 +62,9 @@ class GeckoFxManagerTest {
                 1.0F,
                 false,
                 20,
+                null,
+                null,
+                null,
                 UUID.randomUUID()
         );
 
@@ -81,6 +85,7 @@ class GeckoFxManagerTest {
                 ChestCavity.id("ghost_loop"),
                 GeckoFxAnchor.WORLD,
                 -1,
+                null,
                 1.0D,
                 2.0D,
                 3.0D,
@@ -98,6 +103,9 @@ class GeckoFxManagerTest {
                 1.0F,
                 true,
                 10,
+                null,
+                null,
+                null,
                 UUID.randomUUID()
         );
 

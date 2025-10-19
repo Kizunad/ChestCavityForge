@@ -9,12 +9,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulRuntimeUtil;
+import net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController;
 import net.tigereye.chestcavity.soul.registry.SoulHurtResult;
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandlerRegistry;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulRuntimeUtil;
+import net.tigereye.chestcavity.soul.runtime.SoulLLMInstructionChannel;
 import net.tigereye.chestcavity.soul.util.SoulMessenger;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -153,6 +157,7 @@ public class SoulPlayer extends FakePlayer {
         }
         this.travel(Vec3.ZERO);
         // TODO: AI / behaviour tree hooks
+        publishEnvironmentSnapshot();
         SoulRuntimeHandlerRegistry.onTickEnd(this);
     }
 
@@ -185,5 +190,41 @@ public class SoulPlayer extends FakePlayer {
      */
     public void forceJump() {
         this.jumpFromGround();
+    }
+
+    private void publishEnvironmentSnapshot() {
+        if (this.level().isClientSide) {
+            return;
+        }
+        var metadata = new HashMap<String, String>();
+        var ownerOpt = this.getOwnerId();
+        boolean ownerOnline = false;
+        String ownerLabel = "none";
+        if (ownerOpt.isPresent()) {
+            UUID ownerId = ownerOpt.get();
+            var owner = this.serverLevel().getServer().getPlayerList().getPlayer(ownerId);
+            if (owner != null) {
+                ownerOnline = true;
+                ownerLabel = owner.getGameProfile() != null && owner.getGameProfile().getName() != null
+                        ? owner.getGameProfile().getName()
+                        : ownerId.toString();
+            } else {
+                ownerLabel = ownerId.toString();
+            }
+        }
+        metadata.put("owner", ownerLabel);
+        metadata.put("owner_online", Boolean.toString(ownerOnline));
+        metadata.put("brain_mode", BrainController.get().getMode(this.getUUID()).name());
+        SoulLLMInstructionChannel.updateEnvironment(
+                this.getUUID(),
+                SoulLLMInstructionChannel.EnvironmentSnapshot.of(
+                        this.serverLevel().getGameTime(),
+                        this.level().dimension().location().toString(),
+                        this.position(),
+                        this.getHealth(),
+                        this.getMaxHealth(),
+                        Map.copyOf(metadata)
+                )
+        );
     }
 }

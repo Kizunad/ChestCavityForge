@@ -1035,6 +1035,28 @@ OnHit
 在换魂逻辑上，“体外化身”只是另一个 **载体实体**，
 其内部依然存放一个完整 SoulProfile。
 
+### 扩展自定义灵魂实体
+
+2025-10 起，灵魂生成流程统一走 `SoulEntitySpawnRequest → SoulFakePlayerSpawner.spawn(...) → SoulEntitySpawnResult`。
+
+1. **构造请求**：
+   ```java
+   var request = SoulEntitySpawnRequest.builder(owner, soulId, spawnProfile, "my-mod:reason")
+           .profile(container.getOrCreateProfile(soulId))
+           .entityType(myEntityType)
+           .geckoModel(new ResourceLocation("my_mod", "geo/my_entity.geo.json"))
+           .context(SoulEntitySpawnContext.EMPTY)
+           .build();
+   ```
+   - `entityType` 指定要生成的实体类型；
+   - `geckoModelId` 供 GeckoLib/客户端渲染引用；
+   - `context` 可覆写初始坐标或附加自定义键值。
+2. **调用生成器**：`SoulFakePlayerSpawner.spawn(request)` 会执行区块加载、身份校验、位置恢复以及原有的生命周期回调。
+3. **处理结果**：`SoulEntitySpawnResult` 提供 `entity()`、`entityType()`、`geckoModelId()` 与 `reusedExisting()`，可据此做日志或后续逻辑。
+4. **注册工厂**：通过 `SoulEntityFactories.register(type, factory)` 注入自定义构造逻辑；默认工厂继续创建 `SoulPlayer` 并保持旧行为。
+
+> 提示：便捷场景可以使用 `SoulFakePlayerSpawner.newSpawnRequest(...)` 以现有身份缓存为模板快速创建请求。
+
 ---
 
 ## 🧠 八、魂系统与 NBT 同步的整合原则

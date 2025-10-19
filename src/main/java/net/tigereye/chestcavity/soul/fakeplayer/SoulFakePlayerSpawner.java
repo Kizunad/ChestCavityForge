@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.math.Axis;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
@@ -12,24 +13,35 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
+import net.tigereye.chestcavity.guscript.fx.gecko.GeckoFxDispatcher;
+import net.tigereye.chestcavity.guscript.network.packets.GeckoFxEventPayload;
+import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest.GeckoFx;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
+import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
 import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulLook;
 import net.tigereye.chestcavity.soul.util.SoulPersistence;
 import net.tigereye.chestcavity.soul.util.SoulProfileOps;
-import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
-import net.tigereye.chestcavity.soul.util.SoulLook;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -38,7 +50,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories.SoulEntityFactory;
 
 /**
  * 灵魂假人（SoulPlayer）生命周期协调器
@@ -207,6 +222,14 @@ public final class SoulFakePlayerSpawner {
         return false;
     }
 
+    public static boolean hasCachedIdentity(UUID soulId) {
+        return SOUL_IDENTITIES.containsKey(soulId);
+    }
+
+    public static GameProfile fallbackIdentity(ServerPlayer owner, UUID soulId) {
+        return SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
+    }
+
     /**
      * Seeds or updates the cached identity name. If an identity does not yet exist for the soul,
      * this creates one with a derived entity UUID and the provided name so subsequent spawns will
@@ -367,9 +390,49 @@ public final class SoulFakePlayerSpawner {
      * Public helper to respawn a soul avatar for its owner using a best-effort identity.
      */
     public static Optional<SoulPlayer> respawnForOwner(ServerPlayer owner, UUID soulId) {
+        return respawnForOwner(owner, soulId, null);
+    }
+
+    /**
+     * Respawn helper with optional spawn request (e.g., Gecko FX attachment directives).
+     */
+    public static Optional<SoulPlayer> respawnForOwner(ServerPlayer owner,
+                                                       UUID soulId,
+                                                       @Nullable SoulEntitySpawnRequest request) {
         GameProfile identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
         boolean forceDerived = !SOUL_IDENTITIES.containsKey(soulId);
-        return respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+        Optional<SoulPlayer> spawned = respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+        spawned.ifPresent(soul -> applySpawnRequest(owner, soul, request));
+        return spawned;
+    }
+
+    /**
+     * 基于 {@link SoulGenerationRequest} 统一处理新分魂生成/复原。
+     * 除了实体生成，还会根据请求参数同步初始 Brain 模式与意图。
+     */
+    public static Optional<SoulPlayer> spawnFromRequest(ServerPlayer owner, SoulGenerationRequest request) {
+        if (owner == null || request == null) {
+            return Optional.empty();
+        }
+        UUID soulId = request.soulId();
+        GameProfile identity = request.identity();
+        boolean forceDerived = request.forceDerivedIdentity();
+        if (identity == null) {
+            identity = SOUL_IDENTITIES.getOrDefault(soulId, owner.getGameProfile());
+            forceDerived = forceDerived || !SOUL_IDENTITIES.containsKey(soulId);
+        }
+        String reason = request.reason() != null ? request.reason() : "generation-request";
+        Optional<SoulPlayer> spawned = respawnSoulFromProfile(owner, soulId, identity, forceDerived, reason);
+        if (spawned.isPresent()) {
+            var brain = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get();
+            if (request.initialMode() != null) {
+                brain.setMode(soulId, request.initialMode());
+            }
+            if (request.initialIntent() != null) {
+                brain.pushIntent(soulId, request.initialIntent());
+            }
+        }
+        return spawned;
     }
 
     /**
@@ -428,7 +491,6 @@ public final class SoulFakePlayerSpawner {
      * 便捷调试：为执行者生成一个测试用的灵魂假人及其可视化外壳，并用新的 SoulProfile 回填状态。
      */
     public static Optional<SpawnResult> spawnTestFakePlayer(ServerPlayer executor) {
-        ServerLevel level = executor.serverLevel();
         UUID soulId = UUID.randomUUID();
         String baseName = executor.getGameProfile().getName();
         if (baseName == null || baseName.isBlank()) {
