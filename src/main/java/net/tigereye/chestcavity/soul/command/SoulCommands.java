@@ -10,7 +10,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.commands.arguments.UuidArgument;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.engine.SoulFeatureToggle;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
+import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnResult;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.SoulPlayerInfo;
 import net.tigereye.chestcavity.soul.navigation.SoulGoalPlanner;
@@ -28,6 +37,7 @@ import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -50,6 +60,10 @@ public final class SoulCommands {
 
     private SoulCommands() {
     }
+
+    private static final UUID TEST_HOSTILE_ENTITY_ID = UUID.nameUUIDFromBytes("chestcavity:soul/test/hostile".getBytes(StandardCharsets.UTF_8));
+
+    private static final String TEST_HOSTILE_REASON = "command:/soul test SpawnHostileEnemy";
 
     /**
      * /soul nav engine <idOrName> <engine|clear>
@@ -258,12 +272,75 @@ public final class SoulCommands {
                                         .then(Commands.argument("y", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
                                                 .then(Commands.argument("z", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg())
                                                         .executes(SoulCommands::createSoulAt)))))
+                        .then(Commands.literal("SpawnHostileEnemy")
+                                .executes(SoulCommands::spawnHostileEnemy))
                         .then(Commands.literal("TestCollectEntityGoals")
                                 .then(Commands.argument("uuid", UuidArgument.uuid())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuidLiterals(ctx.getSource(), builder))
                                         .executes(SoulCommands::testCollectEntityGoals)))
                         .then(Commands.literal("saveAll")
                                 .executes(SoulCommands::saveAll))));
+    }
+
+    /**
+     * {@code /soul test SpawnHostileEnemy}：生成一个敌对阵营样例实体并写入 SoulEntityArchive。
+     */
+    private static int spawnHostileEnemy(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        if (!SoulFeatureToggle.isEnabled()) {
+            source.sendFailure(Component.literal("[soul] 请先执行 /soul enable 后再生成敌对实体。"));
+            return 0;
+        }
+
+        MinecraftServer server = source.getServer();
+        for (ServerLevel level : server.getAllLevels()) {
+            Entity existing = level.getEntity(TEST_HOSTILE_ENTITY_ID);
+            if (existing != null) {
+                source.sendFailure(Component.literal(String.format(Locale.ROOT,
+                        "[soul] 测试敌对实体已存在于 %s (%.1f, %.1f, %.1f)。",
+                        level.dimension().location(), existing.getX(), existing.getY(), existing.getZ())));
+                return 0;
+            }
+        }
+
+        ServerLevel level = source.getLevel();
+        Vec3 position = source.getPosition();
+        SoulEntitySpawnRequest request = SoulEntitySpawnRequest.builder(server, SoulFakePlayerSpawner.TEST_HOSTILE_FACTORY_ID, TEST_HOSTILE_ENTITY_ID)
+                .withFallbackLevel(level)
+                .withFallbackPosition(position)
+                .withYaw(source.getRotation().y)
+                .withPitch(source.getRotation().x)
+                .withArchiveMode(SoulEntitySpawnRequest.ArchiveMode.READ_ONLY)
+                .withReason(TEST_HOSTILE_REASON)
+                .build();
+
+        var resultOpt = SoulEntityFactories.spawn(request);
+        if (resultOpt.isEmpty()) {
+            source.sendFailure(Component.literal("[soul] 未能生成测试敌对实体。"));
+            return 0;
+        }
+
+        SoulEntitySpawnResult result = resultOpt.get();
+        Entity entity = result.entity();
+        CompoundTag archive = new CompoundTag();
+        archive.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+        CompoundTag entityData = entity.saveWithoutId(new CompoundTag());
+        archive.put("data", entityData);
+        SoulEntityFactories.persist(server, result.entityId(), archive);
+
+        SoulLog.info("[soul] command-spawn-hostile entity={} restored={} dim={} pos=({},{},{})",
+                result.entityId(),
+                result.restoredFromPersistentState(),
+                entity.level().dimension().location(),
+                entity.getX(),
+                entity.getY(),
+                entity.getZ());
+
+        source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+                "[soul] 测试敌对实体生成 -> %s (restored=%s)",
+                result.entityId(),
+                result.restoredFromPersistentState())), true);
+        return 1;
     }
 
     /**

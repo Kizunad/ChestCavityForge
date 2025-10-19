@@ -7,6 +7,9 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.math.Axis;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.resources.ResourceLocation;
@@ -16,6 +19,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
@@ -84,11 +90,13 @@ public final class SoulFakePlayerSpawner {
     private static final Map<UUID, String> ENTITY_SPAWN_REASON = new ConcurrentHashMap<>();
 
     public static final ResourceLocation SOUL_PLAYER_FACTORY_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "soul_player");
+    public static final ResourceLocation TEST_HOSTILE_FACTORY_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "test_hostile_entity");
     private static final ResourceLocation ATTR_SOURCE_PROFILE = ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/source_profile");
     private static final ResourceLocation ATTR_FORCE_DERIVED_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/force_derived_id");
 
     static {
         SoulEntityFactories.register(SOUL_PLAYER_FACTORY_ID, new SoulPlayerFactory());
+        SoulEntityFactories.register(TEST_HOSTILE_FACTORY_ID, new TestHostileFactory());
     }
 
     /**
@@ -249,6 +257,174 @@ public final class SoulFakePlayerSpawner {
     }
 
     private static final class SoulPlayerFactory implements SoulEntityFactory {
+
+        @Override
+        public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+            UUID profileId = request.entityId();
+            String reason = request.reason();
+
+            ServerPlayer owner = request.owner().orElse(null);
+            if (owner == null) {
+                SoulLog.warn("[soul] spawn-aborted reason={} soul={} cause=noOwner", reason, profileId);
+                return Optional.empty();
+            }
+
+            SoulPlayer existing = ACTIVE_SOUL_PLAYERS.get(profileId);
+            if (existing != null && !existing.isRemoved()) {
+                SoulLog.error("[soul] invariant-violation duplicate-shell prevented soul={} existingEntity={} dim={} pos=({},{},{}) newReason={}",
+                        new IllegalStateException("duplicate-shell-prevented"),
+                        profileId, existing.getUUID(), existing.level().dimension().location(),
+                        existing.getX(), existing.getY(), existing.getZ(), reason);
+                return Optional.of(new SoulEntitySpawnResult(profileId, existing, request.factoryId(), false, reason));
+            }
+
+            SoulContainer container = CCAttachments.getSoulContainer(owner);
+            SoulProfile profile = container.getOrCreateProfile(profileId);
+
+            GameProfile sourceProfile = request.attribute(ATTR_SOURCE_PROFILE, GameProfile.class)
+                    .orElse(owner.getGameProfile());
+            boolean forceDerived = request.attribute(ATTR_FORCE_DERIVED_ID, Boolean.class).orElse(Boolean.FALSE);
+
+            GameProfile identity = ensureIdentity(profileId, sourceProfile, forceDerived);
+            GameProfile clone = cloneProfile(identity);
+
+            SoulPlayer soulPlayer = SoulPlayer.create(owner, profileId, clone);
+
+            MinecraftServer server = request.server();
+            server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(soulPlayer)));
+
+            ServerLevel spawnLevel = request.fallbackLevel().orElse(owner.serverLevel());
+            if (!spawnLevel.tryAddFreshEntityWithPassengers(soulPlayer)) {
+                server.getPlayerList().broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(soulPlayer.getUUID())));
+                soulPlayer.discard();
+                SoulLog.info("[soul] spawn-aborted reason={} soul={} owner={} cause=spawnFailed", reason, profileId, owner.getUUID());
+                return Optional.empty();
+            }
+
+            profile.restoreBase(soulPlayer);
+            net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(soulPlayer);
+            applySpawnShield(soulPlayer);
+
+            profile.position().ifPresent(snapshot -> {
+                ServerLevel targetLevel = server.getLevel(snapshot.dimension());
+                if (targetLevel != null) {
+                    if (request.ensureChunkLoaded()) {
+                        try {
+                            targetLevel.getChunkAt(BlockPos.containing(snapshot.x(), snapshot.y(), snapshot.z()));
+                        } catch (Throwable throwable) {
+                            SoulLog.error("[soul] spawn-chunk-load-failed reason={} soul={} dim={} pos=({},{},{})", throwable,
+                                    reason,
+                                    profileId,
+                                    snapshot.dimension().location(),
+                                    snapshot.x(),
+                                    snapshot.y(),
+                                    snapshot.z());
+                        }
+                    }
+                    if (targetLevel != soulPlayer.level()) {
+                        soulPlayer.teleportTo(targetLevel, snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                    } else {
+                        soulPlayer.moveTo(snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                    }
+                    soulPlayer.setYHeadRot(snapshot.headYaw());
+                    SoulLog.info("[soul] restore-position-complete reason={} soul={} dim={} pos=({},{},{})",
+                            reason, profileId, snapshot.dimension().location(),
+                            snapshot.x(), snapshot.y(), snapshot.z());
+                }
+            });
+
+            ACTIVE_SOUL_PLAYERS.put(profileId, soulPlayer);
+            ENTITY_TO_SOUL.put(soulPlayer.getUUID(), profileId);
+            LEGIT_ENTITY_SPAWNS.add(soulPlayer.getUUID());
+            ENTITY_SPAWN_REASON.put(soulPlayer.getUUID(), reason);
+
+            SoulLog.info("[soul] spawn-complete reason={} soul={} owner={} dim={} pos=({},{},{})",
+                    reason, profileId, owner.getUUID(),
+                    soulPlayer.level().dimension().location(),
+                    soulPlayer.getX(), soulPlayer.getY(), soulPlayer.getZ());
+
+            return Optional.of(new SoulEntitySpawnResult(profileId, soulPlayer, request.factoryId(), false, reason));
+        }
+    }
+
+    private static final class TestHostileFactory implements SoulEntityFactory {
+
+        private static final ResourceLocation DEFAULT_TYPE = ResourceLocation.parse("minecraft:zombie");
+
+        @Override
+        public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+            ServerLevel level = request.fallbackLevel().orElseGet(() -> request.server().getLevel(Level.OVERWORLD));
+            if (level == null) {
+                SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=noLevel", request.reason(), request.entityId());
+                return Optional.empty();
+            }
+
+            Vec3 pos = request.fallbackPosition();
+            float yaw = request.yaw();
+            float pitch = request.pitch();
+
+            Optional<CompoundTag> archivedState = request.archivedState();
+            boolean restored = archivedState.isPresent();
+            Entity entity;
+
+            if (restored) {
+                CompoundTag snapshot = archivedState.get();
+                String typeId = snapshot.getString("id");
+                if (typeId == null || typeId.isBlank()) {
+                    typeId = DEFAULT_TYPE.toString();
+                }
+                EntityType<?> type = EntityType.byString(typeId).orElse(EntityType.ZOMBIE);
+                Entity restoredEntity = type.create(level);
+                if (restoredEntity == null) {
+                    SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=restoreCreateFailed type={}",
+                            request.reason(), request.entityId(), typeId);
+                    return Optional.empty();
+                }
+                restoredEntity.setUUID(request.entityId());
+                if (snapshot.contains("data", Tag.TAG_COMPOUND)) {
+                    CompoundTag data = snapshot.getCompound("data");
+                    try {
+                        restoredEntity.load(data);
+                    } catch (Throwable throwable) {
+                        SoulLog.error("[soul] spawn-restore-error reason={} entity={} type={}",
+                                throwable, request.reason(), request.entityId(), typeId);
+                    }
+                }
+                restoredEntity.moveTo(pos.x, pos.y, pos.z, yaw, pitch);
+                restoredEntity.setYHeadRot(yaw);
+                if (restoredEntity instanceof Mob mob) {
+                    mob.setPersistenceRequired();
+                }
+                if (!level.tryAddFreshEntityWithPassengers(restoredEntity)) {
+                    restoredEntity.discard();
+                    SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=restoreAddFailed type={}",
+                            request.reason(), request.entityId(), typeId);
+                    return Optional.empty();
+                }
+                entity = restoredEntity;
+            } else {
+                Zombie zombie = EntityType.ZOMBIE.create(level);
+                if (zombie == null) {
+                    SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=createFailed type=zombie",
+                            request.reason(), request.entityId());
+                    return Optional.empty();
+                }
+                zombie.setUUID(request.entityId());
+                zombie.setPersistenceRequired();
+                zombie.setCustomName(Component.literal("灵魂敌对样例"));
+                zombie.setCustomNameVisible(true);
+                zombie.moveTo(pos.x, pos.y, pos.z, yaw, pitch);
+                zombie.setYHeadRot(yaw);
+                if (!level.tryAddFreshEntityWithPassengers(zombie)) {
+                    zombie.discard();
+                    SoulLog.warn("[soul] spawn-aborted reason={} entity={} cause=addFailed type=zombie",
+                            request.reason(), request.entityId());
+                    return Optional.empty();
+                }
+                entity = zombie;
+            }
+
+            return Optional.of(new SoulEntitySpawnResult(request.entityId(), entity, request.factoryId(), restored, request.reason()));
 
         @Override
         public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
