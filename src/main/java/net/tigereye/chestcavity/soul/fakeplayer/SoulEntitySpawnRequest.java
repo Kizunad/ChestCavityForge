@@ -224,7 +224,11 @@ public final class SoulEntitySpawnRequest {
         }
 
         public Builder withReason(String reason) {
-            this.reason = reason;
+            if (reason == null || reason.isBlank()) {
+                this.reason = "unspecified";
+            } else {
+                this.reason = reason;
+            }
             return this;
         }
 
