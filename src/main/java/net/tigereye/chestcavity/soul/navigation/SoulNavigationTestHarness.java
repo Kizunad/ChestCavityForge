@@ -216,8 +216,8 @@ public final class SoulNavigationTestHarness {
             try {
                 soul.forceJump();
             } catch (Throwable t) {
-                Vec3 mot = soul.getDeltaMovement();
-                soul.setDeltaMovement(mot.x, Math.max(mot.y, 0.42D), mot.z);
+                Vec3 motion = soul.getDeltaMovement();
+                soul.setDeltaMovement(motion.x, Math.max(motion.y, 0.42D), motion.z);
             }
         }
 

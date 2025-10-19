@@ -4,6 +4,7 @@ package net.tigereye.chestcavity.soul.fakeplayer.brain;
 public enum BrainMode {
     AUTO,      // Pick sub-brain based on context/orders
     COMBAT,    // Force combat sub-brain
+    LLM,       // Scripted/LLM driven behaviours
     SURVIVAL,  // Heal/avoid risks (placeholder)
     IDLE       // Do nothing
 }

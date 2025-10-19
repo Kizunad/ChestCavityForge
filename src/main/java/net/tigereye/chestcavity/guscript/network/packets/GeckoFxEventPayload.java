@@ -7,8 +7,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import net.tigereye.chestcavity.guscript.fx.gecko.client.GeckoFxClient;
+import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ public record GeckoFxEventPayload(
         ResourceLocation fxId,
         GeckoFxAnchor anchor,
         int attachedEntityId,
+        @Nullable UUID attachedEntityUuid,
         double basePosX,
         double basePosY,
         double basePosZ,
@@ -36,6 +38,9 @@ public record GeckoFxEventPayload(
         float alpha,
         boolean loop,
         int duration,
+        @Nullable ResourceLocation modelOverride,
+        @Nullable ResourceLocation textureOverride,
+        @Nullable ResourceLocation animationOverride,
         UUID eventId
 ) implements CustomPacketPayload {
 
@@ -50,6 +55,10 @@ public record GeckoFxEventPayload(
         buf.writeResourceLocation(payload.fxId);
         buf.writeEnum(payload.anchor);
         buf.writeVarInt(payload.attachedEntityId);
+        buf.writeBoolean(payload.attachedEntityUuid != null);
+        if (payload.attachedEntityUuid != null) {
+            buf.writeUUID(payload.attachedEntityUuid);
+        }
         buf.writeDouble(payload.basePosX);
         buf.writeDouble(payload.basePosY);
         buf.writeDouble(payload.basePosZ);
@@ -67,6 +76,18 @@ public record GeckoFxEventPayload(
         buf.writeFloat(payload.alpha);
         buf.writeBoolean(payload.loop);
         buf.writeVarInt(payload.duration);
+        buf.writeBoolean(payload.modelOverride != null);
+        if (payload.modelOverride != null) {
+            buf.writeResourceLocation(payload.modelOverride);
+        }
+        buf.writeBoolean(payload.textureOverride != null);
+        if (payload.textureOverride != null) {
+            buf.writeResourceLocation(payload.textureOverride);
+        }
+        buf.writeBoolean(payload.animationOverride != null);
+        if (payload.animationOverride != null) {
+            buf.writeResourceLocation(payload.animationOverride);
+        }
         buf.writeUUID(payload.eventId);
     }
 
@@ -74,6 +95,7 @@ public record GeckoFxEventPayload(
         ResourceLocation fxId = buf.readResourceLocation();
         GeckoFxAnchor anchor = buf.readEnum(GeckoFxAnchor.class);
         int attachedEntityId = buf.readVarInt();
+        UUID attachedEntityUuid = buf.readBoolean() ? buf.readUUID() : null;
         double basePosX = buf.readDouble();
         double basePosY = buf.readDouble();
         double basePosZ = buf.readDouble();
@@ -91,11 +113,15 @@ public record GeckoFxEventPayload(
         float alpha = buf.readFloat();
         boolean loop = buf.readBoolean();
         int duration = buf.readVarInt();
+        ResourceLocation modelOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
+        ResourceLocation textureOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
+        ResourceLocation animationOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
         UUID eventId = buf.readUUID();
         return new GeckoFxEventPayload(
                 fxId,
                 anchor,
                 attachedEntityId,
+                attachedEntityUuid,
                 basePosX,
                 basePosY,
                 basePosZ,
@@ -113,6 +139,9 @@ public record GeckoFxEventPayload(
                 alpha,
                 loop,
                 duration,
+                modelOverride,
+                textureOverride,
+                animationOverride,
                 eventId
         );
     }
