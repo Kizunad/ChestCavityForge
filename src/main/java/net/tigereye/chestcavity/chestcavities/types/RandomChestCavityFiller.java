@@ -9,16 +9,28 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import java.util.ArrayList;
 import java.util.List;
 
-public record RandomChestCavityFiller(ResourceLocation id, int minCount, int maxCount, List<Item> items) {
+public record RandomChestCavityFiller(ResourceLocation id, int minCount, int maxCount, List<Item> items, int chance) {
 
     public RandomChestCavityFiller {
         items = List.copyOf(items);
+        if (chance < 0 || chance > 100) {
+            throw new IllegalArgumentException("Chance must be between 0 and 100");
+        }
     }
 
     public void fill(ChestCavityInventory inventory, RandomSource random) {
         if (items.isEmpty() || maxCount <= 0) {
             return;
         }
+        
+        // 检查 chance 参数，如果设置了且随机数不在范围内，则跳过
+        if (chance < 100) {
+            int roll = random.nextInt(100);
+            if (roll >= chance) {
+                return;
+            }
+        }
+        
         int minimum = Math.max(0, minCount);
         int maximum = Math.max(minimum, maxCount);
         if (maximum == 0) {

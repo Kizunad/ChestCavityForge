@@ -197,6 +197,22 @@ public class ChestCavityTypeSerializer {
                 maxCount = temp;
             }
 
+            // 解析 chance 参数，默认为 100（总是生成）
+            int chance = 100;
+            if (object.has("chance")) {
+                JsonElement chanceElement = object.get("chance");
+                if (chanceElement.isJsonPrimitive() && chanceElement.getAsJsonPrimitive().isNumber()) {
+                    chance = chanceElement.getAsInt();
+                    if (chance < 0 || chance > 100) {
+                        ChestCavity.LOGGER.warn("Chance value {} is out of range (0-100) in entry no. {} in {}'s random generators; clamping to valid range", chance, index, id);
+                        chance = Math.max(0, Math.min(100, chance));
+                    }
+                } else {
+                    ChestCavity.LOGGER.error("Invalid chance definition in entry no. {} in {}'s random generators", index, id);
+                    continue;
+                }
+            }
+
             if (!object.has("items") || !object.get("items").isJsonArray()) {
                 ChestCavity.LOGGER.error("Missing items array in entry no. {} in {}'s random generators", index, id);
                 continue;
@@ -226,7 +242,7 @@ public class ChestCavityTypeSerializer {
                 ChestCavity.LOGGER.error("No valid items found in entry no. {} in {}'s random generators", index, id);
                 continue;
             }
-            fillers.add(new RandomChestCavityFiller(generatorId, minCount, maxCount, items));
+            fillers.add(new RandomChestCavityFiller(generatorId, minCount, maxCount, items, chance));
         }
         return Collections.unmodifiableList(fillers);
     }
