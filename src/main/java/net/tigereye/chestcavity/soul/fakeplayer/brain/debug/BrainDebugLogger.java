@@ -16,6 +16,6 @@ public final class BrainDebugLogger {
     public static void trace(String channel, String message, Object... args) {
         if (!ENABLED) return;
         String formatted = args == null || args.length == 0 ? message : String.format(Locale.ROOT, message, args);
-        ChestCavity.LOGGER.debug("[brain:{}] {}", channel, formatted);
+        ChestCavity.LOGGER.info("[brain:{}] {}", channel, formatted);
     }
 }

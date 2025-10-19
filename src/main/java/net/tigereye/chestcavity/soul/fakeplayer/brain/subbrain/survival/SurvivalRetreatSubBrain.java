@@ -206,6 +206,9 @@ public final class SurvivalRetreatSubBrain extends SubBrain {
         double radius = 18.0;
         AABB box = new AABB(center, center).inflate(radius);
         // 过滤敌对目标（怪物或在 ConstantMobs 定义为敌对）
+        // TODO(survival): 敌对合成向量权重加入“生命值因子”（半血降低权重而非忽略），
+        //  形式建议：weight = f(healthRatio) / max(dist^2, 1.0)，其中 f = clamp(0.2 + 0.8*healthRatio, 0.2, 1.0)。
+        //  需要与 SurvivalAssessmentSubBrain 的威胁评分保持一致，避免撤退方向与评分逻辑脱节。
         List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, box, e ->
                 e.isAlive() && e != soul && (e instanceof Enemy || ConstantMobs.isConsideredHostile(e)));
         List<LivingEntity> hostiles = new ArrayList<>(candidates.size() + 1);

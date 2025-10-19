@@ -30,6 +30,9 @@ import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
  */
 final class VirtualSoulNavigator implements ISoulNavigator {
 
+    // 调试开关：通过 JVM 参数控制（-Dchestcavity.debugSoul=true 或 -Dchestcavity.debugSoul.nav=true）
+    private static final boolean DEBUG_NAV = false;
+
     private final DummyMob dummy;
     private final GroundPathNavigation navGround;
     private final WaterBoundPathNavigation navWater;
@@ -322,6 +325,20 @@ final class VirtualSoulNavigator implements ISoulNavigator {
             float yaw = (float)(Mth.atan2(moved.z, moved.x) * (180F / Math.PI)) - 90f;
             soul.setYRot(yaw);
             soul.setYHeadRot(yaw);
+        }
+        // 调试：当启用 -Dchestcavity.debugSoul=true 时，打印关键进度数据
+        if (DEBUG_NAV) {
+            double remain2 = (this.target == null) ? -1.0 : soul.position().distanceToSqr(this.target);
+            boolean close = (this.target != null) && remain2 <= (this.stopDistance * this.stopDistance);
+            boolean navDone = (this.currentMode != Mode.FLYING) && this.navCurrent.isDone();
+            var path = this.navCurrent.getPath();
+            boolean hasPath = path != null && !path.isDone();
+            net.tigereye.chestcavity.ChestCavity.LOGGER.info("[SoulNav] finalize mode={} remain2={} close={} navDone={} stuckTicks={} hasPath={}",
+                    this.currentMode, String.format("%.3f", remain2), close, navDone, this.stuckTicks, hasPath);
+            // 若几乎未移动，标记一次“可能被阻挡/尝试阶梯辅助”
+            if (moved.lengthSqr() < 1.0e-6) {
+                net.tigereye.chestcavity.ChestCavity.LOGGER.info("[SoulNav] blocked_or_no_delta");
+            }
         }
         updateProgressAndCompletion(soul);
     }

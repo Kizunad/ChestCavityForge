@@ -66,7 +66,8 @@ public final class ExplorationBrain extends HierarchicalBrain {
             if (target != null) {
                 builder.target(target, soul.distanceTo(target));
             }
-            ctx.memory().put(INPUTS_KEY, builder.build());
+            // 跨子脑共享：写入 sharedMemory，供 Plan/Execute 使用
+            ctx.sharedMemory().put(INPUTS_KEY, builder.build());
         }
     }
 
@@ -82,17 +83,17 @@ public final class ExplorationBrain extends HierarchicalBrain {
 
         @Override
         public boolean shouldTick(SubBrainContext ctx) {
-            return ctx.memory().getIfPresent(INPUTS_KEY) != null;
+            return ctx.sharedMemory().getIfPresent(INPUTS_KEY) != null;
         }
 
         @Override
         public void onExit(SubBrainContext ctx) {
             budget.clear(ctx.soul().getUUID());
-            ctx.memory().put(PLAN_KEY, null);
+            ctx.sharedMemory().put(PLAN_KEY, null);
         }
 
         private void plan(SubBrainContext ctx) {
-            ScoreInputs inputs = ctx.memory().getIfPresent(INPUTS_KEY);
+            ScoreInputs inputs = ctx.sharedMemory().getIfPresent(INPUTS_KEY);
             if (inputs == null) {
                 return;
             }
@@ -102,17 +103,17 @@ public final class ExplorationBrain extends HierarchicalBrain {
             }
             List<ExplorationTarget> candidates = generateCandidates(ctx, inputs);
             if (candidates.isEmpty()) {
-                ctx.memory().put(PLAN_KEY, null);
+                ctx.sharedMemory().put(PLAN_KEY, null);
                 return;
             }
             var result = arbitrator.decide(candidates, candidate -> scorer.score(inputs, candidate));
             ExplorationTarget target = result.exclusive();
             if (target == null) {
-                ctx.memory().put(PLAN_KEY, null);
+                ctx.sharedMemory().put(PLAN_KEY, null);
                 return;
             }
             double score = scorer.score(inputs, target);
-            ctx.memory().put(PLAN_KEY, new ExplorationPlan(target, score));
+            ctx.sharedMemory().put(PLAN_KEY, new ExplorationPlan(target, score));
         }
 
         private List<ExplorationTarget> generateCandidates(SubBrainContext ctx, ScoreInputs inputs) {
@@ -149,12 +150,12 @@ public final class ExplorationBrain extends HierarchicalBrain {
 
         @Override
         public boolean shouldTick(SubBrainContext ctx) {
-            return ctx.memory().getIfPresent(PLAN_KEY) != null;
+            return ctx.sharedMemory().getIfPresent(PLAN_KEY) != null;
         }
 
         private void executePlan(SubBrainContext ctx) {
-            ExplorationPlan plan = ctx.memory().getIfPresent(PLAN_KEY);
-            ScoreInputs inputs = ctx.memory().getIfPresent(INPUTS_KEY);
+            ExplorationPlan plan = ctx.sharedMemory().getIfPresent(PLAN_KEY);
+            ScoreInputs inputs = ctx.sharedMemory().getIfPresent(INPUTS_KEY);
             if (plan == null || inputs == null) {
                 return;
             }

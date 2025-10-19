@@ -18,7 +18,19 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.BrainActionStep;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
 
-/** Computes the per-tick survival snapshot consumed by other sub-brains. */
+/**
+ * 生存评估子大脑（SurvivalAssessmentSubBrain）
+ *
+ * 作用
+ * - 每 tick 计算一次 SurvivalSnapshot（包含 fleeScore、shouldRetreat、healthRatio、威胁等），
+ *   提供给其他子大脑（如 SurvivalRetreatSubBrain）作为决策依据。
+ * - 评分由 SurvivalScorecard + WeightedUtilityScorer 完成，通过多指标加权得到撤退倾向。
+ *
+ * 关键输入
+ * - 最近伤害来源或扫描半径内最近的敌对实体作为“威胁”；
+ * - 自身生命比例、吸收护盾、是否有再生等；
+ * - 是否处于“危险”粗判（有威胁/半血/吸收低）。
+ */
 public final class SurvivalAssessmentSubBrain extends SubBrain {
 
     private static final double SCAN_RADIUS = 14.0;
@@ -29,12 +41,15 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
 
     public SurvivalAssessmentSubBrain() {
         super("survival.assess");
+        // WeightedUtilityScorer 参数含义（按实现顺序）：
+        // 距离、生命值、吸收、负向因素、Buff 影响 权重 等。此处仅注释用途，具体见 scorer 实现。
         this.scorecard = new SurvivalScorecard(new WeightedUtilityScorer(0.35, 0.2, 0.3, -0.15, 0.3), 0.55, 0.35);
         addStep(BrainActionStep.always(this::computeSnapshot));
     }
 
     @Override
     public boolean shouldTick(SubBrainContext ctx) {
+        // 仅在 Soul 存活时执行评估
         return ctx.soul().isAlive();
     }
 
@@ -45,6 +60,7 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
         double healthRatio = soul.getHealth() / soul.getMaxHealth();
         double absorption = soul.getAbsorptionAmount();
         boolean hasRegen = soul.hasEffect(MobEffects.REGENERATION);
+        // 危险粗判：有威胁 或 半血以下 或 护盾过低
         boolean inDanger = threat != null || healthRatio < 0.5 || absorption <= 1.0;
         Vec3 ownerPos = ctx.owner() != null ? ctx.owner().position() : soul.position();
         ScoreInputs inputs = ScoreInputs.builder(soul)
@@ -66,12 +82,14 @@ public final class SurvivalAssessmentSubBrain extends SubBrain {
 
     private LivingEntity pickThreat(SubBrainContext ctx) {
         var soul = ctx.soul();
+        // 1) 优先使用“最近伤害来源”
         LivingEntity recent = soul.getLastHurtByMob();
         if (recent != null && recent.isAlive()) {
             return recent;
         }
         Vec3 center = soul.position();
         AABB box = new AABB(center, center).inflate(SCAN_RADIUS);
+        // 2) 否则在扫描半径内寻找最近的敌对
         List<LivingEntity> hostiles = ctx.level().getEntitiesOfClass(LivingEntity.class, box, e ->
                 e.isAlive() && e != soul && (e instanceof Enemy || ConstantMobs.isConsideredHostile(e)));
         if (hostiles.isEmpty()) {
