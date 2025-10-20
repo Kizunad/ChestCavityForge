@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.soulbeast.damage;
+package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage;
 
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -6,9 +6,8 @@ import net.minecraft.world.entity.LivingEntity;
 import java.util.Objects;
 
 /**
- * @deprecated 迁移至 {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext}
+ * Immutable snapshot describing a Soul Beast damage interception.
  */
-@Deprecated(forRemoval = true)
 public record SoulBeastDamageContext(LivingEntity victim, DamageSource source, float incomingDamage) {
 
     public SoulBeastDamageContext {

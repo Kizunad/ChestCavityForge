@@ -1,14 +1,15 @@
-package net.tigereye.chestcavity.soulbeast.state;
+package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 
 /**
- * @deprecated 迁移至 {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastRequestSyncPayload}
+ * Serverbound request asking the server to re-send the client's SoulBeastState snapshot.
+ * This avoids overloading the clientbound soul_beast_sync id.
  */
-@Deprecated(forRemoval = true)
 public record SoulBeastRequestSyncPayload() implements CustomPacketPayload {
 
     public static final Type<SoulBeastRequestSyncPayload> TYPE =
@@ -23,10 +24,6 @@ public record SoulBeastRequestSyncPayload() implements CustomPacketPayload {
 
     private static SoulBeastRequestSyncPayload decode(RegistryFriendlyByteBuf buf) {
         return new SoulBeastRequestSyncPayload();
-    }
-
-    public net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastRequestSyncPayload toCompat() {
-        return new net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastRequestSyncPayload();
     }
 
     @Override

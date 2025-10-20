@@ -1,29 +1,32 @@
 package net.tigereye.chestcavity.soulbeast.damage;
 
 /**
- * Listener used to adjust Soul Beast damage conversion.
+ * @deprecated 迁移至 {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageListener}
  */
-public interface SoulBeastDamageListener {
+@Deprecated(forRemoval = true)
+public interface SoulBeastDamageListener extends net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageListener {
 
     /**
-     * Allows listeners to scale the hunpo cost that will be deducted for this hit.
-     *
-     * @param context          immutable damage snapshot
-     * @param currentHunpoCost current hunpo cost after previous listeners
-     * @return new hunpo cost to apply
+     * 过渡签名，兼容旧包调用。
      */
     default double modifyHunpoCost(SoulBeastDamageContext context, double currentHunpoCost) {
         return currentHunpoCost;
     }
 
     /**
-     * Allows listeners to adjust the remaining health damage after hunpo has been consumed.
-     *
-     * @param context        immutable damage snapshot
-     * @param currentDamage  current remaining damage after previous listeners
-     * @return new damage value to forward to vanilla processing
+     * 过渡签名，兼容旧包调用。
      */
     default float modifyPostConversionDamage(SoulBeastDamageContext context, float currentDamage) {
         return currentDamage;
+    }
+
+    @Override
+    default double modifyHunpoCost(net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext context, double currentHunpoCost) {
+        return modifyHunpoCost(new SoulBeastDamageContext(context.victim(), context.source(), context.incomingDamage()), currentHunpoCost);
+    }
+
+    @Override
+    default float modifyPostConversionDamage(net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext context, float currentDamage) {
+        return modifyPostConversionDamage(new SoulBeastDamageContext(context.victim(), context.source(), context.incomingDamage()), currentDamage);
     }
 }

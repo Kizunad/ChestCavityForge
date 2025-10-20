@@ -1,13 +1,13 @@
-package net.tigereye.chestcavity.soulbeast.state.event;
+package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.event;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.bus.api.Event;
 
 /**
- * @deprecated 迁移至 {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.event.SoulBeastStateChangedEvent}
+ * Fired whenever a {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState} attached to an entity
+ * changes its activation flags.
  */
-@Deprecated(forRemoval = true)
-public class SoulBeastStateChangedEvent extends Event {
+public final class SoulBeastStateChangedEvent extends Event {
 
     private final LivingEntity entity;
     private final Snapshot previous;

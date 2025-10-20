@@ -14,7 +14,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
-import net.tigereye.chestcavity.soulbeast.state.SoulBeastState;
+import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 
 import java.util.Optional;

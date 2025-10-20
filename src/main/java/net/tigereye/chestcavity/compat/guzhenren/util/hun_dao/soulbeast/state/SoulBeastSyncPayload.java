@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.soulbeast.state;
+package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -9,9 +9,8 @@ import net.tigereye.chestcavity.ChestCavity;
 import javax.annotation.Nullable;
 
 /**
- * @deprecated 迁移至 {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastSyncPayload}
+ * Network payload used to mirror {@link SoulBeastState} updates to clients.
  */
-@Deprecated(forRemoval = true)
 public record SoulBeastSyncPayload(int entityId,
                                    boolean active,
                                    boolean enabled,
@@ -50,16 +49,6 @@ public record SoulBeastSyncPayload(int entityId,
             source = buf.readResourceLocation();
         }
         return new SoulBeastSyncPayload(entityId, active, enabled, permanent, lastTick, source);
-    }
-
-    public net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastSyncPayload toCompat() {
-        return new net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastSyncPayload(
-                entityId, active, enabled, permanent, lastTick, source);
-    }
-
-    public static SoulBeastSyncPayload fromCompat(net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastSyncPayload payload) {
-        return new SoulBeastSyncPayload(payload.entityId(), payload.active(), payload.enabled(),
-                payload.permanent(), payload.lastTick(), payload.source());
     }
 
     @Override

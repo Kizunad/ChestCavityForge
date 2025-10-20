@@ -1,5 +1,5 @@
 ---
-**状态**: ChestCavityForge Guzhenren 兼容模块 - 为古真人模组提供胸腔器官系统集成
+**状态**: ChestCavityForge Guzhenren 兼容模块 - 为蛊真人模组提供胸腔器官系统集成
 
 ---
 
@@ -17,7 +17,7 @@
 ## 模块概述
 
 ### 核心架构
-古真人兼容模块采用**声明式集成架构**，通过 [`OrganIntegrationSpec`](module/OrganIntegrationSpec.java:1) 定义器官行为，由 [`GuzhenrenIntegrationModule`](module/GuzhenrenIntegrationModule.java:1) 统一注册。
+蛊真人兼容模块采用**声明式集成架构**，通过 [`OrganIntegrationSpec`](module/OrganIntegrationSpec.java:1) 定义器官行为，由 [`GuzhenrenIntegrationModule`](module/GuzhenrenIntegrationModule.java:1) 统一注册。
 
 ### 主要组件
 

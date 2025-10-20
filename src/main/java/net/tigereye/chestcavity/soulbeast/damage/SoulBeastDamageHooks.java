@@ -1,45 +1,30 @@
 package net.tigereye.chestcavity.soulbeast.damage;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 /**
- * Registry for Soul Beast damage listeners.
+ * @deprecated 迁移至 {@link net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks}
  */
+@Deprecated(forRemoval = true)
 public final class SoulBeastDamageHooks {
 
-    private static final List<SoulBeastDamageListener> LISTENERS = new CopyOnWriteArrayList<>();
-
-    private SoulBeastDamageHooks() {
-    }
+    private SoulBeastDamageHooks() {}
 
     public static void register(SoulBeastDamageListener listener) {
-        Objects.requireNonNull(listener, "listener");
-        if (!LISTENERS.contains(listener)) {
-            LISTENERS.add(listener);
-        }
+        net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks.register(listener);
     }
 
     public static void unregister(SoulBeastDamageListener listener) {
-        if (listener != null) {
-            LISTENERS.remove(listener);
-        }
+        net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks.unregister(listener);
     }
 
     public static double applyHunpoCostModifiers(SoulBeastDamageContext context, double baseHunpoCost) {
-        double cost = baseHunpoCost;
-        for (SoulBeastDamageListener listener : LISTENERS) {
-            cost = listener.modifyHunpoCost(context, cost);
-        }
-        return cost;
+        var delegate = new net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext(
+                context.victim(), context.source(), context.incomingDamage());
+        return net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks.applyHunpoCostModifiers(delegate, baseHunpoCost);
     }
 
     public static float applyPostConversionDamageModifiers(SoulBeastDamageContext context, float baseDamage) {
-        float damage = baseDamage;
-        for (SoulBeastDamageListener listener : LISTENERS) {
-            damage = listener.modifyPostConversionDamage(context, damage);
-        }
-        return damage;
+        var delegate = new net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext(
+                context.victim(), context.source(), context.incomingDamage());
+        return net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks.applyPostConversionDamageModifiers(delegate, baseDamage);
     }
 }
