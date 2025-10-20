@@ -1,0 +1,7 @@
+{
+  "itemID": "guzhenren:yue_guang_gu",
+  "organScores": [
+    { "id": "chestcavity:luck", "value": "0.5" },
+    { "id": "chestcavity:breath", "value": "0.2" }
+  ]
+}
