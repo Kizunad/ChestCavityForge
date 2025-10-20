@@ -138,10 +138,6 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
         final int tier = storedTier;
 
-        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-        boolean paid = handleOpt.isPresent()
-                && ResourceOps.tryConsumeScaledZhenyuan(handleOpt.get(), BASE_COST).isPresent();
-
         boolean isNight = level.isNight();
         BlockPos pos = entity.blockPosition();
         boolean skyVisible = level.canSeeSky(pos.above());
@@ -149,8 +145,15 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
 
         double indoorRatio = tier >= 1 ? INDOOR_L1_RATIO : INDOOR_BASE_RATIO;
         double activeFactor = 0.0D;
-        if (paid && isNight && brightness <= 7) {
-            activeFactor = skyVisible ? 1.0D : indoorRatio;
+        if (isNight && brightness <= 7) {
+            double candidate = skyVisible ? 1.0D : indoorRatio;
+            if (candidate > EPSILON) {
+                Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+                if (handleOpt.isPresent()
+                        && ResourceOps.tryConsumeScaledZhenyuan(handleOpt.get(), BASE_COST).isPresent()) {
+                    activeFactor = candidate;
+                }
+            }
         }
 
         int moonPhase = level.getMoonPhase();
