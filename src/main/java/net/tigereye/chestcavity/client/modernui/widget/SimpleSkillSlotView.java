@@ -8,11 +8,11 @@ import icyllis.modernui.mc.MinecraftSurfaceView;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.tigereye.chestcavity.ChestCavity;
+import net.minecraft.world.item.Items;
+
+import java.util.Objects;
 
 /**
  * Minimal ModernUI slot view that renders a slot background, an item stack and exposes
@@ -23,25 +23,27 @@ public final class SimpleSkillSlotView extends LinearLayout {
     private static final ResourceLocation SLOT_TEXTURE =
             ResourceLocation.parse("minecraft:textures/gui/container/slot.png");
 
-    private final ResourceLocation itemId;
+    private final ResourceLocation entryId;
     private final ItemStack stack;
     private final String displayName;
-    private final TextView statusView;
     private final SlotSurfaceRenderer renderer;
     private final MinecraftSurfaceView surface;
     private final SelectionListener selectionListener;
     private boolean selected;
 
     public SimpleSkillSlotView(@NonNull icyllis.modernui.core.Context context,
-                               ResourceLocation itemId,
+                               ResourceLocation entryId,
+                               ItemStack iconStack,
+                               String displayName,
                                TextView statusView,
                                int sizePx,
                                SelectionListener selectionListener) {
         super(context);
-        this.itemId = itemId;
-        this.statusView = statusView;
-        this.stack = resolveItem(itemId);
-        this.displayName = stack.getHoverName().getString();
+        this.entryId = Objects.requireNonNull(entryId, "entryId");
+        this.stack = normalize(iconStack);
+        this.displayName = displayName != null && !displayName.isBlank()
+                ? displayName
+                : this.stack.getHoverName().getString();
         this.renderer = new SlotSurfaceRenderer(sizePx);
         this.surface = new MinecraftSurfaceView(context);
         this.selectionListener = selectionListener;
@@ -54,7 +56,7 @@ public final class SimpleSkillSlotView extends LinearLayout {
         addView(surface, surfaceParams);
 
         var label = new TextView(context);
-        label.setText(displayName);
+        label.setText(this.displayName);
         label.setTextSize(11);
         label.setTextColor(0xFFE6F3FF);
         label.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -66,9 +68,7 @@ public final class SimpleSkillSlotView extends LinearLayout {
         setFocusable(true);
         setOnClickListener(v -> {
             if (statusView != null) {
-                statusView.setText("选中：" + displayName + " (skillId=" + itemId + ")");
-            } else {
-                ChestCavity.LOGGER.info("[modernui][slot] clicked {}", displayName);
+                statusView.setText("选中：" + displayName + " (id=" + entryId + ")");
             }
             if (selectionListener != null) {
                 selectionListener.onSlotSelected(SimpleSkillSlotView.this);
@@ -76,8 +76,8 @@ public final class SimpleSkillSlotView extends LinearLayout {
         });
     }
 
-    public ResourceLocation getItemId() {
-        return itemId;
+    public ResourceLocation getEntryId() {
+        return entryId;
     }
 
     public boolean isSelected() {
@@ -92,13 +92,10 @@ public final class SimpleSkillSlotView extends LinearLayout {
         surface.invalidate();
     }
 
-    private ItemStack resolveItem(ResourceLocation id) {
-        Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
-        if (item == null) {
-            ChestCavity.LOGGER.warn("[modernui][slot] Missing item {}, fallback to stone", id);
-            return new ItemStack(net.minecraft.world.item.Items.STONE);
-        }
-        return new ItemStack(item);
+    private ItemStack normalize(ItemStack icon) {
+        ItemStack stack = (icon == null || icon.isEmpty()) ? new ItemStack(Items.STONE) : icon.copy();
+        stack.setCount(1);
+        return stack;
     }
 
     private final class SlotSurfaceRenderer implements MinecraftSurfaceView.Renderer {
