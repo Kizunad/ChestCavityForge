@@ -20,8 +20,7 @@ import java.util.Objects;
  */
 public final class SimpleSkillSlotView extends LinearLayout {
 
-    private static final ResourceLocation SLOT_TEXTURE =
-            ResourceLocation.parse("minecraft:textures/gui/container/slot.png");
+    // 不再使用原版槽位贴图，背景仅使用纯色填充与选中描边
 
     private final ResourceLocation entryId;
     private final ItemStack stack;
@@ -118,8 +117,7 @@ public final class SimpleSkillSlotView extends LinearLayout {
             int guiWidth = (int) Math.round(width / guiScale);
             int guiHeight = (int) Math.round(height / guiScale);
 
-            graphics.fill(0, 0, guiWidth, guiHeight, 0xFF1D2B3B);
-            graphics.blit(SLOT_TEXTURE, 0, 0, 0, 0, guiWidth, guiHeight, guiWidth, guiHeight);
+            // 背景透明：不绘制任何底色，跟随父级背景
 
             if (selected) {
                 int color = 0xAA6F7A8A;
