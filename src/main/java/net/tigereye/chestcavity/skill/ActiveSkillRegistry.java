@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -224,7 +225,7 @@ public final class ActiveSkillRegistry {
                 "闪现造成范围伤害并致盲减速，施放者获得短暂加速",
                 "compat/guzhenren/item/guang_dao/behavior/ShanGuangGuOrganBehavior.java:61",
                 () -> { ensureClassLoaded(ShanGuangGuOrganBehavior.INSTANCE); },
-                CooldownHint.useOrgan("技能就绪", null));
+                CooldownHint.useOrgan("闪爆就绪", formatCooldownSeconds(ShanGuangGuOrganBehavior.getActiveCooldownTicks())));
 
         register("guzhenren:bai_yin_she_li_gu", "guzhenren:bai_yin_she_li_gu", "guzhenren:bai_yin_she_li_gu",
                 tags("防御"),
@@ -386,6 +387,19 @@ public final class ActiveSkillRegistry {
             }
         }
         return list;
+    }
+
+    private static String formatCooldownSeconds(long ticks) {
+        if (ticks <= 0L) {
+            return null;
+        }
+        long seconds = ticks / 20L;
+        long remainder = ticks % 20L;
+        if (remainder == 0L) {
+            return seconds + " 秒冷却";
+        }
+        double preciseSeconds = ticks / 20.0D;
+        return String.format(Locale.ROOT, "%.1f 秒冷却", preciseSeconds);
     }
 
     private static void ensureClassLoaded(Object instance) {
