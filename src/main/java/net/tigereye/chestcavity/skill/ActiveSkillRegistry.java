@@ -26,6 +26,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.JiuYeSheng
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.ShengJiYeOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.synergy.SheShengQuYiSynergyBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.synergy.hun_dao.HunShouHuaSynergyBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.BaiYinSheLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.ChiTieSheLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.behavior.HuangJinSheLiGuOrganBehavior;
@@ -108,6 +109,12 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/hun_dao/behavior/GuiQiGuOrganBehavior.java:57",
                 () -> { ensureClassLoaded(GuiQiGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:synergy/hun_shou_hua", "guzhenren:synergy/hun_shou_hua", "guzhenren:dahungu",
+                tags("联动", "魂兽", "仪式"),
+                "小魂蛊与大魂蛊联动：引导魂兽化仪式，成功后永久化身魂兽",
+                "compat/guzhenren/item/synergy/hun_dao/HunShouHuaSynergyBehavior.java",
+                () -> { ensureClassLoaded(HunShouHuaSynergyBehavior.INSTANCE); });
 
         register("guzhenren:le_gu_dun_gu", "guzhenren:le_gu_dun_gu", "guzhenren:le_gu_dun_gu",
                 tags("防御"),
