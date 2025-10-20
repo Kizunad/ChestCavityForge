@@ -14,6 +14,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.Shua
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
@@ -226,6 +227,13 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/guang_dao/behavior/ShanGuangGuOrganBehavior.java:61",
                 () -> { ensureClassLoaded(ShanGuangGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("闪爆就绪", formatCooldownSeconds(ShanGuangGuOrganBehavior.getActiveCooldownTicks())));
+
+        register("guzhenren:xiao_guang_gu_illusion", "guzhenren:xiao_guang_gu_illusion", "guzhenren:xiao_guang_gu",
+                tags("控制", "防御"),
+                "消耗真元召唤幻映分身诱导火力，期间触发折影与光遁强化",
+                "compat/guzhenren/item/guang_dao/behavior/XiaoGuangGuOrganBehavior.java:289",
+                () -> { ensureClassLoaded(XiaoGuangGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("幻映分身就绪", null));
 
         register("guzhenren:bai_yin_she_li_gu", "guzhenren:bai_yin_she_li_gu", "guzhenren:bai_yin_she_li_gu",
                 tags("防御"),
