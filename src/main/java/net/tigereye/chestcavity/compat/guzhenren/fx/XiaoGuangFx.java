@@ -4,7 +4,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 
@@ -51,7 +50,7 @@ public final class XiaoGuangFx {
         dispatch(entity, LIGHTSTEP, origin, look, entity);
     }
 
-    public static void playIllusionSummon(@Nullable LivingEntity owner, ArmorStand decoy) {
+    public static void playIllusionSummon(@Nullable LivingEntity owner, LivingEntity decoy) {
         if (decoy == null) {
             return;
         }

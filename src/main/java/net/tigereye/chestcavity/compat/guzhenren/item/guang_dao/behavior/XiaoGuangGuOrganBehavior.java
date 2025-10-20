@@ -11,9 +11,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -26,6 +24,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.fx.XiaoGuangFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -34,6 +33,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
+import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -62,7 +62,7 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     // 器官、能力的命名空间常量
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiaoguanggu");
-    public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiaoguanggu_illusion");
+    public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_guang_illusion");
 
     // 组织器官状态用的键值常量
     private static final String STATE_ROOT = "XiaoGuangGu";
@@ -328,19 +328,12 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
             return;
         }
         Vec3 spawnPos = player.position().add(player.getLookAngle().scale(1.5D));
-        ArmorStand decoy = new ArmorStand(server, spawnPos.x, spawnPos.y, spawnPos.z);
-        decoy.setNoGravity(true);
-        decoy.setInvisible(false);
-        decoy.setInvulnerable(false);
-        decoy.setCustomNameVisible(false);
-        decoy.setYRot(player.getYRot());
-        decoy.setXRot(player.getXRot());
-        decoy.yHeadRot = player.getYHeadRot();
-        decoy.setShowArms(true);
-        copyAppearance(player, decoy);
-        decoy.setItemSlot(EquipmentSlot.MAINHAND, safeCopy(player.getMainHandItem()));
-        decoy.setItemSlot(EquipmentSlot.OFFHAND, safeCopy(player.getOffhandItem()));
-
+        PlayerSkinUtil.SkinSnapshot baseSkin = PlayerSkinUtil.capture(player);
+        PlayerSkinUtil.SkinSnapshot glowSkin = PlayerSkinUtil.withTint(baseSkin, 0.85f, 0.95f, 1.0f, 0.65f);
+        XiaoGuangIllusionEntity decoy = XiaoGuangIllusionEntity.create(server, player, spawnPos, glowSkin);
+        if (decoy == null) {
+            return;
+        }
         server.addFreshEntity(decoy);
         XiaoGuangFx.playIllusionSummon(player, decoy);
 
@@ -356,7 +349,7 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     /**
      * 分身突刺：简单取目标列表并造成按比例缩放的近战伤害。
      */
-    private static void performDecoyAttack(ArmorStand decoy) {
+    private static void performDecoyAttack(XiaoGuangIllusionEntity decoy) {
         DecoyInfo info = ACTIVE_DECOYS.get(decoy.getUUID());
         if (info == null) {
             return;
@@ -381,24 +374,24 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     /**
      * 清除幻映分身：移除记录、播放爆裂效果，并在被击中时发放光辉点。
      */
-    private static void removeDecoy(ArmorStand decoy, RemovalCause cause) {
+    private static void removeDecoy(XiaoGuangIllusionEntity decoy, RemovalCause cause) {
         if (decoy == null || !decoy.isAlive()) {
             return;
         }
         DecoyInfo info = ACTIVE_DECOYS.remove(decoy.getUUID());
-        decoy.discard();
         if (info == null) {
             return;
         }
         if (!(decoy.level() instanceof ServerLevel server)) {
             return;
         }
+        Vec3 center = decoy.position();
+        decoy.disperse(server);
+        XiaoGuangFx.playIllusionBurst(server, center);
         Player owner = server.getPlayerByUUID(info.ownerId());
         if (owner == null) {
             return;
         }
-        Vec3 center = decoy.position();
-        XiaoGuangFx.playIllusionBurst(server, center);
         applyBurstDamage(owner, server, center);
         if (info.hasLightning()) {
             INSTANCE.triggerLightningPulse(server, owner, center);
@@ -434,20 +427,6 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     /**
      * 复制玩家装备外观到分身（保持1件拷贝）。
      */
-    private static void copyAppearance(Player player, ArmorStand decoy) {
-        decoy.setItemSlot(EquipmentSlot.HEAD, safeCopy(player.getItemBySlot(EquipmentSlot.HEAD)));
-        decoy.setItemSlot(EquipmentSlot.CHEST, safeCopy(player.getItemBySlot(EquipmentSlot.CHEST)));
-        decoy.setItemSlot(EquipmentSlot.LEGS, safeCopy(player.getItemBySlot(EquipmentSlot.LEGS)));
-        decoy.setItemSlot(EquipmentSlot.FEET, safeCopy(player.getItemBySlot(EquipmentSlot.FEET)));
-    }
-
-    /**
-     * 安全复制物品栈，避免拷贝空栈或堆叠数量。
-     */
-    private static ItemStack safeCopy(ItemStack stack) {
-        return stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(1);
-    }
-
     /**
      * 判断是否存在特定流派关键词（简单地通过物品注册路径检索）。
      */
@@ -630,15 +609,15 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
      * 分身被攻击时取消伤害并触发爆裂流程。
      */
     private static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
-        if (!(event.getEntity() instanceof ArmorStand stand)) {
+        if (!(event.getEntity() instanceof XiaoGuangIllusionEntity illusion)) {
             return;
         }
-        DecoyInfo info = ACTIVE_DECOYS.get(stand.getUUID());
+        DecoyInfo info = ACTIVE_DECOYS.get(illusion.getUUID());
         if (info == null) {
             return;
         }
         event.setCanceled(true);
-        removeDecoy(stand, RemovalCause.HIT);
+        removeDecoy(illusion, RemovalCause.HIT);
     }
 
     // 分身移除原因：自然到期或被命中

@@ -8,6 +8,8 @@ import net.tigereye.chestcavity.guscript.ability.guzhenren.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.BingXueDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoClientRenderers;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoEntityAttributes;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientRenderLayers;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
@@ -94,6 +96,7 @@ public final class GuzhenrenModule {
 
     private static void installModListeners(IEventBus modBus) {
         modBus.addListener(JiandaoEntityAttributes::onAttributeCreation);
+        modBus.addListener(GuangDaoEntityAttributes::onAttributeCreation);
         modBus.addListener(SteelBoneAttributeHooks::onAttributeModification);
         if (FMLEnvironment.dist.isClient()) {
             modBus.addListener(Abilities::onClientSetup);
@@ -113,6 +116,7 @@ public final class GuzhenrenModule {
             modBus.addListener(RenDaoClientAbilities::onClientSetup);
             modBus.addListener(BloodBoneBombClient::onRegisterRenderers);
             modBus.addListener(JiandaoClientRenderers::onRegisterRenderers);
+            modBus.addListener(GuangDaoClientRenderers::onRegisterRenderers);
             modBus.addListener(GuDaoClientRenderLayers::onAddLayers);
         }
     }

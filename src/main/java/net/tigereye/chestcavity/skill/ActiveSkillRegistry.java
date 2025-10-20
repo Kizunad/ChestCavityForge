@@ -228,7 +228,7 @@ public final class ActiveSkillRegistry {
                 () -> { ensureClassLoaded(ShanGuangGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("闪爆就绪", formatCooldownSeconds(ShanGuangGuOrganBehavior.getActiveCooldownTicks())));
 
-        register("guzhenren:xiaoguanggu_illusion", "guzhenren:xiaoguanggu_illusion", "guzhenren:xiaoguanggu",
+        register("guzhenren:xiao_guang_illusion", "guzhenren:xiao_guang_illusion", "guzhenren:xiaoguanggu",
                 tags("控制", "防御"),
                 "消耗真元召唤幻映分身诱导火力，期间触发折影与光遁强化",
                 "compat/guzhenren/item/guang_dao/behavior/XiaoGuangGuOrganBehavior.java:289",

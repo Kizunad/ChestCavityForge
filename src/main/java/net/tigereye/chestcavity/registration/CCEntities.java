@@ -9,6 +9,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.entity.SwordSlashProjectile;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneGunProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.entity.MadBullEntity;
 import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
@@ -49,6 +50,14 @@ public final class CCEntities {
                     .clientTrackingRange(48)
                     .updateInterval(2)
                     .build(ChestCavity.MODID + ":sword_shadow_clone"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<XiaoGuangIllusionEntity>> XIAO_GUANG_ILLUSION =
+            ENTITY_TYPES.register("xiao_guang_illusion", () -> EntityType.Builder
+                    .<XiaoGuangIllusionEntity>of(XiaoGuangIllusionEntity::new, MobCategory.MISC)
+                    .sized(0.6f, 1.8f)
+                    .clientTrackingRange(48)
+                    .updateInterval(2)
+                    .build(ChestCavity.MODID + ":xiao_guang_illusion"));
 
     public static final DeferredHolder<EntityType<?>, EntityType<SwordSlashProjectile>> SWORD_SLASH =
             ENTITY_TYPES.register("sword_slash", () -> EntityType.Builder

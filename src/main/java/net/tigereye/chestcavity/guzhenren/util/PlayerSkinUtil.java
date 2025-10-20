@@ -153,7 +153,7 @@ public final class PlayerSkinUtil {
         if (s.isBlank() || !s.matches("[a-z0-9._-]+")) {
             s = sha1Hex(url);
         }
-        return ResourceLocation.fromNamespaceAndPath("guzhenren", "skins/" + s);
+        return ResourceLocation.fromNamespaceAndPath("minecraft", "skins/" + s);
     }
 
     private static String sha1Hex(String input) {
