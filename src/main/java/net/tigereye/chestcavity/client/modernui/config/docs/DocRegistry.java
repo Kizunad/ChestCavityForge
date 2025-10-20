@@ -34,7 +34,6 @@ public final class DocRegistry {
             return;
         }
         registerProvider(new ResourceDocProvider());
-        registerProvider(new ActiveSkillDocProvider());
         defaultsRegistered = true;
     }
 
