@@ -7,6 +7,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuorenguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoTanGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoxinguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -25,6 +26,7 @@ public final class YanDaoOrganRegistry {
     private static final ResourceLocation HUO_YOU_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_you_gu");
     private static final ResourceLocation DAN_QIAO_HUO_TAN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "dan_qiao_huo_tan_gu");
     private static final ResourceLocation FEN_SHEN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "fen_shen_gu");
+    private static final ResourceLocation HUO_LONG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu");
 
     private YanDaoOrganRegistry() {}
 
@@ -37,6 +39,15 @@ public final class YanDaoOrganRegistry {
                     .build());
         } catch (Throwable t) {
             ChestCavity.LOGGER.warn("[compat/guzhenren][yan_dao] skip Huoxingu registration due to init error", t);
+        }
+        try {
+            list.add(OrganIntegrationSpec.builder(HUO_LONG_GU_ID)
+                    .addSlowTickListener(HuoLongGuOrganBehavior.INSTANCE)
+                    .addOnHitListener(HuoLongGuOrganBehavior.INSTANCE)
+                    .addIncomingDamageListener(HuoLongGuOrganBehavior.INSTANCE)
+                    .build());
+        } catch (Throwable t) {
+            ChestCavity.LOGGER.warn("[compat/guzhenren][yan_dao] skip HuoLongGu registration due to init error", t);
         }
         try {
             list.add(OrganIntegrationSpec.builder(FEN_SHEN_GU_ID)

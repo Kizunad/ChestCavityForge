@@ -80,6 +80,29 @@ public final class ReactionTagOps {
         }
     }
 
+    /**
+     * 延长指定标签的持续时间。
+     *
+     * @param maxDurationTicks 最大允许持续时间（从当前 tick 起算），小于等于0时表示不裁剪。
+     */
+    public static void extend(LivingEntity entity, ResourceLocation tagId, int extraTicks, int maxDurationTicks) {
+        if (entity == null || tagId == null || extraTicks <= 0) {
+            return;
+        }
+        long now = entity.level().getGameTime();
+        Map<ResourceLocation, Long> map = TAGS.computeIfAbsent(entity.getUUID(), k -> new HashMap<>());
+        long currentExpire = map.getOrDefault(tagId, now);
+        long base = Math.max(currentExpire, now);
+        long target = base + extraTicks;
+        if (maxDurationTicks > 0) {
+            long cap = now + Math.max(0, maxDurationTicks);
+            if (target > cap) {
+                target = cap;
+            }
+        }
+        map.put(tagId, target);
+    }
+
     public static void purge(long nowServerTick) {
         if (TAGS.isEmpty()) return;
         Iterator<Map.Entry<UUID, Map<ResourceLocation, Long>>> it = TAGS.entrySet().iterator();
