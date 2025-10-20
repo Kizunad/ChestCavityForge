@@ -6,9 +6,9 @@
     { "id": "chestcavity:luck", "value": "0.02" },
     { "id": "chestcavity:metabolism", "value": "-0.05" },
     { "id": "guzhenren:hunpo_stability", "value": "0.20" },
-    { "id": "guzhenren:max_jingli", "value": "0.40" },
+    { "id": "guzhenren:zuida_jingli", "value": "0.40" },
     { "id": "guzhenren:jingli", "value": "0.20" },
-    { "id": "guzhenren:max_zhenyuan", "value": "0.20" },
+    { "id": "guzhenren:zuida_zhenyuan", "value": "0.20" },
     { "id": "guzhenren:zhenyuan", "value": "0.20" }
   ]
 }
