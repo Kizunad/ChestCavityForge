@@ -107,6 +107,10 @@ public final class ShanGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
         OrganActivationListeners.register(ABILITY_ID, ShanGuangGuOrganBehavior::activateAbility);
     }
 
+    public static long getActiveCooldownTicks() {
+        return ACTIVE_COOLDOWN_TICKS;
+    }
+
     @Override
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (entity == null || entity.level().isClientSide()) {
