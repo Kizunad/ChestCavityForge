@@ -59,6 +59,12 @@
 
 ## 灵魂系统 (Soul & Soulbeast)
 
+### 皮肤同步系统（客户端）
+- 代码入口：`src/main/java/net/tigereye/chestcavity/compat/guzhenren/client/skin/`
+- `SkinHandle`：封装持有者 UUID、Mojang textures property/签名、模型、原始 URL 以及默认纹理，用于渲染侧统一构建请求。
+- `SkinResolver`：在客户端异步下载 `textures.minecraft.net` 皮肤并注册为动态纹理（缓存键 = property/签名 + URL hash），回退到默认 Steve/Alex 避免 TextureManager 404，同时保留扩展位以支持 overlay 图层。
+- 使用方式：渲染端调用 `SkinResolver.resolve(SkinHandle.from(entity))`，未完成下载时返回回退纹理；完成后自动切换真实皮肤，可复用到其他需要镜像玩家皮肤的实体。
+
 ### 核心组件
 - **灵魂 API** (`SoulBeastAPI`, `SoulBeastStateManager`)：
   - `toSoulBeast(entity, permanent, source)` / `clearSoulBeast` / `isSoulBeast`。

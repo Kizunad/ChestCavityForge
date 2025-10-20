@@ -382,6 +382,8 @@ public class SwordShadowClone extends PathfinderMob {
                 getSkinTexture(),
                 getSkinModel(),
                 null,
+                "",
+                "",
                 red,
                 green,
                 blue,

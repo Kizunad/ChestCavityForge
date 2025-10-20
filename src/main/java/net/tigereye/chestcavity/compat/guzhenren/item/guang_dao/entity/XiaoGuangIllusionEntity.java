@@ -42,6 +42,10 @@ public class XiaoGuangIllusionEntity extends PathfinderMob {
             XiaoGuangIllusionEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> SKIN_URL = SynchedEntityData.defineId(
             XiaoGuangIllusionEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<String> SKIN_PROPERTY_VALUE = SynchedEntityData.defineId(
+            XiaoGuangIllusionEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<String> SKIN_PROPERTY_SIGNATURE = SynchedEntityData.defineId(
+            XiaoGuangIllusionEntity.class, EntityDataSerializers.STRING);
 
     private static final ResourceLocation DEFAULT_TEXTURE = ResourceLocation.parse("minecraft:textures/entity/steve.png");
 
@@ -66,6 +70,8 @@ public class XiaoGuangIllusionEntity extends PathfinderMob {
         builder.define(SKIN_TEXTURE, "");
         builder.define(SKIN_MODEL, PlayerSkinUtil.SkinSnapshot.MODEL_DEFAULT);
         builder.define(SKIN_URL, "");
+        builder.define(SKIN_PROPERTY_VALUE, "");
+        builder.define(SKIN_PROPERTY_SIGNATURE, "");
     }
 
     @Override
@@ -132,6 +138,8 @@ public class XiaoGuangIllusionEntity extends PathfinderMob {
         this.entityData.set(SKIN_TEXTURE, texture.toString());
         this.entityData.set(SKIN_MODEL, snapshot.model());
         this.entityData.set(SKIN_URL, snapshot.skinUrl() == null ? "" : snapshot.skinUrl());
+        this.entityData.set(SKIN_PROPERTY_VALUE, snapshot.propertyValue() == null ? "" : snapshot.propertyValue());
+        this.entityData.set(SKIN_PROPERTY_SIGNATURE, snapshot.propertySignature() == null ? "" : snapshot.propertySignature());
     }
 
     public ResourceLocation getSkinTexture() {
@@ -150,6 +158,14 @@ public class XiaoGuangIllusionEntity extends PathfinderMob {
 
     public String getSkinUrl() {
         return this.entityData.get(SKIN_URL);
+    }
+
+    public String getSkinPropertyValue() {
+        return this.entityData.get(SKIN_PROPERTY_VALUE);
+    }
+
+    public String getSkinPropertySignature() {
+        return this.entityData.get(SKIN_PROPERTY_SIGNATURE);
     }
 
     public Optional<UUID> getOwnerUuid() {
@@ -212,6 +228,12 @@ public class XiaoGuangIllusionEntity extends PathfinderMob {
         if (tag.contains("SkinUrl")) {
             this.entityData.set(SKIN_URL, tag.getString("SkinUrl"));
         }
+        if (tag.contains("SkinProperty")) {
+            this.entityData.set(SKIN_PROPERTY_VALUE, tag.getString("SkinProperty"));
+        }
+        if (tag.contains("SkinSignature")) {
+            this.entityData.set(SKIN_PROPERTY_SIGNATURE, tag.getString("SkinSignature"));
+        }
     }
 
     @Override
@@ -224,6 +246,14 @@ public class XiaoGuangIllusionEntity extends PathfinderMob {
         String skinUrl = this.entityData.get(SKIN_URL);
         if (skinUrl != null && !skinUrl.isBlank()) {
             tag.putString("SkinUrl", skinUrl);
+        }
+        String propertyValue = this.entityData.get(SKIN_PROPERTY_VALUE);
+        if (propertyValue != null && !propertyValue.isBlank()) {
+            tag.putString("SkinProperty", propertyValue);
+        }
+        String propertySignature = this.entityData.get(SKIN_PROPERTY_SIGNATURE);
+        if (propertySignature != null && !propertySignature.isBlank()) {
+            tag.putString("SkinSignature", propertySignature);
         }
     }
 

@@ -53,11 +53,15 @@ public final class PlayerSkinUtil {
         ResourceLocation texture = DEFAULT_TEXTURE;
         String model = SkinSnapshot.MODEL_DEFAULT;
         String skinUrl = null;
+        String propertyValue = null;
+        String propertySignature = null;
 
         PropertyMap properties = profile.getProperties();
         if (properties != null && !properties.isEmpty()) {
             Property textureProperty = properties.get("textures").stream().findFirst().orElse(null);
             if (textureProperty != null) {
+                propertyValue = textureProperty.value();
+                propertySignature = textureProperty.signature();
                 SkinPayload payload = decode(textureProperty.value());
                 if (payload != null) {
                     if (payload.texture() != null) {
@@ -71,7 +75,7 @@ public final class PlayerSkinUtil {
             }
         }
 
-        return new SkinSnapshot(id, name, texture, model, skinUrl, 1.0f, 1.0f, 1.0f, 1.0f);
+        return new SkinSnapshot(id, name, texture, model, skinUrl, propertyValue, propertySignature, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     /**
@@ -79,7 +83,7 @@ public final class PlayerSkinUtil {
      */
     public static SkinSnapshot withTint(SkinSnapshot original, float red, float green, float blue, float alpha) {
         if (original == null) {
-            return new SkinSnapshot(null, null, DEFAULT_TEXTURE, SkinSnapshot.MODEL_DEFAULT, null, red, green, blue, alpha);
+            return new SkinSnapshot(null, null, DEFAULT_TEXTURE, SkinSnapshot.MODEL_DEFAULT, null, null, null, red, green, blue, alpha);
         }
         return new SkinSnapshot(
                 original.playerId(),
@@ -87,6 +91,8 @@ public final class PlayerSkinUtil {
                 original.texture(),
                 original.model(),
                 original.skinUrl(),
+                original.propertyValue(),
+                original.propertySignature(),
                 red,
                 green,
                 blue,
@@ -184,6 +190,8 @@ public final class PlayerSkinUtil {
             ResourceLocation texture,
             String model,
             String skinUrl,
+            String propertyValue,
+            String propertySignature,
             float red,
             float green,
             float blue,
@@ -197,7 +205,7 @@ public final class PlayerSkinUtil {
         }
 
         private static SkinSnapshot defaultSnapshot() {
-            return new SkinSnapshot(null, null, DEFAULT_TEXTURE, MODEL_DEFAULT, null, 1.0f, 1.0f, 1.0f, 1.0f);
+            return new SkinSnapshot(null, null, DEFAULT_TEXTURE, MODEL_DEFAULT, null, null, null, 1.0f, 1.0f, 1.0f, 1.0f);
         }
     }
 }

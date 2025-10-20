@@ -41,6 +41,12 @@ fx/gufang/combat待迁移..
 - **行动大脑**: `BrainController` + 子大脑模式
 - **动作系统**: `actions/` 目录中的可执行动作
 
+#### 4. 皮肤同步（客户端）
+- **目录**: [`client/skin/`](client/skin/)
+- **SkinHandle**: 封装所有者 UUID、textures property/签名、模型、原始 URL 以及回退纹理，用于渲染时构建统一请求。
+- **SkinResolver**: 在客户端异步下载 `textures.minecraft.net` 皮肤、注册动态纹理并做双层缓存（handle + hash），下载失败或未完成时回退至默认皮肤，避免 TextureManager 报错；未来若需多层贴图可扩展 `SkinLayers`。
+- **使用规范**: 渲染端调用 `SkinResolver.resolve(SkinHandle.from(entity))` 获取纹理；服务端需要在实体数据中写入 property/签名，已在 `XiaoGuangIllusionEntity` 等实现里完成。
+
 ---
 
 ## 开发指南

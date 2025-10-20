@@ -5,26 +5,24 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
-import net.minecraft.world.entity.player.Player;
+import net.tigereye.chestcavity.compat.guzhenren.client.skin.SkinHandle;
+import net.tigereye.chestcavity.compat.guzhenren.client.skin.SkinResolver;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
-
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 光蛊幻象渲染：沿用玩家皮肤并追加发光层。
  */
 public class XiaoGuangIllusionRenderer extends HumanoidMobRenderer<XiaoGuangIllusionEntity, PlayerModel<XiaoGuangIllusionEntity>> {
+
+    private static final ResourceLocation FALLBACK_TEXTURE = ResourceLocation.parse("minecraft:textures/entity/steve.png");
 
     public XiaoGuangIllusionRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER), false), 0.25f);
@@ -38,26 +36,15 @@ public class XiaoGuangIllusionRenderer extends HumanoidMobRenderer<XiaoGuangIllu
 
     @Override
     public ResourceLocation getTextureLocation(XiaoGuangIllusionEntity entity) {
-        return resolveTexture(entity);
-    }
-
-    private ResourceLocation resolveTexture(XiaoGuangIllusionEntity entity) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft != null && minecraft.level != null) {
-            Optional<UUID> ownerId = entity.getOwnerUuid();
-            if (ownerId.isPresent()) {
-                Player owner = minecraft.level.getPlayerByUUID(ownerId.get());
-                if (owner instanceof AbstractClientPlayer clientOwner) {
-                    return clientOwner.getSkinTextureLocation();
-                }
+            var layers = SkinResolver.resolve(SkinHandle.from(entity));
+            if (layers.base() != null) {
+                return layers.base();
             }
         }
         ResourceLocation snapshotTexture = entity.getSkinTexture();
-        if (snapshotTexture != null && !snapshotTexture.getPath().isBlank()) {
-            return snapshotTexture;
-        }
-        UUID fallbackId = entity.getOwnerUuid().orElse(entity.getUUID());
-        return DefaultPlayerSkin.getDefaultSkin(fallbackId);
+        return snapshotTexture != null && !snapshotTexture.getPath().isBlank() ? snapshotTexture : FALLBACK_TEXTURE;
     }
 
     private static final class AuraLayer extends RenderLayer<XiaoGuangIllusionEntity, PlayerModel<XiaoGuangIllusionEntity>> {
@@ -92,7 +79,7 @@ public class XiaoGuangIllusionRenderer extends HumanoidMobRenderer<XiaoGuangIllu
                     (int) (tint[1] * 255.0f),
                     (int) (tint[2] * 255.0f)
             );
-            ResourceLocation texture = parent.resolveTexture(entity);
+            ResourceLocation texture = parent.getTextureLocation(entity);
             VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucentEmissive(texture));
             model.renderToBuffer(
                     poseStack,
