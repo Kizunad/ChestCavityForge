@@ -16,7 +16,7 @@ public final class GuangDaoOrganRegistry {
 
     private static final String MOD_ID = "guzhenren";
     private static final ResourceLocation SHAN_GUANG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "shan_guang_gu");
-    private static final ResourceLocation XIAO_GUANG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_guang_gu");
+    private static final ResourceLocation XIAO_GUANG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiaoguanggu");
 
     private GuangDaoOrganRegistry() {
     }

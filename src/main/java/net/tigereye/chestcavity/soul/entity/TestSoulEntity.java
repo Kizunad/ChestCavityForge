@@ -8,6 +8,10 @@ import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
@@ -44,6 +48,7 @@ import net.tigereye.chestcavity.soul.entity.goal.DynamicGoalDispatcher;
 import net.tigereye.chestcavity.soul.util.SurfaceTeleportOps;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
+import net.tigereye.chestcavity.registration.CCItems;
 
 /**
  * 自定义灵魂实体“Test”，具备谨慎性格与独特拾取/攻击逻辑。
@@ -66,6 +71,12 @@ public class TestSoulEntity extends PathfinderMob {
         this.setPersistenceRequired();
         this.xpReward = 0;
         applyDefaultNameIfNeeded();
+    }
+
+    @Override
+    protected ResourceKey<LootTable> getDefaultLootTable() {
+        // 显式绑定 TestSoulEntity 的 LootTable，避免加载器未按约定路径解析导致无掉落
+        return ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse("chestcavity:entities/test_soul"));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -243,6 +254,15 @@ public class TestSoulEntity extends PathfinderMob {
             clearReactiveState();
         }
         super.remove(reason);
+    }
+
+    @Override
+    public void die(DamageSource source) {
+        super.die(source);
+        // 兜底：无论 LootTable 是否命中，确保至少掉落一个开胸蛊
+        if (!this.level().isClientSide) {
+            this.spawnAtLocation(new ItemStack(CCItems.CHEST_OPENER.get()));
+        }
     }
 
     public void readAdditionalSaveData(CompoundTag tag) {

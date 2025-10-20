@@ -16,7 +16,7 @@ public final class GuangDaoClientAbilities {
         if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(shanGuangId)) {
             CCKeybindings.ATTACK_ABILITY_LIST.add(shanGuangId);
         }
-        ResourceLocation xiaoGuangId = ResourceLocation.fromNamespaceAndPath("guzhenren", "xiao_guang_gu_illusion");
+        ResourceLocation xiaoGuangId = ResourceLocation.fromNamespaceAndPath("guzhenren", "xiaoguanggu_illusion");
         if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(xiaoGuangId)) {
             CCKeybindings.ATTACK_ABILITY_LIST.add(xiaoGuangId);
         }
