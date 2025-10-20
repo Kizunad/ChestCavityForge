@@ -1,8 +1,8 @@
 {
   "itemID": "guzhenren:huo_gu",
   "organScores": [
-    { "id": "guzhenren:speed", "value": "0.1" },
-    { "id": "guzhenren:strength", "value": "16" },
+    { "id": "chestcavity:speed", "value": "0.1" },
+    { "id": "chestcavity:strength", "value": "16" },
     { "id": "chestcavity:fire_resistant", "value": "1" }
   ]
 }

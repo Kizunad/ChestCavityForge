@@ -2572,3 +2572,10 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 * **分身实体**：`IllusionDecoy`（你前面已看过骨架），生命周期 40 tick；PVP 命中提前消散
 * **光遁步**（四转）：条件触发 + 位移 + 无敌帧，CD 以玩家 NBT/冷却管理器驱动
 * **资源消耗**：`GuzhenrenResourceBridge.open(player)` → `consumeScaledZhenyuan()` / 精力同步
+
+整理 ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/guang_dao  的主动/被动等逻辑，写入文档json中 ChestCavityForge/src/main/resources/data/guzhenren/docs/human/guang_dao , 要求，以系统语气撰写以下器官说明：
+1. 用简洁、正式的语气描述其作用（如游戏系统提示）。
+2. 若有数值，明确标出增益/减益效果与冷却。
+3. 避免花哨形容词，强调“功能”、“触发条件”、“持续时间”。
+4. 每条说明 1~3 句，读感类似“系统面板条目”。
+5. 若存在主动技能，请用[主动]；被动效果用[被动]开头。无需编译验证，只需检测json格式是否正确即可
