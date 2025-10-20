@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:gu_qiang_gu",
+  "title": "骨枪蛊",
+  "summary": "",
+  "details": [
+    "防御：0.25",
+    "神经 (挖掘速度,攻速相关)：0.5",
+    "chestcavity:attack_range：0.5"
+  ],
+  "tags": [
+    "骨枪蛊",
+    "guzhenren:gu_qiang_gu"
+  ],
+  "icon": "guzhenren:gu_qiang_gu"
+}

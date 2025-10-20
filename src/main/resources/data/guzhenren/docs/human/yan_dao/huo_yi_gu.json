@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:huo_gu",
+  "title": "火衣蛊",
+  "summary": "",
+  "details": [
+    "guzhenren:speed：0.1",
+    "guzhenren:strength：16",
+    "火焰抗性：1"
+  ],
+  "tags": [
+    "火衣蛊",
+    "guzhenren:huo_gu"
+  ],
+  "icon": "guzhenren:huo_gu"
+}

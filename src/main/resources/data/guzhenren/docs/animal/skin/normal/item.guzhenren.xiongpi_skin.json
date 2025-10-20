@@ -1,0 +1,16 @@
+{
+  "id": "guzhenren:xiongpi",
+  "title": "蛊材_熊皮",
+  "summary": "",
+  "details": [
+    "防御：20",
+    "生命值：20",
+    "抗冲击：10",
+    "力量：20"
+  ],
+  "tags": [
+    "蛊材_熊皮",
+    "guzhenren:xiongpi"
+  ],
+  "icon": "guzhenren:xiongpi"
+}

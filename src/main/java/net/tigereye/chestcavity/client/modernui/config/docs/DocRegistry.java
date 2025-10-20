@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.client.modernui.config.docs;
 
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.client.modernui.config.docs.provider.ActiveSkillDocProvider;
+import net.tigereye.chestcavity.client.modernui.config.docs.provider.ResourceDocProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +33,7 @@ public final class DocRegistry {
         if (defaultsRegistered) {
             return;
         }
+        registerProvider(new ResourceDocProvider());
         registerProvider(new ActiveSkillDocProvider());
         defaultsRegistered = true;
     }

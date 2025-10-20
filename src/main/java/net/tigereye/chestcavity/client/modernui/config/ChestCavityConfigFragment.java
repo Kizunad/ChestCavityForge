@@ -585,8 +585,15 @@ public class ChestCavityConfigFragment extends Fragment {
                     return;
                 }
 
-                int available = layout.getWidth() - layout.getPaddingLeft() - layout.getPaddingRight();
-                int columns = Math.max(1, available <= 0 ? 1 : available / (cellWidthPx + gap * 2));
+                int available = iconGrid.getWidth() - iconGrid.getPaddingLeft() - iconGrid.getPaddingRight();
+                if (available <= 0) {
+                    available = leftColumn.getWidth() - leftColumn.getPaddingLeft() - leftColumn.getPaddingRight();
+                }
+                if (available <= 0) {
+                    available = layout.getWidth() - layout.getPaddingLeft() - layout.getPaddingRight();
+                }
+                int colWidth = cellWidthPx + gap * 2;
+                int columns = available > 0 ? Math.max(1, available / colWidth) : 1;
                 LinearLayout currentRow = null;
                 int col = 0;
                 ResourceLocation currentSelected = selectedIdRef.get();
@@ -653,6 +660,17 @@ public class ChestCavityConfigFragment extends Fragment {
             };
 
             layout.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                int newWidth = right - left;
+                int oldWidth = oldRight - oldLeft;
+                if (newWidth != oldWidth) {
+                    List<DocEntry> current = displayedRef.get();
+                    if (current != null) {
+                        rebuild.accept(new ArrayList<>(current));
+                    }
+                }
+            });
+
+            iconGrid.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
                 int newWidth = right - left;
                 int oldWidth = oldRight - oldLeft;
                 if (newWidth != oldWidth) {

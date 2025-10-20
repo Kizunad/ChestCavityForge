@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:shui_ti_gu",
+  "title": "水体蛊",
+  "summary": "",
+  "details": [
+    "力量：12",
+    "速度：12",
+    "防御：0.5"
+  ],
+  "tags": [
+    "水体蛊",
+    "guzhenren:shui_ti_gu"
+  ],
+  "icon": "guzhenren:shui_ti_gu"
+}

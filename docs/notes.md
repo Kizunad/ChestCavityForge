@@ -2488,3 +2488,87 @@ FRP 有上限（随当前转数提升而提高），达到上限后触发晋阶�
 1. **防止链式滥用**：每次爆裂后对同一区域/目标短时设免疫或转换成低伤害连锁，避免创造无限连锁。
 2. **交互代价**：与油或火衣造成的大范围爆炸必须有资源/冷却代价（真元、高冷却、消耗油涂层），避免零代价全图爆炸。
 3. **可玩性**：二转到三转应当把控场与单体爆发两条路线都保持竞争力；四转给出明确的“全部燃尽”终极技，但高真元与长冷却限制使用频率。
+
+**小光蛊**做成可直接落地的数据与机制方案：有清晰的 tier（转数）、点数升级路线、以及完全对齐现有 Organscores 的 JSON。
+
+---
+
+# 小光蛊 · 幻光系（眼类器官）
+
+**定位**：灵巧与欺敌。利用光折射制造幻象、误导仇恨，PVP 友好。
+**物品本地化**：`"item.guzhenren.xiaoguanggu": "小光蛊"`
+
+## 机制总览（随转数进阶）
+
+* **被动·折影**：闪避成功时在原位生成“残影”标记（`reaction/mirror_image`），3秒内被远程锁定概率 -15%（PVP/PVE均有效，服务端命中判定偏置）。
+总体思路
+当玩家触发“折影”（闪避）后，给其添加一个3 秒的模糊态（Blur）标记。期间：
+AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁定。
+弹道脱靶：投射物命中该玩家的那一刻，15% 概率改判为未命中（取消/偏转）。
+兜底减伤：若仍进入结算，按投射物伤害类型 15% 概率取消伤害（Config可选开关，避免太强）。
+注意：Minecraft 没有“官方锁定”概念，我们通过选敌/弹道/伤害三个切面叠加，得到接近“锁定概率下降”的体感。
+
+* **主动技·幻映术**：投射“分身幻影”（使用玩家皮肤），**2秒自主演出 AI 后自动消散**；可被攻击，受击即提前消散（仅特效，不反击，不掉落；PVP可用）。
+* **三转解锁**：分身在存活期间可**模仿一次轻攻击**（伤害系数 30%）。受击或消散时触发小型「幻光爆裂」（`reaction/illusion_burst`）。
+* **四转解锁**：**光遁步**：在闪避后 0.5 秒内再次闪避→向前位移 5 格，获得 1 秒无敌与隐身（CD 10s）。与风/雷器官有共鸣增益。
+
+> 默认主动技参数：CD 18s；消耗：`200 真元 + 5 精力`。
+> 共鸣增强（已有ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/util/GuzhenrenFlowTooltipResolver.java辅助实现）：
+>
+> * 与**雷道蛊虫**：分身消散时附带 1 次短链雷击。
+> * 与**风道蛊虫**：光遁步距离 +2 格、隐身 +0.5 秒。
+
+---
+
+## 点数升级路线（数据驱动 + 轻实现）
+
+* **点数名**：`光灵点（LuminaPoints）`（建议以玩家 NBT / scoreboard 计数，键名 `guzhenren:lumina_points`）。
+* **获取示例**（任选实现）：白昼击杀+1；分身被敌方命中+1（冷却 5s）；成功触发光遁步+1（冷却 30s）。
+* **消耗规则**：
+
+  * 二转 → 三转：消耗 **40 光灵点**；要求：`guzhenren:hunpo_stability ≥ 0.3`、`guzhenren:max_zhenyuan ≥ 0.5`
+  * 三转 → 四转：消耗 **120 光灵点**；要求：`hunpo_stability ≥ 0.6`、`max_zhenyuan ≥ 1.0`
+
+到达点数自动升级并且清空点数
+
+---
+
+## 器官 Organscores（与现有格式完全一致）
+
+> 放置路径（建议）：
+> `src/main/resources/data/chestcavity/organs/guzhenren/human/guang_dao/`
+`xiao_guang_gu.json`
+
+```json
+{
+  "itemID": "guzhenren:xiao_guang_gu",
+  "organScores": [
+    { "id": "chestcavity:nerves",          "value": "0.40" },
+    { "id": "chestcavity:speed",           "value": "0.15" },
+    { "id": "chestcavity:luck",            "value": "0.02" },
+    { "id": "chestcavity:metabolism",      "value": "-0.05" },
+    { "id": "guzhenren:hunpo_stability",   "value": "0.20" },
+    { "id": "guzhenren:max_jingli",        "value": "0.40" },
+    { "id": "guzhenren:jingli",            "value": "0.20" },
+    { "id": "guzhenren:max_zhenyuan",      "value": "0.20" },
+    { "id": "guzhenren:zhenyuan",          "value": "0.20" }
+  ]
+}
+
+> 说明：
+>
+> * 数值刻意沿用现有风格（小数、正负混合，含 `chestcavity:*` 与 `guzhenren:*`），避免引入新 Score Key。
+> * `incompatibility` 与 `metabolism` 给出少量代价，平衡灵巧与续航。
+> * 三/四转额外的机制（分身模拟攻击、光遁步）通过行为挂钩实现，不需要在 JSON 内声明。
+
+
+
+---
+
+## 行为落地要点（与现有架构对齐）
+
+* **触发入口**：`compat/guzhenren/item/guang_dao/behavior/IllusionSkill`（主动技）
+* **被动挂钩**：闪避事件监听（客户端判定 + 服务端校验）→ 残影标记 & 三/四转分支
+* **分身实体**：`IllusionDecoy`（你前面已看过骨架），生命周期 40 tick；PVP 命中提前消散
+* **光遁步**（四转）：条件触发 + 位移 + 无敌帧，CD 以玩家 NBT/冷却管理器驱动
+* **资源消耗**：`GuzhenrenResourceBridge.open(player)` → `consumeScaledZhenyuan()` / 精力同步

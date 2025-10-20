@@ -1,0 +1,17 @@
+{
+  "id": "guzhenren:lingrou",
+  "title": "蛊材_羚肉",
+  "summary": "",
+  "details": [
+    "防御：20",
+    "过滤 (肾功能 - 低于默认：周期性施加中毒。 - 高于默认：缩短中毒持续时间。)：10",
+    "生命值：20",
+    "速度：0.2",
+    "力量：0.2"
+  ],
+  "tags": [
+    "蛊材_羚肉",
+    "guzhenren:lingrou"
+  ],
+  "icon": "guzhenren:lingrou"
+}

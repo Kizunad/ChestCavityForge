@@ -1,0 +1,16 @@
+{
+  "id": "guzhenren:long_wan_qu_qu_gu",
+  "title": "龙丸蛐蛐蛊",
+  "summary": "",
+  "details": [
+    "guzhenren:max_jingli：5",
+    "guzhenren:max_zhenyuan：10",
+    "防御：4",
+    "速度：0.1"
+  ],
+  "tags": [
+    "龙丸蛐蛐蛊",
+    "guzhenren:long_wan_qu_qu_gu"
+  ],
+  "icon": "guzhenren:long_wan_qu_qu_gu"
+}

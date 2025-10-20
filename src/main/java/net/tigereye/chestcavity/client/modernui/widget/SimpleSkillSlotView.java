@@ -60,9 +60,10 @@ public final class SimpleSkillSlotView extends LinearLayout {
         label.setTextSize(11);
         label.setTextColor(0xFFE6F3FF);
         label.setGravity(Gravity.CENTER_HORIZONTAL);
-        label.setSingleLine();
+        label.setSingleLine(false);
+        label.setMaxLines(2);
         label.setPadding(0, label.dp(4), 0, 0);
-        addView(label, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        addView(label, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         setClickable(true);
         setFocusable(true);
