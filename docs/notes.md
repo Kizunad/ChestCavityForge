@@ -2537,11 +2537,11 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 
 > 放置路径（建议）：
 > `src/main/resources/data/chestcavity/organs/guzhenren/human/guang_dao/`
-`xiao_guang_gu.json`
+`xiaoguanggu.json`
 
 ```json
 {
-  "itemID": "guzhenren:xiao_guang_gu",
+  "itemID": "guzhenren:xiaoguanggu",
   "organScores": [
     { "id": "chestcavity:nerves",          "value": "0.40" },
     { "id": "chestcavity:speed",           "value": "0.15" },

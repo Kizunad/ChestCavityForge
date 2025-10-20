@@ -61,8 +61,8 @@ public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
 
     // 器官、能力的命名空间常量
     private static final String MOD_ID = "guzhenren";
-    private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_guang_gu");
-    public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_guang_gu_illusion");
+    private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiaoguanggu");
+    public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiaoguanggu_illusion");
 
     // 组织器官状态用的键值常量
     private static final String STATE_ROOT = "XiaoGuangGu";
