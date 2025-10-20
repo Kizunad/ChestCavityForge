@@ -41,6 +41,8 @@ public final class ReactionTagKeys {
 
     // 光道/魂道/剑道扩展标签
     public static final ResourceLocation LIGHT_DAZE = tag("reaction/light_daze");
+    public static final ResourceLocation MIRROR_IMAGE = tag("reaction/mirror_image");
+    public static final ResourceLocation ILLUSION_BURST = tag("reaction/illusion_burst");
     public static final ResourceLocation SOUL_SCAR = tag("reaction/soul_scar");
     public static final ResourceLocation SWORD_SCAR = tag("reaction/sword_scar");
     public static final ResourceLocation LIGHTNING_CHARGE = tag("reaction/lightning_charge");
