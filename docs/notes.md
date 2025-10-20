@@ -2755,6 +2755,414 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 并且同步更新  ChestCavityForge/src/main/resources/assets/guzhenren/docs/human/yue_dao 的文档
 --------------------------------------
 
+* 已有火系：`HuoxinguOrganBehavior`（火心蛊）、`HuoYiGuOrganBehavior`（火衣蛊 / `itemID=guzhenren:huo_gu`）、`HuoYouGuOrganBehavior`（火油蛊）、`HuoTanGuOrganBehavior`、`HuorenguOrganBehavior`，均挂在 `YanDaoOrganRegistry` 下，使用 `OrganState`、`OrganStateOps`、`MultiCooldown`、`ResourceOps`、`GuzhenrenResourceBridge` 等通用基建。
+* 反应与 DoT：`DoTTypes`（包含 `dot/ignite` 与 `dot/yan_dao_huo_yi_aura`）、`ReactionTagKeys`（`OIL_COATING`、`FIRE_COAT` 等）、`ReactionRegistry`（火/土等联动规则已有范式）。
+* 其它可联动：`BaiYunGuOrganBehavior`（白云蛊）、`ZhiZhuangGuOrganBehavior`（直撞蛊）等都在。
+
+基于这些基建，下面是「火龙蛊（脊椎）」的完整设计：4→5 转升级、3 主动 / 3 被动 / 3 联动、计数解锁、强力 DoT 与 Reaction 扩展、Organscores 方案与实现要点。
+
+---
+
+# 火龙蛊（脊椎）— 设计总览
+
+**定位**：高爆发的空战核，围绕“双段龙焰 + 俯冲龙降”，通过「龙焰印记」叠层形成强力 DoT，并与火衣/火油/直撞等器官产生化学反应。
+**核心资源**：真元（消耗维持与施法）、气运（上限与回复效率）、计数（解锁 5 转）。
+
+---
+
+## 1) Organscores（数据 JSON）
+
+### 4 转
+
+```json
+{
+  "itemID": "guzhenren:huo_long_gu",
+  "organScores": [
+    { "id": "chestcavity:health", "value": "8" },
+    { "id": "chestcavity:strength", "value": "24" },
+    { "id": "chestcavity:speed", "value": "0.10" },
+    { "id": "chestcavity:fire_resistant", "value": "2" },
+    { "id": "guzhenren:zuida_zhenyuan", "value": "8" },
+    { "id": "guzhenren:zuida_jingli", "value": "6" },
+    { "id": "guzhenren:qiyun_shangxian", "value": "10" }
+  ]
+}
+```
+
+---
+
+## 2) 新增 DoT 与状态标签
+
+* **DoTTypes**
+
+  * `YAN_DAO_DRAGONFLAME = "dot/yan_dao_dragonflame"`
+
+    * 基础：每层 **6/秒 × 6 秒**；最多 **6 层**，刷新叠加制。
+    * 伤害系数：`base + ATTACK_BASE_PERCENT(0.5%) × 层数 + 目标最大生命的 0.2%/s`
+    * 对 `ReactionTagKeys.OIL_COATING` 目标 **×1.35**；对 `ReactionTagKeys.FIRE_COAT` 目标初次命中 **瞬发 1 次额外爆燃（等效 2 tick）**。
+* **ReactionTagKeys（新增）**
+
+  * `DRAGON_FLAME_MARK = "reaction/dragon_flame_mark"`（记录层数 + 到期）
+  * `DRAGON_ASCENT = "reaction/dragon_ascent"`（悬停态）
+  * `DRAGON_DIVE = "reaction/dragon_dive"`（俯冲态）
+* **ReactionRegistry（新增规则）**
+
+  1. `DRAGON_FLAME_MARK + OIL_COATING` ⇒ **劫火引爆**：
+
+     * 清除 `OIL_COATING`；对目标造成 **(当前层数×10)** 的瞬时伤害 + 1 秒击退抗性破防（击退倍率 +30%，用于抛掷）
+  2. `DRAGON_FLAME_MARK + FIRE_COAT` ⇒ **龙火洗礼**：
+
+     * 对目标再应用 **2 层 DRAGONFLAME**（不超过上限），并为施法者施加 **2s 火焰免疫**（`FIRE_IMMUNE` 标签）
+  3. 与 `dot/ignite` 共存：`ignite` tick 命中时若目标带有 `DRAGON_FLAME_MARK`，则 **延长龙焰剩余时间 +1s（每 2s 可触发一次）**
+
+---
+
+## 3) 主动技能 ×3
+
+### A1. 龙焰吐息（双段·主技）
+
+* **冷却**：20s；**充能**：2 发；**充能窗口**：首次施放后 **10s** 内可再施放一次；用 `MultiCooldown` 管理 2 槽。
+* **资源**：施放消耗 **真元 300**；命中每个单位返还 **真元 30**（最多返 150）。
+* **效果**：发射一条 **200 伤害** 的火龙（实体/射线皆可），命中：
+
+  * 对目标施加 **DRAGONFLAME +2 层**；
+  * 触发 **10% 施法者最大生命** 的爆炸性伤害（对周围 3 格，友军减半）；
+  * 将施法者标记为 **悬停态 `DRAGON_ASCENT`**，**强制停留空中 1.5s**（清零水平速度、施加缓降/抗击退）。
+* **连段**：若首段命中后 1.5s 内检测到命中事件，则 **自动补发**一次小型龙炎冲击（不消耗充能，伤害 80，+1 层 DoT）。
+
+> 实现要点：
+>
+> * `OrganState` 持久键：`Charges`, `LastCastTick`, `AscentExpireTick`。
+> * 悬停可直接使用：设置 `entity.setDeltaMovement(Vec3.ZERO)` + 缓降、抗击退，或短时 Levitation。
+
+### A2. 龙脊·凝空（位移/定身）
+
+* **冷却**：16s；**资源**：真元 150。
+* **效果**：立即获得 **3s 悬停 `DRAGON_ASCENT`**，期间 **±50% 俯仰加速度**（更易瞄准），并获得 **2s 远程抗性**（投射物减伤 40%）。
+* **加成**：若身上已有 `DRAGON_FLAME_MARK`（你上一次吐息打中的目标给你的“龙火回响”自标记，可做成 Linkage 信道），则本次凝空结束时朝该目标方向释放 **引雷般冲击波**（100 伤害，+1 层 DoT）。
+
+### A3. 龙降俯冲（处决/爆破）
+
+* **冷却**：20s（与 A1 独立）；**资源**：真元 250 + **立即扣除自身生命 30%**。
+* **效果**：施法者化作火龙高速俯冲（`DRAGON_DIVE` 2.0s，控制水平方向，强制穿怪），命中地面或单位时在 **4 格**内造成 **400 伤害爆炸**，并对带 `DRAGON_FLAME_MARK` 的目标 **额外 +2 层 DoT**。
+* **血量越低越痛**：每 **扣除 100 点血**（以本次消耗记）使伤害 **+15%**，上限 **+60%**。
+* **安全窗**：结算后给予 **1.5s 无敌帧** 与 **火焰免疫**。
+
+> 实现要点：俯冲可通过持续设置 `setNoGravity(true)` + 强制 `setDeltaMovement(forward*speed, -downSpeed, ...)`，落点检测触发 AoE；或临时生成“龙体”投射物并绑定玩家。
+
+---
+
+## 4) 被动效果 ×3
+
+1. **龙旺火运**
+
+   * **气运上限 +10**（由 Organscores 提供）；
+   * **气运回复效率 +10%（4 转）/ +15%（5 转）**。
+   * 实现：在 `OrganSlowTick` 中周期 `ResourceOps.tryAdjustQiyunRegenRateMultiplier(entity, 0.10/0.15)`（或通过桥接暴露的倍率入口）。
+
+2. **龙鳞护脊**
+
+   * **火焰抗性 +2/3**（随转数），以及 **击退抗性 +0.3**；
+   * 悬停/俯冲期间再获得 **投射物减伤 20%**。
+
+3. **龙血灼流**
+
+   * 你对带 `DRAGON_FLAME_MARK` 的目标造成伤害时，**按本次 DoT 层数 ×1% 吸血**（上限 6%），且每 2s 最多触发一次。
+
+---
+
+## 5) 器官联动 ×3
+
+> 直接用现有 **itemID** / 行为，以“是否装备该器官”或“目标状态标签”判定：
+
+1. **与 火衣蛊（`guzhenren:huo_gu`）联动**
+
+   * 当龙焰层数 ≥3 的目标进入火衣光环时，触发 **龙火洗礼**（见 Reaction），并使你的 **A1 吐息冷却 -2s**（每 8s 触发一次）。
+
+2. **与 火心蛊（`guzhenren:huoxingu`）联动**
+
+   * 你处于 `ignite` 或 `DRAGON_FLAME_MARK` 战斗循环中时，每 **3 tick** 额外获得 **精力 +2**、**生命 +0.5**（遵循火心已有支付/补给范式）。
+   * 若 5 转：每 **刷新一层龙焰**，为 A1 **返还真元 +10**。
+
+3. **与 直撞蛊（`guzhenren:zhi_zhuang_gu`）联动**
+
+   * 俯冲（A3）命中**任意活体**会**刷新 A3 冷却 50%**；
+   * 俯冲期间如果**碰撞到敌人**（实现沿用直撞的碰撞判定），立即**返还 A1 一发充能**（每 12s 一次）。
+
+> 备注：火油蛊虽未查到 JSON，但行为已在工程内；已在 Reaction 中通过 `OIL_COATING` 做了天然协同，无需占用名额。
+
+---
+
+## 6) 4→5 转升级路线（计数实现）
+
+**计数名**：`DragonSpineCounter`（显示名：龙脊战焰）
+**存储**：`OrganState` 自定义 NBT（根键建议 `"HuoLongGu"`）
+
+* **键值**：
+
+  * `Counter`（int）、`LastTick`（long）、`DecayGateTick`（long）
+  * `Charges`、`LastCastTick`、`AscentExpireTick`（见主动技）
+* **获取方式（示例数值，可再调）：**
+
+  * 用 A1 命中 1 个单位：**+2**；若其带 `OIL_COATING`：**额外 +1**
+  * 对带 `DRAGON_FLAME_MARK` 的目标**每次刷新层数**：**+1**
+  * 处于悬停态每 **秒**：**+1**（上限每次悬停 +3）
+  * 俯冲（A3）命中：**+5**；命中时附近 ≥2 个单位：再 **+3**
+  * 击杀处于龙焰状态的目标：**+3**
+* **衰减**：10 秒未对任意单位造成火系伤害，**每 5s -1**，不低于 0。
+* **门槛**：累计 **200** 解锁 5 转；解锁后计数不再衰减（或改为展示型计量）。
+* **实现模板**：
+
+  * 在 `OrganSlowTickListener` 驱动下 `state.changeInt(ROOT,"Counter", op)`，用 `OrganStateOps.Mutator` 统一提交并 `NetworkUtil.sendOrganSlotUpdate`；
+  * 需要多处加点的地方（OnHit/DoT 刷新/技能结算）通过 `LinkageChannel` 或 `ActiveLinkageContext` 把事件投递到同一处聚合，避免多线程/多来源竞态。
+
+---
+
+## 7) 关键实现点（落地即写）
+
+* **行为类**：`compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java`
+
+  * `INSTANCE` 单例，注册到 `YanDaoOrganRegistry.specs()`：
+
+    * `.addSlowTickListener(...)`（悬停/计数/燃烧结算）
+    * `.addOnHitListener(...)`（A1 命中、DoT 刷新、计数累积）
+    * `.addIncomingDamageListener(...)`（俯冲无敌窗/伤害来源过滤）
+* **技能注册**：`ActiveSkillRegistry`
+
+  * `guzhenren:huo_long_gu_breath`（龙焰吐息）
+  * `guzhenren:huo_long_gu_hover`（龙脊·凝空）
+  * `guzhenren:huo_long_gu_dive`（龙降俯冲）
+* **冷却体系**：`MultiCooldown` 两槽方案（A1 双充能），A3 独立槽；使用 `Mutator.withIntClamp`/`withLongClamp` 限界。
+* **资源桥**：用 `GuzhenrenResourceBridge.open(player)` → `consumeScaledZhenyuan()` 与 `ResourceOps.tryAdjustQiyun...()` 读写气运与真元。
+* **DoT/Reaction**：在 `DoTTypes`/`ReactionTagKeys` 各加常量，在 `ReactionRegistry` 追加规则与文本。`ReactionStatuses` 不需特殊判断（不同于火衣 Aura）。
+* **特效/手感**：
+
+  * A1 命中：粒子龙头 + 烈焰拖尾；
+  * A2 悬停：玩家周身升腾（`ParticleTypes.SMALL_FLAME`）+ 轻微相机摇摆；
+  * A3 俯冲：高帧率火迹 + 地表灼痕（可选落地临时方块/烟尘）。
+
+---
+
+## 8) 数值一览（便于校准）
+
+* **A1**：200 基础伤害；额外爆炸 = 施法者最大生命 ×10%；自动补发 80；冷却 20s / 双充能；10s 充能窗口。
+* **A2**：3s 悬停，2s 投射减伤 40%；命中回响冲击 100；CD 16s。
+* **A3**：400 基础爆炸；本次扣血每 100 → **+15%**，上限 **+60%**；落地 1.5s 无敌；CD 20s。
+* **DoT**：6/s × 6s，最多 6 层；对 `OIL_COATING` ×1.35；首遭 `FIRE_COAT` 再加 2 层。
+* **被动**：气运上限 +10；气运回复效率 +10%（5 转 +15%）；火抗 +2/3；击退抗 +0.3；吸血上限 6%。
+* **计数**：门槛 200；主要来源 A1 命中/DoT 刷新/悬停/俯冲命中/处决；10s 空窗开始每 5s -1。
+
+---
+
+## 9) 测试与验证流程
+
+1. **基础回归**：装配/卸下不报错；`OrganState` NBT 正确写回；`MultiCooldown` 两槽计时正确。
+2. **DoT 正确性**：层数上限、刷新延长、与 `ignite` 干涉、`OIL_COATING` 倍率。
+3. **运动学**：A2 悬停不坠落、可转向；A3 强制俯冲后能正确落地结算与无敌窗。
+4. **联动**：装备 `guzhenren:huo_gu`、`guzhenren:huoxingu`、`guzhenren:zhi_zhuang_gu` 的增益、冷却返还是否达成。
+5. **计数**：`Counter` 统计、衰减门槛、解锁 5 转后行为空转稳定。
+
+下面把 **A1 / A2 / A3** 和 **3 个被动**的可落地特效方案一次给全：全部基于原版粒子（Dust、Flame、Soul_Fire_Flame、Smoke、Crit、Explosion、Firework 等）+ 少量相机/音效。默认追求“远看清楚、近看细腻、性能稳定”的三层级设计（近景细节 / 中景主读性 / 远景可见性）。
+
+---
+
+# A1「龙焰吐息」— 双段吐息与悬停
+
+**整体观感**
+
+* 关键视觉：一条“带龙头轮廓的火焰流”沿样条冲出；命中爆燃 + 龙焰印记（DoT）烙纹闪烁。
+* 色板：#FF7A00（橙）→ #FFD27A（白黄）渐变；末端点缀 #FF3300（深红）。
+
+**粒子与几何**
+
+* **样条吐息**：客户端按 12–16 节点 Bezier/样条插值，沿路径每 0.05–0.08m 放置 1 组粒子：
+
+  * `flame`（基础流）×2–3
+  * `dust_color_transition`（#FF7A00→#FFD27A，size 0.15–0.3）
+  * `small_flame`（龙头口部加强）
+  * `smoke`（后随漩涡，稀疏）
+* **龙头描边**（命中瞬间前 2 tick）：在末端 0.6m 立体扇形上布 10–12 个 `crit` + 2 个 `firework`（很小的光点），形成“吐息口形”。
+
+**悬停表现（DRAGON_ASCENT）**
+
+* 施法者脚下生成微型“热流喷口”：
+
+  * `dust_color_transition`（#FF7A00→#FFD27A，size 0.08）随机向下 0.15–0.25m
+  * `small_flame` 零星上升；每 tick 2–3 个
+* 叠加一个**轻微镜头呼吸**（FOV +1.5%，0.4s ease in/out），远程减伤/抗击退时给肩部“亮边”效果（只用 `dust_color_transition` 沿玩家 AABB 边缘画 6–8 点）。
+
+**命中与爆燃**
+
+* **命中爆炸**（“最大生命 10% 爆炸伤”对应的视觉）：
+
+  * `explosion_emitter` 一次
+  * `smoke` × 6–10，放射状
+  * `flame` × 8–12
+  * 目标身上加“烙纹闪”（DoT 层数 = 2）：连续 6 秒，每秒 1 次 `dust_color_transition` 环形 12 点（半径 0.5m → 0.6m），颜色随层数升高提高亮度。
+* **自动二段冲击**：较小的“火环”：`flame` × 6 + `dust_color_transition` 环 8 点，持续 3–4 tick。
+
+**音效**
+
+* 吐息启动：`SoundEvents.BLAZE_SHOOT`（音调 1.1）
+* 命中爆燃：`SoundEvents.GENERIC_EXPLODE`（音量 0.6、音调 1.25）
+* 悬停底噪：`SoundEvents.FURNACE_FIRE_CRACKLE`（极低音量循环 1.2s）
+
+**性能/可读性**
+
+* 近距 60–80 粒子/秒；>24m 时仅保留“样条主干 + 爆燃 1 次”；>48m 只显示爆燃闪光。
+* 客户端 config：`fx.dragonbreath.detail = LOW/MED/HIGH`，LOW 砍 40% 尾迹。
+
+---
+
+# A2「龙脊·凝空」— 悬停与指向冲击
+
+**整体观感**
+
+* 关键视觉：玩家周身形成“火流托举场”，脚下两个小喷口，结束时向目标方向发出“气浪冲击”。
+
+**粒子**
+
+* 悬停 3s：
+
+  * 玩家中心 → 上方 0.6m：`soul_fire_flame` 稀疏上升（每 tick 1–2）
+  * 腿部两侧本地坐标（±0.25, -0.9, 0）：`small_flame` 垂直向下喷 0.2m
+  * 身周 0.6m 半径环：`dust_color_transition` 8–10 点围绕匀速旋转（角速度随俯仰变化）
+* 结束“指向冲击”（若有“龙火回响”目标）：
+
+  * 玩家 → 目标方向发 1 条“空气凝波”线：
+
+    * 每 0.15m 一个 `cloud` + `dust_color_transition`（#FFD27A→#FFFFFF，size 0.2）
+  * 命中：小型爆裂 `poof` × 8 + `crit` × 4
+
+**音效**
+
+* 悬停开始：`SoundEvents.ELYTRA_FLYING`（音量 0.25 叠加）
+* 指向冲击：`SoundEvents.GENERIC_SWIM`（短促 0.2s，音调 1.3）
+
+**相机/UI**
+
+* 悬停时微弱“瞄准稳定”反馈：摄像头抖动抑制 20%（仅客户端体验变量，不影响服务器判定）。
+
+---
+
+# A3「龙降俯冲」— 变身俯冲与处决爆破
+
+**整体观感**
+
+* 关键视觉：高速火线拖尾，落地环爆 + 炭化烟尘，短暂无敌的“白热龙焰”包裹。
+
+**粒子**
+
+* 俯冲阶段（2.0s 或至命中）：
+
+  * 玩家身后方向向量反向 0.8–1.2m 拉“火带”：每 tick
+
+    * `flame` × 6–8（速度与玩家速度成比例）
+    * `dust_color_transition` × 3（#FFD27A→#FFFFFF，size 0.25）
+  * 速度越快，拖尾越长（上限 1.6m）
+* 命中地面/单位：
+
+  * **环形冲击波**：以半径 4 格均匀布 24–28 点 `explosion`/`poof`/`flame`
+  * **中心白热**：0.3s 内每 tick 在玩家脚下 `soul_fire_flame` ×2 + `crit` ×2
+  * 若目标带「龙焰印记」：再喷一次“内向回卷”的 `smoke` × 8（表示再加 2 层 DoT）
+* 扣血越多 → 爆炸越亮：按额外伤害倍率（+15% ×n，至 +60%）去调 `dust_color_transition` 的 size 与发射角度（从 22.5° 提到 37.5°）。
+
+**音效**
+
+* 俯冲启动：`SoundEvents.TRIDENT_RIPTIDE_3`
+* 命中：`SoundEvents.GENERIC_EXPLODE`（音量 0.9，音调 0.9）+ `SoundEvents.ANVIL_LAND`（很轻表面冲击感）
+
+**相机**
+
+* 命中瞬间 0.1s 轻微屏震（位移 0.04–0.06），随后 0.3s 渐消。
+
+---
+
+# 被动特效（3 个）
+
+## P1「龙旺火运」
+
+* **持续光晕**：玩家胸口到肩部 0.4m 范围内，随机 `dust_color_transition`（#FF7A00→#FFD27A，size 0.05–0.08）每秒 6–8 个，说明“气运涌动”。
+* **气运溢出提示**：气运回复效率被动触发时（内部倍率>1），额外在头顶 0.2m 出现 3 个 `firework` 微光点。
+
+## P2「龙鳞护脊」
+
+* **受击闪鳞**：在被投射物命中时，沿背部脊线（脊椎骨骼本地 z 轴）亮起 5–6 个 `crit` 白点 + 2 个 `soul_fire_flame`，显示“减伤触发”。
+* **悬停/俯冲期间**：背部两侧各 3 个“发光鳞片”点位（`dust_color_transition`，size 0.06，alpha 低），每 0.5s 轻微明灭。
+
+## P3「龙血灼流」
+
+* **吸血触发**：对带印记目标造成伤害且吸血发生时，在玩家胸口生成一小束“回流火线”：自目标方向来 1 条 `dust_color_transition` 线条（每 0.2m 1 点，0.25s 消逝）。
+* **层数可读性**：目标 DoT 层数 1–6 对应其身周环形点位从 6→12 逐级增加（但远距只显示 4–6 个，兼顾性能）。
+
+---
+
+# 反应（Reactions）与 DoT 的可视化钩子
+
+* **OIL_COATING × DRAGON_FLAME_MARK（劫火引爆）**
+
+  * 目标身上先出现“油光”闪烁：`dripping_honey` 1–2 个，然后被火焰瞬间吞没：`flame` × 10 + `explosion` × 1。
+* **FIRE_COAT × DRAGON_FLAME_MARK（龙火洗礼）**
+
+  * 施法者获得 2s 火免：身体外缘每 0.2s 生成 8 点 `soul_fire_flame` 小圆环，环绕移动。
+
+---
+
+# 工程落地建议（轻代码）
+
+**通用发射器**（客户端）：`DragonFx.emitLine(Level, Vec3 a, Vec3 b, LineSpec spec)`
+
+* 步长 `step = 0.12`，沿线插值放置多个 `ParticleOptions`。
+* `LineSpec` 含 `List<ParticleEmitter>`，每个 emitter 有 `probability`, `countPerPoint`, `sizeRange`, `colorGradient`.
+
+**样条工具**：`DragonFx.spline(List<Vec3> nodes, double t)`
+
+* Bezier 或 Catmull-Rom；A1 用服务器发起关键点，客户端插值，仅发 6–8 个节点即可保证低带宽。
+
+**近/中/远 LOD**
+
+* `FxQuality quality = FxConfig.get();`
+* 依据 `distanceSq(camera, fxOrigin)` 与 `quality` 动态减半 `countPerPoint` 与取消烟雾类粒子。
+
+**音效去重**
+
+* 同一玩家 0.5s 内同类音效仅播放一次（防止双段吐息叠音）。
+
+---
+
+# 参数参考（可直接用）
+
+```java
+public final class DragonFxPresets {
+  // 颜色用 DustColorTransitionOptions
+  public static final Vector3f ORANGE = new Vector3f(1.0f, 0.48f, 0.0f);
+  public static final Vector3f WARM  = new Vector3f(1.0f, 0.82f, 0.48f);
+  public static final Vector3f WHITE = new Vector3f(1.0f, 1.0f, 1.0f);
+
+  // A1 吐息主干每点发：
+  public static final int BREATH_FLAME_PER_POINT = 3;     // LOW: 2
+  public static final int BREATH_SMOKE_PER_POINT = 1;     // LOW: 0
+  public static final float BREATH_STEP = 0.08f;
+
+  // A3 环爆
+  public static final int DIVE_RING_POINTS = 26;          // LOW: 16
+  public static final float DIVE_RING_RADIUS = 4.0f;
+}
+```
+
+---
+
+# 性能 & 可配置项
+
+* **最大并发预算**：单玩家极限 140–180 粒子/秒；战斗 4 人时维持 < 700 粒子/秒（MED）。
+* **配置**：
+
+  * `fx.dragon.enable=true/false`
+  * `fx.dragon.quality=LOW/MED/HIGH`
+  * `fx.camera.shake=true/false`
+  * `fx.dragon.dynamic_light=true/false`（如装有动态光源类模组，可调用其 API；否则只用粒子模拟亮度）
+
+--------------------------------------
 baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 
 [复制粘贴用 - 更新文档]
