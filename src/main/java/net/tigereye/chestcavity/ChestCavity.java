@@ -47,7 +47,6 @@ import net.tigereye.chestcavity.soul.command.SoulCommands;
 import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
 import net.tigereye.chestcavity.soulbeast.command.SoulBeastCommands;
-import net.tigereye.chestcavity.debug.RecipeResourceProbe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -197,7 +196,6 @@ public class ChestCavity {
           event.addListener(new GuScriptLeafLoader());
           event.addListener(new GuScriptRuleLoader());
           event.addListener(new GuScriptFlowLoader());
-          event.addListener(new RecipeResourceProbe());
           event.addListener(new net.tigereye.chestcavity.compat.guzhenren.gufang.GuFangRecipeLoader());
           // FX definitions are client-only; do not register on server reload
   }
