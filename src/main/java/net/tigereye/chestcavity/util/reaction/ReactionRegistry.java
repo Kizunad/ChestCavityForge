@@ -69,6 +69,8 @@ public final class ReactionRegistry {
         registerElementalDefaults();
         // 火系通用规则（Ignite DoT 刷新/过热判定等）
         registerFireGenericDefaults();
+        // 炎道龙焰扩展（火龙蛊）
+        registerDragonDefaults();
         // 注册血道规则（血印/失血 与 各系 DoT 的联动）
         registerBloodDefaults();
         // 注册光/魂/剑道联动规则
@@ -222,6 +224,67 @@ public final class ReactionRegistry {
                             target.hurt(target.damageSources().magic(), (float) bonus);
                         }
                     }
+                    return ReactionResult.proceed();
+                });
+    }
+
+    private static void registerDragonDefaults() {
+        // 劫火引爆（龙焰印记 × 油涂层）
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_DRAGONFLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.DRAGON_FLAME_MARK)
+                        && ReactionTagOps.has(ctx.target(), ReactionTagKeys.OIL_COATING),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    int stacks = Math.max(1, ReactionTagOps.count(target, ReactionTagKeys.DRAGON_FLAME_MARK));
+                    ReactionTagOps.clear(target, ReactionTagKeys.OIL_COATING);
+                    double damage = stacks * 10.0D;
+                    if (damage > 0.0D) {
+                        if (attacker != null) {
+                            target.hurt(attacker.damageSources().mobAttack(attacker), (float) damage);
+                        } else {
+                            target.hurt(target.damageSources().generic(), (float) damage);
+                        }
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 20, 0, false, true));
+                    ReactionTagOps.add(target, ReactionTagKeys.CHAR_PRESSURE, 20);
+                    String a = attacker != null ? attacker.getName().getString() : "龙焰";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragon_flame_oil.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.dragon_flame_oil.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // 龙火洗礼（龙焰印记 × 火衣披覆）
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_DRAGONFLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.DRAGON_FLAME_MARK)
+                        && ReactionTagOps.has(ctx.target(), ReactionTagKeys.FIRE_COAT),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.DragonflameHelper.applyDragonflame(attacker, target, 2, true);
+                    if (attacker != null) {
+                        ReactionTagOps.add(attacker, ReactionTagKeys.FIRE_IMMUNE, 40);
+                    }
+                    String a = attacker != null ? attacker.getName().getString() : "龙焰";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragon_flame_fire_coat.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.dragon_flame_fire_coat.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // 点燃协同：ignite 命中延长龙焰持续时间（2s 冷却）
+        register(net.tigereye.chestcavity.util.DoTTypes.IGNITE,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.DRAGON_FLAME_MARK)
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.DRAGON_FLAME_REFRESH_GUARD),
+                ctx -> {
+                    LivingEntity target = ctx.target();
+                    ReactionTagOps.extend(target, ReactionTagKeys.DRAGON_FLAME_MARK, 20, 160);
+                    ReactionTagOps.add(target, ReactionTagKeys.DRAGON_FLAME_REFRESH_GUARD, 40);
+                    String a = ctx.attacker() != null ? ctx.attacker().getName().getString() : "点燃";
+                    String t = target.getName().getString();
+                    i18nMessage(ctx.attacker(), "message.chestcavity.reaction.dragon_flame_extend.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.dragon_flame_extend.target", a);
                     return ReactionResult.proceed();
                 });
     }

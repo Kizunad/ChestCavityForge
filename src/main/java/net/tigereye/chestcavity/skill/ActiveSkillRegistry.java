@@ -41,6 +41,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOr
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.BaiYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.YinYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yu_dao.behavior.YuanLaoGuFifthTierBehavior;
@@ -198,6 +199,27 @@ public final class ActiveSkillRegistry {
                 "催动生机叶，瞬发生机脉冲治疗自身与附近友方并赋予短时抗性/再生",
                 "compat/guzhenren/item/mu_dao/behavior/ShengJiYeOrganBehavior.java",
                 () -> { ensureClassLoaded(ShengJiYeOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu",
+                tags("输出", "爆发"),
+                "喷吐龙焰，对前方敌人造成高额火焰伤害并叠加龙焰印记，命中返还部分真元",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("充能冷却", null));
+
+        register("guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu",
+                tags("防御", "机动"),
+                "消耗真元进入悬停状态，短时间强化射线转向并持续积攒龙脊战焰",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu",
+                tags("输出", "位移"),
+                "扣除生命俯冲撞击，在落点引爆龙焰并额外叠加印记，落地后短暂无敌",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:jiu_xie_sheng_ji_cao_cui_sheng", "guzhenren:jiu_xie_sheng_ji_cao_cui_sheng", "guzhenren:jiu_xie_sheng_ji_cao",
