@@ -1,11 +1,7 @@
 package net.tigereye.chestcavity.util.reaction.tag;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import org.slf4j.Logger;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,8 +19,6 @@ import java.util.UUID;
  * - 选择用 ResourceLocation 直表述，便于与现有代码平滑过渡。
  */
 public final class ReactionTagOps {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     private ReactionTagOps() {}
 
     private static final Map<UUID, Map<ResourceLocation, Long>> TAGS = new HashMap<>();
@@ -64,6 +58,21 @@ public final class ReactionTagOps {
         if (map == null) return false;
         Long exp = map.get(tagId);
         return exp != null && exp > entity.level().getGameTime();
+    }
+
+    /** Remaining ticks before the tag expires; zero if absent or already expired. */
+    public static int remainingTicks(LivingEntity entity, ResourceLocation tagId) {
+        if (entity == null || tagId == null) return 0;
+        Map<ResourceLocation, Long> map = TAGS.get(entity.getUUID());
+        if (map == null) return 0;
+        Long expire = map.get(tagId);
+        if (expire == null) return 0;
+        long now = entity.level().getGameTime();
+        long remaining = expire - now;
+        if (remaining <= 0L) {
+            return 0;
+        }
+        return remaining > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) remaining;
     }
 
     public static void clear(LivingEntity entity, ResourceLocation tagId) {

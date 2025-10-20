@@ -55,6 +55,7 @@ public final class ReactionRegistry {
     // 火×腐蚀 限流：攻击者 -> (lastTick,count)
     private static final Map<UUID, Integer> FIRE_CORROSION_LAST_TICK = new HashMap<>();
     private static final Map<UUID, Integer> FIRE_CORROSION_COUNT = new HashMap<>();
+    private static final Map<UUID, Long> DRAGON_FLAME_IGNITE_LAST_TICK = new HashMap<>();
 
     public static void bootstrap() {
         // 安装默认 ReactionService 实现
@@ -69,6 +70,7 @@ public final class ReactionRegistry {
         registerElementalDefaults();
         // 火系通用规则（Ignite DoT 刷新/过热判定等）
         registerFireGenericDefaults();
+        registerDragonDefaults();
         // 注册血道规则（血印/失血 与 各系 DoT 的联动）
         registerBloodDefaults();
         // 注册光/魂/剑道联动规则
@@ -1214,6 +1216,101 @@ public final class ReactionRegistry {
         // 执行队列中的 AoE/爆炸 与 残留逻辑
         EffectsEngine.process(event.getServer());
         ResidueManager.tickFireResidues(event.getServer());
+        if (!DRAGON_FLAME_IGNITE_LAST_TICK.isEmpty()) {
+            long cutoff = now - 200L;
+            DRAGON_FLAME_IGNITE_LAST_TICK.entrySet().removeIf(entry -> entry.getValue() < cutoff);
+        }
+    }
+
+    private static void registerDragonDefaults() {
+        final int DRAGON_FLAME_DURATION_TICKS = 6 * 20;
+        final int DRAGON_FLAME_MAX_STACKS = 6;
+        final int DRAGON_FLAME_IGNITE_EXTENSION_TICKS = 20;
+        final int DRAGON_FLAME_IGNITE_GATE_TICKS = 40;
+
+        // 劫火引爆：龙焰印记 + 油涂层
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_DRAGONFLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.OIL_COATING)
+                        && ReactionTagOps.count(ctx.target(), ReactionTagKeys.DRAGON_FLAME_MARK) > 0,
+                ctx -> {
+                    LivingEntity target = ctx.target();
+                    LivingEntity attacker = ctx.attacker();
+                    int stacks = Math.max(1, ReactionTagOps.count(target, ReactionTagKeys.DRAGON_FLAME_MARK));
+                    ReactionTagOps.clear(target, ReactionTagKeys.OIL_COATING);
+                    float damage = stacks * 10.0F;
+                    if (attacker != null) {
+                        target.hurt(attacker.damageSources().mobAttack(attacker), damage);
+                    } else {
+                        target.hurt(target.damageSources().generic(), damage);
+                    }
+                    if (target.level() instanceof ServerLevel level) {
+                        EffectsEngine.queueExplosion(level, target.getX(), target.getY(), target.getZ(), 0.6F + stacks * 0.05F,
+                                attacker, false, EffectsEngine.VisualTheme.FIRE);
+                    }
+                    target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 20, 0, false, true));
+                    String a = attacker != null ? attacker.getName().getString() : "龙焰";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragon_flame_oil.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.dragon_flame_oil.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // 龙火洗礼：龙焰印记 + 火衣光环
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_DRAGONFLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.FIRE_COAT)
+                        && ReactionTagOps.count(ctx.target(), ReactionTagKeys.DRAGON_FLAME_MARK) > 0,
+                ctx -> {
+                    LivingEntity target = ctx.target();
+                    LivingEntity attacker = ctx.attacker();
+                    int current = ReactionTagOps.count(target, ReactionTagKeys.DRAGON_FLAME_MARK);
+                    int desired = Math.min(DRAGON_FLAME_MAX_STACKS, current + 2);
+                    int delta = desired - current;
+                    ReactionTagOps.addStacked(target, ReactionTagKeys.DRAGON_FLAME_MARK, delta, DRAGON_FLAME_DURATION_TICKS);
+                    ReactionTagOps.clear(target, ReactionTagKeys.FIRE_COAT);
+                    if (attacker != null) {
+                        ReactionTagOps.add(attacker, ReactionTagKeys.FIRE_IMMUNE, 40);
+                    }
+                    if (target.level() instanceof ServerLevel level && attacker != null) {
+                        EffectsEngine.queueAoEDamage(level, target.getX(), target.getY(), target.getZ(), 2.5F,
+                                4.0D + desired, attacker);
+                    }
+                    String a = attacker != null ? attacker.getName().getString() : "龙焰";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragon_flame_fire_coat.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.dragon_flame_fire_coat.target", a);
+                    return ReactionResult.proceed();
+                });
+
+        // ignite Tick 延长龙焰持续
+        register(net.tigereye.chestcavity.util.DoTTypes.IGNITE,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.DRAGON_FLAME_MARK),
+                ctx -> {
+                    LivingEntity target = ctx.target();
+                    LivingEntity attacker = ctx.attacker();
+                    UUID targetId = target.getUUID();
+                    long now = ctx.server().getTickCount();
+                    long last = DRAGON_FLAME_IGNITE_LAST_TICK.getOrDefault(targetId, Long.MIN_VALUE);
+                    if (now - last < DRAGON_FLAME_IGNITE_GATE_TICKS) {
+                        return ReactionResult.proceed();
+                    }
+                    int stacks = ReactionTagOps.count(target, ReactionTagKeys.DRAGON_FLAME_MARK);
+                    if (stacks <= 0) {
+                        return ReactionResult.proceed();
+                    }
+                    int remaining = ReactionTagOps.remainingTicks(target, ReactionTagKeys.DRAGON_FLAME_MARK);
+                    if (remaining <= 0) {
+                        return ReactionResult.proceed();
+                    }
+                    DRAGON_FLAME_IGNITE_LAST_TICK.put(targetId, now);
+                    int extended = Math.min(remaining + DRAGON_FLAME_IGNITE_EXTENSION_TICKS,
+                            DRAGON_FLAME_DURATION_TICKS + DRAGON_FLAME_IGNITE_EXTENSION_TICKS);
+                    ReactionTagOps.addStacked(target, ReactionTagKeys.DRAGON_FLAME_MARK, 0, extended);
+                    String a = attacker != null ? attacker.getName().getString() : "点燃";
+                    String t = target.getName().getString();
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragon_flame_ignite_extend.attacker", t);
+                    i18nMessage(target, "message.chestcavity.reaction.dragon_flame_ignite_extend.target", a);
+                    return ReactionResult.proceed();
+                });
     }
 
     // -------- 状态 API（过渡：统一走 TagOps） --------

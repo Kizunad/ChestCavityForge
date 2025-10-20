@@ -40,6 +40,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguO
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.BaiYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.YinYunGuOrganBehavior;
@@ -269,6 +270,27 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/yan_dao/behavior/HuoYouGuOrganBehavior.java",
                 () -> { ensureClassLoaded(HuoYouGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu",
+                tags("输出", "爆发"),
+                "喷吐龙焰冲击，叠加龙焰印记并触发短暂悬停",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("龙焰充能", null));
+
+        register("guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu",
+                tags("机动", "防御"),
+                "凝空悬停稳定瞄准，并向标记目标释放龙火回响",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("悬停就绪", null));
+
+        register("guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu",
+                tags("输出", "处决"),
+                "化作龙焰俯冲轰炸地面，按扣血比例放大爆炸伤害",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("龙降就绪", null));
 
         // 单窍·火炭蛊：极限技（四转）
         register("guzhenren:dan_qiao_huo_tan_gu", "guzhenren:dan_qiao_huo_tan_gu", "guzhenren:dan_qiao_huo_tan_gu",
