@@ -2,7 +2,7 @@
 """
 批量为蛊真人 animal / gu_cai 器官生成 ModernUI 图鉴文档。
 
-输出路径：src/main/resources/data/guzhenren/docs/<group>/...
+# 输出路径：src/main/resources/assets/guzhenren/docs/<group>/...
 规则：
   - id 与 icon = itemID
   - title 来自主资源包（decompile/.../lang/en_us.json）的 item 本地化
@@ -24,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CHEST_ZH_LANG_PATH = REPO_ROOT / "src" / "main" / "resources" / "assets" / "chestcavity" / "lang" / "zh_cn.json"
 
 ORGANS_BASE = REPO_ROOT / "src" / "main" / "resources" / "data" / "chestcavity" / "organs" / "guzhenren"
-DOCS_ROOT = REPO_ROOT / "src" / "main" / "resources" / "data" / "guzhenren" / "docs"
+DOCS_ROOT = REPO_ROOT / "src" / "main" / "resources" / "assets" / "guzhenren" / "docs"
 
 TARGET_GROUPS = ("animal", "gu_cai", "human")
 
