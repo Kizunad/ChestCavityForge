@@ -2,7 +2,7 @@
   "itemID": "guzhenren:hei_shi_gu",
   "organScores": [
     {"id": "guzhenren:jingli", "value": "1"},
-    {"id": "guzhenren:max_jingli", "value": "3"},
+    {"id": "guzhenren:zuida_jingli", "value": "3"},
     {"id": "chestcavity:strength", "value": "2"}
   ]
 }
