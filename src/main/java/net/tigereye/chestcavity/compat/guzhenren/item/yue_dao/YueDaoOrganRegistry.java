@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.yue_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.yue_dao.behavior.MoonlightGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.ArrayList;
@@ -35,4 +36,3 @@ public final class YueDaoOrganRegistry {
         return list;
     }
 }
-

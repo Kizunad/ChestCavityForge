@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.yue_dao;
+package net.tigereye.chestcavity.compat.guzhenren.item.yue_dao.behavior;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -525,4 +525,3 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private record MoonPhaseStats(double healthPercent, double ward, double damageReduction, double speedPercent, int jumpLevel) {
     }
 }
-
