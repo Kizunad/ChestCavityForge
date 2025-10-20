@@ -25,7 +25,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
-import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import net.tigereye.chestcavity.util.DoTTypes;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
@@ -163,11 +163,11 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
                 continue;
             }
             // 以 DoT 统一调度 1s 脉冲并携带类型标识；保留燃烧与减速效果
-            DoTManager.schedulePerSecond(user, target, damage, 1,
+            DoTEngine.schedulePerSecond(user, target, damage, 1,
                     CCSoundEvents.CUSTOM_FIRE_HUO_YI.get(), 0.6f, 1.0f,
                     DoTTypes.YAN_DAO_HUO_YI_AURA,
                     null,
-                    DoTManager.FxAnchor.TARGET,
+                    DoTEngine.FxAnchor.TARGET,
                     Vec3.ZERO,
                     1.0f);
             target.setRemainingFireTicks(4 * 20);
@@ -231,11 +231,11 @@ public enum HuoYiGuOrganBehavior implements OrganSlowTickListener {
                 if (target == user || target.isAlliedTo(user)) {
                     continue;
                 }
-                DoTManager.schedulePerSecond(user, target, damage, 1,
+                DoTEngine.schedulePerSecond(user, target, damage, 1,
                         CCSoundEvents.CUSTOM_FIRE_HUO_YI.get(), 0.35f, 1.1f,
                         DoTTypes.YAN_DAO_HUO_YI_AURA,
                         null,
-                        DoTManager.FxAnchor.TARGET,
+                        DoTEngine.FxAnchor.TARGET,
                         Vec3.ZERO,
                         0.8f);
                 target.setRemainingFireTicks(2 * 20);

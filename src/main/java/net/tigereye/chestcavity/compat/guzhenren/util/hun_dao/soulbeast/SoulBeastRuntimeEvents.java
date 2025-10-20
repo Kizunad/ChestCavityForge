@@ -24,7 +24,7 @@ import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.registration.CCAttachments;
-import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.event.SoulBeastStateChangedEvent;
@@ -229,7 +229,7 @@ public final class SoulBeastRuntimeEvents {
             maybeApplyIntimidation(player);
         }
         if (event.previous().isSoulBeast() && !event.current().isSoulBeast()) {
-            DoTManager.cancelAttacker(entity);
+            DoTEngine.cancelAttacker(entity);
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[soulbeast] cleared pending DoT pulses after {} exited soul beast state", entity.getName().getString());
             }

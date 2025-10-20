@@ -16,7 +16,8 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAcc
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
+import net.tigereye.chestcavity.engine.reaction.EffectsEngine;
+import net.tigereye.chestcavity.engine.reaction.ResidueManager;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
@@ -94,10 +95,12 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
 
         int stacks = ReactionTagOps.count(target, ReactionTagKeys.FLAME_MARK);
         if (stacks >= threshold) {
-            // 触发“炭爆”：小功率爆炸/或 AoE（交由 ReactionEngine 做限流与VFX）
+            // 触发“炭爆”：小功率爆炸/或 AoE（交由 EffectsEngine 做限流与VFX）
             if (target.level() instanceof ServerLevel level) {
                 float power = burstPowerBase;
-                ReactionEngine.queueExplosion(level, target.getX(), target.getY(), target.getZ(), power, player, false, ReactionEngine.VisualTheme.FIRE);
+                net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(level, target.getX(), target.getY(), target.getZ(),
+                        Math.max(0.8F, power * 1.6F), Math.max(0.5D, power * 2.0D), player,
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
             }
             // 清层 + 赋免 + 蓄压 + 攻击者短时燃幅
             ReactionTagOps.clear(target, ReactionTagKeys.FLAME_MARK);
@@ -111,7 +114,7 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             ReactionTagOps.add(player, ReactionTagKeys.IGNITE_AMP, igniteAmpTicks);
             // 链爆就绪提示：附近火雾≥2
             if (player.level() instanceof ServerLevel sl) {
-                int count = net.tigereye.chestcavity.util.reaction.engine.ResidueManager.countFireResiduesNear(sl, player.getX(), player.getY(), player.getZ(), 5.0);
+                int count = net.tigereye.chestcavity.engine.reaction.ResidueManager.countFireResiduesNear(sl, player.getX(), player.getY(), player.getZ(), 5.0);
                 if (count >= 2) {
                     i18n(player, "message.chestcavity.huo_tan.chain_ready");
                 }
@@ -131,7 +134,7 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
             if (attacker.getRandom().nextDouble() < 0.05D) {
                 int dur = tier == 1 ? 60 : (tier >= 2 ? 100 : HC.emberResidueDurationTicks);
                 float r = Math.max(0.5F, HC.emberResidueRadius);
-                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueFireResidue(slevel, target.getX(), target.getY(), target.getZ(), r, dur);
+                ResidueManager.spawnOrRefreshFire(slevel, target.getX(), target.getY(), target.getZ(), r, dur);
             }
         }
 
@@ -139,7 +142,7 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         if (tier >= 4 && attacker instanceof Player && attacker.level() instanceof ServerLevel slevel2) {
             if (net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.has(player, net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.IGNITE_AMP)
                     && !net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.has(player, net.tigereye.chestcavity.ChestCavity.id("reaction/chain_blast_cd"))) {
-                int count = net.tigereye.chestcavity.util.reaction.engine.ResidueManager.countFireResiduesNear(slevel2, player.getX(), player.getY(), player.getZ(), 5.0);
+                int count = net.tigereye.chestcavity.engine.reaction.ResidueManager.countFireResiduesNear(slevel2, player.getX(), player.getY(), player.getZ(), 5.0);
                 if (count >= 2) {
                     var HC2 = net.tigereye.chestcavity.ChestCavity.config.REACTION.HUO_TAN;
                     int jumps = Math.max(1, HC2.chainBlastJumps);
@@ -151,9 +154,9 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
                         final double jdmg = dmg;
                         final float rr = radius;
                         net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps.schedule(slevel2, () ->
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                                EffectsEngine.queueAoEDamage(
                                         slevel2, player.getX(), player.getY(), player.getZ(), rr, jdmg, player,
-                                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE), j * 4);
+                                        EffectsEngine.VisualTheme.FIRE), j * 4);
                         dmg *= decay;
                     }
                     int cd = Math.max(20, HC2.chainBlastCooldownTicks);

@@ -8,8 +8,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.util.DoTManager;
-import net.tigereye.chestcavity.util.DoTManager.FxAnchor;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
+import net.tigereye.chestcavity.engine.dot.DoTEngine.FxAnchor;
 import net.tigereye.chestcavity.compat.guzhenren.util.SaturationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
@@ -48,7 +48,7 @@ public final class HunDaoMiddleware {
                     net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.SOUL_MARK,
                     mark);
         } catch (Throwable ignored) {}
-        DoTManager.schedulePerSecond(
+        DoTEngine.schedulePerSecond(
                 source,
                 target,
                 perSecondDamage,

@@ -45,7 +45,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
-import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
+import net.tigereye.chestcavity.engine.reaction.ResidueManager;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.slf4j.Logger;
@@ -519,7 +519,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             float residueRadius = (float) Math.max(0.5F, radius * 0.6F);
             int residueDuration = Math.max(40, (int) (config.iceEffectDurationTicks * 0.8));
             int slowAmp = Math.max(0, (int) Math.round(config.iceBurstSlowAmplifier));
-            ReactionEngine.queueFrostResidue(server, origin.x, origin.y, origin.z, residueRadius, residueDuration, slowAmp);
+            ResidueManager.spawnOrRefreshFrost(server, origin.x, origin.y, origin.z, residueRadius, residueDuration, slowAmp);
             // 少量雪花粒子点缀
             server.sendParticles(ParticleTypes.SNOWFLAKE, origin.x, origin.y + 0.2, origin.z, 12, 0.4, 0.2, 0.4, 0.02);
             if (entity instanceof Player p && !p.level().isClientSide()) {

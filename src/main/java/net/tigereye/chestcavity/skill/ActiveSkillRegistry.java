@@ -304,7 +304,7 @@ public final class ActiveSkillRegistry {
 
         register("guzhenren:zhi_zhuang_gu", "guzhenren:zhi_zhuang_gu", "guzhenren:zhi_zhuang_gu",
                 tags("输出", "位移"),
-                "直线冲锋命中刷新冷却并累积惯性层数，魂道加持下触发灵魂回声与连锁爆发",
+                "直线冲锋命中刷新冷却并累积惯性层数，影道蛊虫加持下触发灵魂回声与连锁爆发",
                 "compat/guzhenren/item/li_dao/behavior/ZhiZhuangGuOrganBehavior.java:120",
                 () -> { ensureClassLoaded(ZhiZhuangGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));

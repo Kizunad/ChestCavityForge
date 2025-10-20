@@ -42,7 +42,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
-import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
+// ReactionEngine runtime逻辑已迁移至 engine/reaction；此类未直接使用可移除旧导入。
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -421,7 +421,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
                     0.04
             );
             // 在命中点生成一小团霜雾残留域（轻控场）
-            ReactionEngine.queueFrostResidue(
+            net.tigereye.chestcavity.engine.reaction.ResidueManager.spawnOrRefreshFrost(
                     server,
                     focus.getX(),
                     focus.getY(),

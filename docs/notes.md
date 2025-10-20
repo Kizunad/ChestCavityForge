@@ -827,7 +827,7 @@ OnHit
           - 统一从一个 OnHit 中间件出发：若 SoulBeastState.active，则每次近战命中：
               - 消耗 18 魂魄（玩家：用 GuzhenrenResourceCostHelper.consumeStrict(player, 18, 0)；非玩家：默认跳过或按需
   走生命折算）
-              - 调度 DoT：使用 DoTManager 施加“魂炎”（黑色火焰）→ 每秒 真伤 = maxHunpo * 0.01，持续 5 秒；忽略护甲/抗性
+              - 调度 DoT：使用 DoTEngine 施加“魂炎”（黑色火焰）→ 每秒 真伤 = maxHunpo * 0.01，持续 5 秒；忽略护甲/抗性
           - 这部分 HunDaoSoulBeastBehavior 已有雏形：继续复用/充实它，或将计算与扣资下沉到 HunDaoMiddleware。
   - 资源统一调度（溢散与恢复）
       - 每秒溢散（魂兽）
@@ -871,12 +871,12 @@ OnHit
   - 工具/辅助
       - OrganPresenceUtil：快速查胸腔是否含某器官/ID（抽取自多处 contains 循环）。
       - CombatEntityUtil：判断近战/抛射来源、敌我阵营（已有部分逻辑，整合一下）。
-      - TrueDamageHelper：封装 DoT 的“真伤”逻辑；DoTManager 里应已有处理，暴露一个公共入口即可。
+      - TrueDamageHelper：封装 DoT 的“真伤”逻辑；DoT 引擎里已有处理，暴露一个公共入口即可。
       - SaturationHelper：温和维持饱食/饱和（上限、不覆盖食物效果），供魂兽状态被动调用。
       - LongevityGuard（可选）：“寿元不自然消耗”若来自外部 Mod，需要在我们侧定期“回填/钳制”，提供兼容层：
   whileSoulBeastClampShouYuan(...)。
   - 测试建议
-      - DoTManager: 到期触发/叠加/目标死亡/卸载分支。
+      - DoTEngine: 到期触发/叠加/目标死亡/卸载分支。
       - 资源消耗: 18 魂魄不足时拒绝施加；refund/回滚路径（若未来用事务）。
       - HUD: 客户端仅在 SoulBeastState.active 时显示；切换维度/重登保持一致。
       - Aura: 阈值判断正确（生命值 < hunpo 时被震慑）。
@@ -2488,4 +2488,3 @@ FRP 有上限（随当前转数提升而提高），达到上限后触发晋阶�
 1. **防止链式滥用**：每次爆裂后对同一区域/目标短时设免疫或转换成低伤害连锁，避免创造无限连锁。
 2. **交互代价**：与油或火衣造成的大范围爆炸必须有资源/冷却代价（真元、高冷却、消耗油涂层），避免零代价全图爆炸。
 3. **可玩性**：二转到三转应当把控场与单体爆发两条路线都保持竞争力；四转给出明确的“全部燃尽”终极技，但高真元与长冷却限制使用频率。
-

@@ -40,7 +40,7 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
-import net.tigereye.chestcavity.util.reaction.engine.ReactionEngine;
+// ReactionEngine 相关调用已不在此类使用，移除旧导入。
 
 import java.util.List;
 
@@ -330,7 +330,7 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, candidate ->
                 candidate != null && candidate.isAlive() && candidate != entity);
         // 在脚下投放一小团“毒雾残留”（先复用腐蚀残留域实现）
-        ReactionEngine.queueCorrosionResidue(level, entity.getX(), entity.getY(), entity.getZ(), (float)Math.max(1.2F, EFFECT_RADIUS * 0.6F), Math.max(40, duration / 2));
+        net.tigereye.chestcavity.engine.reaction.ResidueManager.spawnOrRefreshCorrosion(level, entity.getX(), entity.getY(), entity.getZ(), (float)Math.max(1.2F, EFFECT_RADIUS * 0.6F), Math.max(40, duration / 2));
         for (LivingEntity victim : victims) {
             victim.addEffect(new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
             victim.addEffect(new MobEffectInstance(MobEffects.WITHER, duration, 0, false, true, true));

@@ -51,7 +51,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
-import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import net.tigereye.chestcavity.client.command.ModernUIClientCommands;
 import net.tigereye.chestcavity.client.input.ModernUIKeyDispatcher;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
@@ -60,7 +60,7 @@ import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerF
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.soul.entity.TestSoulSpawner;
-import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
+import net.tigereye.chestcavity.engine.reaction.ReactionEngine;
 import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
 import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.SpawnPlacementTypes;
@@ -109,7 +109,7 @@ public class ChestCavity {
                 NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
                 NeoForge.EVENT_BUS.addListener(SoulCommands::register);
                 // Central DoT manager ticking
-                DoTManager.bootstrap();
+                DoTEngine.bootstrap();
                 NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
@@ -150,7 +150,7 @@ public class ChestCavity {
     if (ModList.get().isLoaded("guzhenren")) {
             ActiveSkillRegistry.bootstrap();
             GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
-            ReactionRegistry.bootstrap();
+            ReactionEngine.bootstrap();
     }
 
 

@@ -35,7 +35,7 @@
 - UI：ModernUI 展示模式、主/并行动作、关键冷却与资源。
 
 ## 集成
-- DoT/Reaction：DoTManager.schedulePerSecond + typeId（DoTTypes），ReactionRegistry.preApplyDoT。
+- DoT/Reaction：DoTEngine.schedulePerSecond + typeId（DoTTypes），ReactionRegistry.preApplyDoT。
 - 资源/链接/护盾：ResourceOps/LedgerOps/AbsorptionHelper。
 - 导航：Baritone 计划 + 回退，重规划限速与阈值。
 
@@ -53,4 +53,3 @@
   - arbitration/Arbitrator.java
   - model/BrainPrefs.java、Blackboard.java
 - 验收：编译/测试通过，无对现有逻辑的影响。
-

@@ -12,7 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.TickTask;
 import org.slf4j.Logger;
-import net.tigereye.chestcavity.util.DoTManager;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
 
 /**
  * Utility helpers for scheduling simple damage-over-time pulses.
@@ -124,8 +124,8 @@ public final class DamageOverTimeHelper {
             return;
         }
 
-        DoTManager.schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch,
-                dotTypeId, null, net.tigereye.chestcavity.util.DoTManager.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
+        DoTEngine.schedulePerSecond(attacker, target, perSecondDamage, durationSeconds, tickSound, volume, pitch,
+                dotTypeId, null, net.tigereye.chestcavity.engine.dot.DoTEngine.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
     }
 
     // Legacy local scheduler retained for reference; avoid using for DoT.

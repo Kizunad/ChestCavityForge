@@ -14,6 +14,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.engine.reaction.ReactionRuntime;
+import net.tigereye.chestcavity.engine.reaction.DelayedDamageEngine;
+import net.tigereye.chestcavity.engine.reaction.EffectsEngine;
+import net.tigereye.chestcavity.engine.reaction.ResidueManager;
 import net.tigereye.chestcavity.engine.TickEngineHub;
 import net.tigereye.chestcavity.util.reaction.api.ReactionAPI;
 import net.tigereye.chestcavity.util.reaction.api.DefaultReactionService;
@@ -33,7 +37,7 @@ import net.minecraft.world.entity.Entity;
  * 使用方式：
  * - ReactionRegistry.bootstrap() 于 mod 初始化调用，注册默认规则与 tick 清理。
  * - 调用 {@link #addStatus(LivingEntity, ResourceLocation, int)} 给实体附加临时状态（如 OIL_COATING）。
- * - DoTManager 在结算前调用 {@link #preApplyDoT(MinecraftServer, ResourceLocation, LivingEntity, LivingEntity)}，
+ * - DoTEngine 在结算前调用 {@link #preApplyDoT(MinecraftServer, ResourceLocation, LivingEntity, LivingEntity)}，
  *   若返回 false 则本次 DoT 伤害被取消（用于“去除火衣”等）。
  */
 public final class ReactionRegistry {
@@ -110,7 +114,7 @@ public final class ReactionRegistry {
                 ctx -> {
                     if (ctx.target().level() instanceof ServerLevel level) {
                         float r = 2.0F; double dmg = 2.0D;
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(), r, dmg, ctx.attacker());
                     }
                     ReactionTagOps.clear(ctx.target(), ReactionTagKeys.ILLUSION);
@@ -191,9 +195,9 @@ public final class ReactionRegistry {
                     if (ReactionTagOps.count(ctx.target(), ReactionTagKeys.CHAR_PRESSURE) >= 3) {
                         float power = Math.max(0.8F, C0.HUO_TAN.overheatExplosionPower);
                         if (ctx.target().level() instanceof ServerLevel level) {
-                            net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueExplosion(
+                            net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueExplosion(
                                     level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(), power, ctx.attacker(), false,
-                                    net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                                    net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                         }
                         ReactionTagOps.clear(ctx.target(), ReactionTagKeys.CHAR_PRESSURE);
                         ReactionTagOps.add(ctx.target(), ReactionTagKeys.FIRE_IMMUNE, Math.max(0, C0.HUO_TAN.overheatFireImmuneTicks));
@@ -232,10 +236,10 @@ public final class ReactionRegistry {
         int seconds = Math.max(1, durTicks / 20);
         double dps = base + stacks * k;
         if (dps <= 0.0D) return;
-        net.tigereye.chestcavity.util.DoTManager.schedulePerSecond(attacker, target, dps, seconds,
+        net.tigereye.chestcavity.engine.dot.DoTEngine.schedulePerSecond(attacker, target, dps, seconds,
                 null, 1.0f, 1.0f,
                 net.tigereye.chestcavity.util.DoTTypes.IGNITE,
-                null, net.tigereye.chestcavity.util.DoTManager.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
+                null, net.tigereye.chestcavity.engine.dot.DoTEngine.FxAnchor.TARGET, net.minecraft.world.phys.Vec3.ZERO, 1.0f);
     }
 
     private static void registerTuXinYanYunDefaults() {
@@ -345,13 +349,13 @@ public final class ReactionRegistry {
                     LivingEntity attacker = ctx.attacker();
                     LivingEntity target = ctx.target();
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
-                                level,
-                                target.getX(), target.getY(), target.getZ(),
-                                2.5F,
-                                2.5D,
-                                attacker,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.STEAM);
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
+                            level,
+                            target.getX(), target.getY(), target.getZ(),
+                            2.5F,
+                            2.5D,
+                            attacker,
+                            net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.STEAM);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.CLOUD_SHROUD);
                     ReactionTagOps.clear(target, ReactionTagKeys.FLAME_TRAIL);
@@ -374,9 +378,9 @@ public final class ReactionRegistry {
                     if (ctx.target().level() instanceof ServerLevel level) {
                         float r = Math.max(1.5F, 2.0F);
                         double dmg = Math.max(2.0D, 3.5D);
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(), r, dmg, ctx.attacker(),
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                     }
                     ReactionTagOps.clear(ctx.target(), ReactionTagKeys.STENCH_CLOUD);
                     ReactionTagOps.add(ctx.target(), ReactionTagKeys.TOXIC_IMMUNE, 40);
@@ -450,10 +454,10 @@ public final class ReactionRegistry {
                     }
                     target.igniteForSeconds(3);
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, target.getX(), target.getY(), target.getZ(),
                                 2.5F, 3.0D, attacker,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.BONE_MARK);
                     ReactionTagOps.add(target, ReactionTagKeys.BONE_IMMUNE, IMMUNE_SHORT);
@@ -477,7 +481,7 @@ public final class ReactionRegistry {
                     target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 1, false, true));
                     target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 0, false, true));
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueFrostResidue(
+                        net.tigereye.chestcavity.engine.reaction.ResidueManager.spawnOrRefreshFrost(
                                 level, target.getX(), target.getY(), target.getZ(), 2.5F, 120, 1);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.SHARD_FIELD);
@@ -495,13 +499,13 @@ public final class ReactionRegistry {
                 ctx -> {
                     LivingEntity attacker = ctx.attacker();
                     LivingEntity target = ctx.target();
-                    scheduleDelayedDamage(ctx.server(), attacker, target, 5.0D, 40);
+                    DelayedDamageEngine.schedule(ctx.server(), attacker, target, 5.0D, 40);
                     target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 80, 0, false, true));
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, target.getX(), target.getY(), target.getZ(),
                                 2.0F, 2.0D, attacker,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.SOUL);
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.SOUL);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.BONE_MARK);
                     ReactionTagOps.add(target, ReactionTagKeys.SOUL_IMMUNE, IMMUNE_SHORT);
@@ -529,11 +533,11 @@ public final class ReactionRegistry {
                     if (C.fireOilUseAoE) {
                         float r = Math.max(0.5F, power * 1.6F);
                         double dmg = power * 2.0F;
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(level, x, y, z, r, dmg, null,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(level, x, y, z, r, dmg, null,
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                     } else {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueExplosion(level, x, y, z, power, null, true,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueExplosion(level, x, y, z, power, null, true,
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                     }
                     ReactionEvents.fireOil(ctx);
                     // 移除油涂层（通用 Tag 清理）
@@ -549,8 +553,7 @@ public final class ReactionRegistry {
                             net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.FIRE_IMMUNE,
                             Math.max(0, C.fireOilImmuneTicks));
                     // 为攻击者添加火衣屏蔽窗口（对所有目标生效），防止同一攻击者短时间内反复触发
-                    long now = ctx.server().getTickCount();
-                    FIRE_AURA_BLOCK_UNTIL.put(ctx.attacker().getUUID(), now + Math.max(0, C.fireOilBlockTicks));
+                    ReactionRuntime.blockFireOil(ctx.attacker(), Math.max(0, C.fireOilBlockTicks));
                     // 取消本次 DoT 伤害，提示
                     {
                         String a = ctx.attacker() != null ? ctx.attacker().getName().getString() : "火衣";
@@ -688,9 +691,9 @@ public final class ReactionRegistry {
                     target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 80, 0, false, true));
                     target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, true));
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, target.getX(), target.getY(), target.getZ(), 2.0F, 2.0D, attacker,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.SOUL);
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.SOUL);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.LIGHT_DAZE);
                     ReactionTagOps.add(target, ReactionTagKeys.SOUL_IMMUNE, IMMUNE_SHORT);
@@ -789,9 +792,9 @@ public final class ReactionRegistry {
                         target.hurt(target.damageSources().magic(), 4.0F);
                     }
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, target.getX(), target.getY(), target.getZ(), 2.2F, 3.5D, attacker,
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.LIGHTNING_CHARGE);
                     ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_IMMUNE, IMMUNE_SHORT);
@@ -1037,7 +1040,7 @@ public final class ReactionRegistry {
                     // 残留概率生成（缓慢云）→ 交给 ReactionEngine 合并/刷新
                     if (target.level() instanceof ServerLevel level) {
                         if (level.getRandom().nextDouble() < Math.max(0.0D, Math.min(1.0D, C.frostResidueChance))) {
-                            net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueFrostResidue(
+                            net.tigereye.chestcavity.engine.reaction.ResidueManager.spawnOrRefreshFrost(
                                     level, target.getX(), target.getY(), target.getZ(), C.frostResidueRadius, C.frostResidueDurationTicks, C.frostResidueSlowAmplifier);
                         }
                     }
@@ -1061,9 +1064,9 @@ public final class ReactionRegistry {
                     if (ctx.target().level() instanceof ServerLevel level) {
                         float radius = Math.max(0.5F, C.steamScaldRadius);
                         double dmg = Math.max(0.0D, C.steamScaldDamage);
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
+                        net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                                 level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(), radius, dmg, ctx.attacker(),
-                                net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.STEAM);
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.STEAM);
                         // 目标本身立刻附加失明，范围内其他实体的 Debuff 如需可在 Engine 侧扩展
                         ctx.target().addEffect(new MobEffectInstance(MobEffects.BLINDNESS, Math.max(0, C.steamScaldBlindnessTicks), 0, false, true));
                     }
@@ -1115,7 +1118,7 @@ public final class ReactionRegistry {
                     }
                     target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, Math.max(0, C.corrosionSurgeWeaknessTicks), 0, false, true));
                     if (target.level() instanceof ServerLevel level) {
-                        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueCorrosionResidue(
+                        net.tigereye.chestcavity.engine.reaction.ResidueManager.spawnOrRefreshCorrosion(
                                 level, target.getX(), target.getY(), target.getZ(), C.corrosionResidueRadius, C.corrosionResidueDurationTicks);
                     }
                     ReactionTagOps.clear(target, ReactionTagKeys.CORROSION_MARK);
@@ -1138,15 +1141,15 @@ public final class ReactionRegistry {
                     CCConfig.ReactionConfig C = ChestCavity.config.REACTION;
                     if (ctx.target().level() instanceof ServerLevel level) {
                         if (C.fireCorrosionUseAoE) {
-                            net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueAoEDamage(
-                                    level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(),
-                                    Math.max(0.5F, C.fireCorrosionAoERadius), Math.max(0.0D, C.fireCorrosionAoEDamage), ctx.attacker(),
-                                    net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                            net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
+                                level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(),
+                                Math.max(0.5F, C.fireCorrosionAoERadius), Math.max(0.0D, C.fireCorrosionAoEDamage), ctx.attacker(),
+                                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                         } else {
                             float power = Math.max(0.1F, Math.min(C.fireCorrosionExplosionPower, C.fireCorrosionMaxPower));
-                            net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.queueExplosion(
+                            net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueExplosion(
                                     level, ctx.target().getX(), ctx.target().getY(), ctx.target().getZ(), power, ctx.attacker(), false,
-                                    net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.VisualTheme.FIRE);
+                                    net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.FIRE);
                         }
                     }
                     ReactionTagOps.clear(ctx.target(), ReactionTagKeys.CORROSION_MARK);
@@ -1180,12 +1183,7 @@ public final class ReactionRegistry {
         }
         long now = server.getTickCount();
         // 火衣屏蔽：若当前为火衣 DoT 且处于屏蔽窗口，则跳过
-        if (ReactionStatuses.isHuoYiDot(dotTypeId)) {
-            long until = FIRE_AURA_BLOCK_UNTIL.getOrDefault(attacker.getUUID(), 0L);
-            if (until > now) {
-                return false;
-            }
-        }
+        if (ReactionStatuses.isHuoYiDot(dotTypeId) && ReactionRuntime.isFireOilBlocked(attacker, now)) return false;
         List<ReactionRule> rules = RULES.get(dotTypeId);
         if (rules == null || rules.isEmpty()) {
             return true;
@@ -1210,23 +1208,12 @@ public final class ReactionRegistry {
         long now = event.getServer().getTickCount();
         // 清理过期状态（委托 TagOps）
         net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.purge(now);
-        // 清理过期屏蔽
-        FIRE_AURA_BLOCK_UNTIL.entrySet().removeIf(e -> e.getValue() <= now);
-        // 处理延迟伤害
-        if (!DELAYED.isEmpty()) {
-            Iterator<DelayedDamage> it = DELAYED.iterator();
-            while (it.hasNext()) {
-                DelayedDamage d = it.next();
-                if (d.dueTick <= now) {
-                    applyDelayedDamage(event.getServer(), d);
-                    it.remove();
-                }
-            }
-        }
-        // 统一执行 ReactionEngine 中排队的 AoE/Explode/Residue 任务（带限流/降级）
-        net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.process(event.getServer());
-        // 为火系余烬执行驻留逻辑（附加燃痕/点燃窗口，处理回光火星/汽化）
-        net.tigereye.chestcavity.util.reaction.engine.ResidueManager.tickFireResidues(event.getServer());
+        // 清理运行时屏蔽窗口 & 处理延迟伤害
+        ReactionRuntime.purge(now);
+        DelayedDamageEngine.process(event.getServer(), now);
+        // 执行队列中的 AoE/爆炸 与 残留逻辑
+        EffectsEngine.process(event.getServer());
+        ResidueManager.tickFireResidues(event.getServer());
     }
 
     // -------- 状态 API（过渡：统一走 TagOps） --------
@@ -1247,29 +1234,13 @@ public final class ReactionRegistry {
                 net.tigereye.chestcavity.util.reaction.tag.ReactionTagAliases.resolve(statusId));
     }
 
-    /** 指定攻击者在给定时长内禁止触发火衣-油涂层反应。 */
+    /** 指定攻击者在给定时长内禁止触发火衣-油涂层反应（委托引擎运行时）。 */
     public static void blockFireOil(LivingEntity attacker, int durationTicks) {
-        if (attacker == null || durationTicks <= 0) {
-            return;
-        }
-        if (!(attacker.level() instanceof ServerLevel server)) {
-            return;
-        }
-        long now = server.getServer().getTickCount();
-        FIRE_AURA_BLOCK_UNTIL.put(attacker.getUUID(), now + durationTicks);
+        ReactionRuntime.blockFireOil(attacker, durationTicks);
     }
 
-    /** 当前是否处于火衣-油涂层反应的屏蔽窗口内。 */
-    public static boolean isFireOilBlocked(LivingEntity attacker) {
-        if (attacker == null) {
-            return false;
-        }
-        if (!(attacker.level() instanceof ServerLevel server)) {
-            return false;
-        }
-        long now = server.getServer().getTickCount();
-        return FIRE_AURA_BLOCK_UNTIL.getOrDefault(attacker.getUUID(), 0L) > now;
-    }
+    /** 当前是否处于火衣-油涂层反应的屏蔽窗口内（委托引擎运行时）。 */
+    public static boolean isFireOilBlocked(LivingEntity attacker) { return ReactionRuntime.isFireOilBlocked(attacker); }
 
     // -------- 内部类型 --------
 

@@ -29,6 +29,11 @@ public final class TestSoulSpawner {
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
+        // Guard clause: only run when the server is ready
+        if (!event.getServer().isReady()) {
+            return;
+        }
+
         if (cooldown > 0) {
             cooldown--;
             return;

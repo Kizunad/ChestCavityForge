@@ -27,7 +27,7 @@
 ## 核心系统规范
 
 ### DoT Reaction 规范（必须遵守）
-- 所有 DoT 必须携带 `typeId`。仅使用带 `typeId` 的 `DoTManager.schedulePerSecond(...)` 重载，`typeId==null` 将抛异常。
+- 所有 DoT 必须携带 `typeId`。仅使用带 `typeId` 的 `DoTEngine.schedulePerSecond(...)` 重载，`typeId==null` 将抛异常。
 - 统一在 `DoTTypes` 中声明/复用类型标识（例：`YAN_DAO_HUO_YI_AURA`、`HUN_DAO_SOUL_FLAME`、`SHUANG_XI_FROSTBITE`、`YIN_YUN_CORROSION`）。
 - 反应系统：`util/reaction/ReactionRegistry` + `ReactionStatuses`。默认规则为火衣光环 + 油涂层 => 爆炸并移除油；当前不设置连锁屏蔽（窗口=0）。
 - 在 DoT 伤害执行前会调用 `ReactionRegistry.preApplyDoT(...)`，可取消当次伤害；新增反应用 `ReactionRegistry.register(...)`。

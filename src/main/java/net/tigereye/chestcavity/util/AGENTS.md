@@ -32,24 +32,28 @@ util/
 
 **使用场景**: 器官效果计算、伤害减免、呼吸系统、消化系统等核心功能。
 
-### [`DoTManager.java`](DoTManager.java)
+### 核心引擎：DoT
+
+优先使用引擎层入口：[`engine/dot/DoTEngine.java`](../../engine/dot/DoTEngine.java)
 
 **功能**: 持续伤害(Damage over Time)管理器，处理周期性伤害调度和执行。
 
 **主要特性**:
-- 通过 `TickEngineHub` 注册服务器 Post tick 执行，解耦事件总线
+- 通过 `TickEngineHub` 注册服务器 Post tick 执行（Reaction > DoT）
 - 基于服务器tick的伤害调度
 - 支持音效和粒子效果
 - 伤害聚合优化性能
 - 与反应系统集成
 
 **核心方法**:
-- [`schedulePerSecond()`](DoTManager.java:126) - 每秒伤害调度
-- [`cancelAttacker()`](DoTManager.java:180) - 取消攻击者的DoT
-- [`getPendingForTarget()`](DoTManager.java:59) - 获取目标待执行DoT
-- [`bootstrap()`](DoTManager.java:96) - 将 DoT 系统注册到统一 tick 枢纽
+- `DoTEngine.schedulePerSecond(...)` - 每秒伤害调度（必须带 `typeId`）
+- `DoTEngine.cancelAttacker(...)` - 取消攻击者的 DoT
+- `DoTEngine.getPendingForTarget(...)` - 获取目标待执行 DoT
+- `DoTEngine.bootstrap()` - 注册到统一 tick 枢纽
 
-### [`TickEngineHub.java`](engine/TickEngineHub.java)
+注意：DoT 引擎已迁移至 `engine/dot/DoTEngine`，原 `util/DoTManager` 已移除。
+
+### [`TickEngineHub.java`](../../engine/TickEngineHub.java)
 
 **功能**: 统一的服务器 Post tick 调度枢纽，按优先级串联各个逻辑引擎。
 
@@ -60,7 +64,15 @@ util/
 
 **使用示例**:
 - `ReactionRegistry.bootstrap()` 注册优先级 100
-- `DoTManager.bootstrap()` 注册优先级 200
+- `DoTEngine.bootstrap()` 注册优先级 200
+
+### 核心引擎：Reaction
+
+引擎入口：[`engine/reaction/ReactionEngine.java`](../../engine/reaction/ReactionEngine.java)
+
+**要点**:
+- 外部按需调用 `ReactionEngine.preApplyDoT(...)` 或通过 `ReactionAPI.get()` 获取服务；
+- 规则与标签操作仍位于 `util/reaction/*`（如需新增规则，继续向 `ReactionRegistry.register*` 添加）。
 
 ### [`DoTTypes.java`](DoTTypes.java)
 
