@@ -109,7 +109,7 @@ public class ChestCavity {
                 NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
                 NeoForge.EVENT_BUS.addListener(SoulCommands::register);
                 // Central DoT manager ticking
-                NeoForge.EVENT_BUS.addListener(DoTManager::onServerTick);
+                DoTManager.bootstrap();
                 NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
 		if (FMLEnvironment.dist.isClient()) {
                         NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);

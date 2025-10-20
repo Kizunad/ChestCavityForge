@@ -6,7 +6,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
@@ -15,6 +14,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.engine.TickEngineHub;
+import net.tigereye.chestcavity.util.reaction.api.ReactionAPI;
+import net.tigereye.chestcavity.util.reaction.api.DefaultReactionService;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -51,8 +53,10 @@ public final class ReactionRegistry {
     private static final Map<UUID, Integer> FIRE_CORROSION_COUNT = new HashMap<>();
 
     public static void bootstrap() {
-        // 注册 tick 清理
-        NeoForge.EVENT_BUS.addListener(ReactionRegistry::onServerTick);
+        // 安装默认 ReactionService 实现
+        ReactionAPI.set(new DefaultReactionService());
+        // 注册 tick 清理（经由 TickEngineHub）
+        TickEngineHub.register(TickEngineHub.PRIORITY_REACTION, ReactionRegistry::handleServerTick);
         // 注册通用火系命中监听（非火衣的火系伤害也会刷新 Ignite）
         NeoForge.EVENT_BUS.addListener(net.tigereye.chestcavity.util.reaction.FireHitEvents::onIncomingDamage);
         // 注册默认规则：火衣 + 油涂层 => 爆炸 + 移除油 + 短暂屏蔽火衣结算
@@ -1202,8 +1206,7 @@ public final class ReactionRegistry {
         return true;
     }
 
-    @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post event) {
+    public static void handleServerTick(ServerTickEvent.Post event) {
         long now = event.getServer().getTickCount();
         // 清理过期状态（委托 TagOps）
         net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.purge(now);
@@ -1224,23 +1227,6 @@ public final class ReactionRegistry {
         net.tigereye.chestcavity.util.reaction.engine.ReactionEngine.process(event.getServer());
         // 为火系余烬执行驻留逻辑（附加燃痕/点燃窗口，处理回光火星/汽化）
         net.tigereye.chestcavity.util.reaction.engine.ResidueManager.tickFireResidues(event.getServer());
-    }
-
-    private static void purgeStatuses(long now) {
-        if (STATUSES.isEmpty()) return;
-        Iterator<Map.Entry<UUID, Map<ResourceLocation, Long>>> it = STATUSES.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<UUID, Map<ResourceLocation, Long>> entry = it.next();
-            Map<ResourceLocation, Long> map = entry.getValue();
-            if (map == null || map.isEmpty()) {
-                it.remove();
-                continue;
-            }
-            map.entrySet().removeIf(e -> e.getValue() <= now);
-            if (map.isEmpty()) {
-                it.remove();
-            }
-        }
     }
 
     // -------- 状态 API（过渡：统一走 TagOps） --------

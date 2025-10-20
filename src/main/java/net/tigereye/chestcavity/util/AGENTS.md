@@ -37,6 +37,7 @@ util/
 **功能**: 持续伤害(Damage over Time)管理器，处理周期性伤害调度和执行。
 
 **主要特性**:
+- 通过 `TickEngineHub` 注册服务器 Post tick 执行，解耦事件总线
 - 基于服务器tick的伤害调度
 - 支持音效和粒子效果
 - 伤害聚合优化性能
@@ -46,6 +47,20 @@ util/
 - [`schedulePerSecond()`](DoTManager.java:126) - 每秒伤害调度
 - [`cancelAttacker()`](DoTManager.java:180) - 取消攻击者的DoT
 - [`getPendingForTarget()`](DoTManager.java:59) - 获取目标待执行DoT
+- [`bootstrap()`](DoTManager.java:96) - 将 DoT 系统注册到统一 tick 枢纽
+
+### [`TickEngineHub.java`](engine/TickEngineHub.java)
+
+**功能**: 统一的服务器 Post tick 调度枢纽，按优先级串联各个逻辑引擎。
+
+**主要特性**:
+- 提供 `register(priority, engine)` 注册接口，优先级越小越先执行
+- 默认优先级常量：`PRIORITY_REACTION`、`PRIORITY_DOT`
+- 首次注册时自动绑定 `ServerTickEvent.Post`
+
+**使用示例**:
+- `ReactionRegistry.bootstrap()` 注册优先级 100
+- `DoTManager.bootstrap()` 注册优先级 200
 
 ### [`DoTTypes.java`](DoTTypes.java)
 

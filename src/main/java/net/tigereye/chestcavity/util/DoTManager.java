@@ -5,22 +5,19 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 
 import java.util.*;
 
-import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
-import net.tigereye.chestcavity.util.reaction.ReactionRegistry;
+import net.tigereye.chestcavity.util.reaction.api.ReactionAPI;
+import net.tigereye.chestcavity.engine.TickEngineHub;
 
 /**
  * Central manager for simple time-based damage pulses (DoT).
@@ -123,6 +120,10 @@ public final class DoTManager {
         return new DoTEntry(p.dueTick, p.attackerUuid, p.targetUuid, p.amount, p.typeId, soundId, p.fxId, p.fxAnchor);
     }
 
+    public static void bootstrap() {
+        TickEngineHub.register(TickEngineHub.PRIORITY_DOT, DoTManager::handleServerTick);
+    }
+
     public static void schedulePerSecond(LivingEntity attacker,
                                          LivingEntity target,
                                          double perSecondDamage,
@@ -205,8 +206,7 @@ public final class DoTManager {
         return removed;
     }
 
-    @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post event) {
+    public static void handleServerTick(ServerTickEvent.Post event) {
         int now = event.getServer().getTickCount();
         List<Map.Entry<Integer, List<Pulse>>> due = new ArrayList<>();
         synchronized (DoTManager.class) {
@@ -231,7 +231,7 @@ public final class DoTManager {
                         : null;
                 if (attacker != null && target.isAlliedTo(attacker)) continue;
                 // 反应判定：若取消，则本次脉冲不计入伤害（但反应已在 preApply 内触发）
-                if (!ReactionRegistry.preApplyDoT(event.getServer(), pulse.typeId, attacker, target)) {
+                if (!ReactionAPI.get().preApplyDoT(event.getServer(), pulse.typeId, attacker, target)) {
                     continue;
                 }
                 UUID atkKey = attacker != null ? attacker.getUUID() : NONE;
@@ -257,49 +257,6 @@ public final class DoTManager {
                 }
                 target.hurt(source, total);
             }
-        }
-    }
-
-    private static void executePulse(MinecraftServer server, Pulse pulse) {
-        LivingEntity target = findLiving(server, pulse.targetUuid);
-        if (target == null || !target.isAlive()) return;
-        LivingEntity attacker = findLiving(server, pulse.attackerUuid);
-        if (attacker != null && target.isAlliedTo(attacker)) return;
-        DamageSource source;
-        if (attacker instanceof Player player) {
-            source = player.damageSources().playerAttack(player);
-        } else if (attacker != null) {
-            source = attacker.damageSources().mobAttack(attacker);
-        } else {
-            source = target.damageSources().generic();
-        }
-        // 先走反应系统：若触发了反应且要求取消本次伤害，则直接返回
-        if (!ReactionRegistry.preApplyDoT(server, pulse.typeId, attacker, target)) {
-            if (debugEnabled()) {
-                LOGGER.info("[dot] cancelled by reaction: type={} target={}", pulse.typeId, target.getName().getString());
-            }
-            return;
-        }
-        target.hurt(source, pulse.amount);
-        if (pulse.sound != null) {
-            ServerLevel level = (ServerLevel) target.level();
-            level.playSound(null, target.blockPosition(), pulse.sound, SoundSource.PLAYERS, pulse.volume, pulse.pitch);
-        }
-        if (pulse.fxId != null && target.level() instanceof ServerLevel level) {
-            LivingEntity anchor = pulse.fxAnchor == FxAnchor.ATTACKER ? attacker : target;
-            if (anchor != null) {
-                Vec3 origin = new Vec3(anchor.getX(), anchor.getY() + anchor.getBbHeight() * 0.5D, anchor.getZ()).add(pulse.fxOffset);
-                Vec3 direction = anchor.getLookAngle();
-                ServerPlayer performer = attacker instanceof ServerPlayer sp ? sp : null;
-                AbilityFxDispatcher.play(level, pulse.fxId, origin, direction, direction, performer, anchor, pulse.fxIntensity);
-            }
-        }
-        if (debugEnabled()) {
-            LOGGER.info("[dot] apply DoT dueTick={} attacker={} target={} damage={}",
-                    pulse.dueTick,
-                    attacker != null ? attacker.getName().getString() : "<none>",
-                    target.getName().getString(),
-                    pulse.amount);
         }
     }
 
