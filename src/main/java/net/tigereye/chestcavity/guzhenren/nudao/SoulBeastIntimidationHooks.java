@@ -8,7 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent;
+import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.event.SoulBeastStateChangedEvent;
 
 /**
  * Tracks which players currently satisfy the soul beast intimidation aura.

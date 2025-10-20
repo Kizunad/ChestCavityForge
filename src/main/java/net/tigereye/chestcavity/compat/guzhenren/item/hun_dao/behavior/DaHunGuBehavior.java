@@ -20,7 +20,7 @@ import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.soulbeast.state.SoulBeastStateManager;
+import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
 import org.slf4j.Logger;
 
 import java.util.List;

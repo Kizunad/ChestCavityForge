@@ -5,7 +5,7 @@ import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunShouHuaConstants;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
-import net.tigereye.chestcavity.soulbeast.api.SoulBeastAPI;
+import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.api.SoulBeastAPI;
 
 /**
  * Wraps {@link SoulBeastAPI#toSoulBeast} for GuScript usage.
