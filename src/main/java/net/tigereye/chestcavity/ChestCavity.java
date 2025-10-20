@@ -46,7 +46,7 @@ import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.soul.command.SoulCommands;
 import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
-import net.tigereye.chestcavity.soulbeast.command.SoulBeastCommands;
+import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command.SoulBeastCommands;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
