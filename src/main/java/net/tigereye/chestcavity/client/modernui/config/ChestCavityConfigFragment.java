@@ -28,6 +28,8 @@ import icyllis.modernui.widget.HorizontalScrollView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
@@ -38,15 +40,18 @@ import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarState;
 import net.tigereye.chestcavity.client.modernui.widget.SimpleSkillSlotView;
 import net.tigereye.chestcavity.client.ui.ModernUiClientState;
+import net.tigereye.chestcavity.client.modernui.config.docs.DocEntry;
+import net.tigereye.chestcavity.client.modernui.config.docs.DocRegistry;
 import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
@@ -61,10 +66,13 @@ import me.shedaniel.autoconfig.AutoConfig;
  */
 public class ChestCavityConfigFragment extends Fragment {
 
-    private static final int TAB_COUNT = 4;
-    // 引用技能页中的图标滚动容器，用于切页时显式隐藏避免跨页溢出
+    private static final int TAB_COUNT = 5;
+    // 引用技能、图鉴页中的图标容器，切页时显式隐藏以规避 SurfaceView 叠绘
     @Nullable
     private icyllis.modernui.view.View skillIconScrollRef;
+    @Nullable
+    private icyllis.modernui.view.View docsIconScrollRef;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -98,11 +106,11 @@ public class ChestCavityConfigFragment extends Fragment {
         tabs.setTabGravity(TabLayout.GRAVITY_CENTER);
         tabs.setupWithViewPager(pager);
 
-        // 监听选项卡切换，控制技能页图标的显隐，避免 SurfaceView 跨页绘制
+        // 监听选项卡切换，控制含 SurfaceView 页的显隐，避免跨页叠绘
         tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
-                updateSkillIconVisibility(tab.getPosition());
+                updateIconSurfaceVisibility(tab.getPosition());
             }
             @Override
             public void onTabUnselected(TabLayout.Tab tab) { }
@@ -110,7 +118,7 @@ public class ChestCavityConfigFragment extends Fragment {
             public void onTabReselected(TabLayout.Tab tab) { }
         });
         // 初始化一次
-        updateSkillIconVisibility(0);
+        updateIconSurfaceVisibility(0);
 
         var tabParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -137,6 +145,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 case 0 -> createHomePage(container);
                 case 1 -> createGuScriptPage(container);
                 case 2 -> createSkillHotbarPage(container);
+                case 3 -> createDocsPage(container);
                 default -> createSoulPlayerPage(container);
             };
             container.addView(layout);
@@ -146,6 +155,11 @@ public class ChestCavityConfigFragment extends Fragment {
         @Override
         public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
             container.removeView((View) object);
+            if (position == 2) {
+                skillIconScrollRef = null;
+            } else if (position == 3) {
+                docsIconScrollRef = null;
+            }
         }
 
         @Override
@@ -160,6 +174,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 case 0 -> "主页";
                 case 1 -> "自定义杀招";
                 case 2 -> "蛊虫技能";
+                case 3 -> "图鉴";
                 default -> "分魂";
             };
         }
@@ -266,10 +281,15 @@ public class ChestCavityConfigFragment extends Fragment {
 
             for (ActiveSkillRegistry.ActiveSkillEntry entry : registryEntries) {
                 ResourceLocation organItem = entry.organId();
-                if (!net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(organItem)) {
+                Item item = organItem != null
+                        ? net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(organItem).orElse(null)
+                        : null;
+                if (item == null) {
                     continue;
                 }
-                var slotView = new SimpleSkillSlotView(context, organItem, statusView, layout.dp(36), clicked -> {
+                ItemStack iconStack = new ItemStack(item);
+                String label = iconStack.getHoverName().getString();
+                var slotView = new SimpleSkillSlotView(context, entry.skillId(), iconStack, label, statusView, layout.dp(36), clicked -> {
                     SimpleSkillSlotView previous = selectedSlotRef.getAndSet(clicked);
                     if (previous != null && previous != clicked) {
                         previous.setSelected(false);
@@ -412,6 +432,272 @@ public class ChestCavityConfigFragment extends Fragment {
             for (SkillSection section : sections.values()) {
                 section.refresh(SkillHotbarClientData.state());
             }
+
+            return scroll;
+        }
+
+        private View createDocsPage(ViewGroup container) {
+            var context = container.getContext();
+
+            var scroll = new ScrollView(context);
+            scroll.setClipToPadding(true);
+            scroll.setFillViewport(true);
+
+            var layout = baseLayout(context);
+            scroll.addView(layout, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            addHeadline(layout, "器官与技能图鉴", 18);
+
+            var search = new EditText(context);
+            search.setHint("搜索（名称 / 标签 / 描述 / id）");
+            search.setSingleLine(true);
+            var searchParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            searchParams.topMargin = layout.dp(6);
+            layout.addView(search, searchParams);
+
+            var splitRow = new LinearLayout(context);
+            splitRow.setOrientation(LinearLayout.HORIZONTAL);
+            splitRow.setGravity(Gravity.START | Gravity.TOP);
+            splitRow.setPadding(splitRow.dp(4), splitRow.dp(6), splitRow.dp(4), splitRow.dp(4));
+            var splitParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            splitParams.topMargin = layout.dp(8);
+            layout.addView(splitRow, splitParams);
+
+            var leftColumn = new LinearLayout(context);
+            leftColumn.setOrientation(LinearLayout.VERTICAL);
+            var leftParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            leftParams.rightMargin = splitRow.dp(8);
+            splitRow.addView(leftColumn, leftParams);
+
+            var iconGrid = new LinearLayout(context);
+            iconGrid.setOrientation(LinearLayout.VERTICAL);
+            iconGrid.setGravity(Gravity.START);
+            iconGrid.setPadding(iconGrid.dp(4), iconGrid.dp(4), iconGrid.dp(4), iconGrid.dp(4));
+            leftColumn.addView(iconGrid, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            ChestCavityConfigFragment.this.docsIconScrollRef = iconGrid;
+
+            var detailColumn = new LinearLayout(context);
+            detailColumn.setOrientation(LinearLayout.VERTICAL);
+            detailColumn.setPadding(detailColumn.dp(8), detailColumn.dp(8), detailColumn.dp(8), detailColumn.dp(8));
+            ShapeDrawable detailBg = new ShapeDrawable();
+            detailBg.setCornerRadius(detailColumn.dp(10));
+            detailBg.setColor(0x331C2A3A);
+            detailColumn.setBackground(detailBg);
+            var detailParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            splitRow.addView(detailColumn, detailParams);
+
+            Runnable renderEmpty = () -> {
+                detailColumn.removeAllViews();
+                var hint = new TextView(context);
+                hint.setText("请选择左侧条目查看详情。");
+                hint.setTextSize(12);
+                hint.setTextColor(0xFFCBD8EC);
+                detailColumn.addView(hint, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+            };
+
+            Consumer<DocEntry> renderDetail = entry -> {
+                detailColumn.removeAllViews();
+
+                var titleView = new TextView(context);
+                titleView.setText(entry.title());
+                titleView.setTextSize(16);
+                titleView.setTextColor(0xFFEEF5FF);
+                detailColumn.addView(titleView, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                if (!entry.summary().isBlank()) {
+                    var summaryView = new TextView(context);
+                    summaryView.setText(entry.summary());
+                    summaryView.setTextSize(13);
+                    summaryView.setTextColor(0xFFC8D6F2);
+                    summaryView.setPadding(0, detailColumn.dp(4), 0, 0);
+                    detailColumn.addView(summaryView, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                }
+
+                for (String line : entry.details()) {
+                    if (line == null || line.isBlank()) {
+                        continue;
+                    }
+                    var lineView = new TextView(context);
+                    lineView.setText("· " + line);
+                    lineView.setTextSize(12);
+                    lineView.setTextColor(0xFFB7C6E8);
+                    lineView.setPadding(0, detailColumn.dp(3), 0, 0);
+                    detailColumn.addView(lineView, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                }
+
+                if (!entry.tags().isEmpty()) {
+                    var tagsView = new TextView(context);
+                    tagsView.setText("标签：" + String.join(" ｜ ", entry.tags()));
+                    tagsView.setTextSize(11);
+                    tagsView.setTextColor(0xFFA7BADF);
+                    tagsView.setPadding(0, detailColumn.dp(6), 0, 0);
+                    detailColumn.addView(tagsView, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                }
+            };
+
+            DocRegistry.reload();
+            var baseEntries = new ArrayList<>(DocRegistry.all());
+            baseEntries.sort(Comparator.comparing(e -> e.title().toLowerCase(Locale.ROOT)));
+
+            record IconRecord(DocEntry entry, SimpleSkillSlotView view) {}
+
+            var iconRecords = new ArrayList<IconRecord>();
+            var selectedIdRef = new AtomicReference<ResourceLocation>();
+            var displayedRef = new AtomicReference<List<DocEntry>>(List.copyOf(baseEntries));
+
+            final int slotSizePx = layout.dp(36);
+            final int cellWidthPx = Math.max(slotSizePx + layout.dp(12), layout.dp(72));
+            final int gap = layout.dp(6);
+
+            Consumer<List<DocEntry>> rebuild = entries -> {
+                displayedRef.set(List.copyOf(entries));
+                iconRecords.clear();
+                iconGrid.removeAllViews();
+
+                if (entries.isEmpty()) {
+                    var emptyView = new TextView(context);
+                    emptyView.setText("未找到匹配条目");
+                    emptyView.setTextSize(12);
+                    emptyView.setTextColor(0xFF9FB4D9);
+                    iconGrid.addView(emptyView, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                    selectedIdRef.set(null);
+                    renderEmpty.run();
+                    return;
+                }
+
+                int available = layout.getWidth() - layout.getPaddingLeft() - layout.getPaddingRight();
+                int columns = Math.max(1, available <= 0 ? 1 : available / (cellWidthPx + gap * 2));
+                LinearLayout currentRow = null;
+                int col = 0;
+                ResourceLocation currentSelected = selectedIdRef.get();
+                boolean foundSelection = false;
+
+                for (DocEntry entry : entries) {
+                    var slot = new SimpleSkillSlotView(context, entry.id(), entry.icon(), entry.title(), null,
+                            slotSizePx, clicked -> {
+                        selectedIdRef.set(entry.id());
+                        for (IconRecord record : iconRecords) {
+                            record.view().setSelected(record.entry().id().equals(entry.id()));
+                        }
+                        renderDetail.accept(entry);
+                    });
+
+                    boolean isSelected = currentSelected != null && currentSelected.equals(entry.id());
+                    slot.setSelected(isSelected);
+                    if (isSelected) {
+                        foundSelection = true;
+                    }
+
+                    if (currentRow == null || col >= columns) {
+                        currentRow = new LinearLayout(context);
+                        currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                        currentRow.setGravity(Gravity.START);
+                        var rowParams = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT);
+                        if (iconGrid.getChildCount() > 0) {
+                            rowParams.topMargin = gap;
+                        }
+                        iconGrid.addView(currentRow, rowParams);
+                        col = 0;
+                    }
+
+                    var cellParams = new LinearLayout.LayoutParams(cellWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    cellParams.leftMargin = gap;
+                    cellParams.rightMargin = gap;
+                    cellParams.bottomMargin = gap;
+                    currentRow.addView(slot, cellParams);
+
+                    iconRecords.add(new IconRecord(entry, slot));
+                    col++;
+                }
+
+                if (!foundSelection) {
+                    if (!iconRecords.isEmpty()) {
+                        IconRecord first = iconRecords.get(0);
+                        selectedIdRef.set(first.entry().id());
+                        first.view().setSelected(true);
+                        renderDetail.accept(first.entry());
+                    } else {
+                        selectedIdRef.set(null);
+                        renderEmpty.run();
+                    }
+                } else {
+                    for (IconRecord record : iconRecords) {
+                        if (record.entry().id().equals(selectedIdRef.get())) {
+                            renderDetail.accept(record.entry());
+                            break;
+                        }
+                    }
+                }
+            };
+
+            layout.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                int newWidth = right - left;
+                int oldWidth = oldRight - oldLeft;
+                if (newWidth != oldWidth) {
+                    List<DocEntry> current = displayedRef.get();
+                    if (current != null) {
+                        rebuild.accept(new ArrayList<>(current));
+                    }
+                }
+            });
+
+            Consumer<String> applyQuery = query -> {
+                String text = query == null ? "" : query.trim();
+                List<DocEntry> filtered = text.isEmpty()
+                        ? new ArrayList<>(baseEntries)
+                        : new ArrayList<>(DocRegistry.search(text));
+                rebuild.accept(filtered);
+            };
+
+            boolean watcherAttached = false;
+            try {
+                Class<?> watcherClass = Class.forName("icyllis.modernui.text.TextWatcher");
+                Object watcher = Proxy.newProxyInstance(
+                        watcherClass.getClassLoader(),
+                        new Class<?>[]{watcherClass},
+                        (proxy, method, args) -> {
+                            if ("onTextChanged".equals(method.getName()) && args != null && args.length > 0) {
+                                CharSequence seq = (CharSequence) args[0];
+                                applyQuery.accept(seq == null ? "" : seq.toString());
+                            }
+                            return null;
+                        });
+                search.getClass().getMethod("addTextChangedListener", watcherClass).invoke(search, watcher);
+                watcherAttached = true;
+            } catch (Throwable ignored) {
+            }
+
+            if (!watcherAttached) {
+                search.setOnKeyListener((v, keyCode, event) -> {
+                    CharSequence text = search.getText();
+                    applyQuery.accept(text == null ? "" : text.toString());
+                    return false;
+                });
+            }
+
+            applyQuery.accept("");
 
             return scroll;
         }
@@ -1241,10 +1527,12 @@ public class ChestCavityConfigFragment extends Fragment {
         }
     }
 
-    private void updateSkillIconVisibility(int pageIndex) {
-        if (skillIconScrollRef == null) return;
-        // 技能页索引=2，其它页隐藏以规避 SurfaceView 叠绘
-        boolean visible = (pageIndex == 2);
-        skillIconScrollRef.setVisibility(visible ? View.VISIBLE : View.GONE);
+    private void updateIconSurfaceVisibility(int pageIndex) {
+        if (skillIconScrollRef != null) {
+            skillIconScrollRef.setVisibility(pageIndex == 2 ? View.VISIBLE : View.GONE);
+        }
+        if (docsIconScrollRef != null) {
+            docsIconScrollRef.setVisibility(pageIndex == 3 ? View.VISIBLE : View.GONE);
+        }
     }
 }
