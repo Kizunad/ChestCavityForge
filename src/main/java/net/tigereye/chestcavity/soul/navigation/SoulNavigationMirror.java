@@ -44,11 +44,8 @@ public final class SoulNavigationMirror {
 
     private static final Map<UUID, ISoulNavigator> NAVS = new HashMap<>();
     private static final Map<UUID, Goal> GOALS = new HashMap<>();
-    private static final Map<UUID, SoulNavEngine> ENGINE_OVERRIDES = new HashMap<>();
     // Reduce navigation log noise unless explicitly enabled via JVM property
     private static final boolean NAV_LOGS = Boolean.getBoolean("chestcavity.debugNav");
-    private static final SoulNavEngine DEFAULT_ENGINE =
-            SoulNavEngine.fromProperty(System.getProperty("chestcavity.soul.navEngine"));
 
     public static void setGoal(SoulPlayer soul, Vec3 target, double speed, double stopDistance) {
         setGoal(soul, target, speed, stopDistance, GoalPriority.NORMAL);
@@ -154,29 +151,9 @@ public final class SoulNavigationMirror {
         ISoulNavigator existing = NAVS.get(id);
         if (existing != null) return existing;
         if (!(soul.level() instanceof ServerLevel level)) return null;
-        SoulNavEngine engine = ENGINE_OVERRIDES.getOrDefault(id, DEFAULT_ENGINE);
-        ISoulNavigator created = switch (engine) {
-            case BARITONE -> new BaritoneSoulNavigator(level);
-            case VANILLA -> new VirtualSoulNavigator(level);
-            case AUTOSTEP -> new VirtualSoulNavigator(level, VirtualSoulNavigator.StepPolicy.AGGRESSIVE);
-        };
+        ISoulNavigator created = new BaritoneSoulNavigator(level);
         NAVS.put(id, created);
         return created;
-    }
-
-    /**
-     * Sets per-soul engine override. Passing null clears the override and reverts to default.
-     */
-    public static void setEngine(SoulPlayer soul, SoulNavEngine engine) {
-        UUID id = soul.getUUID();
-        if (engine == null) ENGINE_OVERRIDES.remove(id);
-        else ENGINE_OVERRIDES.put(id, engine);
-        // Force re-create navigator on next tick/goal
-        NAVS.remove(id);
-    }
-
-    public static SoulNavEngine getEngine(SoulPlayer soul) {
-        return ENGINE_OVERRIDES.getOrDefault(soul.getUUID(), DEFAULT_ENGINE);
     }
 
     /**
@@ -187,6 +164,6 @@ public final class SoulNavigationMirror {
         if (nav instanceof BaritoneSoulNavigator b) {
             return b.debugLine();
         }
-        return "engine=" + getEngine(soul).name().toLowerCase(java.util.Locale.ROOT) + ", planning=false";
+        return "engine=baritone, planning=false";
     }
 }

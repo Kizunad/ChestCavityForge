@@ -5,7 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSyncPayload.Entry;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulIdentityViews;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 
@@ -46,15 +46,7 @@ final class SoulConfigNetworkHelper {
         }
         double maxHealth = stats.attributeBaseValues().getOrDefault(MAX_HEALTH_ID, 20.0);
 
-        String displayName;
-        if (isOwner) {
-            displayName = owner.getGameProfile().getName();
-        } else {
-            displayName = container.getName(soulId);
-            if (displayName == null || displayName.isBlank()) {
-                displayName = SoulFakePlayerSpawner.resolveDisplayName(owner, soulId);
-            }
-        }
+        String displayName = SoulIdentityViews.resolveDisplayName(owner, soulId);
 
         entries.add(new Entry(
                 soulId,

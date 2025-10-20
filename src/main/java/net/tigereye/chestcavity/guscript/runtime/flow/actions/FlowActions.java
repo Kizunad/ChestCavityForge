@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import net.tigereye.chestcavity.guscript.fx.FxEventParameters;
 import net.tigereye.chestcavity.guscript.runtime.action.DefaultGuScriptExecutionBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulFakePlayerServices;
 
 /**
  * Built-in flow actions used by the MVP implementation.
@@ -239,7 +240,7 @@ public final class FlowActions {
                     finalName = pickUniqueRandomName(serverPlayer);
                 }
                 if (finalName != null && !finalName.isBlank()) {
-                    net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.seedIdentityName(soulId, finalName);
+                    SoulFakePlayerServices.identity().seedIdentityName(soulId, finalName);
                 }
                 var spawned = net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.respawnForOwner(serverPlayer, soulId);
                 if (spawned.isPresent() && switchTo) {
@@ -264,7 +265,7 @@ public final class FlowActions {
             if (base == null || base.isBlank()) break;
             String candidate = base;
             if (candidate.length() > 16) candidate = candidate.substring(0, 16);
-            if (!net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.isIdentityNameInUse(candidate)) {
+            if (!SoulFakePlayerServices.identity().isIdentityNameInUse(candidate)) {
                 return candidate;
             }
         }
@@ -275,7 +276,7 @@ public final class FlowActions {
             String suffix = String.valueOf(10 + rand.nextInt(90));
             String candidate = base + suffix;
             if (candidate.length() > 16) candidate = candidate.substring(0, 16);
-            if (!net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.isIdentityNameInUse(candidate)) {
+            if (!SoulFakePlayerServices.identity().isIdentityNameInUse(candidate)) {
                 return candidate;
             }
         }

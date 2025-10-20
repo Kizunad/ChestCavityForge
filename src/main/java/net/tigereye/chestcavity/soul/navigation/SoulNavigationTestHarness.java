@@ -2,9 +2,11 @@ package net.tigereye.chestcavity.soul.navigation;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulIdentityViews;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 
 import java.util.ArrayList;
@@ -58,7 +60,8 @@ public final class SoulNavigationTestHarness {
         SoulNavigationMirror.clearGoal(soul);
         TASKS.put(id, new Task(id, goals));
         if (SoulLog.DEBUG_LOGS) {
-            SoulLog.info("[soul][test] Scheduled TestCollectEntityGoals soul={} goals={}", id, goals.size());
+            SoulLog.info("[soul][test] Scheduled TestCollectEntityGoals soul={} ({}) goals={}",
+                    id, displayName(soul), goals.size());
         }
         return true;
     }
@@ -87,7 +90,8 @@ public final class SoulNavigationTestHarness {
                 SoulNavigationMirror.clearGoal(soul);
                 it.remove();
                 if (SoulLog.DEBUG_LOGS) {
-                    SoulLog.info("[soul][test] Completed TestCollectEntityGoals soul={}", soul.getUUID());
+                    SoulLog.info("[soul][test] Completed TestCollectEntityGoals soul={} ({})",
+                            soul.getUUID(), displayName(soul));
                 }
             }
         }
@@ -98,6 +102,16 @@ public final class SoulNavigationTestHarness {
      */
     public static void cancel(UUID soulId) {
         TASKS.remove(soulId);
+    }
+
+    private static String displayName(SoulPlayer soul) {
+        if (soul == null) {
+            return "#????????";
+        }
+        ServerPlayer owner = soul.getOwnerId()
+                .map(id -> soul.serverLevel().getServer().getPlayerList().getPlayer(id))
+                .orElse(null);
+        return SoulIdentityViews.resolveDisplayName(owner, soul.getSoulId());
     }
 
     private static final class Task {
@@ -155,13 +169,14 @@ public final class SoulNavigationTestHarness {
             this.phase = Phase.MOVING;
             SoulNavigationMirror.setGoal(soul, this.currentTarget, this.currentSpeed, this.currentStop);
             if (SoulLog.DEBUG_LOGS) {
-                SoulLog.info("[soul][test] -> goal {} / {} target=({}, {}, {}) stop={} speed={}",
+                SoulLog.info("[soul][test] -> goal {} / {} target=({}, {}, {}) stop={} speed={} soul={} ({})",
                         goalIndex + 1, goals.size(),
                         String.format(Locale.ROOT, "%.2f", currentTarget.x),
                         String.format(Locale.ROOT, "%.2f", currentTarget.y),
                         String.format(Locale.ROOT, "%.2f", currentTarget.z),
                         String.format(Locale.ROOT, "%.2f", currentStop),
-                        String.format(Locale.ROOT, "%.2f", currentSpeed));
+                        String.format(Locale.ROOT, "%.2f", currentSpeed),
+                        soul.getUUID(), displayName(soul));
             }
         }
 
@@ -195,9 +210,10 @@ public final class SoulNavigationTestHarness {
                 stuckTicks++;
             }
             if (stuckTicks > 200) {
-                if (SoulLog.DEBUG_LOGS) {
-                    SoulLog.info("[soul][test] goal {} stuck after {} ticks, skipping", goalIndex + 1, stuckTicks);
-                }
+            if (SoulLog.DEBUG_LOGS) {
+                SoulLog.info("[soul][test] goal {} stuck after {} ticks, skipping soul={} ({})",
+                        goalIndex + 1, stuckTicks, this.soulId, displayName(soul));
+            }
                 SoulNavigationMirror.clearGoal(soul);
                 phase = Phase.WAITING_AFTER_JUMP;
                 waitTicks = 5;

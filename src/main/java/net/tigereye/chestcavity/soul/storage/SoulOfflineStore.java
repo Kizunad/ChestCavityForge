@@ -125,4 +125,23 @@ public final class SoulOfflineStore extends SavedData {
         stored.forEach((soulId, tag) -> copy.put(soulId, tag.copy()));
         return copy;
     }
+
+    /**
+     * 删除指定玩家的某个灵魂快照（若存在）。
+     */
+    public void remove(UUID owner, UUID soul) {
+        if (owner == null || soul == null) {
+            return;
+        }
+        Map<UUID, CompoundTag> byOwner = pending.get(owner);
+        if (byOwner == null) {
+            return;
+        }
+        if (byOwner.remove(soul) != null) {
+            if (byOwner.isEmpty()) {
+                pending.remove(owner);
+            }
+            setDirty();
+        }
+    }
 }

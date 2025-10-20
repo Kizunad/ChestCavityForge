@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.soul.util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulIdentityViews;
 
 import java.util.Map;
 import java.util.UUID;
@@ -26,9 +27,7 @@ public final class SoulMessenger {
         if (ownerIdOpt.isEmpty()) return;
         ServerPlayer owner = soul.serverLevel().getServer().getPlayerList().getPlayer(ownerIdOpt.get());
         if (owner == null) return; // owner offline
-        String name = soul.getGameProfile() != null && soul.getGameProfile().getName() != null
-                ? soul.getGameProfile().getName()
-                : "Soul";
+        String name = SoulIdentityViews.resolveDisplayName(owner, soul.getSoulId());
         String ctx = (context == null || context.isBlank()) ? "" : " (" + context + ")";
         Component line = Component.literal("[soul] [分魂] " + name + " : " + content + ctx);
         owner.sendSystemMessage(line);

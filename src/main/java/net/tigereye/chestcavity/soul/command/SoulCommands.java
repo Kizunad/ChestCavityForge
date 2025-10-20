@@ -28,10 +28,10 @@ import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnResult;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.SoulPlayerInfo;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulIdentityViews;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonality;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalityRegistry;
 import net.tigereye.chestcavity.soul.navigation.SoulGoalPlanner;
-import net.tigereye.chestcavity.soul.navigation.SoulNavEngine;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationTestHarness;
 import net.tigereye.chestcavity.soul.util.SoulLog;
@@ -47,11 +47,13 @@ import net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot;
 import net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot;
 import net.tigereye.chestcavity.soul.profile.SoulProfile;
 import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
+import net.tigereye.chestcavity.soul.storage.SoulEntityArchive;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -79,33 +81,6 @@ public final class SoulCommands {
     private static final String TEST_CHUNK_LOADER_REASON = "command:/soul test SpawnChunkLoader";
     private static final ResourceLocation ATTR_CHUNK_RADIUS = ResourceLocation.fromNamespaceAndPath("chestcavity", "chunk_loader/radius");
 
-    /**
-     * /soul nav engine <idOrName> <engine|clear>
-     */
-    private static int navSetEngine(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        ServerPlayer executor = context.getSource().getPlayerOrException();
-        String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
-        String engineToken = StringArgumentType.getString(context, "engine");
-        var soulOpt = SoulFakePlayerSpawner.findSoulPlayer(
-                SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
-        if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
-        var soul = soulOpt.get();
-        if (!executor.getUUID().equals(soul.getOwnerId().orElse(null))) {
-            context.getSource().sendFailure(Component.literal("[soul] 你无权控制该 SoulPlayer。"));
-            return 0;
-        }
-
-        if (engineToken.equalsIgnoreCase("clear")) {
-            SoulNavigationMirror.setEngine(soul, null);
-        } else {
-            SoulNavEngine engine = SoulNavEngine.fromProperty(engineToken);
-            SoulNavigationMirror.setEngine(soul, engine);
-        }
-        SoulNavEngine effective = SoulNavigationMirror.getEngine(soul);
-        context.getSource().sendSuccess(() -> Component.literal("[soul] nav engine -> " + effective.name().toLowerCase(java.util.Locale.ROOT)), true);
-        return 1;
-    }
-
     private static int navDump(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer executor = context.getSource().getPlayerOrException();
         String sidToken = unquote(StringArgumentType.getString(context, "idOrName"));
@@ -113,7 +88,6 @@ public final class SoulCommands {
                 SoulFakePlayerSpawner.resolveSoulUuidFlexible(executor, sidToken).orElse(null));
         if (soulOpt.isEmpty()) { context.getSource().sendFailure(Component.literal("[soul] 未找到 SoulPlayer。")); return 0; }
         var soul = soulOpt.get();
-        var engine = SoulNavigationMirror.getEngine(soul);
         boolean baritoneAvail = net.tigereye.chestcavity.soul.navigation.barintegrate.BaritoneFacade.isAvailable();
         String line = net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.debugLine(soul);
         String broker = net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanBroker.debugSummary();
@@ -133,18 +107,6 @@ public final class SoulCommands {
                 .then(Commands.literal("enable")
                         .executes(SoulCommands::enableSoulSystem))
                 .then(Commands.literal("nav")
-                        .then(Commands.literal("engine")
-                                .then(Commands.argument("idOrName", StringArgumentType.string())
-                                        .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
-                                        .then(Commands.argument("engine", StringArgumentType.word())
-                                                .suggests((ctx, builder) -> {
-                                                    builder.suggest("vanilla");
-                                                    builder.suggest("baritone");
-                                                    builder.suggest("autostep");
-                                                    builder.suggest("clear");
-                                                    return builder.buildFuture();
-                                                })
-                                                .executes(SoulCommands::navSetEngine))))
                         .then(Commands.literal("dump")
                                 .then(Commands.argument("idOrName", StringArgumentType.string())
                                         .suggests((ctx, builder) -> SoulFakePlayerSpawner.suggestSoulPlayerUuids(ctx.getSource(), builder))
@@ -296,6 +258,8 @@ public final class SoulCommands {
                 .then(Commands.literal("test")
                         .then(Commands.literal("SoulPlayerList")
                                 .executes(SoulCommands::listSoulPlayers))
+                        .then(Commands.literal("DeathArchiveDump")
+                                .executes(SoulCommands::deathArchiveDump))
                         .then(Commands.literal("SoulPlayerSwitch")
                                 .then(Commands.literal("owner")
                                         .executes(SoulCommands::switchOwner))
@@ -437,6 +401,40 @@ public final class SoulCommands {
                 "[soul] ChunkLoader 生成 -> %s (radius=%d)",
                 result.entityId(), clampedRadius)), true);
         return 1;
+    }
+
+    private static int deathArchiveDump(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        MinecraftServer server = source.getServer();
+        SoulEntityArchive archive = SoulEntityArchive.get(server);
+        Map<UUID, CompoundTag> snapshot = archive.snapshot();
+        if (snapshot.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("[soul] Death archive is empty."), false);
+            return 0;
+        }
+        snapshot.forEach((id, tag) -> {
+            String type = tag.getString("type");
+            String ownerName = tag.getString("owner_name");
+            String displayName = tag.getString("display_name");
+            String dim = tag.getString("dimension");
+            double x = tag.getDouble("x");
+            double y = tag.getDouble("y");
+            double z = tag.getDouble("z");
+            long ts = tag.getLong("timestamp");
+            Component line = Component.literal(String.format(java.util.Locale.ROOT,
+                    "[soul] death-entry id=%s type=%s name=%s owner=%s dim=%s pos=(%.2f, %.2f, %.2f) time=%d",
+                    id,
+                    type.isEmpty() ? "?" : type,
+                    displayName.isEmpty() ? "<unnamed>" : displayName,
+                    ownerName.isEmpty() ? "<none>" : ownerName,
+                    dim.isEmpty() ? "?" : dim,
+                    x, y, z,
+                    ts));
+            source.sendSuccess(() -> line, false);
+        });
+        source.sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
+                "[soul] 共 %d 条死亡记录。", snapshot.size())), false);
+        return snapshot.size();
     }
 
     private static int spawnTestSoul(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
@@ -1367,7 +1365,7 @@ public final class SoulCommands {
         var spawned = SoulFakePlayerSpawner.spawnFromRequest(executor, request);
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulDefault owner={} soul={}", executor.getUUID(), soulId);
-            String name = SoulFakePlayerSpawner.resolveDisplayName(executor, soulId);
+            String name = SoulIdentityViews.resolveDisplayName(executor, soulId);
             context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                     "[soul] CreateSoulDefault -> %s", name)), true);
             return 1;
@@ -1410,7 +1408,7 @@ public final class SoulCommands {
         if (spawned.isPresent()) {
             SoulLog.info("[soul] command-createSoulAt owner={} soul={} pos=({},{},{})",
                     executor.getUUID(), soulId, x, y, z);
-            String name = SoulFakePlayerSpawner.resolveDisplayName(executor, soulId);
+            String name = SoulIdentityViews.resolveDisplayName(executor, soulId);
             context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                     "[soul] CreateSoulAt -> %s @ (%.1f, %.1f, %.1f)", name, x, y, z)), true);
             return 1;
@@ -1438,7 +1436,9 @@ public final class SoulCommands {
             return 0;
         }
         for (SoulPlayerInfo info : entries) {
-            String line = String.format(Locale.ROOT, "[soul] %s soul=%s", info.active() ? "*" : "-", info.soulUuid());
+            String name = SoulIdentityViews.resolveDisplayName(executor, info.soulUuid());
+            String line = String.format(Locale.ROOT, "[soul] %s %s (%s)",
+                    info.active() ? "*" : "-", name, info.soulUuid());
             context.getSource().sendSuccess(() -> Component.literal(line), false);
         }
         return entries.size();
@@ -1495,7 +1495,7 @@ public final class SoulCommands {
             context.getSource().sendFailure(Component.literal("[soul] 试图执行该命令时出现意外错误 (switch)。请查看日志。"));
             return 0;
         }
-        String name = SoulFakePlayerSpawner.resolveDisplayName(executor, uuid);
+        String name = SoulIdentityViews.resolveDisplayName(executor, uuid);
         SoulLog.info("[soul] command-switch owner={} target={}/{} ", executor.getUUID(), name, uuid);
         context.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "[soul] 已切换至 %s。", name)), true);
@@ -1518,7 +1518,7 @@ public final class SoulCommands {
             return 0;
         }
         UUID uuid = resolved.get();
-        String disp = SoulFakePlayerSpawner.resolveDisplayName(executor, uuid);
+        String disp = SoulIdentityViews.resolveDisplayName(executor, uuid);
         if (!SoulFakePlayerSpawner.remove(uuid, executor)) {
             context.getSource().sendFailure(Component.literal(String.format(Locale.ROOT,
                     "[soul] 未找到 UUID=%s 的 SoulPlayer 或你无权移除。", uuid)));
