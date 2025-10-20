@@ -39,6 +39,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.tian_dao.behavior.ShouGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.BaiYunGuOrganBehavior;
@@ -268,6 +269,27 @@ public final class ActiveSkillRegistry {
                 "消耗全部燃油喷射火焰波；命中油涂层且火衣激活时引爆并暂时禁用火衣",
                 "compat/guzhenren/item/yan_dao/behavior/HuoYouGuOrganBehavior.java",
                 () -> { ensureClassLoaded(HuoYouGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu",
+                tags("输出", "爆发"),
+                "释放龙焰吐息，对前方敌人造成高额伤害并叠加龙焰印记，短暂悬停",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu",
+                tags("防御", "位移"),
+                "凝空悬停，获得短暂腾空与减伤窗口",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu",
+                tags("输出", "爆发"),
+                "化作火龙俯冲落地引发爆炸，并为龙焰印记叠层，落地后短暂无敌",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
         // 单窍·火炭蛊：极限技（四转）

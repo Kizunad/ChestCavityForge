@@ -30,6 +30,10 @@ public final class ReactionTagKeys {
     public static final ResourceLocation IGNITE_WINDOW = tag("reaction/ignite_window");
     public static final ResourceLocation IGNITE_AMP = tag("reaction/ignite_amp");
     public static final ResourceLocation CHAR_PRESSURE = tag("reaction/char_pressure");
+    public static final ResourceLocation DRAGON_FLAME_MARK = tag("reaction/dragon_flame_mark");
+    public static final ResourceLocation DRAGON_ASCENT = tag("reaction/dragon_ascent");
+    public static final ResourceLocation DRAGON_DIVE = tag("reaction/dragon_dive");
+    public static final ResourceLocation DRAGON_FLAME_REFRESH_GATE = tag("reaction/dragon_flame_refresh_gate");
 
     // 其它元素/学派标签（预留，按需在规则与行为中使用）
     public static final ResourceLocation FROST_MARK = tag("reaction/frost_mark");

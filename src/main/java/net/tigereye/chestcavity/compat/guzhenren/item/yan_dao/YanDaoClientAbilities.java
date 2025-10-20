@@ -19,5 +19,17 @@ public final class YanDaoClientAbilities {
         if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(huoYiGuId)) {
             CCKeybindings.ATTACK_ABILITY_LIST.add(huoYiGuId);
         }
+        ResourceLocation huoLongBreath = ResourceLocation.fromNamespaceAndPath("guzhenren", "huo_long_gu_breath");
+        if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(huoLongBreath)) {
+            CCKeybindings.ATTACK_ABILITY_LIST.add(huoLongBreath);
+        }
+        ResourceLocation huoLongHover = ResourceLocation.fromNamespaceAndPath("guzhenren", "huo_long_gu_hover");
+        if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(huoLongHover)) {
+            CCKeybindings.ATTACK_ABILITY_LIST.add(huoLongHover);
+        }
+        ResourceLocation huoLongDive = ResourceLocation.fromNamespaceAndPath("guzhenren", "huo_long_gu_dive");
+        if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(huoLongDive)) {
+            CCKeybindings.ATTACK_ABILITY_LIST.add(huoLongDive);
+        }
     }
 }

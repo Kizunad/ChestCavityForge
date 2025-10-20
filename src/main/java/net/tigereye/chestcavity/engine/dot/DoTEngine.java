@@ -124,6 +124,39 @@ public final class DoTEngine {
         return removed;
     }
 
+    public static int cancel(LivingEntity attacker, LivingEntity target, ResourceLocation typeId) {
+        UUID attackerUuid = attacker != null ? attacker.getUUID() : null;
+        UUID targetUuid = target != null ? target.getUUID() : null;
+        return cancel(attackerUuid, targetUuid, typeId);
+    }
+
+    public static int cancel(UUID attackerUuid, UUID targetUuid, ResourceLocation typeId) {
+        if (typeId == null) {
+            return 0;
+        }
+        int removed = 0;
+        synchronized (DoTEngine.class) {
+            Iterator<Map.Entry<Integer, List<Pulse>>> iterator = SCHEDULE.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, List<Pulse>> entry = iterator.next();
+                List<Pulse> pulses = entry.getValue();
+                int before = pulses.size();
+                pulses.removeIf(pulse -> typeId.equals(pulse.typeId)
+                        && (attackerUuid == null ? pulse.attackerUuid == null : attackerUuid.equals(pulse.attackerUuid))
+                        && (targetUuid == null ? pulse.targetUuid == null : targetUuid.equals(pulse.targetUuid)));
+                removed += before - pulses.size();
+                if (pulses.isEmpty()) {
+                    iterator.remove();
+                }
+            }
+        }
+        if (removed > 0 && debugEnabled()) {
+            LOGGER.info("[dot] cleared {} scheduled pulses for type={} attacker={} target={}", removed, typeId,
+                    attackerUuid, targetUuid);
+        }
+        return removed;
+    }
+
     public static List<DoTEntry> getPendingForTarget(UUID targetUuid) {
         if (targetUuid == null) return List.of();
         List<DoTEntry> out = new ArrayList<>();

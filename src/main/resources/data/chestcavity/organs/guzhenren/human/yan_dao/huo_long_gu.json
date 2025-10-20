@@ -1,0 +1,12 @@
+{
+  "itemID": "guzhenren:huo_long_gu",
+  "organScores": [
+    { "id": "chestcavity:health", "value": "8" },
+    { "id": "chestcavity:strength", "value": "24" },
+    { "id": "chestcavity:speed", "value": "0.10" },
+    { "id": "chestcavity:fire_resistant", "value": "2" },
+    { "id": "guzhenren:zuida_zhenyuan", "value": "8" },
+    { "id": "guzhenren:zuida_jingli", "value": "6" },
+    { "id": "guzhenren:qiyun_shangxian", "value": "10" }
+  ]
+}

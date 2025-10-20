@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.util.reaction.DragonFlameHelper;
 import net.tigereye.chestcavity.engine.reaction.ReactionRuntime;
 import net.tigereye.chestcavity.engine.reaction.DelayedDamageEngine;
 import net.tigereye.chestcavity.engine.reaction.EffectsEngine;
@@ -69,6 +70,7 @@ public final class ReactionRegistry {
         registerElementalDefaults();
         // 火系通用规则（Ignite DoT 刷新/过热判定等）
         registerFireGenericDefaults();
+        registerYanDaoDragonDefaults();
         // 注册血道规则（血印/失血 与 各系 DoT 的联动）
         registerBloodDefaults();
         // 注册光/魂/剑道联动规则
@@ -222,6 +224,66 @@ public final class ReactionRegistry {
                             target.hurt(target.damageSources().magic(), (float) bonus);
                         }
                     }
+                    return ReactionResult.proceed();
+                });
+    }
+
+    private static void registerYanDaoDragonDefaults() {
+        final int FIRE_IMMUNE_SHORT = 40;
+        final int IGNITE_GATE = 40;
+
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_DRAGONFLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.OIL_COATING)
+                        && DragonFlameHelper.getStacks(ctx.target()) > 0,
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    int stacks = Math.max(0, DragonFlameHelper.getStacks(target));
+                    if (stacks <= 0) {
+                        return ReactionResult.proceed();
+                    }
+                    double damage = stacks * 10.0D;
+                    if (damage > 0.0D) {
+                        if (attacker != null) {
+                            target.hurt(attacker.damageSources().mobAttack(attacker), (float) damage);
+                        } else {
+                            target.hurt(target.damageSources().generic(), (float) damage);
+                        }
+                    }
+                    ReactionTagOps.clear(target, ReactionTagKeys.OIL_COATING);
+                    target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 20, 0, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20, 0, false, true));
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragonflame_oil.attacker", target.getName().getString());
+                    i18nMessage(target, "message.chestcavity.reaction.dragonflame_oil.target",
+                            attacker != null ? attacker.getName().getString() : "龙焰");
+                    return ReactionResult.proceed();
+                });
+
+        register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_DRAGONFLAME,
+                ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.FIRE_COAT)
+                        && DragonFlameHelper.getStacks(ctx.target()) > 0,
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    DragonFlameHelper.applyStacks(attacker, target, 2);
+                    ReactionTagOps.clear(target, ReactionTagKeys.FIRE_COAT);
+                    if (attacker != null) {
+                        ReactionTagOps.add(attacker, ReactionTagKeys.FIRE_IMMUNE, FIRE_IMMUNE_SHORT);
+                    }
+                    i18nMessage(attacker, "message.chestcavity.reaction.dragonflame_baptism.attacker", target.getName().getString());
+                    i18nMessage(target, "message.chestcavity.reaction.dragonflame_baptism.target",
+                            attacker != null ? attacker.getName().getString() : "龙焰");
+                    return ReactionResult.proceed();
+                });
+
+        register(net.tigereye.chestcavity.util.DoTTypes.IGNITE,
+                ctx -> DragonFlameHelper.getStacks(ctx.target()) > 0
+                        && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.DRAGON_FLAME_REFRESH_GATE),
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    DragonFlameHelper.refreshDuration(attacker, target, 20);
+                    ReactionTagOps.add(target, ReactionTagKeys.DRAGON_FLAME_REFRESH_GATE, IGNITE_GATE);
                     return ReactionResult.proceed();
                 });
     }

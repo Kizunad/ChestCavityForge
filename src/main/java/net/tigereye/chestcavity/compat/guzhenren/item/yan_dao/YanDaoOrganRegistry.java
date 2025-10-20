@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.FenShenGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuorenguOrganBehavior;
@@ -23,6 +24,7 @@ public final class YanDaoOrganRegistry {
     private static final ResourceLocation HUORENGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huorengu");
     private static final ResourceLocation HUO_YI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_gu");
     private static final ResourceLocation HUO_YOU_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_you_gu");
+    private static final ResourceLocation HUO_LONG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu");
     private static final ResourceLocation DAN_QIAO_HUO_TAN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "dan_qiao_huo_tan_gu");
     private static final ResourceLocation FEN_SHEN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "fen_shen_gu");
 
@@ -55,6 +57,15 @@ public final class YanDaoOrganRegistry {
                     .build());
         } catch (Throwable t) {
             ChestCavity.LOGGER.warn("[compat/guzhenren][yan_dao] skip HuoYiGu registration due to init error", t);
+        }
+        try {
+            list.add(OrganIntegrationSpec.builder(HUO_LONG_GU_ID)
+                    .addSlowTickListener(HuoLongGuOrganBehavior.INSTANCE)
+                    .addOnHitListener(HuoLongGuOrganBehavior.INSTANCE)
+                    .addIncomingDamageListener(HuoLongGuOrganBehavior.INSTANCE)
+                    .build());
+        } catch (Throwable t) {
+            ChestCavity.LOGGER.warn("[compat/guzhenren][yan_dao] skip HuoLongGu registration due to init error", t);
         }
         try {
             list.add(OrganIntegrationSpec.builder(DAN_QIAO_HUO_TAN_GU_ID)
