@@ -2575,11 +2575,11 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 
 --------------------------------------
 
-
-# 月光蛊（Moonlight）— 完整落地计划
+月道
+# 月光蛊（Moonlight）— 完整落地计划 "item.guzhenren.yue_guang_gu": "月光蛊",
 
 ## 1) 设计目标
-
+* 低消耗: 每SlowTick只需消耗 baseCost=96 的真元
 * 夜间 + 月相驱动的全局增益器官，定位为**耐久与位移的通用核心**。
 * 特征：按月相浮动的属性强化 + 可再生“月辉护盾” + 4转解锁的“盈亏计数/涌潮”防爆。
 * 升级：**单线 1→5 转**，**自动生效**，**不提供重置与分支**。
@@ -2747,10 +2747,15 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 6. **QA 自测**：按第 7 节流程打点看数值。
 7. **平衡微调**：根据服内反馈仅改常量，不动流程。
 
+"organScores": {
+  "chestcavity:luck": 0.5,
+  "chestcavity:breath": 0.2
+}
 
+并且同步更新  ChestCavityForge/src/main/resources/assets/guzhenren/docs/human/yue_dao 的文档
 --------------------------------------
 
-
+baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 
 [复制粘贴用 - 更新文档]
 整理 ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/guang_dao  的主动/被动等逻辑，写入文档json中 ChestCavityForge/src/main/resources/data/guzhenren/docs/human/guang_dao , 要求，以系统语气撰写以下器官说明：
