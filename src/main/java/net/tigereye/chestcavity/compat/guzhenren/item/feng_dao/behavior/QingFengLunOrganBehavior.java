@@ -37,6 +37,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -751,16 +752,61 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         if (look.lengthSqr() < 1.0E-4D) {
             look = player.getDeltaMovement().normalize();
         }
+        if (look.lengthSqr() < 1.0E-4D) {
+            look = new Vec3(1.0D, 0.0D, 0.0D);
+        }
+
         Vec3 origin = player.position();
-        Vec3 target = origin.add(look.scale(DASH_DISTANCE));
-        HitResult hit = player.level().clip(new ClipContext(origin, target, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-        Vec3 destination = hit.getLocation();
+        Vec3 maxTarget = origin.add(look.scale(DASH_DISTANCE));
+        HitResult hit = player.level().clip(new ClipContext(origin, maxTarget, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+
+        Vec3 dashVector = maxTarget.subtract(origin);
+        if (hit.getType() == HitResult.Type.BLOCK) {
+            Vec3 hitVector = hit.getLocation().subtract(origin);
+            double clearance = player.getBbWidth() * 0.5D + 0.15D;
+            double adjustedLength = Math.max(0.0D, hitVector.length() - clearance);
+            dashVector = look.scale(Math.min(DASH_DISTANCE, adjustedLength));
+        }
+
         double yOffset = player.getBbHeight() * 0.1D;
-        player.teleportTo(destination.x, destination.y + yOffset, destination.z);
+        Vec3 desiredDestination = origin.add(dashVector).add(0.0D, yOffset, 0.0D);
+
+        Vec3 destination = attemptSafeTeleport(player, desiredDestination, look, yOffset, origin);
+
         player.setDeltaMovement(look.x * 0.45D, Math.max(look.y * 0.2D, 0.1D), look.z * 0.45D);
         player.hasImpulse = true;
         spawnDashParticles(player.serverLevel(), origin, destination);
         dashKnockback(player, origin, destination);
+    }
+
+
+    private static Vec3 attemptSafeTeleport(ServerPlayer player, Vec3 desiredDestination, Vec3 fallbackDirection, double yOffset, Vec3 origin) {
+        Vec3 destination = desiredDestination;
+        Vec3 offset = destination.subtract(origin);
+        double distance = offset.length();
+        Vec3 direction = distance > 1.0E-4D ? offset.normalize() : fallbackDirection.normalize();
+        if (direction.lengthSqr() < 1.0E-4D) {
+            direction = new Vec3(1.0D, 0.0D, 0.0D);
+        }
+
+        Optional<Vec3> result = TeleportOps.blinkTo(player, destination, 2, 0.25D);
+        if (result.isPresent()) {
+            return result.get();
+        }
+
+        double remaining = distance;
+        double retreatStep = Math.max(0.25D, player.getBbWidth() * 0.5D + 0.1D);
+        for (int i = 0; i < 4 && remaining > 0.05D; i++) {
+            remaining = Math.max(0.0D, remaining - retreatStep);
+            Vec3 fallbackTarget = origin.add(direction.scale(remaining));
+            result = TeleportOps.blinkTo(player, fallbackTarget, 2, 0.25D);
+            if (result.isPresent()) {
+                return result.get();
+            }
+        }
+
+        player.teleportTo(origin.x, origin.y + yOffset, origin.z);
+        return player.position();
     }
 
     private static void spawnDashParticles(ServerLevel level, Vec3 start, Vec3 end) {
