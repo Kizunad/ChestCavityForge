@@ -1,0 +1,13 @@
+{
+  "itemID": "guzhenren:qing_feng_lun_gu",
+  "organScores": [
+    { "id": "chestcavity:speed", "value": "0.15" },
+    { "id": "chestcavity:leaping", "value": "0.75" },
+    { "id": "chestcavity:arrow_dodging", "value": "0.5" },
+    { "id": "chestcavity:defense", "value": "3" },
+    { "id": "guzhenren:zuida_jingli", "value": "3" },
+    { "id": "guzhenren:zuida_zhenyuan", "value": "3" },
+    { "id": "chestcavity:buoyant", "value": "0.1" },
+    { "id": "guzhenren:daohen_fengdao", "value": "1" }
+  ]
+}
