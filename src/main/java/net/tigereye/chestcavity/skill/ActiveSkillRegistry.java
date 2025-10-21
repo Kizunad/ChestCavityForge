@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGua
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
@@ -146,6 +147,13 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/gu_dao/behavior/LeGuDunGuOrganBehavior.java:49",
                 () -> { ensureClassLoaded(LeGuDunGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("骨盾就绪", null));
+
+        register("guzhenren:leidungu_active", "guzhenren:leidungu_active", "guzhenren:leidungu",
+                tags("防御", "控制"),
+                "释放雷枢冲击周围敌人，造成感电 DoT 并短时迟缓",
+                "compat/guzhenren/item/lei_dao/behavior/LeiDunGuOrganBehavior.java",
+                () -> { ensureClassLoaded(LeiDunGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu",
                 tags("输出", "控制"),

@@ -76,6 +76,8 @@ public final class GuzhenrenResourceBridge {
         MAX_HUNPO("zuida_hunpo", "最大魂魄"),
         HUNPO_STABILITY("hunpo_kangxing", "魂魄抗性", "魂魄稳定度", "hunpo_stability"),
         MAX_HUNPO_STABILITY("hunpo_kangxing_shangxian", "魂魄抗性上限", "魂魄稳定度上限", "hunpo_stability_max"),
+        LEIDUNGU_TSXP("leidungu_tsxp", "雷盾阅历"),
+        LEIDUNGU_TIER("leidungu_tier", "雷盾等阶"),
         NIANTOU("niantou", "念头"),
         MAX_NIANTOU("niantou_zhida", "最大念头", "niantou_zuida"),
         NIANTOU_RONGLIANG("niantou_rongliang", "念头容量"),     // 自然恢复会被 niantou_rongliang（念头容量）限制

@@ -808,6 +808,22 @@ public final class ReactionRegistry {
                     return ReactionResult.proceed();
                 });
 
+        // 雷枢感电：每跳强化迟缓并续雷痕
+        register(net.tigereye.chestcavity.util.DoTTypes.LEI_DUN_ELECTRIFY,
+                ctx -> true,
+                ctx -> {
+                    LivingEntity attacker = ctx.attacker();
+                    LivingEntity target = ctx.target();
+                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20, 4, false, true));
+                    target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 20, 2, false, true));
+                    if (attacker != null && net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil.areEnemies(attacker, target)) {
+                        ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_CHARGE, 60);
+                    } else {
+                        ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_CHARGE, 40);
+                    }
+                    return ReactionResult.proceed();
+                });
+
         // 木灵护熄（火衣 × 木灵）
         register(net.tigereye.chestcavity.util.DoTTypes.YAN_DAO_HUO_YI_AURA,
                 ctx -> ReactionTagOps.has(ctx.target(), ReactionTagKeys.WOOD_GROWTH),
