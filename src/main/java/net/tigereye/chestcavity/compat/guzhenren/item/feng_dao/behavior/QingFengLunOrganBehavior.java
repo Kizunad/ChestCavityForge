@@ -1,9 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior;
 
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.CountdownOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -49,6 +51,7 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Objects;
@@ -57,7 +60,17 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * 清风轮蛊（风道·腿部）— 位移与风势管理。
+ * 清风轮蛊（风道·腿部）
+ *
+ * 功能总览：
+ * - 被动：风行（短期移速）、叠风（层数与属性加成）、滑翔与坠落处理、近失弹道统计。
+ * - 主动：突进（Dash）、风斩（Wind Slash）、风域（Wind Domain）。
+ * - 防御：移动闪避（阶段≥3）、投射物风环反制（阶段≥4）、坠落免伤（阶段≥4）。
+ *
+ * 实现要点：
+ * - 统一使用行为工具：LedgerOps（连携账本）、MultiCooldown（多冷却键）、OrganStateOps（器官状态）、TeleportOps（安全闪烁）。
+ * - 重要通道：风势层数与风环冷却（用于 UI/重建）；移速等属性通过临时修饰符管理，装备移除时清理。
+ * - 仅在服务端处理逻辑（粒子/音效通过 ServerLevel 广播），保证一致性与可复现。
  */
 public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavior
         implements OrganSlowTickListener, OrganIncomingDamageListener, OrganOnHitListener, OrganRemovalListener {
@@ -87,7 +100,6 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private static final String KEY_RUN_M = "run_m";
     private static final String KEY_DASH_USED = "dash_used";
     private static final String KEY_DASH_HIT = "dash_hit";
-    private static final String KEY_NEAR_MISS = "near_miss";
     private static final String KEY_AIR_TIME = "air_time";
     private static final String KEY_RING_BLOCK = "ring_block";
     private static final String KEY_STACK10_HOLD = "stack10_hold";
@@ -111,7 +123,6 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private static final String CD_KEY_WIND_RING_READY = "cd_wind_ring_ready";
     private static final String CD_KEY_DEDUP_DASH_USE = "dedup_dash_use";
     private static final String CD_KEY_DEDUP_DASH_HIT = "dedup_dash_hit";
-    private static final String CD_KEY_DEDUP_NEAR_MISS = "dedup_near_miss";
     private static final String CD_KEY_DEDUP_RING_BLOCK = "dedup_ring_block";
 
     private static final double DASH_DISTANCE = 6.0D;
@@ -138,25 +149,32 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private static final double MOVE_EPSILON = 1.0E-3D;
 
     private static final int RUN_THRESHOLD = 3000;
+    private static final long RUN_FX_INTERVAL_UNITS = 10_000L; // 100 米对应的累积单位（厘米）
     private static final int DASH_USED_THRESHOLD = 50;
-    private static final int DASH_HIT_THRESHOLD = 50;
-    private static final int NEAR_MISS_THRESHOLD = 30;
-    private static final long AIR_TIME_THRESHOLD_MS = 300_000L;
-    private static final int RING_BLOCK_THRESHOLD = 25;
-    private static final int STACK10_HOLD_THRESHOLD = 12;
-    private static final int GLIDE_CHAIN_THRESHOLD = 10;
+    private static final long STAGE3_RUN_THRESHOLD = RUN_THRESHOLD * 10L;
+    private static final long STAGE4_RUN_THRESHOLD = RUN_THRESHOLD * 100L;
+    private static final long STAGE5_RUN_THRESHOLD = RUN_THRESHOLD * 1000L;
+    private static final int STAGE3_DASH_USED_THRESHOLD = DASH_USED_THRESHOLD;
+    private static final int STAGE4_DASH_USED_THRESHOLD = DASH_USED_THRESHOLD * 10;
+    private static final int STAGE5_DASH_USED_THRESHOLD = DASH_USED_THRESHOLD * 100;
 
     private static final double WIND_STACK_SPEED_BONUS_PER_STACK = 0.02D;
     private static final double WIND_STACK_DODGE_PER_STACK = 0.01D;
     private static final double BASE_DODGE_STAGE3 = 0.10D;
 
+    private static final String TOAST_TITLE_DASH_READY = "【清风轮】疾风冲刺已就绪";
+    private static final String TOAST_MSG_DASH_READY = "已就绪";
+    private static final String TOAST_TITLE_RING_READY = "【清风轮】风环护盾冷却完毕";
+    private static final String TOAST_MSG_RING_READY = "冷却完毕";
+    private static final String TOAST_TITLE_DOMAIN_READY = "【清风轮】风神领域已充能";
+    private static final String TOAST_MSG_DOMAIN_READY = "可展开领域。";
+
     private static final ClampPolicy WIND_STACK_CLAMP = new ClampPolicy(0.0D, 10.0D);
     private static final ClampPolicy WIND_RING_CD_CLAMP = new ClampPolicy(0.0D, Double.MAX_VALUE);
 
     private static final Object2ObjectMap<UUID, Vec3> LAST_POSITION = new Object2ObjectOpenHashMap<>();
-    private static final Object2LongMap<UUID> NEAR_MISS_CACHE = new Object2LongOpenHashMap<>();
-
-    private static final long NEAR_MISS_DEDUP_TICKS = 10L;
+    private static final Object2IntMap<UUID> RUN_FX_COOLDOWN = new Object2IntOpenHashMap<>();
+    private static final int RUN_FX_COOLDOWN_TICKS = 40; // 2 秒冷却，避免频繁播放
 
     static {
         OrganActivationListeners.register(DASH_ABILITY_ID, QingFengLunOrganBehavior::activateDash);
@@ -167,12 +185,19 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private QingFengLunOrganBehavior() {
     }
 
+    /**
+     * 确保相关连携通道存在（风势层数、风环冷却）。
+     * 可在装备/重载/慢速Tick时反复调用，幂等。
+     */
     public void ensureAttached(ChestCavityInstance cc) {
         ActiveLinkageContext context = LedgerOps.context(cc);
         LedgerOps.ensureChannel(context, WIND_STACKS_CHANNEL, WIND_STACK_CLAMP);
         LedgerOps.ensureChannel(context, WIND_RING_CD_CHANNEL, WIND_RING_CD_CLAMP);
     }
 
+    /**
+     * 装备时初始化：通道保障、注册移除钩子、同步前端插槽。
+     */
     public void onEquip(ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
         if (cc == null || organ == null || organ.isEmpty()) {
             return;
@@ -183,6 +208,12 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     }
 
     @Override
+    /**
+     * 装备被移除：
+     * - 清理与该器官相关的移速修饰（风行/风域/叠层）。
+     * - 重置阶段、叠层与时间戳到安全值；
+     * - 将风势与风环冷却通道清零，避免账本残留。
+     */
     public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || organ == null || organ.isEmpty()) {
             return;
@@ -208,6 +239,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     }
 
     @Override
+    /**
+     * 慢速Tick（服务端）：维护被动与状态、推进阶段、同步冷却通道。
+     */
     public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
         if (!(entity instanceof Player player) || entity.level().isClientSide()) {
             return;
@@ -229,13 +263,15 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         updateRunDistance(player, state, cc, organ);
         updateSprintMomentum(player, state, cc, organ, gameTime);
         updateGlideState(player, state, cc, organ, gameTime);
-        detectNearMiss(player, level, state, cc, organ, gameTime, cooldown);
         updateDomainEffects(player, cc, organ, state, cooldown, serverLevel, gameTime);
         updateStageProgress(player, state, cc, organ, gameTime);
         syncCooldownChannels(cc, cooldown, gameTime);
     }
 
     @Override
+    /**
+     * 受击处理：坠落免伤（≥4）、移动闪避（≥3，叠层加成≥5）、投射物风环反制（≥4）。
+     */
     public float onIncomingDamage(DamageSource source, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, float damage) {
         if (!(victim instanceof Player player) || victim.level().isClientSide()) {
             return damage;
@@ -280,6 +316,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
                 incrementCounter(state, cc, organ, KEY_RING_BLOCK, 1, Integer.MAX_VALUE);
                 playWindRing((ServerLevel) player.level(), player.position());
                 pushProjectileBack(source, player);
+                if (player instanceof ServerPlayer serverPlayer) {
+                    scheduleCooldownToast(serverPlayer, organ, readyEntry.getReadyTick(), TOAST_TITLE_RING_READY, TOAST_MSG_RING_READY);
+                }
                 return 0.0F;
             }
         }
@@ -287,6 +326,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
     }
 
     @Override
+    /**
+     * 命中处理：突进后窗口内的命中计数（去抖10t），用于阶段推进与统计。
+     */
     public float onHit(DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
         if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
             return damage;
@@ -296,7 +338,7 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
         OrganState state = organState(organ, STATE_ROOT);
         int stage = Math.max(1, state.getInt(KEY_STAGE, 1));
-        if (stage < 3) {
+        if (stage < 2) {
             return damage;
         }
         long now = attacker.level().getGameTime();
@@ -312,6 +354,11 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         return damage;
     }
 
+    /**
+     * 主动技：突进（Dash）。
+     * - 阶段≥2；领域激活时可绕过冷却；统一消耗真元并写入冷却。
+     * - 具备安全位移与碰撞裁剪，产生粒子与轻微风压击退，并开启“风斩连携窗口”。
+     */
     private static void activateDash(LivingEntity entity, ChestCavityInstance cc) {
         if (!(entity instanceof ServerPlayer player) || cc == null) {
             return;
@@ -340,19 +387,20 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
         if (!domainActive) {
             readyEntry.setReadyAt(now + DASH_COOLDOWN_TICKS);
+            scheduleCooldownToast(player, organ, readyEntry.getReadyTick(), TOAST_TITLE_DASH_READY, TOAST_MSG_DASH_READY);
         }
         cooldown.entry(CD_KEY_DEDUP_DASH_USE).setReadyAt(now + 10L);
         performDash(player, organ, state, now);
         incrementCounter(state, cc, organ, KEY_DASH_USED, 1, Integer.MAX_VALUE);
         state.setLong(KEY_DASH_WINDOW_UNTIL, now + DASH_WINDOW_TICKS, value -> Math.max(0L, value), 0L);
         state.setLong(KEY_LAST_DASH_TICK, now, value -> Math.max(0L, value), 0L);
-        Vec3 look = player.getLookAngle();
-        state.setDouble(KEY_LAST_DASH_DIR_X, look.x, d -> d, 0.0D);
-        state.setDouble(KEY_LAST_DASH_DIR_Y, look.y, d -> d, 0.0D);
-        state.setDouble(KEY_LAST_DASH_DIR_Z, look.z, d -> d, 0.0D);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
+    /**
+     * 主动技：风斩（Wind Slash）。
+     * - 仅可在“突进连携窗口”内释放；沿方向多段命中，造成伤害与小幅推力。
+     */
     private static void activateWindSlash(LivingEntity entity, ChestCavityInstance cc) {
         if (!(entity instanceof ServerPlayer player) || cc == null) {
             return;
@@ -388,6 +436,11 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
+    /**
+     * 主动技：风域（Wind Domain）。
+     * - 阶段≥5且风势满层；设置领域持续与总冷却。
+     * - 后续在慢速Tick内提供移速、友方微增益与投射物减速等效果。
+     */
     private static void activateWindDomain(LivingEntity entity, ChestCavityInstance cc) {
         if (!(entity instanceof ServerPlayer player) || cc == null) {
             return;
@@ -418,15 +471,23 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
             return;
         }
         domainReady.setReadyAt(now + DOMAIN_COOLDOWN_TICKS);
+        scheduleCooldownToast(player, organ, domainReady.getReadyTick(), TOAST_TITLE_DOMAIN_READY, TOAST_MSG_DOMAIN_READY);
         state.setLong(KEY_DOMAIN_ACTIVE_UNTIL, now + DOMAIN_DURATION_TICKS, value -> Math.max(0L, value), 0L);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
+    /**
+     * MultiCooldown 构建：绑定当前 OrganState，并开启与账本的同步（用于 UI 与重建）。
+     */
     private MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ, OrganState state) {
         MultiCooldown.Builder builder = MultiCooldown.builder(state).withSync(cc, organ);
         return builder.build();
     }
 
+    /**
+     * 被动维护：周期性扣除真元以维持被动效果；
+     * 真元不足时以低频提示，并不强制报错终止（避免刷屏）。
+     */
     private static void updatePassiveMaintenance(Player player, ItemStack organ, ChestCavityInstance cc, OrganState state, long gameTime) {
         long nextTick = state.getLong(KEY_PASSIVE_READY, 0L);
         if (nextTick <= 0L) {
@@ -446,6 +507,13 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 叠层更新：
+     * - 移动时逐步+1，停止40t后清零；
+     * - 应用叠层移速修饰；
+     * - 处理“满层维持记数”与账本通道同步；
+     * - 状态变更时同步前端插槽。
+     */
     private void updateWindStacks(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long gameTime) {
         int stage = Math.max(1, state.getInt(KEY_STAGE, 1));
         double horizontal = player.getDeltaMovement().horizontalDistance();
@@ -474,6 +542,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 满层维持：叠层达到10时开始计时，每经过一定时长累计一次，用于阶段推进统计。
+     */
     private void handleWindStackHold(ChestCavityInstance cc, ItemStack organ, OrganState state, long gameTime, int stacks) {
         long start = state.getLong(KEY_STACK10_START, 0L);
         if (stacks >= 10) {
@@ -488,18 +559,25 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 冲刺里程：只统计冲刺且满足最小采样阈值的水平位移，累计到毫米级“米数”计数器。
+     */
     private void updateRunDistance(Player player, OrganState state, ChestCavityInstance cc, ItemStack organ) {
         UUID id = player.getUUID();
         Vec3 previous = LAST_POSITION.get(id);
         Vec3 current = player.position();
         LAST_POSITION.put(id, current);
+
+        // 仅统计冲刺中的水平位移
         if (!player.isSprinting() || player.isPassenger() || player.isSpectator() || player.isSwimming()) {
             return;
         }
         if (previous == null) {
             return;
         }
-        double distance = new Vec3(current.x - previous.x, 0.0D, current.z - previous.z).length();
+        // 水平位移采样
+        Vec3 delta = new Vec3(current.x - previous.x, 0.0D, current.z - previous.z);
+        double distance = delta.length();
         if (distance < RUN_SAMPLE_THRESHOLD) {
             return;
         }
@@ -507,8 +585,84 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         long added = Math.round(distance * 100.0D);
         long updated = Math.min(Integer.MAX_VALUE, existing + added);
         OrganStateOps.setLong(state, cc, organ, KEY_RUN_M, updated, value -> Math.max(0L, value), 0L);
+        long milestoneBefore = existing / RUN_FX_INTERVAL_UNITS;
+        long milestoneAfter = updated / RUN_FX_INTERVAL_UNITS;
+        if (milestoneAfter > milestoneBefore) {
+            triggerRunFx(player, delta);
+        }
     }
 
+    /**
+     * 冲刺累计达到 100 米倍数时触发的风声与风尾特效（服务端执行）。
+     */
+    private void triggerRunFx(Player player, Vec3 delta) {
+        if (!(player.level() instanceof ServerLevel level)) {
+            return;
+        }
+
+        UUID id = player.getUUID();
+        int cd = RUN_FX_COOLDOWN.getOrDefault(id, 0);
+        if (cd > 0) {
+            RUN_FX_COOLDOWN.put(id, Math.max(0, cd - 1));
+            return;
+        }
+
+        RUN_FX_COOLDOWN.put(id, RUN_FX_COOLDOWN_TICKS);
+
+        try {
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS,
+                    0.28F, 1.05F);
+        } catch (Throwable ignored) {
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS,
+                    0.22F, 1.25F);
+        }
+
+        Vec3 dir = delta.lengthSqr() > 1.0E-6D
+                ? delta.normalize()
+                : player.getLookAngle().multiply(1.0D, 0.0D, 1.0D).normalize();
+        if (dir.lengthSqr() < 1.0E-6D) {
+            dir = new Vec3(1.0D, 0.0D, 0.0D);
+        }
+        Vec3 base = player.position().add(0.0D, 0.1D, 0.0D);
+
+        for (int i = 0; i < 8; i++) {
+            double t = 0.12D * i;
+            double ox = -dir.x * t + (level.random.nextDouble() - 0.5D) * 0.15D;
+            double oz = -dir.z * t + (level.random.nextDouble() - 0.5D) * 0.15D;
+            double px = base.x + ox;
+            double py = base.y + 0.02D * i;
+            double pz = base.z + oz;
+
+            level.sendParticles(ParticleTypes.CLOUD, px, py, pz, 1, 0.0D, 0.01D, 0.0D, 0.01D);
+            level.sendParticles(new DustColorTransitionOptions(
+                            new Vector3f(0.75F, 0.90F, 1.00F),
+                            new Vector3f(1.00F, 1.00F, 1.00F),
+                            0.55F),
+                    px, py + 0.03D, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        }
+    }
+
+    private static void scheduleCooldownToast(ServerPlayer player, ItemStack organ, long readyAtTick, String title, String subtitle) {
+        if (player == null) {
+            return;
+        }
+        if (!(player.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        long now = serverLevel.getGameTime();
+        if (readyAtTick <= now) {
+            return;
+        }
+        ItemStack icon = organ == null || organ.isEmpty() ? ItemStack.EMPTY : organ.copyWithCount(1);
+        CountdownOps.scheduleToastAt(serverLevel, player, readyAtTick, now, icon, title, subtitle);
+    }
+
+    /**
+     * 冲刺动量与风行：阶段≥2时，连续冲刺达到阈值后给予短时“风行”移速；
+     * 期间保持刷新，到期移除修饰。
+     */
     private void updateSprintMomentum(Player player, OrganState state, ChestCavityInstance cc, ItemStack organ, long gameTime) {
         int stage = Math.max(1, state.getInt(KEY_STAGE, 1));
         if (stage < 2) {
@@ -534,6 +688,12 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 滑翔/空中处理：
+     * - 阶段≥4限制下落速度并清零坠落距离；
+     * - 统计空中持续时间与滑翔链次数，用于阶段推进；
+     * - 地面时清零相关统计。
+     */
     private void updateGlideState(Player player, OrganState state, ChestCavityInstance cc, ItemStack organ, long gameTime) {
         int stage = Math.max(1, state.getInt(KEY_STAGE, 1));
         boolean airborne = !player.onGround() && !player.isInWater() && !player.isPassenger();
@@ -560,33 +720,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
-    private void detectNearMiss(Player player, Level level, OrganState state, ChestCavityInstance cc, ItemStack organ, long gameTime, MultiCooldown cooldown) {
-        AABB box = player.getBoundingBox().inflate(1.4D);
-        List<Projectile> projectiles = level.getEntitiesOfClass(Projectile.class, box, entity -> entity != null && entity.isAlive());
-        for (Projectile projectile : projectiles) {
-            UUID id = projectile.getUUID();
-            long lastTick = NEAR_MISS_CACHE.getOrDefault(id, Long.MIN_VALUE);
-            if (gameTime - lastTick < NEAR_MISS_DEDUP_TICKS) {
-                continue;
-            }
-            Vec3 toPlayer = player.position().subtract(projectile.position());
-            if (toPlayer.lengthSqr() > 1.44D * 1.44D) {
-                continue;
-            }
-            Vec3 velocity = projectile.getDeltaMovement();
-            if (velocity.dot(toPlayer) < 0.0D) {
-                continue;
-            }
-            MultiCooldown.Entry dedup = cooldown.entry(CD_KEY_DEDUP_NEAR_MISS);
-            if (!dedup.isReady(gameTime)) {
-                continue;
-            }
-            dedup.setReadyAt(gameTime + 10L);
-            NEAR_MISS_CACHE.put(id, gameTime);
-            incrementCounter(state, cc, organ, KEY_NEAR_MISS, 1, Integer.MAX_VALUE);
-        }
-    }
-
+    /**
+     * 风域效果维护：在领域激活期间，周期发放友方小速、减缓领域内投射物，并管理移速修饰。
+     */
     private void updateDomainEffects(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, MultiCooldown cooldown, ServerLevel level, long gameTime) {
         long activeUntil = state.getLong(KEY_DOMAIN_ACTIVE_UNTIL, 0L);
         if (activeUntil <= gameTime) {
@@ -606,30 +742,27 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         spawnDomainParticles(level, player);
     }
 
+    /**
+     * 阶段推进：依靠累计冲刺距离与突进次数逐级解锁。
+     */
     private void updateStageProgress(Player player, OrganState state, ChestCavityInstance cc, ItemStack organ, long gameTime) {
         int stage = Math.max(1, state.getInt(KEY_STAGE, 1));
         int newStage = stage;
         long run = state.getLong(KEY_RUN_M, 0L);
         int dashUsed = state.getInt(KEY_DASH_USED, 0);
-        int dashHit = state.getInt(KEY_DASH_HIT, 0);
-        int nearMiss = state.getInt(KEY_NEAR_MISS, 0);
-        long airTime = state.getLong(KEY_AIR_TIME, 0L);
-        int ringBlock = state.getInt(KEY_RING_BLOCK, 0);
-        int stackHold = state.getInt(KEY_STACK10_HOLD, 0);
-        int glideChain = state.getInt(KEY_GLIDE_CHAIN, 0);
-        if (stage < 2 && run >= RUN_THRESHOLD && dashUsed >= DASH_USED_THRESHOLD) {
+        if (stage < 2 && run >= RUN_THRESHOLD) {
             newStage = 2;
             notifyStage(player, "【清风轮·风轮形】已觉醒。获得：疾风冲刺、风行加速。");
         }
-        if (newStage < 3 && dashHit >= DASH_HIT_THRESHOLD && nearMiss >= NEAR_MISS_THRESHOLD) {
+        if (newStage < 3 && run >= STAGE3_RUN_THRESHOLD && dashUsed >= STAGE3_DASH_USED_THRESHOLD) {
             newStage = 3;
             notifyStage(player, "【清风轮·破阵风】已觉醒。获得：风裂步、移动闪避。");
         }
-        if (newStage < 4 && airTime >= AIR_TIME_THRESHOLD_MS && ringBlock >= RING_BLOCK_THRESHOLD) {
+        if (newStage < 4 && run >= STAGE4_RUN_THRESHOLD && dashUsed >= STAGE4_DASH_USED_THRESHOLD) {
             newStage = 4;
             notifyStage(player, "【清风轮·御风轮】已觉醒。获得：免疫摔落、风环护盾、御风翔行。");
         }
-        if (newStage < 5 && stackHold >= STACK10_HOLD_THRESHOLD && glideChain >= GLIDE_CHAIN_THRESHOLD) {
+        if (newStage < 5 && run >= STAGE5_RUN_THRESHOLD && dashUsed >= STAGE5_DASH_USED_THRESHOLD) {
             newStage = 5;
             notifyStage(player, "【清风轮·风神轮】已觉醒。可启：风神领域；风势层数蓄积生效。");
         }
@@ -638,6 +771,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 将 MultiCooldown 的关键冷却（如风环）剩余时间写回账本通道，供 HUD/重建使用。
+     */
     private void syncCooldownChannels(ChestCavityInstance cc, MultiCooldown cooldown, long gameTime) {
         ActiveLinkageContext context = LedgerOps.context(cc);
         if (context == null) {
@@ -651,6 +787,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 将当前叠层同步到账本通道。
+     */
     private void updateWindStackChannel(ChestCavityInstance cc, int stacks) {
         ActiveLinkageContext context = LedgerOps.context(cc);
         if (context == null) {
@@ -662,6 +801,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 依据叠层为玩家施加/移除叠层移速修饰。
+     */
     private void applyWindStackModifier(Player player, int stacks) {
         AttributeInstance instance = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (instance == null) {
@@ -676,6 +818,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 施加“风行”移速修饰（短时）。
+     */
     private void applyWindWalkModifier(Player player) {
         AttributeInstance instance = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (instance == null) {
@@ -686,11 +831,17 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         AttributeOps.replaceTransient(instance, WIND_WALK_MODIFIER_ID, modifier);
     }
 
+    /**
+     * 移除“风行”移速修饰。
+     */
     private void removeWindWalkModifier(Player player) {
         AttributeInstance instance = player.getAttribute(Attributes.MOVEMENT_SPEED);
         AttributeOps.removeById(instance, WIND_WALK_MODIFIER_ID);
     }
 
+    /**
+     * 施加“风域”移速修饰（领域激活期间）。
+     */
     private void applyDomainModifier(Player player) {
         AttributeInstance instance = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (instance == null) {
@@ -701,11 +852,18 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         AttributeOps.replaceTransient(instance, DOMAIN_MODIFIER_ID, modifier);
     }
 
+    /**
+     * 清除“风域”移速修饰。
+     */
     private void clearDomainModifier(Player player) {
         AttributeInstance instance = player.getAttribute(Attributes.MOVEMENT_SPEED);
         AttributeOps.removeById(instance, DOMAIN_MODIFIER_ID);
     }
 
+    /**
+     * 清理与器官相关的所有临时属性修饰。
+     * @param stacksToo 是否同时移除叠层移速修饰
+     */
     private void clearAttributeModifiers(LivingEntity entity, boolean stacksToo) {
         if (!(entity instanceof Player player)) {
             return;
@@ -718,6 +876,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 闪避成功时的粒子反馈。
+     */
     private static void spawnDodgeParticles(ServerLevel level, Player player) {
         Vec3 pos = player.position();
         for (int i = 0; i < 6; i++) {
@@ -728,6 +889,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 风环粒子与音效演示。
+     */
     private static void playWindRing(ServerLevel level, Vec3 pos) {
         for (int i = 0; i < 12; i++) {
             double angle = (Math.PI * 2 * i) / 12.0D;
@@ -739,6 +903,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.WIND_CHARGE_BURST, SoundSource.PLAYERS, 0.8F, 1.0F);
     }
 
+    /**
+     * 将投射物沿“投射物→玩家”的方向推回。
+     */
     private static void pushProjectileBack(DamageSource source, Player player) {
         Entity attacker = source == null ? null : source.getDirectEntity();
         if (attacker instanceof Projectile projectile) {
@@ -747,39 +914,62 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 突进实现：方向判定、碰撞裁剪、安全传送、动量与表现。
+     */
     private static void performDash(ServerPlayer player, ItemStack organ, OrganState state, long now) {
-        Vec3 look = player.getLookAngle().normalize();
-        if (look.lengthSqr() < 1.0E-4D) {
-            look = player.getDeltaMovement().normalize();
+        Vec3 rawLook = player.getLookAngle();
+        Vec3 horizontal = new Vec3(rawLook.x, 0.0D, rawLook.z);
+        if (horizontal.lengthSqr() < 1.0E-4D) {
+            Vec3 movement = player.getDeltaMovement();
+            horizontal = new Vec3(movement.x, 0.0D, movement.z);
         }
-        if (look.lengthSqr() < 1.0E-4D) {
-            look = new Vec3(1.0D, 0.0D, 0.0D);
+        if (horizontal.lengthSqr() < 1.0E-4D) {
+            horizontal = new Vec3(1.0D, 0.0D, 0.0D);
         }
+        Vec3 dashDir = horizontal.normalize();
 
         Vec3 origin = player.position();
-        Vec3 maxTarget = origin.add(look.scale(DASH_DISTANCE));
-        HitResult hit = player.level().clip(new ClipContext(origin, maxTarget, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        double midHeight = player.getBbHeight() * 0.5D;
+        Vec3 clipStart = origin.add(0.0D, midHeight, 0.0D);
+        Vec3 clipEnd = clipStart.add(dashDir.scale(DASH_DISTANCE));
+        HitResult hit = player.level().clip(new ClipContext(clipStart, clipEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
 
-        Vec3 dashVector = maxTarget.subtract(origin);
+        Vec3 dashVector = dashDir.scale(DASH_DISTANCE);
         if (hit.getType() == HitResult.Type.BLOCK) {
-            Vec3 hitVector = hit.getLocation().subtract(origin);
+            double distance = hit.getLocation().subtract(clipStart).length();
             double clearance = player.getBbWidth() * 0.5D + 0.15D;
-            double adjustedLength = Math.max(0.0D, hitVector.length() - clearance);
-            dashVector = look.scale(Math.min(DASH_DISTANCE, adjustedLength));
+            double adjustedLength = Math.max(0.0D, distance - clearance);
+            dashVector = dashDir.scale(Math.min(DASH_DISTANCE, adjustedLength));
         }
 
         double yOffset = player.getBbHeight() * 0.1D;
         Vec3 desiredDestination = origin.add(dashVector).add(0.0D, yOffset, 0.0D);
 
-        Vec3 destination = attemptSafeTeleport(player, desiredDestination, look, yOffset, origin);
+        Vec3 destination = attemptSafeTeleport(player, desiredDestination, dashDir, yOffset, origin);
 
-        player.setDeltaMovement(look.x * 0.45D, Math.max(look.y * 0.2D, 0.1D), look.z * 0.45D);
+        Vec3 storedDir = new Vec3(dashDir.x, rawLook.y, dashDir.z);
+        if (storedDir.lengthSqr() < 1.0E-4D) {
+            storedDir = dashDir;
+        } else {
+            storedDir = storedDir.normalize();
+        }
+        state.setDouble(KEY_LAST_DASH_DIR_X, storedDir.x, d -> d, 0.0D);
+        state.setDouble(KEY_LAST_DASH_DIR_Y, storedDir.y, d -> d, 0.0D);
+        state.setDouble(KEY_LAST_DASH_DIR_Z, storedDir.z, d -> d, 0.0D);
+
+        double verticalImpulse = Math.max(rawLook.y * 0.2D, 0.1D);
+        player.setDeltaMovement(dashDir.x * 0.45D, verticalImpulse, dashDir.z * 0.45D);
         player.hasImpulse = true;
+        damageDashPath(player, origin, destination);
         spawnDashParticles(player.serverLevel(), origin, destination);
         dashKnockback(player, origin, destination);
     }
 
 
+    /**
+     * 安全传送：目标点→阶梯后退多次重试→回退原点偏移。
+     */
     private static Vec3 attemptSafeTeleport(ServerPlayer player, Vec3 desiredDestination, Vec3 fallbackDirection, double yOffset, Vec3 origin) {
         Vec3 destination = desiredDestination;
         Vec3 offset = destination.subtract(origin);
@@ -809,6 +999,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         return player.position();
     }
 
+    /**
+     * 突进轨迹粒子与飞行音效。
+     */
     private static void spawnDashParticles(ServerLevel level, Vec3 start, Vec3 end) {
         Vec3 delta = end.subtract(start);
         int steps = 12;
@@ -820,6 +1013,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         level.playSound(null, start.x, start.y, start.z, SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 0.6F, 1.2F);
     }
 
+    /**
+     * 突进终点小范围风压击退。
+     */
     private static void dashKnockback(ServerPlayer player, Vec3 start, Vec3 end) {
         ServerLevel level = player.serverLevel();
         Vec3 center = end;
@@ -831,6 +1027,44 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 突进路径造成 1 点伤害（用于保障连携命中统计）。
+     */
+    private static void damageDashPath(ServerPlayer player, Vec3 start, Vec3 end) {
+        ServerLevel level = player.serverLevel();
+        Vec3 startCenter = new Vec3(start.x, start.y + player.getBbHeight() * 0.5D, start.z);
+        Vec3 endCenter = new Vec3(end.x, end.y + player.getBbHeight() * 0.5D, end.z);
+        AABB pathBox = new AABB(startCenter, endCenter)
+                .inflate(1.2D, player.getBbHeight() * 0.5D + 0.6D, 1.2D);
+        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, pathBox,
+                entity -> entity != null && entity.isAlive() && entity != player && !entity.isSpectator());
+        for (LivingEntity target : targets) {
+            if (target instanceof Player otherPlayer && !player.canHarmPlayer(otherPlayer)) {
+                continue;
+            }
+            double radius = (player.getBbWidth() + target.getBbWidth()) * 0.5D + 0.35D;
+            double distanceSq = distancePointToSegmentSqr(target.getBoundingBox().getCenter(), startCenter, endCenter);
+            if (distanceSq > radius * radius) {
+                continue;
+            }
+            target.hurt(player.damageSources().playerAttack(player), 1.0F);
+        }
+    }
+
+    private static double distancePointToSegmentSqr(Vec3 point, Vec3 a, Vec3 b) {
+        Vec3 ab = b.subtract(a);
+        double lenSq = ab.lengthSqr();
+        if (lenSq < 1.0E-6D) {
+            return point.subtract(a).lengthSqr();
+        }
+        double t = Mth.clamp(point.subtract(a).dot(ab) / lenSq, 0.0D, 1.0D);
+        Vec3 closest = a.add(ab.scale(t));
+        return point.subtract(closest).lengthSqr();
+    }
+
+    /**
+     * 风斩实现：沿路径步进判定，造成伤害与轻推，伴随粒子与横扫音效。
+     */
     private static void performWindSlash(ServerLevel level, Player player, Vec3 origin, Vec3 dir) {
         Vec3 step = dir.scale(1.0D);
         Vec3 pos = origin;
@@ -848,6 +1082,10 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         level.playSound(null, origin.x, origin.y, origin.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8F, 1.3F);
     }
 
+    /**
+     * 真元扣除（桥接 GuzhenrenResourceBridge）。
+     * @return true 表示扣除成功
+     */
     private static boolean consumeZhenyuan(Player player, double baseCost) {
         Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isEmpty()) {
@@ -856,16 +1094,25 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         return handleOpt.get().consumeScaledZhenyuan(baseCost).isPresent();
     }
 
+    /**
+     * 发送客户端动作条提示（如资源不足）。
+     */
     private static void sendInsufficientMessage(Player player, String message) {
         player.displayClientMessage(Component.literal(message), true);
     }
 
+    /**
+     * 计数器通用自增（带上限与状态写回）。
+     */
     private static void incrementCounter(OrganState state, ChestCavityInstance cc, ItemStack organ, String key, int delta, int max) {
         int current = state.getInt(key, 0);
         int updated = Math.min(max, current + delta);
         OrganStateOps.setInt(state, cc, organ, key, updated, value -> Math.max(0, Math.min(max, value)), 0);
     }
 
+    /**
+     * 风域内辅助效果：友方短速与投射物减速。
+     */
     private static void applyDomainSupport(ServerLevel level, Player player) {
         AABB area = player.getBoundingBox().inflate(DOMAIN_PARTICLE_RADIUS);
         List<Player> allies = level.getEntitiesOfClass(Player.class, area,
@@ -880,6 +1127,9 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 风域粒子效果（环形随机分布）。
+     */
     private static void spawnDomainParticles(ServerLevel level, Player player) {
         Vec3 center = player.position();
         for (int i = 0; i < 20; i++) {
@@ -892,10 +1142,16 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
         }
     }
 
+    /**
+     * 阶段解锁提示（非置顶）。
+     */
     private static void notifyStage(Player player, String message) {
         player.displayClientMessage(Component.literal(message), false);
     }
 
+    /**
+     * 在胸腔背包中查找清风轮器官条目。
+     */
     private static ItemStack findOrgan(ChestCavityInstance cc) {
         if (cc == null || cc.inventory == null) {
             return ItemStack.EMPTY;

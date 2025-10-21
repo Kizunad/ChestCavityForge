@@ -1,16 +1,23 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.yue_dao.behavior;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.util.Mth;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -37,6 +44,7 @@ import net.tigereye.chestcavity.util.NetworkUtil;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 
 /**
  * 月光蛊 - 夜月增益器官。
@@ -75,6 +83,17 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private static final String KEY_TIDE_LOCKOUT = "tideLockout";
     private static final String KEY_SURGE_READY = "surgeReady";
     private static final String KEY_SURGE_COOLDOWN = "surgeCooldown";
+    private static final String KEY_LXP = "lxp";
+    private static final String KEY_LXP_FRACTION = "lxpFraction";
+    private static final String KEY_ACTIVE_TICK_ACCUM = "activeTickAccum";
+    private static final String KEY_SHIELD_ABSORB_ACCUM = "shieldAbsorbAccum";
+    private static final String KEY_LAST_ELITE_KILL_TICK = "lastEliteKillTick";
+    private static final String KEY_LAST_BOSS_KILL_TICK = "lastBossKillTick";
+    private static final String KEY_LAST_SURGE_LXP_TICK = "lastSurgeLxpTick";
+    private static final String KEY_BATTLE_DECAY_UNTIL = "battleDecayUntil";
+    private static final String KEY_CURRENT_FULL_MOON_DAY = "currentFullMoonDay";
+    private static final String KEY_CURRENT_FULL_MOON_ACTIVE_TICKS = "currentFullMoonActiveTicks";
+    private static final String KEY_LAST_FULL_MOON_ACTIVE_TICKS = "lastFullMoonActiveTicks";
 
     private static final double BASE_COST = 96.0D;
     private static final double INDOOR_BASE_RATIO = 0.50D;
@@ -99,6 +118,22 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
     private static final double EPSILON = 1.0E-4D;
     private static final double SURGE_SLOW_RADIUS = 4.0D;
     private static final int SURGE_SLOW_DURATION = 40;
+
+    private static final int ACTIVE_TICKS_PER_LXP = 30 * 20;
+    private static final double SHIELD_ABSORB_PER_LXP = 100.0D;
+    private static final int ELITE_KILL_LXP = 3;
+    private static final int BOSS_KILL_LXP = 8;
+    private static final int KILL_LXP_COOLDOWN_TICKS = 30 * 20;
+    private static final int SURGE_EVENT_LXP = 5;
+    private static final int SURGE_EVENT_COOLDOWN_TICKS = 30 * 20;
+    private static final int LXP_CAP = 10_000;
+    private static final int[] LXP_REQUIREMENTS = {0, 0, 120, 240, 360, 480};
+    private static final double MAX_LXP_FRACTION = 1.0D;
+    private static final double FULL_MOON_REQUIRED_ACTIVE_TICKS = 10 * 60 * 20;
+    private static final double LXP_MIN_STEP = 1.0E-6D;
+    private static final long FULL_MOON_DAY_SENTINEL = -1L;
+    private static final long BATTLE_DECAY_DURATION_TICKS = 24L * 60L * 60L * 20L;
+    private static final double BATTLE_DECAY_MULTIPLIER = 0.5D;
 
     private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0D, Double.MAX_VALUE);
 
@@ -143,16 +178,12 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
         boolean skyVisible = level.canSeeSky(pos.above());
         int brightness = level.getMaxLocalRawBrightness(pos);
 
-        double indoorRatio = tier >= 1 ? INDOOR_L1_RATIO : INDOOR_BASE_RATIO;
         double activeFactor = 0.0D;
-        if (isNight && brightness <= 7) {
-            double candidate = skyVisible ? 1.0D : indoorRatio;
-            if (candidate > EPSILON) {
-                Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-                if (handleOpt.isPresent()
-                        && ResourceOps.tryConsumeScaledZhenyuan(handleOpt.get(), BASE_COST).isPresent()) {
-                    activeFactor = candidate;
-                }
+        if (isNight && skyVisible) {
+            Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+            if (handleOpt.isPresent()
+                    && ResourceOps.tryConsumeScaledZhenyuan(handleOpt.get(), BASE_COST).isPresent()) {
+                activeFactor = 1.0D;
             }
         }
 
@@ -267,6 +298,8 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
         collector.record(state.setBoolean(KEY_SKY_VISIBLE, skyVisible, false));
         collector.record(state.setLong(KEY_LAST_SLOW_TICK, gameTime, value -> Math.max(0L, value), 0L));
 
+        handleProgression(player, cc, organ, state, collector, tier, activeFactor, delta, level, gameTime, moonPhase);
+
         handleTideStacks(level, state, collector, tier, activeFactor, gameTime);
         handleSurgeReady(state, collector, tier, activeFactor, gameTime);
 
@@ -295,6 +328,7 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
 
         Level level = victim.level();
         long gameTime = level.getGameTime();
+        int moonPhase = level.getMoonPhase();
 
         OrganState state = organState(organ, STATE_ROOT);
         OrganStateOps.Collector collector = OrganStateOps.collector(cc, organ);
@@ -348,11 +382,30 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
                 collector.record(state.setInt(KEY_TIDE_STACKS, 0, value -> Mth.clamp(value, 0, MAX_TIDE_STACKS), 0));
                 collector.record(state.setLong(KEY_TIDE_LOCKOUT, gameTime + TIDE_LOCKOUT_TICKS, value -> Math.max(0L, value), 0L));
                 collector.record(state.setLong(KEY_TIDE_LAST_GAIN, gameTime, value -> Math.max(0L, value), 0L));
+                long surgeReadyTick = state.getLong(KEY_LAST_SURGE_LXP_TICK, 0L);
+                if (gameTime >= surgeReadyTick) {
+                    GrantOutcome surgeOutcome = grantLxp((Player) victim, cc, organ, state, collector,
+                            SURGE_EVENT_LXP, LxpSource.SURGE, level, moonPhase, gameTime);
+                    if (surgeOutcome.lxpChanged()) {
+                        collector.record(state.setLong(KEY_LAST_SURGE_LXP_TICK, gameTime + SURGE_EVENT_COOLDOWN_TICKS, value -> Math.max(0L, value), 0L));
+                    }
+                }
             }
         }
 
         if (absorbed > 0.0D || remaining < damage) {
             collector.record(state.setLong(KEY_LAST_DAMAGE_TICK, gameTime, value -> Math.max(0L, value), 0L));
+        }
+
+        if (absorbed > EPSILON) {
+            double absorbAccum = Math.max(0.0D, state.getDouble(KEY_SHIELD_ABSORB_ACCUM, 0.0D));
+            absorbAccum += absorbed;
+            int points = (int) (absorbAccum / SHIELD_ABSORB_PER_LXP);
+            absorbAccum -= points * SHIELD_ABSORB_PER_LXP;
+            collector.record(state.setDouble(KEY_SHIELD_ABSORB_ACCUM, absorbAccum, value -> Math.max(0.0D, value), 0.0D));
+            if (points > 0) {
+                grantLxp((Player) victim, cc, organ, state, collector, points, LxpSource.SHIELD, level, moonPhase, gameTime);
+            }
         }
 
         collector.record(state.setDouble(KEY_WARD, Math.max(0.0D, currentWard), value -> Math.max(0.0D, value), 0.0D));
@@ -374,7 +427,7 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
 
     @Override
     public float onHit(net.minecraft.world.damagesource.DamageSource source, LivingEntity attacker, LivingEntity target, ChestCavityInstance cc, ItemStack organ, float damage) {
-        if (!(attacker instanceof Player) || attacker.level().isClientSide()) {
+        if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
             return damage;
         }
         if (!matchesOrgan(organ, ORGAN_ID) || cc == null || organ == null || organ.isEmpty()) {
@@ -387,23 +440,31 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
             return damage;
         }
 
+        Level level = player.level();
+        long gameTime = level.getGameTime();
+        int moonPhase = level.getMoonPhase();
+        OrganStateOps.Collector collector = OrganStateOps.collector(cc, organ);
+
+        maybeAwardKillLxp(player, cc, organ, state, collector, level, gameTime, moonPhase, target, damage);
+
         int tier = Mth.clamp(state.getInt(KEY_TIER, 1), 0, MAX_TIER);
         if (tier < 4) {
+            collector.commit();
             return damage;
         }
 
-        long gameTime = attacker.level().getGameTime();
         long lockout = state.getLong(KEY_TIDE_LOCKOUT, 0L);
         if (gameTime < lockout) {
+            collector.commit();
             return damage;
         }
 
         int stacks = Mth.clamp(state.getInt(KEY_TIDE_STACKS, 0), 0, MAX_TIDE_STACKS);
         if (stacks >= MAX_TIDE_STACKS) {
+            collector.commit();
             return damage;
         }
 
-        OrganStateOps.Collector collector = OrganStateOps.collector(cc, organ);
         collector.record(state.setInt(KEY_TIDE_STACKS, stacks + 1, value -> Mth.clamp(value, 0, MAX_TIDE_STACKS), 0));
         collector.record(state.setLong(KEY_TIDE_LAST_GAIN, gameTime, value -> Math.max(0L, value), 0L));
         collector.commit();
@@ -429,6 +490,8 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
         state.setInt(KEY_JUMP_LEVEL, 0);
         state.setDouble(KEY_ACTIVE_FACTOR, 0.0D);
         state.setBoolean(KEY_SURGE_READY, false);
+        state.setLong(KEY_CURRENT_FULL_MOON_DAY, FULL_MOON_DAY_SENTINEL);
+        state.setDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, 0.0D);
 
         if (cc != null) {
             ActiveLinkageContext context = LinkageManager.getContext(cc);
@@ -496,6 +559,247 @@ public final class MoonlightGuOrganBehavior extends AbstractGuzhenrenOrganBehavi
         if (gameTime >= cooldownUntil && !ready) {
             collector.record(state.setBoolean(KEY_SURGE_READY, true, false));
         }
+    }
+
+    private void maybeAwardKillLxp(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state,
+                                   OrganStateOps.Collector collector, Level level, long gameTime, int moonPhase,
+                                   LivingEntity target, float damage) {
+        if (player == null || state == null || collector == null || level == null) {
+            return;
+        }
+        if (!(target instanceof Mob mob) || target == player || target.isAlliedTo(player) || damage <= 0.0F) {
+            return;
+        }
+        if (!level.isNight() || !willKillTarget(target, damage)) {
+            return;
+        }
+        if (isBossEntity(mob)) {
+            long lastBoss = state.getLong(KEY_LAST_BOSS_KILL_TICK, 0L);
+            if (gameTime - lastBoss < KILL_LXP_COOLDOWN_TICKS) {
+                return;
+            }
+            GrantOutcome outcome = grantLxp(player, cc, organ, state, collector,
+                    BOSS_KILL_LXP, LxpSource.BATTLE_BOSS, level, moonPhase, gameTime);
+            if (outcome.lxpChanged()) {
+                collector.record(state.setLong(KEY_LAST_BOSS_KILL_TICK, gameTime, value -> Math.max(0L, value), 0L));
+            }
+            return;
+        }
+        if (isEliteMob(mob)) {
+            long lastElite = state.getLong(KEY_LAST_ELITE_KILL_TICK, 0L);
+            if (gameTime - lastElite < KILL_LXP_COOLDOWN_TICKS) {
+                return;
+            }
+            GrantOutcome outcome = grantLxp(player, cc, organ, state, collector,
+                    ELITE_KILL_LXP, LxpSource.BATTLE_ELITE, level, moonPhase, gameTime);
+            if (outcome.lxpChanged()) {
+                collector.record(state.setLong(KEY_LAST_ELITE_KILL_TICK, gameTime, value -> Math.max(0L, value), 0L));
+            }
+        }
+    }
+
+    private boolean willKillTarget(LivingEntity target, float damage) {
+        if (target == null) {
+            return false;
+        }
+        float effectiveHealth = target.getHealth() + target.getAbsorptionAmount();
+        return damage >= effectiveHealth - 1.0E-4F;
+    }
+
+    private void handleProgression(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state,
+                                   OrganStateOps.Collector collector, int tier, double activeFactor,
+                                   long deltaTicks, Level level, long gameTime, int moonPhase) {
+        if (player == null || state == null || collector == null) {
+            return;
+        }
+        double clampedFactor = Mth.clamp(activeFactor, 0.0D, 1.0D);
+        double accum = Math.max(0.0D, state.getDouble(KEY_ACTIVE_TICK_ACCUM, 0.0D));
+        if (deltaTicks > 0L && clampedFactor > 0.0D) {
+            accum += deltaTicks * clampedFactor;
+        }
+        int points = (int) (accum / ACTIVE_TICKS_PER_LXP);
+        accum -= points * ACTIVE_TICKS_PER_LXP;
+        collector.record(state.setDouble(KEY_ACTIVE_TICK_ACCUM, accum, value -> Math.max(0.0D, value), 0.0D));
+        if (points > 0) {
+            grantLxp(player, cc, organ, state, collector, points, LxpSource.ACTIVE, level, moonPhase, gameTime);
+        }
+        handleFullMoonTracking(state, collector, level, clampedFactor, deltaTicks, moonPhase);
+    }
+
+    private void handleFullMoonTracking(OrganState state, OrganStateOps.Collector collector,
+                                        Level level, double activeFactor, long deltaTicks, int moonPhase) {
+        if (state == null || collector == null || level == null) {
+            return;
+        }
+        long currentDay = level.getDayTime() / 24000L;
+        long trackedDay = state.getLong(KEY_CURRENT_FULL_MOON_DAY, FULL_MOON_DAY_SENTINEL);
+        if (moonPhase == 0) {
+            if (trackedDay != currentDay) {
+                collector.record(state.setLong(KEY_CURRENT_FULL_MOON_DAY, currentDay, value -> Math.max(FULL_MOON_DAY_SENTINEL, value), FULL_MOON_DAY_SENTINEL));
+                collector.record(state.setDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, 0.0D, value -> Math.max(0.0D, value), 0.0D));
+            }
+            if (deltaTicks > 0L && activeFactor > 0.0D) {
+                double current = Math.max(0.0D, state.getDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, 0.0D));
+                current += deltaTicks * Math.min(activeFactor, 1.0D);
+                collector.record(state.setDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, current, value -> Math.max(0.0D, value), 0.0D));
+            }
+        } else if (trackedDay != FULL_MOON_DAY_SENTINEL) {
+            double current = Math.max(0.0D, state.getDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, 0.0D));
+            collector.record(state.setDouble(KEY_LAST_FULL_MOON_ACTIVE_TICKS, current, value -> Math.max(0.0D, value), 0.0D));
+            collector.record(state.setLong(KEY_CURRENT_FULL_MOON_DAY, FULL_MOON_DAY_SENTINEL, value -> Math.max(FULL_MOON_DAY_SENTINEL, value), FULL_MOON_DAY_SENTINEL));
+            collector.record(state.setDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, 0.0D, value -> Math.max(0.0D, value), 0.0D));
+        }
+    }
+
+    private GrantOutcome grantLxp(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state,
+                                  OrganStateOps.Collector collector, double baseAmount, LxpSource source,
+                                  Level level, int moonPhase, long gameTime) {
+        if (state == null || collector == null || baseAmount <= 0.0D) {
+            return GrantOutcome.NONE;
+        }
+        double scaled = baseAmount * computeLxpMultiplier(moonPhase);
+        if (source.isBattle()) {
+            long decayUntil = state.getLong(KEY_BATTLE_DECAY_UNTIL, 0L);
+            if (gameTime < decayUntil) {
+                scaled *= BATTLE_DECAY_MULTIPLIER;
+            }
+        }
+        if (scaled <= LXP_MIN_STEP) {
+            return GrantOutcome.NONE;
+        }
+        double fraction = Math.max(0.0D, state.getDouble(KEY_LXP_FRACTION, 0.0D));
+        double total = fraction + scaled;
+        int gained = (int) Math.floor(total + LXP_MIN_STEP);
+        double remainder = total - gained;
+        collector.record(state.setDouble(KEY_LXP_FRACTION, remainder, value -> Mth.clamp(value, 0.0D, MAX_LXP_FRACTION), 0.0D));
+        if (gained <= 0) {
+            return new GrantOutcome(false, false);
+        }
+        int current = Math.max(0, state.getInt(KEY_LXP, 0));
+        int newValue = Mth.clamp(current + gained, 0, LXP_CAP);
+        collector.record(state.setInt(KEY_LXP, newValue, value -> Mth.clamp(value, 0, LXP_CAP), 0));
+        boolean lxpChanged = newValue != current;
+        boolean tierChanged = false;
+        if (lxpChanged) {
+            tierChanged = maybeHandleTierUp(player, cc, organ, state, collector, level, gameTime, newValue);
+        }
+        return new GrantOutcome(lxpChanged, tierChanged);
+    }
+
+    private boolean maybeHandleTierUp(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state,
+                                      OrganStateOps.Collector collector, Level level, long gameTime, int lxp) {
+        int tier = Mth.clamp(state.getInt(KEY_TIER, 1), 1, MAX_TIER);
+        boolean tierChanged = false;
+        while (tier < MAX_TIER) {
+            int nextTier = tier + 1;
+            int requirement = nextTier < LXP_REQUIREMENTS.length ? LXP_REQUIREMENTS[nextTier] : Integer.MAX_VALUE;
+            if (lxp < requirement) {
+                break;
+            }
+            if (!canAdvanceTier(player, state, level, nextTier)) {
+                break;
+            }
+            tier = nextTier;
+            collector.record(state.setInt(KEY_TIER, tier, value -> Mth.clamp(value, 1, MAX_TIER), 1));
+            collector.record(state.setLong(KEY_BATTLE_DECAY_UNTIL, gameTime + BATTLE_DECAY_DURATION_TICKS, value -> Math.max(0L, value), 0L));
+            tierChanged = true;
+            if (player instanceof ServerPlayer sp) {
+                sp.displayClientMessage(Component.literal("【月光蛊】进化至第" + tier + "转"), true);
+            }
+        }
+        return tierChanged;
+    }
+
+    private boolean canAdvanceTier(Player player, OrganState state, Level level, int nextTier) {
+        if (nextTier <= 3) {
+            return true;
+        }
+        int stage = resolvePlayerStage(player);
+        if (nextTier == 4) {
+            return stage >= 1;
+        }
+        if (nextTier == 5) {
+            if (stage < 2) {
+                return false;
+            }
+            double last = Math.max(0.0D, state.getDouble(KEY_LAST_FULL_MOON_ACTIVE_TICKS, 0.0D));
+            if (level != null && level.getMoonPhase() == 0) {
+                last = Math.max(last, Math.max(0.0D, state.getDouble(KEY_CURRENT_FULL_MOON_ACTIVE_TICKS, 0.0D)));
+            }
+            return last + LXP_MIN_STEP >= FULL_MOON_REQUIRED_ACTIVE_TICKS;
+        }
+        return true;
+    }
+
+    private int resolvePlayerStage(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+        if (handleOpt.isEmpty()) {
+            return 0;
+        }
+        OptionalDouble value = handleOpt.get().read("jieduan");
+        return (int) Math.floor(value.orElse(0.0D));
+    }
+
+    private double computeLxpMultiplier(int moonPhase) {
+        if (moonPhase == 0) {
+            return 1.5D;
+        }
+        if (moonPhase == 4) {
+            return 0.5D;
+        }
+        return 1.0D;
+    }
+
+    private boolean isEliteMob(Mob mob) {
+        if (mob == null) {
+            return false;
+        }
+        if (isBossEntity(mob)) {
+            return false;
+        }
+        MobCategory category = mob.getType().getCategory();
+        if (category != MobCategory.MONSTER && category != MobCategory.MISC) {
+            return false;
+        }
+        if (mob.getType().is(EntityTypeTags.RAIDERS)) {
+            return true;
+        }
+        return mob.getMaxHealth() >= 40.0F;
+    }
+
+    private boolean isBossEntity(Mob mob) {
+        if (mob == null) {
+            return false;
+        }
+        if (mob instanceof EnderDragon || mob instanceof WitherBoss) {
+            return true;
+        }
+        return mob.getMaxHealth() >= 150.0F;
+    }
+
+    private enum LxpSource {
+        ACTIVE(false),
+        SHIELD(false),
+        BATTLE_ELITE(true),
+        BATTLE_BOSS(true),
+        SURGE(false);
+
+        private final boolean battle;
+
+        LxpSource(boolean battle) {
+            this.battle = battle;
+        }
+
+        boolean isBattle() {
+            return battle;
+        }
+    }
+
+    private record GrantOutcome(boolean lxpChanged, boolean tierChanged) {
+        static final GrantOutcome NONE = new GrantOutcome(false, false);
     }
 
     private void applySurgeSlow(LivingEntity victim) {

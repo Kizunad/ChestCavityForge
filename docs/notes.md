@@ -3380,10 +3380,12 @@ Linkage.channel("qingfenglun/wind_stacks").set(windStacks);
 baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 
 [复制粘贴用 - 更新文档]
-整理 ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/guang_dao  的主动/被动等逻辑，写入文档json中 ChestCavityForge/src/main/resources/data/guzhenren/docs/human/guang_dao , 要求，以系统语气撰写以下器官说明：
+整理 ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/feng_dao  的主动/被动等逻辑，写入文档json中 ChestCavityForge/src/main/resources/assets/guzhenren/docs/human/feng_dao/qing_feng_lun_gu.json , 要求，以系统语气撰写以下器官说明：
 1. 用简洁、正式的语气描述其作用（如游戏系统提示）。
 2. 若有数值，明确标出增益/减益效果与冷却。
 3. 避免花哨形容词，强调“功能”、“触发条件”、“持续时间”。
 4. 每条说明 1~3 句，读感类似“系统面板条目”。
-5. 若存在主动技能，请用[主动]；被动效果用[被动]开头。无需编译验证，只需检测json格式是否正确即可
+5. 若存在主动技能，请用[主动]；被动效果用[被动]开头。
+6. 若有升级路线，则声明如何升级，以及升级后效果
+7. 无需编译验证，只需检测json格式是否正确即可
 
