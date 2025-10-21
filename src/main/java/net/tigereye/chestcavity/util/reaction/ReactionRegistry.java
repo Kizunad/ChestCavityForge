@@ -12,6 +12,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
+import net.tigereye.chestcavity.compat.guzhenren.fx.HuoLongFx;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.engine.reaction.ReactionRuntime;
@@ -1246,6 +1247,7 @@ public final class ReactionRegistry {
                     if (target.level() instanceof ServerLevel level) {
                         EffectsEngine.queueExplosion(level, target.getX(), target.getY(), target.getZ(), 0.6F + stacks * 0.05F,
                                 attacker, false, EffectsEngine.VisualTheme.FIRE);
+                        HuoLongFx.playReactionOil(target, stacks);
                     }
                     target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 20, 0, false, true));
                     String a = attacker != null ? attacker.getName().getString() : "龙焰";
@@ -1273,6 +1275,7 @@ public final class ReactionRegistry {
                     if (target.level() instanceof ServerLevel level && attacker != null) {
                         EffectsEngine.queueAoEDamage(level, target.getX(), target.getY(), target.getZ(), 2.5F,
                                 4.0D + desired, attacker);
+                        HuoLongFx.playReactionFireCoat(target, attacker, desired);
                     }
                     String a = attacker != null ? attacker.getName().getString() : "龙焰";
                     String t = target.getName().getString();

@@ -3162,6 +3162,7 @@ public final class DragonFxPresets {
   * `fx.dragon.quality=LOW/MED/HIGH`
   * `fx.camera.shake=true/false`
   * `fx.dragon.dynamic_light=true/false`（如装有动态光源类模组，可调用其 API；否则只用粒子模拟亮度）
+--------------------------------------
 
 --------------------------------------
 baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96

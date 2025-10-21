@@ -1,0 +1,26 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:crit",
+      "count": 8,
+      "offset": [0.0, 1.2, -0.3],
+      "spread": [0.25, 0.25, 0.25],
+      "speed": 0.0
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 6,
+      "offset": [0.0, 1.1, -0.2],
+      "spread": [0.2, 0.2, 0.2],
+      "speed": 0.02
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:item.armor.equip_diamond",
+      "volume": 0.6,
+      "pitch": 1.3
+    }
+  ]
+}

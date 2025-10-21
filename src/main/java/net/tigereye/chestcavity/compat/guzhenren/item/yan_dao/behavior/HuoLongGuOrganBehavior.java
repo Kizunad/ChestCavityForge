@@ -6,9 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -26,6 +24,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.fx.HuoLongFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
@@ -97,6 +96,11 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final String KEY_COUNTER_UNLOCKED = "CounterUnlocked";
     private static final String KEY_COUNTER_DECAY_STEP = "CounterDecayStep";
     private static final String KEY_RECENT_SYNERGY_GATE = "FireCoatGate";
+    private static final String KEY_FX_PASSIVE_GATE = "FxAuraGate";
+    private static final String KEY_FX_SCALE_GATE = "FxScaleGate";
+    private static final String KEY_FX_BLOOD_GATE = "FxBloodGate";
+    private static final String KEY_FX_ASCENT_LOOP_GATE = "FxAscentLoopGate";
+    private static final String KEY_FX_DIVE_TRAIL_GATE = "FxDiveTrailGate";
 
     private static final int BREATH_COOLDOWN_TICKS = 20 * 20;
     private static final int BREATH_MAX_CHARGES = 2;
@@ -165,7 +169,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         dirty |= maintainBreathCharges(cooldown, now);
         dirty |= maintainAscentState(serverLevel, player, cc, organ, state, collector, now);
         dirty |= maintainDiveState(serverLevel, player, state, collector, now);
-        dirty |= applyPassiveBonuses(player, state, now);
+        dirty |= applyPassiveBonuses(player, cc, organ, state, now);
         dirty |= handleCounterDecay(state, collector, now);
 
         if (dirty) {
@@ -210,11 +214,13 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         boolean projectile = source.is(DamageTypeTags.IS_PROJECTILE);
         long projectileWindow = state.getLong(KEY_ASCENT_PROJECTILE_EXPIRE, 0L);
         if (projectile && projectileWindow > now) {
+            maybePlayScaleGuardFx(player, cc, organ, state, now);
             return damage * 0.6F;
         }
         long ascentExpire = state.getLong(KEY_ASCENT_EXPIRE_TICK, 0L);
         long diveExpire = state.getLong(KEY_DIVE_EXPIRE_TICK, 0L);
         if ((ascentExpire > now || diveExpire > now) && projectile) {
+            maybePlayScaleGuardFx(player, cc, organ, state, now);
             return damage * 0.8F;
         }
         return damage;
@@ -262,6 +268,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
         double refund = 0.0D;
         int hits = 0;
+        HuoLongFx.playBreathCast(player);
         for (LivingEntity target : candidates) {
             Vec3 toTarget = target.getEyePosition().subtract(origin);
             double dist = toTarget.length();
@@ -278,6 +285,8 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             double aoeDamage = Math.max(0.0D, player.getMaxHealth() * 0.10D);
             applyBreathAoE(serverLevel, player, target.position(), aoeDamage);
             INSTANCE.applyDragonFlame(player, cc, organ, state, target, 2, now, false);
+            int stacks = Math.max(1, ReactionTagOps.count(target, ReactionTagKeys.DRAGON_FLAME_MARK));
+            HuoLongFx.playBreathImpact(target, stacks);
             refund += BREATH_REFUND_PER_TARGET;
             LAST_BREATH_TARGET.put(player.getUUID(), target.getId());
         }
@@ -295,24 +304,6 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             ActiveSkillRegistry.scheduleReadyToast(sp, BREATH_ABILITY_ID, chargeEntry.getReadyTick(), now);
         }
         INSTANCE.startAscent(serverLevel, player, cc, organ, state, now, HOVER_DURATION_TICKS / 2, true);
-        spawnBreathFx(serverLevel, player, look, hits);
-    }
-
-    private static void spawnBreathFx(ServerLevel level, Player player, Vec3 look, int hits) {
-        RandomSource random = player.getRandom();
-        Vec3 origin = player.getEyePosition();
-        double step = BREATH_RANGE / 16.0D;
-        for (int i = 0; i < 16; i++) {
-            Vec3 pos = origin.add(look.scale(step * i));
-            double spread = 0.25D + hits * 0.05D;
-            for (int j = 0; j < 4; j++) {
-                double ox = (random.nextDouble() - 0.5D) * spread;
-                double oy = (random.nextDouble() - 0.5D) * 0.4D;
-                double oz = (random.nextDouble() - 0.5D) * spread;
-                level.sendParticles(ParticleTypes.FLAME, pos.x + ox, pos.y + oy, pos.z + oz, 1, 0.0D, 0.0D, 0.0D, 0.015D);
-            }
-        }
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 1.0F, 0.8F);
     }
 
     private static void activateHover(LivingEntity entity, ChestCavityInstance cc) {
@@ -341,26 +332,17 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             return;
         }
 
+        HuoLongFx.playAscendBurst(player);
         INSTANCE.startAscent(serverLevel, player, cc, organ, state, now, HOVER_DURATION_TICKS, false);
+        HuoLongFx.playAscendLoop(serverLevel, player);
         player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, HOVER_DURATION_TICKS, 0, false, true));
         player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, HOVER_DURATION_TICKS + 20, 0, false, true));
         ready.setReadyAt(now + HOVER_DURATION_TICKS + 60);
         if (player instanceof ServerPlayer sp) {
             ActiveSkillRegistry.scheduleReadyToast(sp, HOVER_ABILITY_ID, ready.getReadyTick(), now);
         }
-        spawnHoverFx(serverLevel, player);
         INSTANCE.adjustCounter(state, cc, organ, now, 3);
         INSTANCE.triggerHoverEcho(serverLevel, player, cc, organ, state, now);
-    }
-
-    private static void spawnHoverFx(ServerLevel level, Player player) {
-        RandomSource random = player.getRandom();
-        for (int i = 0; i < 10; i++) {
-            double ox = (random.nextDouble() - 0.5D) * 0.5D;
-            double oz = (random.nextDouble() - 0.5D) * 0.5D;
-            level.sendParticles(ParticleTypes.SMALL_FLAME, player.getX() + ox, player.getY() + 0.1D, player.getZ() + oz, 1, 0.0D, 0.01D, 0.0D, 0.0D);
-        }
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 0.4F, 1.2F);
     }
 
     private static void activateDive(LivingEntity entity, ChestCavityInstance cc) {
@@ -394,6 +376,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
         Vec3 direction = player.getLookAngle().normalize();
         Vec3 motion = new Vec3(direction.x * DIVE_HORIZONTAL_SPEED, -DIVE_VERTICAL_SPEED, direction.z * DIVE_HORIZONTAL_SPEED);
+        HuoLongFx.playDiveStart(player);
         player.setNoGravity(true);
         player.setDeltaMovement(motion);
         player.hurtMarked = true;
@@ -401,6 +384,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         ReactionTagOps.add(player, ReactionTagKeys.DRAGON_DIVE, DIVE_DURATION_TICKS);
         OrganStateOps.setLong(state, cc, organ, KEY_DIVE_EXPIRE_TICK, now + DIVE_DURATION_TICKS, LongUnaryOperator.identity(), 0L);
         OrganStateOps.setDouble(state, cc, organ, KEY_LAST_DIVE_HEALTH, healthCost, d -> Math.max(0.0D, d), 0.0D);
+        OrganStateOps.setLong(state, cc, organ, KEY_FX_DIVE_TRAIL_GATE, now, LongUnaryOperator.identity(), 0L);
         ready.setReadyAt(now + DIVE_DURATION_TICKS + 20 * 10);
         if (player instanceof ServerPlayer sp) {
             ActiveSkillRegistry.scheduleReadyToast(sp, DIVE_ABILITY_ID, ready.getReadyTick(), now);
@@ -438,7 +422,9 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         player.setDeltaMovement(new Vec3(0.0D, DIVE_VERTICAL_SPEED, 0.0D));
         player.hasImpulse = true;
         player.hurtMarked = true;
+        HuoLongFx.playAscendBurst(player);
         INSTANCE.startAscent(serverLevel, player, cc, organ, state, now, DIVE_DURATION_TICKS, false);
+        HuoLongFx.playAscendLoop(serverLevel, player);
         ready.setReadyAt(now + DIVE_DURATION_TICKS + 20 * 10);
         if (player instanceof ServerPlayer sp) {
             ActiveSkillRegistry.scheduleReadyToast(sp, ASCEND_ABILITY_ID, ready.getReadyTick(), now);
@@ -486,6 +472,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             }
             hits++;
         }
+        HuoLongFx.playDiveImpact(level, player, hits, bonusMultiplier);
         level.explode(player, player.getX(), player.getY(), player.getZ(), 1.6F, Level.ExplosionInteraction.MOB);
         ReactionTagOps.add(player, ReactionTagKeys.FIRE_IMMUNE, 30);
         OrganStateOps.setLong(state, cc, organ, KEY_INVULN_EXPIRE_TICK, now + 30, LongUnaryOperator.identity(), 0L);
@@ -543,6 +530,11 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (expire > now) {
             player.setNoGravity(true);
             player.fallDistance = 0.0F;
+            long fxGate = state.getLong(KEY_FX_ASCENT_LOOP_GATE, 0L);
+            if (now - fxGate >= 8L) {
+                HuoLongFx.playAscendLoop(level, player);
+                collector.record(state.setLong(KEY_FX_ASCENT_LOOP_GATE, now, LongUnaryOperator.identity(), 0L));
+            }
         } else if (expire != 0L) {
             player.setNoGravity(false);
             dirty = true;
@@ -563,6 +555,11 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         if (expire > now) {
             player.setNoGravity(true);
             player.fallDistance = 0.0F;
+            long gate = state.getLong(KEY_FX_DIVE_TRAIL_GATE, 0L);
+            if (now - gate >= 4L) {
+                HuoLongFx.playDiveTrail(level, player, player.getDeltaMovement());
+                collector.record(state.setLong(KEY_FX_DIVE_TRAIL_GATE, now, LongUnaryOperator.identity(), 0L));
+            }
             return false;
         }
         if (expire != 0L) {
@@ -573,8 +570,15 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         return false;
     }
 
-    private boolean applyPassiveBonuses(Player player, OrganState state, long now) {
+    private boolean applyPassiveBonuses(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long now) {
         boolean dirty = false;
+        if (player.level() instanceof ServerLevel level) {
+            long gate = state.getLong(KEY_FX_PASSIVE_GATE, 0L);
+            if (now - gate >= 20L) {
+                HuoLongFx.playFortuneAura(level, player);
+                OrganStateOps.setLong(state, cc, organ, KEY_FX_PASSIVE_GATE, now, LongUnaryOperator.identity(), 0L);
+            }
+        }
         Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isPresent()) {
             ResourceHandle handle = handleOpt.get();
@@ -633,7 +637,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     private void applyDragonFlame(Player attacker, ChestCavityInstance cc, ItemStack organ, OrganState state, LivingEntity target, int stacksToAdd, long now, boolean fromMelee) {
-        if (!(target.level() instanceof ServerLevel) || cc == null || organ == null || organ.isEmpty()) {
+        if (!(target.level() instanceof ServerLevel level) || cc == null || organ == null || organ.isEmpty()) {
             return;
         }
         int currentStacks = Math.max(0, ReactionTagOps.count(target, ReactionTagKeys.DRAGON_FLAME_MARK));
@@ -652,10 +656,11 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         DoTEngine.schedulePerSecond(attacker, target, perSecond, DRAGON_FLAME_DURATION_TICKS / 20,
                 SoundEvents.BLAZE_BURN, 0.5F, 1.0F,
                 DoTTypes.YAN_DAO_DRAGONFLAME,
-                null,
+                HuoLongFx.DRAGONFLAME_DOT,
                 DoTEngine.FxAnchor.TARGET,
                 Vec3.ZERO,
                 1.0F);
+        HuoLongFx.playDragonflameMark(target, desired);
         if (delta > 0) {
             adjustCounter(state, cc, organ, now, delta);
         }
@@ -677,6 +682,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             double leech = Math.min(6.0D, desired * 1.0D);
             double healed = leech / 100.0D * target.getMaxHealth();
             attacker.heal((float) healed);
+            maybePlayBloodStreamFx(level, attacker, target, state, cc, organ, now, (float) healed);
         }
     }
 
@@ -692,6 +698,30 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
     }
 
+    private void maybePlayScaleGuardFx(Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long now) {
+        if (!(player.level() instanceof ServerLevel level)) {
+            return;
+        }
+        long gate = state.getLong(KEY_FX_SCALE_GATE, 0L);
+        if (now - gate < 10L) {
+            return;
+        }
+        HuoLongFx.playScaleGuard(level, player);
+        OrganStateOps.setLong(state, cc, organ, KEY_FX_SCALE_GATE, now, LongUnaryOperator.identity(), 0L);
+    }
+
+    private void maybePlayBloodStreamFx(ServerLevel level, Player attacker, LivingEntity victim, OrganState state, ChestCavityInstance cc, ItemStack organ, long now, float healed) {
+        if (level == null || attacker == null || victim == null || healed <= 0.0F) {
+            return;
+        }
+        long gate = state.getLong(KEY_FX_BLOOD_GATE, 0L);
+        if (now - gate < 8L) {
+            return;
+        }
+        HuoLongFx.playBloodStream(level, attacker, victim, Math.min(1.6F, 0.8F + healed * 2.0F));
+        OrganStateOps.setLong(state, cc, organ, KEY_FX_BLOOD_GATE, now, LongUnaryOperator.identity(), 0L);
+    }
+
     private void startAscent(ServerLevel level, Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long now, int duration, boolean chain) {
         player.setNoGravity(true);
         player.hurtMarked = true;
@@ -699,6 +729,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         ReactionTagOps.add(player, ReactionTagKeys.DRAGON_ASCENT, duration);
         OrganStateOps.setLong(state, cc, organ, KEY_ASCENT_EXPIRE_TICK, now + duration, LongUnaryOperator.identity(), 0L);
         OrganStateOps.setLong(state, cc, organ, KEY_ASCENT_PROJECTILE_EXPIRE, now + Math.min(duration, 40), LongUnaryOperator.identity(), 0L);
+        OrganStateOps.setLong(state, cc, organ, KEY_FX_ASCENT_LOOP_GATE, now, LongUnaryOperator.identity(), 0L);
         TickOps.schedule(level, () -> resetGravity(level, player.getUUID()), duration);
     }
 

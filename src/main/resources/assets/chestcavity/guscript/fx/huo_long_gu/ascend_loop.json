@@ -1,0 +1,31 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ff7a00",
+      "to_color": "#ffd27a",
+      "size": 0.25,
+      "count": 12,
+      "offset": [0.0, 0.6, 0.0],
+      "spread": [0.35, 0.2, 0.35],
+      "speed": 0.005
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:small_flame",
+      "count": 6,
+      "offset": [0.0, -0.4, 0.0],
+      "spread": [0.15, 0.15, 0.15],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 4,
+      "offset": [0.0, 0.5, 0.0],
+      "spread": [0.2, 0.25, 0.2],
+      "speed": 0.0
+    }
+  ]
+}

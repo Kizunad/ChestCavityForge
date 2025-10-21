@@ -1,0 +1,23 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ff7a00",
+      "to_color": "#ffd27a",
+      "size": 0.18,
+      "count": 10,
+      "offset": [0.0, 1.0, 0.0],
+      "spread": [0.3, 0.25, 0.3],
+      "speed": 0.0
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:firework",
+      "count": 3,
+      "offset": [0.0, 1.2, 0.0],
+      "spread": [0.1, 0.1, 0.1],
+      "speed": 0.0
+    }
+  ]
+}

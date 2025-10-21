@@ -1,0 +1,27 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.ender_dragon.flap",
+      "volume": 0.5,
+      "pitch": 1.4
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ff7a00",
+      "to_color": "#ffd27a",
+      "size": 0.30,
+      "count": 20,
+      "spread": [0.35, 0.2, 0.35],
+      "speed": 0.01
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:small_flame",
+      "count": 12,
+      "spread": [0.30, 0.20, 0.30],
+      "speed": 0.02
+    }
+  ]
+}
