@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuO
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
@@ -132,6 +133,27 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/yun_dao_cloud/behavior/YinYunGuOrganBehavior.java:166",
                 () -> { ensureClassLoaded(YinYunGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:qing_feng_lun/dash", "guzhenren:qing_feng_lun/dash", "guzhenren:qing_feng_lun_gu",
+                tags("机动", "突进"),
+                "二阶解锁：消耗2200基准真元突进约6格并击退敌人，冷却6秒。",
+                "compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java",
+                () -> { ensureClassLoaded(QingFengLunOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("疾风冲刺就绪", null));
+
+        register("guzhenren:qing_feng_lun/wind_cleave", "guzhenren:qing_feng_lun/wind_cleave", "guzhenren:qing_feng_lun_gu",
+                tags("输出"),
+                "三阶解锁：冲刺后0.25秒内施放风裂步，释放5格风刃造成斩击并击退，消耗38000基准真元。",
+                "compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java",
+                () -> { ensureClassLoaded(QingFengLunOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("风裂步就绪", null));
+
+        register("guzhenren:qing_feng_lun/domain", "guzhenren:qing_feng_lun/domain", "guzhenren:qing_feng_lun_gu",
+                tags("辅助", "控制"),
+                "五阶解锁：风神领域持续10秒，友军移速+20%、敌方缓速，自身冲刺无冷却。",
+                "compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java",
+                () -> { ensureClassLoaded(QingFengLunOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("风神领域就绪", null));
 
         register("guzhenren:shou_gu", "guzhenren:shou_gu", "guzhenren:shou_gu",
                 tags("防御", "续命"),
