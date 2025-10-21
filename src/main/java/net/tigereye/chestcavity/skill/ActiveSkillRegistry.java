@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LeGuDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQiangguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
@@ -111,6 +112,26 @@ public final class ActiveSkillRegistry {
                 "启动鬼雾脚本，黑雾范围施加失明与缓慢",
                 "compat/guzhenren/item/hun_dao/behavior/GuiQiGuOrganBehavior.java:57",
                 () -> { ensureClassLoaded(GuiQiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:qing_feng_lun_gu/dash", "guzhenren:qing_feng_lun_gu/dash", "guzhenren:qing_feng_lun_gu",
+                tags("机动", "位移"),
+                "疾风冲刺：消耗真元直线突进 6 格并击退敌人，冷却 6 秒",
+                "compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java",
+                () -> { ensureClassLoaded(QingFengLunOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:qing_feng_lun_gu/wind_slash", "guzhenren:qing_feng_lun_gu/wind_slash", "guzhenren:qing_feng_lun_gu",
+                tags("机动", "输出"),
+                "风裂步：冲刺后短时间内释放 5 格风刃造成伤害与击退",
+                "compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java",
+                () -> { ensureClassLoaded(QingFengLunOrganBehavior.INSTANCE); });
+
+        register("guzhenren:qing_feng_lun_gu/wind_domain", "guzhenren:qing_feng_lun_gu/wind_domain", "guzhenren:qing_feng_lun_gu",
+                tags("增益", "领域", "机动"),
+                "风神领域：消耗满层风势开启 10 秒领域，提升移速并减缓来袭弹道",
+                "compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java",
+                () -> { ensureClassLoaded(QingFengLunOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:synergy/hun_shou_hua", "guzhenren:synergy/hun_shou_hua", "guzhenren:dahungu",
