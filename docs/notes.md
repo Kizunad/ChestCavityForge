@@ -3163,6 +3163,218 @@ public final class DragonFxPresets {
   * `fx.camera.shake=true/false`
   * `fx.dragon.dynamic_light=true/false`（如装有动态光源类模组，可调用其 API；否则只用粒子模拟亮度）
 --------------------------------------
+# 💨 清风轮蛊（腿部·风道）— 设计与落地计划
+
+> ChestCavityForge/src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/feng_dao/behavior
+> 目标：以**一转 Organscore 基线**为准，不再随转数新增 Organscore；**二~五转强度全部由“条件计数解锁行为”**实现。删除一切「气运」相关数值。
+> 运行环境：ChestCavityForge（NeoForge 1.21.1），GuzhenRen/Soul 扩展已接入。
+
+---
+
+## 1. 范围与目标
+
+* **定位**：位移、疾行、轻身、风压控制，覆盖地面突进与空中滑翔两套节奏。
+* **不做**：不叠加气运上限/回复等气运类条目；不新增额外 Organscore 档。
+* **做**：一转给到轻量属性；二~五转靠使用行为累计计数解锁技能与增益。
+
+---
+
+## 2. 资源与标识
+
+* **物品 ID**：`guzhenren:qing_feng_lun_gu`
+* **数据文件**：`data/chestcavity/organs/guzhenren/human/feng_dao/qing_feng_lun_gu.json`
+* **状态根键（OrganState）**：`root = "qing_feng_lun"`
+
+---
+
+## 3. Organscore（仅“一转”基线；只用现有字段）
+
+```json
+{
+  "itemID": "guzhenren:qing_feng_lun_gu",
+  "organScores": [
+    { "id": "chestcavity:speed",          "value": "0.15" },
+    { "id": "chestcavity:leaping",        "value": "0.75" },
+    { "id": "chestcavity:arrow_dodging",  "value": "0.5"  },
+    { "id": "chestcavity:defense",        "value": "3"    },
+    { "id": "guzhenren:zuida_jingli",     "value": "3"    },
+    { "id": "guzhenren:zuida_zhenyuan",   "value": "3"    },
+    { "id": "chestcavity:buoyant",        "value": "0.1"  },
+    { "id": "guzhenren:daohen_fengdao",   "value": "1"    }
+  ]
+}
+```
+
+> 注：**不含任何气运相关字段**；五转不加新 Organscore。
+
+---
+
+## 4. 计数解锁（等价“转数”）路线
+
+> 计数写入 `OrganState`（`root="qing_feng_lun"`），用 `OrganStateOps.set*Sync` 同步。
+> 仅当：器官在位、玩家存活、非传送帧、非骑乘作弊采样。
+
+| 阶段（表现）      | 计数键 & 事件                                               |      阈值（≥） | 解锁行为                                                                                      |
+| ----------- | ------------------------------------------------------ | ---------: | ----------------------------------------------------------------------------------------- |
+| **二阶（≈二转）** | `run_m`（奔跑里程 m；奔跑每Slowtick采样） + `dash_used`（成功施放冲刺）          | 3,000 & 50 | **疾风冲刺**（6格突进，轻击退，CD 6s） + **风行**（奔跑2s→3s×1.25移速）                                         |
+| **三阶（≈三转）** | `dash_hit`（冲刺命中敌） + `near_miss`（弹道近失≤1.2格且未命中）         |    50 & 30 | **风裂步**（冲刺后0.25s内发5格风刃，共享CD） + 移动中 10% 闪避帧                                                |
+| **四阶（≈四转）** | `air_time`（滑翔累计秒） + `ring_block`（风环格挡）                 |  300s & 25 | **免疫摔落**；**二段跳风环**（8s一次格挡）；高空移速+25%；**御风翔行**（长按滑翔，弹道格挡）                                   |
+| **五阶（≈五转）** | `stack10_hold`（风势=10层并维持≥5s） + `glide_chain`（单次滑翔≥12s） |    12 & 10 | **风神领域**（10s：友军移速+20%、敌弹道-30%；自身冲刺无CD，撞击风爆）；开启**风势层数**（每秒移动+1层，停2s清空，10层上限；每层+2%移速/+1%闪避） |
+
+**节流/反刷：**
+
+* 同一弹道 `near_miss` 仅计 1；`dash_used/hit` 0.5s 去重；`ring_block` 0.75s 去重。
+* Δ位移<0.2 格的原地抖动不计 `run_m`。受击坠落本段不计 `air_time`。
+
+---
+
+## 5. 技能与真元消耗（`baseCost` 以“一转一阶段”标注）
+
+调用统一入口：
+`GuzhenrenResourceBridge.open(player).ifPresent(h -> h.consumeScaledZhenyuan(baseCost));`
+
+| 能力          | 触发          | 冷却   |                baseCost |
+| ----------- | ----------- | ---- | ----------------------: |
+| 被动维持（轻风缓冲等） | 常驻（每4s结算）   | —    |              **60 / 4s** |
+| 疾风冲刺        | 按键施放（直线6格）  | 6s   |              **2200 / 次** |
+| 风裂步         | 冲刺后0.25s内再按 | 共享CD |              **38000 / 次** |
+| 御风翔行        | 长按维持滑翔      | —    |              **140000 / 秒** |
+| 风神领域        | 满层激活，持续10s  | 45s  | **120000 开启** + **20000 / 秒** |
+
+> 引擎按“转/阶段”对 `baseCost` 进行**自动缩放**；本体只负责填 `baseCost`。
+
+---
+
+## 6. 粒子与音效（Vanilla 轻成本）
+
+* **行进流风**：奔跑每6t，`CLOUD` + `Dust(0.75,0.9,1.0,0.6)` 于足底后方，微上扬。
+* **冲刺尾迹**：冲刺帧至后10t，`CLOUD`×6/t + `DustColorTransition(浅青→透明,0.65)`；`ELYTRA_FLYING`(0.4,1.2)。
+* **风刃轨迹**：5格直线每0.5格撒 `CLOUD` + 青白过渡 Dust。
+* **风环护盾**：进入滑翔/成功格挡时，水平圆环 12 点 Dust；`WIND_CHARGE_BURST`(0.25,1.0)。
+* **风神领域**：半径≈4 的薄雾圈心跳；被减速的弹道周围短时小 `CLOUD`。
+
+---
+
+## 7. 行为挂载与系统对接
+
+* **注册点**：`compat/guzhenren/QingFengLunOrganBehavior`
+
+  * `OrganActivationListeners`：冲刺、风裂步、风神领域。并且填入 ChestCavityForge/src/main/java/net/tigereye/chestcavity/skill/ActiveSkillRegistry.java
+  * `OrganSlowTickListener`：风势层数堆叠/清空、滑翔维持与消耗、粒子与位移采样、计数累积。
+  * `OrganIncomingDamageListener`：风环格挡、弹道近失。
+  * `OrganOnHitListener`：冲刺撞击风爆与命中计数。
+  * `OrganRemovalListener`：清理 Linkage 状态与临时标记。
+* **Linkage 通道**（供其他器官联动/读取）：
+
+  * `linkage.channel("qingfenglun/wind_stacks")`：0~10
+  * `linkage.channel("qingfenglun/windring_cd")`：tick
+
+---
+
+## 8. 状态与计数键（OrganState）
+
+根：`qing_feng_lun`。建议键：
+
+```
+run_m: long        // 奔跑里程（米 ×100 取整）
+dash_used: int     // 冲刺次数
+dash_hit: int      // 冲刺命中次数
+near_miss: int     // 弹道近失次数
+air_time: long     // 滑翔累计毫秒
+ring_block: int    // 风环成功格挡次数
+stack10_hold: int  // 风势满层维持≥5s的达成次数
+glide_chain: int   // 单次滑翔≥12s达成次数
+wind_stacks: int   // 当前风势层数（0~10）
+last_pos_sample: Vec3 // 采样缓存（不持久化亦可）
+```
+
+---
+
+## 9. UI/提示词（系统口吻文案）
+
+* **二阶解锁提示**：
+  【清风轮·风轮形】已觉醒。获得：疾风冲刺、风行加速。
+* **三阶解锁提示**：
+  【清风轮·破阵风】已觉醒。获得：风裂步、移动闪避。
+* **四阶解锁提示**：
+  【清风轮·御风轮】已觉醒。获得：免疫摔落、风环护盾、御风翔行。
+* **五阶解锁提示**：
+  【清风轮·风神轮】已觉醒。可启：风神领域；风势层数蓄积生效。
+
+> 失败/资源不足：
+> 【清风轮】真元不足，技能中止。
+> 【风环护盾】冷却中（{X}s）。
+
+文档: 要求，以系统语气撰写以下器官说明：
+1. 用简洁、正式的语气描述其作用（如游戏系统提示）。
+2. 若有数值，明确标出增益/减益效果与冷却。
+3. 避免花哨形容词，强调“功能”、“触发条件”、“持续时间”。
+4. 每条说明 1~3 句，读感类似“系统面板条目”。
+5. 若存在主动技能，请用[主动]；被动效果用[被动]开头。无需编译验证，只需检测json格式是否正确即可
+6. 计数升级参照 yue_guang_gu.json 文档，简洁易懂的讲述升级方法和解锁内容
+
+---
+
+## 10. 边界与规则
+
+* 传送/骑乘时：暂停位移计数和风势堆叠。
+* 处于水下或蛛网类减速区：冲刺距离按环境衰减（可设 0.6×）。
+* 服务器权威：所有冲刺位移、命中与风爆由服务端裁定，客户端仅做粒子预测。
+
+---
+
+## 11. 测试用例清单（QA）
+
+* [ ] 一转装配：基础属性与常驻粒子是否按 4s 结算扣费。
+* [ ] 二阶解锁：达成阈值即刻弹提示，冲刺/风行逻辑与CD正确。
+* [ ] 三阶：冲刺→风裂步窗口 0.25s 手感校验；近失统计准确。
+* [ ] 四阶：免摔全维度验证；风环仅格挡一次且 8s 内不再触发。
+* [ ] 五阶：风势层数维持/清空稳定；领域对友军/敌弹道效果生效。
+* [ ] 断连/重登：计数持久化、Linkage 同步无丢失。
+* [ ] 反刷：小幅抖动不计 `run_m`；站桩不积 `wind_stacks`。
+
+---
+
+## 12. 开发分解（建议顺序）
+
+1. 数据：放入 Organscore JSON（本页第 3 节）。
+2. 行为壳：`QingFengLunOrganBehavior` 注册 5 类监听。
+3. 计数系统：位移采样 / 事件 + OrganState 持久化与同步。
+4. 技能实现：冲刺 → 风裂步 → 滑翔 → 领域。
+5. 粒子/音效：统一封装 `QingFengParticles`。
+6. Linkage：暴露 `wind_stacks` 与 `windring_cd`。
+7. 提示/本地化：新增 4 条解锁提示与错误提示。
+8. QA 跑表：消耗与CD、解锁阈值校准。
+9. 文档写入: 主动，被动，升级
+
+---
+
+## 13. 兼容与扩展钩子
+
+* 其他“风道”或“雷/云道”器官可读取 `wind_stacks` 做联动（例如层数≥6 才能触发某共鸣）。 可以计入 AGENTS.md 开发文档提醒
+
+---
+
+## 14. 示例：消耗调用与判定（伪代码）
+
+```java
+// 冲刺触发
+if (canDash(player)) {
+  ResourceBridge.open(player).ifPresent(h -> {
+    if (h.consumeScaledZhenyuan(22)) {
+      performDash(player); // 位移+碰撞
+      Counters.inc(root,"dash_used",1,500msDedup);
+    } else {
+      toast(player, "【清风轮】真元不足，技能中止。");
+    }
+  });
+}
+
+// 风势层数（SlowTick）
+if (player.isMoving()) windStacks = min(10, windStacks+ratePerSec);
+else if (stopped>=2s) windStacks = 0;
+Linkage.channel("qingfenglun/wind_stacks").set(windStacks);
+```
 
 --------------------------------------
 baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
