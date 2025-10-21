@@ -527,11 +527,26 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior 
         }
         ResourceHandle handle = handleOpt.get();
 
-        if (ResourceOps.tryConsumeScaledZhenyuan(handle, zhenyuanCost).isEmpty()) {
+        OptionalDouble jingliOpt = handle.getJingli();
+        if (jingliOpt.isEmpty() || jingliOpt.getAsDouble() < jingliCost) {
             cooldown.entry(KEY_SHIELD_BROKEN_UNTIL).setReadyAt(now + 40);
             return;
         }
+
+        OptionalDouble zhenBeforeOpt = handle.getZhenyuan();
+        OptionalDouble zhenAfterOpt = ResourceOps.tryConsumeScaledZhenyuan(handle, zhenyuanCost);
+        if (zhenAfterOpt.isEmpty()) {
+            cooldown.entry(KEY_SHIELD_BROKEN_UNTIL).setReadyAt(now + 40);
+            return;
+        }
+
         if (ResourceOps.tryAdjustJingli(handle, -jingliCost, true).isEmpty()) {
+            if (zhenBeforeOpt.isPresent()) {
+                double refund = zhenBeforeOpt.getAsDouble() - zhenAfterOpt.getAsDouble();
+                if (refund > 0.0) {
+                    ResourceOps.tryAdjustZhenyuan(handle, refund, true);
+                }
+            }
             cooldown.entry(KEY_SHIELD_BROKEN_UNTIL).setReadyAt(now + 40);
             return;
         }
