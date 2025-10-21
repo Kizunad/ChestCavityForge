@@ -24,6 +24,9 @@
 | `guzhenren:long_wan_qu_qu_gu` | `guzhenren:long_wan_qu_qu_gu` | 防御, 机动 | 启动后获得 3 次短距闪避机会并提供短暂无敌窗口 | `compat/guzhenren/item/li_dao/behavior/LongWanQuQuGuOrganBehavior.java:30` |
 | `guzhenren:luo_xuan_gu_qiang_gu` | `guzhenren:luo_xuan_gu_qiang_gu` | 输出 | 消耗骨枪充能发射穿刺投射物，受骨道/力道增益影响 | `compat/guzhenren/item/gu_dao/behavior/LuoXuanGuQiangguOrganBehavior.java:54` |
 | `guzhenren:qing_tong_she_li_gu` | `guzhenren:qing_tong_she_li_gu` | 防御 | 入定 3 秒获得抗性 II，并重置冷却计时 | `compat/guzhenren/item/ren_dao/behavior/QingTongSheLiGuOrganBehavior.java:26` |
+| `guzhenren:qing_feng_lun_gu/dash` | `guzhenren:qing_feng_lun_gu` | 机动, 位移 | 疾风冲刺：直线突进 6 格并击退敌人，冷却 6 秒 | `compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java` |
+| `guzhenren:qing_feng_lun_gu/wind_slash` | `guzhenren:qing_feng_lun_gu` | 机动, 输出 | 风裂步：冲刺后 0.25 秒内释放 5 格风刃造成群体击退 | `compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java` |
+| `guzhenren:qing_feng_lun_gu/wind_domain` | `guzhenren:qing_feng_lun_gu` | 增益, 领域, 机动 | 风神领域：满层风势开启 10 秒领域，友军移速 +20%，自身冲刺无冷却 | `compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java` |
 | `guzhenren:shan_guang_gu_flash` | `guzhenren:shan_guang_gu` | 输出, 控制 | 闪现造成范围伤害并致盲减速，施放者获得短暂加速 | `compat/guzhenren/item/guang_dao/behavior/ShanGuangGuOrganBehavior.java:61` |
 | `guzhenren:shi_nian_shou_gu` | `guzhenren:shi_nian_shou_gu` | 防御, 续命 | 换命・续命进阶版：持续 6 秒转化 60% 伤害为寿债并强化治疗，缓死冷却额外回填 | `compat/guzhenren/item/tian_dao/behavior/ShouGuOrganBehavior.java` |
 | `guzhenren:shou_gu` | `guzhenren:shou_gu` | 防御, 续命 | 清空最多三层寿纹，6 秒内将 50% 伤害转为寿债并快速回血，结束时返还缓死冷却时间 | `compat/guzhenren/item/tian_dao/behavior/ShouGuOrganBehavior.java` |
