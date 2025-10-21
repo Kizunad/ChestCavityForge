@@ -15,7 +15,6 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -30,7 +29,6 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -48,7 +46,6 @@ import net.tigereye.chestcavity.util.DoTTypes;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
-
 import java.util.*;
 import java.util.function.LongUnaryOperator;
 
@@ -72,22 +69,22 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     public static final HuoLongGuOrganBehavior INSTANCE = new HuoLongGuOrganBehavior();
 
     private static final String MOD_ID = "guzhenren";
-    private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu");
+    private static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huolonggu");
     public static final ResourceLocation BREATH_ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu_breath");
     public static final ResourceLocation HOVER_ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu_hover");
     public static final ResourceLocation DIVE_ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu_dive");
+    public static final ResourceLocation ASCEND_ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu_ascend");
 
     private static final ResourceLocation HUOXINGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huoxingu");
     private static final ResourceLocation HUOYI_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_gu");
     private static final ResourceLocation ZHIZHUANG_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "zhi_zhuang_gu");
-
-    private static final ResourceLocation KNOCKBACK_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath("chestcavity", "huo_long_gu/knockback");
 
     private static final String STATE_ROOT = "HuoLongGu";
     private static final String KEY_BREATH_SLOT_A = "BreathReadyA";
     private static final String KEY_BREATH_SLOT_B = "BreathReadyB";
     private static final String KEY_HOVER_READY = "HoverReady";
     private static final String KEY_DIVE_READY = "DiveReady";
+    private static final String KEY_ASCEND_READY = "AscendReady";
     private static final String KEY_ASCENT_EXPIRE_TICK = "AscentExpire";
     private static final String KEY_ASCENT_STACKED = "AscentStacks";
     private static final String KEY_ASCENT_PROJECTILE_EXPIRE = "AscentProjectileUntil";
@@ -103,9 +100,9 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final int BREATH_COOLDOWN_TICKS = 20 * 20;
     private static final int BREATH_MAX_CHARGES = 2;
-    private static final double BREATH_ZHENYUAN_COST = 30000.0D;
-    private static final double BREATH_REFUND_PER_TARGET = 3000.0D;
-    private static final double BREATH_REFUND_CAP = 15000.0D;
+    private static final double BREATH_ZHENYUAN_COST = 3000000.0D;
+    private static final double BREATH_REFUND_PER_TARGET = 300000.0D;
+    private static final double BREATH_REFUND_CAP = 1500000.0D;
     private static final float BREATH_DAMAGE = 200.0F;
     private static final double BREATH_RANGE = 12.0D;
     private static final double BREATH_CONE_DOT = 0.6D;
@@ -113,15 +110,15 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     private static final double BREATH_AOE_SELF_RATIO = 0.5D;
 
     private static final int HOVER_DURATION_TICKS = 60;
-    private static final double HOVER_ZHENYUAN_COST = 150000.0D;
+    private static final double HOVER_ZHENYUAN_COST = 1500000.0D;
 
     private static final int DIVE_DURATION_TICKS = 40;
-    private static final double DIVE_ZHENYUAN_COST = 250000.0D;
+    private static final double DIVE_ZHENYUAN_COST = 2500000.0D;
     private static final float DIVE_HEALTH_RATIO = 0.30F;
     private static final float DIVE_BASE_DAMAGE = 400.0F;
-    private static final float DIVE_RADIUS = 4.0F;
+    private static final float DIVE_RADIUS = 16.0F;
     private static final float DIVE_HORIZONTAL_SPEED = 1.4F;
-    private static final float DIVE_VERTICAL_SPEED = 1.1F;
+    private static final float DIVE_VERTICAL_SPEED = 4F;
 
     private static final int DRAGON_FLAME_DURATION_TICKS = 6 * 20;
     private static final int DRAGON_FLAME_MAX_STACKS = 6;
@@ -133,14 +130,13 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private static final int FIRE_COAT_COOLDOWN_TICKS = 8 * 20;
 
-    private static final double KNOCKBACK_RESIST = 0.3D;
-
     private static final Map<UUID, Integer> LAST_BREATH_TARGET = new HashMap<>();
 
     static {
         OrganActivationListeners.register(BREATH_ABILITY_ID, HuoLongGuOrganBehavior::activateBreath);
         OrganActivationListeners.register(HOVER_ABILITY_ID, HuoLongGuOrganBehavior::activateHover);
         OrganActivationListeners.register(DIVE_ABILITY_ID, HuoLongGuOrganBehavior::activateDive);
+        OrganActivationListeners.register(ASCEND_ABILITY_ID, HuoLongGuOrganBehavior::activateAscend);
         NeoForge.EVENT_BUS.register(HuoLongGuOrganBehavior.class);
     }
 
@@ -226,11 +222,9 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     @Override
     public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-        if (!(entity instanceof Player player)) {
+        if (!(entity instanceof Player)) {
             return;
         }
-        AttributeInstance knockback = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
-        AttributeOps.removeById(knockback, KNOCKBACK_MODIFIER_ID);
     }
 
     private static void activateBreath(LivingEntity entity, ChestCavityInstance cc) {
@@ -415,6 +409,43 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         scheduleDiveFinish(serverLevel, player.getUUID(), now + DIVE_DURATION_TICKS);
     }
 
+    private static void activateAscend(LivingEntity entity, ChestCavityInstance cc) {
+        if (!(entity instanceof Player player) || player.level().isClientSide()) {
+            return;
+        }
+        if (cc == null || cc.inventory == null) {
+            return;
+        }
+        ItemStack organ = findOrgan(cc);
+        if (organ.isEmpty()) {
+            return;
+        }
+        OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+        MultiCooldown cooldown = INSTANCE.createCooldown(cc, organ, state);
+        long now = player.level().getGameTime();
+        MultiCooldown.Entry ready = cooldown.entry(KEY_ASCEND_READY);
+        if (!ready.isReady(now)) {
+            return;
+        }
+        OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, DIVE_ZHENYUAN_COST);
+        if (consumed.isEmpty()) {
+            return;
+        }
+        if (!(player.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        player.fallDistance = 0.0F;
+        player.setDeltaMovement(new Vec3(0.0D, DIVE_VERTICAL_SPEED, 0.0D));
+        player.hasImpulse = true;
+        player.hurtMarked = true;
+        INSTANCE.startAscent(serverLevel, player, cc, organ, state, now, DIVE_DURATION_TICKS, false);
+        ready.setReadyAt(now + DIVE_DURATION_TICKS + 20 * 10);
+        if (player instanceof ServerPlayer sp) {
+            ActiveSkillRegistry.scheduleReadyToast(sp, ASCEND_ABILITY_ID, ready.getReadyTick(), now);
+        }
+        INSTANCE.adjustCounter(state, cc, organ, now, 3);
+    }
+
     private static void scheduleDiveFinish(ServerLevel level, UUID playerId, long finishTick) {
         TickOps.schedule(level, () -> INSTANCE.finishDive(level, playerId, finishTick), DIVE_DURATION_TICKS);
     }
@@ -544,11 +575,6 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     private boolean applyPassiveBonuses(Player player, OrganState state, long now) {
         boolean dirty = false;
-        AttributeInstance knockback = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
-        if (knockback != null) {
-            AttributeModifier modifier = new AttributeModifier(KNOCKBACK_MODIFIER_ID, KNOCKBACK_RESIST, AttributeModifier.Operation.ADD_VALUE);
-            AttributeOps.replaceTransient(knockback, KNOCKBACK_MODIFIER_ID, modifier);
-        }
         Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
         if (handleOpt.isPresent()) {
             ResourceHandle handle = handleOpt.get();

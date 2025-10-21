@@ -271,21 +271,28 @@ public final class ActiveSkillRegistry {
                 () -> { ensureClassLoaded(HuoYouGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
-        register("guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu",
+        register("guzhenren:huo_long_gu_breath", "guzhenren:huo_long_gu_breath", "guzhenren:huolonggu",
                 tags("输出", "爆发"),
                 "喷吐龙焰冲击，叠加龙焰印记并触发短暂悬停",
                 "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
                 () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("龙焰充能", null));
 
-        register("guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu",
+        register("guzhenren:huo_long_gu_hover", "guzhenren:huo_long_gu_hover", "guzhenren:huolonggu",
                 tags("机动", "防御"),
                 "凝空悬停稳定瞄准，并向标记目标释放龙火回响",
                 "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
                 () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("悬停就绪", null));
 
-        register("guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu",
+        register("guzhenren:huo_long_gu_ascend", "guzhenren:huo_long_gu_ascend", "guzhenren:huolonggu",
+                tags("机动"),
+                "消耗与俯冲等量真元高速升空，进入龙脊战焰姿态并快速上升",
+                "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",
+                () -> { ensureClassLoaded(HuoLongGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("龙升就绪", null));
+
+        register("guzhenren:huo_long_gu_dive", "guzhenren:huo_long_gu_dive", "guzhenren:huolonggu",
                 tags("输出", "处决"),
                 "化作龙焰俯冲轰炸地面，按扣血比例放大爆炸伤害",
                 "compat/guzhenren/item/yan_dao/behavior/HuoLongGuOrganBehavior.java",

@@ -2776,7 +2776,7 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 
 ```json
 {
-  "itemID": "guzhenren:huo_long_gu",
+  "itemID": "guzhenren:huolonggu",
   "organScores": [
     { "id": "chestcavity:health", "value": "8" },
     { "id": "chestcavity:strength", "value": "24" },
@@ -2931,6 +2931,7 @@ AI 选敌降权：远程单位在将其设为目标时，有 15% 概率放弃锁
 
   * `guzhenren:huo_long_gu_breath`（龙焰吐息）
   * `guzhenren:huo_long_gu_hover`（龙脊·凝空）
+  * `guzhenren:huo_long_gu_ascend`（龙升）
   * `guzhenren:huo_long_gu_dive`（龙降俯冲）
 * **冷却体系**：`MultiCooldown` 两槽方案（A1 双充能），A3 独立槽；使用 `Mutator.withIntClamp`/`withLongClamp` 限界。
 * **资源桥**：用 `GuzhenrenResourceBridge.open(player)` → `consumeScaledZhenyuan()` 与 `ResourceOps.tryAdjustQiyun...()` 读写气运与真元。
@@ -3172,5 +3173,4 @@ baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 3. 避免花哨形容词，强调“功能”、“触发条件”、“持续时间”。
 4. 每条说明 1~3 句，读感类似“系统面板条目”。
 5. 若存在主动技能，请用[主动]；被动效果用[被动]开头。无需编译验证，只需检测json格式是否正确即可
-
 

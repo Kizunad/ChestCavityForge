@@ -24,7 +24,7 @@ public final class YanDaoOrganRegistry {
     private static final ResourceLocation HUORENGU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huorengu");
     private static final ResourceLocation HUO_YI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_gu");
     private static final ResourceLocation HUO_YOU_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_you_gu");
-    private static final ResourceLocation HUO_LONG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huo_long_gu");
+    private static final ResourceLocation HUO_LONG_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "huolonggu");
     private static final ResourceLocation DAN_QIAO_HUO_TAN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "dan_qiao_huo_tan_gu");
     private static final ResourceLocation FEN_SHEN_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "fen_shen_gu");
 
