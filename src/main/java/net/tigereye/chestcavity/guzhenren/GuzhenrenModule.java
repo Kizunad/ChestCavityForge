@@ -6,6 +6,7 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.Abilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.BingXueDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.FengDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoClientRenderers;
@@ -101,6 +102,7 @@ public final class GuzhenrenModule {
         if (FMLEnvironment.dist.isClient()) {
             modBus.addListener(Abilities::onClientSetup);
             modBus.addListener(GuDaoClientAbilities::onClientSetup);
+            modBus.addListener(FengDaoClientAbilities::onClientSetup);
             modBus.addListener(BingXueDaoClientAbilities::onClientSetup);
             modBus.addListener(LiDaoClientAbilities::onClientSetup);
             modBus.addListener(MuDaoClientAbilities::onClientSetup);
