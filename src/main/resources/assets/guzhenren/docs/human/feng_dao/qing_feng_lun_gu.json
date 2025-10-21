@@ -1,0 +1,20 @@
+{
+  "id": "guzhenren:qing_feng_lun_gu",
+  "title": "清风轮蛊",
+  "summary": "",
+  "details": [
+    "速度：0.15",
+    "跳跃能力：0.75",
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：0.5",
+    "防御：3",
+    "最大精力：3",
+    "最大真元：3",
+    "浮力：0.1",
+    "风道道痕：1"
+  ],
+  "tags": [
+    "清风轮蛊",
+    "guzhenren:qing_feng_lun_gu"
+  ],
+  "icon": "guzhenren:qing_feng_lun_gu"
+}
