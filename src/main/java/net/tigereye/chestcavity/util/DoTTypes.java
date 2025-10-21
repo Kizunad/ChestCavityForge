@@ -20,6 +20,7 @@ public final class DoTTypes {
     public static final ResourceLocation YIN_YUN_CORROSION = ChestCavity.id("dot/yin_yun_corrosion");
     public static final ResourceLocation YAN_DAO_HUO_YI_AURA = ChestCavity.id("dot/yan_dao_huo_yi_aura");
     public static final ResourceLocation YAN_DAO_DRAGONFLAME = ChestCavity.id("dot/yan_dao_dragonflame");
+    public static final ResourceLocation LEI_DAO_ELECTRIC_SHOCK = ChestCavity.id("dot/lei_dao_electric_shock");
     // 通用点燃 DoT（由火系命中/余烬/点燃窗口刷新）
     public static final ResourceLocation IGNITE = ChestCavity.id("dot/ignite");
 

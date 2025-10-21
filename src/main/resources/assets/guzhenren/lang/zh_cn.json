@@ -1,0 +1,9 @@
+{
+  "tooltip.leidungu.state.normal": "雷盾：充盈",
+  "tooltip.leidungu.state.broken": "雷盾：破损",
+  "tooltip.leidungu.state.repair_in": "雷盾：修复中（%s秒）",
+  "tooltip.leidungu.state.stable_window": "雷盾：稳固期",
+  "msg.leidungu.upgrade.4z": "雷盾蛊突破四转，护盾更加稳固。",
+  "msg.leidungu.upgrade.5z": "雷盾蛊迈入五转，雷殛过载已解锁！",
+  "msg.leidungu.overload": "雷盾充盈，下一次冲击将化作雷殛！"
+}

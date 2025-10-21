@@ -1,0 +1,16 @@
+{
+  "itemID": "guzhenren:leidungu",
+  "organScores": [
+    { "id": "chestcavity:defense",       "value": "0.60" },
+    { "id": "chestcavity:health",        "value": "0.30" },
+    { "id": "chestcavity:nerves",        "value": "0.12" },
+    { "id": "chestcavity:buff_purging",  "value": "0.10" },
+    { "id": "chestcavity:metabolism",    "value": "-0.06" },
+
+    { "id": "guzhenren:zuida_zhenyuan",  "value": "1.20" },
+    { "id": "guzhenren:zhenyuan",        "value": "0.60" },
+    { "id": "guzhenren:zuida_jingli",    "value": "0.80" },
+    { "id": "guzhenren:jingli",          "value": "0.40" },
+    { "id": "guzhenren:hunpo_stability", "value": "1.12" }
+  ]
+}

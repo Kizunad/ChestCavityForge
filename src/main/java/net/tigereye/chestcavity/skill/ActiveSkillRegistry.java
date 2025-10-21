@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
@@ -146,6 +147,13 @@ public final class ActiveSkillRegistry {
                 "compat/guzhenren/item/gu_dao/behavior/LeGuDunGuOrganBehavior.java:49",
                 () -> { ensureClassLoaded(LeGuDunGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("骨盾就绪", null));
+
+        register("guzhenren:leidungu_active", "guzhenren:leidungu_active", "guzhenren:leidungu",
+                tags("防御", "控制"),
+                "雷枢：消耗蓄电释放雷击与感电，三转起提供短控，五转可蓄能强放雷殛",
+                "compat/guzhenren/item/lei_dao/behavior/LeiDunGuOrganBehavior.java",
+                () -> { ensureClassLoaded(LeiDunGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("雷枢就绪", null));
 
         register("guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu", "guzhenren:yin_yun_gu",
                 tags("输出", "控制"),
