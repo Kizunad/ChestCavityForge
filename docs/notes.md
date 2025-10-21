@@ -3377,6 +3377,357 @@ Linkage.channel("qingfenglun/wind_stacks").set(windStacks);
 ```
 
 --------------------------------------
+# 雷盾蛊（LeiDunGu · 脾脏）开发计划 v1.0
+
+> 模块：ChestCavityForge · GuzhenRen · 雷道
+> 目标：提供以“防御→反伤→控制/过载”为主线的 3→5 转单路线器官，数据驱动、可回归测试、与 Reaction 体系稳定衔接。
+
+---
+
+## 0. 面向玩家的简述（对内统一口径）
+
+* **定位**：防御 / 反伤 / 控制（雷霆系）。
+* **核心**：环绕雷盾吸收伤害；吸收累积触发“冲击”；主动技“雷枢”消耗蓄电施加感电 DoT 与短控制；4转获得稳定与反伤；5转获得“过载·雷殛”和充能主动。
+* **升级**：计数式自动进化（雷盾阅历 TSXP）。
+
+---
+
+## 1. 平衡标尺与缩放规则（强制）
+
+* **三转标尺**：
+
+  * 资源基线：~10,000 BASE 真元量级（作为当期装备/玩法的总体资源参照）。
+  * 单次 **平均输出 ≈ 800**（冲击或主动技的期望）。
+* **资源消耗标注**：所有真元消耗以 **“1转1阶段 baseCost”** 固定写入，
+
+  * 实际结算调用 `GuzhenrenResourceBridge.ResourceHandle#consumeScaledZhenyuan(baseCost)`，按转/阶段缩放。
+  * 本计划中列出的 **3转“绝对消耗值”** 仅为对齐目标；落地时需 **用工程内 S3（3转倍率）倒推 baseCost**。
+* **数值时间单位**：秒（s）/ tick（t），伤害默认 `magic()`。
+* **控制“眩晕”表现**：以 **高等级 Slow + 挖掘疲劳** 组合模拟，避免与对部分实体的硬控免疫冲突。
+
+---
+
+## 2. 玩法与数值（3→5转）
+
+### 2.1 三转（基线）
+
+**被动·雷盾旋绕**
+
+* 吸收阈值：单次 **≤100** 伤害可被全部吸收；**>100** 则本次护盾破损。
+* 破损修复：**3s** 后尝试修复；修复时消耗 **1200 真元 + 20 精力**（不足延后）。
+* 视觉：吸收时电弧粒子；破损时雷裂声与电火花；修复时电弧回卷与共鸣音。
+
+**冲击（被动触发，15s CD）**
+
+* 触发：累计**吸收 600** 伤害。
+* 伤害：**600–1000（均值≈800）**，半径 **4 格**。可采用：`D = clamp(650 + 0.25 * recentAbsorb, 600, 1000)`。
+* 命中后：+1 层 **[蓄电]**（最多 3）。
+
+**主动·雷枢（20s CD）**
+
+* 消耗：**1 层蓄电**；资源 **450 真元 + 12 精力**。
+* 效果：初击 **500** + 感电 **100/s × 3s**（合计≈800）；每次 DoT 跳点后附加 **1s 硬控式迟缓**。
+* Reaction：为目标添加 **`reaction/lightning_charge`（雷痕） 3s**。
+
+**计数·雷盾阅历（TSXP）**
+
+* 来源：
+
+  * +1：护盾累计**每 200** 吸收；
+  * +3：**冲击**实际命中 ≥1；
+  * +2：主动 **雷枢**命中并施加感电；
+  * +5：击杀处于雷痕的目标；
+  * 限流：同一目标同一秒 **≤+2**。
+* 阈值：**100 → 升 4转**。
+
+---
+
+### 2.2 四转（稳定与反伤）
+
+* 修复折扣：真元/精力 **-10%** → **1080 真元 + 18 精力**。
+* 稳定期：修复完成后 **1.5s** 内，单次 >100 伤害不直接破盾；**超出部分 50% 反弹**（`magic()`）。
+* 冲击增强：半径 **+1（至 5）**；上沿 **+10%（至 1100）**；命中带雷痕目标时 **刷新雷痕 +3s**。
+* 感电提档：**120/s × 3s**（主动合计≈860）。
+
+**计数阈值（维持累计）**：**350 → 升 5转**（达阈自动升级；清当前溢出）。
+
+---
+
+### 2.3 五转（过载与多段控制）
+
+* **过载护壁 → 雷殛**：未破盾状态下累计吸收 **≥1000**（overload 计）时，下一次冲击升级为 **雷殛**：
+
+  * 主目标 **1400**；链向 **2 个**最近单位各 **60%（=840）**；所有命中目标 **附着/刷新雷痕**；触发后重置过载计。
+* **反击电弧**：护盾存在且被**近战命中**时，对攻击者造成 **120** 魔法伤害（**0.8s 内置 CD**），并 +1s 雷痕。
+* **主动·雷枢·充能**：拥有 **2 发充能（20s/发）**；可一次性**消耗 3 层蓄电**强放：
+
+  * 初击 **600** + 感电 **160/s × 5s = 800** → 合计 **≈1400**；结束时 **短封移动 0.4s**。
+
+---
+
+## 3. Reaction/联动规范（只用现有标签）
+
+* 主要标签：`ReactionTagKeys.LIGHTNING_CHARGE`（雷痕）、`LIGHTNING_IMMUNE`；
+* 规则耦合：与霜系 **`SHUANG_XI_FROSTBITE`** 触发「雷霜锁链」（刷新/加剧减速与虚弱；具体以工程内规则为准）。
+* 避免：**不与火/油**联动（防止串爆），如 `OIL_COATING` 不触发二次反应。
+
+---
+
+## 4. 数据资产与路径
+
+* **Organscore JSON**（仅用已实现字段，避免气运）：
+  路径：`data/chestcavity/organs/guzhenren/human/lei_dao/leidungu.json`
+
+```json
+{
+  "itemID": "guzhenren:leidungu",
+  "organScores": [
+    { "id": "chestcavity:defense",       "value": "0.60" },
+    { "id": "chestcavity:health",        "value": "0.30" },
+    { "id": "chestcavity:nerves",        "value": "0.12" },
+    { "id": "chestcavity:buff_purging",  "value": "0.10" },
+    { "id": "chestcavity:metabolism",    "value": "-0.06" },
+
+    { "id": "guzhenren:zuida_zhenyuan",  "value": "1.20" },
+    { "id": "guzhenren:zhenyuan",        "value": "0.60" },
+    { "id": "guzhenren:zuida_jingli",    "value": "0.80" },
+    { "id": "guzhenren:jingli",          "value": "0.40" },
+    { "id": "guzhenren:hunpo_stability", "value": "1.12" }
+  ]
+}
+```
+
+* **文档**：`docs/guzhenren/leitier/leidungu.md`（系统口吻，含玩法与升级提示）。
+* **本地化**：`assets/guzhenren/lang/zh_cn.json`：
+
+  ```json
+  {
+    "item.guzhenren.leidungu": "雷盾蛊"
+  }
+  ```
+
+---
+
+## 5. 行为代码结构
+
+* 包路径：`compat/guzhenren/item/lei_dao/behavior/`
+* 行为类：`LeiDunGuOrganBehavior`（实现：`OrganIncomingDamageListener`, `OrganSlowTickListener`, `OrganOnHitListener`, `OrganActivationListeners`, 必要时 `OrganRemovalListener`）。
+* 注册：`compat/guzhenren/item/lei_dao/LeiDaoOrganRegistry` 挂载事件与激活器；ID：`guzhenren:leidungu`。
+* 资源桥与计数：
+
+  * `ResourceHandle` 键：`leidungu_tsxp`、`leidungu_tier`（3/4/5）。
+  * `MultiCooldown` 根键：`leidungu/state`；子键：`shield_broken_until`、`shock_cd_until`、`overload_absorb`、`charge_stacks`。
+* Linkage（可选）：读取云/风道协同加成（如有）。
+
+---
+
+## 6. 关键常量表（建议集中定义）
+
+```java
+// 三转基线（绝对值，落地需以 S3 反推 baseCost）
+int ABSORB_PER_HIT_MAX = 100;
+int REPAIR_COST_ZHENYUAN_3Z = 1200;
+int REPAIR_COST_JINGLI_3Z = 20;
+int REPAIR_DELAY_TICKS = 60; // 3s
+
+int SHOCK_ABSORB_TRIGGER = 600;
+int SHOCK_CD_TICKS = 300; // 15s
+int SHOCK_RADIUS_BASE = 4;
+int SHOCK_DMG_MIN = 600; // 期望≈800
+int SHOCK_DMG_MAX = 1000;
+
+int ACTIVE_CD_TICKS = 400; // 20s
+int ACTIVE_COST_ZHENYUAN_3Z = 450;
+int ACTIVE_COST_JINGLI_3Z = 12;
+int DOT_DMG_PER_SEC_3Z = 100; // 3s
+
+// 四转增益
+float REPAIR_DISCOUNT_4Z = 0.9f;
+int STABLE_WINDOW_TICKS = 30; // 1.5s
+float REFLECT_RATIO_4Z = 0.5f;
+int SHOCK_RADIUS_4Z = 5;
+int SHOCK_MAX_4Z = 1100;
+int DOT_DMG_PER_SEC_4Z = 120;
+
+// 五转
+int OVERLOAD_ABSORB_REQ = 1000;
+int THUNDER_STRIKE_BASE = 1400; // 雷殛主目标
+float CHAIN_RATIO = 0.6f; // 2 个链目标
+int COUNTER_ARC_DMG = 120;
+int COUNTER_ARC_ICD_TICKS = 16; // ~0.8s
+int ACTIVE_DOT_PER_SEC_5Z_STRONG = 160; // 5s
+```
+
+---
+
+## 7. 事件流与伪代码
+
+**IncomingDamage**
+
+1. 若当前有“修复稳定期”，将 `excess = max(0, dmg - 100)` 的 **50%** 反弹，且不破盾；否则：
+2. 若 `dmg ≤ 100`：完全吸收，累计 `absorbed += dmg`；否则：标记 `shield_broken_until = now + 3s`。
+3. 若护盾未破：`overload_absorb += dmg`，并尝试 `maybeShock()`。
+
+**maybeShock()**
+
+* 若 `absorbed_since_last_shock ≥ 600` 且 `now ≥ shock_cd`：
+
+  * 计算伤害（区间均匀或公式），半径按转数；
+  * 命中目标添加/刷新 `LIGHTNING_CHARGE`；
+  * `charge_stacks = min(3, charge_stacks + 1)`；
+  * `shock_cd = now + 15s`；
+  * 若 5 转且 `overload_absorb ≥ 1000`：升级为“雷殛”，并 `overload_absorb = 0`。
+
+**SlowTick**
+
+* 若 `now ≥ shield_broken_until` 且护盾未存在：尝试修复（扣真元/精力；不足则跳过）。
+* 计数：根据吸收/命中/击杀事件累计 TSXP；达阈值则升级 `leidungu_tier` 并广播。
+
+**Active（雷枢）**
+
+* 前置：`charge_stacks ≥ 1`（或≥3 强放）；资源判定足额；
+* 生效：立即伤害 + 感电 DoT；
+* 计数：+2 TSXP；
+* 强放（5转）：消耗 3 层蓄电，延长 DoT 并在结束短封移动。
+
+---
+
+## 8. 网络同步与 UI
+
+* `MultiCooldown` 与 `ResourceHandle` 变化使用既有 **Payload** 同步；
+* 客户端 HUD：显示**护盾状态**（正常/破损倒计时/稳定期）、**蓄电层数**、**冲击冷却**；
+* 文案提示（系统口吻）：修复失败（真元/精力不足）、升级达成、雷殛触发。
+
+---
+
+## 9. 粒子与音效（实现轻量指引）
+
+* 吸收：`ELECTRIC_SPARK` 环形散射；
+* 破损：电弧炸裂 + 低音量 `LIGHTNING_BOLT_THUNDER`；
+* 修复：电弧回卷 + `AMETHYST_BLOCK_RESONATE`；
+* 冲击/雷殛：以插值生成若干电弧折线点；链向绘制次级电弧。
+
+### 9.1 可视化：末影水晶 Item 图标模拟（雷盾）
+
+* **图标素材**：使用原版 `minecraft:end_crystal` **物品图标**模拟雷盾，无需新增资源包。
+* **渲染位置**：以玩家为中心的极坐标轨道，**半径 r=0.9**，**垂直偏移 y = eyeHeight - 0.4**。
+* **旋转逻辑**：
+
+  * 角速度 **ω = 180°/s**（约 3.1416 rad/s），俯视为顺时针；
+  * Tick 更新：`angle += ω * deltaSeconds`；渲染帧用 `a = lerp(partialTicks, prevAngle, angle)` 平滑；
+  * 世界坐标：`x = px + r * cos(a)`，`z = pz + r * sin(a)`，`y = py + offsetY`；
+  * 半径可随玩家体型/缩放进行 0.8–1.0 动态微调。
+* **渲染实现**（客户端）：在 `RenderPlayerEvent.Post` 中用 `ItemRenderer#renderStatic(new ItemStack(Items.END_CRYSTAL), TransformType.GROUND, ...)` 进行**2.5D billboard** 渲染；始终面向相机；建议缩放 **0.85x**。
+* **状态表现**：
+
+  * **正常**：不透明度 **0.9**，持续旋转；
+  * **破损**：图标隐藏，仅残留破损粒子；
+  * **稳定期**：旋转降速至 **25%**（或短暂停转 0.3s）；
+  * **修复**：**0.3s 淡入**（alpha 0→0.9）+ 轻微放大（1.00→1.10）；
+  * **冲击/雷殛瞬间**：白闪 1 帧 + **1.15x** 回弹缩放（150ms）。
+* **多人与性能**：
+
+  * 仅对**本地玩家与 24m 内**的其他玩家显示；**不生成实体**，仅客户端即席渲染；
+  * 提供开关：`client.config.leidungu.showIcon = true/false`；
+  * 低画质下自动简化：关闭白闪与缩放回弹，仅保留旋转与淡入。
+
+---
+
+## 10. 本地化键与文档
+
+itemID 本地化在外部模组已经实现，无需你新增
+* 关键提示：
+
+  * `tooltip.leidungu.state.normal`、`broken`、`repair_in`、`stable_window`；
+  * `msg.leidungu.upgrade.4z/5z`、`msg.leidungu.overload`。
+
+---
+
+## 11. 测试计划（DoD 绑定）
+
+### 11.1 单元 / 逻辑
+
+* 护盾吸收与破损边界：99、100、101 伤害用例。
+* 修复流程：资源足额/不足/延迟；4转折扣正确。
+* 冲击触发：吸收累计与 CD 互不干扰；5转雷殛门槛重置。
+* 反伤：稳定期超量反弹 50% 精确度；伤害来源为 `magic()`。
+* 主动技：蓄电消耗、强放条件、DoT 时长与每跳控制。
+* TSXP：同目标同秒限流；阈值升级清溢出。
+
+### 11.2 集成 / 交互
+
+* Reaction：对 `LIGHTNING_CHARGE` 的添加与刷新；与霜系规则触发链路；不触发火/油联动。
+* 网络：冷却/层数/门槛在客户端 UI 正确同步。
+
+### 11.3 性能 / 退化
+
+* 高频受击（群怪）下的粒子/连锁表现；
+* 关闭粒子选项时的可读性维持（音效/图标替代）。
+
+**验收（Definition of Done）**
+
+* 所有用例通过；
+* 无崩溃与严重日志报错；
+* JSON/语言文件通过资源加载；
+* 文档与代码注释到位；
+* 与既有雷/霜器官共存无逻辑冲突。
+
+---
+
+## 12. 里程碑与交付
+
+* M1：行为骨架 + Organscore + 注册（PR-1）
+* M2：3转全功能（修复/冲击/主动/计数）（PR-2）
+* M3：4转特性（折扣/稳定期/反伤/增强）（PR-3）
+* M4：5转特性（雷殛/反击电弧/强放充能）（PR-4）
+* M5：UI/本地化/文档（PR-5）
+* M6：测试脚本 + 调参与性能压测（PR-6）
+
+---
+
+## 13. 代码清单（最小落地）
+
+* `compat/guzhenren/item/lei_dao/LeiDaoOrganRegistry.java`（注册）
+* `compat/guzhenren/item/lei_dao/behavior/LeiDunGuOrganBehavior.java`（核心逻辑）
+* `data/chestcavity/organs/guzhenren/human/lei_dao/leidungu.json`（Organscore）
+* `ChestCavityForge/src/main/resources/assets/guzhenren/docs/human/lei_dao`（UI 文档）
+* `docs/guzhenren/leitier/leidungu.md`（系统文档）
+* **`ChestCavityForge/src/main/java/net/tigereye/chestcavity/skill/ActiveSkillRegistry.java`**（主动技注册：图标绑定 & 冷却结束 Toast 提示）
+* **`ChestCavityForge/src/main/java/net/tigereye/chestcavity/engine/reaction/`**（Reactions：挂接/使用既有 `ReactionTagKeys` 与规则）
+* **`ChestCavityForge/src/main/java/net/tigereye/chestcavity/engine/dot/`**（DoT：感电伤害实现与跳点控制）
+
+### 13.1 实施要点（新增条目说明）
+
+* **ActiveSkillRegistry（图标 & Toast）**
+
+  * 绑定 ID：`guzhenren:leidungu_active`；
+  * 图标：复用 `Items.END_CRYSTAL` 作为技能图标（与 9.1 可视一致）；
+  * CD 提示：在 `onCooldownEnd` 回调（或冷却计数检测点）调用客户端 Toast（`ClientHooks#displaySystemToast` 或现有 UI 管道）显示：`"雷枢已就绪"`；
+  * 消耗：使用 `ResourceHandle#consumeScaledZhenyuan(baseCost)` 与精力扣减；
+  * 蓄电判定：`charge_stacks ≥ 1`（或 5 转强放 `≥ 3`）。
+
+* **Reactions（雷痕/联动）**
+
+  * 命中/冲击/雷殛：`ReactionTagOps.add(target, ReactionTagKeys.LIGHTNING_CHARGE, ticks)`；
+  * 与霜系：保持与 `SHUANG_XI_FROSTBITE` 的既有规则联动（雷霜锁链）；
+  * 回避火/油：显式不触发 `OIL_COATING` 相关规则。
+
+* **DoT（感电）**
+
+  * 定义：`ELECTRIC_SHOCK_DOT`（若已有通用雷系 DoT 则复用）；
+  * 数值：3 转 `100/s × 3s`、4 转 `120/s × 3s`、5 转强放 `160/s × 5s`；
+  * 实现：基于 DoT 框架注册一个每秒跳点的效果，并在每跳后附加 1s 高等级 Slow（模拟眩晕）。
+
+---
+
+## 14. 变更记录
+
+变更记录
+
+* v1.0（2025-10-21）：创建计划，三转基线=10k BASE 真元标尺、均伤≈800；4/5转随之抬升；计数式升级与 Reaction 规范明确。
+
+--------------------------------------
+
 baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 
 [复制粘贴用 - 更新文档]
