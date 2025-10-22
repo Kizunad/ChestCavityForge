@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.guscript.network.packets;
 
+import java.util.UUID;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -11,151 +12,145 @@ import net.tigereye.chestcavity.guscript.fx.gecko.client.GeckoFxClient;
 import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
-
-/**
- * S2C payload for GeckoLib-powered FX dispatched from flow actions.
- */
+/** S2C payload for GeckoLib-powered FX dispatched from flow actions. */
 public record GeckoFxEventPayload(
-        ResourceLocation fxId,
-        GeckoFxAnchor anchor,
-        int attachedEntityId,
-        @Nullable UUID attachedEntityUuid,
-        double basePosX,
-        double basePosY,
-        double basePosZ,
-        double offsetX,
-        double offsetY,
-        double offsetZ,
-        double relativeOffsetX,
-        double relativeOffsetY,
-        double relativeOffsetZ,
-        float yaw,
-        float pitch,
-        float roll,
-        float scale,
-        int tint,
-        float alpha,
-        boolean loop,
-        int duration,
-        @Nullable ResourceLocation modelOverride,
-        @Nullable ResourceLocation textureOverride,
-        @Nullable ResourceLocation animationOverride,
-        UUID eventId
-) implements CustomPacketPayload {
+    ResourceLocation fxId,
+    GeckoFxAnchor anchor,
+    int attachedEntityId,
+    @Nullable UUID attachedEntityUuid,
+    double basePosX,
+    double basePosY,
+    double basePosZ,
+    double offsetX,
+    double offsetY,
+    double offsetZ,
+    double relativeOffsetX,
+    double relativeOffsetY,
+    double relativeOffsetZ,
+    float yaw,
+    float pitch,
+    float roll,
+    float scale,
+    int tint,
+    float alpha,
+    boolean loop,
+    int duration,
+    @Nullable ResourceLocation modelOverride,
+    @Nullable ResourceLocation textureOverride,
+    @Nullable ResourceLocation animationOverride,
+    UUID eventId)
+    implements CustomPacketPayload {
 
-    public static final Type<GeckoFxEventPayload> TYPE = new Type<>(ChestCavity.id("gecko_fx_event"));
+  public static final Type<GeckoFxEventPayload> TYPE = new Type<>(ChestCavity.id("gecko_fx_event"));
 
-    public static final StreamCodec<FriendlyByteBuf, GeckoFxEventPayload> STREAM_CODEC = StreamCodec.of(
-            GeckoFxEventPayload::write,
-            GeckoFxEventPayload::read
-    );
+  public static final StreamCodec<FriendlyByteBuf, GeckoFxEventPayload> STREAM_CODEC =
+      StreamCodec.of(GeckoFxEventPayload::write, GeckoFxEventPayload::read);
 
-    private static void write(FriendlyByteBuf buf, GeckoFxEventPayload payload) {
-        buf.writeResourceLocation(payload.fxId);
-        buf.writeEnum(payload.anchor);
-        buf.writeVarInt(payload.attachedEntityId);
-        buf.writeBoolean(payload.attachedEntityUuid != null);
-        if (payload.attachedEntityUuid != null) {
-            buf.writeUUID(payload.attachedEntityUuid);
-        }
-        buf.writeDouble(payload.basePosX);
-        buf.writeDouble(payload.basePosY);
-        buf.writeDouble(payload.basePosZ);
-        buf.writeDouble(payload.offsetX);
-        buf.writeDouble(payload.offsetY);
-        buf.writeDouble(payload.offsetZ);
-        buf.writeDouble(payload.relativeOffsetX);
-        buf.writeDouble(payload.relativeOffsetY);
-        buf.writeDouble(payload.relativeOffsetZ);
-        buf.writeFloat(payload.yaw);
-        buf.writeFloat(payload.pitch);
-        buf.writeFloat(payload.roll);
-        buf.writeFloat(payload.scale);
-        buf.writeInt(payload.tint);
-        buf.writeFloat(payload.alpha);
-        buf.writeBoolean(payload.loop);
-        buf.writeVarInt(payload.duration);
-        buf.writeBoolean(payload.modelOverride != null);
-        if (payload.modelOverride != null) {
-            buf.writeResourceLocation(payload.modelOverride);
-        }
-        buf.writeBoolean(payload.textureOverride != null);
-        if (payload.textureOverride != null) {
-            buf.writeResourceLocation(payload.textureOverride);
-        }
-        buf.writeBoolean(payload.animationOverride != null);
-        if (payload.animationOverride != null) {
-            buf.writeResourceLocation(payload.animationOverride);
-        }
-        buf.writeUUID(payload.eventId);
+  private static void write(FriendlyByteBuf buf, GeckoFxEventPayload payload) {
+    buf.writeResourceLocation(payload.fxId);
+    buf.writeEnum(payload.anchor);
+    buf.writeVarInt(payload.attachedEntityId);
+    buf.writeBoolean(payload.attachedEntityUuid != null);
+    if (payload.attachedEntityUuid != null) {
+      buf.writeUUID(payload.attachedEntityUuid);
     }
-
-    private static GeckoFxEventPayload read(FriendlyByteBuf buf) {
-        ResourceLocation fxId = buf.readResourceLocation();
-        GeckoFxAnchor anchor = buf.readEnum(GeckoFxAnchor.class);
-        int attachedEntityId = buf.readVarInt();
-        UUID attachedEntityUuid = buf.readBoolean() ? buf.readUUID() : null;
-        double basePosX = buf.readDouble();
-        double basePosY = buf.readDouble();
-        double basePosZ = buf.readDouble();
-        double offsetX = buf.readDouble();
-        double offsetY = buf.readDouble();
-        double offsetZ = buf.readDouble();
-        double relativeOffsetX = buf.readDouble();
-        double relativeOffsetY = buf.readDouble();
-        double relativeOffsetZ = buf.readDouble();
-        float yaw = buf.readFloat();
-        float pitch = buf.readFloat();
-        float roll = buf.readFloat();
-        float scale = buf.readFloat();
-        int tint = buf.readInt();
-        float alpha = buf.readFloat();
-        boolean loop = buf.readBoolean();
-        int duration = buf.readVarInt();
-        ResourceLocation modelOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
-        ResourceLocation textureOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
-        ResourceLocation animationOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
-        UUID eventId = buf.readUUID();
-        return new GeckoFxEventPayload(
-                fxId,
-                anchor,
-                attachedEntityId,
-                attachedEntityUuid,
-                basePosX,
-                basePosY,
-                basePosZ,
-                offsetX,
-                offsetY,
-                offsetZ,
-                relativeOffsetX,
-                relativeOffsetY,
-                relativeOffsetZ,
-                yaw,
-                pitch,
-                roll,
-                scale,
-                tint,
-                alpha,
-                loop,
-                duration,
-                modelOverride,
-                textureOverride,
-                animationOverride,
-                eventId
-        );
+    buf.writeDouble(payload.basePosX);
+    buf.writeDouble(payload.basePosY);
+    buf.writeDouble(payload.basePosZ);
+    buf.writeDouble(payload.offsetX);
+    buf.writeDouble(payload.offsetY);
+    buf.writeDouble(payload.offsetZ);
+    buf.writeDouble(payload.relativeOffsetX);
+    buf.writeDouble(payload.relativeOffsetY);
+    buf.writeDouble(payload.relativeOffsetZ);
+    buf.writeFloat(payload.yaw);
+    buf.writeFloat(payload.pitch);
+    buf.writeFloat(payload.roll);
+    buf.writeFloat(payload.scale);
+    buf.writeInt(payload.tint);
+    buf.writeFloat(payload.alpha);
+    buf.writeBoolean(payload.loop);
+    buf.writeVarInt(payload.duration);
+    buf.writeBoolean(payload.modelOverride != null);
+    if (payload.modelOverride != null) {
+      buf.writeResourceLocation(payload.modelOverride);
     }
-
-    @Override
-    public Type<? extends CustomPacketPayload> type() {
-        return TYPE;
+    buf.writeBoolean(payload.textureOverride != null);
+    if (payload.textureOverride != null) {
+      buf.writeResourceLocation(payload.textureOverride);
     }
+    buf.writeBoolean(payload.animationOverride != null);
+    if (payload.animationOverride != null) {
+      buf.writeResourceLocation(payload.animationOverride);
+    }
+    buf.writeUUID(payload.eventId);
+  }
 
-    public static void handle(GeckoFxEventPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (FMLEnvironment.dist.isClient()) {
-                GeckoFxClient.handle(payload);
-            }
+  private static GeckoFxEventPayload read(FriendlyByteBuf buf) {
+    ResourceLocation fxId = buf.readResourceLocation();
+    GeckoFxAnchor anchor = buf.readEnum(GeckoFxAnchor.class);
+    int attachedEntityId = buf.readVarInt();
+    UUID attachedEntityUuid = buf.readBoolean() ? buf.readUUID() : null;
+    double basePosX = buf.readDouble();
+    double basePosY = buf.readDouble();
+    double basePosZ = buf.readDouble();
+    double offsetX = buf.readDouble();
+    double offsetY = buf.readDouble();
+    double offsetZ = buf.readDouble();
+    double relativeOffsetX = buf.readDouble();
+    double relativeOffsetY = buf.readDouble();
+    double relativeOffsetZ = buf.readDouble();
+    float yaw = buf.readFloat();
+    float pitch = buf.readFloat();
+    float roll = buf.readFloat();
+    float scale = buf.readFloat();
+    int tint = buf.readInt();
+    float alpha = buf.readFloat();
+    boolean loop = buf.readBoolean();
+    int duration = buf.readVarInt();
+    ResourceLocation modelOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
+    ResourceLocation textureOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
+    ResourceLocation animationOverride = buf.readBoolean() ? buf.readResourceLocation() : null;
+    UUID eventId = buf.readUUID();
+    return new GeckoFxEventPayload(
+        fxId,
+        anchor,
+        attachedEntityId,
+        attachedEntityUuid,
+        basePosX,
+        basePosY,
+        basePosZ,
+        offsetX,
+        offsetY,
+        offsetZ,
+        relativeOffsetX,
+        relativeOffsetY,
+        relativeOffsetZ,
+        yaw,
+        pitch,
+        roll,
+        scale,
+        tint,
+        alpha,
+        loop,
+        duration,
+        modelOverride,
+        textureOverride,
+        animationOverride,
+        eventId);
+  }
+
+  @Override
+  public Type<? extends CustomPacketPayload> type() {
+    return TYPE;
+  }
+
+  public static void handle(GeckoFxEventPayload payload, IPayloadContext context) {
+    context.enqueueWork(
+        () -> {
+          if (FMLEnvironment.dist.isClient()) {
+            GeckoFxClient.handle(payload);
+          }
         });
-    }
+  }
 }

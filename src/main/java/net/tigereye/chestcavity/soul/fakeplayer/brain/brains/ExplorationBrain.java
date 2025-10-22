@@ -2,7 +2,6 @@ package net.tigereye.chestcavity.soul.fakeplayer.brain.brains;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.phys.Vec3;
@@ -22,158 +21,158 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrain;
 import net.tigereye.chestcavity.soul.fakeplayer.brain.subbrain.SubBrainContext;
 import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
 
-/**
- * 探索模式：围绕主人巡游与调查，保持活跃移动并输出调试数据。
- */
+/** 探索模式：围绕主人巡游与调查，保持活跃移动并输出调试数据。 */
 public final class ExplorationBrain extends HierarchicalBrain {
 
-    private static final String INPUTS_KEY = "exploration.inputs";
-    private static final String PLAN_KEY = "exploration.plan";
-    private static final String LAST_TARGET_KEY = "exploration.lastTarget";
+  private static final String INPUTS_KEY = "exploration.inputs";
+  private static final String PLAN_KEY = "exploration.plan";
+  private static final String LAST_TARGET_KEY = "exploration.lastTarget";
 
-    private static final List<SubBrain> PIPELINE = List.of(
-            new SenseSubBrain(),
-            new PlanSubBrain(),
-            new ExecuteSubBrain()
-    );
+  private static final List<SubBrain> PIPELINE =
+      List.of(new SenseSubBrain(), new PlanSubBrain(), new ExecuteSubBrain());
 
-    public ExplorationBrain() {
-        super("exploration", BrainMode.EXPLORATION, PIPELINE);
+  public ExplorationBrain() {
+    super("exploration", BrainMode.EXPLORATION, PIPELINE);
+  }
+
+  private static final class SenseSubBrain extends SubBrain {
+    private SenseSubBrain() {
+      super("exploration.sense");
+      addStep(BrainActionStep.always(this::captureInputs));
     }
 
-    private static final class SenseSubBrain extends SubBrain {
-        private SenseSubBrain() {
-            super("exploration.sense");
-            addStep(BrainActionStep.always(this::captureInputs));
-        }
+    private void captureInputs(SubBrainContext ctx) {
+      var soul = ctx.soul();
+      double maxHealth = Math.max(1.0f, soul.getMaxHealth());
+      double healthRatio = soul.getHealth() / maxHealth;
+      double absorption = soul.getAbsorptionAmount();
+      boolean hasRegen = soul.hasEffect(MobEffects.REGENERATION);
+      boolean inDanger = soul.getLastDamageSource() != null;
+      var builder =
+          ScoreInputs.builder(soul)
+              .health(healthRatio, absorption)
+              .effects(hasRegen)
+              .danger(inDanger);
+      var owner = ctx.owner();
+      if (owner != null) {
+        builder.owner(owner.position());
+      }
+      var target = soul.getLastHurtByMob();
+      if (target != null) {
+        builder.target(target, soul.distanceTo(target));
+      }
+      // 跨子脑共享：写入 sharedMemory，供 Plan/Execute 使用
+      ctx.sharedMemory().put(INPUTS_KEY, builder.build());
+    }
+  }
 
-        private void captureInputs(SubBrainContext ctx) {
-            var soul = ctx.soul();
-            double maxHealth = Math.max(1.0f, soul.getMaxHealth());
-            double healthRatio = soul.getHealth() / maxHealth;
-            double absorption = soul.getAbsorptionAmount();
-            boolean hasRegen = soul.hasEffect(MobEffects.REGENERATION);
-            boolean inDanger = soul.getLastDamageSource() != null;
-            var builder = ScoreInputs.builder(soul)
-                    .health(healthRatio, absorption)
-                    .effects(hasRegen)
-                    .danger(inDanger);
-            var owner = ctx.owner();
-            if (owner != null) {
-                builder.owner(owner.position());
-            }
-            var target = soul.getLastHurtByMob();
-            if (target != null) {
-                builder.target(target, soul.distanceTo(target));
-            }
-            // 跨子脑共享：写入 sharedMemory，供 Plan/Execute 使用
-            ctx.sharedMemory().put(INPUTS_KEY, builder.build());
-        }
+  private static final class PlanSubBrain extends SubBrain {
+    private final Arbitrator<ExplorationTarget> arbitrator = new Arbitrator<>(0, 0.0);
+    private final ExplorationOpportunityScorer scorer = new ExplorationOpportunityScorer();
+    private final ExplorationBudgetTracker budget =
+        new ExplorationBudgetTracker(new BudgetPolicy(4, 2));
+
+    private PlanSubBrain() {
+      super("exploration.plan");
+      addStep(BrainActionStep.always(this::plan));
     }
 
-    private static final class PlanSubBrain extends SubBrain {
-        private final Arbitrator<ExplorationTarget> arbitrator = new Arbitrator<>(0, 0.0);
-        private final ExplorationOpportunityScorer scorer = new ExplorationOpportunityScorer();
-        private final ExplorationBudgetTracker budget = new ExplorationBudgetTracker(new BudgetPolicy(4, 2));
-
-        private PlanSubBrain() {
-            super("exploration.plan");
-            addStep(BrainActionStep.always(this::plan));
-        }
-
-        @Override
-        public boolean shouldTick(SubBrainContext ctx) {
-            return ctx.sharedMemory().getIfPresent(INPUTS_KEY) != null;
-        }
-
-        @Override
-        public void onExit(SubBrainContext ctx) {
-            budget.clear(ctx.soul().getUUID());
-            ctx.sharedMemory().put(PLAN_KEY, null);
-        }
-
-        private void plan(SubBrainContext ctx) {
-            ScoreInputs inputs = ctx.sharedMemory().getIfPresent(INPUTS_KEY);
-            if (inputs == null) {
-                return;
-            }
-            long now = ctx.level().getGameTime();
-            if (!budget.tryConsumePlan(ctx.soul().getUUID(), now)) {
-                return;
-            }
-            List<ExplorationTarget> candidates = generateCandidates(ctx, inputs);
-            if (candidates.isEmpty()) {
-                ctx.sharedMemory().put(PLAN_KEY, null);
-                return;
-            }
-            var result = arbitrator.decide(candidates, candidate -> scorer.score(inputs, candidate));
-            ExplorationTarget target = result.exclusive();
-            if (target == null) {
-                ctx.sharedMemory().put(PLAN_KEY, null);
-                return;
-            }
-            double score = scorer.score(inputs, target);
-            ctx.sharedMemory().put(PLAN_KEY, new ExplorationPlan(target, score));
-        }
-
-        private List<ExplorationTarget> generateCandidates(SubBrainContext ctx, ScoreInputs inputs) {
-            List<ExplorationTarget> list = new ArrayList<>();
-            Vec3 anchor = inputs.ownerPosition();
-            if (anchor == null) {
-                anchor = ctx.soul().position();
-            }
-            long time = ctx.level().getGameTime();
-            double baseRadius = inputs.inDanger() ? 4.0 : 7.0;
-            for (int i = 0; i < 3; i++) {
-                double angle = Mth.DEG_TO_RAD * ((time + i * 40L) % 360);
-                double radius = baseRadius + i * 1.5;
-                Vec3 pos = anchor.add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
-                if (pos.distanceToSqr(ctx.soul().position()) < 2.0) {
-                pos = pos.add(Math.cos(angle) * 2.0, 0.0, Math.sin(angle) * 2.0);
-            }
-            list.add(new ExplorationTarget(pos, 0.55 + 0.15 * i, radius, "orbit" + i));
-            }
-            if (inputs.primaryTarget() != null) {
-                Vec3 targetPos = inputs.primaryTarget().position();
-                double distanceHint = Math.max(1.0, ctx.soul().distanceTo(inputs.primaryTarget()));
-                list.add(new ExplorationTarget(targetPos, 0.35, distanceHint, "investigate_target"));
-            }
-            return list;
-        }
+    @Override
+    public boolean shouldTick(SubBrainContext ctx) {
+      return ctx.sharedMemory().getIfPresent(INPUTS_KEY) != null;
     }
 
-    private static final class ExecuteSubBrain extends SubBrain {
-        private ExecuteSubBrain() {
-            super("exploration.execute");
-            addStep(BrainActionStep.always(this::executePlan));
-        }
-
-        @Override
-        public boolean shouldTick(SubBrainContext ctx) {
-            return ctx.sharedMemory().getIfPresent(PLAN_KEY) != null;
-        }
-
-        private void executePlan(SubBrainContext ctx) {
-            ExplorationPlan plan = ctx.sharedMemory().getIfPresent(PLAN_KEY);
-            ScoreInputs inputs = ctx.sharedMemory().getIfPresent(INPUTS_KEY);
-            if (plan == null || inputs == null) {
-                return;
-            }
-            Vec3 target = plan.target().position();
-            Vec3 last = ctx.memory().getIfPresent(LAST_TARGET_KEY);
-            double stop = Math.max(0.8, 0.6 * ctx.soul().getBbWidth());
-            if (last == null || last.distanceTo(target) > 0.5 || ctx.soul().position().distanceToSqr(target) > (stop * stop)) {
-                SoulNavigationMirror.setGoal(ctx.soul(), target, 1.1, stop);
-                ctx.memory().put(LAST_TARGET_KEY, target);
-            }
-            BrainDebugProbe.recordExploration(ctx.soul(), new ExplorationTelemetry(
-                    target,
-                    plan.score(),
-                    plan.target().rationale(),
-                    inputs.healthRatio(),
-                    inputs.inDanger(),
-                    ctx.level().getGameTime()
-            ));
-        }
+    @Override
+    public void onExit(SubBrainContext ctx) {
+      budget.clear(ctx.soul().getUUID());
+      ctx.sharedMemory().put(PLAN_KEY, null);
     }
+
+    private void plan(SubBrainContext ctx) {
+      ScoreInputs inputs = ctx.sharedMemory().getIfPresent(INPUTS_KEY);
+      if (inputs == null) {
+        return;
+      }
+      long now = ctx.level().getGameTime();
+      if (!budget.tryConsumePlan(ctx.soul().getUUID(), now)) {
+        return;
+      }
+      List<ExplorationTarget> candidates = generateCandidates(ctx, inputs);
+      if (candidates.isEmpty()) {
+        ctx.sharedMemory().put(PLAN_KEY, null);
+        return;
+      }
+      var result = arbitrator.decide(candidates, candidate -> scorer.score(inputs, candidate));
+      ExplorationTarget target = result.exclusive();
+      if (target == null) {
+        ctx.sharedMemory().put(PLAN_KEY, null);
+        return;
+      }
+      double score = scorer.score(inputs, target);
+      ctx.sharedMemory().put(PLAN_KEY, new ExplorationPlan(target, score));
+    }
+
+    private List<ExplorationTarget> generateCandidates(SubBrainContext ctx, ScoreInputs inputs) {
+      List<ExplorationTarget> list = new ArrayList<>();
+      Vec3 anchor = inputs.ownerPosition();
+      if (anchor == null) {
+        anchor = ctx.soul().position();
+      }
+      long time = ctx.level().getGameTime();
+      double baseRadius = inputs.inDanger() ? 4.0 : 7.0;
+      for (int i = 0; i < 3; i++) {
+        double angle = Mth.DEG_TO_RAD * ((time + i * 40L) % 360);
+        double radius = baseRadius + i * 1.5;
+        Vec3 pos = anchor.add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+        if (pos.distanceToSqr(ctx.soul().position()) < 2.0) {
+          pos = pos.add(Math.cos(angle) * 2.0, 0.0, Math.sin(angle) * 2.0);
+        }
+        list.add(new ExplorationTarget(pos, 0.55 + 0.15 * i, radius, "orbit" + i));
+      }
+      if (inputs.primaryTarget() != null) {
+        Vec3 targetPos = inputs.primaryTarget().position();
+        double distanceHint = Math.max(1.0, ctx.soul().distanceTo(inputs.primaryTarget()));
+        list.add(new ExplorationTarget(targetPos, 0.35, distanceHint, "investigate_target"));
+      }
+      return list;
+    }
+  }
+
+  private static final class ExecuteSubBrain extends SubBrain {
+    private ExecuteSubBrain() {
+      super("exploration.execute");
+      addStep(BrainActionStep.always(this::executePlan));
+    }
+
+    @Override
+    public boolean shouldTick(SubBrainContext ctx) {
+      return ctx.sharedMemory().getIfPresent(PLAN_KEY) != null;
+    }
+
+    private void executePlan(SubBrainContext ctx) {
+      ExplorationPlan plan = ctx.sharedMemory().getIfPresent(PLAN_KEY);
+      ScoreInputs inputs = ctx.sharedMemory().getIfPresent(INPUTS_KEY);
+      if (plan == null || inputs == null) {
+        return;
+      }
+      Vec3 target = plan.target().position();
+      Vec3 last = ctx.memory().getIfPresent(LAST_TARGET_KEY);
+      double stop = Math.max(0.8, 0.6 * ctx.soul().getBbWidth());
+      if (last == null
+          || last.distanceTo(target) > 0.5
+          || ctx.soul().position().distanceToSqr(target) > (stop * stop)) {
+        SoulNavigationMirror.setGoal(ctx.soul(), target, 1.1, stop);
+        ctx.memory().put(LAST_TARGET_KEY, target);
+      }
+      BrainDebugProbe.recordExploration(
+          ctx.soul(),
+          new ExplorationTelemetry(
+              target,
+              plan.score(),
+              plan.target().rationale(),
+              inputs.healthRatio(),
+              inputs.inDanger(),
+              ctx.level().getGameTime()));
+    }
+  }
 }

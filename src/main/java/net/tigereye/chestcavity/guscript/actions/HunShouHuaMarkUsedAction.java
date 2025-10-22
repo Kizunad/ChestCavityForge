@@ -6,32 +6,30 @@ import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
-/**
- * Marks the Hun Shou Hua ability as permanently consumed on the performer.
- */
+/** Marks the Hun Shou Hua ability as permanently consumed on the performer. */
 public final class HunShouHuaMarkUsedAction implements Action {
 
-    public static final String ID = "action.hun_shou_hua.mark_used";
+  public static final String ID = "action.hun_shou_hua.mark_used";
 
-    @Override
-    public String id() {
-        return ID;
-    }
+  @Override
+  public String id() {
+    return ID;
+  }
 
-    @Override
-    public String description() {
-        return "Mark Hun Shou Hua as used";
-    }
+  @Override
+  public String description() {
+    return "Mark Hun Shou Hua as used";
+  }
 
-    @Override
-    public void execute(GuScriptContext context) {
-        if (context == null) {
-            return;
-        }
-        Player performer = context.performer();
-        if (performer == null) {
-            return;
-        }
-        CCAttachments.getGuScript(performer).markAbilityFlag(HunShouHuaConstants.ABILITY_FLAG);
+  @Override
+  public void execute(GuScriptContext context) {
+    if (context == null) {
+      return;
     }
+    Player performer = context.performer();
+    if (performer == null) {
+      return;
+    }
+    CCAttachments.getGuScript(performer).markAbilityFlag(HunShouHuaConstants.ABILITY_FLAG);
+  }
 }

@@ -7,8 +7,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
 
 /** Context for flee behaviour. */
 public record FleeContext(ServerLevel level, SoulPlayer self, LivingEntity threat, Vec3 anchor) {
-    public static FleeContext of(SoulPlayer self, LivingEntity threat, Vec3 anchor) {
-        return new FleeContext(self.serverLevel(), self, threat, anchor);
-    }
+  public static FleeContext of(SoulPlayer self, LivingEntity threat, Vec3 anchor) {
+    return new FleeContext(self.serverLevel(), self, threat, anchor);
+  }
 }
-

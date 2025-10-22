@@ -10,25 +10,23 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerDebug;
 
-/**
- * Server-side debug command entry point for Modern UI experiments.
- */
+/** Server-side debug command entry point for Modern UI experiments. */
 public final class ModernUIServerCommands {
 
-    private ModernUIServerCommands() {}
+  private ModernUIServerCommands() {}
 
-    public static void register(RegisterCommandsEvent event) {
-        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(Commands.literal("testmodernUI")
-                .requires(src -> src.hasPermission(0))
-                .then(Commands.literal("container")
-                        .executes(ModernUIServerCommands::openContainer)));
-    }
+  public static void register(RegisterCommandsEvent event) {
+    CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+    dispatcher.register(
+        Commands.literal("testmodernUI")
+            .requires(src -> src.hasPermission(0))
+            .then(Commands.literal("container").executes(ModernUIServerCommands::openContainer)));
+  }
 
-    private static int openContainer(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerPlayer player = ctx.getSource().getPlayerOrException();
-        player.openMenu(TestModernUIContainerDebug.provider());
-        return Command.SINGLE_SUCCESS;
-    }
-
+  private static int openContainer(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    player.openMenu(TestModernUIContainerDebug.provider());
+    return Command.SINGLE_SUCCESS;
+  }
 }

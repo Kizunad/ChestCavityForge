@@ -7,11 +7,11 @@ import net.tigereye.chestcavity.ChestCavity;
 
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SoulNavigationEvents {
-    private SoulNavigationEvents() {}
+  private SoulNavigationEvents() {}
 
-    @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post event) {
-        SoulNavigationMirror.serverTick(event.getServer());
-        SoulNavigationTestHarness.tick(event.getServer());
-    }
+  @SubscribeEvent
+  public static void onServerTick(ServerTickEvent.Post event) {
+    SoulNavigationMirror.serverTick(event.getServer());
+    SoulNavigationTestHarness.tick(event.getServer());
+  }
 }

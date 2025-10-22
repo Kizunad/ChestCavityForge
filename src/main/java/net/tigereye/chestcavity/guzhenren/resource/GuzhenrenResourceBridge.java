@@ -15,1185 +15,1210 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import org.apache.logging.log4j.Logger;
-
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.tigereye.chestcavity.ChestCavity;
-
+import org.apache.logging.log4j.Logger;
 
 /**
- * Reflection-based bridge for interacting with the Guzhenren mod's player
- * variables attachment.
- * <p>
- * 在不直接依赖蛊真人模组 API 的前提下，提供类型安全的读写接口，便于统一处理真元、阶段、转数等核心字段。
- * - 初始化阶段通过反射解析 {@code PlayerVariables} 类与字段句柄；
- * - {@link ResourceHandle} 暴露高层方法（如 {@link ResourceHandle#consumeScaledZhenyuan(double)}），便于调用方按统一公式扣减真元；
- * - 使用 {@link PlayerField} 枚举缓存反射字段，避免散落的字符串字段名，降低维护风险。
- * <p>
- * Relocated from the legacy compat namespace so ChestCavity Forge treats
- * Guzhenren resources as first-class integration entry points.
+ * Reflection-based bridge for interacting with the Guzhenren mod's player variables attachment.
+ *
+ * <p>在不直接依赖蛊真人模组 API 的前提下，提供类型安全的读写接口，便于统一处理真元、阶段、转数等核心字段。 - 初始化阶段通过反射解析 {@code PlayerVariables}
+ * 类与字段句柄； - {@link ResourceHandle} 暴露高层方法（如 {@link
+ * ResourceHandle#consumeScaledZhenyuan(double)}），便于调用方按统一公式扣减真元； - 使用 {@link PlayerField}
+ * 枚举缓存反射字段，避免散落的字符串字段名，降低维护风险。
+ *
+ * <p>Relocated from the legacy compat namespace so ChestCavity Forge treats Guzhenren resources as
+ * first-class integration entry points.
  */
 public final class GuzhenrenResourceBridge {
 
-    private static final Logger LOGGER = ChestCavity.LOGGER;
-    private static final String MOD_ID = "guzhenren";
-    private static final String VARIABLES_CLASS = "net.guzhenren.network.GuzhenrenModVariables";
-    private static final String PLAYER_VARIABLES_CLASS = VARIABLES_CLASS + "$PlayerVariables";
-    private static final String PLAYER_VARIABLES_FIELD = "PLAYER_VARIABLES";
-    private static final String SYNC_METHOD = "syncPlayerVariables";
+  private static final Logger LOGGER = ChestCavity.LOGGER;
+  private static final String MOD_ID = "guzhenren";
+  private static final String VARIABLES_CLASS = "net.guzhenren.network.GuzhenrenModVariables";
+  private static final String PLAYER_VARIABLES_CLASS = VARIABLES_CLASS + "$PlayerVariables";
+  private static final String PLAYER_VARIABLES_FIELD = "PLAYER_VARIABLES";
+  private static final String SYNC_METHOD = "syncPlayerVariables";
 
-    private static volatile boolean attemptedInit = false;
-    private static volatile boolean available = false;
+  private static volatile boolean attemptedInit = false;
+  private static volatile boolean available = false;
 
-    private static Supplier<?> playerVariablesSupplier;
-    private static Class<?> playerVariablesClass;
-    private static Method syncPlayerVariables;
-    /**
-     * Mapping of all supported player variable fields. 承载附件字段映射，保证读写时使用固定枚举常量而非裸字符串。
-     */
-    private enum PlayerField {
-        ZHENYUAN("zhenyuan", "真元"),
-        MAX_ZHENYUAN("zuida_zhenyuan", "最大真元"),
-        GUSHI_XIULIAN_JINDU("gushi_xiulian_jindu", "蛊师所需修炼进度"),
-        GUSHI_XIULIAN_DANGQIAN("gushi_xiulian_dangqian", "蛊师当前修炼进度"),
-        ZHUANSHU("zhuanshu", "境界转数"),
-        JIEDUAN("jieduan", "小境界阶段"),
-        KONGQIAO("kongqiao", "空窍品阶"),
-        YALI("yali", "空窍压力", "kongqiao_yali", "pressure"),
-        BENMINGGU("benminggu", "本命蛊"),
-        DI_YU("di_yu", "地域"),
-        SHOUYUAN("shouyuan", "寿元"),
-        JINGLI("jingli", "精力"),
-        MAX_JINGLI("zuida_jingli", "最大精力", "zuida_jingli"),
-        TIZHI("tizhi", "体质"),
-        XINGBIE("xingbie", "性别"),
-        HUNPO("hunpo", "魂魄"),
-        MAX_HUNPO("zuida_hunpo", "最大魂魄"),
-        HUNPO_STABILITY("hunpo_kangxing", "魂魄抗性", "魂魄稳定度", "hunpo_stability"),
-        MAX_HUNPO_STABILITY("hunpo_kangxing_shangxian", "魂魄抗性上限", "魂魄稳定度上限", "hunpo_stability_max"),
-        LEIDUNGU_TSXP("leidungu_tsxp", "雷盾阅历"),
-        LEIDUNGU_TIER("leidungu_tier", "雷盾等阶"),
-        NIANTOU("niantou", "念头"),
-        MAX_NIANTOU("niantou_zhida", "最大念头", "niantou_zuida"),
-        NIANTOU_RONGLIANG("niantou_rongliang", "念头容量"),     // 自然恢复会被 niantou_rongliang（念头容量）限制
-        RENQI("renqi", "人气"),
-        QIYUN("qiyun", "气运"),
-        QIYUN_SHANGXIAN("qiyun_shangxian", "气运上限"),
-        DAODE("daode", "道德"),
-        // --  杀招（GUI）  --
-        SHAZHAO1("ShaZhao1", "杀招1卷轴"),
-        SHAZHAO2("ShaZhao2", "杀招2卷轴"),
-        SHAZHAO3("ShaZhao3", "杀招3卷轴"),
-        SHAZHAO4("ShaZhao4", "杀招4卷轴"),
-        SHAZHAO1_GUCHONG1_NAIJIU("ShaZhao1_GuChong1_NaiJiu", "杀招1蛊虫1耐久"),
-        SHAZHAO1_GUCHONG2_NAIJIU("ShaZhao1_GuChong2_NaiJiu", "杀招1蛊虫2耐久"),
-        SHAZHAO1_GUCHONG3_NAIJIU("ShaZhao1_GuChong3_NaiJiu", "杀招1蛊虫3耐久"),
-        SHAZHAO1_GUCHONG4_NAIJIU("ShaZhao1_GuChong4_NaiJiu", "杀招1蛊虫4耐久"),
-        SHAZHAO1_GUCHONG5_NAIJIU("ShaZhao1_GuChong5_NaiJiu", "杀招1蛊虫5耐久"),
-        SHAZHAO1_GUCHONG6_NAIJIU("ShaZhao1_GuChong6_NaiJiu", "杀招1蛊虫6耐久"),
-        SHAZHAO1_GUCHONG7_NAIJIU("ShaZhao1_GuChong7_NaiJiu", "杀招1蛊虫7耐久"),
-        SHAZHAO1_GUCHONG8_NAIJIU("ShaZhao1_GuChong8_NaiJiu", "杀招1蛊虫8耐久"),
-        SHAZHAO1_GUCHONG9_NAIJIU("ShaZhao1_GuChong9_NaiJiu", "杀招1蛊虫9耐久"),
-        SHAZHAO1_GUCHONG10_NAIJIU("ShaZhao1_GuChong10_NaiJiu", "杀招1蛊虫10耐久"),
-        SHAZHAO2_GUCHONG1_NAIJIU("ShaZhao2_GuChong1_NaiJiu", "杀招2蛊虫1耐久"),
-        SHAZHAO2_GUCHONG2_NAIJIU("ShaZhao2_GuChong2_NaiJiu", "杀招2蛊虫2耐久"),
-        SHAZHAO2_GUCHONG3_NAIJIU("ShaZhao2_GuChong3_NaiJiu", "杀招2蛊虫3耐久"),
-        SHAZHAO2_GUCHONG4_NAIJIU("ShaZhao2_GuChong4_NaiJiu", "杀招2蛊虫4耐久"),
-        SHAZHAO2_GUCHONG5_NAIJIU("ShaZhao2_GuChong5_NaiJiu", "杀招2蛊虫5耐久"),
-        SHAZHAO2_GUCHONG6_NAIJIU("ShaZhao2_GuChong6_NaiJiu", "杀招2蛊虫6耐久"),
-        SHAZHAO2_GUCHONG7_NAIJIU("ShaZhao2_GuChong7_NaiJiu", "杀招2蛊虫7耐久"),
-        SHAZHAO2_GUCHONG8_NAIJIU("ShaZhao2_GuChong8_NaiJiu", "杀招2蛊虫8耐久"),
-        SHAZHAO2_GUCHONG9_NAIJIU("ShaZhao2_GuChong9_NaiJiu", "杀招2蛊虫9耐久"),
-        SHAZHAO2_GUCHONG10_NAIJIU("ShaZhao2_GuChong10_NaiJiu", "杀招2蛊虫10耐久"),
-        SHAZHAO3_GUCHONG1_NAIJIU("ShaZhao3_GuChong1_NaiJiu", "杀招3蛊虫1耐久"),
-        SHAZHAO3_GUCHONG2_NAIJIU("ShaZhao3_GuChong2_NaiJiu", "杀招3蛊虫2耐久"),
-        SHAZHAO3_GUCHONG3_NAIJIU("ShaZhao3_GuChong3_NaiJiu", "杀招3蛊虫3耐久"),
-        SHAZHAO3_GUCHONG4_NAIJIU("ShaZhao3_GuChong4_NaiJiu", "杀招3蛊虫4耐久"),
-        SHAZHAO3_GUCHONG5_NAIJIU("ShaZhao3_GuChong5_NaiJiu", "杀招3蛊虫5耐久"),
-        SHAZHAO3_GUCHONG6_NAIJIU("ShaZhao3_GuChong6_NaiJiu", "杀招3蛊虫6耐久"),
-        SHAZHAO3_GUCHONG7_NAIJIU("ShaZhao3_GuChong7_NaiJiu", "杀招3蛊虫7耐久"),
-        SHAZHAO3_GUCHONG8_NAIJIU("ShaZhao3_GuChong8_NaiJiu", "杀招3蛊虫8耐久"),
-        SHAZHAO3_GUCHONG9_NAIJIU("ShaZhao3_GuChong9_NaiJiu", "杀招3蛊虫9耐久"),
-        SHAZHAO3_GUCHONG10_NAIJIU("ShaZhao3_GuChong10_NaiJiu", "杀招3蛊虫10耐久"),
-        SHAZHAO4_GUCHONG1_NAIJIU("ShaZhao4_GuChong1_NaiJiu", "杀招4蛊虫1耐久"),
-        SHAZHAO4_GUCHONG2_NAIJIU("ShaZhao4_GuChong2_NaiJiu", "杀招4蛊虫2耐久"),
-        SHAZHAO4_GUCHONG3_NAIJIU("ShaZhao4_GuChong3_NaiJiu", "杀招4蛊虫3耐久"),
-        SHAZHAO4_GUCHONG4_NAIJIU("ShaZhao4_GuChong4_NaiJiu", "杀招4蛊虫4耐久"),
-        SHAZHAO4_GUCHONG5_NAIJIU("ShaZhao4_GuChong5_NaiJiu", "杀招4蛊虫5耐久"),
-        SHAZHAO4_GUCHONG6_NAIJIU("ShaZhao4_GuChong6_NaiJiu", "杀招4蛊虫6耐久"),
-        SHAZHAO4_GUCHONG7_NAIJIU("ShaZhao4_GuChong7_NaiJiu", "杀招4蛊虫7耐久"),
-        SHAZHAO4_GUCHONG8_NAIJIU("ShaZhao4_GuChong8_NaiJiu", "杀招4蛊虫8耐久"),
-        SHAZHAO4_GUCHONG9_NAIJIU("ShaZhao4_GuChong9_NaiJiu", "杀招4蛊虫9耐久"),
-        SHAZHAO4_GUCHONG10_NAIJIU("ShaZhao4_GuChong10_NaiJiu", "杀招4蛊虫10耐久"),
-        // --  炼蛊  --
-        GU_FANG("GuFang", "蛊方ID"),
-        LIANGU_JINDU("LianGuJinDu", "炼蛊进度"),
-        // --  道痕  --
-        DAOHEN_JINDAO("daohen_jindao", "金道道痕"),
-        DAOHEN_SHUIDAO("daohen_shuidao", "水道道痕"),
-        DAOHEN_MUDAO("daohen_mudao", "木道道痕"),
-        DAOHEN_YANDAO("daohen_yandao", "炎道道痕"),
-        DAOHEN_TUDAO("daohen_tudao", "土道道痕"),
-        DAOHEN_FENGDAO("daohen_fengdao", "风道道痕"),
-        DAOHEN_GUANGDAO("daohen_guangdao", "光道道痕"),
-        DAOHEN_ANDAO("daohen_andao", "暗道道痕"),
-        DAOHEN_LEIDAO("daohen_leidao", "雷道道痕"),
-        DAOHEN_DUDAO("daohen_dudao", "毒道道痕"),
-        DAOHEN_YUDAO("daohen_yudao", "宇道道痕"),
-        DAOHEN_ZHOUDAO("dahen_zhoudao", "宙道道痕", "daohen_zhoudao"),
-        DAOHEN_RENDAO("dahen_rendao", "人道道痕", "daohen_rendao"),
-        DAOHEN_TIANDAO("dahen_tiandao", "天道道痕", "daohen_tiandao"),
-        DAOHEN_BINGXUE("daohen_bingxuedao", "冰雪道痕", "daohen_bingxue"),
-        DAOHEN_QIDAO("dahen_qidao", "气道道痕", "daohen_qidao"),
-        DAOHEN_NUDAO("dahen_nudao", "奴道道痕", "daohen_nudao"),
-        DAOHEN_ZHIDAO("dahen_zhidao", "智道道痕", "daohen_zhidao"),
-        DAOHEN_XINGDAO("dahen_xingdao", "星道道痕", "daohen_xingdao"),
-        DAOHEN_ZHENDAO("dahen_zhendao", "阵道道痕", "daohen_zhendao"),
-        DAOHEN_YINGDAO("daohen_yingdao", "影道道痕"),
-        DAOHEN_LVDAO("daohen_lvdao", "律道道痕"),
-        DAOHEN_LIANDAO("dahen_liandao", "炼道道痕", "daohen_liandao"),
-        DAOHEN_LIDAO("daohen_lidao", "力道道痕"),
-        DAOHEN_SHIDAO("daohen_shidao", "食道道痕"),
-        DAOHEN_HUADAO("daohen_huadao", "画道道痕"),
-        DAOHEN_TOUDAO("daohen_toudao", "偷道道痕"),
-        DAOHEN_YUNDAO("daohen_yundao", "运道道痕"),
-        DAOHEN_YUNDAO_CLOUD("daohen_yundao2", "云道道痕", "daohen_yundao", "daohen_yundao_cloud"),
-        DAOHEN_XINDAO("daohen_xindao", "信道道痕"),
-        DAOHEN_YINDAO("daohen_yindao", "音道道痕"),
-        DAOHEN_GUDAO("daohen_gudao", "骨道道痕"),
-        DAOHEN_XUDAO("daohen_xudao", "虚道道痕"),
-        DAOHEN_JINDAO_FORBIDDEN("daohen_jindao2", "禁道道痕", "daohen_jindao", "daohen_jindao_forbidden"),
-        DAOHEN_JIANDAO("daohen_jiandao", "剑道道痕"),
-        DAOHEN_DAODAO("daohen_daodao", "刀道道痕"),
-        DAOHEN_HUNDAO("daohen_hundao", "魂道道痕"),
-        DAOHEN_DANDAO("daohen_dandao", "丹道道痕"),
-        DAOHEN_XUEDAO("daohen_xuedao", "血道道痕"),
-        DAOHEN_HUANDAO("daohen_huandao", "幻道道痕"),
-        DAOHEN_YUEDAO("daohen_yuedao", "月道道痕"),
-        DAOHEN_MENGDAO("daohen_mengdao", "梦道道痕"),
-        DAOHEN_BINGDAO("daohen_bingdao", "兵道道痕"),
-        DAOHEN_BIANHUADAO("daohen_bianhuadao", "变化道道痕"),
-         // --  经验  --
-        LIUPAI_JINDAO("liupai_jindao", "金道流派经验"),
-        LIUPAI_SHUIDAO("liupai_shuidao", "水道流派经验"),
-        LIUPAI_MUDAO("liupai_mudao", "木道流派经验"),
-        LIUPAI_YANDAO("liupai_yandao", "炎道流派经验"),
-        LIUPAI_TUDAO("liupai_tudao", "土道流派经验"),
-        LIUPAI_FENGDAO("liupai_fengdao", "风道流派经验"),
-        LIUPAI_GUANGDAO("liupai_guangdao", "光道流派经验"),
-        LIUPAI_ANDAO("liupai_andao", "暗道流派经验"),
-        LIUPAI_LEIDAO("liupai_leidao", "雷道流派经验"),
-        LIUPAI_DUDAO("liupai_dudao", "毒道流派经验"),
-        LIUPAI_YUDAO("liupai_yudao", "宇道流派经验"),
-        LIUPAI_ZHOUDAO("liupai_zhoudao", "宙道流派经验"),
-        LIUPAI_RENDAO("liupai_rendao", "人道流派经验"),
-        LIUPAI_TIANDAO("liupai_tiandao", "天道流派经验"),
-        LIUPAI_BINGXUEDAO("liupai_bingxuedao", "冰雪流派经验"),
-        LIUPAI_QIDAO("liupai_qidao", "气道流派经验"),
-        LIUPAI_NUDAO("liupai_nudao", "奴道流派经验"),
-        LIUPAI_ZHIDAO("liupai_zhidao", "智道流派经验"),
-        LIUPAI_XINGDAO("liupai_xingdao", "星道流派经验"),
-        LIUPAI_ZHENDAO("liupai_zhendao", "阵道流派经验"),
-        LIUPAI_YINGDAO("liupai_yingdao", "影道流派经验"),
-        LIUPAI_LVDAO("liupai_lvdao", "律道流派经验"),
-        LIUPAI_LIANDAO("liupai_liandao", "炼道流派经验"),
-        LIUPAI_LIDAO("liupai_lidao", "力道流派经验"),
-        LIUPAI_SHIDAO("liupai_shidao", "食道流派经验"),
-        LIUPAI_HUADAO("liupai_huadao", "画道流派经验"),
-        LIUPAI_TOUDAO("liupai_toudao", "偷道流派经验"),
-        LIUPAI_YUNDAO("liupai_yundao", "运道流派经验"),
-        LIUPAI_YUNDAO_CLOUD("liupai_yundao2", "云道流派经验", "liupai_yundao", "liupai_yundao_cloud"),
-        LIUPAI_XINDAO("liupai_xindao", "信道流派经验"),
-        LIUPAI_YINDAO("liupai_yindao", "音道流派经验"),
-        LIUPAI_GUDAO("Liupai_gudao", "骨道流派经验", "liupai_gudao"),
-        LIUPAI_XUDAO("liupai_xudao", "虚道流派经验"),
-        LIUPAI_JINDAO_FORBIDDEN("liupai_jindao2", "禁道流派经验", "liupai_jindao", "liupai_jindao_forbidden"),
-        LIUPAI_JIANDAO("liupai_jiandao", "剑道流派经验"),
-        LIUPAI_DAODAO("liupai_daodao", "刀道流派经验"),
-        LIUPAI_HUNDAO("liupai_hundao", "魂道流派经验"),
-        LIUPAI_DANDAO("liupai_dandao", "丹道流派经验"),
-        LIUPAI_XUEDAO("liupai_xuedao", "血道流派经验"),
-        LIUPAI_HUANDAO("liupai_huandao", "幻道流派经验"),
-        LIUPAI_YUEDAO("liupai_yuedao", "月道流派经验"),
-        LIUPAI_MENGDAO("liupai_mengdao", "梦道流派经验"),
-        LIUPAI_BINGDAO("liupai_bingdao", "兵道流派经验"),
-        LIUPAI_BIANHUADAO("liupai_bianhuadao", "变化道流派经验"),
-        // -- FengYuLou mission board data --
-        FENGYULOU1_NEIRONG1("FengYuLou1_NeiRong1", null),
-        FENGYULOU1_NEIRONG2("FengYuLou1_NeiRong2", null),
-        FENGYULOU1_NEIRONG3("FengYuLou1_NeiRong3", null),
-        FENGYULOU1_NEIRONG4("FengYuLou1_NeiRong4", null),
-        FENGYULOU1_NEIRONG5("FengYuLou1_NeiRong5", null),
-        FENGYULOU1_RENWU1("FengYuLou1_RenWu1", null),
-        FENGYULOU1_YAOQIU1("FengYuLou1_YaoQiu1", null),
-        FENGYULOU1_YAOQIU2("FengYuLou1_YaoQiu2", null),
-        FENGYULOU1_YAOQIU3("FengYuLou1_YaoQiu3", null),
-        FENGYULOU2_NEIRONG1("FengYuLou2_NeiRong1", null),
-        FENGYULOU2_NEIRONG2("FengYuLou2_NeiRong2", null),
-        FENGYULOU2_NEIRONG3("FengYuLou2_NeiRong3", null),
-        FENGYULOU2_NEIRONG4("FengYuLou2_NeiRong4", null),
-        FENGYULOU2_NEIRONG5("FengYuLou2_NeiRong5", null),
-        FENGYULOU2_RENWU1("FengYuLou2_RenWu1", null),
-        FENGYULOU2_YAOQIU1("FengYuLou2_YaoQiu1", null),
-        FENGYULOU2_YAOQIU2("FengYuLou2_YaoQiu2", null),
-        FENGYULOU2_YAOQIU3("FengYuLou2_YaoQiu3", null),
-        FENGYULOU3_NEIRONG1("FengYuLou3_NeiRong1", null),
-        FENGYULOU3_NEIRONG2("FengYuLou3_NeiRong2", null),
-        FENGYULOU3_NEIRONG3("FengYuLou3_NeiRong3", null),
-        FENGYULOU3_NEIRONG4("FengYuLou3_NeiRong4", null),
-        FENGYULOU3_NEIRONG5("FengYuLou3_NeiRong5", null),
-        FENGYULOU3_RENWU1("FengYuLou3_RenWu1", null),
-        FENGYULOU3_YAOQIU1("FengYuLou3_YaoQiu1", null),
-        FENGYULOU3_YAOQIU2("FengYuLou3_YaoQiu2", null),
-        FENGYULOU3_YAOQIU3("FengYuLou3_YaoQiu3", null),
-        FENGYULOUGUI_RENWU("FengYuLouGui_RenWu", null),
-        FENGYULOUGUI_RENWU1("FengYuLouGui_RenWu1", null),
-        FENGYULOUGUI_RENWU2("FengYuLouGui_RenWu2", null),
-        FENGYULOUGUI_RENWU3("FengYuLouGui_RenWu3", null),
-        // -- Contribution and cultivation trackers --
-        GONGXIANZHI("GongXianZhi", null),
-        KE1("KE1", null),
-        KE2("KE2", null),
-        KE3("KE3", null),
-        LIANGU("LianGu", null),
-        LIANGUCHENGGONGLV("LianGuChengGongLv", null),
-        // -- Auction house listings --
-        PAIMAIHANG_JIPAI1_1("PaiMaiHang_JiPai1_1", null),
-        PAIMAIHANG_JIPAI2_1("PaiMaiHang_JiPai2_1", null),
-        PAIMAIHANG_JIPAI3_1("PaiMaiHang_JiPai3_1", null),
-        PAIMAIHANG_JIPAI4_1("PaiMaiHang_JiPai4_1", null),
-        PAIMAIHANG_JIPAI5_1("PaiMaiHang_JiPai5_1", null),
-        PAIMAIHANG_JIPAI6_1("PaiMaiHang_JiPai6_1", null),
-        PAIMAIHANG_JINGJIA("PaiMaiHang_JingJia", null),
-        PAIMAIHANG_LIAOTIAN1("PaiMaiHang_LiaoTian1", null),
-        PAIMAIHANG_LIAOTIAN10("PaiMaiHang_LiaoTian10", null),
-        PAIMAIHANG_LIAOTIAN11("PaiMaiHang_LiaoTian11", null),
-        PAIMAIHANG_LIAOTIAN12("PaiMaiHang_LiaoTian12", null),
-        PAIMAIHANG_LIAOTIAN13("PaiMaiHang_LiaoTian13", null),
-        PAIMAIHANG_LIAOTIAN14("PaiMaiHang_LiaoTian14", null),
-        PAIMAIHANG_LIAOTIAN2("PaiMaiHang_LiaoTian2", null),
-        PAIMAIHANG_LIAOTIAN3("PaiMaiHang_LiaoTian3", null),
-        PAIMAIHANG_LIAOTIAN4("PaiMaiHang_LiaoTian4", null),
-        PAIMAIHANG_LIAOTIAN5("PaiMaiHang_LiaoTian5", null),
-        PAIMAIHANG_LIAOTIAN6("PaiMaiHang_LiaoTian6", null),
-        PAIMAIHANG_LIAOTIAN7("PaiMaiHang_LiaoTian7", null),
-        PAIMAIHANG_LIAOTIAN8("PaiMaiHang_LiaoTian8", null),
-        PAIMAIHANG_LIAOTIAN9("PaiMaiHang_LiaoTian9", null),
-        PAIMAIHANG_SHIJIAN("PaiMaiHang_ShiJian", null),
-        PAIMAIHANG_JIAGE("PaiMaiHang_jiage", null),
-        PAIMAIHANG_JIAGE1("PaiMaiHang_jiage1", null),
-        // -- Ability toggles and shared combat scalars --
-        YINYANZHUANSHENGU("YinYanZhuanShenGu", null),
-        ZY_KE("ZY_KE", null),
-        ZHANDOUMOSHI("ZhanDouMoShi", null),
-        // -- Temporary combat vectors and scratch data --
-        AX("ax", null),
-        AY("ay", null),
-        AZ("az", null),
-        BENMING("benming", null),
-        BENMING_KE("benming_ke", null),
-        CD("cd", null),
-        COUNTER("counter", null),
-        COUNTER2("counter2", null),
-        DAJI("daji", null),
-        FANGJU1("fangju1", null),
-        FANGYULI("fangyuli", null),
-        FUDICHOUXIN("fudichouxin", null),
-        GONGJILI("gongjili", null),
-        GUZHENREN_UI("guzhenren_ui", null),
-        HOU_SHAN("hou_shan", null),
-        HP_HF("hp_hf", null),
-        HP_KE("hp_ke", null),
-        JINFENGWENDAO("jinfengwendao", null),
-        KSLG_KE("kslg_ke", null),
-        KSSXSZ("kssxsz", null),
-        LG_KE("lg_ke", null),
-        // -- Extra liupai experience entries --
-        LIUPAI_FEIXINGDAO("liupai_feixingdao", null),
-        LIUPAI_QINGMEIDAO("liupai_qingmeidao", null),
-        LOCALRAD("localRad", null),
-        
-        // -- Nudao panel slot configuration --
-        NUDAOLANWEI("nudaolanwei", null),
-        NUDAOLANWEI_1("nudaolanwei_1", null),
-        NUDAOLANWEI_10("nudaolanwei_10", null),
-        NUDAOLANWEI_10_1("nudaolanwei_10_1", null),
-        NUDAOLANWEI_1_1("nudaolanwei_1_1", null),
-        NUDAOLANWEI_2("nudaolanwei_2", null),
-        NUDAOLANWEI_2_1("nudaolanwei_2_1", null),
-        NUDAOLANWEI_3("nudaolanwei_3", null),
-        NUDAOLANWEI_3_1("nudaolanwei_3_1", null),
-        NUDAOLANWEI_4("nudaolanwei_4", null),
-        NUDAOLANWEI_4_1("nudaolanwei_4_1", null),
-        NUDAOLANWEI_5("nudaolanwei_5", null),
-        NUDAOLANWEI_5_1("nudaolanwei_5_1", null),
-        NUDAOLANWEI_6("nudaolanwei_6", null),
-        NUDAOLANWEI_6_1("nudaolanwei_6_1", null),
-        NUDAOLANWEI_7("nudaolanwei_7", null),
-        NUDAOLANWEI_7_1("nudaolanwei_7_1", null),
-        NUDAOLANWEI_8("nudaolanwei_8", null),
-        NUDAOLANWEI_8_1("nudaolanwei_8_1", null),
-        NUDAOLANWEI_9("nudaolanwei_9", null),
-        NUDAOLANWEI_9_1("nudaolanwei_9_1", null),
-        // -- Nudao progression stats --
-        NUDAOSHANGXIAN("nudaoshangxian", null),
-        NUDAOSHENGJISHULIANG("nudaoshengjishuliang", null),
-        NUDAOSHENGJIZHONGZU1("nudaoshengjizhongzu1", null),
-        NUDAOSHENGJIZHONGZU2("nudaoshengjizhongzu2", null),
-        NUDAOSHENGJIZHONGZU3("nudaoshengjizhongzu3", null),
-        NUDAOSHUJU("nudaoshuju", null),
-        NUDAOSHULIANG("nudaoshuliang", null),
-        // -- Nudao UI cached text entries --
-        NUDAOXIANSHISHUJU1("nudaoxianshishuju1", null),
-        NUDAOXIANSHISHUJU10("nudaoxianshishuju10", null),
-        NUDAOXIANSHISHUJU2("nudaoxianshishuju2", null),
-        NUDAOXIANSHISHUJU3("nudaoxianshishuju3", null),
-        NUDAOXIANSHISHUJU4("nudaoxianshishuju4", null),
-        NUDAOXIANSHISHUJU5("nudaoxianshishuju5", null),
-        NUDAOXIANSHISHUJU6("nudaoxianshishuju6", null),
-        NUDAOXIANSHISHUJU7("nudaoxianshishuju7", null),
-        NUDAOXIANSHISHUJU8("nudaoxianshishuju8", null),
-        NUDAOXIANSHISHUJU9("nudaoxianshishuju9", null),
-        NUDAOXINGJI("nudaoxingji", null),
-        NUDAOXUANZE1("nudaoxuanze1", null),
-        NUDAOXUANZE10("nudaoxuanze10", null),
-        NUDAOXUANZE2("nudaoxuanze2", null),
-        NUDAOXUANZE3("nudaoxuanze3", null),
-        NUDAOXUANZE4("nudaoxuanze4", null),
-        NUDAOXUANZE5("nudaoxuanze5", null),
-        NUDAOXUANZE6("nudaoxuanze6", null),
-        NUDAOXUANZE7("nudaoxuanze7", null),
-        NUDAOXUANZE8("nudaoxuanze8", null),
-        NUDAOXUANZE9("nudaoxuanze9", null),
-        // -- Nudao ownership metadata --
-        NUDAOZHUREN("nudaozhuren", null),
-        // -- Regional state snapshots --
-        PG("pg", null),
-        QIAN_SHAN("qian_shan", null),
-        // -- Resource caps and aggregate counters --
-        QUANBU_KE("quanbu_ke", null),
-        // -- Misc quest progress flags --
-        RENWU1("renwu1", null),
-        RENWU2("renwu2", null),
-        RENWU3("renwu3", null),
-        RENWU4("renwu4", null),
-        RENWU5("renwu5", null),
-        RWDH("rwdh", null),
-        RWSS("rwss", null),
-        RWZBXS("rwzbxs", null),
-        // -- Sanzhao ability payloads --
-        SANZHAO1("sanzhao1", null),
-        SANZHAO2("sanzhao2", null),
-        SANZHAO3("sanzhao3", null),
-        SANZHAO4("sanzhao4", null),
-        SANZHAO_CD("sanzhao_CD", null),
-        SANZHAO_CD1("sanzhao_CD1", null),
-        SANZHAO_CD2("sanzhao_CD2", null),
-        SANZHAO_CD3("sanzhao_CD3", null),
-        // -- Growth and cooldown timers --
-        SHENGCHANG_CD("shengchang_CD", null),
-        SHENGMINGZHI("shengmingzhi", null),
-        SHIQIAO("shiqiao", null),
-        SHOUYUAN_FEN("shouyuan_fen", null),
-        SHOUYUAN_KE("shouyuan_ke", null),
-        SHOUYUAN_MIAO("shouyuan_miao", null),
-        // -- Misc numeric status entries --
-        TOU("tou", null),
-        TUISUAN_KE("tuisuan_ke", null),
-        X2("x2", null),
-        XINGMEN("xingmen", null),
-        XINGMEN1("xingmen1", null),
-        XINGMEN2("xingmen2", null),
-        YOFF("yOff", null),
-        YL_KE("yl_ke", null),
-        YL_M("yl_m", null),
-        YOU_SHAN("you_shan", null),
-        YQ_KE("yq_ke", null),
-        YUANSHISHULIANG("yuanshishuliang", null),
-        Z2("z2", null),
-        ZHONGZU("zhongzu", null),
-        ZHUANGBEI("zhuangbei", null),
-        ZUI_SHAN("zui_shan", null);
+  private static Supplier<?> playerVariablesSupplier;
+  private static Class<?> playerVariablesClass;
+  private static Method syncPlayerVariables;
 
-        private static final Map<String, PlayerField> BY_ALIAS = new ConcurrentHashMap<>();
-        private static final Map<String, PlayerField> BY_DOC_LABEL = new ConcurrentHashMap<>();
+  /** Mapping of all supported player variable fields. 承载附件字段映射，保证读写时使用固定枚举常量而非裸字符串。 */
+  private enum PlayerField {
+    ZHENYUAN("zhenyuan", "真元"),
+    MAX_ZHENYUAN("zuida_zhenyuan", "最大真元"),
+    GUSHI_XIULIAN_JINDU("gushi_xiulian_jindu", "蛊师所需修炼进度"),
+    GUSHI_XIULIAN_DANGQIAN("gushi_xiulian_dangqian", "蛊师当前修炼进度"),
+    ZHUANSHU("zhuanshu", "境界转数"),
+    JIEDUAN("jieduan", "小境界阶段"),
+    KONGQIAO("kongqiao", "空窍品阶"),
+    YALI("yali", "空窍压力", "kongqiao_yali", "pressure"),
+    BENMINGGU("benminggu", "本命蛊"),
+    DI_YU("di_yu", "地域"),
+    SHOUYUAN("shouyuan", "寿元"),
+    JINGLI("jingli", "精力"),
+    MAX_JINGLI("zuida_jingli", "最大精力", "zuida_jingli"),
+    TIZHI("tizhi", "体质"),
+    XINGBIE("xingbie", "性别"),
+    HUNPO("hunpo", "魂魄"),
+    MAX_HUNPO("zuida_hunpo", "最大魂魄"),
+    HUNPO_STABILITY("hunpo_kangxing", "魂魄抗性", "魂魄稳定度", "hunpo_stability"),
+    MAX_HUNPO_STABILITY("hunpo_kangxing_shangxian", "魂魄抗性上限", "魂魄稳定度上限", "hunpo_stability_max"),
+    LEIDUNGU_TSXP("leidungu_tsxp", "雷盾阅历"),
+    LEIDUNGU_TIER("leidungu_tier", "雷盾等阶"),
+    NIANTOU("niantou", "念头"),
+    MAX_NIANTOU("niantou_zhida", "最大念头", "niantou_zuida"),
+    NIANTOU_RONGLIANG("niantou_rongliang", "念头容量"), // 自然恢复会被 niantou_rongliang（念头容量）限制
+    RENQI("renqi", "人气"),
+    QIYUN("qiyun", "气运"),
+    QIYUN_SHANGXIAN("qiyun_shangxian", "气运上限"),
+    DAODE("daode", "道德"),
+    // --  杀招（GUI）  --
+    SHAZHAO1("ShaZhao1", "杀招1卷轴"),
+    SHAZHAO2("ShaZhao2", "杀招2卷轴"),
+    SHAZHAO3("ShaZhao3", "杀招3卷轴"),
+    SHAZHAO4("ShaZhao4", "杀招4卷轴"),
+    SHAZHAO1_GUCHONG1_NAIJIU("ShaZhao1_GuChong1_NaiJiu", "杀招1蛊虫1耐久"),
+    SHAZHAO1_GUCHONG2_NAIJIU("ShaZhao1_GuChong2_NaiJiu", "杀招1蛊虫2耐久"),
+    SHAZHAO1_GUCHONG3_NAIJIU("ShaZhao1_GuChong3_NaiJiu", "杀招1蛊虫3耐久"),
+    SHAZHAO1_GUCHONG4_NAIJIU("ShaZhao1_GuChong4_NaiJiu", "杀招1蛊虫4耐久"),
+    SHAZHAO1_GUCHONG5_NAIJIU("ShaZhao1_GuChong5_NaiJiu", "杀招1蛊虫5耐久"),
+    SHAZHAO1_GUCHONG6_NAIJIU("ShaZhao1_GuChong6_NaiJiu", "杀招1蛊虫6耐久"),
+    SHAZHAO1_GUCHONG7_NAIJIU("ShaZhao1_GuChong7_NaiJiu", "杀招1蛊虫7耐久"),
+    SHAZHAO1_GUCHONG8_NAIJIU("ShaZhao1_GuChong8_NaiJiu", "杀招1蛊虫8耐久"),
+    SHAZHAO1_GUCHONG9_NAIJIU("ShaZhao1_GuChong9_NaiJiu", "杀招1蛊虫9耐久"),
+    SHAZHAO1_GUCHONG10_NAIJIU("ShaZhao1_GuChong10_NaiJiu", "杀招1蛊虫10耐久"),
+    SHAZHAO2_GUCHONG1_NAIJIU("ShaZhao2_GuChong1_NaiJiu", "杀招2蛊虫1耐久"),
+    SHAZHAO2_GUCHONG2_NAIJIU("ShaZhao2_GuChong2_NaiJiu", "杀招2蛊虫2耐久"),
+    SHAZHAO2_GUCHONG3_NAIJIU("ShaZhao2_GuChong3_NaiJiu", "杀招2蛊虫3耐久"),
+    SHAZHAO2_GUCHONG4_NAIJIU("ShaZhao2_GuChong4_NaiJiu", "杀招2蛊虫4耐久"),
+    SHAZHAO2_GUCHONG5_NAIJIU("ShaZhao2_GuChong5_NaiJiu", "杀招2蛊虫5耐久"),
+    SHAZHAO2_GUCHONG6_NAIJIU("ShaZhao2_GuChong6_NaiJiu", "杀招2蛊虫6耐久"),
+    SHAZHAO2_GUCHONG7_NAIJIU("ShaZhao2_GuChong7_NaiJiu", "杀招2蛊虫7耐久"),
+    SHAZHAO2_GUCHONG8_NAIJIU("ShaZhao2_GuChong8_NaiJiu", "杀招2蛊虫8耐久"),
+    SHAZHAO2_GUCHONG9_NAIJIU("ShaZhao2_GuChong9_NaiJiu", "杀招2蛊虫9耐久"),
+    SHAZHAO2_GUCHONG10_NAIJIU("ShaZhao2_GuChong10_NaiJiu", "杀招2蛊虫10耐久"),
+    SHAZHAO3_GUCHONG1_NAIJIU("ShaZhao3_GuChong1_NaiJiu", "杀招3蛊虫1耐久"),
+    SHAZHAO3_GUCHONG2_NAIJIU("ShaZhao3_GuChong2_NaiJiu", "杀招3蛊虫2耐久"),
+    SHAZHAO3_GUCHONG3_NAIJIU("ShaZhao3_GuChong3_NaiJiu", "杀招3蛊虫3耐久"),
+    SHAZHAO3_GUCHONG4_NAIJIU("ShaZhao3_GuChong4_NaiJiu", "杀招3蛊虫4耐久"),
+    SHAZHAO3_GUCHONG5_NAIJIU("ShaZhao3_GuChong5_NaiJiu", "杀招3蛊虫5耐久"),
+    SHAZHAO3_GUCHONG6_NAIJIU("ShaZhao3_GuChong6_NaiJiu", "杀招3蛊虫6耐久"),
+    SHAZHAO3_GUCHONG7_NAIJIU("ShaZhao3_GuChong7_NaiJiu", "杀招3蛊虫7耐久"),
+    SHAZHAO3_GUCHONG8_NAIJIU("ShaZhao3_GuChong8_NaiJiu", "杀招3蛊虫8耐久"),
+    SHAZHAO3_GUCHONG9_NAIJIU("ShaZhao3_GuChong9_NaiJiu", "杀招3蛊虫9耐久"),
+    SHAZHAO3_GUCHONG10_NAIJIU("ShaZhao3_GuChong10_NaiJiu", "杀招3蛊虫10耐久"),
+    SHAZHAO4_GUCHONG1_NAIJIU("ShaZhao4_GuChong1_NaiJiu", "杀招4蛊虫1耐久"),
+    SHAZHAO4_GUCHONG2_NAIJIU("ShaZhao4_GuChong2_NaiJiu", "杀招4蛊虫2耐久"),
+    SHAZHAO4_GUCHONG3_NAIJIU("ShaZhao4_GuChong3_NaiJiu", "杀招4蛊虫3耐久"),
+    SHAZHAO4_GUCHONG4_NAIJIU("ShaZhao4_GuChong4_NaiJiu", "杀招4蛊虫4耐久"),
+    SHAZHAO4_GUCHONG5_NAIJIU("ShaZhao4_GuChong5_NaiJiu", "杀招4蛊虫5耐久"),
+    SHAZHAO4_GUCHONG6_NAIJIU("ShaZhao4_GuChong6_NaiJiu", "杀招4蛊虫6耐久"),
+    SHAZHAO4_GUCHONG7_NAIJIU("ShaZhao4_GuChong7_NaiJiu", "杀招4蛊虫7耐久"),
+    SHAZHAO4_GUCHONG8_NAIJIU("ShaZhao4_GuChong8_NaiJiu", "杀招4蛊虫8耐久"),
+    SHAZHAO4_GUCHONG9_NAIJIU("ShaZhao4_GuChong9_NaiJiu", "杀招4蛊虫9耐久"),
+    SHAZHAO4_GUCHONG10_NAIJIU("ShaZhao4_GuChong10_NaiJiu", "杀招4蛊虫10耐久"),
+    // --  炼蛊  --
+    GU_FANG("GuFang", "蛊方ID"),
+    LIANGU_JINDU("LianGuJinDu", "炼蛊进度"),
+    // --  道痕  --
+    DAOHEN_JINDAO("daohen_jindao", "金道道痕"),
+    DAOHEN_SHUIDAO("daohen_shuidao", "水道道痕"),
+    DAOHEN_MUDAO("daohen_mudao", "木道道痕"),
+    DAOHEN_YANDAO("daohen_yandao", "炎道道痕"),
+    DAOHEN_TUDAO("daohen_tudao", "土道道痕"),
+    DAOHEN_FENGDAO("daohen_fengdao", "风道道痕"),
+    DAOHEN_GUANGDAO("daohen_guangdao", "光道道痕"),
+    DAOHEN_ANDAO("daohen_andao", "暗道道痕"),
+    DAOHEN_LEIDAO("daohen_leidao", "雷道道痕"),
+    DAOHEN_DUDAO("daohen_dudao", "毒道道痕"),
+    DAOHEN_YUDAO("daohen_yudao", "宇道道痕"),
+    DAOHEN_ZHOUDAO("dahen_zhoudao", "宙道道痕", "daohen_zhoudao"),
+    DAOHEN_RENDAO("dahen_rendao", "人道道痕", "daohen_rendao"),
+    DAOHEN_TIANDAO("dahen_tiandao", "天道道痕", "daohen_tiandao"),
+    DAOHEN_BINGXUE("daohen_bingxuedao", "冰雪道痕", "daohen_bingxue"),
+    DAOHEN_QIDAO("dahen_qidao", "气道道痕", "daohen_qidao"),
+    DAOHEN_NUDAO("dahen_nudao", "奴道道痕", "daohen_nudao"),
+    DAOHEN_ZHIDAO("dahen_zhidao", "智道道痕", "daohen_zhidao"),
+    DAOHEN_XINGDAO("dahen_xingdao", "星道道痕", "daohen_xingdao"),
+    DAOHEN_ZHENDAO("dahen_zhendao", "阵道道痕", "daohen_zhendao"),
+    DAOHEN_YINGDAO("daohen_yingdao", "影道道痕"),
+    DAOHEN_LVDAO("daohen_lvdao", "律道道痕"),
+    DAOHEN_LIANDAO("dahen_liandao", "炼道道痕", "daohen_liandao"),
+    DAOHEN_LIDAO("daohen_lidao", "力道道痕"),
+    DAOHEN_SHIDAO("daohen_shidao", "食道道痕"),
+    DAOHEN_HUADAO("daohen_huadao", "画道道痕"),
+    DAOHEN_TOUDAO("daohen_toudao", "偷道道痕"),
+    DAOHEN_YUNDAO("daohen_yundao", "运道道痕"),
+    DAOHEN_YUNDAO_CLOUD("daohen_yundao2", "云道道痕", "daohen_yundao", "daohen_yundao_cloud"),
+    DAOHEN_XINDAO("daohen_xindao", "信道道痕"),
+    DAOHEN_YINDAO("daohen_yindao", "音道道痕"),
+    DAOHEN_GUDAO("daohen_gudao", "骨道道痕"),
+    DAOHEN_XUDAO("daohen_xudao", "虚道道痕"),
+    DAOHEN_JINDAO_FORBIDDEN("daohen_jindao2", "禁道道痕", "daohen_jindao", "daohen_jindao_forbidden"),
+    DAOHEN_JIANDAO("daohen_jiandao", "剑道道痕"),
+    DAOHEN_DAODAO("daohen_daodao", "刀道道痕"),
+    DAOHEN_HUNDAO("daohen_hundao", "魂道道痕"),
+    DAOHEN_DANDAO("daohen_dandao", "丹道道痕"),
+    DAOHEN_XUEDAO("daohen_xuedao", "血道道痕"),
+    DAOHEN_HUANDAO("daohen_huandao", "幻道道痕"),
+    DAOHEN_YUEDAO("daohen_yuedao", "月道道痕"),
+    DAOHEN_MENGDAO("daohen_mengdao", "梦道道痕"),
+    DAOHEN_BINGDAO("daohen_bingdao", "兵道道痕"),
+    DAOHEN_BIANHUADAO("daohen_bianhuadao", "变化道道痕"),
+    // --  经验  --
+    LIUPAI_JINDAO("liupai_jindao", "金道流派经验"),
+    LIUPAI_SHUIDAO("liupai_shuidao", "水道流派经验"),
+    LIUPAI_MUDAO("liupai_mudao", "木道流派经验"),
+    LIUPAI_YANDAO("liupai_yandao", "炎道流派经验"),
+    LIUPAI_TUDAO("liupai_tudao", "土道流派经验"),
+    LIUPAI_FENGDAO("liupai_fengdao", "风道流派经验"),
+    LIUPAI_GUANGDAO("liupai_guangdao", "光道流派经验"),
+    LIUPAI_ANDAO("liupai_andao", "暗道流派经验"),
+    LIUPAI_LEIDAO("liupai_leidao", "雷道流派经验"),
+    LIUPAI_DUDAO("liupai_dudao", "毒道流派经验"),
+    LIUPAI_YUDAO("liupai_yudao", "宇道流派经验"),
+    LIUPAI_ZHOUDAO("liupai_zhoudao", "宙道流派经验"),
+    LIUPAI_RENDAO("liupai_rendao", "人道流派经验"),
+    LIUPAI_TIANDAO("liupai_tiandao", "天道流派经验"),
+    LIUPAI_BINGXUEDAO("liupai_bingxuedao", "冰雪流派经验"),
+    LIUPAI_QIDAO("liupai_qidao", "气道流派经验"),
+    LIUPAI_NUDAO("liupai_nudao", "奴道流派经验"),
+    LIUPAI_ZHIDAO("liupai_zhidao", "智道流派经验"),
+    LIUPAI_XINGDAO("liupai_xingdao", "星道流派经验"),
+    LIUPAI_ZHENDAO("liupai_zhendao", "阵道流派经验"),
+    LIUPAI_YINGDAO("liupai_yingdao", "影道流派经验"),
+    LIUPAI_LVDAO("liupai_lvdao", "律道流派经验"),
+    LIUPAI_LIANDAO("liupai_liandao", "炼道流派经验"),
+    LIUPAI_LIDAO("liupai_lidao", "力道流派经验"),
+    LIUPAI_SHIDAO("liupai_shidao", "食道流派经验"),
+    LIUPAI_HUADAO("liupai_huadao", "画道流派经验"),
+    LIUPAI_TOUDAO("liupai_toudao", "偷道流派经验"),
+    LIUPAI_YUNDAO("liupai_yundao", "运道流派经验"),
+    LIUPAI_YUNDAO_CLOUD("liupai_yundao2", "云道流派经验", "liupai_yundao", "liupai_yundao_cloud"),
+    LIUPAI_XINDAO("liupai_xindao", "信道流派经验"),
+    LIUPAI_YINDAO("liupai_yindao", "音道流派经验"),
+    LIUPAI_GUDAO("Liupai_gudao", "骨道流派经验", "liupai_gudao"),
+    LIUPAI_XUDAO("liupai_xudao", "虚道流派经验"),
+    LIUPAI_JINDAO_FORBIDDEN("liupai_jindao2", "禁道流派经验", "liupai_jindao", "liupai_jindao_forbidden"),
+    LIUPAI_JIANDAO("liupai_jiandao", "剑道流派经验"),
+    LIUPAI_DAODAO("liupai_daodao", "刀道流派经验"),
+    LIUPAI_HUNDAO("liupai_hundao", "魂道流派经验"),
+    LIUPAI_DANDAO("liupai_dandao", "丹道流派经验"),
+    LIUPAI_XUEDAO("liupai_xuedao", "血道流派经验"),
+    LIUPAI_HUANDAO("liupai_huandao", "幻道流派经验"),
+    LIUPAI_YUEDAO("liupai_yuedao", "月道流派经验"),
+    LIUPAI_MENGDAO("liupai_mengdao", "梦道流派经验"),
+    LIUPAI_BINGDAO("liupai_bingdao", "兵道流派经验"),
+    LIUPAI_BIANHUADAO("liupai_bianhuadao", "变化道流派经验"),
+    // -- FengYuLou mission board data --
+    FENGYULOU1_NEIRONG1("FengYuLou1_NeiRong1", null),
+    FENGYULOU1_NEIRONG2("FengYuLou1_NeiRong2", null),
+    FENGYULOU1_NEIRONG3("FengYuLou1_NeiRong3", null),
+    FENGYULOU1_NEIRONG4("FengYuLou1_NeiRong4", null),
+    FENGYULOU1_NEIRONG5("FengYuLou1_NeiRong5", null),
+    FENGYULOU1_RENWU1("FengYuLou1_RenWu1", null),
+    FENGYULOU1_YAOQIU1("FengYuLou1_YaoQiu1", null),
+    FENGYULOU1_YAOQIU2("FengYuLou1_YaoQiu2", null),
+    FENGYULOU1_YAOQIU3("FengYuLou1_YaoQiu3", null),
+    FENGYULOU2_NEIRONG1("FengYuLou2_NeiRong1", null),
+    FENGYULOU2_NEIRONG2("FengYuLou2_NeiRong2", null),
+    FENGYULOU2_NEIRONG3("FengYuLou2_NeiRong3", null),
+    FENGYULOU2_NEIRONG4("FengYuLou2_NeiRong4", null),
+    FENGYULOU2_NEIRONG5("FengYuLou2_NeiRong5", null),
+    FENGYULOU2_RENWU1("FengYuLou2_RenWu1", null),
+    FENGYULOU2_YAOQIU1("FengYuLou2_YaoQiu1", null),
+    FENGYULOU2_YAOQIU2("FengYuLou2_YaoQiu2", null),
+    FENGYULOU2_YAOQIU3("FengYuLou2_YaoQiu3", null),
+    FENGYULOU3_NEIRONG1("FengYuLou3_NeiRong1", null),
+    FENGYULOU3_NEIRONG2("FengYuLou3_NeiRong2", null),
+    FENGYULOU3_NEIRONG3("FengYuLou3_NeiRong3", null),
+    FENGYULOU3_NEIRONG4("FengYuLou3_NeiRong4", null),
+    FENGYULOU3_NEIRONG5("FengYuLou3_NeiRong5", null),
+    FENGYULOU3_RENWU1("FengYuLou3_RenWu1", null),
+    FENGYULOU3_YAOQIU1("FengYuLou3_YaoQiu1", null),
+    FENGYULOU3_YAOQIU2("FengYuLou3_YaoQiu2", null),
+    FENGYULOU3_YAOQIU3("FengYuLou3_YaoQiu3", null),
+    FENGYULOUGUI_RENWU("FengYuLouGui_RenWu", null),
+    FENGYULOUGUI_RENWU1("FengYuLouGui_RenWu1", null),
+    FENGYULOUGUI_RENWU2("FengYuLouGui_RenWu2", null),
+    FENGYULOUGUI_RENWU3("FengYuLouGui_RenWu3", null),
+    // -- Contribution and cultivation trackers --
+    GONGXIANZHI("GongXianZhi", null),
+    KE1("KE1", null),
+    KE2("KE2", null),
+    KE3("KE3", null),
+    LIANGU("LianGu", null),
+    LIANGUCHENGGONGLV("LianGuChengGongLv", null),
+    // -- Auction house listings --
+    PAIMAIHANG_JIPAI1_1("PaiMaiHang_JiPai1_1", null),
+    PAIMAIHANG_JIPAI2_1("PaiMaiHang_JiPai2_1", null),
+    PAIMAIHANG_JIPAI3_1("PaiMaiHang_JiPai3_1", null),
+    PAIMAIHANG_JIPAI4_1("PaiMaiHang_JiPai4_1", null),
+    PAIMAIHANG_JIPAI5_1("PaiMaiHang_JiPai5_1", null),
+    PAIMAIHANG_JIPAI6_1("PaiMaiHang_JiPai6_1", null),
+    PAIMAIHANG_JINGJIA("PaiMaiHang_JingJia", null),
+    PAIMAIHANG_LIAOTIAN1("PaiMaiHang_LiaoTian1", null),
+    PAIMAIHANG_LIAOTIAN10("PaiMaiHang_LiaoTian10", null),
+    PAIMAIHANG_LIAOTIAN11("PaiMaiHang_LiaoTian11", null),
+    PAIMAIHANG_LIAOTIAN12("PaiMaiHang_LiaoTian12", null),
+    PAIMAIHANG_LIAOTIAN13("PaiMaiHang_LiaoTian13", null),
+    PAIMAIHANG_LIAOTIAN14("PaiMaiHang_LiaoTian14", null),
+    PAIMAIHANG_LIAOTIAN2("PaiMaiHang_LiaoTian2", null),
+    PAIMAIHANG_LIAOTIAN3("PaiMaiHang_LiaoTian3", null),
+    PAIMAIHANG_LIAOTIAN4("PaiMaiHang_LiaoTian4", null),
+    PAIMAIHANG_LIAOTIAN5("PaiMaiHang_LiaoTian5", null),
+    PAIMAIHANG_LIAOTIAN6("PaiMaiHang_LiaoTian6", null),
+    PAIMAIHANG_LIAOTIAN7("PaiMaiHang_LiaoTian7", null),
+    PAIMAIHANG_LIAOTIAN8("PaiMaiHang_LiaoTian8", null),
+    PAIMAIHANG_LIAOTIAN9("PaiMaiHang_LiaoTian9", null),
+    PAIMAIHANG_SHIJIAN("PaiMaiHang_ShiJian", null),
+    PAIMAIHANG_JIAGE("PaiMaiHang_jiage", null),
+    PAIMAIHANG_JIAGE1("PaiMaiHang_jiage1", null),
+    // -- Ability toggles and shared combat scalars --
+    YINYANZHUANSHENGU("YinYanZhuanShenGu", null),
+    ZY_KE("ZY_KE", null),
+    ZHANDOUMOSHI("ZhanDouMoShi", null),
+    // -- Temporary combat vectors and scratch data --
+    AX("ax", null),
+    AY("ay", null),
+    AZ("az", null),
+    BENMING("benming", null),
+    BENMING_KE("benming_ke", null),
+    CD("cd", null),
+    COUNTER("counter", null),
+    COUNTER2("counter2", null),
+    DAJI("daji", null),
+    FANGJU1("fangju1", null),
+    FANGYULI("fangyuli", null),
+    FUDICHOUXIN("fudichouxin", null),
+    GONGJILI("gongjili", null),
+    GUZHENREN_UI("guzhenren_ui", null),
+    HOU_SHAN("hou_shan", null),
+    HP_HF("hp_hf", null),
+    HP_KE("hp_ke", null),
+    JINFENGWENDAO("jinfengwendao", null),
+    KSLG_KE("kslg_ke", null),
+    KSSXSZ("kssxsz", null),
+    LG_KE("lg_ke", null),
+    // -- Extra liupai experience entries --
+    LIUPAI_FEIXINGDAO("liupai_feixingdao", null),
+    LIUPAI_QINGMEIDAO("liupai_qingmeidao", null),
+    LOCALRAD("localRad", null),
 
-        private final String fieldName;
-        private final String docLabel;
-        private final Set<String> aliases;
+    // -- Nudao panel slot configuration --
+    NUDAOLANWEI("nudaolanwei", null),
+    NUDAOLANWEI_1("nudaolanwei_1", null),
+    NUDAOLANWEI_10("nudaolanwei_10", null),
+    NUDAOLANWEI_10_1("nudaolanwei_10_1", null),
+    NUDAOLANWEI_1_1("nudaolanwei_1_1", null),
+    NUDAOLANWEI_2("nudaolanwei_2", null),
+    NUDAOLANWEI_2_1("nudaolanwei_2_1", null),
+    NUDAOLANWEI_3("nudaolanwei_3", null),
+    NUDAOLANWEI_3_1("nudaolanwei_3_1", null),
+    NUDAOLANWEI_4("nudaolanwei_4", null),
+    NUDAOLANWEI_4_1("nudaolanwei_4_1", null),
+    NUDAOLANWEI_5("nudaolanwei_5", null),
+    NUDAOLANWEI_5_1("nudaolanwei_5_1", null),
+    NUDAOLANWEI_6("nudaolanwei_6", null),
+    NUDAOLANWEI_6_1("nudaolanwei_6_1", null),
+    NUDAOLANWEI_7("nudaolanwei_7", null),
+    NUDAOLANWEI_7_1("nudaolanwei_7_1", null),
+    NUDAOLANWEI_8("nudaolanwei_8", null),
+    NUDAOLANWEI_8_1("nudaolanwei_8_1", null),
+    NUDAOLANWEI_9("nudaolanwei_9", null),
+    NUDAOLANWEI_9_1("nudaolanwei_9_1", null),
+    // -- Nudao progression stats --
+    NUDAOSHANGXIAN("nudaoshangxian", null),
+    NUDAOSHENGJISHULIANG("nudaoshengjishuliang", null),
+    NUDAOSHENGJIZHONGZU1("nudaoshengjizhongzu1", null),
+    NUDAOSHENGJIZHONGZU2("nudaoshengjizhongzu2", null),
+    NUDAOSHENGJIZHONGZU3("nudaoshengjizhongzu3", null),
+    NUDAOSHUJU("nudaoshuju", null),
+    NUDAOSHULIANG("nudaoshuliang", null),
+    // -- Nudao UI cached text entries --
+    NUDAOXIANSHISHUJU1("nudaoxianshishuju1", null),
+    NUDAOXIANSHISHUJU10("nudaoxianshishuju10", null),
+    NUDAOXIANSHISHUJU2("nudaoxianshishuju2", null),
+    NUDAOXIANSHISHUJU3("nudaoxianshishuju3", null),
+    NUDAOXIANSHISHUJU4("nudaoxianshishuju4", null),
+    NUDAOXIANSHISHUJU5("nudaoxianshishuju5", null),
+    NUDAOXIANSHISHUJU6("nudaoxianshishuju6", null),
+    NUDAOXIANSHISHUJU7("nudaoxianshishuju7", null),
+    NUDAOXIANSHISHUJU8("nudaoxianshishuju8", null),
+    NUDAOXIANSHISHUJU9("nudaoxianshishuju9", null),
+    NUDAOXINGJI("nudaoxingji", null),
+    NUDAOXUANZE1("nudaoxuanze1", null),
+    NUDAOXUANZE10("nudaoxuanze10", null),
+    NUDAOXUANZE2("nudaoxuanze2", null),
+    NUDAOXUANZE3("nudaoxuanze3", null),
+    NUDAOXUANZE4("nudaoxuanze4", null),
+    NUDAOXUANZE5("nudaoxuanze5", null),
+    NUDAOXUANZE6("nudaoxuanze6", null),
+    NUDAOXUANZE7("nudaoxuanze7", null),
+    NUDAOXUANZE8("nudaoxuanze8", null),
+    NUDAOXUANZE9("nudaoxuanze9", null),
+    // -- Nudao ownership metadata --
+    NUDAOZHUREN("nudaozhuren", null),
+    // -- Regional state snapshots --
+    PG("pg", null),
+    QIAN_SHAN("qian_shan", null),
+    // -- Resource caps and aggregate counters --
+    QUANBU_KE("quanbu_ke", null),
+    // -- Misc quest progress flags --
+    RENWU1("renwu1", null),
+    RENWU2("renwu2", null),
+    RENWU3("renwu3", null),
+    RENWU4("renwu4", null),
+    RENWU5("renwu5", null),
+    RWDH("rwdh", null),
+    RWSS("rwss", null),
+    RWZBXS("rwzbxs", null),
+    // -- Sanzhao ability payloads --
+    SANZHAO1("sanzhao1", null),
+    SANZHAO2("sanzhao2", null),
+    SANZHAO3("sanzhao3", null),
+    SANZHAO4("sanzhao4", null),
+    SANZHAO_CD("sanzhao_CD", null),
+    SANZHAO_CD1("sanzhao_CD1", null),
+    SANZHAO_CD2("sanzhao_CD2", null),
+    SANZHAO_CD3("sanzhao_CD3", null),
+    // -- Growth and cooldown timers --
+    SHENGCHANG_CD("shengchang_CD", null),
+    SHENGMINGZHI("shengmingzhi", null),
+    SHIQIAO("shiqiao", null),
+    SHOUYUAN_FEN("shouyuan_fen", null),
+    SHOUYUAN_KE("shouyuan_ke", null),
+    SHOUYUAN_MIAO("shouyuan_miao", null),
+    // -- Misc numeric status entries --
+    TOU("tou", null),
+    TUISUAN_KE("tuisuan_ke", null),
+    X2("x2", null),
+    XINGMEN("xingmen", null),
+    XINGMEN1("xingmen1", null),
+    XINGMEN2("xingmen2", null),
+    YOFF("yOff", null),
+    YL_KE("yl_ke", null),
+    YL_M("yl_m", null),
+    YOU_SHAN("you_shan", null),
+    YQ_KE("yq_ke", null),
+    YUANSHISHULIANG("yuanshishuliang", null),
+    Z2("z2", null),
+    ZHONGZU("zhongzu", null),
+    ZHUANGBEI("zhuangbei", null),
+    ZUI_SHAN("zui_shan", null);
 
-        static {
-            for (PlayerField field : values()) {
-                for (String alias : field.aliases) {
-                    PlayerField existing = BY_ALIAS.putIfAbsent(alias, field);
-                    if (existing != null && existing != field) {
-                        LOGGER.debug("Duplicate Guzhenren alias '{}' maps to {} and {}", alias, existing.displayName(), field.displayName());
-                    }
-                }
-                if (field.docLabel != null && !field.docLabel.isBlank()) {
-                    PlayerField existing = BY_DOC_LABEL.putIfAbsent(field.docLabel, field);
-                    if (existing != null && existing != field) {
-                        LOGGER.debug("Duplicate Guzhenren doc label '{}' maps to {} and {}", field.docLabel, existing.displayName(), field.displayName());
-                    }
-                }
-            }
+    private static final Map<String, PlayerField> BY_ALIAS = new ConcurrentHashMap<>();
+    private static final Map<String, PlayerField> BY_DOC_LABEL = new ConcurrentHashMap<>();
+
+    private final String fieldName;
+    private final String docLabel;
+    private final Set<String> aliases;
+
+    static {
+      for (PlayerField field : values()) {
+        for (String alias : field.aliases) {
+          PlayerField existing = BY_ALIAS.putIfAbsent(alias, field);
+          if (existing != null && existing != field) {
+            LOGGER.debug(
+                "Duplicate Guzhenren alias '{}' maps to {} and {}",
+                alias,
+                existing.displayName(),
+                field.displayName());
+          }
         }
-
-        PlayerField(String fieldName, String docLabel, String... extraAliases) {
-            this.fieldName = fieldName;
-            this.docLabel = docLabel;
-            Set<String> aliasSet = new LinkedHashSet<>();
-            aliasSet.add(fieldName);
-            if (extraAliases != null) {
-                for (String alias : extraAliases) {
-                    if (alias != null && !alias.isBlank()) {
-                        aliasSet.add(alias);
-                    }
-                }
-            }
-            this.aliases = Collections.unmodifiableSet(aliasSet);
+        if (field.docLabel != null && !field.docLabel.isBlank()) {
+          PlayerField existing = BY_DOC_LABEL.putIfAbsent(field.docLabel, field);
+          if (existing != null && existing != field) {
+            LOGGER.debug(
+                "Duplicate Guzhenren doc label '{}' maps to {} and {}",
+                field.docLabel,
+                existing.displayName(),
+                field.displayName());
+          }
         }
-
-        String fieldName() {
-            return fieldName;
-        }
-
-        String displayName() {
-            return docLabel == null || docLabel.isBlank() ? fieldName : docLabel + " (" + fieldName + ")";
-        }
-
-        Optional<String> docLabel() {
-            return Optional.ofNullable(docLabel);
-        }
-
-        String docLabelRaw() {
-            return docLabel;
-        }
-
-        static Optional<PlayerField> fromIdentifier(String identifier) {
-            if (identifier == null || identifier.isBlank()) {
-                return Optional.empty();
-            }
-            PlayerField byAlias = BY_ALIAS.get(identifier);
-            if (byAlias != null) {
-                return Optional.of(byAlias);
-            }
-            PlayerField byLabel = BY_DOC_LABEL.get(identifier);
-            if (byLabel != null) {
-                return Optional.of(byLabel);
-            }
-            try {
-                return Optional.of(PlayerField.valueOf(identifier.toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException ignored) {
-                return Optional.empty();
-            }
-        }
+      }
     }
 
-    public static Optional<String> resolveCanonicalFieldName(String identifier) {
-        return PlayerField.fromIdentifier(identifier).map(PlayerField::fieldName);
+    PlayerField(String fieldName, String docLabel, String... extraAliases) {
+      this.fieldName = fieldName;
+      this.docLabel = docLabel;
+      Set<String> aliasSet = new LinkedHashSet<>();
+      aliasSet.add(fieldName);
+      if (extraAliases != null) {
+        for (String alias : extraAliases) {
+          if (alias != null && !alias.isBlank()) {
+            aliasSet.add(alias);
+          }
+        }
+      }
+      this.aliases = Collections.unmodifiableSet(aliasSet);
     }
 
-    public static Optional<String> documentationLabel(String identifier) {
-        return PlayerField.fromIdentifier(identifier).flatMap(PlayerField::docLabel);
+    String fieldName() {
+      return fieldName;
     }
 
-    public static Set<String> canonicalFieldNames() {
-        return Arrays.stream(PlayerField.values())
-                .map(PlayerField::fieldName)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+    String displayName() {
+      return docLabel == null || docLabel.isBlank() ? fieldName : docLabel + " (" + fieldName + ")";
     }
 
-    private static final Map<PlayerField, Field> FIELD_CACHE = new ConcurrentHashMap<>();
-    private static final Map<String, Field> NAME_FIELD_CACHE = new ConcurrentHashMap<>();
-
-    private GuzhenrenResourceBridge() {
+    Optional<String> docLabel() {
+      return Optional.ofNullable(docLabel);
     }
 
-    /**
-     * @return true if the Guzhenren mod is loaded and the bridge initialised successfully.
-     */
-    public static boolean isAvailable() {
-        ensureInitialised();
-        return available;
+    String docLabelRaw() {
+      return docLabel;
     }
 
-    /**
-     * Attempts to open a resource handle for the given entity.
-     *
-     * @param entity living entity to inspect
-     * @return optional handle when the Guzhenren attachment exists
-     */
-    public static Optional<ResourceHandle> open(LivingEntity entity) {
-        if (entity == null) {
-            return Optional.empty();
-        }
-        Optional<Object> variables = fetchVariables(entity);
-        if (variables.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(new ResourceHandle(entity, variables.get()));
+    static Optional<PlayerField> fromIdentifier(String identifier) {
+      if (identifier == null || identifier.isBlank()) {
+        return Optional.empty();
+      }
+      PlayerField byAlias = BY_ALIAS.get(identifier);
+      if (byAlias != null) {
+        return Optional.of(byAlias);
+      }
+      PlayerField byLabel = BY_DOC_LABEL.get(identifier);
+      if (byLabel != null) {
+        return Optional.of(byLabel);
+      }
+      try {
+        return Optional.of(PlayerField.valueOf(identifier.toUpperCase(Locale.ROOT)));
+      } catch (IllegalArgumentException ignored) {
+        return Optional.empty();
+      }
     }
+  }
 
-    /**
-     * Attempts to open a resource handle for the given player.
-     *
-     * @param player player to inspect
-     * @return optional handle when the Guzhenren attachment exists
-     */
-    public static Optional<ResourceHandle> open(Player player) {
-        return open((LivingEntity) player);
+  public static Optional<String> resolveCanonicalFieldName(String identifier) {
+    return PlayerField.fromIdentifier(identifier).map(PlayerField::fieldName);
+  }
+
+  public static Optional<String> documentationLabel(String identifier) {
+    return PlayerField.fromIdentifier(identifier).flatMap(PlayerField::docLabel);
+  }
+
+  public static Set<String> canonicalFieldNames() {
+    return Arrays.stream(PlayerField.values())
+        .map(PlayerField::fieldName)
+        .collect(Collectors.toCollection(LinkedHashSet::new));
+  }
+
+  private static final Map<PlayerField, Field> FIELD_CACHE = new ConcurrentHashMap<>();
+  private static final Map<String, Field> NAME_FIELD_CACHE = new ConcurrentHashMap<>();
+
+  private GuzhenrenResourceBridge() {}
+
+  /**
+   * @return true if the Guzhenren mod is loaded and the bridge initialised successfully.
+   */
+  public static boolean isAvailable() {
+    ensureInitialised();
+    return available;
+  }
+
+  /**
+   * Attempts to open a resource handle for the given entity.
+   *
+   * @param entity living entity to inspect
+   * @return optional handle when the Guzhenren attachment exists
+   */
+  public static Optional<ResourceHandle> open(LivingEntity entity) {
+    if (entity == null) {
+      return Optional.empty();
     }
-
-    public static Optional<Object> fetchVariables(Entity entity) {
-        if (entity == null) {
-            return Optional.empty();
-        }
-        AttachmentType<Object> attachmentType = resolveAttachmentType();
-        if (attachmentType == null) {
-            return Optional.empty();
-        }
-        Object variables;
-        try {
-            variables = entity.getData(attachmentType);
-        } catch (Throwable throwable) {
-            LOGGER.warn("Failed to access Guzhenren attachment for {}", entity.getName().getString(), throwable);
-            return Optional.empty();
-        }
-        if (variables == null) {
-            return Optional.empty();
-        }
-        return Optional.of(variables);
+    Optional<Object> variables = fetchVariables(entity);
+    if (variables.isEmpty()) {
+      return Optional.empty();
     }
+    return Optional.of(new ResourceHandle(entity, variables.get()));
+  }
 
-    private static Optional<Field> resolveFieldByName(String fieldName) {
-        if (fieldName == null || fieldName.isBlank()) {
-            return Optional.empty();
-        }
-        ensureInitialised();
-        if (playerVariablesClass == null) {
-            return Optional.empty();
-        }
-        Field cached = NAME_FIELD_CACHE.get(fieldName);
-        if (cached != null) {
-            return Optional.of(cached);
-        }
-        try {
-            Field f = playerVariablesClass.getDeclaredField(fieldName);
-            f.setAccessible(true);
-            NAME_FIELD_CACHE.put(fieldName, f);
-            return Optional.of(f);
-        } catch (NoSuchFieldException e) {
-            LOGGER.debug("Guzhenren PlayerVariables missing field '{}': {}", fieldName, e.toString());
-            return Optional.empty();
-        }
+  /**
+   * Attempts to open a resource handle for the given player.
+   *
+   * @param player player to inspect
+   * @return optional handle when the Guzhenren attachment exists
+   */
+  public static Optional<ResourceHandle> open(Player player) {
+    return open((LivingEntity) player);
+  }
+
+  public static Optional<Object> fetchVariables(Entity entity) {
+    if (entity == null) {
+      return Optional.empty();
     }
-
-    public static Optional<Class<?>> getPlayerVariablesClass() {
-        ensureInitialised();
-        return Optional.ofNullable(playerVariablesClass);
+    AttachmentType<Object> attachmentType = resolveAttachmentType();
+    if (attachmentType == null) {
+      return Optional.empty();
     }
-
-    /**
-     * Lazily resolve Guzhenren 的附件类型与字段信息；只执行一次，失败时保持 {@code available=false} 以便调用方判定是否启用兼容逻辑。
-     */
-    private static void ensureInitialised() {
-        if (attemptedInit) {
-            return;
-        }
-        synchronized (GuzhenrenResourceBridge.class) {
-            if (attemptedInit) {
-                return;
-            }
-            attemptedInit = true;
-            if (!ModList.get().isLoaded(MOD_ID)) {
-                LOGGER.debug("Guzhenren mod not detected; compat bridge disabled");
-                return;
-            }
-            try {
-                Class<?> variablesRootClass = Class.forName(VARIABLES_CLASS);
-                playerVariablesClass = Class.forName(PLAYER_VARIABLES_CLASS);
-
-                Field supplierField = variablesRootClass.getDeclaredField(PLAYER_VARIABLES_FIELD);
-                Object supplierRaw = supplierField.get(null);
-                if (!(supplierRaw instanceof Supplier<?> supplier)) {
-                    LOGGER.warn("Unexpected type for Guzhenren PLAYER_VARIABLES field: {}", supplierRaw);
-                    return;
-                }
-                playerVariablesSupplier = supplier;
-
-                syncPlayerVariables = playerVariablesClass.getMethod(SYNC_METHOD, Class.forName("net.minecraft.world.entity.Entity"));
-
-                available = true;
-                LOGGER.info("Guzhenren compat bridge initialised");
-            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException e) {
-                LOGGER.warn("Failed to initialise Guzhenren compat bridge", e);
-            }
-        }
+    Object variables;
+    try {
+      variables = entity.getData(attachmentType);
+    } catch (Throwable throwable) {
+      LOGGER.warn(
+          "Failed to access Guzhenren attachment for {}", entity.getName().getString(), throwable);
+      return Optional.empty();
     }
-
-    @SuppressWarnings("unchecked")
-    private static AttachmentType<Object> resolveAttachmentType() {
-        ensureInitialised();
-        if (!available || playerVariablesSupplier == null) {
-            return null;
-        }
-        Object type = playerVariablesSupplier.get();
-        if (!(type instanceof AttachmentType<?> attachmentType)) {
-            LOGGER.warn("Guzhenren PLAYER_VARIABLES supplier returned unexpected value: {}", type);
-            return null;
-        }
-        return (AttachmentType<Object>) attachmentType;
+    if (variables == null) {
+      return Optional.empty();
     }
+    return Optional.of(variables);
+  }
 
-    private static Optional<Field> resolveField(PlayerField fieldKey) {
-        if (fieldKey == null || playerVariablesClass == null) {
-            return Optional.empty();
-        }
-        Field cached = FIELD_CACHE.get(fieldKey);
-        if (cached != null) {
-            return Optional.of(cached);
-        }
-        try {
-            Field field = playerVariablesClass.getField(fieldKey.fieldName());
-            FIELD_CACHE.put(fieldKey, field);
-            return Optional.of(field);
-        } catch (NoSuchFieldException e) {
-            LOGGER.debug("Guzhenren PlayerVariables missing field '{}'", fieldKey.displayName());
-            return Optional.empty();
-        }
+  private static Optional<Field> resolveFieldByName(String fieldName) {
+    if (fieldName == null || fieldName.isBlank()) {
+      return Optional.empty();
     }
+    ensureInitialised();
+    if (playerVariablesClass == null) {
+      return Optional.empty();
+    }
+    Field cached = NAME_FIELD_CACHE.get(fieldName);
+    if (cached != null) {
+      return Optional.of(cached);
+    }
+    try {
+      Field f = playerVariablesClass.getDeclaredField(fieldName);
+      f.setAccessible(true);
+      NAME_FIELD_CACHE.put(fieldName, f);
+      return Optional.of(f);
+    } catch (NoSuchFieldException e) {
+      LOGGER.debug("Guzhenren PlayerVariables missing field '{}': {}", fieldName, e.toString());
+      return Optional.empty();
+    }
+  }
 
-    /**
-     * 利用反射读取指定字段的 double 值。
-     */
-    private static OptionalDouble readDouble(Object variables, PlayerField fieldKey) {
-        return resolveField(fieldKey).filter(field -> field.getType() == double.class).map(field -> {
-            try {
+  public static Optional<Class<?>> getPlayerVariablesClass() {
+    ensureInitialised();
+    return Optional.ofNullable(playerVariablesClass);
+  }
+
+  /** Lazily resolve Guzhenren 的附件类型与字段信息；只执行一次，失败时保持 {@code available=false} 以便调用方判定是否启用兼容逻辑。 */
+  private static void ensureInitialised() {
+    if (attemptedInit) {
+      return;
+    }
+    synchronized (GuzhenrenResourceBridge.class) {
+      if (attemptedInit) {
+        return;
+      }
+      attemptedInit = true;
+      if (!ModList.get().isLoaded(MOD_ID)) {
+        LOGGER.debug("Guzhenren mod not detected; compat bridge disabled");
+        return;
+      }
+      try {
+        Class<?> variablesRootClass = Class.forName(VARIABLES_CLASS);
+        playerVariablesClass = Class.forName(PLAYER_VARIABLES_CLASS);
+
+        Field supplierField = variablesRootClass.getDeclaredField(PLAYER_VARIABLES_FIELD);
+        Object supplierRaw = supplierField.get(null);
+        if (!(supplierRaw instanceof Supplier<?> supplier)) {
+          LOGGER.warn("Unexpected type for Guzhenren PLAYER_VARIABLES field: {}", supplierRaw);
+          return;
+        }
+        playerVariablesSupplier = supplier;
+
+        syncPlayerVariables =
+            playerVariablesClass.getMethod(
+                SYNC_METHOD, Class.forName("net.minecraft.world.entity.Entity"));
+
+        available = true;
+        LOGGER.info("Guzhenren compat bridge initialised");
+      } catch (ClassNotFoundException
+          | NoSuchFieldException
+          | IllegalAccessException
+          | NoSuchMethodException e) {
+        LOGGER.warn("Failed to initialise Guzhenren compat bridge", e);
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static AttachmentType<Object> resolveAttachmentType() {
+    ensureInitialised();
+    if (!available || playerVariablesSupplier == null) {
+      return null;
+    }
+    Object type = playerVariablesSupplier.get();
+    if (!(type instanceof AttachmentType<?> attachmentType)) {
+      LOGGER.warn("Guzhenren PLAYER_VARIABLES supplier returned unexpected value: {}", type);
+      return null;
+    }
+    return (AttachmentType<Object>) attachmentType;
+  }
+
+  private static Optional<Field> resolveField(PlayerField fieldKey) {
+    if (fieldKey == null || playerVariablesClass == null) {
+      return Optional.empty();
+    }
+    Field cached = FIELD_CACHE.get(fieldKey);
+    if (cached != null) {
+      return Optional.of(cached);
+    }
+    try {
+      Field field = playerVariablesClass.getField(fieldKey.fieldName());
+      FIELD_CACHE.put(fieldKey, field);
+      return Optional.of(field);
+    } catch (NoSuchFieldException e) {
+      LOGGER.debug("Guzhenren PlayerVariables missing field '{}'", fieldKey.displayName());
+      return Optional.empty();
+    }
+  }
+
+  /** 利用反射读取指定字段的 double 值。 */
+  private static OptionalDouble readDouble(Object variables, PlayerField fieldKey) {
+    return resolveField(fieldKey)
+        .filter(field -> field.getType() == double.class)
+        .map(
+            field -> {
+              try {
                 return OptionalDouble.of(field.getDouble(variables));
-            } catch (IllegalAccessException e) {
+              } catch (IllegalAccessException e) {
                 LOGGER.warn("Failed to read Guzhenren field '{}'", fieldKey.displayName(), e);
                 return OptionalDouble.empty();
-            }
-        }).orElseGet(OptionalDouble::empty);
-    }
+              }
+            })
+        .orElseGet(OptionalDouble::empty);
+  }
 
-    private static Optional<String> readString(Object variables, PlayerField fieldKey) {
-        return resolveField(fieldKey).filter(field -> field.getType() == String.class).map(field -> {
-            try {
+  private static Optional<String> readString(Object variables, PlayerField fieldKey) {
+    return resolveField(fieldKey)
+        .filter(field -> field.getType() == String.class)
+        .map(
+            field -> {
+              try {
                 Object value = field.get(variables);
                 return Optional.ofNullable(value == null ? null : value.toString());
-            } catch (IllegalAccessException e) {
+              } catch (IllegalAccessException e) {
                 LOGGER.warn("Failed to read Guzhenren field '{}'", fieldKey.displayName(), e);
                 return Optional.<String>empty();
-            }
-        }).orElseGet(Optional::empty);
+              }
+            })
+        .orElseGet(Optional::empty);
+  }
+
+  /** 利用反射写入指定字段的 double 值。 */
+  private static boolean writeDouble(Object variables, PlayerField fieldKey, double value) {
+    Optional<Field> fieldOpt = resolveField(fieldKey);
+    if (fieldOpt.isEmpty()) {
+      return false;
+    }
+    Field field = fieldOpt.get();
+    if (field.getType() != double.class) {
+      LOGGER.debug("Guzhenren field '{}' is not a double", fieldKey.displayName());
+      return false;
+    }
+    try {
+      field.setDouble(variables, value);
+      return true;
+    } catch (IllegalAccessException e) {
+      LOGGER.warn("Failed to write Guzhenren field '{}'", fieldKey.displayName(), e);
+      return false;
+    }
+  }
+
+  public static boolean syncEntity(Entity entity, Object variables) {
+    if (entity == null || entity.level().isClientSide() || syncPlayerVariables == null) {
+      return false;
+    }
+    try {
+      syncPlayerVariables.invoke(variables, entity);
+      return true;
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      LOGGER.warn(
+          "Failed to sync Guzhenren player variables for {}", entity.getName().getString(), e);
+      return false;
+    }
+  }
+
+  /** 封装对单个玩家附件的读写操作。实例在 {@link #open(Player)} 时创建，并在操作成功后负责触发同步。 */
+  public static final class ResourceHandle {
+    private final LivingEntity owner;
+    private final Object variables;
+
+    private ResourceHandle(LivingEntity owner, Object variables) {
+      this.owner = owner;
+      this.variables = variables;
+    }
+
+    public OptionalDouble read(PlayerField fieldKey) {
+      return GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
+    }
+
+    public OptionalDouble read(String identifier) {
+      Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+      return field.isPresent() ? read(field.get()) : OptionalDouble.empty();
+    }
+
+    public Optional<String> readString(PlayerField fieldKey) {
+      return GuzhenrenResourceBridge.readString(this.variables, fieldKey);
+    }
+
+    public Optional<String> readString(String identifier) {
+      Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+      return field.isPresent() ? readString(field.get()) : Optional.empty();
+    }
+
+    /** 写入指定字段并同步到客户端。 */
+    public OptionalDouble writeDouble(PlayerField fieldKey, double value) {
+      if (!Double.isFinite(value)) {
+        LOGGER.debug(
+            "Refusing to write non-finite Guzhenren value '{}' -> {}",
+            fieldKey.displayName(),
+            value);
+        return OptionalDouble.empty();
+      }
+      if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
+        return OptionalDouble.empty();
+      }
+      syncEntity(this.owner, this.variables);
+      return OptionalDouble.of(value);
+    }
+
+    public OptionalDouble writeDouble(String identifier, double value) {
+      Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+      return field.isPresent() ? writeDouble(field.get(), value) : OptionalDouble.empty();
+    }
+
+    /** 在原值基础上加减 {@code delta}，支持下限为 0 与上限裁剪。 */
+    public OptionalDouble adjustDouble(
+        PlayerField fieldKey, double delta, boolean clampZero, PlayerField maxFieldKey) {
+      OptionalDouble currentOpt = GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
+      if (currentOpt.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+      double current = currentOpt.getAsDouble();
+      double result = current + delta;
+      if (clampZero) {
+        result = Math.max(0.0, result);
+      }
+      if (maxFieldKey != null) {
+        OptionalDouble maxValue = GuzhenrenResourceBridge.readDouble(this.variables, maxFieldKey);
+        if (maxValue.isPresent()) {
+          result = Math.min(result, maxValue.getAsDouble());
+        }
+      }
+      return writeDouble(fieldKey, result);
+    }
+
+    public OptionalDouble adjustDouble(String identifier, double delta, boolean clampZero) {
+      return adjustDouble(identifier, delta, clampZero, null);
+    }
+
+    public OptionalDouble adjustDouble(
+        String identifier, double delta, boolean clampZero, String maxIdentifier) {
+      Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+      if (field.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+      PlayerField maxField = null;
+      if (maxIdentifier != null && !maxIdentifier.isBlank()) {
+        maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
+      }
+      return adjustDouble(field.get(), delta, clampZero, maxField);
+    }
+
+    /** 将字段值限制在对应的最大字段之内。 */
+    public OptionalDouble clampToMax(PlayerField fieldKey, PlayerField maxFieldKey) {
+      OptionalDouble currentOpt = GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
+      if (currentOpt.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+      OptionalDouble maxOpt = GuzhenrenResourceBridge.readDouble(this.variables, maxFieldKey);
+      if (maxOpt.isEmpty()) {
+        return currentOpt;
+      }
+      double clamped = Math.min(currentOpt.getAsDouble(), maxOpt.getAsDouble());
+      return writeDouble(fieldKey, clamped);
+    }
+
+    public OptionalDouble clampToMax(String identifier, String maxIdentifier) {
+      Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
+      if (field.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+      PlayerField maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
+      return clampToMax(field.get(), maxField);
     }
 
     /**
-     * 利用反射写入指定字段的 double 值。
+     * Builds an immutable snapshot of every known Guzhenren variable keyed by its canonical field
+     * name.
      */
-    private static boolean writeDouble(Object variables, PlayerField fieldKey, double value) {
-        Optional<Field> fieldOpt = resolveField(fieldKey);
-        if (fieldOpt.isEmpty()) {
-            return false;
+    public Map<String, Double> snapshotAll() {
+      Map<String, Double> values = new LinkedHashMap<>();
+      for (PlayerField field : PlayerField.values()) {
+        OptionalDouble valueOpt = GuzhenrenResourceBridge.readDouble(this.variables, field);
+        if (valueOpt.isPresent()) {
+          values.put(field.fieldName(), valueOpt.getAsDouble());
         }
-        Field field = fieldOpt.get();
-        if (field.getType() != double.class) {
-            LOGGER.debug("Guzhenren field '{}' is not a double", fieldKey.displayName());
-            return false;
-        }
-        try {
-            field.setDouble(variables, value);
-            return true;
-        } catch (IllegalAccessException e) {
-            LOGGER.warn("Failed to write Guzhenren field '{}'", fieldKey.displayName(), e);
-            return false;
-        }
+      }
+      return Collections.unmodifiableMap(values);
     }
 
-    public static boolean syncEntity(Entity entity, Object variables) {
-        if (entity == null || entity.level().isClientSide() || syncPlayerVariables == null) {
-            return false;
+    // -------------------------
+    // ShaZhao (杀招) GUI helpers
+    // -------------------------
+
+    private static String shazhaoScrollField(int page) {
+      return switch (page) {
+        case 1 -> "ShaZhao1";
+        case 2 -> "ShaZhao2";
+        case 3 -> "ShaZhao3";
+        case 4 -> "ShaZhao4";
+        default -> null;
+      };
+    }
+
+    private static String shazhaoGuChongField(int page, int slotIndex) {
+      if (slotIndex < 1 || slotIndex > 10) return null;
+      String prefix =
+          switch (page) {
+            case 1 -> "ShaZhao1_GuChong";
+            case 2 -> "ShaZhao2_GuChong";
+            case 3 -> "ShaZhao3_GuChong";
+            case 4 -> "ShaZhao4_GuChong";
+            default -> null;
+          };
+      return prefix == null ? null : prefix + slotIndex;
+    }
+
+    private static String shazhaoDurabilityField(int page, int slotIndex) {
+      if (slotIndex < 1 || slotIndex > 10) return null;
+      String prefix =
+          switch (page) {
+            case 1 -> "ShaZhao1_GuChong";
+            case 2 -> "ShaZhao2_GuChong";
+            case 3 -> "ShaZhao3_GuChong";
+            case 4 -> "ShaZhao4_GuChong";
+            default -> null;
+          };
+      return prefix == null ? null : prefix + slotIndex + "_NaiJiu";
+    }
+
+    public Optional<net.minecraft.world.item.ItemStack> readShaZhaoScroll(int page) {
+      String fieldName = shazhaoScrollField(page);
+      if (fieldName == null) return Optional.empty();
+      Optional<Field> f = resolveFieldByName(fieldName);
+      if (f.isEmpty()) return Optional.empty();
+      try {
+        Object value = f.get().get(this.variables);
+        if (value instanceof net.minecraft.world.item.ItemStack stack) {
+          return Optional.of(stack.copy());
         }
-        try {
-            syncPlayerVariables.invoke(variables, entity);
-            return true;
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            LOGGER.warn("Failed to sync Guzhenren player variables for {}", entity.getName().getString(), e);
-            return false;
+      } catch (IllegalAccessException ignored) {
+      }
+      return Optional.empty();
+    }
+
+    public boolean writeShaZhaoScroll(int page, net.minecraft.world.item.ItemStack stack) {
+      String fieldName = shazhaoScrollField(page);
+      if (fieldName == null) return false;
+      Optional<Field> f = resolveFieldByName(fieldName);
+      if (f.isEmpty()) return false;
+      try {
+        f.get()
+            .set(
+                this.variables,
+                stack == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.copy());
+        GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
+        return true;
+      } catch (IllegalAccessException ignored) {
+        return false;
+      }
+    }
+
+    public Optional<net.minecraft.world.item.ItemStack> readShaZhaoSlot(int page, int slotIndex) {
+      String fieldName = shazhaoGuChongField(page, slotIndex);
+      if (fieldName == null) return Optional.empty();
+      Optional<Field> f = resolveFieldByName(fieldName);
+      if (f.isEmpty()) return Optional.empty();
+      try {
+        Object value = f.get().get(this.variables);
+        if (value instanceof net.minecraft.world.item.ItemStack stack) {
+          return Optional.of(stack.copy());
         }
+      } catch (IllegalAccessException ignored) {
+      }
+      return Optional.empty();
+    }
+
+    public boolean writeShaZhaoSlot(
+        int page, int slotIndex, net.minecraft.world.item.ItemStack stack) {
+      String fieldName = shazhaoGuChongField(page, slotIndex);
+      if (fieldName == null) return false;
+      Optional<Field> f = resolveFieldByName(fieldName);
+      if (f.isEmpty()) return false;
+      try {
+        f.get()
+            .set(
+                this.variables,
+                stack == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.copy());
+        GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
+        return true;
+      } catch (IllegalAccessException ignored) {
+        return false;
+      }
+    }
+
+    public OptionalDouble readShaZhaoDurability(int page, int slotIndex) {
+      String fieldName = shazhaoDurabilityField(page, slotIndex);
+      if (fieldName == null) return OptionalDouble.empty();
+      Optional<Field> f = resolveFieldByName(fieldName);
+      if (f.isEmpty()) return OptionalDouble.empty();
+      try {
+        Object value = f.get().get(this.variables);
+        if (value instanceof Number n) {
+          return OptionalDouble.of(n.doubleValue());
+        }
+      } catch (IllegalAccessException ignored) {
+      }
+      return OptionalDouble.empty();
+    }
+
+    public OptionalDouble writeShaZhaoDurability(int page, int slotIndex, double value) {
+      String fieldName = shazhaoDurabilityField(page, slotIndex);
+      if (fieldName == null) return OptionalDouble.empty();
+      Optional<Field> f = resolveFieldByName(fieldName);
+      if (f.isEmpty()) return OptionalDouble.empty();
+      try {
+        f.get().set(this.variables, value);
+        GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
+        return OptionalDouble.of(value);
+      } catch (IllegalAccessException ignored) {
+        return OptionalDouble.empty();
+      }
+    }
+
+    public Optional<String> getConstitution() {
+      return readString(PlayerField.TIZHI).filter(value -> !value.isBlank());
+    }
+
+    public boolean hasConstitution(String expected) {
+      if (expected == null || expected.isBlank()) {
+        return false;
+      }
+      String normalisedExpected = expected.trim();
+      return getConstitution()
+              .map(value -> value.equalsIgnoreCase(normalisedExpected))
+              .orElse(false)
+          || PlayerField.fromIdentifier(normalisedExpected)
+              .flatMap(PlayerField::docLabel)
+              .map(
+                  label ->
+                      getConstitution().map(value -> value.equalsIgnoreCase(label)).orElse(false))
+              .orElse(false);
     }
 
     /**
-     * 封装对单个玩家附件的读写操作。实例在 {@link #open(Player)} 时创建，并在操作成功后负责触发同步。
+     * 按统一公式扣减真元：{@code baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96)}。
+     * 若附件缺失相关字段，则退化为直接扣 {@code baseCost}。
      */
-    public static final class ResourceHandle {
-        private final LivingEntity owner;
-        private final Object variables;
-
-        private ResourceHandle(LivingEntity owner, Object variables) {
-            this.owner = owner;
-            this.variables = variables;
-        }
-
-        public OptionalDouble read(PlayerField fieldKey) {
-            return GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
-        }
-
-        public OptionalDouble read(String identifier) {
-            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
-            return field.isPresent() ? read(field.get()) : OptionalDouble.empty();
-        }
-
-        public Optional<String> readString(PlayerField fieldKey) {
-            return GuzhenrenResourceBridge.readString(this.variables, fieldKey);
-        }
-
-        public Optional<String> readString(String identifier) {
-            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
-            return field.isPresent() ? readString(field.get()) : Optional.empty();
-        }
-
-        /**
-         * 写入指定字段并同步到客户端。
-         */
-        public OptionalDouble writeDouble(PlayerField fieldKey, double value) {
-            if (!Double.isFinite(value)) {
-                LOGGER.debug("Refusing to write non-finite Guzhenren value '{}' -> {}", fieldKey.displayName(), value);
-                return OptionalDouble.empty();
-            }
-            if (!GuzhenrenResourceBridge.writeDouble(this.variables, fieldKey, value)) {
-                return OptionalDouble.empty();
-            }
-            syncEntity(this.owner, this.variables);
-            return OptionalDouble.of(value);
-        }
-
-        public OptionalDouble writeDouble(String identifier, double value) {
-            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
-            return field.isPresent() ? writeDouble(field.get(), value) : OptionalDouble.empty();
-        }
-
-        /**
-         * 在原值基础上加减 {@code delta}，支持下限为 0 与上限裁剪。
-         */
-        public OptionalDouble adjustDouble(PlayerField fieldKey, double delta, boolean clampZero, PlayerField maxFieldKey) {
-            OptionalDouble currentOpt = GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
-            if (currentOpt.isEmpty()) {
-                return OptionalDouble.empty();
-            }
-            double current = currentOpt.getAsDouble();
-            double result = current + delta;
-            if (clampZero) {
-                result = Math.max(0.0, result);
-            }
-            if (maxFieldKey != null) {
-                OptionalDouble maxValue = GuzhenrenResourceBridge.readDouble(this.variables, maxFieldKey);
-                if (maxValue.isPresent()) {
-                    result = Math.min(result, maxValue.getAsDouble());
-                }
-            }
-            return writeDouble(fieldKey, result);
-        }
-
-        public OptionalDouble adjustDouble(String identifier, double delta, boolean clampZero) {
-            return adjustDouble(identifier, delta, clampZero, null);
-        }
-
-        public OptionalDouble adjustDouble(String identifier, double delta, boolean clampZero, String maxIdentifier) {
-            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
-            if (field.isEmpty()) {
-                return OptionalDouble.empty();
-            }
-            PlayerField maxField = null;
-            if (maxIdentifier != null && !maxIdentifier.isBlank()) {
-                maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
-            }
-            return adjustDouble(field.get(), delta, clampZero, maxField);
-        }
-
-        /**
-         * 将字段值限制在对应的最大字段之内。
-         */
-        public OptionalDouble clampToMax(PlayerField fieldKey, PlayerField maxFieldKey) {
-            OptionalDouble currentOpt = GuzhenrenResourceBridge.readDouble(this.variables, fieldKey);
-            if (currentOpt.isEmpty()) {
-                return OptionalDouble.empty();
-            }
-            OptionalDouble maxOpt = GuzhenrenResourceBridge.readDouble(this.variables, maxFieldKey);
-            if (maxOpt.isEmpty()) {
-                return currentOpt;
-            }
-            double clamped = Math.min(currentOpt.getAsDouble(), maxOpt.getAsDouble());
-            return writeDouble(fieldKey, clamped);
-        }
-
-        public OptionalDouble clampToMax(String identifier, String maxIdentifier) {
-            Optional<PlayerField> field = PlayerField.fromIdentifier(identifier);
-            if (field.isEmpty()) {
-                return OptionalDouble.empty();
-            }
-            PlayerField maxField = PlayerField.fromIdentifier(maxIdentifier).orElse(null);
-            return clampToMax(field.get(), maxField);
-        }
-
-        /**
-         * Builds an immutable snapshot of every known Guzhenren variable keyed by its canonical field name.
-         */
-        public Map<String, Double> snapshotAll() {
-            Map<String, Double> values = new LinkedHashMap<>();
-            for (PlayerField field : PlayerField.values()) {
-                OptionalDouble valueOpt = GuzhenrenResourceBridge.readDouble(this.variables, field);
-                if (valueOpt.isPresent()) {
-                    values.put(field.fieldName(), valueOpt.getAsDouble());
-                }
-            }
-            return Collections.unmodifiableMap(values);
-        }
-
-        // -------------------------
-        // ShaZhao (杀招) GUI helpers
-        // -------------------------
-
-        private static String shazhaoScrollField(int page) {
-            return switch (page) {
-                case 1 -> "ShaZhao1";
-                case 2 -> "ShaZhao2";
-                case 3 -> "ShaZhao3";
-                case 4 -> "ShaZhao4";
-                default -> null;
-            };
-        }
-
-        private static String shazhaoGuChongField(int page, int slotIndex) {
-            if (slotIndex < 1 || slotIndex > 10) return null;
-            String prefix = switch (page) {
-                case 1 -> "ShaZhao1_GuChong";
-                case 2 -> "ShaZhao2_GuChong";
-                case 3 -> "ShaZhao3_GuChong";
-                case 4 -> "ShaZhao4_GuChong";
-                default -> null;
-            };
-            return prefix == null ? null : prefix + slotIndex;
-        }
-
-        private static String shazhaoDurabilityField(int page, int slotIndex) {
-            if (slotIndex < 1 || slotIndex > 10) return null;
-            String prefix = switch (page) {
-                case 1 -> "ShaZhao1_GuChong";
-                case 2 -> "ShaZhao2_GuChong";
-                case 3 -> "ShaZhao3_GuChong";
-                case 4 -> "ShaZhao4_GuChong";
-                default -> null;
-            };
-            return prefix == null ? null : prefix + slotIndex + "_NaiJiu";
-        }
-
-        public Optional<net.minecraft.world.item.ItemStack> readShaZhaoScroll(int page) {
-            String fieldName = shazhaoScrollField(page);
-            if (fieldName == null) return Optional.empty();
-            Optional<Field> f = resolveFieldByName(fieldName);
-            if (f.isEmpty()) return Optional.empty();
-            try {
-                Object value = f.get().get(this.variables);
-                if (value instanceof net.minecraft.world.item.ItemStack stack) {
-                    return Optional.of(stack.copy());
-                }
-            } catch (IllegalAccessException ignored) {}
-            return Optional.empty();
-        }
-
-        public boolean writeShaZhaoScroll(int page, net.minecraft.world.item.ItemStack stack) {
-            String fieldName = shazhaoScrollField(page);
-            if (fieldName == null) return false;
-            Optional<Field> f = resolveFieldByName(fieldName);
-            if (f.isEmpty()) return false;
-            try {
-                f.get().set(this.variables, stack == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.copy());
-                GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
-                return true;
-            } catch (IllegalAccessException ignored) {
-                return false;
-            }
-        }
-
-        public Optional<net.minecraft.world.item.ItemStack> readShaZhaoSlot(int page, int slotIndex) {
-            String fieldName = shazhaoGuChongField(page, slotIndex);
-            if (fieldName == null) return Optional.empty();
-            Optional<Field> f = resolveFieldByName(fieldName);
-            if (f.isEmpty()) return Optional.empty();
-            try {
-                Object value = f.get().get(this.variables);
-                if (value instanceof net.minecraft.world.item.ItemStack stack) {
-                    return Optional.of(stack.copy());
-                }
-            } catch (IllegalAccessException ignored) {}
-            return Optional.empty();
-        }
-
-        public boolean writeShaZhaoSlot(int page, int slotIndex, net.minecraft.world.item.ItemStack stack) {
-            String fieldName = shazhaoGuChongField(page, slotIndex);
-            if (fieldName == null) return false;
-            Optional<Field> f = resolveFieldByName(fieldName);
-            if (f.isEmpty()) return false;
-            try {
-                f.get().set(this.variables, stack == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.copy());
-                GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
-                return true;
-            } catch (IllegalAccessException ignored) {
-                return false;
-            }
-        }
-
-        public OptionalDouble readShaZhaoDurability(int page, int slotIndex) {
-            String fieldName = shazhaoDurabilityField(page, slotIndex);
-            if (fieldName == null) return OptionalDouble.empty();
-            Optional<Field> f = resolveFieldByName(fieldName);
-            if (f.isEmpty()) return OptionalDouble.empty();
-            try {
-                Object value = f.get().get(this.variables);
-                if (value instanceof Number n) {
-                    return OptionalDouble.of(n.doubleValue());
-                }
-            } catch (IllegalAccessException ignored) {}
-            return OptionalDouble.empty();
-        }
-
-        public OptionalDouble writeShaZhaoDurability(int page, int slotIndex, double value) {
-            String fieldName = shazhaoDurabilityField(page, slotIndex);
-            if (fieldName == null) return OptionalDouble.empty();
-            Optional<Field> f = resolveFieldByName(fieldName);
-            if (f.isEmpty()) return OptionalDouble.empty();
-            try {
-                f.get().set(this.variables, value);
-                GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);
-                return OptionalDouble.of(value);
-            } catch (IllegalAccessException ignored) {
-                return OptionalDouble.empty();
-            }
-        }
-
-        public Optional<String> getConstitution() {
-            return readString(PlayerField.TIZHI).filter(value -> !value.isBlank());
-        }
-
-        public boolean hasConstitution(String expected) {
-            if (expected == null || expected.isBlank()) {
-                return false;
-            }
-            String normalisedExpected = expected.trim();
-            return getConstitution().map(value -> value.equalsIgnoreCase(normalisedExpected)).orElse(false)
-                    || PlayerField.fromIdentifier(normalisedExpected)
-                    .flatMap(PlayerField::docLabel)
-                    .map(label -> getConstitution().map(value -> value.equalsIgnoreCase(label)).orElse(false))
-                    .orElse(false);
-        }
-
-        /**
-         * 按统一公式扣减真元：{@code baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96)}。
-         * 若附件缺失相关字段，则退化为直接扣 {@code baseCost}。
-         */
-        public OptionalDouble consumeScaledZhenyuan(double baseCost) {
-            if (baseCost <= 0 || !Double.isFinite(baseCost)) {
-                return OptionalDouble.empty();
-            }
-            OptionalDouble currentOpt = getZhenyuan();
-            if (currentOpt.isEmpty()) {
-                return OptionalDouble.empty();
-            }
-            double current = currentOpt.getAsDouble();
-            double required = scaleZhenyuanByCultivation(baseCost);
-            if (!Double.isFinite(required) || required <= 0) {
-                return OptionalDouble.empty();
-            }
-            if (current < required) {
-                return OptionalDouble.empty();
-            }
-            return adjustZhenyuan(-required, true);
-        }
-
-        /**
-         * Calculates the scaled zhenyuan requirement without mutating the attachment.
-         */
-        public OptionalDouble estimateScaledZhenyuanCost(double baseCost) {
-            if (baseCost <= 0 || !Double.isFinite(baseCost)) {
-                return OptionalDouble.of(0.0);
-            }
-            double scaled = scaleZhenyuanByCultivation(baseCost);
-            if (!Double.isFinite(scaled) || scaled <= 0) {
-                return OptionalDouble.empty();
-            }
-            return OptionalDouble.of(scaled);
-        }
-
-        /** 真元补充：按与消耗相同的缩放公式增加真元值。 */
-        public OptionalDouble replenishScaledZhenyuan(double baseAmount, boolean clampToMax) {
-            if (baseAmount <= 0 || !Double.isFinite(baseAmount)) {
-                return OptionalDouble.empty();
-            }
-            OptionalDouble currentOpt = getZhenyuan();
-            if (currentOpt.isEmpty()) {
-                return OptionalDouble.empty();
-            }
-
-            double scaled = scaleZhenyuanByCultivation(baseAmount);
-            if (!Double.isFinite(scaled) || scaled <= 0) {
-                return OptionalDouble.empty();
-            }
-
-            double target = currentOpt.getAsDouble() + scaled;
-            if (clampToMax) {
-                OptionalDouble maxOpt = getMaxZhenyuan();
-                if (maxOpt.isPresent()) {
-                    target = Math.min(target, maxOpt.getAsDouble());
-                }
-            }
-            if (!Double.isFinite(target)) {
-                return OptionalDouble.empty();
-            }
-            return writeDouble(PlayerField.ZHENYUAN, target);
-        }
-
-        /** 当前真元 */
-        public OptionalDouble getZhenyuan() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHENYUAN);
-        }
-
-        /** 设置真元 */
-        public OptionalDouble setZhenyuan(double value) {
-            return writeDouble(PlayerField.ZHENYUAN, value);
-        }
-
-        /** 真元增减（可选择限制为非负） */
-        public OptionalDouble adjustZhenyuan(double delta, boolean clampZero) {
-            return adjustDouble(PlayerField.ZHENYUAN, delta, clampZero, null);
-        }
-
-        /** 真元上限 */
-        public OptionalDouble getMaxZhenyuan() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_ZHENYUAN);
-        }
-
-        /** 当前魂魄 */
-        public OptionalDouble getHunpo() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.HUNPO);
-        }
-
-        /** 魂魄上限 */
-        public OptionalDouble getMaxHunpo() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_HUNPO);
-        }
-
-        /** 魂魄增减（可选非负，自动对齐上限） */
-        public OptionalDouble adjustHunpo(double delta, boolean clampZero) {
-            return adjustDouble(PlayerField.HUNPO, delta, clampZero, PlayerField.MAX_HUNPO);
-        }
-
-        /** 阶段（阶位） */
-        public OptionalDouble getJieduan() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JIEDUAN);
-        }
-
-        /** 转数 */
-        public OptionalDouble getZhuanshu() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHUANSHU);
-        }
-
-        /** 道德 */
-        public OptionalDouble getDaode() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.DAODE);
-        }
-
-        /** 寿元 */
-        public OptionalDouble getShouyuan() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.SHOUYUAN);
-        }
-
-        /** 当前精力 */
-        public OptionalDouble getJingli() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JINGLI);
-        }
-
-        /** 设置精力 */
-        public OptionalDouble setJingli(double value) {
-            return writeDouble(PlayerField.JINGLI, value);
-        }
-
-        /** 精力增减（可选非负、可选上限字段） */
-        public OptionalDouble adjustJingli(double delta, boolean clampZero) {
-            return adjustDouble(PlayerField.JINGLI, delta, clampZero, PlayerField.MAX_JINGLI);
-        }
-
-        /** 精力上限 */
-        public OptionalDouble getMaxJingli() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_JINGLI);
-        }
-
-        /** 魂魄稳定度（当前值） */
-        public OptionalDouble getHunpoStability() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.HUNPO_STABILITY);
-        }
-
-        /** 设置魂魄稳定度 */
-        public OptionalDouble setHunpoStability(double value) {
-            return writeDouble(PlayerField.HUNPO_STABILITY, value);
-        }
-
-        /** 魂魄稳定度增减（可选非负，自动对齐上限） */
-        public OptionalDouble adjustHunpoStability(double delta, boolean clampZero) {
-            return adjustDouble(PlayerField.HUNPO_STABILITY, delta, clampZero, PlayerField.MAX_HUNPO_STABILITY);
-        }
-
-        /** 魂魄稳定度上限 */
-        public OptionalDouble getMaxHunpoStability() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_HUNPO_STABILITY);
-        }
-
-        /** 设置魂魄稳定度上限 */
-        public OptionalDouble setMaxHunpoStability(double value) {
-            return writeDouble(PlayerField.MAX_HUNPO_STABILITY, value);
-        }
-
-        /** 将魂魄稳定度限制在对应上限内 */
-        public OptionalDouble clampHunpoStabilityToMax() {
-            return clampToMax(PlayerField.HUNPO_STABILITY, PlayerField.MAX_HUNPO_STABILITY);
-        }
-
-        /** 当前念头 */
-        public OptionalDouble getNiantou() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.NIANTOU);
-        }
-
-        /** 念头上限 */
-        public OptionalDouble getMaxNiantou() {
-            return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_NIANTOU);
-        }
-
-        /** 念头增减（可选非负，自动对齐上限） */
-        public OptionalDouble adjustNiantou(double delta, boolean clampZero) {
-            return adjustDouble(PlayerField.NIANTOU, delta, clampZero, PlayerField.MAX_NIANTOU);
-        }
-
-        private double scaleZhenyuanByCultivation(double baseAmount) {
-            if (!Double.isFinite(baseAmount) || baseAmount <= 0) {
-                return Double.NaN;
-            }
-            double jieduan = getJieduan().orElse(0.0);
-            double effectiveZhuanshu = Math.max(1.0, getZhuanshu().orElse(1.0));
-            double denominator = Math.pow(2.0, jieduan + effectiveZhuanshu * 4.0) * effectiveZhuanshu * 3.0 / 96.0;
-            if (denominator > 0.0 && Double.isFinite(denominator)) {
-                double scaled = baseAmount / denominator;
-                if (Double.isFinite(scaled) && scaled > 0) {
-                    return scaled;
-                }
-            }
-            return baseAmount;
-        }
+    public OptionalDouble consumeScaledZhenyuan(double baseCost) {
+      if (baseCost <= 0 || !Double.isFinite(baseCost)) {
+        return OptionalDouble.empty();
+      }
+      OptionalDouble currentOpt = getZhenyuan();
+      if (currentOpt.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+      double current = currentOpt.getAsDouble();
+      double required = scaleZhenyuanByCultivation(baseCost);
+      if (!Double.isFinite(required) || required <= 0) {
+        return OptionalDouble.empty();
+      }
+      if (current < required) {
+        return OptionalDouble.empty();
+      }
+      return adjustZhenyuan(-required, true);
     }
+
+    /** Calculates the scaled zhenyuan requirement without mutating the attachment. */
+    public OptionalDouble estimateScaledZhenyuanCost(double baseCost) {
+      if (baseCost <= 0 || !Double.isFinite(baseCost)) {
+        return OptionalDouble.of(0.0);
+      }
+      double scaled = scaleZhenyuanByCultivation(baseCost);
+      if (!Double.isFinite(scaled) || scaled <= 0) {
+        return OptionalDouble.empty();
+      }
+      return OptionalDouble.of(scaled);
+    }
+
+    /** 真元补充：按与消耗相同的缩放公式增加真元值。 */
+    public OptionalDouble replenishScaledZhenyuan(double baseAmount, boolean clampToMax) {
+      if (baseAmount <= 0 || !Double.isFinite(baseAmount)) {
+        return OptionalDouble.empty();
+      }
+      OptionalDouble currentOpt = getZhenyuan();
+      if (currentOpt.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+
+      double scaled = scaleZhenyuanByCultivation(baseAmount);
+      if (!Double.isFinite(scaled) || scaled <= 0) {
+        return OptionalDouble.empty();
+      }
+
+      double target = currentOpt.getAsDouble() + scaled;
+      if (clampToMax) {
+        OptionalDouble maxOpt = getMaxZhenyuan();
+        if (maxOpt.isPresent()) {
+          target = Math.min(target, maxOpt.getAsDouble());
+        }
+      }
+      if (!Double.isFinite(target)) {
+        return OptionalDouble.empty();
+      }
+      return writeDouble(PlayerField.ZHENYUAN, target);
+    }
+
+    /** 当前真元 */
+    public OptionalDouble getZhenyuan() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHENYUAN);
+    }
+
+    /** 设置真元 */
+    public OptionalDouble setZhenyuan(double value) {
+      return writeDouble(PlayerField.ZHENYUAN, value);
+    }
+
+    /** 真元增减（可选择限制为非负） */
+    public OptionalDouble adjustZhenyuan(double delta, boolean clampZero) {
+      return adjustDouble(PlayerField.ZHENYUAN, delta, clampZero, null);
+    }
+
+    /** 真元上限 */
+    public OptionalDouble getMaxZhenyuan() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_ZHENYUAN);
+    }
+
+    /** 当前魂魄 */
+    public OptionalDouble getHunpo() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.HUNPO);
+    }
+
+    /** 魂魄上限 */
+    public OptionalDouble getMaxHunpo() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_HUNPO);
+    }
+
+    /** 魂魄增减（可选非负，自动对齐上限） */
+    public OptionalDouble adjustHunpo(double delta, boolean clampZero) {
+      return adjustDouble(PlayerField.HUNPO, delta, clampZero, PlayerField.MAX_HUNPO);
+    }
+
+    /** 阶段（阶位） */
+    public OptionalDouble getJieduan() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JIEDUAN);
+    }
+
+    /** 转数 */
+    public OptionalDouble getZhuanshu() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.ZHUANSHU);
+    }
+
+    /** 道德 */
+    public OptionalDouble getDaode() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.DAODE);
+    }
+
+    /** 寿元 */
+    public OptionalDouble getShouyuan() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.SHOUYUAN);
+    }
+
+    /** 当前精力 */
+    public OptionalDouble getJingli() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.JINGLI);
+    }
+
+    /** 设置精力 */
+    public OptionalDouble setJingli(double value) {
+      return writeDouble(PlayerField.JINGLI, value);
+    }
+
+    /** 精力增减（可选非负、可选上限字段） */
+    public OptionalDouble adjustJingli(double delta, boolean clampZero) {
+      return adjustDouble(PlayerField.JINGLI, delta, clampZero, PlayerField.MAX_JINGLI);
+    }
+
+    /** 精力上限 */
+    public OptionalDouble getMaxJingli() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_JINGLI);
+    }
+
+    /** 魂魄稳定度（当前值） */
+    public OptionalDouble getHunpoStability() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.HUNPO_STABILITY);
+    }
+
+    /** 设置魂魄稳定度 */
+    public OptionalDouble setHunpoStability(double value) {
+      return writeDouble(PlayerField.HUNPO_STABILITY, value);
+    }
+
+    /** 魂魄稳定度增减（可选非负，自动对齐上限） */
+    public OptionalDouble adjustHunpoStability(double delta, boolean clampZero) {
+      return adjustDouble(
+          PlayerField.HUNPO_STABILITY, delta, clampZero, PlayerField.MAX_HUNPO_STABILITY);
+    }
+
+    /** 魂魄稳定度上限 */
+    public OptionalDouble getMaxHunpoStability() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_HUNPO_STABILITY);
+    }
+
+    /** 设置魂魄稳定度上限 */
+    public OptionalDouble setMaxHunpoStability(double value) {
+      return writeDouble(PlayerField.MAX_HUNPO_STABILITY, value);
+    }
+
+    /** 将魂魄稳定度限制在对应上限内 */
+    public OptionalDouble clampHunpoStabilityToMax() {
+      return clampToMax(PlayerField.HUNPO_STABILITY, PlayerField.MAX_HUNPO_STABILITY);
+    }
+
+    /** 当前念头 */
+    public OptionalDouble getNiantou() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.NIANTOU);
+    }
+
+    /** 念头上限 */
+    public OptionalDouble getMaxNiantou() {
+      return GuzhenrenResourceBridge.readDouble(this.variables, PlayerField.MAX_NIANTOU);
+    }
+
+    /** 念头增减（可选非负，自动对齐上限） */
+    public OptionalDouble adjustNiantou(double delta, boolean clampZero) {
+      return adjustDouble(PlayerField.NIANTOU, delta, clampZero, PlayerField.MAX_NIANTOU);
+    }
+
+    private double scaleZhenyuanByCultivation(double baseAmount) {
+      if (!Double.isFinite(baseAmount) || baseAmount <= 0) {
+        return Double.NaN;
+      }
+      double jieduan = getJieduan().orElse(0.0);
+      double effectiveZhuanshu = Math.max(1.0, getZhuanshu().orElse(1.0));
+      double denominator =
+          Math.pow(2.0, jieduan + effectiveZhuanshu * 4.0) * effectiveZhuanshu * 3.0 / 96.0;
+      if (denominator > 0.0 && Double.isFinite(denominator)) {
+        double scaled = baseAmount / denominator;
+        if (Double.isFinite(scaled) && scaled > 0) {
+          return scaled;
+        }
+      }
+      return baseAmount;
+    }
+  }
 }

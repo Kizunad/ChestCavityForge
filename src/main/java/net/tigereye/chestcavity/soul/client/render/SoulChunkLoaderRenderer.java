@@ -9,28 +9,32 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
 
-/**
- * 渲染为空的区块加载器，避免客户端缺失 renderer 导致崩溃。
- */
+/** 渲染为空的区块加载器，避免客户端缺失 renderer 导致崩溃。 */
 public final class SoulChunkLoaderRenderer extends EntityRenderer<SoulChunkLoaderEntity> {
 
-    public SoulChunkLoaderRenderer(EntityRendererProvider.Context context) {
-        super(context);
-    }
+  public SoulChunkLoaderRenderer(EntityRendererProvider.Context context) {
+    super(context);
+  }
 
-    @Override
-    public void render(SoulChunkLoaderEntity entity, float yaw, float partialTicks, PoseStack poseStack,
-                       MultiBufferSource bufferSource, int packedLight) {
-        // 不渲染任何内容
-    }
+  @Override
+  public void render(
+      SoulChunkLoaderEntity entity,
+      float yaw,
+      float partialTicks,
+      PoseStack poseStack,
+      MultiBufferSource bufferSource,
+      int packedLight) {
+    // 不渲染任何内容
+  }
 
-    @Override
-    public ResourceLocation getTextureLocation(SoulChunkLoaderEntity entity) {
-        return TextureAtlas.LOCATION_BLOCKS;
-    }
+  @Override
+  public ResourceLocation getTextureLocation(SoulChunkLoaderEntity entity) {
+    return TextureAtlas.LOCATION_BLOCKS;
+  }
 
-    @Override
-    public boolean shouldRender(SoulChunkLoaderEntity entity, Frustum frustum, double x, double y, double z) {
-        return false;
-    }
+  @Override
+  public boolean shouldRender(
+      SoulChunkLoaderEntity entity, Frustum frustum, double x, double y, double z) {
+    return false;
+  }
 }

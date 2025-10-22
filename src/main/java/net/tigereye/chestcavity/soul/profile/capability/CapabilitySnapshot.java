@@ -7,17 +7,17 @@ import net.minecraft.server.level.ServerPlayer;
 
 public interface CapabilitySnapshot {
 
-    ResourceLocation id();
+  ResourceLocation id();
 
-    CapabilitySnapshot capture(ServerPlayer player);
+  CapabilitySnapshot capture(ServerPlayer player);
 
-    void apply(ServerPlayer player);
+  void apply(ServerPlayer player);
 
-    CompoundTag save(HolderLookup.Provider provider);
+  CompoundTag save(HolderLookup.Provider provider);
 
-    CapabilitySnapshot load(CompoundTag tag, HolderLookup.Provider provider);
+  CapabilitySnapshot load(CompoundTag tag, HolderLookup.Provider provider);
 
-    boolean isDirty();
+  boolean isDirty();
 
-    void clearDirty();
+  void clearDirty();
 }

@@ -1,8 +1,8 @@
 package net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
-
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -16,286 +16,301 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
-import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Runtime implementation of the Bloodbone Bomb active organ ability.
- * Handles the 10 second channel, resource payments and spawns the
- * dedicated projectile entity on completion.
+ * Runtime implementation of the Bloodbone Bomb active organ ability. Handles the 10 second channel,
+ * resource payments and spawns the dedicated projectile entity on completion.
  */
 public final class BloodBoneBombAbility {
 
-    private static final ResourceLocation TIE_XUE_GU = ResourceLocation.fromNamespaceAndPath("guzhenren", "tiexuegu");
-    private static final ResourceLocation XIE_DI_GU = ResourceLocation.fromNamespaceAndPath("guzhenren", "xie_di_gu");
-    private static final ResourceLocation XIE_YAN_GU = ResourceLocation.fromNamespaceAndPath("guzhenren", "xie_yan_gu");
-    private static final ResourceLocation GU_ZHU_GU = ResourceLocation.fromNamespaceAndPath("guzhenren", "gu_zhu_gu");
-    private static final ResourceLocation LUO_XUAN_GU = ResourceLocation.fromNamespaceAndPath("guzhenren", "luo_xuan_gu_qiang_gu");
+  private static final ResourceLocation TIE_XUE_GU =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "tiexuegu");
+  private static final ResourceLocation XIE_DI_GU =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "xie_di_gu");
+  private static final ResourceLocation XIE_YAN_GU =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "xie_yan_gu");
+  private static final ResourceLocation GU_ZHU_GU =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "gu_zhu_gu");
+  private static final ResourceLocation LUO_XUAN_GU =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "luo_xuan_gu_qiang_gu");
 
-    private static final ImmutableSet<ResourceLocation> REQUIRED_ORGANS = ImmutableSet.of(
-            TIE_XUE_GU,
-            XIE_DI_GU,
-            XIE_YAN_GU,
-            GU_ZHU_GU,
-            LUO_XUAN_GU
-    );
+  private static final ImmutableSet<ResourceLocation> REQUIRED_ORGANS =
+      ImmutableSet.of(TIE_XUE_GU, XIE_DI_GU, XIE_YAN_GU, GU_ZHU_GU, LUO_XUAN_GU);
 
-    private static final ResourceLocation LI_DAO_INCREASE_EFFECT =
-            ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/li_dao_increase_effect");
-    private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
-            ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/xue_dao_increase_effect");
-    private static final ResourceLocation GU_DAO_INCREASE_EFFECT =
-            ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/gu_dao_increase_effect");
-    static final ResourceLocation BLEED_EFFECT_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "lliuxue");
-    static final ResourceLocation RENDER_ITEM_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "gu_qiang");
+  private static final ResourceLocation LI_DAO_INCREASE_EFFECT =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/li_dao_increase_effect");
+  private static final ResourceLocation XUE_DAO_INCREASE_EFFECT =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/xue_dao_increase_effect");
+  private static final ResourceLocation GU_DAO_INCREASE_EFFECT =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "linkage/gu_dao_increase_effect");
+  static final ResourceLocation BLEED_EFFECT_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "lliuxue");
+  static final ResourceLocation RENDER_ITEM_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "gu_qiang");
 
-    private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
+  private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-    private static final int CHARGE_DURATION_TICKS = 200;
-    private static final int COST_INTERVAL_TICKS = 20;
-    private static final float HEALTH_COST = 2.0f;
-    private static final double ZHENYUAN_COST = 20.0;
-    private static final double JINGLI_COST = 10.0;
+  private static final int CHARGE_DURATION_TICKS = 200;
+  private static final int COST_INTERVAL_TICKS = 20;
+  private static final float HEALTH_COST = 2.0f;
+  private static final double ZHENYUAN_COST = 20.0;
+  private static final double JINGLI_COST = 10.0;
 
-    private static final double PROJECTILE_SPEED = 3.75;
+  private static final double PROJECTILE_SPEED = 3.75;
 
-    private static final Map<UUID, ChargeState> ACTIVE_CHARGES = new java.util.concurrent.ConcurrentHashMap<>();
+  private static final Map<UUID, ChargeState> ACTIVE_CHARGES =
+      new java.util.concurrent.ConcurrentHashMap<>();
 
-    private BloodBoneBombAbility() {
+  private BloodBoneBombAbility() {}
+
+  /** Attempts to begin the Bloodbone Bomb charge sequence. */
+  public static void tryActivate(LivingEntity entity, ChestCavityInstance cc) {
+    if (!(entity instanceof ServerPlayer player)) {
+      return;
+    }
+    if (entity.level().isClientSide()) {
+      return;
+    }
+    if (!entity.isAlive() || player.isSpectator()) {
+      return;
+    }
+    if (GuzhenrenResourceBridge.open(player).isEmpty()) {
+      return;
+    }
+    if (ACTIVE_CHARGES.containsKey(player.getUUID())) {
+      return;
+    }
+    if (!hasRequiredOrgans(cc)) {
+      return;
+    }
+    ChargeState state = new ChargeState(cc);
+    ACTIVE_CHARGES.put(player.getUUID(), state);
+    applyChannelImmobilise(player);
+    playChargeStartFx(player);
+  }
+
+  public static void onEntityTick(EntityTickEvent.Post event) {
+    if (!(event.getEntity() instanceof ServerPlayer player)) {
+      return;
+    }
+    ChargeState state = ACTIVE_CHARGES.get(player.getUUID());
+    if (state != null) {
+      tickCharge(player, state);
+    }
+  }
+
+  private static void tickCharge(ServerPlayer player, ChargeState state) {
+    if (!player.isAlive()) {
+      ACTIVE_CHARGES.remove(player.getUUID());
+      return;
     }
 
-    /** Attempts to begin the Bloodbone Bomb charge sequence. */
-    public static void tryActivate(LivingEntity entity, ChestCavityInstance cc) {
-        if (!(entity instanceof ServerPlayer player)) {
-            return;
+    maintainImmobility(player);
+    state.ticksElapsed++;
+    state.ticksRemaining = Math.max(0, state.ticksRemaining - 1);
+    state.costTimer = Math.max(0, state.costTimer - 1);
+
+    playChargeProgressFx(player, state);
+
+    if (state.costTimer == 0) {
+      state.costTimer = COST_INTERVAL_TICKS;
+      if (!payChargeCosts(player, state)) {
+        triggerCatastrophicFailure(player);
+        return;
+      }
+      state.soundStep++;
+      playChargeHeartbeatFx(player, state.soundStep);
+    }
+
+    if (state.ticksRemaining <= 0) {
+      ACTIVE_CHARGES.remove(player.getUUID());
+      releaseImmobilise(player);
+      launchProjectile(player, state);
+    }
+  }
+
+  private static boolean payChargeCosts(ServerPlayer player, ChargeState state) {
+    ConsumptionResult result = ResourceOps.consumeStrict(player, ZHENYUAN_COST, JINGLI_COST);
+    if (!result.succeeded()) {
+      return false;
+    }
+    if (!GuzhenrenResourceCostHelper.drainHealth(
+        player, HEALTH_COST, player.damageSources().generic())) {
+      GuzhenrenResourceCostHelper.refund(player, result);
+      return false;
+    }
+    return true;
+  }
+
+  private static void launchProjectile(ServerPlayer player, ChargeState state) {
+    ServerLevel level = player.serverLevel();
+    ActiveLinkageContext context = LinkageManager.getContext(state.chestCavity);
+    double liIncrease = ensureChannel(context, LI_DAO_INCREASE_EFFECT).get();
+    double xueIncrease = ensureChannel(context, XUE_DAO_INCREASE_EFFECT).get();
+    double guIncrease = ensureChannel(context, GU_DAO_INCREASE_EFFECT).get();
+    double multiplier =
+        Math.max(0.0, (1.0 + liIncrease) * (1.0 + xueIncrease) * (1.0 + guIncrease));
+    double damage = 80.0 * multiplier;
+
+    Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.4));
+    Vec3 velocity = player.getLookAngle().normalize().scale(PROJECTILE_SPEED);
+
+    BoneGunProjectile projectile = new BoneGunProjectile(level, player, createProjectileStack());
+    projectile.configurePayload((float) damage, multiplier);
+    projectile.setPos(origin);
+    projectile.shoot(velocity.x, velocity.y, velocity.z, (float) PROJECTILE_SPEED, 0.0f);
+    level.addFreshEntity(projectile);
+    level.gameEvent(player, GameEvent.EXPLODE, player.blockPosition());
+    playProjectileLaunchFx(player, origin, velocity, multiplier);
+  }
+
+  private static ItemStack createProjectileStack() {
+    return BuiltInRegistries.ITEM
+        .getOptional(RENDER_ITEM_ID)
+        .map(ItemStack::new)
+        .orElse(ItemStack.EMPTY);
+  }
+
+  private static LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation id) {
+    return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
+  }
+
+  private static void triggerCatastrophicFailure(ServerPlayer player) {
+    ACTIVE_CHARGES.remove(player.getUUID());
+    releaseImmobilise(player);
+    ServerLevel level = player.serverLevel();
+    Vec3 pos = player.position();
+    level.explode(player, pos.x, pos.y, pos.z, 4.0f, Level.ExplosionInteraction.MOB);
+    playChargeFailureFx(player);
+    applyTrueDamage(player, player, 50.0f);
+  }
+
+  private static void playChargeStartFx(ServerPlayer player) {
+    AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_START, Vec3.ZERO, 1.0F);
+  }
+
+  private static void playChargeProgressFx(ServerPlayer player, ChargeState state) {
+    float progress = state.ticksElapsed / (float) CHARGE_DURATION_TICKS;
+    float intensity = 0.7F + progress * 0.9F;
+    AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_TICK, Vec3.ZERO, intensity);
+  }
+
+  private static void playChargeHeartbeatFx(ServerPlayer player, int step) {
+    float intensity = 0.85F + (step * 0.12F);
+    AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_HEARTBEAT, Vec3.ZERO, intensity);
+  }
+
+  private static void playProjectileLaunchFx(
+      ServerPlayer player, Vec3 origin, Vec3 velocity, double multiplier) {
+    float intensity = (float) Math.max(1.0F, 1.0F + multiplier * 0.25F);
+    AbilityFxDispatcher.play(
+        player.serverLevel(),
+        BloodBoneBombFx.PROJECTILE_LAUNCH,
+        origin,
+        velocity,
+        player.getLookAngle(),
+        player,
+        null,
+        intensity);
+  }
+
+  private static void playChargeFailureFx(ServerPlayer player) {
+    AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_FAILURE, Vec3.ZERO, 1.25F);
+  }
+
+  private static void applyChannelImmobilise(ServerPlayer player) {
+    player.addEffect(
+        new MobEffectInstance(
+            MobEffects.MOVEMENT_SLOWDOWN, CHARGE_DURATION_TICKS + 40, 255, false, false, true));
+    player.addEffect(
+        new MobEffectInstance(
+            MobEffects.DIG_SLOWDOWN, CHARGE_DURATION_TICKS + 40, 4, false, false, true));
+    player.setDeltaMovement(Vec3.ZERO);
+    player.getAbilities().flying = false;
+    player.hurtMarked = true;
+  }
+
+  private static void maintainImmobility(ServerPlayer player) {
+    player.setDeltaMovement(Vec3.ZERO);
+    player.fallDistance = 0.0f;
+    player.addEffect(
+        new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 6, 255, false, false, true));
+    player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 6, 4, false, false, true));
+  }
+
+  private static void releaseImmobilise(ServerPlayer player) {
+    player.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
+    player.removeEffect(MobEffects.DIG_SLOWDOWN);
+  }
+
+  private static boolean hasRequiredOrgans(ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
+    java.util.Set<ResourceLocation> found = new java.util.HashSet<>();
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (stack.isEmpty()) {
+        continue;
+      }
+      ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+      if (id != null && REQUIRED_ORGANS.contains(id)) {
+        found.add(id);
+        if (found.size() == REQUIRED_ORGANS.size()) {
+          return true;
         }
-        if (entity.level().isClientSide()) {
-            return;
-        }
-        if (!entity.isAlive() || player.isSpectator()) {
-            return;
-        }
-        if (GuzhenrenResourceBridge.open(player).isEmpty()) {
-            return;
-        }
-        if (ACTIVE_CHARGES.containsKey(player.getUUID())) {
-            return;
-        }
-        if (!hasRequiredOrgans(cc)) {
-            return;
-        }
-        ChargeState state = new ChargeState(cc);
-        ACTIVE_CHARGES.put(player.getUUID(), state);
-        applyChannelImmobilise(player);
-        playChargeStartFx(player);
+      }
     }
+    return false;
+  }
 
-    public static void onEntityTick(EntityTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-        ChargeState state = ACTIVE_CHARGES.get(player.getUUID());
-        if (state != null) {
-            tickCharge(player, state);
-        }
+  static void applyTrueDamage(ServerPlayer source, LivingEntity target, float amount) {
+    if (target == null || amount <= 0.0f) {
+      return;
     }
+    float startingHealth = target.getHealth();
+    float startingAbsorption = target.getAbsorptionAmount();
+    target.invulnerableTime = 0;
+    DamageSource damageSource =
+        source == null
+            ? target.damageSources().magic()
+            : target.damageSources().playerAttack(source);
+    target.hurt(damageSource, amount);
+    target.invulnerableTime = 0;
 
-    private static void tickCharge(ServerPlayer player, ChargeState state) {
-        if (!player.isAlive()) {
-            ACTIVE_CHARGES.remove(player.getUUID());
-            return;
-        }
+    float remaining = amount;
+    float absorptionConsumed = Math.min(startingAbsorption, remaining);
+    remaining -= absorptionConsumed;
+    target.setAbsorptionAmount(Math.max(0.0f, startingAbsorption - absorptionConsumed));
 
-        maintainImmobility(player);
-        state.ticksElapsed++;
-        state.ticksRemaining = Math.max(0, state.ticksRemaining - 1);
-        state.costTimer = Math.max(0, state.costTimer - 1);
-
-        playChargeProgressFx(player, state);
-
-        if (state.costTimer == 0) {
-            state.costTimer = COST_INTERVAL_TICKS;
-            if (!payChargeCosts(player, state)) {
-                triggerCatastrophicFailure(player);
-                return;
-            }
-            state.soundStep++;
-            playChargeHeartbeatFx(player, state.soundStep);
-        }
-
-        if (state.ticksRemaining <= 0) {
-            ACTIVE_CHARGES.remove(player.getUUID());
-            releaseImmobilise(player);
-            launchProjectile(player, state);
-        }
+    if (!target.isDeadOrDying() && remaining > 0.0f) {
+      float expectedHealth = Math.max(0.0f, startingHealth - remaining);
+      if (target.getHealth() > expectedHealth) {
+        target.setHealth(expectedHealth);
+      }
     }
+    target.hurtTime = 0;
+  }
 
-    private static boolean payChargeCosts(ServerPlayer player, ChargeState state) {
-        ConsumptionResult result = ResourceOps.consumeStrict(player, ZHENYUAN_COST, JINGLI_COST);
-        if (!result.succeeded()) {
-            return false;
-        }
-        if (!GuzhenrenResourceCostHelper.drainHealth(player, HEALTH_COST, player.damageSources().generic())) {
-            GuzhenrenResourceCostHelper.refund(player, result);
-            return false;
-        }
-        return true;
+  private static final class ChargeState {
+    private final ChestCavityInstance chestCavity;
+    private int ticksElapsed;
+    private int ticksRemaining = CHARGE_DURATION_TICKS;
+    private int costTimer = COST_INTERVAL_TICKS;
+    private int soundStep;
+
+    private ChargeState(ChestCavityInstance chestCavity) {
+      this.chestCavity = chestCavity;
     }
-
-    private static void launchProjectile(ServerPlayer player, ChargeState state) {
-        ServerLevel level = player.serverLevel();
-        ActiveLinkageContext context = LinkageManager.getContext(state.chestCavity);
-        double liIncrease = ensureChannel(context, LI_DAO_INCREASE_EFFECT).get();
-        double xueIncrease = ensureChannel(context, XUE_DAO_INCREASE_EFFECT).get();
-        double guIncrease = ensureChannel(context, GU_DAO_INCREASE_EFFECT).get();
-        double multiplier = Math.max(0.0, (1.0 + liIncrease) * (1.0 + xueIncrease) * (1.0 + guIncrease));
-        double damage = 80.0 * multiplier;
-
-        Vec3 origin = player.getEyePosition().add(player.getLookAngle().scale(0.4));
-        Vec3 velocity = player.getLookAngle().normalize().scale(PROJECTILE_SPEED);
-
-        BoneGunProjectile projectile = new BoneGunProjectile(level, player, createProjectileStack());
-        projectile.configurePayload((float) damage, multiplier);
-        projectile.setPos(origin);
-        projectile.shoot(velocity.x, velocity.y, velocity.z, (float) PROJECTILE_SPEED, 0.0f);
-        level.addFreshEntity(projectile);
-        level.gameEvent(player, GameEvent.EXPLODE, player.blockPosition());
-        playProjectileLaunchFx(player, origin, velocity, multiplier);
-    }
-
-    private static ItemStack createProjectileStack() {
-        return BuiltInRegistries.ITEM.getOptional(RENDER_ITEM_ID)
-                .map(ItemStack::new)
-                .orElse(ItemStack.EMPTY);
-    }
-
-    private static LinkageChannel ensureChannel(ActiveLinkageContext context, ResourceLocation id) {
-        return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
-    }
-
-    private static void triggerCatastrophicFailure(ServerPlayer player) {
-        ACTIVE_CHARGES.remove(player.getUUID());
-        releaseImmobilise(player);
-        ServerLevel level = player.serverLevel();
-        Vec3 pos = player.position();
-        level.explode(player, pos.x, pos.y, pos.z, 4.0f, Level.ExplosionInteraction.MOB);
-        playChargeFailureFx(player);
-        applyTrueDamage(player, player, 50.0f);
-    }
-
-    private static void playChargeStartFx(ServerPlayer player) {
-        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_START, Vec3.ZERO, 1.0F);
-    }
-
-    private static void playChargeProgressFx(ServerPlayer player, ChargeState state) {
-        float progress = state.ticksElapsed / (float) CHARGE_DURATION_TICKS;
-        float intensity = 0.7F + progress * 0.9F;
-        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_TICK, Vec3.ZERO, intensity);
-    }
-
-    private static void playChargeHeartbeatFx(ServerPlayer player, int step) {
-        float intensity = 0.85F + (step * 0.12F);
-        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_HEARTBEAT, Vec3.ZERO, intensity);
-    }
-
-    private static void playProjectileLaunchFx(ServerPlayer player, Vec3 origin, Vec3 velocity, double multiplier) {
-        float intensity = (float) Math.max(1.0F, 1.0F + multiplier * 0.25F);
-        AbilityFxDispatcher.play(player.serverLevel(), BloodBoneBombFx.PROJECTILE_LAUNCH, origin, velocity, player.getLookAngle(), player, null, intensity);
-    }
-
-    private static void playChargeFailureFx(ServerPlayer player) {
-        AbilityFxDispatcher.play(player, BloodBoneBombFx.CHARGE_FAILURE, Vec3.ZERO, 1.25F);
-    }
-
-    private static void applyChannelImmobilise(ServerPlayer player) {
-        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, CHARGE_DURATION_TICKS + 40, 255, false, false, true));
-        player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, CHARGE_DURATION_TICKS + 40, 4, false, false, true));
-        player.setDeltaMovement(Vec3.ZERO);
-        player.getAbilities().flying = false;
-        player.hurtMarked = true;
-    }
-
-    private static void maintainImmobility(ServerPlayer player) {
-        player.setDeltaMovement(Vec3.ZERO);
-        player.fallDistance = 0.0f;
-        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 6, 255, false, false, true));
-        player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 6, 4, false, false, true));
-    }
-
-    private static void releaseImmobilise(ServerPlayer player) {
-        player.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-        player.removeEffect(MobEffects.DIG_SLOWDOWN);
-    }
-
-    private static boolean hasRequiredOrgans(ChestCavityInstance cc) {
-        if (cc == null || cc.inventory == null) {
-            return false;
-        }
-        java.util.Set<ResourceLocation> found = new java.util.HashSet<>();
-        for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
-            ItemStack stack = cc.inventory.getItem(i);
-            if (stack.isEmpty()) {
-                continue;
-            }
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-            if (id != null && REQUIRED_ORGANS.contains(id)) {
-                found.add(id);
-                if (found.size() == REQUIRED_ORGANS.size()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    static void applyTrueDamage(ServerPlayer source, LivingEntity target, float amount) {
-        if (target == null || amount <= 0.0f) {
-            return;
-        }
-        float startingHealth = target.getHealth();
-        float startingAbsorption = target.getAbsorptionAmount();
-        target.invulnerableTime = 0;
-        DamageSource damageSource = source == null
-                ? target.damageSources().magic()
-                : target.damageSources().playerAttack(source);
-        target.hurt(damageSource, amount);
-        target.invulnerableTime = 0;
-
-        float remaining = amount;
-        float absorptionConsumed = Math.min(startingAbsorption, remaining);
-        remaining -= absorptionConsumed;
-        target.setAbsorptionAmount(Math.max(0.0f, startingAbsorption - absorptionConsumed));
-
-        if (!target.isDeadOrDying() && remaining > 0.0f) {
-            float expectedHealth = Math.max(0.0f, startingHealth - remaining);
-            if (target.getHealth() > expectedHealth) {
-                target.setHealth(expectedHealth);
-            }
-        }
-        target.hurtTime = 0;
-    }
-
-    private static final class ChargeState {
-        private final ChestCavityInstance chestCavity;
-        private int ticksElapsed;
-        private int ticksRemaining = CHARGE_DURATION_TICKS;
-        private int costTimer = COST_INTERVAL_TICKS;
-        private int soundStep;
-
-        private ChargeState(ChestCavityInstance chestCavity) {
-            this.chestCavity = chestCavity;
-        }
-    }
+  }
 }

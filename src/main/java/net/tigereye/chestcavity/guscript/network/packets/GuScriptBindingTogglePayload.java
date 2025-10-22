@@ -14,45 +14,47 @@ import net.tigereye.chestcavity.registration.CCAttachments;
 
 public record GuScriptBindingTogglePayload(Operation operation) implements CustomPacketPayload {
 
-    public static final Type<GuScriptBindingTogglePayload> TYPE =
-            new Type<>(ChestCavity.id("guscript_binding_toggle"));
+  public static final Type<GuScriptBindingTogglePayload> TYPE =
+      new Type<>(ChestCavity.id("guscript_binding_toggle"));
 
-    public static final StreamCodec<FriendlyByteBuf, GuScriptBindingTogglePayload> STREAM_CODEC = StreamCodec.of(
-            (buf, payload) -> buf.writeEnum(payload.operation),
-            buf -> new GuScriptBindingTogglePayload(buf.readEnum(Operation.class))
-    );
+  public static final StreamCodec<FriendlyByteBuf, GuScriptBindingTogglePayload> STREAM_CODEC =
+      StreamCodec.of(
+          (buf, payload) -> buf.writeEnum(payload.operation),
+          buf -> new GuScriptBindingTogglePayload(buf.readEnum(Operation.class)));
 
-    @Override
-    public Type<? extends CustomPacketPayload> type() {
-        return TYPE;
-    }
+  @Override
+  public Type<? extends CustomPacketPayload> type() {
+    return TYPE;
+  }
 
-    public static void handle(GuScriptBindingTogglePayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player)) {
-                ChestCavity.LOGGER.warn("[GuScript] Binding toggle received without server player context");
-                return;
-            }
-            GuScriptAttachment attachment = CCAttachments.getGuScript(player);
-            switch (payload.operation) {
-                case TOGGLE_TARGET -> attachment.cycleBindingTarget();
-                case CYCLE_LISTENER -> attachment.cycleListenerType();
-            }
+  public static void handle(GuScriptBindingTogglePayload payload, IPayloadContext context) {
+    context.enqueueWork(
+        () -> {
+          if (!(context.player() instanceof ServerPlayer player)) {
+            ChestCavity.LOGGER.warn(
+                "[GuScript] Binding toggle received without server player context");
+            return;
+          }
+          GuScriptAttachment attachment = CCAttachments.getGuScript(player);
+          switch (payload.operation) {
+            case TOGGLE_TARGET -> attachment.cycleBindingTarget();
+            case CYCLE_LISTENER -> attachment.cycleListenerType();
+          }
 
-            if (attachment.getBindingTarget() == BindingTarget.KEYBIND) {
-                // Leave listener selection unchanged; nothing extra required
-            } else if (attachment.getListenerType() == null) {
-                attachment.setListenerType(ListenerType.ON_HIT);
-            }
+          if (attachment.getBindingTarget() == BindingTarget.KEYBIND) {
+            // Leave listener selection unchanged; nothing extra required
+          } else if (attachment.getListenerType() == null) {
+            attachment.setListenerType(ListenerType.ON_HIT);
+          }
 
-            if (player.containerMenu instanceof GuScriptMenu menu) {
-                menu.syncFromAttachment(attachment);
-            }
+          if (player.containerMenu instanceof GuScriptMenu menu) {
+            menu.syncFromAttachment(attachment);
+          }
         });
-    }
+  }
 
-    public enum Operation {
-        TOGGLE_TARGET,
-        CYCLE_LISTENER;
-    }
+  public enum Operation {
+    TOGGLE_TARGET,
+    CYCLE_LISTENER;
+  }
 }

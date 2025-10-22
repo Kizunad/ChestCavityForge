@@ -13,24 +13,56 @@ import net.tigereye.chestcavity.mob_effect.Ruminating;
 import net.tigereye.chestcavity.mob_effect.SoulBeastIntimidatedEffect;
 
 public class CCStatusEffects {
-    public static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, ChestCavity.MODID);
+  public static final DeferredRegister<MobEffect> MOB_EFFECTS =
+      DeferredRegister.create(Registries.MOB_EFFECT, ChestCavity.MODID);
 
-    public static final DeferredHolder<MobEffect, MobEffect> ORGAN_REJECTION = MOB_EFFECTS.register("organ_rejection", OrganRejection::new);
-    public static final DeferredHolder<MobEffect, MobEffect> ARROW_DODGE_COOLDOWN = MOB_EFFECTS.register("arrow_dodge_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> DRAGON_BOMB_COOLDOWN = MOB_EFFECTS.register("dragon_bomb_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> DRAGON_BREATH_COOLDOWN = MOB_EFFECTS.register("dragon_breath_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> EXPLOSION_COOLDOWN = MOB_EFFECTS.register("explosion_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> FORCEFUL_SPIT_COOLDOWN = MOB_EFFECTS.register("forceful_spit_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> FURNACE_POWER = MOB_EFFECTS.register("furnace_power", FurnacePower::new);
-    public static final DeferredHolder<MobEffect, MobEffect> GHASTLY_COOLDOWN = MOB_EFFECTS.register("ghastly_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> IRON_REPAIR_COOLDOWN = MOB_EFFECTS.register("iron_repair_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> PYROMANCY_COOLDOWN = MOB_EFFECTS.register("pyromancy_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> RUMINATING = MOB_EFFECTS.register("ruminating", Ruminating::new);
-    public static final DeferredHolder<MobEffect, MobEffect> SHULKER_BULLET_COOLDOWN = MOB_EFFECTS.register("shulker_bullet_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> SILK_COOLDOWN = MOB_EFFECTS.register("silk_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> VENOM_COOLDOWN = MOB_EFFECTS.register("venom_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> WATER_VULNERABILITY = MOB_EFFECTS.register("water_vulnerability", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL,0x000000));
-    public static final DeferredHolder<MobEffect, MobEffect> SOUL_BEAST_INTIMIDATED = MOB_EFFECTS.register("soul_beast_intimidated", SoulBeastIntimidatedEffect::new);
-    // 黄骆天牛蛊 主动增益：精力消耗减少（默认显示为益处，隐藏粒子/图标由添加实例控制）
-    public static final DeferredHolder<MobEffect, MobEffect> HLTN_STAMINA_REDUCE = MOB_EFFECTS.register("huang_luo_tian_niu_gu_1", () -> new CCStatusEffect(MobEffectCategory.BENEFICIAL, 0xFFE680));
+  public static final DeferredHolder<MobEffect, MobEffect> ORGAN_REJECTION =
+      MOB_EFFECTS.register("organ_rejection", OrganRejection::new);
+  public static final DeferredHolder<MobEffect, MobEffect> ARROW_DODGE_COOLDOWN =
+      MOB_EFFECTS.register(
+          "arrow_dodge_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> DRAGON_BOMB_COOLDOWN =
+      MOB_EFFECTS.register(
+          "dragon_bomb_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> DRAGON_BREATH_COOLDOWN =
+      MOB_EFFECTS.register(
+          "dragon_breath_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> EXPLOSION_COOLDOWN =
+      MOB_EFFECTS.register(
+          "explosion_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> FORCEFUL_SPIT_COOLDOWN =
+      MOB_EFFECTS.register(
+          "forceful_spit_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> FURNACE_POWER =
+      MOB_EFFECTS.register("furnace_power", FurnacePower::new);
+  public static final DeferredHolder<MobEffect, MobEffect> GHASTLY_COOLDOWN =
+      MOB_EFFECTS.register(
+          "ghastly_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> IRON_REPAIR_COOLDOWN =
+      MOB_EFFECTS.register(
+          "iron_repair_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> PYROMANCY_COOLDOWN =
+      MOB_EFFECTS.register(
+          "pyromancy_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> RUMINATING =
+      MOB_EFFECTS.register("ruminating", Ruminating::new);
+  public static final DeferredHolder<MobEffect, MobEffect> SHULKER_BULLET_COOLDOWN =
+      MOB_EFFECTS.register(
+          "shulker_bullet_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> SILK_COOLDOWN =
+      MOB_EFFECTS.register(
+          "silk_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> VENOM_COOLDOWN =
+      MOB_EFFECTS.register(
+          "venom_cooldown", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> WATER_VULNERABILITY =
+      MOB_EFFECTS.register(
+          "water_vulnerability", () -> new CCStatusEffect(MobEffectCategory.NEUTRAL, 0x000000));
+  public static final DeferredHolder<MobEffect, MobEffect> SOUL_BEAST_INTIMIDATED =
+      MOB_EFFECTS.register("soul_beast_intimidated", SoulBeastIntimidatedEffect::new);
+  // 黄骆天牛蛊 主动增益：精力消耗减少（默认显示为益处，隐藏粒子/图标由添加实例控制）
+  public static final DeferredHolder<MobEffect, MobEffect> HLTN_STAMINA_REDUCE =
+      MOB_EFFECTS.register(
+          "huang_luo_tian_niu_gu_1",
+          () -> new CCStatusEffect(MobEffectCategory.BENEFICIAL, 0xFFE680));
 }

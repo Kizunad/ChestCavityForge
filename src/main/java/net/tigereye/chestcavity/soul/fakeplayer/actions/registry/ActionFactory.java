@@ -5,7 +5,7 @@ import net.tigereye.chestcavity.soul.fakeplayer.actions.api.Action;
 
 /** Factory for dynamic Action instances derived from an id. */
 public interface ActionFactory {
-    boolean supports(ResourceLocation id);
-    Action create(ResourceLocation id);
-}
+  boolean supports(ResourceLocation id);
 
+  Action create(ResourceLocation id);
+}

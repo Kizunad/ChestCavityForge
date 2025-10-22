@@ -3,7 +3,6 @@ package net.tigereye.chestcavity.soul.fakeplayer.brain;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.soul.fakeplayer.SoulPlayer;
@@ -17,180 +16,192 @@ import net.tigereye.chestcavity.soul.fakeplayer.brain.personality.SoulPersonalit
 import net.tigereye.chestcavity.soul.registry.SoulRuntimeHandler;
 
 /**
- * A lightweight coordinator that behaves like a "brain": selects the appropriate
- * top-level {@link Brain} implementation per soul (e.g., Combat) which in turn
- * orchestrates its registered sub-brains and actions. Modes can be AUTO or forced.
+ * A lightweight coordinator that behaves like a "brain": selects the appropriate top-level {@link
+ * Brain} implementation per soul (e.g., Combat) which in turn orchestrates its registered
+ * sub-brains and actions. Modes can be AUTO or forced.
  */
 public final class BrainController implements SoulRuntimeHandler {
 
-    private static final BrainController INSTANCE = new BrainController();
-    public static BrainController get() { return INSTANCE; }
+  private static final BrainController INSTANCE = new BrainController();
 
-    private final Map<UUID, BrainMode> modes = new ConcurrentHashMap<>();
-    private final Map<UUID, Brain> active = new ConcurrentHashMap<>();
-    // 单意图槽（最小实现）：每个 soul 仅保留一个主动意图与其 TTL
-    private final Map<UUID, IntentRecord> intents = new ConcurrentHashMap<>();
-    // Personality 映射（运行时缓存，持久化来源：SoulContainer）
-    private final Map<UUID, ResourceLocation> personalityIds = new ConcurrentHashMap<>();
+  public static BrainController get() {
+    return INSTANCE;
+  }
 
-    private final Brain combat = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.CombatBrain();
-    private final Brain survival = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.SurvivalBrain();
-    private final Brain exploration = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.ExplorationBrain();
-    private final Brain llm = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.LLMBrain();
-    private final Brain idle = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.IdleBrain();
+  private final Map<UUID, BrainMode> modes = new ConcurrentHashMap<>();
+  private final Map<UUID, Brain> active = new ConcurrentHashMap<>();
+  // 单意图槽（最小实现）：每个 soul 仅保留一个主动意图与其 TTL
+  private final Map<UUID, IntentRecord> intents = new ConcurrentHashMap<>();
+  // Personality 映射（运行时缓存，持久化来源：SoulContainer）
+  private final Map<UUID, ResourceLocation> personalityIds = new ConcurrentHashMap<>();
 
-    private BrainController() {}
+  private final Brain combat =
+      new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.CombatBrain();
+  private final Brain survival =
+      new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.SurvivalBrain();
+  private final Brain exploration =
+      new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.ExplorationBrain();
+  private final Brain llm = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.LLMBrain();
+  private final Brain idle = new net.tigereye.chestcavity.soul.fakeplayer.brain.brains.IdleBrain();
 
-    public BrainMode getMode(UUID soulId) {
-        return modes.getOrDefault(soulId, BrainMode.AUTO);
+  private BrainController() {}
+
+  public BrainMode getMode(UUID soulId) {
+    return modes.getOrDefault(soulId, BrainMode.AUTO);
+  }
+
+  public void setMode(UUID soulId, BrainMode mode) {
+    if (mode == null) mode = BrainMode.AUTO;
+    modes.put(soulId, mode);
+    // brain swap handled on next tick
+  }
+
+  public SoulPersonality getPersonality(UUID soulId) {
+    return resolvePersonality(soulId);
+  }
+
+  public ResourceLocation getPersonalityId(UUID soulId) {
+    return personalityIds.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
+  }
+
+  public void setPersonality(UUID soulId, ResourceLocation personalityId) {
+    if (soulId == null) {
+      return;
     }
+    ResourceLocation id =
+        personalityId == null ? SoulPersonalityRegistry.DEFAULT_ID : personalityId;
+    personalityIds.put(soulId, id);
+  }
 
-    public void setMode(UUID soulId, BrainMode mode) {
-        if (mode == null) mode = BrainMode.AUTO;
-        modes.put(soulId, mode);
-        // brain swap handled on next tick
+  public void clearPersonality(UUID soulId) {
+    if (soulId == null) {
+      return;
     }
+    personalityIds.remove(soulId);
+  }
 
-    public SoulPersonality getPersonality(UUID soulId) {
-        return resolvePersonality(soulId);
+  private SoulPersonality resolvePersonality(UUID soulId) {
+    if (soulId == null) {
+      return SoulPersonalityRegistry.defaults();
     }
+    ResourceLocation id = personalityIds.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
+    return SoulPersonalityRegistry.resolve(id);
+  }
 
-    public ResourceLocation getPersonalityId(UUID soulId) {
-        return personalityIds.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
+  /** 设置/覆盖当前 Soul 的主动意图。由命令层调用。 */
+  public void pushIntent(UUID soulId, BrainIntent intent) {
+    if (soulId == null || intent == null) return;
+    intents.put(soulId, new IntentRecord(intent, Math.max(0, intent.ttlTicks())));
+  }
+
+  /** 清空 Soul 的意图（回落到 AUTO 推断）。 */
+  public void clearIntents(UUID soulId) {
+    if (soulId == null) return;
+    intents.remove(soulId);
+  }
+
+  /** 获取该 soul 的意图快照（本 tick 内冻结）。 */
+  public IntentSnapshot getSnapshot(UUID soulId) {
+    IntentRecord rec = intents.get(soulId);
+    if (rec == null || rec.remaining <= 0) return IntentSnapshot.empty();
+    return new IntentSnapshot(rec.intent, rec.remaining);
+  }
+
+  @Override
+  public void onTickEnd(SoulPlayer player) {
+    var level = player.serverLevel();
+    var owner = ownerOf(player);
+    var mgr = ActionStateManager.of(player);
+
+    // TTL 衰减（每 tick）
+    decayIntent(player.getUUID());
+    IntentSnapshot snapshot = getSnapshot(player.getUUID());
+
+    BrainMode desired = pickMode(player, owner, snapshot);
+    SoulPersonality personality = resolvePersonality(player.getUUID());
+    Brain current = active.get(player.getUUID());
+    Brain target = selectBrain(desired);
+    BrainContext context = new BrainContext(level, player, owner, mgr, snapshot, personality);
+    if (current != target) {
+      net.tigereye.chestcavity.soul.fakeplayer.brain.debug.BrainDebugLogger.trace(
+          "switch",
+          "soul=%s %s -> %s",
+          player.getUUID(),
+          current == null ? "none" : current.id(),
+          target == null ? "none" : target.id());
+      if (current != null) current.onExit(context);
+      active.put(player.getUUID(), target);
+      if (target != null) target.onEnter(context);
     }
+    if (target != null) target.tick(context);
+  }
 
-    public void setPersonality(UUID soulId, ResourceLocation personalityId) {
-        if (soulId == null) {
-            return;
-        }
-        ResourceLocation id = personalityId == null ? SoulPersonalityRegistry.DEFAULT_ID : personalityId;
-        personalityIds.put(soulId, id);
+  private BrainMode pickMode(SoulPlayer soul, ServerPlayer owner, IntentSnapshot snapshot) {
+    BrainMode forced = modes.get(soul.getUUID());
+    if (forced != null && forced != BrainMode.AUTO) return forced;
+    // 若存在显式意图，则据此映射子脑（当前支持 Combat 与 LLM 意图）
+    if (snapshot != null && snapshot.isPresent() && snapshot.intent() instanceof CombatIntent) {
+      return BrainMode.COMBAT;
     }
-
-    public void clearPersonality(UUID soulId) {
-        if (soulId == null) {
-            return;
-        }
-        personalityIds.remove(soulId);
+    if (snapshot != null && snapshot.isPresent() && snapshot.intent() instanceof LLMIntent) {
+      return BrainMode.LLM;
     }
-
-    private SoulPersonality resolvePersonality(UUID soulId) {
-        if (soulId == null) {
-            return SoulPersonalityRegistry.defaults();
-        }
-        ResourceLocation id = personalityIds.getOrDefault(soulId, SoulPersonalityRegistry.DEFAULT_ID);
-        return SoulPersonalityRegistry.resolve(id);
+    // AUTO: derive from orders or simple context cues.
+    var order = net.tigereye.chestcavity.soul.ai.SoulAIOrders.get(soul.getSoulId());
+    if (order == net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.FORCE_FIGHT
+        || order == net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.GUARD) {
+      return BrainMode.COMBAT;
     }
-
-    /** 设置/覆盖当前 Soul 的主动意图。由命令层调用。 */
-    public void pushIntent(UUID soulId, BrainIntent intent) {
-        if (soulId == null || intent == null) return;
-        intents.put(soulId, new IntentRecord(intent, Math.max(0, intent.ttlTicks())));
+    double max = Math.max(1.0f, soul.getMaxHealth());
+    double hpRatio = soul.getHealth() / max;
+    boolean recentlyHurt = soul.getLastHurtByMob() != null || soul.getLastDamageSource() != null;
+    if (recentlyHurt || hpRatio < 0.55) {
+      return BrainMode.SURVIVAL;
     }
+    return BrainMode.EXPLORATION;
+  }
 
-    /** 清空 Soul 的意图（回落到 AUTO 推断）。 */
-    public void clearIntents(UUID soulId) {
-        if (soulId == null) return;
-        intents.remove(soulId);
+  private Brain selectBrain(BrainMode mode) {
+    return switch (mode) {
+      case COMBAT -> combat;
+      case SURVIVAL -> survival;
+      case EXPLORATION -> exploration;
+      case LLM -> llm;
+      case IDLE -> idle;
+      case AUTO -> null; // AUTO handled earlier
+    };
+  }
+
+  private static ServerPlayer ownerOf(SoulPlayer soul) {
+    var server = soul.serverLevel().getServer();
+    var opt = soul.getOwnerId();
+    if (opt == null || opt.isEmpty()) return null;
+    UUID ownerId = opt.get();
+    return ownerId == null ? null : server.getPlayerList().getPlayer(ownerId);
+  }
+
+  /** 简单的意图存储（单槽 + TTL） */
+  private static final class IntentRecord {
+    final BrainIntent intent;
+    int remaining;
+
+    IntentRecord(BrainIntent intent, int ttl) {
+      this.intent = intent;
+      this.remaining = Math.max(0, ttl);
     }
+  }
 
-    /** 获取该 soul 的意图快照（本 tick 内冻结）。 */
-    public IntentSnapshot getSnapshot(UUID soulId) {
-        IntentRecord rec = intents.get(soulId);
-        if (rec == null || rec.remaining <= 0) return IntentSnapshot.empty();
-        return new IntentSnapshot(rec.intent, rec.remaining);
+  private void decayIntent(UUID soulId) {
+    if (soulId == null) return;
+    IntentRecord rec = intents.get(soulId);
+    if (rec == null) return;
+    if (rec.remaining <= 0) {
+      intents.remove(soulId);
+      return;
     }
-
-    @Override
-    public void onTickEnd(SoulPlayer player) {
-        var level = player.serverLevel();
-        var owner = ownerOf(player);
-        var mgr = ActionStateManager.of(player);
-
-        // TTL 衰减（每 tick）
-        decayIntent(player.getUUID());
-        IntentSnapshot snapshot = getSnapshot(player.getUUID());
-
-        BrainMode desired = pickMode(player, owner, snapshot);
-        SoulPersonality personality = resolvePersonality(player.getUUID());
-        Brain current = active.get(player.getUUID());
-        Brain target = selectBrain(desired);
-        BrainContext context = new BrainContext(level, player, owner, mgr, snapshot, personality);
-        if (current != target) {
-            net.tigereye.chestcavity.soul.fakeplayer.brain.debug.BrainDebugLogger.trace(
-                    "switch", "soul=%s %s -> %s", player.getUUID(), current == null ? "none" : current.id(), target == null ? "none" : target.id());
-            if (current != null) current.onExit(context);
-            active.put(player.getUUID(), target);
-            if (target != null) target.onEnter(context);
-        }
-        if (target != null) target.tick(context);
+    rec.remaining -= 1;
+    if (rec.remaining <= 0) {
+      intents.remove(soulId);
     }
-
-    private BrainMode pickMode(SoulPlayer soul, ServerPlayer owner, IntentSnapshot snapshot) {
-        BrainMode forced = modes.get(soul.getUUID());
-        if (forced != null && forced != BrainMode.AUTO) return forced;
-        // 若存在显式意图，则据此映射子脑（当前支持 Combat 与 LLM 意图）
-        if (snapshot != null && snapshot.isPresent() && snapshot.intent() instanceof CombatIntent) {
-            return BrainMode.COMBAT;
-        }
-        if (snapshot != null && snapshot.isPresent() && snapshot.intent() instanceof LLMIntent) {
-            return BrainMode.LLM;
-        }
-        // AUTO: derive from orders or simple context cues.
-        var order = net.tigereye.chestcavity.soul.ai.SoulAIOrders.get(soul.getSoulId());
-        if (order == net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.FORCE_FIGHT ||
-            order == net.tigereye.chestcavity.soul.ai.SoulAIOrders.Order.GUARD) {
-            return BrainMode.COMBAT;
-        }
-        double max = Math.max(1.0f, soul.getMaxHealth());
-        double hpRatio = soul.getHealth() / max;
-        boolean recentlyHurt = soul.getLastHurtByMob() != null || soul.getLastDamageSource() != null;
-        if (recentlyHurt || hpRatio < 0.55) {
-            return BrainMode.SURVIVAL;
-        }
-        return BrainMode.EXPLORATION;
-    }
-
-    private Brain selectBrain(BrainMode mode) {
-        return switch (mode) {
-            case COMBAT -> combat;
-            case SURVIVAL -> survival;
-            case EXPLORATION -> exploration;
-            case LLM -> llm;
-            case IDLE -> idle;
-            case AUTO -> null; // AUTO handled earlier
-        };
-    }
-
-    private static ServerPlayer ownerOf(SoulPlayer soul) {
-        var server = soul.serverLevel().getServer();
-        var opt = soul.getOwnerId();
-        if (opt == null || opt.isEmpty()) return null;
-        UUID ownerId = opt.get();
-        return ownerId == null ? null : server.getPlayerList().getPlayer(ownerId);
-    }
-
-    /** 简单的意图存储（单槽 + TTL） */
-    private static final class IntentRecord {
-        final BrainIntent intent;
-        int remaining;
-        IntentRecord(BrainIntent intent, int ttl) {
-            this.intent = intent;
-            this.remaining = Math.max(0, ttl);
-        }
-    }
-
-    private void decayIntent(UUID soulId) {
-        if (soulId == null) return;
-        IntentRecord rec = intents.get(soulId);
-        if (rec == null) return;
-        if (rec.remaining <= 0) {
-            intents.remove(soulId);
-            return;
-        }
-        rec.remaining -= 1;
-        if (rec.remaining <= 0) {
-            intents.remove(soulId);
-        }
-    }
+  }
 }

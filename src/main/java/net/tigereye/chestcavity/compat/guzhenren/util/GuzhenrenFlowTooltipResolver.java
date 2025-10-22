@@ -10,110 +10,104 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * 运行时工具：解析 ItemStack 的 tooltip，识别古真人物品的“流派”标识。
  *
- * <p>使用场景：ModernUI 配置界面或调试命令希望读取玩家当前指向物品的流派信息，
- * 而无需维护额外数据表。</p>
+ * <p>使用场景：ModernUI 配置界面或调试命令希望读取玩家当前指向物品的流派信息， 而无需维护额外数据表。
  */
 public final class GuzhenrenFlowTooltipResolver {
-    private static final Pattern FLOW_PATTERN = Pattern.compile("流派[:：]\\s*(.+)"); // 提取“流派：xxx”主干文本
-    private static final Pattern FLOW_DELIMITER = Pattern.compile("[、，,\\s]+"); // 支持多流派分隔符
+  private static final Pattern FLOW_PATTERN = Pattern.compile("流派[:：]\\s*(.+)"); // 提取“流派：xxx”主干文本
+  private static final Pattern FLOW_DELIMITER = Pattern.compile("[、，,\\s]+"); // 支持多流派分隔符
 
-    private GuzhenrenFlowTooltipResolver() {}
+  private GuzhenrenFlowTooltipResolver() {}
 
-    /**
-     * 扫描 tooltip 行，返回物品 ID 与解析出的流派列表。
-     *
-     * @param stack   需要检查的物品
-     * @param context tooltip 上下文（通常来自 {@link Item.TooltipContext#of(Level)} 或客户端提供）
-     * @param flag    tooltip 标志（一般为 {@link TooltipFlag#NORMAL}）
-     * @param viewer  当前查看 tooltip 的玩家，可为空
-     */
-    public static FlowInfo inspect(ItemStack stack, TooltipContext context, TooltipFlag flag, @Nullable Player viewer) {
-        List<net.minecraft.network.chat.Component> lines = stack.getTooltipLines(context, viewer, flag);
-        return inspect(stack, lines);
+  /**
+   * 扫描 tooltip 行，返回物品 ID 与解析出的流派列表。
+   *
+   * @param stack 需要检查的物品
+   * @param context tooltip 上下文（通常来自 {@link Item.TooltipContext#of(Level)} 或客户端提供）
+   * @param flag tooltip 标志（一般为 {@link TooltipFlag#NORMAL}）
+   * @param viewer 当前查看 tooltip 的玩家，可为空
+   */
+  public static FlowInfo inspect(
+      ItemStack stack, TooltipContext context, TooltipFlag flag, @Nullable Player viewer) {
+    List<net.minecraft.network.chat.Component> lines = stack.getTooltipLines(context, viewer, flag);
+    return inspect(stack, lines);
+  }
+
+  /** 直接使用外部提供的 tooltip 文本（例如已经渲染的 UI 缓存）。 */
+  public static FlowInfo inspect(
+      ItemStack stack, List<net.minecraft.network.chat.Component> tooltipLines) {
+    ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+    Set<String> flows = new LinkedHashSet<>();
+
+    for (net.minecraft.network.chat.Component component : tooltipLines) {
+      String text = normalize(component.getString());
+      if (text.isEmpty()) {
+        continue;
+      }
+      var matcher = FLOW_PATTERN.matcher(text);
+      if (!matcher.find()) {
+        continue;
+      }
+      String value = matcher.group(1).trim();
+      if (value.isEmpty()) {
+        continue;
+      }
+      if (isAbsentMarker(value)) {
+        flows.clear();
+        break;
+      }
+      FLOW_DELIMITER
+          .splitAsStream(value)
+          .map(String::trim)
+          .filter(s -> !s.isEmpty())
+          .forEach(flows::add);
     }
 
-    /**
-     * 直接使用外部提供的 tooltip 文本（例如已经渲染的 UI 缓存）。
-     */
-    public static FlowInfo inspect(ItemStack stack, List<net.minecraft.network.chat.Component> tooltipLines) {
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        Set<String> flows = new LinkedHashSet<>();
+    return new FlowInfo(itemId, ImmutableList.copyOf(flows));
+  }
 
-        for (net.minecraft.network.chat.Component component : tooltipLines) {
-            String text = normalize(component.getString());
-            if (text.isEmpty()) {
-                continue;
-            }
-            var matcher = FLOW_PATTERN.matcher(text);
-            if (!matcher.find()) {
-                continue;
-            }
-            String value = matcher.group(1).trim();
-            if (value.isEmpty()) {
-                continue;
-            }
-            if (isAbsentMarker(value)) {
-                flows.clear();
-                break;
-            }
-            FLOW_DELIMITER.splitAsStream(value)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .forEach(flows::add);
-        }
-
-        return new FlowInfo(itemId, ImmutableList.copyOf(flows));
+  private static String normalize(String raw) {
+    if (raw == null) {
+      return "";
     }
+    String stripped = ChatFormatting.stripFormatting(raw);
+    String fallback = stripped == null ? raw : stripped;
+    return fallback.trim();
+  }
 
-    private static String normalize(String raw) {
-        if (raw == null) {
-            return "";
-        }
-        String stripped = ChatFormatting.stripFormatting(raw);
-        String fallback = stripped == null ? raw : stripped;
-        return fallback.trim();
-    }
+  /** tooltip 中若出现这些词视为“无流派”。 */
+  private static boolean isAbsentMarker(String value) {
+    String lowered = value.toLowerCase(Locale.ROOT);
+    return lowered.isEmpty()
+        || "无".equals(value)
+        || "暂无".equals(value)
+        || lowered.contains("无对应")
+        || lowered.contains("未划分");
+  }
 
-    /**
-     * tooltip 中若出现这些词视为“无流派”。
-     */
-    private static boolean isAbsentMarker(String value) {
-        String lowered = value.toLowerCase(Locale.ROOT);
-        return lowered.isEmpty()
-            || "无".equals(value)
-            || "暂无".equals(value)
-            || lowered.contains("无对应")
-            || lowered.contains("未划分");
+  public record FlowInfo(@Nullable ResourceLocation itemId, ImmutableList<String> flows) {
+    public boolean hasFlow() {
+      return !flows.isEmpty();
     }
+  }
 
-    public record FlowInfo(@Nullable ResourceLocation itemId, ImmutableList<String> flows) {
-        public boolean hasFlow() {
-            return !flows.isEmpty();
-        }
-    }
-
-    /**
-     * 便捷方法：基于 Level 构建 {@link TooltipContext} 并解析流派。
-     *
-     * <p>注意：NeoForge 1.21 的 {@link TooltipContext} 需要通过 {@link Item.TooltipContext#of(Level)}
-     * 或 {@link Item.TooltipContext#none()} 创建，调用端需确保在客户端线程执行。</p>
-     */
-    public static FlowInfo inspectWithLevel(
-        ItemStack stack,
-        @Nullable Level level,
-        @Nullable Player viewer,
-        TooltipFlag flag
-    ) {
-        TooltipContext context = level != null ? TooltipContext.of(level) : TooltipContext.EMPTY;
-        return inspect(stack, context, flag, viewer);
-    }
+  /**
+   * 便捷方法：基于 Level 构建 {@link TooltipContext} 并解析流派。
+   *
+   * <p>注意：NeoForge 1.21 的 {@link TooltipContext} 需要通过 {@link Item.TooltipContext#of(Level)} 或
+   * {@link Item.TooltipContext#none()} 创建，调用端需确保在客户端线程执行。
+   */
+  public static FlowInfo inspectWithLevel(
+      ItemStack stack, @Nullable Level level, @Nullable Player viewer, TooltipFlag flag) {
+    TooltipContext context = level != null ? TooltipContext.of(level) : TooltipContext.EMPTY;
+    return inspect(stack, context, flag, viewer);
+  }
 }

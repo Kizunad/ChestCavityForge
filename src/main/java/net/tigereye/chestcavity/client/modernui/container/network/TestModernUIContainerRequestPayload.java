@@ -9,26 +9,31 @@ import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerD
 
 public record TestModernUIContainerRequestPayload() implements CustomPacketPayload {
 
-    public static final CustomPacketPayload.Type<TestModernUIContainerRequestPayload> TYPE =
-            new CustomPacketPayload.Type<>(ChestCavity.id("testmodernui_container_request"));
+  public static final CustomPacketPayload.Type<TestModernUIContainerRequestPayload> TYPE =
+      new CustomPacketPayload.Type<>(ChestCavity.id("testmodernui_container_request"));
 
-    public static final StreamCodec<FriendlyByteBuf, TestModernUIContainerRequestPayload> STREAM_CODEC =
-            StreamCodec.of((buf, payload) -> {
+  public static final StreamCodec<FriendlyByteBuf, TestModernUIContainerRequestPayload>
+      STREAM_CODEC =
+          StreamCodec.of(
+              (buf, payload) -> {
                 // no fields
-            }, buf -> new TestModernUIContainerRequestPayload());
+              },
+              buf -> new TestModernUIContainerRequestPayload());
 
-    @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
-        return TYPE;
-    }
+  @Override
+  public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    return TYPE;
+  }
 
-    public static void handle(TestModernUIContainerRequestPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (context.player() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
-                TestModernUIContainerDebug.openFor(serverPlayer);
-            } else {
-                ChestCavity.LOGGER.warn("[ModernUI] Received container request without server player context");
-            }
+  public static void handle(TestModernUIContainerRequestPayload payload, IPayloadContext context) {
+    context.enqueueWork(
+        () -> {
+          if (context.player() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            TestModernUIContainerDebug.openFor(serverPlayer);
+          } else {
+            ChestCavity.LOGGER.warn(
+                "[ModernUI] Received container request without server player context");
+          }
         });
-    }
+  }
 }

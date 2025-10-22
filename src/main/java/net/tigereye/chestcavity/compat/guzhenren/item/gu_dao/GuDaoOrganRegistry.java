@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao;
 
+import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GangjinguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.GuQiangguOrganBehavior;
@@ -11,95 +12,101 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.RouBaiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.TieGuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.YuGuguOrganBehavior; // 你需要自己写对应行为;
-import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.SteelBoneComboHealing;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
-import java.util.List;
-
 /**
- * Declarative registry for 骨道蛊 items. Each behaviour is registered through the
- * {@link GuzhenrenLinkageEffectRegistry} so that listener wiring stays consistent.
+ * Declarative registry for 骨道蛊 items. Each behaviour is registered through the {@link
+ * GuzhenrenLinkageEffectRegistry} so that listener wiring stays consistent.
  */
 public final class GuDaoOrganRegistry {
 
-    private static final String MOD_ID = "guzhenren";
-    private static final ResourceLocation BONE_BAMBOO_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
-    private static final ResourceLocation STEEL_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "ganjingu");
-    private static final ResourceLocation IRON_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "tie_gu_gu");
-    private static final ResourceLocation REFINED_IRON_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jingtiegugu");
-    private static final ResourceLocation BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_qiang_gu");
-    private static final ResourceLocation SPIRAL_BONE_SPEAR_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "luo_xuan_gu_qiang_gu");
-    private static final ResourceLocation TIGER_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
-    private static final ResourceLocation JADE_BONE_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
-    private static final ResourceLocation ROU_BAI_GU_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "rou_bai_gu");
-    private static final ResourceLocation RIB_SHIELD_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "le_gu_dun_gu");
-    private static final List<OrganIntegrationSpec> SPECS;
+  private static final String MOD_ID = "guzhenren";
+  private static final ResourceLocation BONE_BAMBOO_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_zhu_gu");
+  private static final ResourceLocation STEEL_BONE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "ganjingu");
+  private static final ResourceLocation IRON_BONE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "tie_gu_gu");
+  private static final ResourceLocation REFINED_IRON_BONE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "jingtiegugu");
+  private static final ResourceLocation BONE_SPEAR_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "gu_qiang_gu");
+  private static final ResourceLocation SPIRAL_BONE_SPEAR_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "luo_xuan_gu_qiang_gu");
+  private static final ResourceLocation TIGER_BONE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "hugugu");
+  private static final ResourceLocation JADE_BONE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu"); // 新增玉骨蛊
+  private static final ResourceLocation ROU_BAI_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "rou_bai_gu");
+  private static final ResourceLocation RIB_SHIELD_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "le_gu_dun_gu");
+  private static final List<OrganIntegrationSpec> SPECS;
 
-    static {
-        GuDaoOrganEvents.register();
-        SPECS = List.of(
-                OrganIntegrationSpec.builder(BONE_BAMBOO_ID)
-                        .addSlowTickListener(GuzhuguOrganBehavior.INSTANCE)
-                        .ensureAttached(GuzhuguOrganBehavior.INSTANCE::ensureAttached)
-                        .build(),
-                OrganIntegrationSpec.builder(STEEL_BONE_ID)
-                        .addSlowTickListener(GangjinguOrganBehavior.INSTANCE)
-                        .addOnHitListener(GangjinguOrganBehavior.INSTANCE)
-                        .addHealListener(SteelBoneComboHealing.INSTANCE)
-                        .ensureAttached(GangjinguOrganBehavior.INSTANCE::ensureAttached)
-                        .build(),
-                OrganIntegrationSpec.builder(IRON_BONE_ID)
-                        .addSlowTickListener(TieGuGuOrganBehavior.INSTANCE)
-                        .addRemovalListener(TieGuGuOrganBehavior.INSTANCE)
-                        .ensureAttached(TieGuGuOrganBehavior.INSTANCE::ensureAttached)
-                        .onEquip(TieGuGuOrganBehavior.INSTANCE::onEquip)
-                        .build(),
-                OrganIntegrationSpec.builder(REFINED_IRON_BONE_ID)
-                        .addSlowTickListener(JingtieguguOrganBehavior.INSTANCE)
-                        .addRemovalListener(JingtieguguOrganBehavior.INSTANCE)
-                        .addHealListener(SteelBoneComboHealing.INSTANCE)
-                        .ensureAttached(JingtieguguOrganBehavior.INSTANCE::ensureAttached)
-                        .onEquip(JingtieguguOrganBehavior.INSTANCE::onEquip)
-                        .build(),
-                OrganIntegrationSpec.builder(BONE_SPEAR_ID)
-                        .addSlowTickListener(GuQiangguOrganBehavior.INSTANCE)
-                        .addOnHitListener(GuQiangguOrganBehavior.INSTANCE)
-                        .ensureAttached(GuQiangguOrganBehavior.INSTANCE::ensureAttached)
-                        .build(),
-                OrganIntegrationSpec.builder(SPIRAL_BONE_SPEAR_ID)
-                        .addSlowTickListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
-                        .addOnHitListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
-                        .addIncomingDamageListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
-                        .ensureAttached(LuoXuanGuQiangguOrganBehavior.INSTANCE::ensureAttached)
-                        .build(),
-                OrganIntegrationSpec.builder(TIGER_BONE_ID)
-                        .addSlowTickListener(HuGuguOrganBehavior.INSTANCE)
-                        .addIncomingDamageListener(HuGuguOrganBehavior.INSTANCE)
-                        .ensureAttached(HuGuguOrganBehavior.INSTANCE::ensureAttached)
-                        .build(),
-                OrganIntegrationSpec.builder(JADE_BONE_ID)
-                        .addSlowTickListener(YuGuguOrganBehavior.INSTANCE)
-                        .ensureAttached(YuGuguOrganBehavior.INSTANCE::ensureAttached)
-                        .onEquip(YuGuguOrganBehavior.INSTANCE::onEquip)
-                        .build(),
-                OrganIntegrationSpec.builder(RIB_SHIELD_ID)
-                        .addSlowTickListener(LeGuDunGuOrganBehavior.INSTANCE)
-                        .addRemovalListener(LeGuDunGuOrganBehavior.INSTANCE)
-                        .ensureAttached(LeGuDunGuOrganBehavior.INSTANCE::ensureAttached)
-                        .onEquip(LeGuDunGuOrganBehavior.INSTANCE::onEquip)
-                        .build(),
-                OrganIntegrationSpec.builder(ROU_BAI_GU_ID)
-                        .addSlowTickListener(RouBaiguOrganBehavior.INSTANCE)
-                        .addOnHitListener(RouBaiguOrganBehavior.INSTANCE)
-                        .ensureAttached(RouBaiguOrganBehavior.INSTANCE::ensureAttached)
-                        .build()
-        );
-    }
+  static {
+    GuDaoOrganEvents.register();
+    SPECS =
+        List.of(
+            OrganIntegrationSpec.builder(BONE_BAMBOO_ID)
+                .addSlowTickListener(GuzhuguOrganBehavior.INSTANCE)
+                .ensureAttached(GuzhuguOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(STEEL_BONE_ID)
+                .addSlowTickListener(GangjinguOrganBehavior.INSTANCE)
+                .addOnHitListener(GangjinguOrganBehavior.INSTANCE)
+                .addHealListener(SteelBoneComboHealing.INSTANCE)
+                .ensureAttached(GangjinguOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(IRON_BONE_ID)
+                .addSlowTickListener(TieGuGuOrganBehavior.INSTANCE)
+                .addRemovalListener(TieGuGuOrganBehavior.INSTANCE)
+                .ensureAttached(TieGuGuOrganBehavior.INSTANCE::ensureAttached)
+                .onEquip(TieGuGuOrganBehavior.INSTANCE::onEquip)
+                .build(),
+            OrganIntegrationSpec.builder(REFINED_IRON_BONE_ID)
+                .addSlowTickListener(JingtieguguOrganBehavior.INSTANCE)
+                .addRemovalListener(JingtieguguOrganBehavior.INSTANCE)
+                .addHealListener(SteelBoneComboHealing.INSTANCE)
+                .ensureAttached(JingtieguguOrganBehavior.INSTANCE::ensureAttached)
+                .onEquip(JingtieguguOrganBehavior.INSTANCE::onEquip)
+                .build(),
+            OrganIntegrationSpec.builder(BONE_SPEAR_ID)
+                .addSlowTickListener(GuQiangguOrganBehavior.INSTANCE)
+                .addOnHitListener(GuQiangguOrganBehavior.INSTANCE)
+                .ensureAttached(GuQiangguOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(SPIRAL_BONE_SPEAR_ID)
+                .addSlowTickListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
+                .addOnHitListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
+                .addIncomingDamageListener(LuoXuanGuQiangguOrganBehavior.INSTANCE)
+                .ensureAttached(LuoXuanGuQiangguOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(TIGER_BONE_ID)
+                .addSlowTickListener(HuGuguOrganBehavior.INSTANCE)
+                .addIncomingDamageListener(HuGuguOrganBehavior.INSTANCE)
+                .ensureAttached(HuGuguOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(JADE_BONE_ID)
+                .addSlowTickListener(YuGuguOrganBehavior.INSTANCE)
+                .ensureAttached(YuGuguOrganBehavior.INSTANCE::ensureAttached)
+                .onEquip(YuGuguOrganBehavior.INSTANCE::onEquip)
+                .build(),
+            OrganIntegrationSpec.builder(RIB_SHIELD_ID)
+                .addSlowTickListener(LeGuDunGuOrganBehavior.INSTANCE)
+                .addRemovalListener(LeGuDunGuOrganBehavior.INSTANCE)
+                .ensureAttached(LeGuDunGuOrganBehavior.INSTANCE::ensureAttached)
+                .onEquip(LeGuDunGuOrganBehavior.INSTANCE::onEquip)
+                .build(),
+            OrganIntegrationSpec.builder(ROU_BAI_GU_ID)
+                .addSlowTickListener(RouBaiguOrganBehavior.INSTANCE)
+                .addOnHitListener(RouBaiguOrganBehavior.INSTANCE)
+                .ensureAttached(RouBaiguOrganBehavior.INSTANCE::ensureAttached)
+                .build());
+  }
 
-    private GuDaoOrganRegistry() {
-    }
+  private GuDaoOrganRegistry() {}
 
-    public static List<OrganIntegrationSpec> specs() {
-        return SPECS;
-    }
+  public static List<OrganIntegrationSpec> specs() {
+    return SPECS;
+  }
 }

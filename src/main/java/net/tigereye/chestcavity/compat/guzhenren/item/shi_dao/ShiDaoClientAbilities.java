@@ -10,12 +10,11 @@ import net.tigereye.chestcavity.registration.CCKeybindings;
  */
 public final class ShiDaoClientAbilities {
 
-    private ShiDaoClientAbilities() {
-    }
+  private ShiDaoClientAbilities() {}
 
-    public static void onClientSetup(FMLClientSetupEvent event) {
-        if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(JiuChongOrganBehavior.ABILITY_ID)) {
-            CCKeybindings.ATTACK_ABILITY_LIST.add(JiuChongOrganBehavior.ABILITY_ID);
-        }
+  public static void onClientSetup(FMLClientSetupEvent event) {
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(JiuChongOrganBehavior.ABILITY_ID)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(JiuChongOrganBehavior.ABILITY_ID);
     }
+  }
 }

@@ -9,11 +9,18 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
 
 public class CCCreativeTabs {
-    public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ChestCavity.MODID);
+  public static final DeferredRegister<CreativeModeTab> TABS =
+      DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ChestCavity.MODID);
 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> ORGAN_TAB = TABS.register("organs", () -> CreativeModeTab.builder()
-            .title(Component.translatable("itemGroup." + ChestCavity.MODID + ".organs"))
-            .icon(() -> new ItemStack(CCItems.HUMAN_STOMACH.get()))
-            .displayItems((parameters, output) -> CCItems.ITEMS.getEntries().forEach(entry -> output.accept(entry.get())))
-            .build());
+  public static final DeferredHolder<CreativeModeTab, CreativeModeTab> ORGAN_TAB =
+      TABS.register(
+          "organs",
+          () ->
+              CreativeModeTab.builder()
+                  .title(Component.translatable("itemGroup." + ChestCavity.MODID + ".organs"))
+                  .icon(() -> new ItemStack(CCItems.HUMAN_STOMACH.get()))
+                  .displayItems(
+                      (parameters, output) ->
+                          CCItems.ITEMS.getEntries().forEach(entry -> output.accept(entry.get())))
+                  .build());
 }
