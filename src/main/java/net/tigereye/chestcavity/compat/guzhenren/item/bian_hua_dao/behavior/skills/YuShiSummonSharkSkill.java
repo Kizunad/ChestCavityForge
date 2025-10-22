@@ -15,6 +15,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -80,6 +81,9 @@ public final class YuShiSummonSharkSkill {
     ResourceLocation.fromNamespaceAndPath("guzhenren", "bing_po_long_wen_sha")
   };
 
+  // 玩家背包结构中副手对应的槽位索引（Vanilla 固定为 40）。
+  private static final int OFFHAND_SLOT = 40;
+
   private YuShiSummonSharkSkill() {}
 
   public static void bootstrap() {
@@ -106,21 +110,15 @@ public final class YuShiSummonSharkSkill {
       return;
     }
 
-    ItemStack held = player.getItemInHand(InteractionHand.MAIN_HAND);
-    if (held.isEmpty()) {
+    Inventory inventory = player.getInventory();
+    Optional<OfferingSlot> offeringOpt = findBestOffering(inventory);
+    if (offeringOpt.isEmpty()) {
       sendFailure(player, "你大口吞下了空气。鱼鳞蛊沉默以对。");
       return;
     }
-    if (!held.is(MATERIALS_TAG)) {
-      sendFailure(player, "这可不是鲨类蛊材。鱼鳞蛊无动于衷。");
-      return;
-    }
-
-    int materialTier = tierOf(held);
-    if (materialTier <= 0) {
-      sendFailure(player, "这可不是合适的鲨鱼祭品。鱼鳞蛊沉默以对。");
-      return;
-    }
+    OfferingSlot offering = offeringOpt.get();
+    ItemStack offeringStack = offering.stack();
+    int materialTier = tierOf(offeringStack);
 
     Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
     if (handleOpt.isEmpty()) {
@@ -139,10 +137,7 @@ public final class YuShiSummonSharkSkill {
         .getFoodData()
         .setFoodLevel(Math.max(0, player.getFoodData().getFoodLevel() - HUNGER_COST));
 
-    held.shrink(1);
-    if (held.isEmpty()) {
-      player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-    }
+    consumeOffering(player, inventory, offering);
 
     YuLinGuBehavior behavior = YuLinGuBehavior.INSTANCE;
     int unlocked = behavior.unlockedSharkTier(organ);
@@ -233,6 +228,51 @@ public final class YuShiSummonSharkSkill {
     return 0;
   }
 
+  private static Optional<OfferingSlot> findBestOffering(Inventory inventory) {
+    // 按要求遍历玩家完整背包，挑选阶次最高且数量可用的鲨材供品。
+    OfferingSlot best = null;
+    int selectedSlot = inventory.selected;
+    int size = inventory.getContainerSize();
+    int bestTier = 0;
+    for (int slot = 0; slot < size; slot++) {
+      ItemStack candidate = inventory.getItem(slot);
+      if (candidate.isEmpty() || !candidate.is(MATERIALS_TAG) || candidate.getCount() <= 0) {
+        continue;
+      }
+      int tier = tierOf(candidate);
+      if (tier <= 0) {
+        continue;
+      }
+      InteractionHand hand = resolveHand(slot, selectedSlot);
+      if (tier > bestTier) {
+        bestTier = tier;
+        best = new OfferingSlot(slot, candidate.copy(), hand);
+      }
+    }
+    return Optional.ofNullable(best);
+  }
+
+  // 将槽位索引映射到可能的手持位置，以便在消耗后执行客户端同步。
+  private static InteractionHand resolveHand(int slot, int selectedSlot) {
+    if (slot == selectedSlot) {
+      return InteractionHand.MAIN_HAND;
+    }
+    if (slot == OFFHAND_SLOT) {
+      return InteractionHand.OFF_HAND;
+    }
+    return null;
+  }
+
+  private static void consumeOffering(
+      ServerPlayer player, Inventory inventory, OfferingSlot offering) {
+    // 通过 inventory.removeItem 精准扣除供品，并在需要时同步手持物品状态给客户端。
+    inventory.removeItem(offering.slot(), 1);
+    InteractionHand hand = offering.hand();
+    if (hand != null) {
+      player.setItemInHand(hand, inventory.getItem(offering.slot()));
+    }
+  }
+
   private static ItemStack findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return ItemStack.EMPTY;
@@ -254,4 +294,6 @@ public final class YuShiSummonSharkSkill {
   private static void sendFailure(ServerPlayer player, String message) {
     player.displayClientMessage(net.minecraft.network.chat.Component.literal(message), true);
   }
+
+  private record OfferingSlot(int slot, ItemStack stack, InteractionHand hand) {}
 }
