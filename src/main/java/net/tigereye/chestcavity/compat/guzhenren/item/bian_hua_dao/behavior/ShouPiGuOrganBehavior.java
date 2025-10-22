@@ -215,6 +215,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     long drumExpire = state.getLong(KEY_ACTIVE_DRUM_EXPIRE, 0L);
     if (drumExpire > 0L && now >= drumExpire) {
+      // 清理鼓动效果：重置持续时间即会终止减伤，并同步移除临时击退抗性
       state.setLong(KEY_ACTIVE_DRUM_EXPIRE, 0L, value -> Math.max(0L, value), 0L);
       removeDrumKnockback(entity);
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
@@ -266,6 +267,13 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (state.getLong(KEY_ROLL_EXPIRE, 0L) > now) {
       double before = workingDamage;
       workingDamage *= 1.0D - ROLL_DAMAGE_REDUCTION;
+      mitigatedFromOrgan += Math.max(0.0D, before - workingDamage);
+    }
+
+    if (state.getLong(KEY_ACTIVE_DRUM_EXPIRE, 0L) > now) {
+      // 鼓动期间提供 6% 伤害系数加成，使用 ACTIVE_DRUM_DEFENSE_BONUS 以保持与常量一致
+      double before = workingDamage;
+      workingDamage *= 1.0D - ACTIVE_DRUM_DEFENSE_BONUS;
       mitigatedFromOrgan += Math.max(0.0D, before - workingDamage);
     }
 
