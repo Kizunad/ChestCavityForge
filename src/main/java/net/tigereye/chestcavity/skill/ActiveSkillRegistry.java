@@ -34,6 +34,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.CaoQunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.JiuYeShengJiCaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.ShengJiYeOrganBehavior;
@@ -394,6 +395,55 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(JiuYeShengJiCaoOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    // 草裙蛊：木道系防御/恢复器官，提供护幕、治疗、替身吸收与防御姿态四个主动技
+    register(
+        "guzhenren:cao_qun_gu/a1",
+        "guzhenren:caoqungu_a1",
+        "guzhenren:caoqungu",
+        tags("防御", "护盾"),
+        "藤裙护幕：消耗真元展开木藤护幕并附带近战反伤，阶段提升护幕吸收上限",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("藤裙护幕就绪", null));
+
+    register(
+        "guzhenren:cao_qun_gu/a2",
+        "guzhenren:caoqungu_a2",
+        "guzhenren:caoqungu",
+        tags("治疗", "回复"),
+        "露润回春：为范围内队友施加持续治疗并可随阶段扩展目标或半径",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("露润回春就绪", null));
+
+    register(
+        "guzhenren:cao_qun_gu/a3",
+        "guzhenren:caoqungu_a3",
+        "guzhenren:caoqungu",
+        tags("防御", "减伤"),
+        "木心替身：短时间替身吸收伤害并在结束时按吸收量自愈",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("木心替身就绪", null));
+
+    register(
+        "guzhenren:cao_qun_gu/a4",
+        "guzhenren:caoqungu_a4",
+        "guzhenren:caoqungu",
+        tags("防御", "姿态"),
+        "叶影庇佑：进入防御姿态减伤并可正面格挡，姿态结束后获得短暂再生",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("叶影庇佑就绪", null));
 
     register(
         "guzhenren:qing_tong_she_li_gu",
