@@ -98,6 +98,14 @@ public final class YuShiSummonSharkSkill {
       return;
     }
 
+    OrganState state = OrganState.of(organ, "YuLinGu");
+    MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
+    MultiCooldown.Entry ready = cooldown.entry(COOLDOWN_KEY).withDefault(0L);
+    long now = serverLevel.getGameTime();
+    if (!ready.isReady(now)) {
+      return;
+    }
+
     ItemStack held = player.getItemInHand(InteractionHand.MAIN_HAND);
     if (held.isEmpty()) {
       sendFailure(player, "你大口吞下了空气。鱼鳞蛊沉默以对。");
@@ -159,16 +167,13 @@ public final class YuShiSummonSharkSkill {
     living.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, player.getYRot(), player.getXRot());
     serverLevel.addFreshEntity(living);
 
-    long now = serverLevel.getGameTime();
     OwnedSharkEntity tracked =
         new OwnedSharkEntity(living.getUUID(), player.getUUID(), actualTier, now, now + TTL_TICKS);
     behavior.addSummon(player, tracked);
     behavior.recordWetContact(player, organ);
 
-    OrganState state = OrganState.of(organ, "YuLinGu");
-    MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
     long readyAt = now + COOLDOWN_TICKS;
-    cooldown.entry(COOLDOWN_KEY).withDefault(0L).setReadyAt(readyAt);
+    ready.setReadyAt(readyAt);
     ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
