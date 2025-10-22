@@ -15,6 +15,18 @@ public final class CombatEntityUtil {
     if (source == null) {
       return false;
     }
+
+    Entity direct = source.getDirectEntity();
+    Entity owner = source.getEntity();
+
+    // 仅当“直接命中体”就是活体施加者本人时，才认为是近战命中，避免 DoT/范围效果误判
+    if (!(direct instanceof LivingEntity)) {
+      return false;
+    }
+    if (direct != owner) {
+      return false;
+    }
+
     return !source.is(DamageTypeTags.IS_PROJECTILE) && !source.is(DamageTypeTags.IS_EXPLOSION);
   }
 
