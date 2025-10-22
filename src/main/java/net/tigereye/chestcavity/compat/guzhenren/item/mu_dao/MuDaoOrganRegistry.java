@@ -39,6 +39,7 @@ public final class MuDaoOrganRegistry {
           OrganIntegrationSpec.builder(CAO_QUN_GU_ID)
               .addSlowTickListener(CaoQunGuOrganBehavior.INSTANCE)
               .addIncomingDamageListener(CaoQunGuOrganBehavior.INSTANCE)
+              .addRemovalListener(CaoQunGuOrganBehavior.INSTANCE)
               .build());
 
   private MuDaoOrganRegistry() {}

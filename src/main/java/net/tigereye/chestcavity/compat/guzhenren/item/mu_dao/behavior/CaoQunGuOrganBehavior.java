@@ -40,6 +40,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
@@ -60,7 +61,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
-    implements OrganSlowTickListener, OrganIncomingDamageListener {
+    implements OrganSlowTickListener, OrganIncomingDamageListener, OrganRemovalListener {
 
   public static final CaoQunGuOrganBehavior INSTANCE = new CaoQunGuOrganBehavior();
 
@@ -255,6 +256,23 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     adjusted = handleAbilityThreeAbsorption(player, state, damage, adjusted, now);
     adjusted = handleAbilityFourMitigation(cc, organ, player, state, source, damage, adjusted, now);
     return (float) adjusted;
+  }
+
+  @Override
+  public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+    if (entity == null || entity.level().isClientSide()) {
+      return;
+    }
+    if (cc == null || organ == null || organ.isEmpty() || !matchesOrgan(organ, ORGAN_ID)) {
+      return;
+    }
+
+    AbsorptionHelper.clearAbsorptionCapacity(entity, ABSORPTION_MODIFIER_ID);
+
+    OrganState state = organState(organ, STATE_ROOT);
+    state.setLong(KEY_A1_ACTIVE_UNTIL, 0L, value -> Math.max(0L, value), 0L);
+    state.setDouble(KEY_A1_SHIELD_VALUE, 0.0D, value -> Math.max(0.0D, value), 0.0D);
+    state.setInt(KEY_A1_REFLECT_STACKS, 0, clampNonNegative(), 0);
   }
 
   private static void activateA1(LivingEntity entity, ChestCavityInstance cc) {
