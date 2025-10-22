@@ -105,6 +105,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final double STOIC_SLOW_RADIUS = 3.0D;
   private static final int STOIC_SLOW_TICKS = 40;
   private static final int STOIC_SLOW_AMPLIFIER = 0;
+  private static final long SOFT_PROJECTILE_COOLDOWN_TICKS = 12L; // 0.6s shared thorns window
 
   private static final double ACTIVE_DRUM_DEFENSE_BONUS = 0.06D;
   private static final double ACTIVE_DRUM_SOFT_BONUS = 0.10D;
@@ -171,7 +172,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             Tier.STAGE4, 0.35D, 16L, 0.18D, 4, 100.0D, 0.40D, STOIC_DEFAULT_LOCK_TICKS));
     TIER_PARAMS.put(
         Tier.STAGE5,
-        new TierParameters(Tier.STAGE5, 0.45D, 14L, 0.22D, 5, 200.0D, 0.40D, 10 * 20L));
+        new TierParameters(Tier.STAGE5, 0.45D, 14L, 0.22D, 5, 200.0D, 0.45D, 10 * 20L));
 
     OrganActivationListeners.register(
         ACTIVE_DRUM_ID,
@@ -616,19 +617,27 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     boolean projectile = source.is(DamageTypeTags.IS_PROJECTILE);
     double percent = params.softPercent();
     boolean ready = baseEntry.isReady(now);
+    boolean usedProjectileCooldown = false;
     if (projectile && params.projectilePercent() > 0.0D) {
       MultiCooldown.Entry projectileEntry =
           cooldown.entry(KEY_SOFT_PROJECTILE_READY).withDefault(0L);
       if (projectileEntry.isReady(now)) {
         percent = params.projectilePercent();
         ready = true;
-        projectileEntry.setReadyAt(now + 12L);
+        usedProjectileCooldown = true;
+        projectileEntry.setReadyAt(now + SOFT_PROJECTILE_COOLDOWN_TICKS);
       }
     }
     if (!ready) {
       return 0.0D;
     }
-    baseEntry.setReadyAt(now + params.cooldownTicks());
+    // 保持投射物命中与近战共用的互斥窗口：命中投射物时写入 0.6s，
+    // 否则沿用按阶梯配置的 0.8s/0.7s 内置冷却。
+    long baseReadyTick =
+        usedProjectileCooldown
+            ? Math.max(baseEntry.getReadyTick(), now + SOFT_PROJECTILE_COOLDOWN_TICKS)
+            : now + params.cooldownTicks();
+    baseEntry.setReadyAt(baseReadyTick);
 
     double bonus = state.getLong(KEY_ACTIVE_DRUM_EXPIRE, 0L) > now ? ACTIVE_DRUM_SOFT_BONUS : 0.0D;
     double reflected = mitigated * (percent + bonus);
