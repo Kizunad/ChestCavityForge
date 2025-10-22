@@ -5,6 +5,8 @@
     "death.attack.ccOrganRejection.player": "%1$s died of medical complications while fighting %2$s",
     "death.attack.alcohol_overdose": "%1$s succumbed to alcohol poisoning",
     "death.attack.alcohol_overdose.player": "%1$s succumbed to alcohol poisoning while fighting %2$s",
+    "death.attack.chestcavity.shou_pi_gu_crash": "%1$s was crushed by a plated crash",
+    "death.attack.chestcavity.shou_pi_gu_crash.player": "%1$s was crushed by %2$s's plated crash",
     "effect.chestcavity.organ_rejection": "Organ Rejection",
     "effect.chestcavity.arrow_dodge_cooldown": "Arrow Dodge Cooldown",
     "effect.chestcavity.dragon_breath_cooldown": "Dragon Breath Cooldown",
