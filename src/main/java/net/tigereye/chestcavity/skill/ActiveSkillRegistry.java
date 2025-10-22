@@ -17,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
@@ -201,6 +202,42 @@ public final class ActiveSkillRegistry {
         "compat/guzhenren/item/yun_dao_cloud/behavior/YinYunGuOrganBehavior.java:166",
         () -> {
           ensureClassLoaded(YinYunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:skill/shou_pi_gu_drum",
+        "guzhenren:skill/shou_pi_gu_drum",
+        "guzhenren:shou_pi_gu",
+        tags("防御", "反射"),
+        "硬皮鼓动：5 秒内防御系数+6%，软反伤额外+10%，并获得 50% 击退抗性，冷却 20 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:skill/shou_pi_gu_roll",
+        "guzhenren:skill/shou_pi_gu_roll",
+        "guzhenren:shou_pi_gu",
+        tags("机动", "防御"),
+        "翻滚脱力：向前翻滚最多 3 格，0.6 秒内承伤-60%，并对最近敌人施加 1 秒缓慢，冷却 14 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:synergy/qian_jia_chong_zhuang",
+        "guzhenren:synergy/qian_jia_chong_zhuang",
+        "guzhenren:shou_pi_gu",
+        tags("联动", "输出", "防御"),
+        "嵌甲冲撞：与虎皮蛊、铁骨蛊共鸣突进 4 格，爆发过去 5 秒软反伤累计的 35%（上限=8+攻击×0.6）并获得 0.5 秒免伤，冷却 18 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
 
