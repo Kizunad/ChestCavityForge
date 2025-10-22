@@ -41,6 +41,7 @@ import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.registration.CCDamageSources;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
 import net.tigereye.chestcavity.util.NetworkUtil;
@@ -561,7 +562,8 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     List<LivingEntity> targets =
         serverLevel.getEntitiesOfClass(
             LivingEntity.class, box, entity -> entity != player && entity.isAlive());
-    DamageSource source = player.damageSources().playerAttack(player);
+    // 使用自定义真实伤害来源，避免护甲、护盾或防护类效果稀释冲撞惩罚。
+    DamageSource source = CCDamageSources.shouPiGuCrash(player);
     for (LivingEntity target : targets) {
       target.hurt(source, (float) amount);
     }
