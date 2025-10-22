@@ -242,6 +242,8 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(YuLinGuBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("饵祭冷却结束", null));
+
+    register(
         "guzhenren:skill/shou_pi_gu_drum",
         "guzhenren:skill/shou_pi_gu_drum",
         "guzhenren:shou_pi_gu",

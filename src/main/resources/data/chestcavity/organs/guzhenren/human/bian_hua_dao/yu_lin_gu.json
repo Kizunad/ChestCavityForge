@@ -1,5 +1,5 @@
 {
-  "itemID": "item.guzhenren.yu_lin_gu",
+  "itemID": "guzhenren:yu_lin_gu",
   "organScores": [
     { "id": "chestcavity:swim_speed", "value": 4 },
     { "id": "chestcavity:water_breath", "value": 3 },

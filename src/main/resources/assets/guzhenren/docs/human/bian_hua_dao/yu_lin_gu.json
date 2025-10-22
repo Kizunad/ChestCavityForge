@@ -1,5 +1,5 @@
 {
-  "id": "item.guzhenren.yu_lin_gu",
+  "id": "guzhenren:yu_lin_gu",
   "title": "鱼鳞蛊",
   "summary": "潮生鳞护核心：维持鱼甲、三项水域主动与召唤鲨伴的变化道套件。",
   "details": [
@@ -15,5 +15,5 @@
     "[器官属性] 抗冲击 +1；防御 +1；代谢 -1；水道道痕 +1；变化道道痕 +1。"
   ],
   "tags": ["水道", "变化道", "位移", "召唤", "控制", "生存"],
-  "icon": "item.guzhenren.yu_lin_gu"
+  "icon": "guzhenren:yu_lin_gu"
 }

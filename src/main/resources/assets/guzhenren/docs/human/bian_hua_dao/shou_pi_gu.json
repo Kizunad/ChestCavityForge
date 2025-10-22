@@ -1,5 +1,5 @@
 {
-  "id": "item.guzhenren.shou_pi_gu",
+  "id": "guzhenren:shou_pi_gu",
   "title": "兽皮蛊",
   "summary": "厚皮反击核心：多段减伤、软反储能与翻滚冲撞的变化道护体。",
   "details": [
@@ -18,5 +18,5 @@
     "[器官属性] 体质 +2；变化道道痕 +1。"
   ],
   "tags": ["变化道", "防御", "反击", "位移", "协同"],
-  "icon": "item.guzhenren.shou_pi_gu"
+  "icon": "guzhenren:shou_pi_gu"
 }
