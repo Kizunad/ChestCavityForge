@@ -30,6 +30,7 @@ import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.render.ChestCavityClientRenderers;
 import net.tigereye.chestcavity.command.ModernUIServerCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
+import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command.SoulBeastCommands;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.engine.dot.DoTEngine;
@@ -140,6 +141,8 @@ public class ChestCavity {
       ActiveSkillRegistry.bootstrap();
       GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
       ReactionEngine.bootstrap();
+      // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。
+      NoDropEvents.init();
     }
 
     // CCCommands.register();
