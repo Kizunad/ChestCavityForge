@@ -17,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
@@ -203,6 +204,42 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(YinYunGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:yu_qun",
+        "guzhenren:yu_qun",
+        "guzhenren:yu_lin_gu",
+        tags("控制", "机动"),
+        "鱼群：在水中或潮湿环境中发射水灵体齐射，击飞并减速前方敌人",
+        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuQunSkill.java",
+        () -> {
+          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("鱼群冷却结束", null));
+
+    register(
+        "guzhenren:yu_yue",
+        "guzhenren:yu_yue",
+        "guzhenren:yu_lin_gu",
+        tags("机动", "位移"),
+        "鱼跃破浪：水中高速冲刺破浪，潮湿状态下也可短距离跃进并获得缓降",
+        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuYueSkill.java",
+        () -> {
+          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("鱼跃冷却结束", null));
+
+    register(
+        "guzhenren:yu_shi_summon",
+        "guzhenren:yu_shi_summon",
+        "guzhenren:yu_lin_gu",
+        tags("召唤", "支援"),
+        "饵祭召鲨：消耗鲨鱼蛊材召唤协战鲨鱼，存在 120 秒且最多同时五条",
+        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuShiSummonSharkSkill.java",
+        () -> {
+          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("饵祭冷却结束", null));
 
     register(
         "guzhenren:skill/yinshi_tunnel",
