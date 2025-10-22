@@ -1,7 +1,7 @@
 {
   "defaultChestCavity": [
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 0
     },
     {
@@ -29,15 +29,15 @@
       "position": 7
     },
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 8
     },
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 9
     },
     {
-      "item": "guzhenren:wanshangwanglangpi",
+      "item": "chestcavity:animal_rib",
       "position": 10
     },
     {
@@ -61,27 +61,27 @@
       "position": 15
     },
     {
-      "item": "guzhenren:wanshangwanglangpi",
+      "item": "chestcavity:animal_rib",
       "position": 16
     },
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 17
     },
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 18
     },
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 19
     },
     {
-      "item": "guzhenren:wawanshouwanglangyan",
+      "item": "chestcavity:carnivore_intestine",
       "position": 20
     },
     {
-      "item": "guzhenren:wawanshouwanglangyan",
+      "item": "chestcavity:carnivore_intestine",
       "position": 21
     },
     {
@@ -97,11 +97,11 @@
       "position": 24
     },
     {
-      "item": "guzhenren:qianlangwangrou",
+      "item": "chestcavity:swift_muscle",
       "position": 25
     },
     {
-      "item": "guzhenren:wanlangwurou",
+      "item": "chestcavity:swift_muscle",
       "position": 26
     }
   ],

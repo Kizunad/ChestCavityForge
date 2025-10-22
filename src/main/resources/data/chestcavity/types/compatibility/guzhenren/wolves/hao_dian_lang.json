@@ -1,7 +1,7 @@
 {
   "defaultChestCavity": [
     {
-      "item": "guzhenren:langrou",
+      "item": "chestcavity:swift_muscle",
       "position": 0
     },
     {
@@ -29,11 +29,11 @@
       "position": 7
     },
     {
-      "item": "guzhenren:langrou",
+      "item": "chestcavity:swift_muscle",
       "position": 8
     },
     {
-      "item": "guzhenren:langrou",
+      "item": "chestcavity:swift_muscle",
       "position": 9
     },
     {
@@ -73,7 +73,7 @@
       "position": 18
     },
     {
-      "item": "guzhenren:bailangwurou",
+      "item": "chestcavity:swift_muscle",
       "position": 19
     },
     {
@@ -97,11 +97,11 @@
       "position": 24
     },
     {
-      "item": "guzhenren:bbaishouwanglangpi",
+      "item": "chestcavity:swift_muscle",
       "position": 25
     },
     {
-      "item": "guzhenren:bbaishouwanglangpi",
+      "item": "chestcavity:swift_muscle",
       "position": 26
     }
   ],
