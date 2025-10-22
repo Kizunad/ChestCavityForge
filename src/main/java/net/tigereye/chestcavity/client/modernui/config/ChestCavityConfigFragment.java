@@ -512,6 +512,11 @@ public class ChestCavityConfigFragment extends Fragment {
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       ChestCavityConfigFragment.this.docsIconScrollRef = iconGrid;
 
+      var detailScroll = new ScrollView(context);
+      detailScroll.setClipToPadding(true);
+      detailScroll.setFillViewport(true);
+      detailScroll.setScrollbarFadingEnabled(false);
+
       var detailColumn = new LinearLayout(context);
       detailColumn.setOrientation(LinearLayout.VERTICAL);
       detailColumn.setPadding(
@@ -520,12 +525,18 @@ public class ChestCavityConfigFragment extends Fragment {
       detailBg.setCornerRadius(detailColumn.dp(10));
       detailBg.setColor(0x331C2A3A);
       detailColumn.setBackground(detailBg);
+      detailScroll.addView(
+          detailColumn,
+          new ViewGroup.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
       var detailParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-      splitRow.addView(detailColumn, detailParams);
+      splitRow.addView(detailScroll, detailParams);
 
       Runnable renderEmpty =
           () -> {
             detailColumn.removeAllViews();
+            detailScroll.scrollTo(0, 0);
             var hint = new TextView(context);
             hint.setText("请选择左侧条目查看详情。");
             hint.setTextSize(12);
@@ -539,6 +550,7 @@ public class ChestCavityConfigFragment extends Fragment {
       Consumer<DocEntry> renderDetail =
           entry -> {
             detailColumn.removeAllViews();
+            detailScroll.scrollTo(0, 0);
 
             var titleView = new TextView(context);
             titleView.setText(entry.title());
@@ -708,6 +720,31 @@ public class ChestCavityConfigFragment extends Fragment {
               }
             }
           };
+
+      Runnable updatePinnedDetail =
+          () -> {
+            int anchor = detailScroll.getTop();
+            int scrollY = scroll.getScrollY();
+            if (scrollY <= anchor) {
+              detailScroll.setTranslationY(0f);
+              return;
+            }
+            int maxOffset = splitRow.getBottom() - detailScroll.getHeight() - anchor;
+            if (maxOffset < 0) {
+              maxOffset = 0;
+            }
+            int offset = scrollY - anchor;
+            detailScroll.setTranslationY((float) Math.min(offset, maxOffset));
+          };
+
+      scroll.getViewTreeObserver().addOnScrollChangedListener(updatePinnedDetail::run);
+      splitRow.addOnLayoutChangeListener(
+          (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
+              updatePinnedDetail.run());
+      detailScroll.addOnLayoutChangeListener(
+          (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
+              updatePinnedDetail.run());
+      scroll.post(updatePinnedDetail);
 
       layout.addOnLayoutChangeListener(
           (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
