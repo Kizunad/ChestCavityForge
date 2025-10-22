@@ -41,6 +41,7 @@ public final class StrengthOrganRegistry {
           ResourceLocation.parse("guzhenren:qqianshouwanglangpi"),
           ResourceLocation.parse("guzhenren:qqianshouwanglangyan"),
           ResourceLocation.parse("guzhenren:quan_li_yi_fu_gu"),
+          ResourceLocation.parse("guzhenren:jing_li_gu"),
           ResourceLocation.parse("guzhenren:quanpi"),
           ResourceLocation.parse("guzhenren:quanrou"),
           ResourceLocation.parse("guzhenren:quanyan"),
