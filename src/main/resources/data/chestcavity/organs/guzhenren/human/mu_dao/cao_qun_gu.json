@@ -1,0 +1,11 @@
+{
+  "itemID": "guzhenren:caoqungu",
+  "organScores": [
+    {"id": "chestcavity:defense", "value": "1.0"},
+    {"id": "chestcavity:health", "value": "1.0"},
+    {"id": "chestcavity:filtration", "value": "0.5"},
+    {"id": "chestcavity:detoxification", "value": "0.5"},
+    {"id": "guzhenren:jingli", "value": "1.0"},
+    {"id": "guzhenren:zuida_jingli", "value": "0.5"}
+  ]
+}
