@@ -1,11 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills;
-
+import static java.util.Map.entry;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -51,32 +50,34 @@ public final class YuShiSummonSharkSkill {
   private static final int HUNGER_COST = 1;
   private static final int TTL_TICKS = 20 * 120;
 
+  private static final int OFFERING_COST = 64; // 每次召唤消耗 64 个
+
+  /*      
+  *  "item.guzhenren.sha_yu_ya_chi": "蛊材_冰鲛鲨牙齿",
+  *  "item.guzhenren.sha_yu_ya_chi_1": "蛊材_冰鳞鲨牙齿",
+  *  "item.guzhenren.sha_yu_ya_chi_2": "蛊材_玄霜鲛鲨牙齿",
+  *  "item.guzhenren.sha_yu_ya_chi_3": "蛊材_寒渊冰鲨牙齿",
+  *  "item.guzhenren.sha_yu_ya_chi_4": "蛊材_冰魄龙纹鲨牙齿",
+  *  "item.guzhenren.sha_yu_yu_chi": "蛊材_冰鲛鲨鱼翅",
+  *  "item.guzhenren.sha_yu_yu_chi_1": "蛊材_冰鳞鲨鱼翅",
+  *  "item.guzhenren.sha_yu_yu_chi_2": "蛊材_玄霜鲛鲨鱼翅",
+  *  "item.guzhenren.sha_yu_yu_chi_3": "蛊材_寒渊冰鲨鱼翅",
+  *  "item.guzhenren.sha_yu_yu_chi_4": "蛊材_冰魄龙纹鲨鱼翅",
+  */
   // YuShiSummonSharkSkill 内新增：一个极小的兜底表（仅当标签失效时使用）
-  private static final Map<ResourceLocation, Integer> FALLBACK_MATERIAL_TIERS = Map.of(
-      // 你项目里已经定义过的鲨材 ID，按实际为准
-      /*      
-       *  "item.guzhenren.sha_yu_ya_chi": "蛊材_冰鲛鲨牙齿",
-       *  "item.guzhenren.sha_yu_ya_chi_1": "蛊材_冰鳞鲨牙齿",
-       *  "item.guzhenren.sha_yu_ya_chi_2": "蛊材_玄霜鲛鲨牙齿",
-       *  "item.guzhenren.sha_yu_ya_chi_3": "蛊材_寒渊冰鲨牙齿",
-       *  "item.guzhenren.sha_yu_ya_chi_4": "蛊材_冰魄龙纹鲨牙齿",
-       *  "item.guzhenren.sha_yu_yu_chi": "蛊材_冰鲛鲨鱼翅",
-       *  "item.guzhenren.sha_yu_yu_chi_1": "蛊材_冰鳞鲨鱼翅",
-       *  "item.guzhenren.sha_yu_yu_chi_2": "蛊材_玄霜鲛鲨鱼翅",
-       *  "item.guzhenren.sha_yu_yu_chi_3": "蛊材_寒渊冰鲨鱼翅",
-       *  "item.guzhenren.sha_yu_yu_chi_4": "蛊材_冰魄龙纹鲨鱼翅",
-       */
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi"), 1,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi"), 1,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_1"), 2,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_1"), 2,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_2"), 3,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_2"), 3,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_3"), 4,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_3"), 4,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_4"), 5,
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_4"), 5
+  private static final Map<ResourceLocation, Integer> FALLBACK_MATERIAL_TIERS = Map.ofEntries(
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi"), 1),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi"), 1),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_1"), 2),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_1"), 2),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_2"), 3),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_2"), 3),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_3"), 4),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_3"), 4),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_4"), 5),
+      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_4"), 5)
   );
+
   private static final TagKey<Item> MATERIALS_TAG =
       TagKey.create(
           BuiltInRegistries.ITEM.key(),
@@ -144,7 +145,7 @@ public final class YuShiSummonSharkSkill {
     Inventory inventory = player.getInventory();
     Optional<OfferingSlot> offeringOpt = findBestOffering(inventory);
     if (offeringOpt.isEmpty()) {
-      sendFailure(player, "你大口吞下了空气。鱼鳞蛊沉默以对。");
+      sendFailure(player, "你大口吞下了空气。鱼鳞蛊沉默以对。(也许需要整组对应阶的鲨材作为供品...)");
       return;
     }
     OfferingSlot offering = offeringOpt.get();
@@ -168,7 +169,7 @@ public final class YuShiSummonSharkSkill {
         .getFoodData()
         .setFoodLevel(Math.max(0, player.getFoodData().getFoodLevel() - HUNGER_COST));
 
-    consumeOffering(player, inventory, offering);
+    consumeOffering(player, inventory, offering, OFFERING_COST);
 
     YuLinGuBehavior behavior = YuLinGuBehavior.INSTANCE;
     int unlocked = behavior.unlockedSharkTier(organ);
@@ -193,11 +194,10 @@ public final class YuShiSummonSharkSkill {
     living.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, player.getYRot(), player.getXRot());
     serverLevel.addFreshEntity(living);
     // 标记召唤物为“无掉落”并关闭拾取，避免召唤鲨鱼提供额外战利品。
-    living.addTag(NoDropEvents.TAG);
+    living.addTag(NoDropEvents.TAG); // <- 下划线版本
     living.getPersistentData().putBoolean(NoDropEvents.PDC, true);
-    if (living instanceof Mob mob) {
-      mob.setCanPickUpLoot(false);
-    }
+    if (living instanceof Mob mob) mob.setCanPickUpLoot(false);
+
 
     OwnedSharkEntity tracked =
         new OwnedSharkEntity(living.getUUID(), player.getUUID(), actualTier, now, now + TTL_TICKS);
@@ -261,7 +261,6 @@ public final class YuShiSummonSharkSkill {
     return fallback == null ? 0 : fallback.intValue();
   }
 
-  // 原来的 findBestOffering：删除对 MATERIALS_TAG 的强制要求，改成“只看 tierOf > 0”
   private static Optional<OfferingSlot> findBestOffering(Inventory inventory) {
     OfferingSlot best = null;
     int selectedSlot = inventory.selected;
@@ -270,13 +269,14 @@ public final class YuShiSummonSharkSkill {
 
     for (int slot = 0; slot < size; slot++) {
       ItemStack candidate = inventory.getItem(slot);
-      if (candidate.isEmpty() || candidate.getCount() <= 0) {
-        continue;
-      }
-      int tier = tierOf(candidate);          // ← 只看阶数
-      if (tier <= 0) {
-        continue;
-      }
+
+      // 1) 仅检查数量是否≥64
+      if (candidate.isEmpty() || candidate.getCount() < OFFERING_COST) continue;
+
+      // 2) 用 tierOf 判阶（内部会先看 5 个分阶标签，失败再走 FALLBACK 表）
+      int tier = tierOf(candidate);
+      if (tier <= 0) continue;
+
       InteractionHand hand = resolveHand(slot, selectedSlot);
       if (tier > bestTier) {
         bestTier = tier;
@@ -285,6 +285,8 @@ public final class YuShiSummonSharkSkill {
     }
     return Optional.ofNullable(best);
   }
+
+
 
 
   // 将槽位索引映射到可能的手持位置，以便在消耗后执行客户端同步。
@@ -298,15 +300,20 @@ public final class YuShiSummonSharkSkill {
     return null;
   }
 
-  private static void consumeOffering(
-      ServerPlayer player, Inventory inventory, OfferingSlot offering) {
-    // 通过 inventory.removeItem 精准扣除供品，并在需要时同步手持物品状态给客户端。
-    inventory.removeItem(offering.slot(), 1);
+  private static void consumeOffering(ServerPlayer player, Inventory inventory, OfferingSlot offering, int amount) {
+    int slot = offering.slot();
+    // 用 removeItem 精准扣减；返回值是被移除的那一摞
+    inventory.removeItem(slot, amount);
+
+    // 若供品在主手/副手，顺手把该手的物品同步给客户端
     InteractionHand hand = offering.hand();
     if (hand != null) {
-      player.setItemInHand(hand, inventory.getItem(offering.slot()));
+      player.setItemInHand(hand, inventory.getItem(slot));
     }
+    // 有些容器需要这步才能立刻刷到客户端
+    player.containerMenu.broadcastChanges();
   }
+
 
   private static ItemStack findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
