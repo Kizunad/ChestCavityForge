@@ -225,6 +225,7 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     maintainPassiveFour(player, cc, organ, state, now);
 
     maintainAbilityOne(player, cc, organ, state, cooldown, now);
+    maintainAbilityTwo(player, cc, organ, state, now);
     maintainAbilityThree(player, cc, organ, state, now);
     maintainAbilityFour(player, cc, organ, state, now);
   }
@@ -334,7 +335,7 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     int radius = adjustedA2Radius(state);
     int targets = adjustedA2Targets(state);
     double healPerTick = computeA2HealPerTick(player, state);
-    applyA2Healing(level, player, radius, targets, healPerTick);
+    applyA2Healing(level, player, radius, targets, healPerTick, BASE_A2_DURATION_TICKS, true, true);
 
     state.setLong(
         KEY_A2_ACTIVE_UNTIL, now + BASE_A2_DURATION_TICKS, value -> Math.max(0L, value), 0L);
@@ -566,6 +567,42 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
+  /** 定时执行草裙蛊第二主动的持续治疗逻辑，确保 2 秒一次的脉冲治疗与阶段 SP 统计。 */
+  private void maintainAbilityTwo(
+      Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long now) {
+    if (!(player instanceof ServerPlayer serverPlayer)) {
+      return;
+    }
+    long activeUntil = Math.max(0L, state.getLong(KEY_A2_ACTIVE_UNTIL, 0L));
+    if (activeUntil <= now) {
+      return;
+    }
+
+    long lastHeal = Math.max(0L, state.getLong(KEY_A2_LAST_HEAL_TICK, 0L));
+    if (now - lastHeal < BASE_A2_TICK_INTERVAL) {
+      return;
+    }
+
+    int radius = adjustedA2Radius(state);
+    int targets = adjustedA2Targets(state);
+    double healPerTick = computeA2HealPerTick(player, state);
+    int regenDuration =
+        (int) Math.max(20L, Math.min((long) BASE_A2_DURATION_TICKS, activeUntil - now));
+
+    applyA2Healing(
+        serverPlayer.serverLevel(),
+        serverPlayer,
+        radius,
+        targets,
+        healPerTick,
+        regenDuration,
+        true,
+        false);
+
+    state.setLong(KEY_A2_LAST_HEAL_TICK, now, value -> Math.max(0L, value), 0L);
+    grantSp(player, cc, organ, state, SpCategory.HEALING, 2, StageTier.TIER_TWO_III);
+  }
+
   private void maintainAbilityThree(
       Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long now) {
     long activeUntil = Math.max(0L, state.getLong(KEY_A3_ACTIVE_UNTIL, 0L));
@@ -592,16 +629,27 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     grantSp(player, cc, organ, state, SpCategory.DEFENSE_STEADY, 4, StageTier.TIER_THREE_III);
   }
 
+  /** 在姿态结束后安排与执行叶影庇佑的再生阶段，覆盖五转后的强化数值。 */
   private void maintainAbilityFour(
       Player player, ChestCavityInstance cc, ItemStack organ, OrganState state, long now) {
+    long activeUntil = Math.max(0L, state.getLong(KEY_A4_ACTIVE_UNTIL, 0L));
     long regenUntil = Math.max(0L, state.getLong(KEY_A4_REGEN_UNTIL, 0L));
-    if (regenUntil <= now) {
+
+    if (activeUntil > now) {
       return;
     }
-    if (now % 20L != 0L) {
+
+    if (activeUntil > 0L && regenUntil <= now) {
+      long newUntil = now + adjustedA4RegenDuration(state);
+      state.setLong(KEY_A4_REGEN_UNTIL, newUntil, value -> Math.max(0L, value), 0L);
+      regenUntil = newUntil;
+    }
+
+    if (regenUntil <= now || now % 20L != 0L) {
       return;
     }
-    double heal = A4_REGEN_PER_SECOND;
+
+    double heal = adjustedA4RegenPerSecond(state);
     player.heal((float) heal);
     grantSp(player, cc, organ, state, SpCategory.HEALING, 1, StageTier.TIER_FOUR_III);
   }
@@ -682,8 +730,11 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       grantSp(player, cc, organ, state, SpCategory.BLOCK, 1, StageTier.TIER_FOUR_III);
     }
     double result = currentAmount * multiplier;
-    state.setLong(
-        KEY_A4_REGEN_UNTIL, now + BASE_A4_REGEN_DURATION_TICKS, value -> Math.max(0L, value), 0L);
+    long abilityEnd = Math.max(now, activeUntil);
+    long regenDuration = adjustedA4RegenDuration(state);
+    long currentRegenUntil = Math.max(0L, state.getLong(KEY_A4_REGEN_UNTIL, 0L));
+    long scheduledEnd = Math.max(currentRegenUntil, abilityEnd + regenDuration);
+    state.setLong(KEY_A4_REGEN_UNTIL, scheduledEnd, value -> Math.max(0L, value), 0L);
     return result;
   }
 
@@ -767,6 +818,30 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       multiplier += 0.20D;
     }
     return (int) Math.round(baseDurationWithMultiplier(BASE_A4_DURATION_TICKS, multiplier));
+  }
+
+  /** 五转阶段延长再生持续时间。 */
+  private static long adjustedA4RegenDuration(OrganState state) {
+    long duration = BASE_A4_REGEN_DURATION_TICKS;
+    if (currentStage(state) >= StageTier.TIER_FIVE_II.ordinal()) {
+      duration += 20L;
+    }
+    if (currentStage(state) >= StageTier.TIER_FIVE_III.ordinal()) {
+      duration += 20L;
+    }
+    return duration;
+  }
+
+  /** 五转阶段提升再生强度。 */
+  private static double adjustedA4RegenPerSecond(OrganState state) {
+    double heal = A4_REGEN_PER_SECOND;
+    if (currentStage(state) >= StageTier.TIER_FIVE_I.ordinal()) {
+      heal *= 1.15D;
+    }
+    if (currentStage(state) >= StageTier.TIER_FIVE_III.ordinal()) {
+      heal *= 1.10D;
+    }
+    return heal;
   }
 
   private static double adjustedA3HealCap(OrganState state) {
@@ -938,7 +1013,37 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   private static void applyA2Healing(
-      ServerLevel level, ServerPlayer player, int radius, int targets, double heal) {
+      ServerLevel level,
+      ServerPlayer player,
+      int radius,
+      int targets,
+      double heal,
+      int regenDurationTicks,
+      boolean applyRegen,
+      boolean playSound) {
+    List<LivingEntity> recipients = collectA2Recipients(level, player, radius, targets);
+    for (LivingEntity recipient : recipients) {
+      if (applyRegen) {
+        recipient.addEffect(
+            new MobEffectInstance(
+                MobEffects.REGENERATION, regenDurationTicks, 0, false, true, true));
+      }
+      recipient.heal((float) heal);
+    }
+    if (playSound) {
+      level.playSound(
+          null,
+          player.blockPosition(),
+          SoundEvents.AMETHYST_BLOCK_RESONATE,
+          SoundSource.PLAYERS,
+          0.9F,
+          1.1F);
+    }
+  }
+
+  /** 收集当前脉冲要治疗的友方单位，优先包含自身并限制在阶段允许的目标数量内。 */
+  private static List<LivingEntity> collectA2Recipients(
+      ServerLevel level, ServerPlayer player, int radius, int targets) {
     AABB area = new AABB(player.blockPosition()).inflate(radius);
     List<LivingEntity> recipients = new ArrayList<>();
     recipients.add(player);
@@ -954,19 +1059,7 @@ public final class CaoQunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         break;
       }
     }
-    for (LivingEntity recipient : recipients) {
-      recipient.addEffect(
-          new MobEffectInstance(
-              MobEffects.REGENERATION, BASE_A2_DURATION_TICKS, 0, false, true, true));
-      recipient.heal((float) heal);
-    }
-    level.playSound(
-        null,
-        player.blockPosition(),
-        SoundEvents.AMETHYST_BLOCK_RESONATE,
-        SoundSource.PLAYERS,
-        0.9F,
-        1.1F);
+    return recipients;
   }
 
   private static int currentStage(OrganState state) {
