@@ -1,0 +1,12 @@
+{
+  "itemID": "item.guzhenren.shou_pi_gu",
+  "organScores": [
+    {"id": "chestcavity:defense", "value": 8},
+    {"id": "chestcavity:impact_resistant", "value": 6},
+    {"id": "chestcavity:knockback_resistant", "value": 4},
+    {"id": "chestcavity:fire_resistant", "value": 2},
+    {"id": "chestcavity:health", "value": 2},
+    {"id": "guzhenren:daohen_bianhuadao", "value": 1},
+    {"id": "guzhenren:tizhi", "value": 2}
+  ]
+}

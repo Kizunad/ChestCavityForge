@@ -17,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
@@ -167,6 +168,36 @@ public final class ActiveSkillRegistry {
         () -> {
           ensureClassLoaded(HunShouHuaSynergyBehavior.INSTANCE);
         });
+
+    register(
+        "guzhenren:shou_pi_gu/hard_skin",
+        "guzhenren:shou_pi_gu/hard_skin",
+        "guzhenren:shou_pi_gu",
+        tags("防御", "增益"),
+        "硬皮鼓动：5 秒内强化护甲并提高软反伤倍率，冷却 20 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE),
+        CooldownHint.useOrgan("硬皮鼓动冷却", null));
+
+    register(
+        "guzhenren:shou_pi_gu/roll",
+        "guzhenren:shou_pi_gu/roll",
+        "guzhenren:shou_pi_gu",
+        tags("机动", "防御"),
+        "翻滚脱力：短距翻滚并减少 0.6 秒承伤，冷却 14 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE),
+        CooldownHint.useOrgan("翻滚脱力冷却", null));
+
+    register(
+        "guzhenren:shou_pi_gu/qian_jia_chong_zhuang",
+        "guzhenren:shou_pi_gu/qian_jia_chong_zhuang",
+        "guzhenren:shou_pi_gu",
+        tags("联动", "突进"),
+        "嵌甲冲撞：与铁骨蛊联动释放突进冲锋，造成累计软反伤的 35%",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE),
+        CooldownHint.useOrgan("嵌甲冲撞冷却", null));
 
     register(
         "guzhenren:le_gu_dun_gu",

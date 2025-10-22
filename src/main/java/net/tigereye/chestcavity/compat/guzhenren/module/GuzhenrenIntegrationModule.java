@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.ShouPiGuOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.BingXueDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.DuDaoOrganRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.FengDaoOrganRegistry;
@@ -42,6 +43,7 @@ public final class GuzhenrenIntegrationModule {
           GuCaiOrganRegistry::specs,
           FengDaoOrganRegistry::specs,
           BingXueDaoOrganRegistry::specs,
+          ShouPiGuOrganRegistry::specs,
           DuDaoOrganRegistry::specs,
           GuDaoOrganRegistry::specs,
           GuangDaoOrganRegistry::specs,
