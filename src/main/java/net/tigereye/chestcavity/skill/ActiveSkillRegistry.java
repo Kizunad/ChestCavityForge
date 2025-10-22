@@ -44,6 +44,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYouGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.BaiYunGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.yin_shi.behavior.YinShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yun_dao_cloud.behavior.YinYunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yu_dao.behavior.YuanLaoGuFifthTierBehavior;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
@@ -152,6 +153,20 @@ public final class ActiveSkillRegistry {
                 "消耗全部阴纹拉扯周围敌人并延迟引下多道雷狱，对范围敌人造成雷击并施加虚弱",
                 "compat/guzhenren/item/yun_dao_cloud/behavior/YinYunGuOrganBehavior.java:166",
                 () -> { ensureClassLoaded(YinYunGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:skill/yinshi_tunnel", "guzhenren:skill/yinshi_tunnel", "guzhenren:yin_shi_gu",
+                tags("机动", "防御"),
+                "石潜：短距穿石闪位并获得吸收护盾与抗击退，冷却视转数 16~18 秒",
+                "compat/guzhenren/item/yin_shi/behavior/YinShiGuOrganBehavior.java:240",
+                () -> { ensureClassLoaded(YinShiGuOrganBehavior.INSTANCE); },
+                CooldownHint.useOrgan("技能就绪", null));
+
+        register("guzhenren:skill/yinshi_statue", "guzhenren:skill/yinshi_statue", "guzhenren:yin_shi_gu",
+                tags("防御", "保命"),
+                "石像化：五转解锁，2.5 秒石肤抗性与免击退，冷却 60 秒",
+                "compat/guzhenren/item/yin_shi/behavior/YinShiGuOrganBehavior.java:310",
+                () -> { ensureClassLoaded(YinShiGuOrganBehavior.INSTANCE); },
                 CooldownHint.useOrgan("技能就绪", null));
 
         register("guzhenren:shou_gu", "guzhenren:shou_gu", "guzhenren:shou_gu",
