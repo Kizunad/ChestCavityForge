@@ -193,10 +193,13 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       onAbsorbedDamage(victim, cc, organ, state, cooldown, absorbed, now, tier);
     }
 
-    if (CombatEntityUtil.isMeleeHit(source)) {
-      LivingEntity attacker =
-          source != null && source.getEntity() instanceof LivingEntity living ? living : null;
-      if (attacker != null && CombatEntityUtil.areEnemies(attacker, victim)) {
+    if (source != null
+        && CombatEntityUtil.isMeleeHit(source)
+        && source.getDirectEntity() instanceof LivingEntity attacker
+        && attacker == source.getEntity()
+        && CombatEntityUtil.areEnemies(attacker, victim)) {
+      // 贴身判定：额外要求距离在 4.5 格内，避免远端连锁或特殊转发误触发反击
+      if (victim.distanceToSqr(attacker) <= 4.5f * 4.5f) {
         handleCounterArc(victim, attacker, cooldown, now);
       }
     }
