@@ -1,6 +1,11 @@
 package net.tigereye.chestcavity.util;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -36,8 +41,28 @@ import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenOrganHandlers;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.linkage.LinkageManager;
-import net.tigereye.chestcavity.listeners.*;
-import net.tigereye.chestcavity.registration.*;
+import net.tigereye.chestcavity.listeners.OrganAddStatusEffectCallback;
+import net.tigereye.chestcavity.listeners.OrganHealContext;
+import net.tigereye.chestcavity.listeners.OrganHealListener;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.listeners.OrganOnFireContext;
+import net.tigereye.chestcavity.listeners.OrganOnFireListener;
+import net.tigereye.chestcavity.listeners.OrganOnGroundContext;
+import net.tigereye.chestcavity.listeners.OrganOnGroundListener;
+import net.tigereye.chestcavity.listeners.OrganOnHitContext;
+import net.tigereye.chestcavity.listeners.OrganOnHitListener;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
+import net.tigereye.chestcavity.listeners.OrganRemovalListener;
+import net.tigereye.chestcavity.listeners.OrganSlowTickContext;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.listeners.OrganTickCallback;
+import net.tigereye.chestcavity.listeners.OrganUpdateCallback;
+import net.tigereye.chestcavity.registration.CCEnchantments;
+import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.registration.CCOrganScores;
+import net.tigereye.chestcavity.registration.CCStatusEffects;
+import net.tigereye.chestcavity.registration.CCTagOrgans;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 
 public class ChestCavityUtil {
