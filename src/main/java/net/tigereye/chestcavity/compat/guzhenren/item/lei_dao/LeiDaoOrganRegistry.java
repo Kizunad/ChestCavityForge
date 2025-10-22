@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.lei_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.DianLiuguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 import java.util.List;
@@ -20,6 +21,13 @@ public final class LeiDaoOrganRegistry {
                     .addSlowTickListener(DianLiuguOrganBehavior.INSTANCE)
                     .addOnHitListener(DianLiuguOrganBehavior.INSTANCE)
                     .ensureAttached(DianLiuguOrganBehavior.INSTANCE::ensureAttached)
+                    .build(),
+            OrganIntegrationSpec.builder(ResourceLocation.fromNamespaceAndPath(MOD_ID, "leidungu"))
+                    .addIncomingDamageListener(LeiDunGuOrganBehavior.INSTANCE)
+                    .addSlowTickListener(LeiDunGuOrganBehavior.INSTANCE)
+                    .addOnHitListener(LeiDunGuOrganBehavior.INSTANCE)
+                    .onEquip(LeiDunGuOrganBehavior.INSTANCE::onEquip)
+                    .addRemovalListener(LeiDunGuOrganBehavior.INSTANCE)
                     .build()
     );
 
