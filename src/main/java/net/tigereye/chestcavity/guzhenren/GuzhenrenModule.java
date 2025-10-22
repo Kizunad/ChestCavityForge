@@ -6,6 +6,7 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.BianHuaDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.BingXueDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.FengDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.GuDaoClientAbilities;
@@ -113,6 +114,7 @@ public final class GuzhenrenModule {
       modBus.addListener(YanDaoClientAbilities::onClientSetup);
       modBus.addListener(HunDaoClientAbilities::onClientSetup);
       modBus.addListener(YuDaoClientAbilities::onClientSetup);
+      modBus.addListener(BianHuaDaoClientAbilities::onClientSetup);
       modBus.addListener(YunDaoCloudClientAbilities::onClientSetup);
       modBus.addListener(RenDaoClientAbilities::onClientSetup);
       modBus.addListener(BloodBoneBombClient::onRegisterRenderers);

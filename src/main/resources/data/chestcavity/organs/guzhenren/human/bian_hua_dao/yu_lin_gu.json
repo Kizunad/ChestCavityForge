@@ -1,0 +1,14 @@
+{
+  "itemID": "item.guzhenren.yu_lin_gu",
+  "organScores": [
+    { "id": "chestcavity:swim_speed", "value": 4 },
+    { "id": "chestcavity:water_breath", "value": 3 },
+    { "id": "chestcavity:breath_recovery", "value": 2 },
+    { "id": "chestcavity:breath_capacity", "value": 2 },
+    { "id": "chestcavity:impact_resistant", "value": 1 },
+    { "id": "chestcavity:defense", "value": 1 },
+    { "id": "chestcavity:metabolism", "value": -1 },
+    { "id": "guzhenren:daohen_shuidao", "value": 1 },
+    { "id": "guzhenren:daohen_bianhuadao", "value": 1 }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "#guzhenren:shark_materials_tiered/tier1",
+    "#guzhenren:shark_materials_tiered/tier2",
+    "#guzhenren:shark_materials_tiered/tier3",
+    "#guzhenren:shark_materials_tiered/tier4",
+    "#guzhenren:shark_materials_tiered/tier5"
+  ]
+}
