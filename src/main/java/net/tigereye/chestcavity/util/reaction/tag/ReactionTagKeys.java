@@ -55,6 +55,7 @@ public final class ReactionTagKeys {
   public static final ResourceLocation HEAVEN_GRACE = tag("reaction/heaven_grace");
   public static final ResourceLocation EARTH_GUARD = tag("reaction/earth_guard");
   public static final ResourceLocation STONE_SHELL = tag("reaction/stone_shell");
+  public static final ResourceLocation THORNS_SOFT = tag("reaction/thorns_soft");
   public static final ResourceLocation STAR_GLINT = tag("reaction/star_glint");
   public static final ResourceLocation FLAME_TRAIL = tag("reaction/flame_trail");
   public static final ResourceLocation CLOUD_SHROUD = tag("reaction/cloud_shroud");

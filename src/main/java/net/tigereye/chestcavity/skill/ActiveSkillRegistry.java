@@ -18,6 +18,7 @@ import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
@@ -34,6 +35,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.CaoQunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.JiuYeShengJiCaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.ShengJiYeOrganBehavior;
@@ -240,6 +242,40 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(YuLinGuBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("饵祭冷却结束", null));
+        "guzhenren:skill/shou_pi_gu_drum",
+        "guzhenren:skill/shou_pi_gu_drum",
+        "guzhenren:shou_pi_gu",
+        tags("防御", "反射"),
+        "硬皮鼓动：5 秒内防御系数+6%，软反伤额外+10%，并获得 50% 击退抗性，冷却 20 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:skill/shou_pi_gu_roll",
+        "guzhenren:skill/shou_pi_gu_roll",
+        "guzhenren:shou_pi_gu",
+        tags("机动", "防御"),
+        "翻滚脱力：向前翻滚最多 3 格，0.6 秒内承伤-60%，并对最近敌人施加 1 秒缓慢，冷却 14 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:synergy/qian_jia_chong_zhuang",
+        "guzhenren:synergy/qian_jia_chong_zhuang",
+        "guzhenren:shou_pi_gu",
+        tags("联动", "输出", "防御"),
+        "嵌甲冲撞：与虎皮蛊、铁骨蛊共鸣突进 4 格，爆发过去 5 秒软反伤累计的 35%（上限=8+攻击×0.6）并获得 0.5 秒免伤，冷却 18 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
 
     register(
         "guzhenren:skill/yinshi_tunnel",
@@ -394,6 +430,55 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(JiuYeShengJiCaoOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    // 草裙蛊：木道系防御/恢复器官，提供护幕、治疗、替身吸收与防御姿态四个主动技
+    register(
+        "guzhenren:cao_qun_gu/a1",
+        "guzhenren:caoqungu_a1",
+        "guzhenren:caoqungu",
+        tags("防御", "护盾"),
+        "藤裙护幕：消耗真元展开木藤护幕并附带近战反伤，阶段提升护幕吸收上限",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("藤裙护幕就绪", null));
+
+    register(
+        "guzhenren:cao_qun_gu/a2",
+        "guzhenren:caoqungu_a2",
+        "guzhenren:caoqungu",
+        tags("治疗", "回复"),
+        "露润回春：为范围内队友施加持续治疗并可随阶段扩展目标或半径",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("露润回春就绪", null));
+
+    register(
+        "guzhenren:cao_qun_gu/a3",
+        "guzhenren:caoqungu_a3",
+        "guzhenren:caoqungu",
+        tags("防御", "减伤"),
+        "木心替身：短时间替身吸收伤害并在结束时按吸收量自愈",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("木心替身就绪", null));
+
+    register(
+        "guzhenren:cao_qun_gu/a4",
+        "guzhenren:caoqungu_a4",
+        "guzhenren:caoqungu",
+        tags("防御", "姿态"),
+        "叶影庇佑：进入防御姿态减伤并可正面格挡，姿态结束后获得短暂再生",
+        "compat/guzhenren/item/mu_dao/behavior/CaoQunGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(CaoQunGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("叶影庇佑就绪", null));
 
     register(
         "guzhenren:qing_tong_she_li_gu",
