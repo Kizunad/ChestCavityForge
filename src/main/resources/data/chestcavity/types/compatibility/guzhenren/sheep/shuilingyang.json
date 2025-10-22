@@ -1,11 +1,11 @@
 {
   "defaultChestCavity": [
     {
-      "item": "guzhenren:lingrou",
+      "item": "chestcavity:animal_muscle",
       "position": 0
     },
     {
-      "item": "guzhenren:lingyangjiao",
+      "item": "chestcavity:animal_rib",
       "position": 1
     },
     {
@@ -25,19 +25,19 @@
       "position": 5
     },
     {
-      "item": "guzhenren:lingyangjiao",
+      "item": "chestcavity:animal_rib",
       "position": 7
     },
     {
-      "item": "guzhenren:lingrou",
+      "item": "chestcavity:animal_muscle",
       "position": 8
     },
     {
-      "item": "guzhenren:lingrou",
+      "item": "chestcavity:animal_muscle",
       "position": 9
     },
     {
-      "item": "guzhenren:lingyaopi",
+      "item": "chestcavity:animal_rib",
       "position": 10
     },
     {
@@ -61,11 +61,11 @@
       "position": 15
     },
     {
-      "item": "guzhenren:lingyaopi",
+      "item": "chestcavity:animal_rib",
       "position": 16
     },
     {
-      "item": "guzhenren:lingrou",
+      "item": "chestcavity:animal_muscle",
       "position": 17
     },
     {
@@ -97,7 +97,7 @@
       "position": 24
     },
     {
-      "item": "guzhenren:lingrou",
+      "item": "chestcavity:animal_muscle",
       "position": 25
     },
     {
