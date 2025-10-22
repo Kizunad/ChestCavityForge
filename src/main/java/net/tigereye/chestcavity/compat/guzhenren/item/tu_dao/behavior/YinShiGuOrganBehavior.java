@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.yin_shi.behavior;
+package net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

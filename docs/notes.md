@@ -3727,6 +3727,173 @@ itemID 本地化在外部模组已经实现，无需你新增
 * v1.0（2025-10-21）：创建计划，三转基线=10k BASE 真元标尺、均伤≈800；4/5转随之抬升；计数式升级与 Reaction 规范明确。
 
 --------------------------------------
+**隐石蛊（y_yin_shi_gu）·开发计划文档（类原版可实现·最小落地版）**。
+
+ItemId : guzhenren:y_yin_shi_gu
+---
+
+## 1. 目标与边界
+
+* 玩法循环：**蹲伏潜伏 → 破隐首击控制 → 石潜闪位续战/脱战 →（5转）石像化容错**。
+* 技术边界：不改世界方块、不新增伤害类型、不改 AI；复用**原版药水效果/属性/实体 AEC**；兼容 NeoForge 1.21.1。
+
+## 2. 主机制（Vanilla-Lite）
+
+* **隐石（潜伏）**：蹲伏且静止 ≥0.9–1.2s 进入。隐石中获得**投射物伤害减免**（按转数增幅）与**吸收护盾缓慢回补**；退出后 2s 衰减保留（4转起）。
+* **破隐首击**：从隐石状态打出的第一击 → 目标 **Slowness IV–VI（0.8–1.5s）**，足下生成**AreaEffectCloud（半径2、2s、Slowness II）**，并附加少量“穿刺白字”。
+* **石潜（主动）**：定向短距闪现（3–4.5 格），寻找**安全空气格**落点；落点获得 **吸收+抗击退（属性 0.3–0.5，1.5–2s）**。`baseCost=12`，CD 16–18s。
+* **石像化（5转计数解锁·主动）**：**Resistance III–IV + Slowness IV + KnockbackRes=1.0**，2.5s；`baseCost=28`，CD 60s。
+
+## 3. 数值基线（仅 1 转 Organscores）
+
+```json
+{
+  "itemID": "guzhenren:y_yin_shi_gu",
+  "organScores": [
+    { "id": "chestcavity:defense", "value": "2" },
+    { "id": "chestcavity:nerves",  "value": "0.5" },
+    { "id": "guzhenren:zuida_jingli",   "value": "6" },
+    { "id": "guzhenren:zuida_zhenyuan", "value": "6" }
+  ],
+  "defaultCompatibility": 1.0
+}
+```
+
+> 2–5 转的强度全部通过行为倍率与解锁实现（不再新增 Organscores）。
+
+## 4. 主动技 & 资源
+
+* **石潜**：`guzhenren:skill/yinshi_tunnel` → `baseCost=12`，CD=18s（4转降至16s）。
+* **石像化**：`guzhenren:skill/yinshi_statue` → `baseCost=28`，CD=60s（仅 5 转计数达阈值解锁）。
+* 调用统一接口：`GuzhenrenResourceBridge.handle(player).consumeScaledZhenyuan(baseCost)`。
+
+## 5. 进化计数（EP）键与来源
+
+* `yinshi.lurk_ticks`：隐石中每 40tick +1（战斗中 ×0.5）。
+* `yinshi.firststrike`：破隐首击 +5 / 精英 +8 / Boss +12（30s 内置 CD）。
+* `yinshi.absorb_sum`：由承伤转化/回补的吸收值累计。
+* `yinshi.tunnel_cross`：石潜成功传送 +1（10s 上限 +2）。
+* 解锁阈值建议：**磐隐（被动）≥90**；**石像化（主动）≥140**。
+
+## 6. 事件挂钩（服务器权威）
+
+* `OrganSlowTickListener`：潜伏进入/退出、贴墙/低光判定、吸收回补与“战斗冻结窗”。
+* `OrganIncomingDamageListener`：`IS_PROJECTILE` 时按转数比例减伤；部分承伤→吸收（设置上限与破盾冷却）。
+* `OrganOnHitListener` / `AttackEntityEvent`：识别“破隐首击”，施加 Slowness、生成 AEC、额外伤害、写入计数并清隐石状态。
+* `ActiveSkillRegistry`：注册**石潜/石像化**图标、热键、CD Toast。
+
+## 7. Linkage 通道（状态共享）
+
+* `LINK_YINSHI_STEALTH`（bool）
+* `LINK_YINSHI_ABSORB_CD`（短时不回盾冷却）
+* `LINK_YINSHI_TUNNEL_CD`（石潜冷却）
+* `LINK_YINSHI_STATUE_CD`（石像化冷却）
+
+## 8. 客户端表现（轻量）
+
+* 石潜：落点少量碎石粒子；音效复用 `block.stone.place` 低音量。
+* 破隐首击：在目标脚下显示 AEC 云雾。
+* 隐石状态：屏幕周边暗角微收（可选，客户端配置）。
+
+## 9. 配置项
+
+* `yinshi.vanilla_lite`（默认 true）：严格使用 Vanilla-Lite 行为。
+* `yinshi.projectile_reduction_base`：投射物减伤基线（1转）。
+* `yinshi.absorb_max` / `yinshi.absorb_step`：回盾上限/步进。
+
+## 10. 本地化键
+
+* `item.guzhenren.yin_shi_gu`: 隐石蛊
+* `skill.guzhenren.yinshi_tunnel`: 石潜
+* `skill.guzhenren.yinshi_statue`: 石像化
+* `doc.guzhenren.yinshi.title`: 隐石蛊·作战手册
+
+## 11. 测试清单（要点）
+
+1. 蹲伏静止进入隐石；移动/跳跃/冲刺退出，2s 衰减保留（4转起）。
+2. 投射物减伤仅命中 `IS_PROJECTILE`；回盾在“战斗冻结窗”内停滞。
+3. 破隐首击只触发一次；AEC 半径与持续符合预期；友伤策略按配置。
+4. 石潜落点必须**头脚两格空气且脚下可站立**；两格厚墙前正确停止。
+5. 石像化期间 Knockback=0，结束恢复；牛奶可清除药水效果。
+6. EP 计数跨维/重登不丢失；达到阈值后自动解锁。
+
+## 12. 里程碑
+
+* M1：数据文件与注册跑通（石潜可用，隐石判定生效）。
+* M2：破隐首击与投射物减伤上线；EP 计数与 UI 提示。
+* M3：5 转解锁链路与石像化；全面联测与数值微调。
+
+---
+
+## 13. 代码清单（最小落地）
+
+**以下路径以 ChestCavityForge 仓库为根；文件名与包名可按你实际分层微调。**
+
+* `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/tu_dao/TuDaoOrganRegistry.java`（注册：物品 → 行为、监听挂载、Linkage 通道 ID）
+* `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/tu_dao/behavior/YinShiGuOrganBehavior.java`（核心逻辑：隐石判定/回盾、投射物减伤、破隐首击、石潜/石像化主动技触发、EP 计数）
+* `src/main/resources/data/chestcavity/organs/guzhenren/human/yin_shi/yin_shi_gu.json`（**1转** Organscores 基线）
+* `src/main/resources/assets/guzhenren/docs/human/yin_shi`（UI 文档：YAML/MD/JSON，含数值速查与键位说明）
+* `docs/guzhenren/yintier/yinshigu.md`（系统文档：机制、计数来源、阈值、与其他器官共鸣说明）
+* **`src/main/java/net/tigereye/chestcavity/skill/ActiveSkillRegistry.java`**（注册两项主动：`guzhenren:skill/yinshi_tunnel`、`guzhenren:skill/yinshi_statue`；绑定图标 `assets/guzhenren/textures/gui/skills/{yinshi_tunnel,yinshi_statue}.png`；CD 结束 Toast）
+* **`src/main/java/net/tigereye/chestcavity/engine/reaction/`**（如项目已有通用 Reaction：可选新增 `reaction/stone_snare`；否则**不新增**，破隐效果直接用 Slowness+AEC 落地）
+* **`src/main/java/net/tigereye/chestcavity/engine/dot/`**（**N/A**：隐石蛊无 DoT；此项占位以保持结构一致）
+
+> 资源图标建议：32×32 或 48×48 PNG（无边框），命名：`yinshi_tunnel.png`、`yinshi_statue.png`。
+
+---
+
+### 关键伪代码（摘）
+
+**石潜（定向闪现）**
+
+```java
+Optional<Vec3> findSafeBlinkTarget(Player p, double maxRange) {
+    HitResult hit = p.pick(maxRange, 0F, false);
+    Vec3 dir = p.getLookAngle().scale(0.25);
+    Vec3 cur = p.position().add(0, 1.0, 0);
+    for (int i=0;i< (int)(maxRange/0.25);i++) {
+        cur = cur.add(dir);
+        BlockPos feet = BlockPos.containing(cur.x, cur.y-1, cur.z);
+        if (isAir(cur) && isAir(cur.add(0,1,0)) && canStand(feet)) return Optional.of(new Vec3(feet.getX()+0.5, feet.getY(), feet.getZ()+0.5));
+        if (isSolid(cur)) break; // 厚墙阻挡
+    }
+    return Optional.empty();
+}
+```
+
+**投射物减伤 & 承伤转吸收**
+
+```java
+@SubscribeEvent
+public void onIncomingDamage(LivingIncomingDamageEvent e){
+    if(!(e.getEntity() instanceof Player p)) return;
+    if(!hasYinShi(p)) return;
+
+    if(e.getSource().is(DamageTypeTags.IS_PROJECTILE) && isInStealth(p)){
+        e.setAmount(e.getAmount() * (1F - projectileReductionForTier(tier)));
+    }
+    float convert = Math.min(e.getAmount()*convertRatio(tier), perHitAbsorbCap(tier));
+    if(convert > 0){
+        addAbsorption(p, convert);
+        addAbsorbSumEP(p, convert);
+    }
+}
+```
+
+**破隐首击**
+
+```java
+if(isInStealth(p) && isWeaponHit){
+    applyEffect(target, MobEffects.MOVEMENT_SLOWDOWN, dur(tier), amp(tier));
+    spawnAECSlowCloud(target.position(), 2.0F, 40); // 2s
+    dealBonusPierceDamage(target, bonus(tier));
+    clearStealth(p);
+    addFirstStrikeEP(p, target);
+}
+```
+
+
+--------------------------------------
 
 baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 
@@ -3739,4 +3906,3 @@ baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 5. 若存在主动技能，请用[主动]；被动效果用[被动]开头。
 6. 若有升级路线，则声明如何升级，以及升级后效果
 7. 无需编译验证，只需检测json格式是否正确即可
-
