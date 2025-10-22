@@ -75,7 +75,7 @@ public final class YinShiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation ORGAN_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "yin_shi_gu");
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "y_yin_shi_gu");
   private static final ResourceLocation SKILL_TUNNEL_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "skill/yinshi_tunnel");
   private static final ResourceLocation SKILL_STATUE_ID =

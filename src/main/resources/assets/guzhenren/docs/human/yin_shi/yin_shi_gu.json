@@ -1,5 +1,5 @@
 {
-  "id": "guzhenren:yin_shi_gu",
+  "id": "guzhenren:y_yin_shi_gu",
   "title": "隐石蛊",
   "summary": "潜伏破隐与石潜闪位的防守型器官。",
   "details": [
@@ -11,7 +11,7 @@
   ],
   "tags": [
     "隐石蛊",
-    "guzhenren:yin_shi_gu"
+    "guzhenren:y_yin_shi_gu"
   ],
-  "icon": "guzhenren:yin_shi_gu"
+  "icon": "guzhenren:y_yin_shi_gu"
 }

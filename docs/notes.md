@@ -3803,7 +3803,7 @@ ItemId : guzhenren:y_yin_shi_gu
 
 ## 10. 本地化键
 
-* `item.guzhenren.yin_shi_gu`: 隐石蛊
+* `item.guzhenren.y_yin_shi_gu`: 隐石蛊
 * `skill.guzhenren.yinshi_tunnel`: 石潜
 * `skill.guzhenren.yinshi_statue`: 石像化
 * `doc.guzhenren.yinshi.title`: 隐石蛊·作战手册
@@ -3831,7 +3831,7 @@ ItemId : guzhenren:y_yin_shi_gu
 
 * `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/tu_dao/TuDaoOrganRegistry.java`（注册：物品 → 行为、监听挂载、Linkage 通道 ID）
 * `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/tu_dao/behavior/YinShiGuOrganBehavior.java`（核心逻辑：隐石判定/回盾、投射物减伤、破隐首击、石潜/石像化主动技触发、EP 计数）
-* `src/main/resources/data/chestcavity/organs/guzhenren/human/yin_shi/yin_shi_gu.json`（**1转** Organscores 基线）
+* `src/main/resources/data/chestcavity/organs/guzhenren/human/yin_shi/y_yin_shi_gu.json`（**1转** Organscores 基线）
 * `src/main/resources/assets/guzhenren/docs/human/yin_shi`（UI 文档：YAML/MD/JSON，含数值速查与键位说明）
 * `docs/guzhenren/yintier/yinshigu.md`（系统文档：机制、计数来源、阈值、与其他器官共鸣说明）
 * **`src/main/java/net/tigereye/chestcavity/skill/ActiveSkillRegistry.java`**（注册两项主动：`guzhenren:skill/yinshi_tunnel`、`guzhenren:skill/yinshi_statue`；绑定图标 `assets/guzhenren/textures/gui/skills/{yinshi_tunnel,yinshi_statue}.png`；CD 结束 Toast）

@@ -17,7 +17,7 @@ public final class TuDaoOrganRegistry {
   private static final ResourceLocation TU_QIANG_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tu_qiang_gu");
   private static final ResourceLocation YIN_SHI_GU_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "yin_shi_gu");
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "y_yin_shi_gu");
 
   static {
     TuDaoOrganEvents.register();

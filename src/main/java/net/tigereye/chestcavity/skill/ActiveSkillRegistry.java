@@ -207,7 +207,7 @@ public final class ActiveSkillRegistry {
     register(
         "guzhenren:skill/yinshi_tunnel",
         "guzhenren:skill/yinshi_tunnel",
-        "guzhenren:yin_shi_gu",
+        "guzhenren:y_yin_shi_gu",
         tags("机动", "防御"),
         "石潜：短距穿石闪位并获得吸收护盾与抗击退，冷却视转数 16~18 秒",
         "compat/guzhenren/item/tu_dao/behavior/YinShiGuOrganBehavior.java:240",
@@ -219,7 +219,7 @@ public final class ActiveSkillRegistry {
     register(
         "guzhenren:skill/yinshi_statue",
         "guzhenren:skill/yinshi_statue",
-        "guzhenren:yin_shi_gu",
+        "guzhenren:y_yin_shi_gu",
         tags("防御", "保命"),
         "石像化：五转解锁，2.5 秒石肤抗性与免击退，冷却 60 秒",
         "compat/guzhenren/item/tu_dao/behavior/YinShiGuOrganBehavior.java:310",
