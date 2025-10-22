@@ -1,9 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills;
 
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -47,6 +49,32 @@ public final class YuShiSummonSharkSkill {
   private static final int HUNGER_COST = 1;
   private static final int TTL_TICKS = 20 * 120;
 
+  // YuShiSummonSharkSkill 内新增：一个极小的兜底表（仅当标签失效时使用）
+  private static final Map<ResourceLocation, Integer> FALLBACK_MATERIAL_TIERS = Map.of(
+      // 你项目里已经定义过的鲨材 ID，按实际为准
+      /*      
+       *  "item.guzhenren.sha_yu_ya_chi": "蛊材_冰鲛鲨牙齿",
+       *  "item.guzhenren.sha_yu_ya_chi_1": "蛊材_冰鳞鲨牙齿",
+       *  "item.guzhenren.sha_yu_ya_chi_2": "蛊材_玄霜鲛鲨牙齿",
+       *  "item.guzhenren.sha_yu_ya_chi_3": "蛊材_寒渊冰鲨牙齿",
+       *  "item.guzhenren.sha_yu_ya_chi_4": "蛊材_冰魄龙纹鲨牙齿",
+       *  "item.guzhenren.sha_yu_yu_chi": "蛊材_冰鲛鲨鱼翅",
+       *  "item.guzhenren.sha_yu_yu_chi_1": "蛊材_冰鳞鲨鱼翅",
+       *  "item.guzhenren.sha_yu_yu_chi_2": "蛊材_玄霜鲛鲨鱼翅",
+       *  "item.guzhenren.sha_yu_yu_chi_3": "蛊材_寒渊冰鲨鱼翅",
+       *  "item.guzhenren.sha_yu_yu_chi_4": "蛊材_冰魄龙纹鲨鱼翅",
+       */
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi"), 1,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi"), 1,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_1"), 2,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_1"), 2,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_2"), 3,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_2"), 3,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_3"), 4,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_3"), 4,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_4"), 5,
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_4"), 5
+  );
   private static final TagKey<Item> MATERIALS_TAG =
       TagKey.create(
           BuiltInRegistries.ITEM.key(),
@@ -210,37 +238,34 @@ public final class YuShiSummonSharkSkill {
     return BuiltInRegistries.ENTITY_TYPE.get(id);
   }
 
+
+    // 原来的 tierOf：先查 5 个“分阶标签”，如果都没命中再兜底看硬编码表
   private static int tierOf(ItemStack stack) {
-    if (stack.is(TIER5_TAG)) {
-      return 5;
-    }
-    if (stack.is(TIER4_TAG)) {
-      return 4;
-    }
-    if (stack.is(TIER3_TAG)) {
-      return 3;
-    }
-    if (stack.is(TIER2_TAG)) {
-      return 2;
-    }
-    if (stack.is(TIER1_TAG)) {
-      return 1;
-    }
-    return 0;
+    if (stack.is(TIER5_TAG)) return 5;
+    if (stack.is(TIER4_TAG)) return 4;
+    if (stack.is(TIER3_TAG)) return 3;
+    if (stack.is(TIER2_TAG)) return 2;
+    if (stack.is(TIER1_TAG)) return 1;
+
+    // 兜底：标签没配好时，用物品 ID 判定一次，避免“完全放不出鲨鱼”
+    ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+    Integer fallback = FALLBACK_MATERIAL_TIERS.get(id);
+    return fallback == null ? 0 : fallback.intValue();
   }
 
+  // 原来的 findBestOffering：删除对 MATERIALS_TAG 的强制要求，改成“只看 tierOf > 0”
   private static Optional<OfferingSlot> findBestOffering(Inventory inventory) {
-    // 按要求遍历玩家完整背包，挑选阶次最高且数量可用的鲨材供品。
     OfferingSlot best = null;
     int selectedSlot = inventory.selected;
     int size = inventory.getContainerSize();
     int bestTier = 0;
+
     for (int slot = 0; slot < size; slot++) {
       ItemStack candidate = inventory.getItem(slot);
-      if (candidate.isEmpty() || !candidate.is(MATERIALS_TAG) || candidate.getCount() <= 0) {
+      if (candidate.isEmpty() || candidate.getCount() <= 0) {
         continue;
       }
-      int tier = tierOf(candidate);
+      int tier = tierOf(candidate);          // ← 只看阶数
       if (tier <= 0) {
         continue;
       }
@@ -252,6 +277,7 @@ public final class YuShiSummonSharkSkill {
     }
     return Optional.ofNullable(best);
   }
+
 
   // 将槽位索引映射到可能的手持位置，以便在消耗后执行客户端同步。
   private static InteractionHand resolveHand(int slot, int selectedSlot) {
