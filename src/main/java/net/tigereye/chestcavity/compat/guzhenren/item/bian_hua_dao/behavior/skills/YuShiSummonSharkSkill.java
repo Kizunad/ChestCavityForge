@@ -71,11 +71,12 @@ public final class YuShiSummonSharkSkill {
           BuiltInRegistries.ITEM.key(),
           ResourceLocation.fromNamespaceAndPath("guzhenren", "shark_materials_tiered/tier5"));
 
+  // 按蛊材阶数索引召唤的实体 ID（0 位保留为空以便直接按阶数取值）。
   private static final ResourceLocation[] TIER_ENTITY_IDS = {
     null,
     ResourceLocation.fromNamespaceAndPath("guzhenren", "bing_jiao_sha"),
     ResourceLocation.fromNamespaceAndPath("guzhenren", "bing_lin_sha"),
-    ResourceLocation.fromNamespaceAndPath("guzhenren", "han_yuan_bing_sha"),
+    ResourceLocation.fromNamespaceAndPath("guzhenren", "xuan_shuang_bing_sha"),
     ResourceLocation.fromNamespaceAndPath("guzhenren", "han_yuan_bing_sha"),
     ResourceLocation.fromNamespaceAndPath("guzhenren", "bing_po_long_wen_sha")
   };

@@ -103,8 +103,8 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final int OVERLOAD_ABSORB_REQ = 1000;
   private static final int THUNDER_STRIKE_BASE = 1400;
   private static final float CHAIN_RATIO = 0.6f;
-  private static final int COUNTER_ARC_DMG = 20;            // 20
-  private static final int COUNTER_ARC_ICD_TICKS = 20 * 4;  // 4s
+  private static final int COUNTER_ARC_DMG = 20; // 20
+  private static final int COUNTER_ARC_ICD_TICKS = 20 * 4; // 4s
   private static final int ACTIVE_DOT_PER_SEC_5Z_STRONG = 160;
   private static final int ACTIVE_STRONG_DURATION_SECONDS = 5;
   private static final int ACTIVE_BASE_DURATION_SECONDS = 3;
