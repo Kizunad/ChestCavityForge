@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.skill.SkillHotbarServerData;
+import net.tigereye.chestcavity.soul.entity.SoulClanEntity;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
@@ -97,6 +98,13 @@ public final class ServerEvents {
   public static void onLivingDeath(LivingDeathEvent event) {
     if (event.getEntity().level().isClientSide()) {
       return;
+    }
+    if (event.getSource() != null
+        && event.getSource().getEntity() instanceof SoulClanEntity killer
+        && killer.getVariant() == SoulClanEntity.Variant.GUARD
+        && killer.isAlive()) {
+      // 保安击杀后立即小幅治疗，以提升守卫持续作战能力。
+      killer.heal(SoulClanEntity.GUARD_HEAL_ON_KILL);
     }
     ChestCavityEntity.of(event.getEntity()).ifPresent(ChestCavityUtil::onDeath);
   }
