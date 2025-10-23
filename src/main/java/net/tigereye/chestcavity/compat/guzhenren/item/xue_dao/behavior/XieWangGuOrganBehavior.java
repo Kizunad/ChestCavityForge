@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
@@ -100,6 +101,7 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String STATE_SLOT_KEY = "Slot";
 
   private static final Map<UUID, BloodWebState> ACTIVE_WEBS = new ConcurrentHashMap<>();
+  private static final Set<UUID> SCHEDULED_TICKS = ConcurrentHashMap.newKeySet();
 
   private XieWangGuOrganBehavior() {}
 
@@ -324,7 +326,7 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       victim.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40, 0, false, true, true));
       state = ACTIVE_WEBS.get(player.getUUID());
       if (state != null) {
-        state.markWebbed(victim.getUUID(), now + 40);
+        markWebbed(victim.getUUID(), now + 40);
       }
     }
     List<Projectile> projectiles =
@@ -363,7 +365,12 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   /** 主动清理血网缓存，用于下线或移除器官时复原状态。 */
   public void clearWeb(Player player) {
-    ACTIVE_WEBS.remove(player.getUUID());
+    UUID ownerId = player.getUUID();
+    BloodWebState state = ACTIVE_WEBS.remove(ownerId);
+    if (state != null && player.level() instanceof ServerLevel level) {
+      cleanupWebState(level, state);
+    }
+    SCHEDULED_TICKS.remove(ownerId);
   }
 
   private static void updateLedger(
@@ -376,21 +383,27 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   private void scheduleTick(ServerLevel level, UUID ownerId) {
+    if (!SCHEDULED_TICKS.add(ownerId)) {
+      return;
+    }
     TickOps.schedule(level, () -> tickWeb(level, ownerId), 1);
   }
 
   private void tickWeb(ServerLevel level, UUID ownerId) {
     BloodWebState state = ACTIVE_WEBS.get(ownerId);
+    SCHEDULED_TICKS.remove(ownerId);
     if (state == null) {
       return;
     }
     if (!state.isActive(level)) {
+      cleanupWebState(level, state);
       ACTIVE_WEBS.remove(ownerId);
       return;
     }
     ServerPlayer owner = level.getPlayerByUUID(ownerId);
     long now = level.getGameTime();
     if (owner == null || !owner.isAlive()) {
+      cleanupWebState(level, state);
       ACTIVE_WEBS.remove(ownerId);
       return;
     }
@@ -470,8 +483,21 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     if (now >= state.expireTick) {
+      cleanupWebState(level, state);
       ACTIVE_WEBS.remove(owner.getUUID());
     }
+  }
+
+  private static void cleanupWebState(ServerLevel level, BloodWebState state) {
+    if (level == null || state == null) {
+      return;
+    }
+    for (UUID targetId : state.targets.keySet()) {
+      if (level.getEntity(targetId) instanceof LivingEntity victim) {
+        removeAttackSpeedDebuff(victim);
+      }
+    }
+    state.targets.clear();
   }
 
   private void spikeVictims(
