@@ -3,27 +3,28 @@ package net.tigereye.chestcavity.soul.entity;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.util.RandomSource;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
-import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.registration.CCEntities;
 
 /**
  * SoulClan 专用的被动刷怪管理器。
  *
  * <p>核心职责：
+ *
  * <ul>
  *   <li>定期扫描世界以确保有且仅有一个长老存活；
  *   <li>维持长老周围的部族人数，避免灵魂族群因意外灭绝；
- *   <li>将所有生成逻辑限制在服务端，防止客户端重复执行。</li>
+ *   <li>将所有生成逻辑限制在服务端，防止客户端重复执行。
  * </ul>
  */
-@EventBusSubscriber(modid = ChestCavity.MODID, bus = EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = ChestCavity.MODID, bus = EventBusSubscriber.Bus.GAME)
 public final class SoulClanSpawner {
 
   /** 每次尝试刷怪之间的冷却时长（单位：tick，默认 20 秒）。 */
@@ -76,9 +77,7 @@ public final class SoulClanSpawner {
     int currentPopulation =
         serverLevel
             .getEntitiesOfClass(
-                SoulClanEntity.class,
-                leader.getBoundingBox().inflate(SCAN_RADIUS),
-                Entity::isAlive)
+                SoulClanEntity.class, leader.getBoundingBox().inflate(SCAN_RADIUS), Entity::isAlive)
             .size();
 
     if (currentPopulation >= TARGET_POP_AROUND_ELDER) {
@@ -101,7 +100,8 @@ public final class SoulClanSpawner {
    * @param variant 计划生成的变体类型
    * @return 至少一次生成成功时返回 true
    */
-  private static boolean spawnNear(ServerLevel level, BlockPos center, SoulClanEntity.Variant variant) {
+  private static boolean spawnNear(
+      ServerLevel level, BlockPos center, SoulClanEntity.Variant variant) {
     RandomSource random = level.random;
     for (int attempt = 0; attempt < SPAWN_TRIES; attempt++) {
       int dx = random.nextInt(9) - 4; // [-4, 4]
@@ -124,7 +124,8 @@ public final class SoulClanSpawner {
    * @param variant 生成实体的变体
    * @return 若实体成功加入世界则返回 true
    */
-  private static boolean spawnOne(ServerLevel level, BlockPos position, SoulClanEntity.Variant variant) {
+  private static boolean spawnOne(
+      ServerLevel level, BlockPos position, SoulClanEntity.Variant variant) {
     SoulClanEntity entity = CCEntities.SOUL_CLAN.get().create(level);
     if (entity == null) {
       return false;
@@ -143,10 +144,11 @@ public final class SoulClanSpawner {
    * 根据预设概率权重选择需要生成的族人类型。
    *
    * <p>当前权重设置：
+   *
    * <ul>
-   *   <li>守卫：60%</li>
-   *   <li>商人：35%</li>
-   *   <li>长老：5%</li>
+   *   <li>守卫：60%
+   *   <li>商人：35%
+   *   <li>长老：5%
    * </ul>
    *
    * @param random 世界随机源

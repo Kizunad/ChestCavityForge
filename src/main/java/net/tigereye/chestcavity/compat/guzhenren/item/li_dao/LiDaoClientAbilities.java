@@ -4,6 +4,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ManLiTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
 import net.tigereye.chestcavity.registration.CCKeybindings;
@@ -25,6 +26,12 @@ public final class LiDaoClientAbilities {
     }
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(XiongHaoGuOrganBehavior.ABILITY_ID)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(XiongHaoGuOrganBehavior.ABILITY_ID);
+    }
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(ManLiTianNiuGuOrganBehavior.BOOST_ABILITY_ID)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(ManLiTianNiuGuOrganBehavior.BOOST_ABILITY_ID);
+    }
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(ManLiTianNiuGuOrganBehavior.RUSH_ABILITY_ID)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(ManLiTianNiuGuOrganBehavior.RUSH_ABILITY_ID);
     }
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.CHARGE_ABILITY_ID)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.CHARGE_ABILITY_ID);

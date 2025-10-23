@@ -1043,6 +1043,26 @@ public final class GuzhenrenResourceBridge {
       return adjustZhenyuan(-required, true);
     }
 
+    /** 按境界缩放精力消耗，维持与真元一致的倍率折算公式。 */
+    public OptionalDouble consumeScaledJingli(double baseCost) {
+      if (baseCost <= 0 || !Double.isFinite(baseCost)) {
+        return OptionalDouble.empty();
+      }
+      OptionalDouble currentOpt = getJingli();
+      if (currentOpt.isEmpty()) {
+        return OptionalDouble.empty();
+      }
+      double current = currentOpt.getAsDouble();
+      double required = scaleJingliByCultivation(baseCost);
+      if (!Double.isFinite(required) || required <= 0) {
+        return OptionalDouble.empty();
+      }
+      if (current + 1.0E-4 < required) {
+        return OptionalDouble.empty();
+      }
+      return adjustJingli(-required, true);
+    }
+
     /** Calculates the scaled zhenyuan requirement without mutating the attachment. */
     public OptionalDouble estimateScaledZhenyuanCost(double baseCost) {
       if (baseCost <= 0 || !Double.isFinite(baseCost)) {
@@ -1219,6 +1239,10 @@ public final class GuzhenrenResourceBridge {
         }
       }
       return baseAmount;
+    }
+
+    private double scaleJingliByCultivation(double baseAmount) {
+      return scaleZhenyuanByCultivation(baseAmount);
     }
   }
 }
