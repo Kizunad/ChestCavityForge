@@ -1,4 +1,11 @@
 {
+  "item.guzhenren.xiong_hao_gu": "熊豪蛊",
+  "skill.xiong_hao_burst.name": "豪力爆发",
+  "skill.xiong_hao_slam.name": "破城重锤",
+  "skill.xiong_hao_roar.name": "威压怒吼",
+  "toast.guzhenren.xiong_hao_burst.ready": "豪力已回归！",
+  "toast.guzhenren.xiong_hao_slam.ready": "重锤就位",
+  "toast.guzhenren.xiong_hao_roar.ready": "怒吼再起",
   "message.chestcavity.shuishengu.ready": "三转水道真元，波澜浩荡，护盾如潮！",
   "key.chestcavity.wooden_shovel_tick_rate": "木铲：设置刻速",
   "key.chestcavity.wooden_shovel_freeze": "木铲：冻结刻",
