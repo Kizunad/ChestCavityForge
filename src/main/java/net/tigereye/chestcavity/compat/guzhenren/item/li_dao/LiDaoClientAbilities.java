@@ -1,11 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.li_dao;
 
+import java.util.List;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
 import net.tigereye.chestcavity.registration.CCKeybindings;
 
 /** Client-side ability registration for 力道（三转） organs. */
@@ -13,27 +10,24 @@ public final class LiDaoClientAbilities {
 
   private LiDaoClientAbilities() {}
 
+  /** 按字面 ResourceLocation 注册所有力道相关主动技，避免提前加载行为类导致客户端初始化问题。 */
+  private static final List<ResourceLocation> REGISTERED_ABILITIES =
+      List.of(
+          ResourceLocation.parse("guzhenren:long_wan_qu_qu_gu"),
+          ResourceLocation.parse("guzhenren:zi_li_geng_sheng_gu_3"),
+          ResourceLocation.parse("guzhenren:huang_luo_tian_niu_gu"),
+          ResourceLocation.parse("guzhenren:xiong_hao_burst"),
+          ResourceLocation.parse("guzhenren:xiong_hao_slam"),
+          ResourceLocation.parse("guzhenren:xiong_hao_roar"),
+          ResourceLocation.parse("guzhenren:hua_shi_gu/charge"),
+          ResourceLocation.parse("guzhenren:hua_shi_gu/hoofquake"),
+          ResourceLocation.parse("guzhenren:hua_shi_gu/overload_burst"));
+
   public static void onClientSetup(FMLClientSetupEvent event) {
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(LongWanQuQuGuOrganBehavior.ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(LongWanQuQuGuOrganBehavior.ABILITY_ID);
-    }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(ZiLiGengShengGuOrganBehavior.ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(ZiLiGengShengGuOrganBehavior.ABILITY_ID);
-    }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuangLuoTianNiuGuOrganBehavior.ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(HuangLuoTianNiuGuOrganBehavior.ABILITY_ID);
-    }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(XiongHaoGuOrganBehavior.ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(XiongHaoGuOrganBehavior.ABILITY_ID);
-    }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.CHARGE_ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.CHARGE_ABILITY_ID);
-    }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.HOOFQUAKE_ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.HOOFQUAKE_ABILITY_ID);
-    }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.OVERLOAD_ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.OVERLOAD_ABILITY_ID);
+    for (ResourceLocation abilityId : REGISTERED_ABILITIES) {
+      if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(abilityId)) {
+        CCKeybindings.ATTACK_ABILITY_LIST.add(abilityId);
+      }
     }
   }
 }
