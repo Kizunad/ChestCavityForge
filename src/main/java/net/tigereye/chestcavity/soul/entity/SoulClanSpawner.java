@@ -23,7 +23,7 @@ import net.tigereye.chestcavity.ChestCavity;
  *   <li>将所有生成逻辑限制在服务端，防止客户端重复执行。</li>
  * </ul>
  */
-@EventBusSubscriber(modid = ChestCavity.MODID, bus = EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SoulClanSpawner {
 
   /** 每次尝试刷怪之间的冷却时长（单位：tick，默认 20 秒）。 */
