@@ -177,6 +177,16 @@ public final class ManLiTianNiuGuOrganBehavior extends AbstractLiDaoOrganBehavio
   private static final int RUSH_DURATION_TICKS =
       BehaviorConfigAccess.getInt(ManLiTianNiuGuOrganBehavior.class, "RUSH_DURATION_TICKS", 8);
 
+  /** 返回当前配置下「蛮牛激发」的冷却时间（单位：tick）。 */
+  public static int getBoostCooldownTicks() {
+    return BOOST_COOLDOWN_TICKS;
+  }
+
+  /** 返回当前配置下「横冲直撞」的冷却时间（单位：tick）。 */
+  public static int getRushCooldownTicks() {
+    return RUSH_COOLDOWN_TICKS;
+  }
+
   private static final float PASSIVE1_DAMAGE_BONUS = 0.10F;
   private static final double PASSIVE1_KNOCKBACK = 0.5D;
   private static final int PASSIVE1_STATIONARY_TICKS = Mth.ceil(1.25F * TICKS_PER_SECOND);
