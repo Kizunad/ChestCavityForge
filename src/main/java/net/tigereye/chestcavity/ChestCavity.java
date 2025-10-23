@@ -54,6 +54,7 @@ import net.tigereye.chestcavity.registration.*;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.soul.command.SoulCommands;
 import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
+import net.tigereye.chestcavity.soul.entity.SoulClanSpawner;
 import net.tigereye.chestcavity.soul.entity.TestSoulSpawner;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
@@ -101,6 +102,7 @@ public class ChestCavity {
     // Central DoT manager ticking
     DoTEngine.bootstrap();
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
+    SoulClanSpawner.init();
     if (FMLEnvironment.dist.isClient()) {
       NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
       NeoForge.EVENT_BUS.addListener(ModernUIKeyDispatcher::onClientTick);
