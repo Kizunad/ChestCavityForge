@@ -226,7 +226,8 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
     }
     this.setTradingPlayer(player);
     if (player instanceof ServerPlayer sp) {
-      sp.openTradingScreen(this, Component.translatable("entity.chestcavity.soul_clan.trader"));
+      this.openTradingScreen(
+          sp, Component.translatable("entity.chestcavity.soul_clan.trader"), /*level*/ 1);
       return InteractionResult.CONSUME;
     }
     return InteractionResult.PASS;
