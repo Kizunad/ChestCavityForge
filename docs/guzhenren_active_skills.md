@@ -10,7 +10,9 @@
 | `guzhenren:bing_ji_gu_iceburst` | `guzhenren:bing_ji_gu` | 输出, 控制 | 拥有玉骨时引爆寒冰冲击波，对范围敌人造成伤害与高额减速 | `compat/guzhenren/item/bing_xue_dao/behavior/BingJiGuOrganBehavior.java:75` |
 | `guzhenren:chi_tie_she_li_gu` | `guzhenren:chi_tie_she_li_gu` | 辅助, 治疗 | 消耗真元与魂魄即刻回复 20%（上限 200）生命 | `compat/guzhenren/item/ren_dao/behavior/ChiTieSheLiGuOrganBehavior.java:30` |
 | `guzhenren:gui_wu` | `guzhenren:guiqigu` | 控制, 输出 | 启动鬼雾脚本，黑雾范围施加失明与缓慢 | `compat/guzhenren/item/hun_dao/behavior/GuiQiGuOrganBehavior.java:57` |
-| `guzhenren:hua_shi_gu` | `guzhenren:hua_shi_gu` | 辅助, 增益 | 被动每 5 秒消耗 200 真元恢复 3 精力；主动消耗 300 真元获得 10 秒力量 III | `compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java:24` |
+| `guzhenren:hua_shi_gu/charge` | `guzhenren:hua_shi_gu/charge` | 近战, 位移, 击退 | 野冲：向前冲刺 4.5 格，首个命中目标造成高击退与追击窗口 | `compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java` |
+| `guzhenren:hua_shi_gu/hoofquake` | `guzhenren:hua_shi_gu/hoofquake` | 近战, 控制, 范围 | 蹄震：3 格震波造成范围伤害与缓慢，阶段提升半径与硬直 | `compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java` |
+| `guzhenren:hua_shi_gu/overload_burst` | `guzhenren:hua_shi_gu/overload_burst` | 近战, 蓄力, 爆发 | 负重爆发：蓄势累层强化下一击，层数越高伤害与击退越强 | `compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java` |
 | `guzhenren:huang_jin_she_li_gu` | `guzhenren:huang_jin_she_li_gu` | 防御, 控制 | 6 秒抗性 III + 免击退，自身缓慢并对 8 格敌人施加缓慢 IV | `compat/guzhenren/item/ren_dao/behavior/HuangJinSheLiGuOrganBehavior.java:31` |
 | `guzhenren:huang_luo_tian_niu_gu` | `guzhenren:huang_luo_tian_niu_gu` | 召唤, 辅助 | 召唤发疯天牛冲锋并给予 30 秒精力消耗减免 | `compat/guzhenren/item/li_dao/behavior/HuangLuoTianNiuGuOrganBehavior.java:38` |
 | `guzhenren:huo_gu` | `guzhenren:huo_gu` | 输出, 控制 | 扣除真元与饥饿后激活灼烧光环，对敌灼烧并叠加缓慢 | `compat/guzhenren/item/yan_dao/behavior/HuoYiGuOrganBehavior.java:50` |

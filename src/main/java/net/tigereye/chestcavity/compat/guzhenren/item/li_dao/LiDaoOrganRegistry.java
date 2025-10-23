@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGu
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XuLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.events.LiDaoOrganEvents;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 /** Registry wiring for 力道（三转）器官。 Declarative registry for 力道（三转） organ behaviours. */
@@ -42,50 +43,57 @@ public final class LiDaoOrganRegistry {
   private static final ResourceLocation ZHI_ZHUANG_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "zhi_zhuang_gu");
 
-  private static final List<OrganIntegrationSpec> SPECS =
-      List.of(
-          OrganIntegrationSpec.builder(BAI_SHI_GU_ID)
-              .addSlowTickListener(BaiShiGuOrganBehavior.INSTANCE)
-              .addOnHitListener(BaiShiGuOrganBehavior.INSTANCE)
-              .ensureAttached(BaiShiGuOrganBehavior.INSTANCE::ensureAttached)
-              .build(),
-          OrganIntegrationSpec.builder(HEI_SHI_GU_ID)
-              .addSlowTickListener(HeiShiGuOrganBehavior.INSTANCE)
-              .addOnHitListener(HeiShiGuOrganBehavior.INSTANCE)
-              .ensureAttached(HeiShiGuOrganBehavior.INSTANCE::ensureAttached)
-              .build(),
-          OrganIntegrationSpec.builder(QUAN_LI_YI_FU_GU_ID)
-              .addSlowTickListener(QuanLiYiFuGuOrganBehavior.INSTANCE)
-              .build(),
-          OrganIntegrationSpec.builder(LONG_WAN_QU_QU_GU_ID)
-              .addIncomingDamageListener(LongWanQuQuGuOrganBehavior.INSTANCE)
-              .build(),
-          OrganIntegrationSpec.builder(HUANG_LUO_TIAN_NIU_GU_ID)
-              .addSlowTickListener(HuangLuoTianNiuGuOrganBehavior.INSTANCE)
-              .build(),
-          OrganIntegrationSpec.builder(XIONG_HAO_GU_ID)
-              .addSlowTickListener(XiongHaoGuOrganBehavior.INSTANCE)
-              .addOnHitListener(XiongHaoGuOrganBehavior.INSTANCE)
-              .build(),
-          OrganIntegrationSpec.builder(HUA_SHI_GU_ID)
-              .addSlowTickListener(HuaShiGuOrganBehavior.INSTANCE)
-              .build(),
-          OrganIntegrationSpec.builder(JING_LI_GU_ID)
-              .addSlowTickListener(JingLiGuOrganBehavior.INSTANCE)
-              .addOnHitListener(JingLiGuOrganBehavior.INSTANCE)
-              .build(),
-          OrganIntegrationSpec.builder(XU_LI_GU_ID)
-              .addOnHitListener(XuLiGuOrganBehavior.INSTANCE)
-              .ensureAttached(XuLiGuOrganBehavior.INSTANCE::ensureAttached)
-              .build(),
-          OrganIntegrationSpec.builder(ZI_LI_GENG_SHENG_GU_ID)
-              .addSlowTickListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
-              .addRemovalListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
-              .ensureAttached(ZiLiGengShengGuOrganBehavior.INSTANCE::ensureAttached)
-              .build(),
-          OrganIntegrationSpec.builder(ZHI_ZHUANG_GU_ID)
-              .addSlowTickListener(ZhiZhuangGuOrganBehavior.INSTANCE)
-              .build());
+  private static final List<OrganIntegrationSpec> SPECS;
+
+  static {
+    LiDaoOrganEvents.register();
+    SPECS =
+        List.of(
+            OrganIntegrationSpec.builder(BAI_SHI_GU_ID)
+                .addSlowTickListener(BaiShiGuOrganBehavior.INSTANCE)
+                .addOnHitListener(BaiShiGuOrganBehavior.INSTANCE)
+                .ensureAttached(BaiShiGuOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(HEI_SHI_GU_ID)
+                .addSlowTickListener(HeiShiGuOrganBehavior.INSTANCE)
+                .addOnHitListener(HeiShiGuOrganBehavior.INSTANCE)
+                .ensureAttached(HeiShiGuOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(QUAN_LI_YI_FU_GU_ID)
+                .addSlowTickListener(QuanLiYiFuGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(LONG_WAN_QU_QU_GU_ID)
+                .addIncomingDamageListener(LongWanQuQuGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(HUANG_LUO_TIAN_NIU_GU_ID)
+                .addSlowTickListener(HuangLuoTianNiuGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(XIONG_HAO_GU_ID)
+                .addSlowTickListener(XiongHaoGuOrganBehavior.INSTANCE)
+                .addOnHitListener(XiongHaoGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(HUA_SHI_GU_ID)
+                .addSlowTickListener(HuaShiGuOrganBehavior.INSTANCE)
+                .addOnHitListener(HuaShiGuOrganBehavior.INSTANCE)
+                .addIncomingDamageListener(HuaShiGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(JING_LI_GU_ID)
+                .addSlowTickListener(JingLiGuOrganBehavior.INSTANCE)
+                .addOnHitListener(JingLiGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(XU_LI_GU_ID)
+                .addOnHitListener(XuLiGuOrganBehavior.INSTANCE)
+                .ensureAttached(XuLiGuOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(ZI_LI_GENG_SHENG_GU_ID)
+                .addSlowTickListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
+                .addRemovalListener(ZiLiGengShengGuOrganBehavior.INSTANCE)
+                .ensureAttached(ZiLiGengShengGuOrganBehavior.INSTANCE::ensureAttached)
+                .build(),
+            OrganIntegrationSpec.builder(ZHI_ZHUANG_GU_ID)
+                .addSlowTickListener(ZhiZhuangGuOrganBehavior.INSTANCE)
+                .build());
+  }
 
   private LiDaoOrganRegistry() {}
 

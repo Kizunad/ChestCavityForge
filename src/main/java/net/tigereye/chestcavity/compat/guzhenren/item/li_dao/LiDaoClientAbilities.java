@@ -26,8 +26,14 @@ public final class LiDaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(XiongHaoGuOrganBehavior.ABILITY_ID)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(XiongHaoGuOrganBehavior.ABILITY_ID);
     }
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.ABILITY_ID);
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.CHARGE_ABILITY_ID)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.CHARGE_ABILITY_ID);
+    }
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.HOOFQUAKE_ABILITY_ID)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.HOOFQUAKE_ABILITY_ID);
+    }
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(HuaShiGuOrganBehavior.OVERLOAD_ABILITY_ID)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(HuaShiGuOrganBehavior.OVERLOAD_ABILITY_ID);
     }
   }
 }
