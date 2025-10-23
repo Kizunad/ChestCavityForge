@@ -972,9 +972,20 @@ public final class ManLiTianNiuGuOrganBehavior extends AbstractLiDaoOrganBehavio
       ACTIVE_RUSHES.remove(session.playerId());
       return;
     }
+    if (ACTIVE_RUSHES.get(session.playerId()) != session) {
+      return;
+    }
+
+    long now = session.level().getGameTime();
+    long activeSequence = Math.max(0L, state.getLong(KEY_RUSH_SEQUENCE, 0L));
+    long activeUntil = Math.max(0L, state.getLong(KEY_RUSH_ACTIVE_UNTIL, 0L));
+    if (activeSequence != session.sequence() || activeUntil <= now) {
+      ACTIVE_RUSHES.remove(session.playerId(), session);
+      return;
+    }
     if (tick >= session.durationTicks()) {
       INSTANCE.finishRush(player, state, true);
-      ACTIVE_RUSHES.remove(session.playerId());
+      ACTIVE_RUSHES.remove(session.playerId(), session);
       return;
     }
 
@@ -989,11 +1000,16 @@ public final class ManLiTianNiuGuOrganBehavior extends AbstractLiDaoOrganBehavio
   }
 
   private void finishRush(Player player, OrganState state, boolean scheduleWave) {
+    long sequence = Math.max(0L, state.getLong(KEY_RUSH_SEQUENCE, 0L));
     state.setLong(KEY_RUSH_ACTIVE_UNTIL, 0L, value -> Math.max(0L, value), 0L);
     state.setBoolean(KEY_RUSH_HIT_OCCURRED, false, false);
     Vec3 current = player.getDeltaMovement();
     player.setDeltaMovement(current.x * 0.3, current.y, current.z * 0.3);
     player.hurtMarked = true;
+    RushSession session = ACTIVE_RUSHES.get(player.getUUID());
+    if (session != null && session.sequence() == sequence) {
+      ACTIVE_RUSHES.remove(player.getUUID(), session);
+    }
     if (hasOrgan(ccFromPlayer(player), QUAN_LI_YI_FU_GU_ID) && scheduleWave) {
       spawnLandingShockwave(player);
     }
@@ -1103,6 +1119,10 @@ public final class ManLiTianNiuGuOrganBehavior extends AbstractLiDaoOrganBehavio
 
     ServerLevel level() {
       return level;
+    }
+
+    long sequence() {
+      return sequence;
     }
 
     Vec3 direction() {
