@@ -1,22 +1,23 @@
 package net.tigereye.chestcavity.compat.guzhenren.event;
 
 import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
-import net.neoforged.bus.api.EventPriority;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
+import org.slf4j.Logger;
 
 public final class NoDropEvents {
   private static final Logger LOG = LogUtils.getLogger();
 
   // ✅ 统一使用下划线标签；同时兼容你之前的冒号老标签
-  public static final String TAG          = "chestcavity_no_drop";
-  public static final String LEGACY_TAG   = "chestcavity:no_drop";
-  public static final String PDC          = "chestcavity_no_drop";
+  public static final String TAG = "chestcavity_no_drop";
+  public static final String LEGACY_TAG = "chestcavity:no_drop";
+  public static final String PDC = "chestcavity_no_drop";
 
   private static boolean REGISTERED = false;
+
   private NoDropEvents() {}
 
   public static void init() {
