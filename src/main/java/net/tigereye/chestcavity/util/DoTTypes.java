@@ -23,6 +23,7 @@ public final class DoTTypes {
   public static final ResourceLocation YAN_DAO_DRAGONFLAME =
       ChestCavity.id("dot/yan_dao_dragonflame");
   public static final ResourceLocation LEI_DUN_ELECTRIFY = ChestCavity.id("dot/lei_dun_electrify");
+  public static final ResourceLocation XIE_WANG_BLEED = ChestCavity.id("dot/xie_wang_bleed");
   // 通用点燃 DoT（由火系命中/余烬/点燃窗口刷新）
   public static final ResourceLocation IGNITE = ChestCavity.id("dot/ignite");
 

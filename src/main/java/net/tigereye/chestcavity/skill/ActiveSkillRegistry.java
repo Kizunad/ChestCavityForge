@@ -52,6 +52,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.TuQiangGuO
 import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.YinShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieWangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
@@ -360,6 +361,66 @@ public final class ActiveSkillRegistry {
         () -> {
           ensureClassLoaded(XiediguOrganBehavior.INSTANCE);
         });
+
+    register(
+            "guzhenren:skill/xie_wang_cast",
+            "guzhenren:skill/xie_wang_cast",
+            "guzhenren:xie_wang_gu",
+            tags("控制", "领域"),
+            "投掷血丝囊在落点展开血网域，6 秒内禁跳并削弱攻速",
+            "compat/guzhenren/item/xue_dao/behavior/skills/XieWangCastSkill.java",
+            () -> {
+              ensureClassLoaded(XieWangGuOrganBehavior.INSTANCE);
+            })
+        .withCooldownToast("血丝回复");
+
+    register(
+            "guzhenren:skill/xie_wang_pull",
+            "guzhenren:skill/xie_wang_pull",
+            "guzhenren:xie_wang_gu",
+            tags("控制", "位移"),
+            "缚脉拉拽血网内的敌人，向域心拖行最多 3 格",
+            "compat/guzhenren/item/xue_dao/behavior/skills/XieWangPullSkill.java",
+            () -> {
+              ensureClassLoaded(XieWangGuOrganBehavior.INSTANCE);
+            })
+        .withCooldownToast("缚脉牵引就位");
+
+    register(
+            "guzhenren:skill/xie_wang_anchor",
+            "guzhenren:skill/xie_wang_anchor",
+            "guzhenren:xie_wang_gu",
+            tags("控制", "守点"),
+            "在脚下凝血成锚，强化血网禁跳并延长持续",
+            "compat/guzhenren/item/xue_dao/behavior/skills/XieWangAnchorSkill.java",
+            () -> {
+              ensureClassLoaded(XieWangGuOrganBehavior.INSTANCE);
+            })
+        .withCooldownToast("凝血锚稳定");
+
+    register(
+            "guzhenren:skill/xie_wang_blind",
+            "guzhenren:skill/xie_wang_blind",
+            "guzhenren:xie_wang_gu",
+            tags("控制", "干扰"),
+            "在指定位置释放血雾，使敌人短暂失明并削弱投射物",
+            "compat/guzhenren/item/xue_dao/behavior/skills/XieWangBlindSkill.java",
+            () -> {
+              ensureClassLoaded(XieWangGuOrganBehavior.INSTANCE);
+            })
+        .withCooldownToast("血雾消散");
+
+    register(
+            "guzhenren:skill/xie_wang_constrict",
+            "guzhenren:skill/xie_wang_constrict",
+            "guzhenren:xie_wang_gu",
+            tags("输出", "持续"),
+            "将血网转为倒刺态，周期造成魔法伤并施加出血",
+            "compat/guzhenren/item/xue_dao/behavior/skills/XieWangConstrictSkill.java",
+            () -> {
+              ensureClassLoaded(XieWangGuOrganBehavior.INSTANCE);
+            })
+        .withCooldownToast("血刺收束待命");
 
     register(
         "guzhenren:xuezhangu",
@@ -820,7 +881,7 @@ public final class ActiveSkillRegistry {
         CooldownHint.useOrgan("誓约就绪", null));
   }
 
-  private static void register(
+  private static Registration register(
       String skillId,
       String abilityId,
       String organId,
@@ -828,10 +889,10 @@ public final class ActiveSkillRegistry {
       String description,
       String sourceHint,
       Runnable initializer) {
-    register(skillId, abilityId, organId, tags, description, sourceHint, initializer, null);
+    return register(skillId, abilityId, organId, tags, description, sourceHint, initializer, null);
   }
 
-  private static void register(
+  private static Registration register(
       String skillId,
       String abilityId,
       String organId,
@@ -855,6 +916,7 @@ public final class ActiveSkillRegistry {
           skill,
           previous.organId());
     }
+    return new Registration(skill);
   }
 
   private static List<String> tags(String... values) {
@@ -973,9 +1035,63 @@ public final class ActiveSkillRegistry {
     CountdownOps.scheduleToastAt(level, player, readyAtTick, nowTick, iconStack, title, subtitle);
   }
 
+  public static void pushToast(
+      ServerPlayer player, ResourceLocation iconId, String title, String subtitle) {
+    if (player == null) {
+      return;
+    }
+    ServerLevel level = player.serverLevel();
+    ItemStack iconStack = ItemStack.EMPTY;
+    if (iconId != null) {
+      Item item = BuiltInRegistries.ITEM.getOptional(iconId).orElse(null);
+      if (item != null) {
+        iconStack = new ItemStack(item);
+      }
+    }
+    String resolvedTitle = (title == null || title.isBlank()) ? "技能就绪" : title;
+    String resolvedSubtitle = subtitle;
+    if ((resolvedSubtitle == null || resolvedSubtitle.isBlank()) && !iconStack.isEmpty()) {
+      resolvedSubtitle = iconStack.getHoverName().getString();
+    }
+    CountdownOps.scheduleToast(level, player, 0, iconStack, resolvedTitle, resolvedSubtitle);
+  }
+
   public record CooldownHint(ResourceLocation iconOverride, String title, String subtitle) {
     public static CooldownHint useOrgan(String title, String subtitle) {
       return new CooldownHint(null, title, subtitle);
+    }
+  }
+
+  public record Registration(ResourceLocation skillId) {
+    public Registration withCooldownToast(String title) {
+      return withCooldownToast(title, null, null);
+    }
+
+    public Registration withCooldownToast(String title, String subtitle) {
+      return withCooldownToast(title, null, subtitle);
+    }
+
+    public Registration withCooldownToast(
+        String title, ResourceLocation iconOverride, String subtitle) {
+      if (skillId == null) {
+        return this;
+      }
+      ActiveSkillEntry entry = ENTRIES.get(skillId);
+      if (entry == null) {
+        return this;
+      }
+      CooldownHint hint = new CooldownHint(iconOverride, title, subtitle);
+      ActiveSkillEntry updated =
+          new ActiveSkillEntry(
+              entry.skillId(),
+              entry.abilityId(),
+              entry.organId(),
+              entry.tags(),
+              entry.description(),
+              entry.sourceHint(),
+              hint);
+      ENTRIES.put(skillId, updated);
+      return this;
     }
   }
 }

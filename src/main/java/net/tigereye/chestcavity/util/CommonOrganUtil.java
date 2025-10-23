@@ -32,6 +32,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieWangGuOrganBehavior;
 import net.tigereye.chestcavity.interfaces.CCStatusEffectInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCOrganScores;
@@ -414,10 +415,12 @@ public class CommonOrganUtil {
           hungerCost = 16;
           silkScore -= 3;
           entity.level().setBlock(pos, Blocks.WHITE_WOOL.defaultBlockState(), 2);
+          XieWangGuOrganBehavior.INSTANCE.handleSilkPlacement(entity, cc, pos);
         } else {
           hungerCost = 8;
           silkScore -= 2;
           entity.level().setBlock(pos, Blocks.COBWEB.defaultBlockState(), 2);
+          XieWangGuOrganBehavior.INSTANCE.handleSilkPlacement(entity, cc, pos);
         }
       }
     }
