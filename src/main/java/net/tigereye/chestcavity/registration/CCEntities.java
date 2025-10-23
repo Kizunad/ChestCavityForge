@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.entity.MadBullEntit
 import net.tigereye.chestcavity.entity.SwordSlashProjectile;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneGunProjectile;
 import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
+import net.tigereye.chestcavity.soul.entity.SoulClanEntity;
 import net.tigereye.chestcavity.soul.entity.TestSoulEntity;
 
 /** Centralised entity type registration for the Chest Cavity mod. */
@@ -111,20 +112,14 @@ public final class CCEntities {
                   .clientTrackingRange(48)
                   .updateInterval(2)
                   .build(ChestCavity.MODID + ":test_soul"));
-  public static final net.neoforged.neoforge.registries.DeferredHolder<
-          net.minecraft.world.entity.EntityType<?>,
-          net.minecraft.world.entity.EntityType<
-              net.tigereye.chestcavity.soul.entity.SoulClanEntity>>
-      SOUL_CLAN =
-          ENTITY_TYPES.register(
-              "soul_clan",
-              () ->
-                  net.minecraft.world.entity.EntityType.Builder
-                      .<net.tigereye.chestcavity.soul.entity.SoulClanEntity>of(
-                          net.tigereye.chestcavity.soul.entity.SoulClanEntity::new,
-                          net.minecraft.world.entity.MobCategory.CREATURE)
-                      .sized(0.6f, 1.8f)
-                      .clientTrackingRange(48)
-                      .updateInterval(2)
-                      .build(net.tigereye.chestcavity.ChestCavity.MODID + ":soul_clan"));
+
+  public static final DeferredHolder<EntityType<?>, EntityType<SoulClanEntity>> SOUL_CLAN =
+      ENTITY_TYPES.register(
+          "soul_clan",
+          () ->
+              EntityType.Builder.<SoulClanEntity>of(SoulClanEntity::new, MobCategory.CREATURE)
+                  .sized(0.6f, 1.8f)
+                  .clientTrackingRange(48)
+                  .updateInterval(2)
+                  .build(ChestCavity.MODID + ":soul_clan"));
 }

@@ -9,6 +9,7 @@ public final class SoulEntityAttributes {
   private SoulEntityAttributes() {}
 
   public static void onAttributeCreation(EntityAttributeCreationEvent event) {
+    event.put(CCEntities.SOUL_CLAN.get(), SoulClanEntity.createAttributes().build());
     event.put(CCEntities.TEST_SOUL.get(), TestSoulEntity.createAttributes().build());
   }
 }
