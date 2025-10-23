@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -48,6 +49,7 @@ import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenameP
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
+import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKeyBinding;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarState;
 import net.tigereye.chestcavity.client.modernui.widget.SimpleSkillSlotView;
 import net.tigereye.chestcavity.client.ui.ModernUiClientState;
@@ -241,6 +243,14 @@ public class ChestCavityConfigFragment extends Fragment {
           new ViewGroup.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+      var pageRoot = new FrameLayout(context);
+      pageRoot.setClipToPadding(true);
+      pageRoot.setClipChildren(true);
+      pageRoot.addView(
+          scroll,
+          new FrameLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
       addHeadline(layout, "蛊虫主动技快捷键", 18);
       addBody(
           layout,
@@ -393,6 +403,12 @@ public class ChestCavityConfigFragment extends Fragment {
         layout.addView(section.root(), section.layoutParams(layout));
       }
 
+      var captureOverlay = new KeyCaptureOverlay(context, statusView, sections);
+      pageRoot.addView(
+          captureOverlay.root(),
+          new FrameLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
       var buttonRow = new LinearLayout(context);
       buttonRow.setOrientation(LinearLayout.HORIZONTAL);
       buttonRow.setGravity(Gravity.END);
@@ -444,14 +460,18 @@ public class ChestCavityConfigFragment extends Fragment {
             @Override
             public void onViewAttachedToWindow(View v) {
               SkillHotbarClientData.addListener(listener);
+              SkillHotbarClientData.addCaptureListener(captureOverlay);
               for (SkillSection section : sections.values()) {
                 section.refresh(SkillHotbarClientData.state());
               }
+              captureOverlay.onCaptureStatusChanged(null);
             }
 
             @Override
             public void onViewDetachedFromWindow(View v) {
               SkillHotbarClientData.removeListener(listener);
+              SkillHotbarClientData.removeCaptureListener(captureOverlay);
+              captureOverlay.onCaptureStatusChanged(null);
             }
           });
 
@@ -459,7 +479,9 @@ public class ChestCavityConfigFragment extends Fragment {
         section.refresh(SkillHotbarClientData.state());
       }
 
-      return scroll;
+      captureOverlay.onCaptureStatusChanged(null);
+
+      return pageRoot;
     }
 
     private View createDocsPage(ViewGroup container) {
@@ -966,8 +988,10 @@ public class ChestCavityConfigFragment extends Fragment {
               boolean accepted =
                   SkillHotbarClientData.requestKeyCapture(
                       key,
-                      code -> {
-                        SkillHotbarClientData.setKeyCode(key, code);
+                      binding -> {
+                        SkillHotbarKeyBinding safe =
+                            binding == null ? SkillHotbarKeyBinding.UNBOUND : binding;
+                        SkillHotbarClientData.setBinding(key, safe);
                         root.post(
                             () -> {
                               changeKeyButton.setEnabled(true);
@@ -975,13 +999,13 @@ public class ChestCavityConfigFragment extends Fragment {
                                   "已将 "
                                       + key.label()
                                       + " 绑定到 "
-                                      + SkillHotbarClientData.describeKey(code));
+                                      + SkillHotbarClientData.describeBinding(safe));
                               refresh(SkillHotbarClientData.state());
                             });
                       });
               if (accepted) {
                 changeKeyButton.setEnabled(false);
-                statusView.setText("请按下 " + key.label() + " 新键位…");
+                statusView.setText("正在录制 " + key.label() + " 快捷键…");
               } else {
                 statusView.setText("键位捕获已在进行中，请先完成再重试。");
               }
@@ -1003,8 +1027,11 @@ public class ChestCavityConfigFragment extends Fragment {
       void refresh(SkillHotbarState state) {
         listContainer.removeAllViews();
         keyLabel.setText(
-            "当前键位：" + SkillHotbarClientData.describeKey(SkillHotbarClientData.getKeyCode(key)));
-        changeKeyButton.setEnabled(!SkillHotbarClientData.isCapturing());
+            "当前键位：" + SkillHotbarClientData.describeBinding(SkillHotbarClientData.getBinding(key)));
+
+        if (!SkillHotbarClientData.isCapturing()) {
+          changeKeyButton.setEnabled(true);
+        }
 
         List<ResourceLocation> skills = state.getSkills(key);
         if (skills.isEmpty()) {
@@ -1048,6 +1075,212 @@ public class ChestCavityConfigFragment extends Fragment {
           rowParams.bottomMargin = row.dp(4);
           listContainer.addView(row, rowParams);
         }
+      }
+
+      void updateCaptureState(SkillHotbarClientData.KeyCaptureStatus status) {
+        if (status == null || !status.active()) {
+          changeKeyButton.setEnabled(true);
+          return;
+        }
+        changeKeyButton.setEnabled(false);
+      }
+    }
+
+    /**
+     * Semi-transparent modal overlay rendered during key capture. It mirrors the live preview and
+     * exposes explicit actions (save / retry / cancel) so the player remains in control of the
+     * binding flow.
+     */
+    private final class KeyCaptureOverlay implements SkillHotbarClientData.CaptureListener {
+
+      private final FrameLayout root;
+      private final TextView titleView;
+      private final TextView combinationView;
+      private final TextView hintView;
+      private final TextView countdownView;
+      private final Button saveButton;
+      private final Button retryButton;
+      private final Button cancelButton;
+      private final TextView statusView;
+      private final Map<SkillHotbarKey, SkillSection> sections;
+
+      KeyCaptureOverlay(
+          icyllis.modernui.core.Context context,
+          TextView statusView,
+          Map<SkillHotbarKey, SkillSection> sections) {
+        this.statusView = statusView;
+        this.sections = sections;
+        root = new FrameLayout(context);
+        root.setVisibility(View.GONE);
+        root.setClickable(true);
+        root.setFocusable(true);
+        ShapeDrawable overlayBackground = new ShapeDrawable();
+        overlayBackground.setColor(0x99000000);
+        root.setBackground(overlayBackground);
+
+        var card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(card.dp(18), card.dp(18), card.dp(18), card.dp(16));
+        card.setGravity(Gravity.CENTER_HORIZONTAL);
+        ShapeDrawable background = new ShapeDrawable();
+        background.setCornerRadius(card.dp(12));
+        background.setColor(0xFF1F2F42);
+        background.setStroke(card.dp(1), 0xFF4A90E2);
+        card.setBackground(background);
+
+        titleView = new TextView(context);
+        titleView.setTextSize(16);
+        titleView.setTextColor(0xFFE1EBFF);
+        titleView.setGravity(Gravity.CENTER_HORIZONTAL);
+        card.addView(
+            titleView,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        combinationView = new TextView(context);
+        combinationView.setTextSize(14);
+        combinationView.setTextColor(0xFFB4C6E6);
+        combinationView.setGravity(Gravity.CENTER_HORIZONTAL);
+        combinationView.setPadding(0, card.dp(10), 0, card.dp(6));
+        card.addView(
+            combinationView,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        hintView = new TextView(context);
+        hintView.setTextSize(13);
+        hintView.setTextColor(0xFFDEE5F4);
+        hintView.setGravity(Gravity.CENTER_HORIZONTAL);
+        card.addView(
+            hintView,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        countdownView = new TextView(context);
+        countdownView.setTextSize(12);
+        countdownView.setTextColor(0xFFA5B3C9);
+        countdownView.setGravity(Gravity.CENTER_HORIZONTAL);
+        countdownView.setPadding(0, card.dp(6), 0, card.dp(10));
+        card.addView(
+            countdownView,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        var buttonRow = new LinearLayout(context);
+        buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+        buttonRow.setGravity(Gravity.CENTER_HORIZONTAL);
+        buttonRow.setPadding(0, card.dp(6), 0, 0);
+
+        saveButton = new Button(context);
+        saveButton.setText("保存");
+        saveButton.setEnabled(false);
+        saveButton.setOnClickListener(
+            v -> {
+              if (!SkillHotbarClientData.confirmKeyCapture()) {
+                statusView.setText("保存失败，请重新尝试录制。");
+              }
+            });
+        buttonRow.addView(
+            saveButton,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        retryButton = new Button(context);
+        retryButton.setText("重新录制");
+        retryButton.setOnClickListener(v -> SkillHotbarClientData.restartKeyCapture());
+        var retryParams =
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        retryParams.leftMargin = buttonRow.dp(6);
+        buttonRow.addView(retryButton, retryParams);
+
+        cancelButton = new Button(context);
+        cancelButton.setText("取消");
+        cancelButton.setOnClickListener(
+            v -> {
+              SkillHotbarClientData.cancelKeyCapture();
+              statusView.setText("已取消快捷键录制。");
+            });
+        var cancelParams =
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cancelParams.leftMargin = buttonRow.dp(6);
+        buttonRow.addView(cancelButton, cancelParams);
+
+        card.addView(
+            buttonRow,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        var cardParams =
+            new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER);
+        root.addView(card, cardParams);
+
+        update(null);
+      }
+
+      View root() {
+        return root;
+      }
+
+      @Override
+      public void onCaptureStatusChanged(SkillHotbarClientData.KeyCaptureStatus status) {
+        root.post(() -> update(status));
+      }
+
+      private void update(SkillHotbarClientData.KeyCaptureStatus status) {
+        for (SkillSection section : sections.values()) {
+          section.updateCaptureState(status);
+        }
+
+        if (status == null) {
+          root.setVisibility(View.GONE);
+          saveButton.setEnabled(false);
+          combinationView.setText("尚未记录");
+          hintView.setText("等待开始录制。");
+          countdownView.setText("");
+          return;
+        }
+
+        if (!status.active()) {
+          root.setVisibility(View.GONE);
+          saveButton.setEnabled(false);
+          if (status.timedOut()) {
+            statusView.setText("录制超时，已取消。");
+          } else if (status.cancelled()) {
+            statusView.setText("已取消快捷键录制。");
+          }
+          return;
+        }
+
+        root.setVisibility(View.VISIBLE);
+        SkillHotbarKey target = status.target();
+        titleView.setText("录制快捷键：" + (target != null ? target.label() : "未知"));
+
+        if (status.preview() != null) {
+          combinationView.setText(SkillHotbarClientData.describeBinding(status.preview()));
+        } else {
+          combinationView.setText("尚未记录");
+        }
+
+        if (status.waitingForInitialRelease()) {
+          hintView.setText("请先释放所有按键以开始录制。");
+          countdownView.setText("剩余时间：--");
+        } else if (status.awaitingConfirmation()) {
+          hintView.setText("捕获完成，点击“保存”确认或“重新录制”。");
+          countdownView.setText("剩余时间：--");
+        } else if (!status.hasCandidate()) {
+          hintView.setText("请按下目标快捷键组合…");
+          countdownView.setText("剩余时间：" + Math.max(0L, status.inactivityMillisRemaining()) + " ms");
+        } else {
+          hintView.setText("已检测到组合，松开所有按键以完成录制。");
+          countdownView.setText("剩余时间：" + Math.max(0L, status.inactivityMillisRemaining()) + " ms");
+        }
+
+        saveButton.setEnabled(status.awaitingConfirmation() && status.preview() != null);
       }
     }
 
