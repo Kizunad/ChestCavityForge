@@ -436,8 +436,21 @@ public final class XiongHaoGuOrganBehavior extends AbstractLiDaoOrganBehavior
       return;
     }
     ResourceHandle handle = handleOpt.get();
-    if (handle.adjustHunpo(-ROAR_HUNPO, true).isEmpty()
-        || handle.adjustNiantou(-ROAR_NIANTOU, true).isEmpty()) {
+    double currentHunpo = handle.getHunpo().orElse(0.0D);
+    double currentNiantou = handle.getNiantou().orElse(0.0D);
+    if (currentHunpo < ROAR_HUNPO || currentNiantou < ROAR_NIANTOU) {
+      ResourceOps.refund(player, payment);
+      failGate.setReadyAt(now + FAIL_COOLDOWN_TICKS);
+      return;
+    }
+
+    if (handle.adjustHunpo(-ROAR_HUNPO, true).isEmpty()) {
+      ResourceOps.refund(player, payment);
+      failGate.setReadyAt(now + FAIL_COOLDOWN_TICKS);
+      return;
+    }
+    if (handle.adjustNiantou(-ROAR_NIANTOU, true).isEmpty()) {
+      handle.adjustHunpo(ROAR_HUNPO, true);
       ResourceOps.refund(player, payment);
       failGate.setReadyAt(now + FAIL_COOLDOWN_TICKS);
       return;
