@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills;
-import static java.util.Map.entry;
-import java.util.Map;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -52,31 +52,31 @@ public final class YuShiSummonSharkSkill {
 
   private static final int OFFERING_COST = 64; // 每次召唤消耗 64 个
 
-  /*      
-  *  "item.guzhenren.sha_yu_ya_chi": "蛊材_冰鲛鲨牙齿",
-  *  "item.guzhenren.sha_yu_ya_chi_1": "蛊材_冰鳞鲨牙齿",
-  *  "item.guzhenren.sha_yu_ya_chi_2": "蛊材_玄霜鲛鲨牙齿",
-  *  "item.guzhenren.sha_yu_ya_chi_3": "蛊材_寒渊冰鲨牙齿",
-  *  "item.guzhenren.sha_yu_ya_chi_4": "蛊材_冰魄龙纹鲨牙齿",
-  *  "item.guzhenren.sha_yu_yu_chi": "蛊材_冰鲛鲨鱼翅",
-  *  "item.guzhenren.sha_yu_yu_chi_1": "蛊材_冰鳞鲨鱼翅",
-  *  "item.guzhenren.sha_yu_yu_chi_2": "蛊材_玄霜鲛鲨鱼翅",
-  *  "item.guzhenren.sha_yu_yu_chi_3": "蛊材_寒渊冰鲨鱼翅",
-  *  "item.guzhenren.sha_yu_yu_chi_4": "蛊材_冰魄龙纹鲨鱼翅",
-  */
+  /*
+   *  "item.guzhenren.sha_yu_ya_chi": "蛊材_冰鲛鲨牙齿",
+   *  "item.guzhenren.sha_yu_ya_chi_1": "蛊材_冰鳞鲨牙齿",
+   *  "item.guzhenren.sha_yu_ya_chi_2": "蛊材_玄霜鲛鲨牙齿",
+   *  "item.guzhenren.sha_yu_ya_chi_3": "蛊材_寒渊冰鲨牙齿",
+   *  "item.guzhenren.sha_yu_ya_chi_4": "蛊材_冰魄龙纹鲨牙齿",
+   *  "item.guzhenren.sha_yu_yu_chi": "蛊材_冰鲛鲨鱼翅",
+   *  "item.guzhenren.sha_yu_yu_chi_1": "蛊材_冰鳞鲨鱼翅",
+   *  "item.guzhenren.sha_yu_yu_chi_2": "蛊材_玄霜鲛鲨鱼翅",
+   *  "item.guzhenren.sha_yu_yu_chi_3": "蛊材_寒渊冰鲨鱼翅",
+   *  "item.guzhenren.sha_yu_yu_chi_4": "蛊材_冰魄龙纹鲨鱼翅",
+   */
   // YuShiSummonSharkSkill 内新增：一个极小的兜底表（仅当标签失效时使用）
-  private static final Map<ResourceLocation, Integer> FALLBACK_MATERIAL_TIERS = Map.ofEntries(
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi"), 1),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi"), 1),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_1"), 2),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_1"), 2),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_2"), 3),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_2"), 3),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_3"), 4),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_3"), 4),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_4"), 5),
-      Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_4"), 5)
-  );
+  private static final Map<ResourceLocation, Integer> FALLBACK_MATERIAL_TIERS =
+      Map.ofEntries(
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi"), 1),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi"), 1),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_1"), 2),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_1"), 2),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_2"), 3),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_2"), 3),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_3"), 4),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_3"), 4),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_ya_chi_4"), 5),
+          Map.entry(ResourceLocation.fromNamespaceAndPath("guzhenren", "sha_yu_yu_chi_4"), 5));
 
   private static final TagKey<Item> MATERIALS_TAG =
       TagKey.create(
@@ -198,7 +198,6 @@ public final class YuShiSummonSharkSkill {
     living.getPersistentData().putBoolean(NoDropEvents.PDC, true);
     if (living instanceof Mob mob) mob.setCanPickUpLoot(false);
 
-
     OwnedSharkEntity tracked =
         new OwnedSharkEntity(living.getUUID(), player.getUUID(), actualTier, now, now + TTL_TICKS);
     behavior.addSummon(player, tracked);
@@ -246,8 +245,7 @@ public final class YuShiSummonSharkSkill {
     return BuiltInRegistries.ENTITY_TYPE.get(id);
   }
 
-
-    // 原来的 tierOf：先查 5 个“分阶标签”，如果都没命中再兜底看硬编码表
+  // 原来的 tierOf：先查 5 个“分阶标签”，如果都没命中再兜底看硬编码表
   private static int tierOf(ItemStack stack) {
     if (stack.is(TIER5_TAG)) return 5;
     if (stack.is(TIER4_TAG)) return 4;
@@ -286,9 +284,6 @@ public final class YuShiSummonSharkSkill {
     return Optional.ofNullable(best);
   }
 
-
-
-
   // 将槽位索引映射到可能的手持位置，以便在消耗后执行客户端同步。
   private static InteractionHand resolveHand(int slot, int selectedSlot) {
     if (slot == selectedSlot) {
@@ -300,7 +295,8 @@ public final class YuShiSummonSharkSkill {
     return null;
   }
 
-  private static void consumeOffering(ServerPlayer player, Inventory inventory, OfferingSlot offering, int amount) {
+  private static void consumeOffering(
+      ServerPlayer player, Inventory inventory, OfferingSlot offering, int amount) {
     int slot = offering.slot();
     // 用 removeItem 精准扣减；返回值是被移除的那一摞
     inventory.removeItem(slot, amount);
@@ -313,7 +309,6 @@ public final class YuShiSummonSharkSkill {
     // 有些容器需要这步才能立刻刷到客户端
     player.containerMenu.broadcastChanges();
   }
-
 
   private static ItemStack findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
