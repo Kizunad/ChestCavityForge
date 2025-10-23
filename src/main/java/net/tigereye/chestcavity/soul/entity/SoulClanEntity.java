@@ -19,9 +19,7 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -35,8 +33,10 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.soul.entity.goal.FollowElderGoal;
+import net.tigereye.chestcavity.soul.entity.goal.GuardOnlyTargetGoal;
 import net.tigereye.chestcavity.soul.entity.goal.SplitOnLowHpGoal;
 import net.tigereye.chestcavity.soul.util.ChestCavityInsertOps;
+import net.tigereye.chestcavity.soul.util.ItemFilterOps;
 
 public class SoulClanEntity extends PathfinderMob implements Merchant {
 
@@ -54,7 +54,8 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
   private static final int AREA_MAX_COUNT = 12;
   private static final double AREA_RADIUS = 12.0;
 
-  private static final int GUARD_HEAL_ON_KILL = 4; // TODO: 之后用事件实现
+  // 保安在击杀敌人后可以回复的生命值（单位：半格）。
+  public static final int GUARD_HEAL_ON_KILL = 4;
   private static final double ELDER_MAGNET_DIST = 32.0;
 
   private Variant variant = Variant.GUARD;
@@ -94,7 +95,7 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
     this.goalSelector.addGoal(4, new RandomStrollGoal(this, 1.0));
     this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
-    this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Monster.class, true));
+    this.targetSelector.addGoal(1, new GuardOnlyTargetGoal(this));
   }
 
   @Override
@@ -111,6 +112,14 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
       if (!item.isAlive()) continue;
       ItemStack stack = item.getItem();
       if (stack.isEmpty()) continue;
+
+      if (!ItemFilterOps.isUseful(stack)) {
+        // 主动忽略无用物品，必要时顺带移除脚边的杂物，保持拾取效率。
+        if (this.distanceTo(item) <= 0.8f) {
+          item.discard();
+        }
+        continue;
+      }
 
       Vec3 dir =
           new Vec3(
