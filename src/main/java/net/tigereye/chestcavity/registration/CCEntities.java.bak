@@ -111,20 +111,4 @@ public final class CCEntities {
                   .clientTrackingRange(48)
                   .updateInterval(2)
                   .build(ChestCavity.MODID + ":test_soul"));
-  public static final net.neoforged.neoforge.registries.DeferredHolder<
-          net.minecraft.world.entity.EntityType<?>,
-          net.minecraft.world.entity.EntityType<
-              net.tigereye.chestcavity.soul.entity.SoulClanEntity>>
-      SOUL_CLAN =
-          ENTITY_TYPES.register(
-              "soul_clan",
-              () ->
-                  net.minecraft.world.entity.EntityType.Builder
-                      .<net.tigereye.chestcavity.soul.entity.SoulClanEntity>of(
-                          net.tigereye.chestcavity.soul.entity.SoulClanEntity::new,
-                          net.minecraft.world.entity.MobCategory.CREATURE)
-                      .sized(0.6f, 1.8f)
-                      .clientTrackingRange(48)
-                      .updateInterval(2)
-                      .build(net.tigereye.chestcavity.ChestCavity.MODID + ":soul_clan"));
 }
