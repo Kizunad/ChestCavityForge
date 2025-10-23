@@ -101,6 +101,8 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String STATE_SLOT_KEY = "Slot";
 
   private static final Map<UUID, BloodWebState> ACTIVE_WEBS = new ConcurrentHashMap<>();
+
+  /** 记录当前已排队的血网 Tick，避免在 createWeb/tickWeb 重复调度时生成平行执行链导致伤害/减益叠加。 */
   private static final Set<UUID> SCHEDULED_TICKS = ConcurrentHashMap.newKeySet();
 
   private XieWangGuOrganBehavior() {}
@@ -383,6 +385,7 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   private void scheduleTick(ServerLevel level, UUID ownerId) {
+    // 仅在调度集合中缺席时才排程下一次 Tick，以防止同一血网被重复 enqueue。
     if (!SCHEDULED_TICKS.add(ownerId)) {
       return;
     }
