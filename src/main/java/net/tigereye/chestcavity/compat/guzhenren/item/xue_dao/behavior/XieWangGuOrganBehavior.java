@@ -48,7 +48,7 @@ import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.DoTTypes;
 import net.tigereye.chestcavity.util.NetworkUtil;
-import net.tigereye.chestcavity.util.engine.dot.DoTEngine;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import org.slf4j.Logger;
 
 /** 核心行为：血网蛊。负责维护领域状态、被动效果与主动技能共享逻辑。 */
