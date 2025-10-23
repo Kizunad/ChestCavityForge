@@ -7,10 +7,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
-import net.tigereye.chestcavity.ChestCavity;
+import net.neoforged.neoforge.common.NeoForge;
 import net.tigereye.chestcavity.registration.CCEntities;
 
 /**
@@ -24,7 +22,6 @@ import net.tigereye.chestcavity.registration.CCEntities;
  *   <li>将所有生成逻辑限制在服务端，防止客户端重复执行。
  * </ul>
  */
-@EventBusSubscriber(modid = ChestCavity.MODID, bus = EventBusSubscriber.Bus.FORGE)
 public final class SoulClanSpawner {
 
   /** 每次尝试刷怪之间的冷却时长（单位：tick，默认 20 秒）。 */
@@ -41,9 +38,21 @@ public final class SoulClanSpawner {
 
   /** 剩余的冷却 tick；为 0 时允许再次尝试刷新族人。 */
   private static int cooldown;
+  private static boolean registered;
 
   private SoulClanSpawner() {
     // 工具类不需要实例化。
+  }
+
+  /**
+   * 注册 SoulClan 刷怪逻辑到 NeoForge 事件总线，确保监听世界 tick。
+   */
+  public static void init() {
+    if (registered) {
+      return;
+    }
+    NeoForge.EVENT_BUS.addListener(SoulClanSpawner::onLevelTick);
+    registered = true;
   }
 
   /**
@@ -51,7 +60,6 @@ public final class SoulClanSpawner {
    *
    * @param event Forge 在世界 tick 后触发的事件
    */
-  @SubscribeEvent
   public static void onLevelTick(LevelTickEvent.Post event) {
     Level level = event.getLevel();
     if (!(level instanceof ServerLevel serverLevel)) {

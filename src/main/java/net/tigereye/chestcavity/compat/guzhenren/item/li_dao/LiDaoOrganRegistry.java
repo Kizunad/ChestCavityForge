@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.JingLiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ManLiTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.QuanLiYiFuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XuLiGuOrganBehavior;
@@ -30,6 +31,8 @@ public final class LiDaoOrganRegistry {
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "long_wan_qu_qu_gu");
   private static final ResourceLocation HUANG_LUO_TIAN_NIU_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "huang_luo_tian_niu_gu");
+  private static final ResourceLocation MAN_LI_TIAN_NIU_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "man_li_tian_niu_gu");
   private static final ResourceLocation JING_LI_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "jing_li_gu");
   private static final ResourceLocation XIONG_HAO_GU_ID =
@@ -67,6 +70,10 @@ public final class LiDaoOrganRegistry {
                 .build(),
             OrganIntegrationSpec.builder(HUANG_LUO_TIAN_NIU_GU_ID)
                 .addSlowTickListener(HuangLuoTianNiuGuOrganBehavior.INSTANCE)
+                .build(),
+            OrganIntegrationSpec.builder(MAN_LI_TIAN_NIU_GU_ID)
+                .addSlowTickListener(ManLiTianNiuGuOrganBehavior.INSTANCE)
+                .addOnHitListener(ManLiTianNiuGuOrganBehavior.INSTANCE)
                 .build(),
             OrganIntegrationSpec.builder(XIONG_HAO_GU_ID)
                 .addSlowTickListener(XiongHaoGuOrganBehavior.INSTANCE)

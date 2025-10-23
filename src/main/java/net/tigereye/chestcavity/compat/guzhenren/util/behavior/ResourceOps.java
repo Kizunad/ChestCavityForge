@@ -205,6 +205,35 @@ public final class ResourceOps {
     return tryConsumeScaledZhenyuan(handleOpt.get(), baseCost);
   }
 
+  public static OptionalDouble tryConsumeScaledJingli(ResourceHandle handle, double baseCost) {
+    if (handle == null || baseCost <= 0.0) {
+      return OptionalDouble.empty();
+    }
+    return handle.consumeScaledJingli(baseCost);
+  }
+
+  public static OptionalDouble tryConsumeScaledJingli(Player player, double baseCost) {
+    if (player == null || baseCost <= 0.0) {
+      return OptionalDouble.empty();
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return tryConsumeScaledJingli(handleOpt.get(), baseCost);
+  }
+
+  public static OptionalDouble tryConsumeScaledJingli(LivingEntity entity, double baseCost) {
+    if (entity == null || baseCost <= 0.0) {
+      return OptionalDouble.empty();
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(entity);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return tryConsumeScaledJingli(handleOpt.get(), baseCost);
+  }
+
   public static OptionalDouble tryAdjustZhenyuan(
       ResourceHandle handle, double amount, boolean clampToMax) {
     if (handle == null || amount == 0.0) {

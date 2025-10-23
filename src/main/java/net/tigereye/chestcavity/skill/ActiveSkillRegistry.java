@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuO
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ManLiTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
@@ -798,16 +799,40 @@ public final class ActiveSkillRegistry {
         CooldownHint.useOrgan("技能就绪", null));
 
     register(
+        "guzhenren:xiong_hao_burst",
+        "guzhenren:xiong_hao_burst",
         "guzhenren:xiong_hao_gu",
-        "guzhenren:xiong_hao_gu",
-        "guzhenren:xiong_hao_gu",
-        tags("输出", "爆发"),
-        "消耗 300 真元进入 10 秒激怒，每次近战命中额外消耗 6 精力并造成 +10 伤害",
-        "compat/guzhenren/item/li_dao/behavior/XiongHaoGuOrganBehavior.java:28",
+        tags("爆发", "近战"),
+        "豪力爆发：消耗 300 基础真元，10 秒内每次近战命中额外 -6 精力并 +10/12 伤害",
+        "compat/guzhenren/item/li_dao/behavior/XiongHaoGuOrganBehavior.java",
         () -> {
           ensureClassLoaded(XiongHaoGuOrganBehavior.INSTANCE);
         },
-        CooldownHint.useOrgan("技能就绪", null));
+        CooldownHint.useOrgan("豪力已回归！", null));
+
+    register(
+        "guzhenren:xiong_hao_slam",
+        "guzhenren:xiong_hao_slam",
+        "guzhenren:xiong_hao_gu",
+        tags("范围", "击退"),
+        "破城重锤：前方 4×3×4 范围重击，命中越近伤害越高，命中 3 体返 4 精力",
+        "compat/guzhenren/item/li_dao/behavior/XiongHaoGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(XiongHaoGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("重锤就位", null));
+
+    register(
+        "guzhenren:xiong_hao_roar",
+        "guzhenren:xiong_hao_roar",
+        "guzhenren:xiong_hao_gu",
+        tags("控制", "嘲讽"),
+        "威压怒吼：消耗真元/念头/魂魄，嘲讽并减速 5 格内敌人 4 秒",
+        "compat/guzhenren/item/li_dao/behavior/XiongHaoGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(XiongHaoGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("怒吼再起", null));
 
     register(
         "guzhenren:hua_shi_gu/charge",
@@ -844,6 +869,33 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(HuaShiGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("爆发就绪", "冲势充盈"));
+
+    // 蛮力天牛蛊主动技：蛮牛激发与横冲直撞
+    register(
+        "guzhenren:man_li_tian_niu_gu/boost",
+        "guzhenren:man_li_tian_niu_gu/boost",
+        "guzhenren:man_li_tian_niu_gu",
+        tags("强化", "近战"),
+        "蛮牛激发：消耗约 200 基础真元获得 10 秒强筋，普攻追加精力换取真实伤害",
+        "compat/guzhenren/item/li_dao/behavior/ManLiTianNiuGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ManLiTianNiuGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan(
+            "激发就绪", formatCooldownSeconds(ManLiTianNiuGuOrganBehavior.getBoostCooldownTicks())));
+
+    register(
+        "guzhenren:man_li_tian_niu_gu/rush",
+        "guzhenren:man_li_tian_niu_gu/rush",
+        "guzhenren:man_li_tian_niu_gu",
+        tags("位移", "近战", "控制"),
+        "横冲直撞：消耗约 80 真元与 10 精力突进 8 刻，首个目标受额外伤害与击退",
+        "compat/guzhenren/item/li_dao/behavior/ManLiTianNiuGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ManLiTianNiuGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan(
+            "冲撞就绪", formatCooldownSeconds(ManLiTianNiuGuOrganBehavior.getRushCooldownTicks())));
 
     register(
         "guzhenren:shuang_xi_gu_frost_breath",
