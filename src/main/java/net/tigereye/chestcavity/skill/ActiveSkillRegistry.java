@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuO
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.LongWanQuQuGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ManLiTianNiuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
@@ -807,6 +808,33 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(HuaShiGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("爆发就绪", "冲势充盈"));
+
+    // 蛮力天牛蛊主动技：蛮牛激发与横冲直撞
+    register(
+        "guzhenren:man_li_tian_niu_gu/boost",
+        "guzhenren:man_li_tian_niu_gu/boost",
+        "guzhenren:man_li_tian_niu_gu",
+        tags("强化", "近战"),
+        "蛮牛激发：消耗约 200 基础真元获得 10 秒强筋，普攻追加精力换取真实伤害",
+        "compat/guzhenren/item/li_dao/behavior/ManLiTianNiuGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ManLiTianNiuGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan(
+            "激发就绪", formatCooldownSeconds(ManLiTianNiuGuOrganBehavior.getBoostCooldownTicks())));
+
+    register(
+        "guzhenren:man_li_tian_niu_gu/rush",
+        "guzhenren:man_li_tian_niu_gu/rush",
+        "guzhenren:man_li_tian_niu_gu",
+        tags("位移", "近战", "控制"),
+        "横冲直撞：消耗约 80 真元与 10 精力突进 8 刻，首个目标受额外伤害与击退",
+        "compat/guzhenren/item/li_dao/behavior/ManLiTianNiuGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(ManLiTianNiuGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan(
+            "冲撞就绪", formatCooldownSeconds(ManLiTianNiuGuOrganBehavior.getRushCooldownTicks())));
 
     register(
         "guzhenren:shuang_xi_gu_frost_breath",
