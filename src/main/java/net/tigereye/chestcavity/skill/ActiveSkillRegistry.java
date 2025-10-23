@@ -749,15 +749,40 @@ public final class ActiveSkillRegistry {
         CooldownHint.useOrgan("技能就绪", null));
 
     register(
+        "guzhenren:hua_shi_gu/charge",
+        "guzhenren:hua_shi_gu/charge",
         "guzhenren:hua_shi_gu",
-        "guzhenren:hua_shi_gu",
-        "guzhenren:hua_shi_gu",
-        tags("辅助", "增益"),
-        "被动每 5 秒消耗 200 真元恢复 3 精力；主动消耗 300 真元获得 10 秒力量 III",
-        "compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java:24",
+        tags("近战", "位移", "击退"),
+        "野冲：消耗 80 基础真元与 6 精力，向前冲刺 4.5 格并击退首个命中目标",
+        "compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java",
         () -> {
           ensureClassLoaded(HuaShiGuOrganBehavior.INSTANCE);
-        });
+        },
+        CooldownHint.useOrgan("野冲就绪", "冲锋待命"));
+
+    register(
+        "guzhenren:hua_shi_gu/hoofquake",
+        "guzhenren:hua_shi_gu/hoofquake",
+        "guzhenren:hua_shi_gu",
+        tags("近战", "控制", "范围"),
+        "蹄震：消耗 120 基础真元与 8 精力，释放 3 格冲击波造成伤害与缓慢",
+        "compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(HuaShiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("蹄震就绪", "震击待命"));
+
+    register(
+        "guzhenren:hua_shi_gu/overload_burst",
+        "guzhenren:hua_shi_gu/overload_burst",
+        "guzhenren:hua_shi_gu",
+        tags("近战", "蓄力", "爆发"),
+        "负重爆发：消耗 150 基础真元与 10 精力进入 4 秒蓄势，累积层数后强化下一次普攻",
+        "compat/guzhenren/item/li_dao/behavior/HuaShiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(HuaShiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("爆发就绪", "冲势充盈"));
 
     register(
         "guzhenren:shuang_xi_gu_frost_breath",

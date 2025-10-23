@@ -1,6 +1,11 @@
 {
   "itemID": "guzhenren:hua_shi_gu",
   "organScores": [
-    {"id": "chestcavity:strength", "value": "16"}
+    {"id": "chestcavity:strength", "value": 2.5},
+    {"id": "chestcavity:knockback_resistant", "value": 0.5},
+    {"id": "chestcavity:impact_resistant", "value": 0.5},
+    {"id": "chestcavity:leaping", "value": 0.2},
+    {"id": "guzhenren:daohen_lidao", "value": 1.0},
+    {"id": "guzhenren:zuida_jingli", "value": 1.0}
   ]
 }
