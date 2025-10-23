@@ -38,6 +38,7 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityType;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.chestcavities.types.GeneratedChestCavityType;
 import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenOrganHandlers;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -647,7 +648,14 @@ public class ChestCavityUtil {
         }
       }
       RandomSource random = cc.owner != null ? cc.owner.getRandom() : RandomSource.create();
-      cc.getChestCavityType().applyRandomFillers(cc, cc.inventory, random);
+      if (cc.getChestCavityType() instanceof GeneratedChestCavityType generated) {
+        if (!cc.areRandomFillersGenerated()) {
+          generated.preGenerateRandomFillers(cc, random);
+        }
+        generated.applyPreGeneratedFillers(cc, cc.inventory);
+      } else {
+        cc.getChestCavityType().applyRandomFillers(cc, cc.inventory, random);
+      }
       cc.getChestCavityType().setOrganCompatibility(cc);
     }
   }

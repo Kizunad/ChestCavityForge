@@ -6,14 +6,18 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerListener;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
+import net.tigereye.chestcavity.chestcavities.types.GeneratedChestCavityType;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.listeners.OrganHealContext;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
@@ -47,6 +51,8 @@ public class ChestCavityInstance implements ContainerListener {
   public List<OrganRemovalContext> onRemovedListeners = new ArrayList<>();
   public LinkedList<Consumer<LivingEntity>> projectileQueue = new LinkedList<>();
   private final Set<ResourceLocation> scoreboardUpgrades = new HashSet<>();
+  private boolean randomFillersGenerated = false;
+  private final List<RandomFillerEntry> preGeneratedRandomFillers = new ArrayList<>();
 
   public int heartBleedTimer = 0;
   public int bloodPoisonTimer = 0;
@@ -100,6 +106,45 @@ public class ChestCavityInstance implements ContainerListener {
 
   public Set<ResourceLocation> getScoreboardUpgrades() {
     return Collections.unmodifiableSet(scoreboardUpgrades);
+  }
+
+  public boolean areRandomFillersGenerated() {
+    return randomFillersGenerated;
+  }
+
+  public void setRandomFillersGenerated(boolean generated) {
+    this.randomFillersGenerated = generated;
+  }
+
+  public List<RandomFillerEntry> getPreGeneratedRandomFillers() {
+    return Collections.unmodifiableList(preGeneratedRandomFillers);
+  }
+
+  public void replacePreGeneratedRandomFillers(List<RandomFillerEntry> entries) {
+    preGeneratedRandomFillers.clear();
+    if (entries == null || entries.isEmpty()) {
+      return;
+    }
+    for (RandomFillerEntry entry : entries) {
+      if (entry == null) {
+        continue;
+      }
+      ItemStack stack = entry.stack();
+      if (stack == null || stack.isEmpty()) {
+        continue;
+      }
+      preGeneratedRandomFillers.add(new RandomFillerEntry(entry.slot(), stack.copy()));
+    }
+  }
+
+  public void initializeRandomFillersOnSpawn() {
+    if (randomFillersGenerated) {
+      return;
+    }
+    if (type instanceof GeneratedChestCavityType generated) {
+      RandomSource random = owner != null ? owner.getRandom() : RandomSource.create();
+      generated.preGenerateRandomFillers(this, random);
+    }
   }
 
   @Override
@@ -161,6 +206,35 @@ public class ChestCavityInstance implements ContainerListener {
           }
         }
       }
+      randomFillersGenerated = ccTag.getBoolean("RandomFillersGenerated");
+      preGeneratedRandomFillers.clear();
+      if (ccTag.contains("RandomFillers", Tag.TAG_LIST)) {
+        HolderLookup.Provider effectiveLookup = lookup;
+        if (effectiveLookup == null && owner != null) {
+          effectiveLookup = owner.level().registryAccess();
+        }
+        if (effectiveLookup != null) {
+          ListTag fillers = ccTag.getList("RandomFillers", Tag.TAG_COMPOUND);
+          List<RandomFillerEntry> loaded = new ArrayList<>();
+          for (int i = 0; i < fillers.size(); i++) {
+            CompoundTag fillerTag = fillers.getCompound(i);
+            if (!fillerTag.contains("Slot", Tag.TAG_INT)
+                || !fillerTag.contains("Stack", Tag.TAG_COMPOUND)) {
+              continue;
+            }
+            int slot = fillerTag.getInt("Slot");
+            ItemStack stack =
+                ItemStack.parseOptional(effectiveLookup, fillerTag.getCompound("Stack"));
+            if (!stack.isEmpty()) {
+              loaded.add(new RandomFillerEntry(slot, stack));
+            }
+          }
+          replacePreGeneratedRandomFillers(loaded);
+          if (!loaded.isEmpty()) {
+            randomFillersGenerated = true;
+          }
+        }
+      }
     } else if (tag.contains("cardinal_components")) {
       CompoundTag temp = tag.getCompound("cardinal_components");
       if (temp.contains("chestcavity:inventorycomponent")) {
@@ -211,6 +285,23 @@ public class ChestCavityInstance implements ContainerListener {
       }
       ccTag.put("ScoreboardUpgrades", upgrades);
     }
+    ccTag.putBoolean("RandomFillersGenerated", randomFillersGenerated);
+    if (!preGeneratedRandomFillers.isEmpty()) {
+      HolderLookup.Provider effectiveLookup = lookup;
+      if (effectiveLookup == null && owner != null) {
+        effectiveLookup = owner.level().registryAccess();
+      }
+      if (effectiveLookup != null) {
+        ListTag fillers = new ListTag();
+        for (RandomFillerEntry entry : preGeneratedRandomFillers) {
+          CompoundTag fillerTag = new CompoundTag();
+          fillerTag.putInt("Slot", entry.slot());
+          fillerTag.put("Stack", entry.stack().copy().save(effectiveLookup));
+          fillers.add(fillerTag);
+        }
+        ccTag.put("RandomFillers", fillers);
+      }
+    }
     LinkageManager.save(this, ccTag);
     tag.put("ChestCavity", ccTag);
   }
@@ -240,6 +331,11 @@ public class ChestCavityInstance implements ContainerListener {
     connectedCrystal = other.connectedCrystal;
     scoreboardUpgrades.clear();
     scoreboardUpgrades.addAll(other.scoreboardUpgrades);
+    randomFillersGenerated = other.randomFillersGenerated;
+    preGeneratedRandomFillers.clear();
+    for (RandomFillerEntry entry : other.preGeneratedRandomFillers) {
+      preGeneratedRandomFillers.add(new RandomFillerEntry(entry.slot(), entry.stack().copy()));
+    }
     ChestCavityUtil.evaluateChestCavity(this);
   }
 
@@ -258,4 +354,7 @@ public class ChestCavityInstance implements ContainerListener {
     }
     ChestCavityUtil.evaluateChestCavity(this);
   }
+
+  /** 记录预生成随机物品的槽位与物品堆，用于掉落与打开胸腔时复用。 */
+  public record RandomFillerEntry(int slot, ItemStack stack) {}
 }

@@ -190,7 +190,8 @@ public class DefaultChestCavityType implements ChestCavityType {
   }
 
   @Override
-  public List<ItemStack> generateLootDrops(RandomSource random, int looting) {
+  public List<ItemStack> generateLootDrops(
+      ChestCavityInstance instance, RandomSource random, int looting) {
     List<ItemStack> loot = new ArrayList<>();
     if (playerChestCavity) {
       return loot;

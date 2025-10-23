@@ -109,7 +109,7 @@ public final class LootEvents {
     }
 
     // Generate organ loot when the cavity hasn't been opened manually
-    for (ItemStack stack : cc.getChestCavityType().generateLootDrops(random, lootingLevel)) {
+    for (ItemStack stack : cc.getChestCavityType().generateLootDrops(cc, random, lootingLevel)) {
       event.getDrops().add(createDrop(entity, stack.copy()));
     }
 
