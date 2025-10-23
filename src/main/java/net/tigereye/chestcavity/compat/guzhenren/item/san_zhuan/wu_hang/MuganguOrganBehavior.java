@@ -102,8 +102,9 @@ public enum MuganguOrganBehavior
               boolean success;
               if (!hasCompanionOrgans) {
                 double jingliCost = BASE_JINGLI_COST * stackCount;
+                // 说明：clamp=false（或等价的“严格”参数）会在无法足额扣除时返回 Empty，从而触发你的 return，不再执行回真元。
                 OptionalDouble jingliResult =
-                    ResourceOps.tryAdjustJingli(handle, -jingliCost, true);
+                    ResourceOps.tryAdjustJingli(handle, -jingliCost, false);
                 if (jingliResult.isEmpty()) {
                   regenChannel.set(0.0);
                   return;
