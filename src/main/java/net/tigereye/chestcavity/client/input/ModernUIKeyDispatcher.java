@@ -1,6 +1,5 @@
 package net.tigereye.chestcavity.client.input;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +12,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.client.modernui.network.ActiveSkillTriggerPayload;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
+import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKeyBinding;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarState;
 import net.tigereye.chestcavity.client.ui.ModernUiClientState;
 import org.lwjgl.glfw.GLFW;
@@ -25,7 +25,9 @@ public final class ModernUIKeyDispatcher {
   private static final ResourceLocation DEBUG_SKILL_ID =
       ResourceLocation.fromNamespaceAndPath("guzhenren", "debug/f8_probe");
 
-  private static final Map<Integer, Boolean> LAST_STATE = new HashMap<>();
+  private static final Map<String, Boolean> LAST_STATE = new HashMap<>();
+  private static final SkillHotbarKeyBinding DEBUG_BINDING =
+      SkillHotbarKeyBinding.of(DEBUG_KEY, false, false, false);
 
   private ModernUIKeyDispatcher() {}
 
@@ -57,8 +59,8 @@ public final class ModernUIKeyDispatcher {
     SkillHotbarState state = SkillHotbarClientData.state();
     boolean triggeredAny = false;
     for (SkillHotbarKey slot : SkillHotbarKey.values()) {
-      int keyCode = SkillHotbarClientData.getKeyCode(slot);
-      if (keyCode <= GLFW.GLFW_KEY_UNKNOWN) {
+      SkillHotbarKeyBinding binding = SkillHotbarClientData.getBinding(slot);
+      if (binding == null || !binding.isBound()) {
         continue;
       }
       List<ResourceLocation> skills = state.getSkills(slot);
@@ -66,27 +68,34 @@ public final class ModernUIKeyDispatcher {
         continue;
       }
       triggeredAny = true;
-      handleKey(minecraft, keyCode, slot.label(), skills);
+      handleKey(minecraft, binding, slot.label(), skills);
     }
 
     if (!triggeredAny && DEBUG_ENABLED) {
-      handleKey(minecraft, DEBUG_KEY, "F8", List.of(DEBUG_SKILL_ID));
+      handleKey(minecraft, DEBUG_BINDING, "F8", List.of(DEBUG_SKILL_ID));
     }
   }
 
   private static void handleKey(
-      Minecraft minecraft, int keyCode, String label, List<ResourceLocation> skills) {
+      Minecraft minecraft,
+      SkillHotbarKeyBinding binding,
+      String label,
+      List<ResourceLocation> skills) {
+    if (binding == null || !binding.isBound()) {
+      return;
+    }
     long windowHandle = minecraft.getWindow().getWindow();
-    boolean down = InputConstants.isKeyDown(windowHandle, keyCode);
-    boolean wasDown = LAST_STATE.getOrDefault(keyCode, Boolean.FALSE);
+    boolean down = binding.isPressed(windowHandle);
+    String stateKey = binding.stateKey();
+    boolean wasDown = LAST_STATE.getOrDefault(stateKey, Boolean.FALSE);
     if (!down) {
-      LAST_STATE.put(keyCode, Boolean.FALSE);
+      LAST_STATE.put(stateKey, Boolean.FALSE);
       return;
     }
     if (wasDown) {
       return;
     }
-    LAST_STATE.put(keyCode, Boolean.TRUE);
+    LAST_STATE.put(stateKey, Boolean.TRUE);
 
     if (minecraft.getConnection() != null) {
       minecraft.execute(
@@ -105,11 +114,14 @@ public final class ModernUIKeyDispatcher {
     }
   }
 
-  public static void onKeyRebind(int oldKeyCode, int newKeyCode) {
-    if (oldKeyCode != newKeyCode) {
-      LAST_STATE.remove(oldKeyCode);
+  public static void onKeyRebind(
+      SkillHotbarKeyBinding oldBinding, SkillHotbarKeyBinding newBinding) {
+    if (oldBinding != null && oldBinding.isBound()) {
+      LAST_STATE.remove(oldBinding.stateKey());
     }
-    LAST_STATE.remove(newKeyCode);
+    if (newBinding != null && newBinding.isBound()) {
+      LAST_STATE.remove(newBinding.stateKey());
+    }
   }
 
   public static void resetKeyStates() {
