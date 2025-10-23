@@ -9,3 +9,9 @@ This document tracks the ongoing migration of Guzhenren organ behaviours onto th
 | `JiuChongOrganBehavior` (食道) | Direct `LinkageManager` access plus static maps for mania / regen timers | `LedgerOps`, `MultiCooldown`, `AbsorptionHelper` (pre-existing) | ✅ Migrated via this pass |
 
 Follow-up buckets (e.g., Yan / Xue lines) remain to be audited; they continue to use legacy linkage/timer logic and will be captured in subsequent passes.
+
+## SoulBeast API namespace migration
+
+- **New entry point / 新入口**: `net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast`。
+- All transitional hooks that previously lived under `net.tigereye.chestcavity.soulbeast` have been removed. This ensures that listeners and commands rely solely on the compat namespace and avoids duplicate NeoForge events.
+- 若在迁移后仍需引用旧包路径，请改用上述命名空间下的 API；旧实现已删除，避免编译期/运行期冲突。

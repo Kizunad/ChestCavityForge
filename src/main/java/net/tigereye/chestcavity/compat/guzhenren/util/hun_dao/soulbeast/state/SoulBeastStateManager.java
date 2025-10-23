@@ -219,14 +219,9 @@ public final class SoulBeastStateManager {
     if (entity == null || previous.equals(current)) {
       return;
     }
+    // 旧包路径 (net.tigereye.chestcavity.soulbeast) 已被完全迁移至 compat.hun_dao 命名空间，
+    // 因此仅发布新的事件，避免重复触发或加载已删除的过渡事件类型。
     NeoForge.EVENT_BUS.post(new SoulBeastStateChangedEvent(entity, previous, current));
-    NeoForge.EVENT_BUS.post(
-        new net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent(
-            entity,
-            new net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent.Snapshot(
-                previous.active(), previous.enabled(), previous.permanent()),
-            new net.tigereye.chestcavity.soulbeast.state.event.SoulBeastStateChangedEvent.Snapshot(
-                current.active(), current.enabled(), current.permanent())));
   }
 
   private static void touch(LivingEntity entity, SoulBeastState state) {
