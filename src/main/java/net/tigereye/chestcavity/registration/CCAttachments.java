@@ -66,7 +66,9 @@ public final class CCAttachments {
       throw new IllegalStateException(
           "Chest cavity attachment can only be applied to living entities");
     }
-    return ChestCavityInstanceFactory.newChestCavityInstance(living);
+    ChestCavityInstance instance = ChestCavityInstanceFactory.newChestCavityInstance(living);
+    instance.initializeRandomFillersOnSpawn();
+    return instance;
   }
 
   public static ChestCavityInstance getChestCavity(LivingEntity entity) {

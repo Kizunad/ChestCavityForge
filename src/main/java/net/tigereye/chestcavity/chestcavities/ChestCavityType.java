@@ -24,7 +24,8 @@ public interface ChestCavityType {
 
   public OrganData catchExceptionalOrgan(ItemStack slot);
 
-  public List<ItemStack> generateLootDrops(RandomSource random, int looting);
+  public List<ItemStack> generateLootDrops(
+      ChestCavityInstance instance, RandomSource random, int looting);
 
   default void applyRandomFillers(
       ChestCavityInstance instance, ChestCavityInventory inventory, RandomSource random) {}
