@@ -4,10 +4,16 @@ import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.TiexueguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieWangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieyanguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueqiguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangAnchorSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangBlindSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangCastSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangConstrictSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangPullSkill;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 /** Registry wiring for 血道（Xue Dao） organs. */
@@ -28,6 +34,8 @@ public final class XueDaoOrganRegistry {
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_yan_gu");
   private static final ResourceLocation XUE_ZHAN_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "xuezhangu");
+  private static final ResourceLocation XIE_WANG_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_wang_gu");
 
   private static final List<OrganIntegrationSpec> SPECS =
       List.of(
@@ -68,7 +76,21 @@ public final class XueDaoOrganRegistry {
               .addSlowTickListener(XueZhanGuOrganBehavior.INSTANCE)
               .addOnHitListener(XueZhanGuOrganBehavior.INSTANCE)
               .addIncomingDamageListener(XueZhanGuOrganBehavior.INSTANCE)
+              .build(),
+          OrganIntegrationSpec.builder(XIE_WANG_GU_ID)
+              .addSlowTickListener(XieWangGuOrganBehavior.INSTANCE)
+              .addRemovalListener(XieWangGuOrganBehavior.INSTANCE)
+              .ensureAttached(XieWangGuOrganBehavior.INSTANCE::ensureAttached)
+              .onEquip(XieWangGuOrganBehavior.INSTANCE::onEquip)
               .build());
+
+  static {
+    XieWangCastSkill.bootstrap();
+    XieWangPullSkill.bootstrap();
+    XieWangAnchorSkill.bootstrap();
+    XieWangBlindSkill.bootstrap();
+    XieWangConstrictSkill.bootstrap();
+  }
 
   private XueDaoOrganRegistry() {}
 
