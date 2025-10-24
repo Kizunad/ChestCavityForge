@@ -58,7 +58,7 @@ import org.slf4j.Logger;
 
 /** Behaviour implementation for 冰肌蛊 (Bing Ji Gu). */
 public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
-    implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener {
+    implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener, OrganIncomingDamageListener {
 
   public static final BingJiGuOrganBehavior INSTANCE = new BingJiGuOrganBehavior();
 
@@ -155,7 +155,6 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
     MultiCooldown cooldown = createCooldown(cc, organ);
     MultiCooldown.Entry absorptionReady = cooldown.entry(ABSORPTION_READY_AT_KEY);
-    MultiCooldown.Entry invulnReady = cooldown.entry(INVULN_READY_AT_KEY);
 
     if (paid) {
       ResourceOps.adjustJingli(player, config.jingliPerTick * stackCount);
@@ -179,10 +178,6 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
           LOGGER.info("[compat/guzhenren][ice_skin] jade bone present: cleared bleed if any");
         }
       }
-    }
-
-    if (player.level() instanceof ServerLevel serverLevel) {
-      tickInvulnerability(player, invulnReady, cc, serverLevel, config);
     }
   }
 
@@ -306,43 +301,69 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  private static boolean tickInvulnerability(
-      Player player,
-      MultiCooldown.Entry invulnReady,
+  @Override
+  public float onIncomingDamage(
+      DamageSource source,
+      LivingEntity victim,
       ChestCavityInstance cc,
-      ServerLevel server,
-      CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config) {
-    if (player == null || invulnReady == null || server == null) {
-      return false;
+      ItemStack organ,
+      float damage) {
+    if (!(victim instanceof Player player) || victim.level().isClientSide() || cc == null || damage <= 0) {
+      return damage;
     }
-    long now = server.getGameTime();
-    long readyAt = Math.max(0L, invulnReady.getReadyTick());
-    if (now < readyAt) {
-      return false;
+    if (!matchesOrgan(organ, ORGAN_ID) && !organ.is(CCItems.GUZHENREN_BING_JI_GU)) {
+      return damage;
     }
-    if (hasJadeBone(cc)
-        && isBeimingConstitution(player)
-        && player.getHealth() <= player.getMaxHealth() * config.lowHealthThreshold) {
-      player.invulnerableTime =
-          Math.max(player.invulnerableTime, config.invulnerabilityDurationTicks);
-      player.addEffect(
-          new MobEffectInstance(
-              MobEffects.DAMAGE_RESISTANCE,
+
+    CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config = cfg();
+    MultiCooldown cooldown = createCooldown(cc, organ);
+    MultiCooldown.Entry invulnReady = cooldown.entry(INVULN_READY_AT_KEY);
+    long now = player.level().getGameTime();
+
+    if (invulnReady.isReady(now)) {
+      if (hasJadeBone(cc)
+          && isBeimingConstitution(player)
+          && (player.getHealth() - damage) <= player.getMaxHealth() * config.lowHealthThreshold) {
+
+        player.invulnerableTime =
+            Math.max(player.invulnerableTime, config.invulnerabilityDurationTicks);
+        player.addEffect(
+            new MobEffectInstance(
+                MobEffects.DAMAGE_RESISTANCE,
+                config.invulnerabilityDurationTicks,
+                4,
+                false,
+                true,
+                true));
+        invulnReady.setReadyAt(now + config.invulnerabilityCooldownTicks);
+
+        if (player.level() instanceof ServerLevel serverLevel) {
+          serverLevel.sendParticles(
+              ParticleTypes.SNOWFLAKE,
+              player.getX(),
+              player.getY() + player.getBbHeight() / 2,
+              player.getZ(),
+              50,
+              player.getBbWidth() / 2,
+              player.getBbHeight() / 4,
+              player.getBbWidth() / 2,
+              0.1);
+          serverLevel.playSound(
+              null, player.blockPosition(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.5F);
+        }
+
+        if (DEBUG) {
+          LOGGER.info(
+              "[compat/guzhenren][ice_skin] invulnerability granted by onIncomingDamage: duration={}t, cooldown={}t",
               config.invulnerabilityDurationTicks,
-              4,
-              false,
-              true,
-              true));
-      invulnReady.setReadyAt(now + config.invulnerabilityCooldownTicks);
-      if (DEBUG) {
-        LOGGER.info(
-            "[compat/guzhenren][ice_skin] invulnerability granted: duration={}t, cooldown={}t",
-            config.invulnerabilityDurationTicks,
-            config.invulnerabilityCooldownTicks);
+              config.invulnerabilityCooldownTicks);
+        }
+        // Negate the triggering damage
+        return 0;
       }
-      return true;
     }
-    return false;
+
+    return damage;
   }
 
   private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
