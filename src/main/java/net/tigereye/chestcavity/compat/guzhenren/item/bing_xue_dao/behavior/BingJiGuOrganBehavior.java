@@ -168,8 +168,10 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
               config.jingliPerTick * stackCount);
         }
       }
-      scheduleAbsorptionIfNeeded(
-          player, cc, organ, absorptionReady, stackCount, efficiency, config);
+      if (absorptionReady.isReady(player.level().getGameTime())) {
+        tickAbsorption(player, cc, organ, stackCount, efficiency, config);
+        absorptionReady.setReadyIn(config.slowTickIntervalsPerMinute);
+      }
       if (hasJadeBone(cc)) {
         clearBleed(player);
         if (DEBUG) {
@@ -268,53 +270,39 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return context.lookupChannel(BING_XUE_INCREASE_EFFECT).map(LinkageChannel::get).orElse(0.0);
   }
 
-  private static void scheduleAbsorptionIfNeeded(
+  private static void tickAbsorption(
       Player player,
       ChestCavityInstance cc,
       ItemStack organ,
-      MultiCooldown.Entry ready,
       int stacks,
       double efficiency,
       CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config) {
-    if (player == null || player.level().isClientSide() || ready == null) return;
-    if (!(player.level() instanceof ServerLevel server)) return;
-    long now = server.getGameTime();
-    if (ready.getReadyTick() <= now) {
-      ready.setReadyAt(now + config.slowTickIntervalsPerMinute);
+    if (player == null || player.level().isClientSide()) {
+      return;
     }
-    ready.onReady(
-        server,
-        now,
-        () -> {
-          try {
-            double eff = efficiency; // recompute live
-            ActiveLinkageContext context = LinkageManager.getContext(cc);
-            if (context != null) {
-              eff = 1.0 + lookupIncreaseEffect(context);
-            }
-            int sc = Math.max(1, organ == null ? stacks : organ.getCount());
-            float gain =
-                (float) (config.absorptionPerTrigger * Math.max(1, sc) * Math.max(0.0, eff));
-            float before = player.getAbsorptionAmount();
-            double cap = config.absorptionCap;
-            double target = Math.min(cap, before + gain);
-            AbsorptionHelper.applyAbsorption(player, (float) target, ABSORPTION_MODIFIER_ID, false);
-            if (DEBUG) {
-              LOGGER.info(
-                  "[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
-                  String.format(java.util.Locale.ROOT, "%.1f", gain),
-                  String.format(java.util.Locale.ROOT, "%.3f", eff),
-                  sc,
-                  String.format(java.util.Locale.ROOT, "%.1f", before),
-                  String.format(java.util.Locale.ROOT, "%.1f", player.getAbsorptionAmount()));
-            }
-            long nextAt = server.getGameTime() + config.slowTickIntervalsPerMinute;
-            MultiCooldown.Entry e = createCooldown(cc, organ).entry(ABSORPTION_READY_AT_KEY);
-            e.setReadyAt(nextAt);
-            e.onReady(server, server.getGameTime(), () -> {});
-          } catch (Throwable ignored) {
-          }
-        });
+    try {
+      double eff = efficiency; // recompute live
+      ActiveLinkageContext context = LinkageManager.getContext(cc);
+      if (context != null) {
+        eff = 1.0 + lookupIncreaseEffect(context);
+      }
+      int sc = Math.max(1, organ == null ? stacks : organ.getCount());
+      float gain = (float) (config.absorptionPerTrigger * Math.max(1, sc) * Math.max(0.0, eff));
+      float before = player.getAbsorptionAmount();
+      double cap = config.absorptionCap;
+      double target = Math.min(cap, before + gain);
+      AbsorptionHelper.applyAbsorption(player, (float) target, ABSORPTION_MODIFIER_ID, false);
+      if (DEBUG) {
+        LOGGER.info(
+            "[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
+            String.format(java.util.Locale.ROOT, "%.1f", gain),
+            String.format(java.util.Locale.ROOT, "%.3f", eff),
+            sc,
+            String.format(java.util.Locale.ROOT, "%.1f", before),
+            String.format(java.util.Locale.ROOT, "%.1f", player.getAbsorptionAmount()));
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   private static boolean tickInvulnerability(

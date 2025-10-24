@@ -77,10 +77,8 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     double zhenyuanCost = config.baseZhenyuanCost * stackCount;
     OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(entity, zhenyuanCost);
     if (consumed.isEmpty()) {
-      if (entity instanceof Player) {
-        // Players without a Guzhenren attachment cannot sustain the organ.
-        return;
-      }
+      // Any entity without enough zhenyuan cannot sustain the organ.
+      return;
     } else if (entity instanceof Player playerWithHandle) {
       ResourceOps.adjustJingli(playerWithHandle, config.jingliPerTick * stackCount);
     }
