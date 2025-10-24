@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieWangGu
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieyanguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueYiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueqiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangAnchorSkill;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.skills.XieWangBlindSkill;
@@ -36,6 +37,8 @@ public final class XueDaoOrganRegistry {
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "xuezhangu");
   private static final ResourceLocation XIE_WANG_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "xie_wang_gu");
+  private static final ResourceLocation XUE_YI_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "xueyigu");
 
   private static final List<OrganIntegrationSpec> SPECS =
       List.of(
@@ -82,6 +85,13 @@ public final class XueDaoOrganRegistry {
               .addRemovalListener(XieWangGuOrganBehavior.INSTANCE)
               .ensureAttached(XieWangGuOrganBehavior.INSTANCE::ensureAttached)
               .onEquip(XieWangGuOrganBehavior.INSTANCE::onEquip)
+              .build(),
+          OrganIntegrationSpec.builder(XUE_YI_GU_ID)
+              .addSlowTickListener(XueYiGuOrganBehavior.INSTANCE)
+              .addIncomingDamageListener(XueYiGuOrganBehavior.INSTANCE)
+              .addOnHitListener(XueYiGuOrganBehavior.INSTANCE)
+              .addRemovalListener(XueYiGuOrganBehavior.INSTANCE)
+              .onEquip(XueYiGuOrganBehavior.INSTANCE::onEquip)
               .build());
 
   static {
@@ -90,6 +100,7 @@ public final class XueDaoOrganRegistry {
     XieWangAnchorSkill.bootstrap();
     XieWangBlindSkill.bootstrap();
     XieWangConstrictSkill.bootstrap();
+    XueYiGuOrganBehavior.bootstrapSkills();
   }
 
   private XueDaoOrganRegistry() {}

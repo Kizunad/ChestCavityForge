@@ -546,8 +546,10 @@ public class TestSoulEntity extends PathfinderMob {
       BlockPos pos,
       RandomSource random) {
     if (world instanceof ServerLevel serverLevel) {
-      if (!serverLevel.getGameRules().getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {
-          return false;
+      if (!serverLevel
+          .getGameRules()
+          .getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {
+        return false;
       }
       return TestSoulManager.canSpawn(serverLevel);
     }

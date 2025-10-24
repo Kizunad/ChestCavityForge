@@ -390,7 +390,8 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
           damage *= 1.10F;
           target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 16, 0, false, true));
         }
-        // The mark is intentionally not removed here to allow it to work for the entire 3-second window.
+        // The mark is intentionally not removed here to allow it to work for the entire 3-second
+        // window.
         // It will be cleaned up later by registerS1Mark when a new mark is applied.
       }
     }

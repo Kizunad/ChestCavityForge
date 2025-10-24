@@ -1,0 +1,25 @@
+{
+  "itemID": "guzhenren:xueyigu",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": 3
+    },
+    {
+      "id": "chestcavity:impact_resistant",
+      "value": 2
+    },
+    {
+      "id": "chestcavity:health",
+      "value": 2
+    },
+    {
+      "id": "guzhenren:zhenyuan",
+      "value": 2
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": 2
+    }
+  ]
+}

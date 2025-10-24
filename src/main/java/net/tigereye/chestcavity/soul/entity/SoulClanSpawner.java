@@ -65,8 +65,10 @@ public final class SoulClanSpawner {
       // 仅在服务端运行，客户端 world tick 不执行任何逻辑。
       return;
     }
-    if (!serverLevel.getGameRules().getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {
-        return;
+    if (!serverLevel
+        .getGameRules()
+        .getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {
+      return;
     }
     if (cooldown > 0) {
       cooldown--;

@@ -5,6 +5,9 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
@@ -12,9 +15,8 @@ import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptExecutor;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
-/** Client-to-server payload requesting GuScript execution via keybind. */
-public record GuScriptTriggerPayload(int pageIndex, int targetEntityId)
-    implements CustomPacketPayload {
+// VULNERABILITY FIX: Removed targetEntityId from payload. Server will determine target via raycast.
+public record GuScriptTriggerPayload(int pageIndex) implements CustomPacketPayload {
 
   public static final Type<GuScriptTriggerPayload> TYPE =
       new Type<>(ChestCavity.id("guscript_trigger"));
@@ -23,9 +25,8 @@ public record GuScriptTriggerPayload(int pageIndex, int targetEntityId)
       StreamCodec.of(
           (buf, payload) -> {
             buf.writeVarInt(payload.pageIndex);
-            buf.writeVarInt(payload.targetEntityId);
           },
-          buf -> new GuScriptTriggerPayload(buf.readVarInt(), buf.readVarInt()));
+          buf -> new GuScriptTriggerPayload(buf.readVarInt()));
 
   @Override
   public Type<? extends CustomPacketPayload> type() {
@@ -42,52 +43,47 @@ public record GuScriptTriggerPayload(int pageIndex, int targetEntityId)
           if (payload.pageIndex >= 0) {
             attachment.setCurrentPage(payload.pageIndex);
           }
-          LivingEntity target = resolveTarget(player, payload.targetEntityId);
+          // VULNERABILITY FIX: Target is now resolved on the server
+          LivingEntity target = resolveTarget(player);
+          // If no target is found, the script might still run with the player as the target.
+          // This is existing behavior, so we keep it.
           GuScriptExecutor.triggerKeybind(player, target, attachment);
         });
   }
 
-  static LivingEntity resolveTarget(ServerPlayer player, int targetEntityId) {
-    if (targetEntityId < 0) {
-      return null;
-    }
-    var entity = player.level().getEntity(targetEntityId);
-    if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
-      return null;
-    }
-    if (living == player) {
-      return living;
-    }
-
-    double distanceSqr = player.distanceToSqr(living);
-    boolean hasLineOfSight = player.hasLineOfSight(living);
+  // VULNERABILITY FIX: This method now performs a server-side raycast to find the target,
+  // ignoring any client input.
+  static LivingEntity resolveTarget(ServerPlayer player) {
+    double range = MAX_TARGET_RANGE;
     Vec3 eyePos = player.getEyePosition();
-    Vec3 toTarget = living.getEyePosition().subtract(eyePos);
-    double squaredLength = toTarget.lengthSqr();
-    double dot = squaredLength < 1.0E-6 ? 1.0 : player.getLookAngle().dot(toTarget.normalize());
+    Vec3 lookVec = player.getLookAngle();
+    Vec3 endPos = eyePos.add(lookVec.scale(range));
+    AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(range)).inflate(1.0D);
 
-    if (!isTargetAllowed(distanceSqr, hasLineOfSight, dot)) {
-      ChestCavity.LOGGER.debug(
-          "[GuScript] Rejected spoofed target {} (distanceSqr={}, hasLineOfSight={}, dot={})",
-          living.getUUID(),
-          distanceSqr,
-          hasLineOfSight,
-          dot);
-      return null;
+    EntityHitResult hitResult =
+        ProjectileUtil.getEntityHitResult(
+            player.level(),
+            player, // The entity performing the pick, to be ignored
+            eyePos,
+            endPos,
+            searchBox,
+            (entity) ->
+                !entity.isSpectator() && entity.isPickable() && entity instanceof LivingEntity);
+
+    if (hitResult != null && hitResult.getEntity() != null) {
+      LivingEntity target = (LivingEntity) hitResult.getEntity();
+      double distanceSqr = player.distanceToSqr(target);
+      // Final check on distance and ensuring it's not the player unless they are the only target.
+      if (distanceSqr <= MAX_TARGET_RANGE_SQR) {
+        return target;
+      }
     }
-    return living;
+
+    // As a fallback, or if no entity is hit, the script will target the player themselves.
+    // This is handled in GuScriptExecutor.triggerKeybind if the target is null.
+    return null;
   }
 
-  static boolean isTargetAllowed(double distanceSqr, boolean hasLineOfSight, double viewDot) {
-    if (!hasLineOfSight) {
-      return false;
-    }
-    if (distanceSqr > MAX_TARGET_RANGE_SQR) {
-      return false;
-    }
-    return viewDot >= MIN_VIEW_DOT;
-  }
-
-  static final double MAX_TARGET_RANGE_SQR = 400.0; // 20 blocks squared
-  static final double MIN_VIEW_DOT = Math.cos(Math.toRadians(70.0));
+  static final double MAX_TARGET_RANGE = 20.0;
+  static final double MAX_TARGET_RANGE_SQR = MAX_TARGET_RANGE * MAX_TARGET_RANGE;
 }

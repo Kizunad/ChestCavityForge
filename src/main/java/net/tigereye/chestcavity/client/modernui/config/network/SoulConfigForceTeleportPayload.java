@@ -40,6 +40,18 @@ public record SoulConfigForceTeleportPayload(UUID soulId) implements CustomPacke
           if (soulId == null) {
             return;
           }
+
+          // VULNERABILITY FIX: Check if the player actually owns the soul before teleporting.
+          var container =
+              net.tigereye.chestcavity.registration.CCAttachments.getSoulContainer(serverPlayer);
+          if (!container.getKnownSoulIds().contains(soulId)) {
+            net.tigereye.chestcavity.soul.util.SoulLog.warn(
+                "[soul] force-teleport-denied player={} attempted to teleport unowned soul={}",
+                serverPlayer.getUUID(),
+                soulId);
+            return;
+          }
+
           net.tigereye.chestcavity.soul.fakeplayer.SoulFakePlayerSpawner.forceTeleportToOwner(
               serverPlayer, soulId);
         });

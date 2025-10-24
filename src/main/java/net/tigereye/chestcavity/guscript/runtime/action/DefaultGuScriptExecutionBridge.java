@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.guscript.runtime.action;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -31,6 +32,17 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
   private final LivingEntity target;
   private final int rootIndex;
   private static final AtomicLong PROJECTILE_SEQUENCE = new AtomicLong();
+
+  // VULNERABILITY FIX: Whitelist of allowed projectiles for GuScript
+  private static final Set<ResourceLocation> ALLOWED_PROJECTILES =
+      Set.of(
+          ResourceLocation.tryParse("minecraft:arrow"),
+          ResourceLocation.tryParse("minecraft:spectral_arrow"),
+          ResourceLocation.tryParse("minecraft:fireball"),
+          ResourceLocation.tryParse("minecraft:small_fireball"),
+          ResourceLocation.tryParse("minecraft:wither_skull"),
+          ResourceLocation.tryParse("minecraft:trident"),
+          ResourceLocation.tryParse("minecraft:shulker_bullet"));
 
   public DefaultGuScriptExecutionBridge(Player performer, LivingEntity target) {
     this(performer, target, 0);
@@ -96,6 +108,14 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
       ChestCavity.LOGGER.warn("[GuScript] Invalid projectile id: {}", projectileId);
       return;
     }
+
+    // VULNERABILITY FIX: Check against whitelist
+    if (!ALLOWED_PROJECTILES.contains(id)) {
+      ChestCavity.LOGGER.warn(
+          "[GuScript] Disallowed projectile id: {}. Not in whitelist.", projectileId);
+      return;
+    }
+
     EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null);
     if (type == null) {
       ChestCavity.LOGGER.warn("[GuScript] Unknown projectile entity: {}", projectileId);
@@ -162,9 +182,9 @@ public final class DefaultGuScriptExecutionBridge implements GuScriptExecutionBr
           rootIndex,
           id,
           damage,
-          String.format("%.3f", spawn.x),
-          String.format("%.3f", spawn.y),
-          String.format("%.3f", spawn.z),
+          String.format("%%.3f", spawn.x),
+          String.format("%%.3f", spawn.y),
+          String.format("%%.3f", spawn.z),
           parameterSummary);
     }
     level.addFreshEntity(entity);

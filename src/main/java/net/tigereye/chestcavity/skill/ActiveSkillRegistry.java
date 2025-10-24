@@ -54,6 +54,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.tu_dao.behavior.YinShiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieFeiguOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XieWangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XiediguOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueYiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior.XueZhanGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoLongGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior;
@@ -434,6 +435,55 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(XueZhanGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    // 血衣蛊 (Xue Yi Gu) - 4 active skills
+    register(
+        "guzhenren:xue_yi_gu/xue_yong_pi_shen",
+        "guzhenren:xue_yi_gu/xue_yong_pi_shen",
+        "guzhenren:xueyigu",
+        tags("防御", "光环", "流血"),
+        "开关型光环，半径2格每0.5秒施加流血DoT，每秒消耗生命与资源，冷却8秒",
+        "compat/guzhenren/item/xue_dao/behavior/skills/XueYongPiShenSkill.java",
+        () -> {
+          ensureClassLoaded(XueYiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("血涌披身就绪", null));
+
+    register(
+        "guzhenren:xue_yi_gu/xue_shu_shou_jin",
+        "guzhenren:xue_yi_gu/xue_shu_shou_jin",
+        "guzhenren:xueyigu",
+        tags("输出", "控制", "流血"),
+        "发射血束对命中目标施加缓慢IV(2秒)与流血10/秒×5秒，冷却16秒",
+        "compat/guzhenren/item/xue_dao/behavior/skills/XueShuShouJinSkill.java",
+        () -> {
+          ensureClassLoaded(XueYiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("血束收紧就绪", null));
+
+    register(
+        "guzhenren:xue_yi_gu/xue_feng_ji_bi",
+        "guzhenren:xue_yi_gu/xue_feng_ji_bi",
+        "guzhenren:xueyigu",
+        tags("防御", "治疗", "吸收"),
+        "将附近敌人流血值转为临时生命(Absorption)并清除自身流血类减益，冷却20秒",
+        "compat/guzhenren/item/xue_dao/behavior/skills/XueFengJiBiSkill.java",
+        () -> {
+          ensureClassLoaded(XueYiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("血缝急闭就绪", null));
+
+    register(
+        "guzhenren:xue_yi_gu/yi_xue_fan_ci",
+        "guzhenren:xue_yi_gu/yi_xue_fan_ci",
+        "guzhenren:xueyigu",
+        tags("防御", "反伤", "流血"),
+        "3秒窗口将承受近战伤害的50%以流血形式反射给攻击者(单次有上限)，冷却25秒",
+        "compat/guzhenren/item/xue_dao/behavior/skills/YiXueFanCiSkill.java",
+        () -> {
+          ensureClassLoaded(XueYiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("溢血反刺就绪", null));
 
     register(
         "guzhenren:luo_xuan_gu_qiang_gu",

@@ -7,10 +7,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.phys.EntityHitResult;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
@@ -193,37 +191,7 @@ public class KeybindingClientListeners {
     if (minecraft.screen instanceof GuScriptScreen screen) {
       pageIndex = screen.getMenu().getPageIndex();
     }
-    int targetId = resolveTargetEntityId(minecraft);
-    connection.send(new GuScriptTriggerPayload(pageIndex, targetId));
-  }
-
-  private static int resolveTargetEntityId(Minecraft minecraft) {
-    EntityHitResult entityHit = null;
-    if (minecraft.hitResult instanceof EntityHitResult directHit) {
-      entityHit = directHit;
-    }
-    if (entityHit == null && minecraft.player instanceof LocalPlayer localPlayer) {
-      entityHit = pickEntity(localPlayer, 32.0D);
-    }
-    if (entityHit != null && entityHit.getEntity() instanceof LivingEntity living) {
-      double distanceSq = minecraft.player != null ? minecraft.player.distanceToSqr(living) : 0.0D;
-      if (distanceSq <= 32.0D * 32.0D) {
-        return living.getId();
-      }
-    }
-    return -1;
-  }
-
-  private static EntityHitResult pickEntity(LocalPlayer player, double range) {
-    if (player == null) {
-      return null;
-    }
-    double clampedRange = Math.max(1.0D, Math.min(range, 64.0D));
-    var hit = player.pick(clampedRange, 0.0F, false);
-    if (hit instanceof EntityHitResult entityHit) {
-      return entityHit;
-    }
-    return null;
+    connection.send(new GuScriptTriggerPayload(pageIndex));
   }
 
   private static void sendHotkeyToServer(ChestCavityHotkeyPayload payload) {

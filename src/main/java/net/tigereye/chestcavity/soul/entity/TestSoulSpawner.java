@@ -24,8 +24,11 @@ public final class TestSoulSpawner {
   private TestSoulSpawner() {}
 
   public static void onServerTick(ServerTickEvent.Post event) {
-    if (!event.getServer().getGameRules().getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {
-        return;
+    if (!event
+        .getServer()
+        .getGameRules()
+        .getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {
+      return;
     }
     // Guard clause: only run when the server is ready
     if (!event.getServer().isReady()) {

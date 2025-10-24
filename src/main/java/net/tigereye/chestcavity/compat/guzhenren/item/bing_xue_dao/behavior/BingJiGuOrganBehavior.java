@@ -44,6 +44,7 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
@@ -58,7 +59,10 @@ import org.slf4j.Logger;
 
 /** Behaviour implementation for 冰肌蛊 (Bing Ji Gu). */
 public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
-    implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener, OrganIncomingDamageListener {
+    implements OrganSlowTickListener,
+        OrganOnHitListener,
+        OrganRemovalListener,
+        OrganIncomingDamageListener {
 
   public static final BingJiGuOrganBehavior INSTANCE = new BingJiGuOrganBehavior();
 
@@ -170,7 +174,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       }
       if (absorptionReady.isReady(player.level().getGameTime())) {
         tickAbsorption(player, cc, organ, stackCount, efficiency, config);
-        absorptionReady.setReadyIn(config.slowTickIntervalsPerMinute);
+        absorptionReady.setReadyAt(
+            player.level().getGameTime() + (long) config.slowTickIntervalsPerMinute * 80);
       }
       if (hasJadeBone(cc)) {
         clearBleed(player);
@@ -308,7 +313,10 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       ChestCavityInstance cc,
       ItemStack organ,
       float damage) {
-    if (!(victim instanceof Player player) || victim.level().isClientSide() || cc == null || damage <= 0) {
+    if (!(victim instanceof Player player)
+        || victim.level().isClientSide()
+        || cc == null
+        || damage <= 0) {
       return damage;
     }
     if (!matchesOrgan(organ, ORGAN_ID) && !organ.is(CCItems.GUZHENREN_BING_JI_GU)) {
@@ -349,7 +357,12 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
               player.getBbWidth() / 2,
               0.1);
           serverLevel.playSound(
-              null, player.blockPosition(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.5F);
+              null,
+              player.blockPosition(),
+              SoundEvents.GLASS_BREAK,
+              SoundSource.PLAYERS,
+              1.0F,
+              0.5F);
         }
 
         if (DEBUG) {
@@ -615,10 +628,11 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         player.hurt(source, cost);
         if (DEBUG) {
           LOGGER.info(
-              "[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})".formatted(
-                  1,
-                  String.format(java.util.Locale.ROOT, "%.2f", before),
-                  String.format(java.util.Locale.ROOT, "%.2f", player.getHealth())));
+              "[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})"
+                  .formatted(
+                      1,
+                      String.format(java.util.Locale.ROOT, "%.2f", before),
+                      String.format(java.util.Locale.ROOT, "%.2f", player.getHealth())));
         }
       }
     }
