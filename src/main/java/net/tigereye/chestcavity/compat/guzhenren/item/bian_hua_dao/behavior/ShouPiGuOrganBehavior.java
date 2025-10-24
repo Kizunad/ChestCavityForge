@@ -257,6 +257,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
     MultiCooldown cooldown = cooldown(cc, organ, state);
     long now = victim.level().getGameTime();
+    OrganStateOps.Collector collector = OrganStateOps.collector(cc, organ);
 
     double initialDamage = damage;
     double workingDamage = damage;
@@ -278,19 +279,19 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     if (state.getLong(KEY_THICK_SKIN_EXPIRE, 0L) > now) {
-      state.setBoolean(KEY_THICK_SKIN_READY, true, false);
+      collector.record(state.setBoolean(KEY_THICK_SKIN_READY, true, false));
     }
 
     if (!bypassesArmor && state.getBoolean(KEY_THICK_SKIN_READY, false)) {
       double before = workingDamage;
       workingDamage *= 1.0D - THICK_SKIN_REDUCTION;
       mitigatedFromOrgan += Math.max(0.0D, before - workingDamage);
-      state.setBoolean(KEY_THICK_SKIN_READY, false, false);
-      state.setLong(KEY_THICK_SKIN_EXPIRE, 0L, value -> Math.max(0L, value), 0L);
+      collector.record(state.setBoolean(KEY_THICK_SKIN_READY, false, false));
+      collector.record(state.setLong(KEY_THICK_SKIN_EXPIRE, 0L, value -> Math.max(0L, value), 0L));
     }
 
     int fasciaCount = Math.max(0, state.getInt(KEY_FASCIA_COUNT, 0) + 1);
-    state.setInt(KEY_FASCIA_COUNT, fasciaCount, value -> Math.max(0, value), 0);
+    collector.record(state.setInt(KEY_FASCIA_COUNT, fasciaCount, value -> Math.max(0, value), 0));
 
     if (fasciaCount >= FASCIA_TRIGGER) {
       long fasciaReady = state.getLong(KEY_FASCIA_COOLDOWN, 0L);
@@ -299,9 +300,13 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         workingDamage *= 0.88D;
         mitigatedFromOrgan += Math.max(0.0D, before - workingDamage);
         applyShield(victim, 2.0F);
-        state.setLong(
-            KEY_FASCIA_COOLDOWN, now + FASCIA_COOLDOWN_TICKS, value -> Math.max(0L, value), 0L);
-        state.setInt(KEY_FASCIA_COUNT, 0, value -> Math.max(0, value), 0);
+        collector.record(
+            state.setLong(
+                KEY_FASCIA_COOLDOWN,
+                now + FASCIA_COOLDOWN_TICKS,
+                value -> Math.max(0L, value),
+                0L));
+        collector.record(state.setInt(KEY_FASCIA_COUNT, 0, value -> Math.max(0, value), 0));
       }
     }
 
@@ -315,11 +320,13 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       if (params.stage() == Tier.STAGE5) {
         applyStoicSlow(victim);
       }
-      state.setBoolean(KEY_STOIC_READY, false, false);
-      state.setInt(KEY_STOIC_STACKS, 0, value -> Math.max(0, value), 0);
-      state.setDouble(KEY_STOIC_ACCUM, 0.0D, value -> Math.max(0.0D, value), 0.0D);
-      state.setLong(
-          KEY_STOIC_LOCK_UNTIL, now + params.lockTicks(), value -> Math.max(0L, value), 0L);
+      collector.record(state.setBoolean(KEY_STOIC_READY, false, false));
+      collector.record(state.setInt(KEY_STOIC_STACKS, 0, value -> Math.max(0, value), 0));
+      collector.record(
+          state.setDouble(KEY_STOIC_ACCUM, 0.0D, value -> Math.max(0.0D, value), 0.0D));
+      collector.record(
+          state.setLong(
+              KEY_STOIC_LOCK_UNTIL, now + params.lockTicks(), value -> Math.max(0L, value), 0L));
     }
 
     if (state.getLong(KEY_CRASH_IMMUNE, 0L) > now) {
@@ -339,10 +346,15 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       bumpSoftPool(state, cc, organ, reflect, now);
     }
 
-    state.setLong(KEY_LAST_HIT, now, value -> Math.max(0L, value), 0L);
-    state.setLong(
-        KEY_THICK_SKIN_EXPIRE, now + THICK_SKIN_WINDOW_TICKS, value -> Math.max(0L, value), 0L);
+    collector.record(state.setLong(KEY_LAST_HIT, now, value -> Math.max(0L, value), 0L));
+    collector.record(
+        state.setLong(
+            KEY_THICK_SKIN_EXPIRE,
+            now + THICK_SKIN_WINDOW_TICKS,
+            value -> Math.max(0L, value),
+            0L));
 
+    collector.commit();
     return (float) finalDamage;
   }
 

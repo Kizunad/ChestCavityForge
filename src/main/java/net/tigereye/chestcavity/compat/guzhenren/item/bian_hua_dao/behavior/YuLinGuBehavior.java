@@ -228,8 +228,14 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
 
     if (!entity.level().isClientSide()) {
       List<OwnedSharkEntity> summons = loadSummonsFromState(state);
-      for (OwnedSharkEntity summon : summons) {
-        summon.discard(entity.level());
+      if (!summons.isEmpty()) {
+        LOGGER.info(
+            "YuLinGuBehavior: Discarding {} summoned entities for player {}.",
+            summons.size(),
+            entity.getName().getString());
+        for (OwnedSharkEntity summon : summons) {
+          summon.discard(entity.level());
+        }
       }
     }
 
@@ -317,16 +323,21 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (owner == null || summon == null) {
       return;
     }
-    ItemStack organ = findYuLinGuOrgan(owner);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
-    ChestCavityInstance cc =
-        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
-    if (cc != null) {
-      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    synchronized (owner) {
+      ItemStack organ = findYuLinGuOrgan(owner);
+      if (organ.isEmpty()) {
+        return;
+      }
+      OrganState state = organState(organ, STATE_ROOT);
+      List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+      summons.add(summon);
+      saveSummonsToState(state, summons);
+
+      ChestCavityInstance cc =
+          ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+      if (cc != null) {
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      }
     }
   }
 
@@ -334,19 +345,21 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (owner == null || summon == null) {
       return;
     }
-    ItemStack organ = findYuLinGuOrgan(owner);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
-    summons.removeIf(candidate -> Objects.equals(candidate.entityId(), summon.entityId()));
-    saveSummonsToState(state, summons);
+    synchronized (owner) {
+      ItemStack organ = findYuLinGuOrgan(owner);
+      if (organ.isEmpty()) {
+        return;
+      }
+      OrganState state = organState(organ, STATE_ROOT);
+      List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+      summons.removeIf(candidate -> Objects.equals(candidate.entityId(), summon.entityId()));
+      saveSummonsToState(state, summons);
 
-    ChestCavityInstance cc =
-        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
-    if (cc != null) {
-      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      ChestCavityInstance cc =
+          ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+      if (cc != null) {
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      }
     }
   }
 
@@ -453,31 +466,33 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (level == null || owner == null) {
       return;
     }
-    ItemStack organ = findYuLinGuOrgan(owner);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
-    if (summons.isEmpty()) {
-      return;
-    }
-    List<OwnedSharkEntity> updated = new ArrayList<>(summons.size());
-    for (OwnedSharkEntity summon : summons) {
-      if (summon == null) {
-        continue;
+    synchronized (owner) {
+      ItemStack organ = findYuLinGuOrgan(owner);
+      if (organ.isEmpty()) {
+        return;
       }
-      if (!summon.tick(level, owner, gameTime)) {
-        continue;
+      OrganState state = organState(organ, STATE_ROOT);
+      List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+      if (summons.isEmpty()) {
+        return;
       }
-      updated.add(summon);
-    }
-    if (updated.size() != summons.size()) {
-      saveSummonsToState(state, updated);
-      ChestCavityInstance cc =
-          ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
-      if (cc != null) {
-        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      List<OwnedSharkEntity> updated = new ArrayList<>(summons.size());
+      for (OwnedSharkEntity summon : summons) {
+        if (summon == null) {
+          continue;
+        }
+        if (!summon.tick(level, owner, gameTime)) {
+          continue;
+        }
+        updated.add(summon);
+      }
+      if (updated.size() != summons.size()) {
+        saveSummonsToState(state, updated);
+        ChestCavityInstance cc =
+            ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+        if (cc != null) {
+          NetworkUtil.sendOrganSlotUpdate(cc, organ);
+        }
       }
     }
   }
@@ -498,27 +513,29 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (owner == null) {
       return;
     }
-    ItemStack organ = findYuLinGuOrgan(owner);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
-    if (summons.size() <= MAX_SUMMONS) {
-      return;
-    }
-    List<OwnedSharkEntity> sorted = new ArrayList<>(summons);
-    sorted.sort((a, b) -> Long.compare(a.createdAt(), b.createdAt()));
-    while (sorted.size() > MAX_SUMMONS) {
-      OwnedSharkEntity removed = sorted.remove(0);
-      removed.discard(owner.level());
-    }
-    saveSummonsToState(state, sorted);
+    synchronized (owner) {
+      ItemStack organ = findYuLinGuOrgan(owner);
+      if (organ.isEmpty()) {
+        return;
+      }
+      OrganState state = organState(organ, STATE_ROOT);
+      List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+      if (summons.size() <= MAX_SUMMONS) {
+        return;
+      }
+      List<OwnedSharkEntity> sorted = new ArrayList<>(summons);
+      sorted.sort((a, b) -> Long.compare(a.createdAt(), b.createdAt()));
+      while (sorted.size() > MAX_SUMMONS) {
+        OwnedSharkEntity removed = sorted.remove(0);
+        removed.discard(owner.level());
+      }
+      saveSummonsToState(state, sorted);
 
-    ChestCavityInstance cc =
-        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
-    if (cc != null) {
-      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      ChestCavityInstance cc =
+          ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+      if (cc != null) {
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      }
     }
   }
 
