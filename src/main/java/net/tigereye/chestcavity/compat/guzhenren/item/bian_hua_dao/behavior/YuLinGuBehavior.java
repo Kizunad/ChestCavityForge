@@ -225,6 +225,14 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
     OrganState state = organState(organ, STATE_ROOT);
+
+    if (!entity.level().isClientSide()) {
+      List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+      for (OwnedSharkEntity summon : summons) {
+        summon.discard(entity.level());
+      }
+    }
+
     state.setBoolean(HAS_FISH_ARMOR_KEY, false);
     state.setBoolean(HAS_SHARK_ARMOR_KEY, false);
     state.setDouble(HUNGER_PROGRESS_KEY, 0.0);
