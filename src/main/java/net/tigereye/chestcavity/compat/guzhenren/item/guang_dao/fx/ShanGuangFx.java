@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.fx;
+package net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.fx;
 
 import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceLocation;

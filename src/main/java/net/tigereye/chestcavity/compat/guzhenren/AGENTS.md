@@ -1,6 +1,5 @@
 ---
 **状态**: ChestCavityForge Guzhenren 兼容模块 - 为蛊真人模组提供胸腔器官系统集成
-fx/gufang/combat待迁移..
 ---
 
 ## 必须了解
@@ -138,8 +137,6 @@ if (MultiCooldown.isReady(cc, COOLDOWN_KEY)) {
 
 ### 特殊系统
 - **蛊方系统** ([`gufang/`](gufang/)): 炼蛊配方加载和注册
-- **战斗工具** ([`combat/`](combat/)): 魂道伤害工具等
-- **特效系统** ([`fx/`](fx/)): 闪光特效等视觉元素
 
 ---
 
