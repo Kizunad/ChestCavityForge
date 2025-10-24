@@ -6,7 +6,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -696,9 +695,10 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
     // 将标记存储到目标实体的持久化数据中
     CompoundTag persistentData = target.getPersistentData();
-    CompoundTag marks = persistentData.contains(MARK_NBT_KEY)
-        ? persistentData.getCompound(MARK_NBT_KEY)
-        : new CompoundTag();
+    CompoundTag marks =
+        persistentData.contains(MARK_NBT_KEY)
+            ? persistentData.getCompound(MARK_NBT_KEY)
+            : new CompoundTag();
 
     // 清理过期的标记
     List<String> keysToRemove = new ArrayList<>();

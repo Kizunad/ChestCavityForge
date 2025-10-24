@@ -6,6 +6,7 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.LongUnaryOperator;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -196,6 +197,41 @@ public final class OrganState {
           tag.put(rootKey, state);
         });
     return new Change<>(previous, value);
+  }
+
+  public ListTag getList(String key, int type) {
+    if (!isUsable()) {
+      return new ListTag();
+    }
+    CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+    if (data == null) {
+      return new ListTag();
+    }
+    CompoundTag root = data.copyTag();
+    if (!root.contains(rootKey, Tag.TAG_COMPOUND)) {
+      return new ListTag();
+    }
+    CompoundTag state = root.getCompound(rootKey);
+    if (!state.contains(key, Tag.TAG_LIST)) {
+      return new ListTag();
+    }
+    return state.getList(key, type);
+  }
+
+  public void setList(String key, ListTag value) {
+    if (!isUsable()) {
+      return;
+    }
+    NBTWriter.updateCustomData(
+        stack,
+        tag -> {
+          CompoundTag state =
+              tag.contains(rootKey, Tag.TAG_COMPOUND)
+                  ? tag.getCompound(rootKey)
+                  : new CompoundTag();
+          state.put(key, value);
+          tag.put(rootKey, state);
+        });
   }
 
   private boolean isUsable() {

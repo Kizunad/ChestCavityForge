@@ -28,6 +28,7 @@ import net.tigereye.chestcavity.compat.guzhenren.entity.summon.OwnedSharkEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
@@ -314,10 +315,8 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     }
     OrganState state = organState(organ, STATE_ROOT);
     List<OwnedSharkEntity> summons = loadSummonsFromState(state);
-    summons.add(summon);
-    saveSummonsToState(state, summons);
-
-    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
     if (cc != null) {
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
@@ -336,7 +335,8 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     summons.removeIf(candidate -> Objects.equals(candidate.entityId(), summon.entityId()));
     saveSummonsToState(state, summons);
 
-    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
     if (cc != null) {
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
@@ -466,7 +466,8 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     }
     if (updated.size() != summons.size()) {
       saveSummonsToState(state, updated);
-      ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+      ChestCavityInstance cc =
+          ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
       if (cc != null) {
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
       }
@@ -506,7 +507,8 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     }
     saveSummonsToState(state, sorted);
 
-    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
     if (cc != null) {
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
@@ -544,11 +546,7 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (state == null) {
       return new ArrayList<>();
     }
-    CompoundTag stateData = state.getData();
-    if (!stateData.contains(ACTIVE_SUMMONS_KEY)) {
-      return new ArrayList<>();
-    }
-    ListTag listTag = stateData.getList(ACTIVE_SUMMONS_KEY, Tag.TAG_COMPOUND);
+    ListTag listTag = state.getList(ACTIVE_SUMMONS_KEY, Tag.TAG_COMPOUND);
     List<OwnedSharkEntity> summons = new ArrayList<>(listTag.size());
     for (int i = 0; i < listTag.size(); i++) {
       CompoundTag summonTag = listTag.getCompound(i);
@@ -581,7 +579,7 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
       summonTag.putLong("ExpiresAt", summon.expiresAt());
       listTag.add(summonTag);
     }
-    state.getData().put(ACTIVE_SUMMONS_KEY, listTag);
+    state.setList(ACTIVE_SUMMONS_KEY, listTag);
   }
 
   /** 查找玩家的鱼鳞蛊器官。 */
@@ -589,7 +587,8 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (player == null) {
       return ItemStack.EMPTY;
     }
-    ChestCavityInstance cc = ChestCavityInstance.of(player).orElse(null);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
     if (cc == null || cc.inventory == null) {
       return ItemStack.EMPTY;
     }
