@@ -1,13 +1,13 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior;
 
 import com.mojang.logging.LogUtils;
+import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -144,8 +144,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String KEY_CRASH_IMMUNE = "CrashImmuneExpire";
 
   private static final EnumMap<Tier, TierParameters> TIER_PARAMS = new EnumMap<>(Tier.class);
-
-  private static final Map<UUID, S1Mark> S1_MARKS = new HashMap<>();
+  private static final String MARK_NBT_KEY = "guzhenren:shou_pi_gu_marks";
 
   static {
     TIER_PARAMS.put(
@@ -368,13 +367,24 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     OrganState state = organState(organ, STATE_ROOT);
     ensureStage(state, cc, organ);
 
-    if (!S1_MARKS.isEmpty()) {
-      S1Mark mark = S1_MARKS.remove(target.getUUID());
-      if (mark != null && mark.owner().equals(player.getUUID())) {
+    // 从目标实体的持久化数据中读取标记
+    CompoundTag persistentData = target.getPersistentData();
+    if (persistentData.contains(MARK_NBT_KEY)) {
+      CompoundTag marks = persistentData.getCompound(MARK_NBT_KEY);
+      String playerKey = player.getUUID().toString();
+      if (marks.contains(playerKey)) {
+        long expireTick = marks.getLong(playerKey);
         long now = attacker.level().getGameTime();
-        if (mark.expireTick() > now) {
+        if (expireTick > now) {
           damage *= 1.10F;
           target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 16, 0, false, true));
+        }
+        // 移除已使用的标记
+        marks.remove(playerKey);
+        if (marks.isEmpty()) {
+          persistentData.remove(MARK_NBT_KEY);
+        } else {
+          persistentData.put(MARK_NBT_KEY, marks);
         }
       }
     }
@@ -684,8 +694,25 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (!(owner instanceof Player player)) {
       return;
     }
-    S1_MARKS.values().removeIf(mark -> mark.expireTick() <= now);
-    S1_MARKS.put(target.getUUID(), new S1Mark(player.getUUID(), now + S1_MARK_DURATION_TICKS));
+    // 将标记存储到目标实体的持久化数据中
+    CompoundTag persistentData = target.getPersistentData();
+    CompoundTag marks = persistentData.contains(MARK_NBT_KEY)
+        ? persistentData.getCompound(MARK_NBT_KEY)
+        : new CompoundTag();
+
+    // 清理过期的标记
+    List<String> keysToRemove = new ArrayList<>();
+    for (String key : marks.getAllKeys()) {
+      long expireTick = marks.getLong(key);
+      if (expireTick <= now) {
+        keysToRemove.add(key);
+      }
+    }
+    keysToRemove.forEach(marks::remove);
+
+    // 添加新标记
+    marks.putLong(player.getUUID().toString(), now + S1_MARK_DURATION_TICKS);
+    persistentData.put(MARK_NBT_KEY, marks);
   }
 
   private void bumpSoftPool(
@@ -830,6 +857,4 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       double stoicThreshold,
       double projectilePercent,
       long lockTicks) {}
-
-  private record S1Mark(UUID owner, long expireTick) {}
 }
