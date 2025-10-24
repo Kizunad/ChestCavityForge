@@ -5,7 +5,7 @@
   "details": [
     "[主动] 血涌披身：开关光环，半径2格每0.5秒对敌附加流血DoT；2转总DoT≤50/秒；每秒消耗生命(baseCost 3/秒)与资源；冷却8秒。视觉：红色dust环绕；音效：armor.equip_leather。",
     "[主动] 血束收紧：发射血束对命中目标施加缓慢IV(2秒)与流血10/秒×5秒；冷却16秒；baseCost: 真元80、精力4、饱食1。视觉：红色线束+命中sweep_attack；音效：enchantment_table.use → trident.thunder。",
-    "[主动] 血缝急闭：将附近敌人流血值转为临时生命(Absorption，上限随转数)，并清除自身流血类减益；冷却20秒；baseCost: 真元90、魂魄2。视觉：entity_effect向内汇聚；音效：shield.block。",
+    "[主动] 血缝急闭：将附近敌人流血DoT值转为临时生命(Absorption，上限随转数)，并清除自身流血DoT类减益；冷却20秒；baseCost: 真元90、魂魄2。视觉：entity_effect向内汇聚；音效：shield.block。",
     "[主动] 溢血反刺：3秒窗口将承受的近战伤害反射50%为流血DoT给攻击者(单次上限默认40)；冷却25秒；baseCost: 真元110、念头3。视觉：足下sweep_attack环；音效：note_block.bass → generic.hurt。",
     "",
     "[被动] 血衣：受近战伤害获得1层披身(+1%减伤)，最多10层；10秒未受伤每秒降低1层。视觉：胸前entity_effect短闪。",

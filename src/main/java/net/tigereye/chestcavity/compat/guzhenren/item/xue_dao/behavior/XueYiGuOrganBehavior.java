@@ -30,23 +30,23 @@ import org.slf4j.Logger;
 /**
  * 血衣蛊 (Xue Yi Gu) - Blood Robe Gu
  *
- * <p>Defense-oriented organ with blood manipulation abilities.
+ * <p>以防御为导向的器官，具有血液操纵能力。
  *
- * <p>4 Active Skills:
- * - 血涌披身 (Blood Aura): Toggle aura, applies bleed DoT in radius
- * - 血束收紧 (Blood Bind): Beam attack with slowness + bleed
- * - 血缝急闭 (Blood Seal): Convert enemy bleed to absorption
- * - 溢血反刺 (Blood Reflect): 3s window to reflect melee damage as bleed
+ * <p>4 个主动技能：
+ * - 血涌披身 (Blood Aura): 切换光环，在半径范围内应用出血DoT
+ * - 血束收紧 (Blood Bind): 光束攻击，附带减速 + 出血
+ * - 血缝急闭 (Blood Seal): 将敌人的出血转化为吸收
+ * - 溢血反刺 (Blood Reflect): 3秒窗口，反射近战伤害为出血
  *
- * <p>6 Passive Skills:
- * - 血衣 (Blood Armor): Gain armor stacks when hit by melee
- * - 渗透 (Penetration): Every 2 melee hits apply bleed DoT
- * - 越染越坚 (Enraged Defense): Below 50% HP gain defense + aura boost
- * - 血偿 (Blood Reward): Kill bleeding enemies to restore zhenyuan
- * - 凝血止创 (Hardened Shield): Take 200 damage to gain absorption
- * - 代价 (Cost): Active skills cost additional 2% current HP
+ * <p>6 个被动技能：
+ * - 血衣 (Blood Armor): 被近战击中时获得护甲层数
+ * - 渗透 (Penetration): 每2次近战击中应用出血DoT
+ * - 越染越坚 (Enraged Defense): 低于50% HP 时获得防御 + 光环提升
+ * - 血偿 (Blood Reward): 杀死出血敌人以恢复真元
+ * - 凝血止创 (Hardened Shield): 承受200点伤害以获得吸收
+ * - 代价 (Cost): 主动技能额外消耗2%当前HP
  *
- * <p>5 Synergy Skills (with other organs)
+ * <p>5 个协同技能（与其他器官）
  */
 public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     implements OrganSlowTickListener,
@@ -64,7 +64,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "xueyigu");
   private static final String STATE_ROOT = "XueYiGu";
 
-  // State keys for passive skills
+  // 被动技能的状态键
   private static final String ARMOR_STACKS_KEY = "ArmorStacks";
   private static final String LAST_DAMAGE_TICK_KEY = "LastDamageTick";
   private static final String HIT_COUNTER_KEY = "HitCounter";
@@ -73,23 +73,23 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String DAMAGE_ACCUMULATOR_KEY = "DamageAccum";
   private static final String ABSORPTION_READY_AT_KEY = "AbsorptionReadyAt";
 
-  // Passive parameters
+  // 被动参数
   private static final int ARMOR_MAX_STACKS = 10;
-  private static final float ARMOR_DAMAGE_REDUCTION_PER_STACK = 0.01f; // 1% per stack
-  private static final int ARMOR_DECAY_DELAY_TICKS = 200; // 10 seconds
-  private static final int PENETRATE_COOLDOWN_TICKS = 40; // 2 seconds
-  private static final int ENRAGE_COOLDOWN_TICKS = 400; // 20 seconds
+  private static final float ARMOR_DAMAGE_REDUCTION_PER_STACK = 0.01f; // 每层1%
+  private static final int ARMOR_DECAY_DELAY_TICKS = 200; // 10秒
+  private static final int PENETRATE_COOLDOWN_TICKS = 40; // 2秒
+  private static final int ENRAGE_COOLDOWN_TICKS = 400; // 20秒
   private static final float ENRAGE_HEALTH_THRESHOLD = 0.5f; // 50% HP
   private static final float ENRAGE_DAMAGE_REDUCTION = 0.1f; // +10% DR
-  private static final float ENRAGE_AURA_BOOST = 0.2f; // +20% aura damage
+  private static final float ENRAGE_AURA_BOOST = 0.2f; // +20% 光环伤害
   private static final float HARDENED_SHIELD_DAMAGE_THRESHOLD = 200.0f;
-  private static final int HARDENED_SHIELD_COOLDOWN_TICKS = 600; // 30 seconds
-  private static final float LIFE_COST_PERCENTAGE = 0.02f; // 2% current HP
+  private static final int HARDENED_SHIELD_COOLDOWN_TICKS = 600; // 30秒
+  private static final float LIFE_COST_PERCENTAGE = 0.02f; // 2%当前HP
 
   private XueYiGuOrganBehavior() {}
 
   /**
-   * Called when organ is equipped to initialize state.
+   * 在装备器官时调用以初始化状态。
    */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
@@ -100,10 +100,10 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
 
-    // Register removal listener
+    // 注册移除监听器
     registerRemovalHook(cc, organ, this, staleRemovalContexts);
 
-    // Initialize state if needed
+    // 如需初始化状态
     OrganState state = organState(organ, STATE_ROOT);
     if (state.getInt(ARMOR_STACKS_KEY, -1) == -1) {
       state.setInt(ARMOR_STACKS_KEY, 0);
@@ -119,7 +119,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   // ============================================================
-  // Slow Tick - Active Skills & Passive Maintenance
+  // 慢速 tick - 主动技能和被动维护
   // ============================================================
 
   @Override
@@ -134,19 +134,19 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
 
-    // Tick active skills
+    // tick主动技能
     XueYongPiShenSkill.tickAura(player, cc, organ);
     YiXueFanCiSkill.tickReflectWindow(player, cc, organ);
 
-    // Tick passive: Armor stack decay
+    // tick被动: 护甲层数衰减
     tickArmorStackDecay(player, organ, cc);
 
-    // Tick passive: Enrage status maintenance
+    // tick被动: 狂暴状态维护
     tickEnrageStatus(player, organ);
   }
 
   // ============================================================
-  // Incoming Damage Listener - Passives & Reflect
+  // 受伤监听器 - 被动和反刺
   // ============================================================
 
   @Override
@@ -172,7 +172,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     float finalDamage = damage;
 
-    // Passive: Blood Armor (reduce damage based on stacks)
+    // 被动: 血衣（基于层数减少伤害）
     if (isMeleeDamage(source)) {
       int armorStacks = state.getInt(ARMOR_STACKS_KEY, 0);
       if (armorStacks > 0) {
@@ -189,28 +189,28 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
       }
 
-      // Gain armor stack from melee hit
+      // 从近战击中获得护甲层数
       gainArmorStack(player, organ, state, cc);
     }
 
-    // Passive: Enraged Defense (below 50% HP)
+    // 被动: 狂暴防御（低于50% HP）
     if (isEnraged(player, state)) {
       finalDamage *= (1.0f - ENRAGE_DAMAGE_REDUCTION);
     }
 
-    // Active: Blood Reflect (if window is active and melee)
+    // 主动: 血反刺（如果窗口激活且近战）
     if (isMeleeDamage(source) && source.getEntity() instanceof LivingEntity attacker) {
       YiXueFanCiSkill.handleReflectDamage(player, attacker, finalDamage, cc);
     }
 
-    // Passive: Hardened Blood Shield (accumulate damage)
+    // 被动: 凝血盾牌（累积伤害）
     accumulateDamageForShield(player, organ, state, cc, finalDamage);
 
     return finalDamage;
   }
 
   // ============================================================
-  // On Hit Listener - Penetration Passive
+  // 击中监听器 - 渗透被动
   // ============================================================
 
   @Override
@@ -230,14 +230,14 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     OrganState state = organState(organ, STATE_ROOT);
 
-    // Passive: Penetration (every 2 hits apply bleed)
+    // 被动: 渗透（每2次击中应用出血）
     handlePenetration(player, organ, state, cc, target);
 
     return damage;
   }
 
   // ============================================================
-  // Removal Listener
+  // 移除监听器
   // ============================================================
 
   @Override
@@ -246,11 +246,11 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
 
-    // Deactivate all active skills
+    // 停用所有主动技能
     XueYongPiShenSkill.forceDeactivate(organ);
     YiXueFanCiSkill.forceDeactivate(organ);
 
-    // Clear all passive state
+    // 清除所有被动状态
     OrganState state = organState(organ, STATE_ROOT);
     state.setInt(ARMOR_STACKS_KEY, 0);
     state.setInt(HIT_COUNTER_KEY, 0);
@@ -258,11 +258,11 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   // ============================================================
-  // Passive Skill Implementations
+  // 被动技能实现
   // ============================================================
 
   /**
-   * Passive 1: Blood Armor - Gain armor stacks when hit by melee.
+   * 被动1: 血衣 - 被近战击中时获得护甲层数。
    */
   private void gainArmorStack(
       ServerPlayer player, ItemStack organ, OrganState state, ChestCavityInstance cc) {
@@ -275,7 +275,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     state.setInt(ARMOR_STACKS_KEY, currentStacks);
     state.setLong(LAST_DAMAGE_TICK_KEY, player.level().getGameTime());
 
-    // Play visual effect
+    // 播放视觉效果
     if (player.level() instanceof ServerLevel serverLevel) {
       XueYiGuEffects.playArmorStackGain(serverLevel, player, currentStacks);
     }
@@ -284,7 +284,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /**
-   * Ticks armor stack decay (lose 1 stack per second after 10s without damage).
+   * tick护甲层数衰减（在10秒无伤害后每秒失去1层）。
    */
   private void tickArmorStackDecay(ServerPlayer player, ItemStack organ, ChestCavityInstance cc) {
     OrganState state = organState(organ, STATE_ROOT);
@@ -298,7 +298,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     long timeSinceLastDamage = now - lastDamageTick;
 
     if (timeSinceLastDamage >= ARMOR_DECAY_DELAY_TICKS) {
-      // Start decaying: lose 1 stack per second (20 ticks)
+      // 开始衰减: 每秒失去1层（20 ticks）
       long ticksSinceDecayStart = timeSinceLastDamage - ARMOR_DECAY_DELAY_TICKS;
       int stacksToLose = (int) (ticksSinceDecayStart / 20);
 
@@ -313,7 +313,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /**
-   * Passive 2: Penetration - Every 2 melee hits apply bleed DoT.
+   * 被动2: 渗透 - 每2次近战击中应用出血DoT。
    */
   private void handlePenetration(
       ServerPlayer player,
@@ -325,22 +325,22 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     long readyAt = state.getLong(PENETRATE_READY_AT_KEY, 0L);
 
     if (now < readyAt) {
-      return; // On cooldown
+      return; // 冷却中
     }
 
     int hitCount = state.getInt(HIT_COUNTER_KEY, 0);
     hitCount++;
 
     if (hitCount >= 2) {
-      // Apply penetration bleed
+      // 应用渗透出血
       applyPenetrationBleed(player, target);
 
-      // Play effect
+      // 播放效果
       if (player.level() instanceof ServerLevel serverLevel) {
         XueYiGuEffects.playPenetrateEffect(serverLevel, target);
       }
 
-      // Reset counter and set cooldown
+      // 重置计数器并设置冷却
       hitCount = 0;
       state.setLong(PENETRATE_READY_AT_KEY, now + PENETRATE_COOLDOWN_TICKS);
     }
@@ -349,33 +349,33 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /**
-   * Applies penetration bleed to target.
+   * 对目标应用渗透出血。
    */
   private void applyPenetrationBleed(ServerPlayer player, LivingEntity target) {
-    // TODO: Apply actual bleed DoT (6 damage/sec for 3 seconds)
-    // For now, apply instant damage
+    // TODO: 应用实际出血DoT（6伤害/秒持续3秒）
+    // 目前，应用瞬时伤害
     target.hurt(player.damageSources().magic(), 6.0f);
   }
 
   /**
-   * Passive 3: Enraged Defense - Checks and activates enrage status.
+   * 被动3: 狂暴防御 - 检查并激活狂暴状态。
    */
   private boolean isEnraged(ServerPlayer player, OrganState state) {
     long now = player.level().getGameTime();
     long enragedUntil = state.getLong(ENRAGED_UNTIL_KEY, 0L);
 
     if (now < enragedUntil) {
-      return true; // Already enraged
+      return true; // 已经狂暴
     }
 
-    // Check if we should trigger enrage
+    // 检查是否应触发狂暴
     float healthPercent = player.getHealth() / player.getMaxHealth();
     if (healthPercent <= ENRAGE_HEALTH_THRESHOLD) {
-      // Trigger enrage
+      // 触发狂暴
       long enrageEnd = now + ENRAGE_COOLDOWN_TICKS;
       state.setLong(ENRAGED_UNTIL_KEY, enrageEnd);
 
-      // Play activation effect
+      // 播放激活效果
       if (player.level() instanceof ServerLevel serverLevel) {
         XueYiGuEffects.playEnrageActivation(serverLevel, player);
       }
@@ -387,7 +387,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /**
-   * Maintains enrage visual effects.
+   * 维护狂暴视觉效果。
    */
   private void tickEnrageStatus(ServerPlayer player, ItemStack organ) {
     OrganState state = organState(organ, STATE_ROOT);
@@ -395,13 +395,13 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     long enragedUntil = state.getLong(ENRAGED_UNTIL_KEY, 0L);
 
     if (now < enragedUntil && now % 10 == 0) {
-      // Play maintain effect every 0.5 seconds
+      // 每0.5秒播放维护效果
       // XueYiGuEffects.playEnrageMaintain(...) if needed
     }
   }
 
   /**
-   * Passive 5: Hardened Blood Shield - Accumulate damage for absorption.
+   * 被动5: 凝血盾牌 - 累积伤害以获得吸收。
    */
   private void accumulateDamageForShield(
       ServerPlayer player,
@@ -413,23 +413,23 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     long readyAt = state.getLong(ABSORPTION_READY_AT_KEY, 0L);
 
     if (now < readyAt) {
-      return; // On cooldown
+      return; // 冷却中
     }
 
     double accumulated = state.getDouble(DAMAGE_ACCUMULATOR_KEY, 0.0);
     accumulated += damage;
 
     if (accumulated >= HARDENED_SHIELD_DAMAGE_THRESHOLD) {
-      // Trigger shield
-      float absorptionAmount = 30.0f; // Fixed amount
+      // 触发盾牌
+      float absorptionAmount = 30.0f; // 固定金额
       applyHardenedShield(player, absorptionAmount);
 
-      // Play effect
+      // 播放效果
       if (player.level() instanceof ServerLevel serverLevel) {
         XueYiGuEffects.playHardenedBloodShield(serverLevel, player, absorptionAmount);
       }
 
-      // Reset and set cooldown
+      // 重置并设置冷却
       accumulated = 0.0;
       state.setLong(ABSORPTION_READY_AT_KEY, now + HARDENED_SHIELD_COOLDOWN_TICKS);
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
@@ -439,10 +439,10 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /**
-   * Applies hardened blood shield absorption.
+   * 应用凝血盾牌吸收。
    */
   private void applyHardenedShield(ServerPlayer player, float amount) {
-    // Add absorption effect
+    // 添加吸收效果
     player.addEffect(
         new net.minecraft.world.effect.MobEffectInstance(
             net.minecraft.world.effect.MobEffects.ABSORPTION, 200, 0, false, false, true));
@@ -450,21 +450,21 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /**
-   * Passive 6: Cost - Deducts additional HP cost for active skills.
+   * 被动6: 代价 - 为主动技能扣除额外HP代价。
    */
   public static void applyLifeCost(ServerPlayer player, ChestCavityInstance cc) {
     float currentHealth = player.getHealth();
     float cost = currentHealth * LIFE_COST_PERCENTAGE;
 
     if (currentHealth - cost <= 1.0f) {
-      // Don't kill player with cost
+      // 不要让玩家因代价而死
       cost = currentHealth - 1.0f;
     }
 
     if (cost > 0) {
       GuzhenrenResourceCostHelper.drainHealth(player, cost, 1.0f, player.damageSources().generic());
 
-      // Play effect
+      // 播放效果
       if (player.level() instanceof ServerLevel serverLevel) {
         XueYiGuEffects.playLifeCost(serverLevel, player);
       }
@@ -472,7 +472,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   // ============================================================
-  // Utility Methods
+  // 工具方法
   // ============================================================
 
   private boolean isMeleeDamage(DamageSource source) {
@@ -498,7 +498,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return Optional.empty();
   }
 
-  // Bootstrap all active skills
+  // 引导所有主动技能
   public static void bootstrapSkills() {
     XueYongPiShenSkill.bootstrap();
     XueShuShouJinSkill.bootstrap();
