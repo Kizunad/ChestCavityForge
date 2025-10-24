@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.combat;
+package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat;
 
 import java.util.Collections;
 import java.util.Set;

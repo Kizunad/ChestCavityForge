@@ -15,7 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.fx.HuoLongFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.fx.HuoLongFx;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.engine.TickEngineHub;
 import net.tigereye.chestcavity.engine.reaction.DelayedDamageEngine;

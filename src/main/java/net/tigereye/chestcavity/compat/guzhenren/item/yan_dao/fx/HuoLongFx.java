@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.fx;
+package net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.fx;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
