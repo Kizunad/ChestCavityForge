@@ -23,8 +23,7 @@ public final class LiDaoClientAbilities {
           ResourceLocation.parse("guzhenren:hua_shi_gu/hoofquake"),
           ResourceLocation.parse("guzhenren:hua_shi_gu/overload_burst"),
           ResourceLocation.parse("guzhenren:man_li_tian_niu_gu/boost"),
-          ResourceLocation.parse("guzhenren:man_li_tian_niu_gu/rush")
-      );
+          ResourceLocation.parse("guzhenren:man_li_tian_niu_gu/rush"));
 
   public static void onClientSetup(FMLClientSetupEvent event) {
     for (ResourceLocation abilityId : REGISTERED_ABILITIES) {

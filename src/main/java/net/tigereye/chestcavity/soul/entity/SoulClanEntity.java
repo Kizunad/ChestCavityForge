@@ -33,7 +33,6 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.soul.entity.goal.FollowElderGoal;
-import net.tigereye.chestcavity.soul.entity.goal.GuardOnlyTargetGoal;
 import net.tigereye.chestcavity.soul.entity.goal.SplitOnLowHpGoal;
 import net.tigereye.chestcavity.soul.util.ChestCavityInsertOps;
 import net.tigereye.chestcavity.soul.util.ItemFilterOps;
@@ -95,7 +94,8 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
     this.goalSelector.addGoal(4, new RandomStrollGoal(this, 1.0));
     this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
-    this.targetSelector.addGoal(1, new GuardOnlyTargetGoal(this));
+    this.targetSelector.addGoal(
+        1, new net.tigereye.chestcavity.soul.entity.goal.GuardOnlyHostileTargetGoal(this));
   }
 
   @Override
@@ -211,6 +211,7 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
 
   public void setVariant(Variant v) {
     this.variant = v;
+    afterVariantChanged();
   }
 
   public Variant getVariant() {
@@ -318,5 +319,35 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
     }
     this.splitCooldown = tag.getInt(TAG_CD);
     if (tag.contains(TAG_XP)) this.merchantXp = tag.getInt(TAG_XP);
+    if (!level().isClientSide) applyDefaultNameplateIfAbsent();
+  }
+
+  private void applyDefaultNameplateIfAbsent() {
+    if (!this.hasCustomName()) {
+      net.minecraft.network.chat.Component name =
+          switch (this.getVariant()) {
+            case ELDER -> net.minecraft.network.chat.Component.literal("部族长老")
+                .withStyle(net.minecraft.network.chat.Style.EMPTY.withColor(0xAA00FF));
+            case GUARD -> net.minecraft.network.chat.Component.literal("部族护卫")
+                .withStyle(net.minecraft.network.chat.Style.EMPTY.withColor(0xFF5555));
+            case TRADER -> net.minecraft.network.chat.Component.literal("部族商人")
+                .withStyle(net.minecraft.network.chat.Style.EMPTY.withColor(0xFFAA00));
+          };
+      this.setCustomName(name);
+    }
+    this.setCustomNameVisible(true);
+  }
+
+  /** 变体切换时应用（在 setVariant 末尾调用） */
+  private void afterVariantChanged() {
+    if (!level().isClientSide) applyDefaultNameplateIfAbsent();
+  }
+
+  public static boolean isHostileToClan(net.minecraft.world.entity.LivingEntity e) {
+    if (e instanceof net.minecraft.world.entity.player.Player) return false;
+    if (e instanceof net.minecraft.world.entity.monster.Monster) return true;
+    if (e instanceof net.tigereye.chestcavity.soul.entity.TestSoulEntity)
+      return true; // 把 Test 实体也视为敌对
+    return false;
   }
 }

@@ -7,8 +7,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.tigereye.chestcavity.registration.CCEntities;
 
 /**
@@ -38,15 +38,14 @@ public final class SoulClanSpawner {
 
   /** 剩余的冷却 tick；为 0 时允许再次尝试刷新族人。 */
   private static int cooldown;
+
   private static boolean registered;
 
   private SoulClanSpawner() {
     // 工具类不需要实例化。
   }
 
-  /**
-   * 注册 SoulClan 刷怪逻辑到 NeoForge 事件总线，确保监听世界 tick。
-   */
+  /** 注册 SoulClan 刷怪逻辑到 NeoForge 事件总线，确保监听世界 tick。 */
   public static void init() {
     if (registered) {
       return;
