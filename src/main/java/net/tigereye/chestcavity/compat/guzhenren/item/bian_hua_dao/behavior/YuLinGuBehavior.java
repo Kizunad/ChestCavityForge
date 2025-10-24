@@ -155,7 +155,6 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
       if (!isPlayerMoist(player, state, gameTime)) {
         hasFishArmor = false;
         state.setBoolean(HAS_FISH_ARMOR_KEY, false);
-        state.setBoolean(HAS_SHARK_ARMOR_KEY, false);
         progress = Math.max(0, progress - 2);
         state.setInt(PROGRESS_KEY, progress);
         NetworkUtil.sendOrganSlotUpdate(cc, organ);
