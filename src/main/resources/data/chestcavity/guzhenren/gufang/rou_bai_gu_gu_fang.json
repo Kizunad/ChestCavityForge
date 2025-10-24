@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:rou_bai_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:yu_gu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_zhu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:zi_li_geng_sheng_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:baishouwanghugu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:baishouwanghuya",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:bone",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:rou_bai_gu",
+    "count": 1
+  }
+}

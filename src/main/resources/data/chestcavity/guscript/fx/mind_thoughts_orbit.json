@@ -1,0 +1,16 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:entity.experience_orb.pickup", "volume": 0.2, "pitch": 1.6 },
+    { "type": "trail",
+      "particle": "minecraft:dust",
+      "color": "#88ccff",
+      "size": 1.0,
+      "speed": 0.05,
+      "spread": [0.02, 0.02, 0.02],
+      "offset": [0, 1.55, 0],
+      "segments": 20,
+      "spacing": 0.18
+    }
+  ]
+}
+

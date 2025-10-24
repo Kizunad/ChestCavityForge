@@ -1,0 +1,18 @@
+{
+  "gufang_id": "guzhenren:fan_dai_cao_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:zhi_xin_cao_gen",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:fan_dai_cao_gu",
+    "count": 1
+  }
+}

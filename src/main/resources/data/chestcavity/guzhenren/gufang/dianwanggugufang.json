@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:dianwanggugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:dianliugu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:dianliugu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:langyan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bbaishouwanglangpi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:dianwanggu",
+    "count": 1
+  }
+}

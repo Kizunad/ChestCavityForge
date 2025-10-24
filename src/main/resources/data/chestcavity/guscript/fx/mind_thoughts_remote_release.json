@@ -1,0 +1,7 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.enchantment_table.use", "volume": 0.7, "pitch": 1.05 },
+    { "type": "sound", "sound": "minecraft:block.amethyst_cluster.break", "volume": 0.4, "pitch": 1.45 },
+    { "type": "screen_shake", "intensity": 0.08, "duration": 6 }
+  ]
+}

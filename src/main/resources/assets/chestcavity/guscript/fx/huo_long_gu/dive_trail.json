@@ -1,0 +1,23 @@
+{
+  "modules": [
+    {
+      "type": "trail",
+      "particle": "minecraft:flame",
+      "segments": 10,
+      "spacing": 0.22,
+      "spread": [0.05, 0.05, 0.05],
+      "speed": 0.0
+    },
+    {
+      "type": "trail",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ffd27a",
+      "to_color": "#ffffff",
+      "size": 0.22,
+      "segments": 10,
+      "spacing": 0.22,
+      "spread": [0.04, 0.04, 0.04],
+      "speed": 0.005
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.generic.explode",
+      "volume": 0.9,
+      "pitch": 0.9
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:explosion",
+      "count": 2,
+      "spread": [0.2, 0.2, 0.2],
+      "speed": 0.0
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:flame",
+      "count": 28,
+      "spread": [0.8, 0.4, 0.8],
+      "speed": 0.08
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 18,
+      "spread": [1.0, 0.5, 1.0],
+      "speed": 0.03
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ffd27a",
+      "to_color": "#ff3300",
+      "size": 0.4,
+      "count": 24,
+      "spread": [0.9, 0.4, 0.9],
+      "speed": 0.02
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.08,
+      "duration": 6
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:lishigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianjigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianhengu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianhengu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:netherite_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:lishigu",
+    "count": 1
+  }
+}

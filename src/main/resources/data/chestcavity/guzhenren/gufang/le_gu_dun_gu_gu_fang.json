@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:le_gu_dun_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:yu_gu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bai_yu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:pan_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_zhu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shi_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:pan_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:le_gu_dun_gu",
+    "count": 1
+  }
+}

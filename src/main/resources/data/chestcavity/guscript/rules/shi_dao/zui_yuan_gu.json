@@ -1,0 +1,23 @@
+{
+  "arity": 4,
+  "priority": 100,
+  "required": { "真元": 1, "精力": 1, "酒道": 1, "辅助": 1 },
+  "result": {
+    "name": "醉元鼓",
+    "operator_id": "chestcavity:zui_yuan_gu",
+    "kind": "composite",
+    "tags": ["杀招", "醉元鼓"],
+    "actions": [
+      { "id": "if.resource", "identifier": "zhenyuan", "minimum": 100.0, "actions": [
+        { "id": "if.resource", "identifier": "jingli",   "minimum":  20.0, "actions": [
+          { "id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": -100.0 },
+          { "id": "guzhenren.adjust", "identifier": "jingli",   "amount":  -20.0 },
+          { "id": "linkage.adjust_temporary", "channel": "guzhenren:linkage/li_dao_increase_effect",  "amount": 0.1, "duration": 1200 },
+          { "id": "linkage.adjust_temporary", "channel": "guzhenren:linkage/xue_dao_increase_effect", "amount": 0.1, "duration": 1200 },
+          { "id": "linkage.adjust_temporary", "channel": "guzhenren:linkage/shi_dao_increase_effect", "amount": 0.1, "duration": 1200 },
+          { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_pulse", "intensity": 0.9 }
+        ]}
+      ]}
+    ]
+  }
+}

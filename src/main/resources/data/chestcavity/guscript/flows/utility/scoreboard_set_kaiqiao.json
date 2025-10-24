@@ -1,0 +1,30 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "charged",
+          "actions": [
+            {
+              "type": "scoreboard_set",
+              "objective": "kaiqiao",
+              "value": 0
+            }
+          ],
+          "min_ticks": 0
+        }
+      ]
+    },
+    "charged": {
+      "transitions": [
+        {
+          "trigger": "auto",
+          "target": "idle",
+          "min_ticks": 0
+        }
+      ]
+    }
+  }
+}

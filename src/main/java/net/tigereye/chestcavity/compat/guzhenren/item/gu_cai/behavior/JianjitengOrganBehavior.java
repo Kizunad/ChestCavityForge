@@ -1,0 +1,236 @@
+package net.tigereye.chestcavity.compat.guzhenren.item.gu_cai.behavior;
+
+import java.util.Locale;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.registration.CCItems;
+import net.tigereye.chestcavity.util.NBTCharge;
+import net.tigereye.chestcavity.util.NetworkUtil;
+
+/** Behaviour for 剑脊藤 organ stacks. Gradually charges by draining player resources. */
+public enum JianjitengOrganBehavior implements OrganSlowTickListener {
+  INSTANCE;
+
+  private static final String MOD_ID = "guzhenren";
+
+  private static final String STATE_KEY = "JianjitengCharge";
+  private static final int MAX_CHARGE =
+      BehaviorConfigAccess.getInt(JianjitengOrganBehavior.class, "MAX_CHARGE", 100);
+
+  private static final float HEALTH_COST =
+      BehaviorConfigAccess.getFloat(JianjitengOrganBehavior.class, "HEALTH_COST", 0.1f);
+  private static final double ZHENYUAN_COST = 2.0;
+
+  // TODO: Reintroduce Jianjiteng linkage energy consumption once a producer exists.
+
+  private static final int BONUS_ROLL =
+      BehaviorConfigAccess.getInt(JianjitengOrganBehavior.class, "BONUS_ROLL", 100);
+  private static final Component BONUS_MESSAGE =
+      Component.translatable("message.guzhenren.jianjiteng.bonus");
+  private static final String LOG_PREFIX = "[Jianjiteng]";
+
+  @Override
+  public void onSlowTick(LivingEntity entity, ChestCavityInstance chestCavity, ItemStack organ) {
+    if (!(entity instanceof Player player) || entity.level().isClientSide()) {
+      return;
+    }
+    if (chestCavity == null) {
+      return;
+    }
+
+    int currentCharge = clampCharge(NBTCharge.getCharge(organ, STATE_KEY));
+
+    if (!canAffordHealth(player)) {
+      if (ChestCavity.LOGGER.isDebugEnabled()) {
+        ChestCavity.LOGGER.debug(
+            "{} {} health below safety threshold", LOG_PREFIX, player.getScoreboardName());
+      }
+      return;
+    }
+
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
+        GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isEmpty()) {
+      if (ChestCavity.LOGGER.isDebugEnabled()) {
+        ChestCavity.LOGGER.debug(
+            "{} {} unable to open resource bridge", LOG_PREFIX, player.getScoreboardName());
+      }
+      return;
+    }
+    GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+    double beforeZhenyuan = handle.getZhenyuan().orElse(Double.NaN);
+    OptionalDouble zhenyuanResult = ResourceOps.tryConsumeScaledZhenyuan(handle, ZHENYUAN_COST);
+    if (zhenyuanResult.isEmpty()) {
+      if (ChestCavity.LOGGER.isDebugEnabled()) {
+        ChestCavity.LOGGER.debug(
+            "{} {} lacks zhenyuan for charging", LOG_PREFIX, player.getScoreboardName());
+      }
+      return;
+    }
+
+    drainHealth(player);
+
+    int updatedCharge = currentCharge + 1;
+    if (ChestCavity.LOGGER.isDebugEnabled()) {
+      double remaining = zhenyuanResult.getAsDouble();
+      double consumed =
+          Double.isFinite(beforeZhenyuan) ? Math.max(0.0, beforeZhenyuan - remaining) : Double.NaN;
+      ChestCavity.LOGGER.debug(
+          "{} {} charge -> {}/{} (消耗真元 {})",
+          LOG_PREFIX,
+          player.getScoreboardName(),
+          Math.min(updatedCharge, MAX_CHARGE),
+          MAX_CHARGE,
+          Double.isFinite(consumed)
+              ? String.format(Locale.ROOT, "%.2f", consumed)
+              : String.format(Locale.ROOT, "%.2f", remaining));
+    }
+
+    if (updatedCharge >= MAX_CHARGE) {
+      NBTCharge.setCharge(organ, STATE_KEY, 0);
+      NetworkUtil.sendOrganSlotUpdate(chestCavity, organ);
+      dispensePrimaryReward(player);
+      maybeGrantBonus(player, chestCavity);
+    } else {
+      NBTCharge.setCharge(organ, STATE_KEY, updatedCharge);
+      NetworkUtil.sendOrganSlotUpdate(chestCavity, organ);
+    }
+  }
+
+  /** Ensures linkage channels exist for the owning chest cavity. */
+  public void ensureAttached(ChestCavityInstance chestCavity) {
+
+    // Linkage channel gating temporarily disabled until a dedicated producer exists.
+
+  }
+
+  private static int clampCharge(int rawCharge) {
+    if (rawCharge <= 0) {
+      return 0;
+    }
+    return Math.min(MAX_CHARGE, rawCharge);
+  }
+
+  private static boolean canAffordHealth(Player player) {
+    return player.getHealth() > 1.0f;
+  }
+
+  private static void drainHealth(Player player) {
+    float current = player.getHealth();
+    float updated = Math.max(1.0f, current - HEALTH_COST);
+    player.setHealth(updated);
+    player.hurtTime = 0;
+    player.hurtDuration = 0;
+    player.hurtMarked = false;
+  }
+
+  private static void dispensePrimaryReward(Player player) {
+    ItemStack reward = new ItemStack(CCItems.GUZHENREN_JIANJITENG);
+    if (!player.addItem(reward)) {
+      player.drop(reward, false);
+      ChestCavity.LOGGER.info("{} {} 完成充能 -> 掉落剑脊藤", LOG_PREFIX, player.getScoreboardName());
+    } else {
+      ChestCavity.LOGGER.info("{} {} 完成充能 -> 获得剑脊藤", LOG_PREFIX, player.getScoreboardName());
+    }
+  }
+
+  private static void maybeGrantBonus(Player player, ChestCavityInstance cc) {
+    if (!hasFullStack(player, cc)) {
+      ChestCavity.LOGGER.debug("{} {} 没有满组剑脊藤 -> 不触发额外奖励", LOG_PREFIX, player.getScoreboardName());
+      return;
+    }
+    if (player.getRandom().nextInt(BONUS_ROLL) != 0) {
+      ChestCavity.LOGGER.debug("{} {} 随机检定未通过 -> 不触发额外奖励", LOG_PREFIX, player.getScoreboardName());
+      return;
+    }
+    Item bonusItem = CCItems.pickRandomGuzhenrenJiandaoBonus(player.getRandom());
+    String bonusId = BuiltInRegistries.ITEM.getKey(bonusItem).toString();
+    ItemStack bonus = new ItemStack(bonusItem);
+    if (!player.addItem(bonus)) {
+      player.drop(bonus, false);
+      ChestCavity.LOGGER.info(
+          "{} {} 额外奖励 -> 掉落 {}", LOG_PREFIX, player.getScoreboardName(), bonusId);
+    } else {
+      ChestCavity.LOGGER.info(
+          "{} {} 额外奖励 -> 获得 {}", LOG_PREFIX, player.getScoreboardName(), bonusId);
+    }
+    celebrateBonus(player);
+  }
+
+  private static boolean hasFullStack(Player player, ChestCavityInstance cc) {
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      // 这里必须是满堆叠 == 64，不能 >=
+      if (stack.is(CCItems.GUZHENREN_JIANJITENG) && stack.getCount() == 64) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static void celebrateBonus(Player player) {
+    player.displayClientMessage(BONUS_MESSAGE, true);
+    playBonusSounds(player);
+    spawnBonusParticles(player);
+  }
+
+  private static void playBonusSounds(Player player) {
+    var level = player.level();
+    var source = player.getSoundSource();
+    level.playSound(
+        null,
+        player.getX(),
+        player.getY(),
+        player.getZ(),
+        SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES,
+        source,
+        0.8f,
+        0.9f);
+    level.playSound(
+        null,
+        player.getX(),
+        player.getY(),
+        player.getZ(),
+        SoundEvents.ENDERMAN_TELEPORT,
+        source,
+        0.35f,
+        0.6f);
+    level.playSound(
+        null,
+        player.getX(),
+        player.getY(),
+        player.getZ(),
+        SoundEvents.BEEHIVE_SHEAR,
+        source,
+        0.6f,
+        0.8f);
+  }
+
+  private static void spawnBonusParticles(Player player) {
+    if (!(player.level() instanceof ServerLevel server)) {
+      return;
+    }
+    double x = player.getX();
+    double y = player.getY() + player.getBbHeight() * 0.6;
+    double z = player.getZ();
+    server.sendParticles(ParticleTypes.HAPPY_VILLAGER, x, y, z, 10, 0.25, 0.3, 0.25, 0.05);
+    server.sendParticles(ParticleTypes.COMPOSTER, x, y, z, 6, 0.2, 0.2, 0.2, 0.04);
+    server.sendParticles(ParticleTypes.ITEM_SLIME, x, y, z, 8, 0.18, 0.35, 0.18, 0.08);
+    server.sendParticles(ParticleTypes.PORTAL, x, y, z, 16, 0.35, 0.35, 0.35, 0.1);
+  }
+}

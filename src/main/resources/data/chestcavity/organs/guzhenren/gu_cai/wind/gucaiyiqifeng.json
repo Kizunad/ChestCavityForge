@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:gucaiyiqifeng",
+  "organScores": [
+    {
+      "id": "chestcavity:health",
+      "value": "-40.62"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "4.615"
+    },
+    {
+      "id": "chestcavity:leaping",
+      "value": "32"
+    }
+  ]
+}

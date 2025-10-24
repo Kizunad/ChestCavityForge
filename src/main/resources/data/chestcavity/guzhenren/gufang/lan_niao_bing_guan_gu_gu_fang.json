@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:lan_niao_bing_guan_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:bing_zhui_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bing_ren_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_cai_bing_xin",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:feather",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:lan_niao_bing_guan_gu",
+    "count": 1
+  }
+}

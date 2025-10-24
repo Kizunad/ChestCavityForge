@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:qi_gai_e_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:qing_tong_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:leather_chestplate",
+      "count": 1
+    },
+    {
+      "item": "minecraft:stick",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:qi_gai_e",
+    "count": 1
+  }
+}

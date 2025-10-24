@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:le_gu_dun_gu",
+  "organScores": [
+    {"id":"chestcavity:defense","value": "8"},
+    {"id":"chestcavity:daohen_gudao","value": "2.66"},
+    {"id":"chestcavity:nerves","value": "0.5"}
+  ]
+}

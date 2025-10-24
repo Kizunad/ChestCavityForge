@@ -1,0 +1,55 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "charging"
+        }
+      ]
+    },
+    "charging": {
+      "enter_fx": ["chestcavity:time_accel_enter"],
+      "enter_actions": [
+        {"id": "emit.fx", "fxId": "chestcavity:time_accel_enter", "intensity": 1.0}
+      ],
+      "update_period": 20,
+      "update_actions": [
+        {"id": "emit.fx", "fxId": "chestcavity:time_accel_loop", "intensity": 1.0}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "releasing", "min_ticks": 200},
+        {"trigger": "cancel", "target": "cancel"}
+      ]
+    },
+    "releasing": {
+      "enter_fx": ["chestcavity:time_accel_exit"],
+      "enter_actions": [
+        {"id": "emit.fx", "fxId": "chestcavity:time_accel_exit", "intensity": 1.0}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "cooldown", "min_ticks": 10}
+      ]
+    },
+    "charged": {
+      "transitions": [
+        {"trigger": "auto", "target": "releasing", "min_ticks": 1}
+      ]
+    },
+    "cooldown": {
+      "transitions": [
+        {"trigger": "auto", "target": "idle", "min_ticks": 40}
+      ]
+    },
+    "cancel": {
+      "enter_fx": ["chestcavity:time_accel_exit"],
+      "enter_actions": [
+        {"id": "emit.fx", "fxId": "chestcavity:time_accel_exit", "intensity": 1.0}
+      ],
+      "transitions": [
+        {"trigger": "auto", "target": "cooldown", "min_ticks": 10}
+      ]
+    }
+  }
+}

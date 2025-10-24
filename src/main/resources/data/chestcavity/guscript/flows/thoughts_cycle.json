@@ -1,0 +1,68 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        { "trigger": "start", "target": "charging" }
+      ]
+    },
+    "charging": {
+      "enter_fx": ["chestcavity:mind_thoughts_orbit"],
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_orbit", "base_intensity": 1.0 }
+      ],
+      "update_period": 20,
+      "update_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.6 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "charged", "min_ticks": 120 },
+        { "trigger": "cancel", "target": "cancel" }
+      ]
+    },
+    "charged": {
+      "enter_fx": ["chestcavity:mind_thoughts_charge_ready"],
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_charge_ready", "base_intensity": 1.0 }
+      ],
+      "update_period": 20,
+      "update_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.5 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "releasing", "min_ticks": 40 },
+        { "trigger": "cancel", "target": "cancel" }
+      ]
+    },
+    "releasing": {
+      "enter_fx": ["chestcavity:mind_thoughts_release"],
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_release", "base_intensity": 1.0 },
+        { "type": "trigger_actions", "actions": [
+          { "id": "guzhenren.adjust", "identifier": "niantou", "amount": 320.0 },
+          { "id": "gain.health", "amount": 6.0 },
+          { "id": "emit.fx", "fxId": "chestcavity:mind_thoughts_recover", "intensity": 1.0, "targetOffset": [0.0, 0.2, 0.0] }
+        ] }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 20 }
+      ]
+    },
+    "cooldown": {
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.4 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 40 }
+      ]
+    },
+    "cancel": {
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 1.0 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 10 }
+      ]
+    }
+  }
+}

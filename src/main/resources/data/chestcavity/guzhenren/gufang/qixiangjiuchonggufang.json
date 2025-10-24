@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:qixiangjiuchonggufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:si_wei_jiu_chong",
+      "count": 1
+    },
+    {
+      "item": "minecraft:red_dye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:orange_dye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:yellow_dye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:green_dye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:cyan_dye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:blue_dye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:purple_dye",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

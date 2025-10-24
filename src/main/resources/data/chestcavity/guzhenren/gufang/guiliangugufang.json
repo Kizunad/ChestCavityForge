@@ -1,0 +1,38 @@
+{
+  "gufang_id": "guzhenren:guiliangugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:dahungu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:guijiaogu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:guijiaogu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:fanrenhunpo",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:erzhuanhunpo",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sanzhunhunpo",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yizhuanhunpo",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:guiliangu",
+    "count": 1
+  }
+}

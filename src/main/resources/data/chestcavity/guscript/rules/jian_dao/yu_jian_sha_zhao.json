@@ -1,0 +1,16 @@
+{
+  "arity": 3,
+  "priority": 100,
+  "required": { "御剑":1 ,"斩击": 1, "伤害": 1},
+  "result": {
+    "name": "杀招·御剑",
+    "operator_id": "chestcavity:sword_slash",
+    "kind": "composite",
+    "tags": ["杀招", "御剑"],
+    "flow_id": "chestcavity:sword_slash",
+    "flow_params": {
+      "damage_area": "90",
+      "damage_ray": "120"
+    }
+  }
+}

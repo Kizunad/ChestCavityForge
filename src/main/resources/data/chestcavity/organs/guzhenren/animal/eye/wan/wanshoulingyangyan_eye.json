@@ -1,0 +1,33 @@
+{
+  "itemID": "guzhenren:wanshoulingyangyan",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "180"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "90"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "180"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "60"
+    }
+  ]
+}

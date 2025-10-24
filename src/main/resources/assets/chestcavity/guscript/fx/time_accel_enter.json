@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.beacon.activate",
+      "volume": 0.9,
+      "pitch": 1.25
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:poof",
+      "count": 24,
+      "spread": [0.45, 0.6, 0.45],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:enchant",
+      "count": 36,
+      "spread": [0.3, 1.0, 0.3],
+      "speed": 0.0
+    }
+  ]
+}

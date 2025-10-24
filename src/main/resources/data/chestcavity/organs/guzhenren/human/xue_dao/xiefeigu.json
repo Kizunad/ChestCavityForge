@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:xie_fei_gu",
+  "organScores": [
+    {"id":"chestcavity:breath_recovery","value": "1"},
+    {"id":"chestcavity:breath_capacity","value": "1"},
+    {"id":"chestcavity:endurance","value": "1"}
+  ]
+}

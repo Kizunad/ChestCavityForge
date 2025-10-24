@@ -1,0 +1,26 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.glass.break",
+      "volume": 0.9,
+      "pitch": 1.2
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:cloud",
+      "count": 8,
+      "speed": 0.05,
+      "spread": [0.35, 0.2, 0.35],
+      "offset": [0.0, 0.6, 0.0]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:crit",
+      "count": 14,
+      "speed": 0.3,
+      "spread": [0.4, 0.25, 0.4],
+      "offset": [0.0, 0.7, 0.0]
+    }
+  ]
+}

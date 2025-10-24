@@ -1,0 +1,20 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 16,
+      "spread": [0.25, 0.25, 0.25],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#aa0f1a",
+      "size": 0.8,
+      "count": 6,
+      "spread": [0.2, 0.2, 0.2],
+      "speed": 0.02
+    }
+  ]
+}

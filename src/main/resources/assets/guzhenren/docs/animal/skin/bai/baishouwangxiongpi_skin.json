@@ -1,0 +1,18 @@
+{
+  "id": "guzhenren:bai_shouwangxiongpi",
+  "title": "蛊材_百兽王熊皮",
+  "summary": "",
+  "details": [
+    "防御：60",
+    "生命值：60",
+    "抗冲击：30",
+    "力量：60",
+    "最大精力：10",
+    "最大真元：10"
+  ],
+  "tags": [
+    "蛊材_百兽王熊皮",
+    "guzhenren:bai_shouwangxiongpi"
+  ],
+  "icon": "guzhenren:bai_shouwangxiongpi"
+}

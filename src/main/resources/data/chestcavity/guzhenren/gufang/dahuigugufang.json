@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:dahuigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:xiaohuigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianhengu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shexingu",
+      "count": 1
+    },
+    {
+      "item": "minecraft:gold_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

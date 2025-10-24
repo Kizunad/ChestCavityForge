@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "chestcavity:custom.soulbeast.fail_soulbeast_transform",
+      "volume": 1.0,
+      "pitch": 1.0
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 40,
+      "spread": [0.4, 0.9, 0.4],
+      "speed": 0.03
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:large_smoke",
+      "count": 16,
+      "spread": [0.35, 0.8, 0.35],
+      "speed": 0.02
+    }
+  ]
+}

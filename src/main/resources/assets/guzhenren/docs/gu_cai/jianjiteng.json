@@ -1,0 +1,16 @@
+{
+  "id": "guzhenren:jianjiteng",
+  "title": "蛊材_剑脊藤",
+  "summary": "寄生在胸腔内部的剑脊藤",
+  "details": [
+    "寄生在胸腔内部的剑脊藤，能提升宿主的神经反应速度与防御能力。",
+    "并且会借助宿主血液缓慢繁殖，有时候会有好事发生...",
+    "防御：0.01",
+    "神经 (挖掘速度,攻速相关)：0.01"
+  ],
+  "tags": [
+    "蛊材_剑脊藤",
+    "guzhenren:jianjiteng"
+  ],
+  "icon": "guzhenren:jianjiteng"
+}

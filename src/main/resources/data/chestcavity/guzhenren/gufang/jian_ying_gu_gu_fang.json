@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:jian_ying_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:you_ying_sui_xing_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jin_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bing_zhui_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_cai_xuan_jin",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:diamond_sword",
+      "count": 1
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:jian_ying_gu",
+    "count": 1
+  }
+}

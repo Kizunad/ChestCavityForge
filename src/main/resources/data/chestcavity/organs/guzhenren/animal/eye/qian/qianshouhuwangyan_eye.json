@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:qianshouhuwangyan",
+  "organScores": [
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "40"
+    }
+  ]
+}

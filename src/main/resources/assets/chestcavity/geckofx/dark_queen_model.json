@@ -1,0 +1,10 @@
+{
+  "model": "chestcavity:geo/dark_queen_model.geo.json",
+  "texture": "chestcavity:textures/fx/dark_queen_model.png",
+  "animation": "chestcavity:animations/dark_queen_model.animation.json",
+  "default_animation": "animation.chestcavity.dark_queen_model.swing",
+  "default_scale": 1.0,
+  "default_tint": "#FFFFFF",
+  "default_alpha": 1.0,
+  "blend": "translucent"
+}

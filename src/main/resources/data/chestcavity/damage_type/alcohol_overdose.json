@@ -1,0 +1,7 @@
+{
+  "message_id": "alcohol_overdose",
+  "scaling": "never",
+  "exhaustion": 0.1,
+  "death_message_type": "default",
+  "effects": "hurt"
+}

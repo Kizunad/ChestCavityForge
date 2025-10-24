@@ -1,0 +1,38 @@
+{
+  "gufang_id": "guzhenren:guiyangugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:dahungu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xiao_hun_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:hen_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:fanrenhunpo",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xuehengu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:sanzhunhunpo",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yizhuanhunpo",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

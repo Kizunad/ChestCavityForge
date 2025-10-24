@@ -1,0 +1,21 @@
+{
+  "itemID": "guzhenren:quanpi",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "0.1"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "10"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "0.1"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "10"
+    }
+  ]
+}

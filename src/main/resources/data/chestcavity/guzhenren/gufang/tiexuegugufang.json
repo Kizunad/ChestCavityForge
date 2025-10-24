@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:tiexuegugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:tiexuegu",
+    "count": 1
+  }
+}

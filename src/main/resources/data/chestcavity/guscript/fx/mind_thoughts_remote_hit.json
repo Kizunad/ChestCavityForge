@@ -1,0 +1,23 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:entity.shulker_bullet.hit", "volume": 0.7, "pitch": 1.6 },
+    { "type": "sound", "sound": "minecraft:block.amethyst_block.chime", "volume": 0.5, "pitch": 1.9 },
+    { "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#cbaaff",
+      "size": 1.2,
+      "speed": 0.14,
+      "spread": [0.35, 0.35, 0.35],
+      "offset": [0, 1.0, 0],
+      "count": 28
+    },
+    { "type": "particle",
+      "particle": "minecraft:poof",
+      "count": 10,
+      "speed": 0.12,
+      "spread": [0.3, 0.3, 0.3],
+      "offset": [0, 1.0, 0]
+    },
+    { "type": "screen_shake", "intensity": 0.16, "duration": 7 }
+  ]
+}

@@ -1,11 +1,10 @@
 package net.tigereye.chestcavity.mob_effect;
 
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
 
-import net.minecraft.potion.Effect;
-import net.minecraft.potion.EffectType;
-
-public class CCStatusEffect extends Effect {
-    public CCStatusEffect(EffectType type, int color) {
-        super(type, color);
-    }
+public class CCStatusEffect extends MobEffect {
+  public CCStatusEffect(MobEffectCategory type, int color) {
+    super(type, color);
+  }
 }

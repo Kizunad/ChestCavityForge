@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:dan_qiao_huo_tan_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:coal",
+      "count": 1
+    },
+    {
+      "item": "minecraft:charcoal",
+      "count": 1
+    },
+    {
+      "item": "minecraft:gunpowder",
+      "count": 1
+    },
+    {
+      "item": "minecraft:flint_and_steel",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:dan_qiao_huo_tan_gu",
+    "count": 1
+  }
+}

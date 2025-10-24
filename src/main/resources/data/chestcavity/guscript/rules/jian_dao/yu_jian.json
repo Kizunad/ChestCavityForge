@@ -1,0 +1,12 @@
+{
+  "arity": 2,
+  "priority": 20,
+  "required": { "剑道": 1, "驾驭": 1},
+  "result": {
+    "name": "御剑",
+    "operator_id": "chestcavity:control_sword",
+    "kind": "operator",
+    "tags": ["御剑"]
+  }
+}
+

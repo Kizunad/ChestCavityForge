@@ -1,0 +1,54 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        { "trigger": "start", "target": "releasing" }
+      ]
+    },
+    "charging": {
+      "transitions": [
+        { "trigger": "auto", "target": "releasing", "min_ticks": 1 }
+      ]
+    },
+    "charged": {
+      "transitions": [
+        { "trigger": "auto", "target": "releasing", "min_ticks": 1 }
+      ]
+    },
+    "releasing": {
+      "enter_fx": ["chestcavity:mind_thoughts_release", "chestcavity:time_accel_enter"],
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.8 },
+        { "type": "trigger_actions", "actions": [
+          { "id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": -100.0 },
+          { "id": "guzhenren.adjust", "identifier": "jingli",   "amount":  -20.0 },
+          { "id": "export.modifier.multiplier", "amount": 0.1 }
+        ] }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 1 }
+      ],
+      "guards": [
+        { "type": "resource", "identifier": "zhenyuan", "minimum": 100.0 },
+        { "type": "resource", "identifier": "jingli",   "minimum":  20.0 }
+      ]
+    },
+    "cooldown": {
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.4 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 20 }
+      ]
+    },
+    "cancel": {
+      "enter_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:mind_thoughts_pulse", "base_intensity": 0.6 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 10 }
+      ]
+    }
+  }
+}

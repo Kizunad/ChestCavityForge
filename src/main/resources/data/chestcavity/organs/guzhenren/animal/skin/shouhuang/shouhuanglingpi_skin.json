@@ -1,0 +1,37 @@
+{
+  "itemID": "guzhenren:shouhuanglingpi",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "340"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "170"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "340"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:shouyuan",
+      "value": "1"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "100"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "80"
+    }
+  ]
+}

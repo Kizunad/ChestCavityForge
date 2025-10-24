@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:pan_shi_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:shi_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:hei_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:coal",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:pan_shi_gu",
+    "count": 1
+  }
+}

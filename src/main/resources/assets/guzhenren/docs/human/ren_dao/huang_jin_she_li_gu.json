@@ -1,0 +1,16 @@
+{
+  "id": "guzhenren:huang_jin_she_li_gu",
+  "title": "黄金舍利蛊",
+  "summary": "",
+  "details": [
+    "防御：40",
+    "最大魂魄：100",
+    "[被动] 将火焰、凋零、中毒等持续性伤害降低25%，持续生效。",
+    "[主动] 金刚定身：对自身施加6秒抗性III与缓慢III并获得免击退，同时对8格内敌对单位施加缓慢IV 6秒，冷却60秒。"
+  ],
+  "tags": [
+    "黄金舍利蛊",
+    "guzhenren:huang_jin_she_li_gu"
+  ],
+  "icon": "guzhenren:huang_jin_she_li_gu"
+}

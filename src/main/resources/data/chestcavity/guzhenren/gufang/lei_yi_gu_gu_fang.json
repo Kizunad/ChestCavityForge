@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:lei_yi_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:dianjianggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:dianwanggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:qianlangwangrou",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:qqianshouwanglangyan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:qqianshouwanglangpi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:elytra",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:lei_yi_gu",
+    "count": 1
+  }
+}

@@ -1,0 +1,1906 @@
+package net.tigereye.chestcavity.soul.fakeplayer;
+
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.compat.guzhenren.soul.GuzhenrenLiupaiSync;
+import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.registration.CCEntities;
+import net.tigereye.chestcavity.soul.container.SoulContainer;
+import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
+import net.tigereye.chestcavity.soul.fakeplayer.generation.SoulGenerationRequest;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulFakePlayerServices;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulIdentityService;
+import net.tigereye.chestcavity.soul.fakeplayer.service.SoulIdentityViews;
+import net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror;
+import net.tigereye.chestcavity.soul.profile.SoulProfile;
+import net.tigereye.chestcavity.soul.profile.capability.CapabilityPipeline;
+import net.tigereye.chestcavity.soul.storage.SoulOfflineStore;
+import net.tigereye.chestcavity.soul.util.SoulLog;
+import net.tigereye.chestcavity.soul.util.SoulLook;
+import net.tigereye.chestcavity.soul.util.SoulPersistence;
+import net.tigereye.chestcavity.soul.util.SoulProfileOps;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * 灵魂假人（SoulPlayer）生命周期协调器
+ *
+ * <p>职责 - 统一创建/复原/保存/移除基于 FakePlayer 的“灵魂分身”。 - 维护 Soul ↔ Owner 的映射关系，并提供指令/交互所需的查询与建议。
+ *
+ * <p>注意 - 仅在服务端上下文进行实体创建与传送；广播 PlayerInfo 数据包确保客户端正确渲染。
+ */
+public final class SoulFakePlayerSpawner {
+
+  /**
+   * SoulPlayer lifecycle helpers. This coordinator is the single authority that spawns, rehydrates,
+   * saves and removes FakePlayer-backed soul avatars. All call sites should route through these
+   * helpers to guarantee ownership validation and the proper PlayerInfo packets reach every client.
+   */
+  private SoulFakePlayerSpawner() {}
+
+  private static final Map<UUID, SoulPlayer> ACTIVE_SOUL_PLAYERS = new ConcurrentHashMap<>();
+  private static final Map<UUID, UUID> OWNER_ACTIVE_SOUL = new ConcurrentHashMap<>();
+  // Maps the in-world SoulPlayer entity UUID -> Soul profile UUID
+  private static final Map<UUID, UUID> ENTITY_TO_SOUL = new ConcurrentHashMap<>();
+  // Reentrancy guard for removal to avoid cascading double-calls (die -> remove)
+  private static final java.util.Set<UUID> REMOVING_ENTITIES =
+      java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+  // Track entities spawned via our legal paths and their reasons
+  private static final java.util.Set<UUID> LEGIT_ENTITY_SPAWNS =
+      java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private static final Map<UUID, String> ENTITY_SPAWN_REASON = new ConcurrentHashMap<>();
+
+  public static final ResourceLocation SOUL_PLAYER_FACTORY_ID =
+      ResourceLocation.fromNamespaceAndPath("chestcavity", "soul_player");
+  public static final ResourceLocation TEST_HOSTILE_FACTORY_ID =
+      ResourceLocation.fromNamespaceAndPath("chestcavity", "test_hostile_entity");
+  public static final ResourceLocation TEST_CHUNK_LOADER_FACTORY_ID =
+      ResourceLocation.fromNamespaceAndPath("chestcavity", "test_chunk_loader");
+  private static final ResourceLocation ATTR_SOURCE_PROFILE =
+      ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/source_profile");
+  private static final ResourceLocation ATTR_FORCE_DERIVED_ID =
+      ResourceLocation.fromNamespaceAndPath("chestcavity", "spawn/force_derived_id");
+  private static final ResourceLocation ATTR_CHUNK_RADIUS =
+      ResourceLocation.fromNamespaceAndPath("chestcavity", "chunk_loader/radius");
+
+  static {
+    SoulEntityFactories.register(SOUL_PLAYER_FACTORY_ID, new SoulPlayerFactory());
+    SoulEntityFactories.register(TEST_HOSTILE_FACTORY_ID, new TestHostileFactory());
+    SoulEntityFactories.register(TEST_CHUNK_LOADER_FACTORY_ID, new TestChunkLoaderFactory());
+  }
+
+  /**
+   * Verify owner shell cardinality against autospawn list after a bulk stage (e.g., login restore).
+   * Logs ERROR if actual shells exceed expected, with details for diagnostics.
+   */
+  public static void verifyOwnerShellCardinality(ServerPlayer owner, String stage) {
+    UUID ownerId = owner.getUUID();
+    var container = CCAttachments.getSoulContainer(owner);
+    long expected =
+        container.getKnownSoulIds().stream()
+            .filter(id -> !id.equals(ownerId))
+            .filter(container::isAutospawn)
+            .count();
+    List<SoulPlayer> ownedShells =
+        ACTIVE_SOUL_PLAYERS.values().stream()
+            .filter(sp -> sp.getOwnerId().map(ownerId::equals).orElse(false))
+            .toList();
+    long actual = ownedShells.size();
+    if (actual > expected) {
+      String details =
+          ownedShells.stream()
+              .map(
+                  sp ->
+                      String.format(
+                          "entity=%s profile=%s dim=%s pos=(%.2f,%.2f,%.2f) legit=%s reason=%s",
+                          sp.getUUID(),
+                          sp.getSoulId(),
+                          sp.level().dimension().location(),
+                          sp.getX(),
+                          sp.getY(),
+                          sp.getZ(),
+                          LEGIT_ENTITY_SPAWNS.contains(sp.getUUID()),
+                          ENTITY_SPAWN_REASON.getOrDefault(sp.getUUID(), "unknown")))
+              .collect(Collectors.joining("; "));
+      SoulLog.error(
+          "[soul] invariant-violation stage={} owner={} expectedShells={} actualShells={} details=[{}]",
+          new IllegalStateException("shell-cardinality-exceeded"),
+          stage,
+          ownerId,
+          expected,
+          actual,
+          details);
+    } else {
+      SoulLog.info(
+          "[soul] verify-cardinality stage={} owner={} expectedShells={} actualShells={}",
+          stage,
+          ownerId,
+          expected,
+          actual);
+    }
+  }
+
+  public static boolean isOwnerPossessingSoul(UUID ownerId, UUID soulId) {
+    if (ownerId == null || soulId == null) {
+      return false;
+    }
+    return isOwnerPossessingSoul(ownerId, soulId, OWNER_ACTIVE_SOUL.get(ownerId));
+  }
+
+  private static boolean isOwnerPossessingSoul(UUID ownerId, UUID soulId, UUID currentActiveSoul) {
+    return ownerId != null
+        && soulId != null
+        && currentActiveSoul != null
+        && currentActiveSoul.equals(soulId);
+  }
+
+  private static void clearActivePossession(UUID ownerId, UUID soulId) {
+    if (ownerId == null || soulId == null) {
+      return;
+    }
+    OWNER_ACTIVE_SOUL.computeIfPresent(
+        ownerId, (key, current) -> isOwnerPossessingSoul(key, soulId, current) ? null : current);
+  }
+
+  public static boolean isOwnerPossessing(UUID ownerId) {
+    return ownerId != null && OWNER_ACTIVE_SOUL.containsKey(ownerId);
+  }
+
+  public static Optional<SoulPlayer> getOwnerShell(UUID ownerId) {
+    if (ownerId == null) return Optional.empty();
+    return Optional.ofNullable(ACTIVE_SOUL_PLAYERS.get(ownerId));
+  }
+
+  private static SoulIdentityService identities() {
+    return SoulFakePlayerServices.identity();
+  }
+
+  private static GameProfile cloneProfile(GameProfile source) {
+    return identities().cloneProfile(source);
+  }
+
+  private static GameProfile ensureIdentity(
+      UUID profileId, GameProfile sourceProfile, boolean forceDerivedId) {
+    return identities().ensureIdentity(profileId, sourceProfile, forceDerivedId);
+  }
+
+  /** Update the cached identity name for a soul; keeps same UUID but swaps display name. */
+  public static void updateIdentityName(UUID soulId, String newName) {
+    identities().updateIdentityName(soulId, newName);
+  }
+
+  /** Returns true if any cached identity already uses this name (case-insensitive). */
+  public static boolean isIdentityNameInUse(String name) {
+    return identities().isIdentityNameInUse(name);
+  }
+
+  public static boolean hasCachedIdentity(UUID soulId) {
+    return identities().hasIdentity(soulId);
+  }
+
+  public static GameProfile fallbackIdentity(ServerPlayer owner, UUID soulId) {
+    return identities().getIdentityOrDefault(soulId, owner.getGameProfile());
+  }
+
+  /**
+   * Seeds or updates the cached identity name. If an identity does not yet exist for the soul, this
+   * creates one with a derived entity UUID and the provided name so subsequent spawns will use it.
+   * If one exists, only the display name is changed.
+   */
+  public static void seedIdentityName(UUID soulId, String newName) {
+    identities().seedIdentityName(soulId, newName);
+  }
+
+  private static final class SoulPlayerFactory implements SoulEntityFactory {
+
+    @Override
+    public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+      UUID profileId = request.entityId();
+      String reason = request.reason();
+
+      ServerPlayer owner = request.owner().orElse(null);
+      if (owner == null) {
+        SoulLog.warn("[soul] spawn-aborted reason={} soul={} cause=noOwner", reason, profileId);
+        return Optional.empty();
+      }
+
+      SoulPlayer existing = ACTIVE_SOUL_PLAYERS.get(profileId);
+      if (existing != null && !existing.isRemoved()) {
+        SoulLog.error(
+            "[soul] invariant-violation duplicate-shell prevented soul={} existingEntity={} dim={} pos=({},{},{}) newReason={}",
+            new IllegalStateException("duplicate-shell-prevented"),
+            profileId,
+            existing.getUUID(),
+            existing.level().dimension().location(),
+            existing.getX(),
+            existing.getY(),
+            existing.getZ(),
+            reason);
+        return Optional.of(
+            new SoulEntitySpawnResult(profileId, existing, request.factoryId(), false, reason));
+      }
+
+      SoulContainer container = CCAttachments.getSoulContainer(owner);
+      SoulProfile profile = container.getOrCreateProfile(profileId);
+
+      GameProfile sourceProfile =
+          request.attribute(ATTR_SOURCE_PROFILE, GameProfile.class).orElse(owner.getGameProfile());
+      boolean forceDerived =
+          request.attribute(ATTR_FORCE_DERIVED_ID, Boolean.class).orElse(Boolean.FALSE);
+
+      GameProfile identity = ensureIdentity(profileId, sourceProfile, forceDerived);
+      GameProfile clone = cloneProfile(identity);
+
+      SoulPlayer soulPlayer = SoulPlayer.create(owner, profileId, clone);
+
+      MinecraftServer server = request.server();
+      server
+          .getPlayerList()
+          .broadcastAll(
+              ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(soulPlayer)));
+
+      ServerLevel spawnLevel = request.fallbackLevel().orElse(owner.serverLevel());
+      if (!spawnLevel.tryAddFreshEntityWithPassengers(soulPlayer)) {
+        server
+            .getPlayerList()
+            .broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(soulPlayer.getUUID())));
+        soulPlayer.discard();
+        SoulLog.info(
+            "[soul] spawn-aborted reason={} soul={} owner={} cause=spawnFailed",
+            reason,
+            profileId,
+            owner.getUUID());
+        return Optional.empty();
+      }
+
+      profile.restoreBase(soulPlayer);
+      net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(soulPlayer);
+      applySpawnShield(soulPlayer);
+
+      profile
+          .position()
+          .ifPresent(
+              snapshot -> {
+                ServerLevel targetLevel = server.getLevel(snapshot.dimension());
+                if (targetLevel != null) {
+                  if (request.ensureChunkLoaded()) {
+                    try {
+                      targetLevel.getChunkAt(
+                          BlockPos.containing(snapshot.x(), snapshot.y(), snapshot.z()));
+                    } catch (Throwable throwable) {
+                      SoulLog.error(
+                          "[soul] spawn-chunk-load-failed reason={} soul={} dim={} pos=({},{},{})",
+                          throwable,
+                          reason,
+                          profileId,
+                          snapshot.dimension().location(),
+                          snapshot.x(),
+                          snapshot.y(),
+                          snapshot.z());
+                    }
+                  }
+                  if (targetLevel != soulPlayer.level()) {
+                    soulPlayer.teleportTo(
+                        targetLevel,
+                        snapshot.x(),
+                        snapshot.y(),
+                        snapshot.z(),
+                        snapshot.yaw(),
+                        snapshot.pitch());
+                  } else {
+                    soulPlayer.moveTo(
+                        snapshot.x(), snapshot.y(), snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                  }
+                  soulPlayer.setYHeadRot(snapshot.headYaw());
+                  SoulLog.info(
+                      "[soul] restore-position-complete reason={} soul={} dim={} pos=({},{},{})",
+                      reason,
+                      profileId,
+                      snapshot.dimension().location(),
+                      snapshot.x(),
+                      snapshot.y(),
+                      snapshot.z());
+                }
+              });
+
+      ACTIVE_SOUL_PLAYERS.put(profileId, soulPlayer);
+      ENTITY_TO_SOUL.put(soulPlayer.getUUID(), profileId);
+      LEGIT_ENTITY_SPAWNS.add(soulPlayer.getUUID());
+      ENTITY_SPAWN_REASON.put(soulPlayer.getUUID(), reason);
+
+      SoulLog.info(
+          "[soul] spawn-complete reason={} soul={} owner={} dim={} pos=({},{},{})",
+          reason,
+          profileId,
+          owner.getUUID(),
+          soulPlayer.level().dimension().location(),
+          soulPlayer.getX(),
+          soulPlayer.getY(),
+          soulPlayer.getZ());
+
+      return Optional.of(
+          new SoulEntitySpawnResult(profileId, soulPlayer, request.factoryId(), false, reason));
+    }
+  }
+
+  private static final class TestHostileFactory implements SoulEntityFactory {
+
+    private static final ResourceLocation DEFAULT_TYPE = ResourceLocation.parse("minecraft:zombie");
+
+    @Override
+    public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+      ServerLevel level =
+          request.fallbackLevel().orElseGet(() -> request.server().getLevel(Level.OVERWORLD));
+      if (level == null) {
+        SoulLog.warn(
+            "[soul] spawn-aborted reason={} entity={} cause=noLevel",
+            request.reason(),
+            request.entityId());
+        return Optional.empty();
+      }
+
+      Vec3 pos = request.fallbackPosition();
+      float yaw = request.yaw();
+      float pitch = request.pitch();
+
+      Optional<CompoundTag> archivedState = request.archivedState();
+      boolean restored = archivedState.isPresent();
+      Entity entity;
+
+      if (restored) {
+        CompoundTag snapshot = archivedState.get();
+        String typeId = snapshot.getString("id");
+        if (typeId == null || typeId.isBlank()) {
+          typeId = DEFAULT_TYPE.toString();
+        }
+        EntityType<?> type = EntityType.byString(typeId).orElse(EntityType.ZOMBIE);
+        Entity restoredEntity = type.create(level);
+        if (restoredEntity == null) {
+          SoulLog.warn(
+              "[soul] spawn-aborted reason={} entity={} cause=restoreCreateFailed type={}",
+              request.reason(),
+              request.entityId(),
+              typeId);
+          return Optional.empty();
+        }
+        restoredEntity.setUUID(request.entityId());
+        if (snapshot.contains("data", Tag.TAG_COMPOUND)) {
+          CompoundTag data = snapshot.getCompound("data");
+          try {
+            restoredEntity.load(data);
+          } catch (Throwable throwable) {
+            SoulLog.error(
+                "[soul] spawn-restore-error reason={} entity={} type={}",
+                throwable,
+                request.reason(),
+                request.entityId(),
+                typeId);
+          }
+        }
+        restoredEntity.moveTo(pos.x, pos.y, pos.z, yaw, pitch);
+        restoredEntity.setYHeadRot(yaw);
+        if (restoredEntity instanceof Mob mob) {
+          mob.setPersistenceRequired();
+        }
+        if (!level.tryAddFreshEntityWithPassengers(restoredEntity)) {
+          restoredEntity.discard();
+          SoulLog.warn(
+              "[soul] spawn-aborted reason={} entity={} cause=restoreAddFailed type={}",
+              request.reason(),
+              request.entityId(),
+              typeId);
+          return Optional.empty();
+        }
+        entity = restoredEntity;
+      } else {
+        Zombie zombie = EntityType.ZOMBIE.create(level);
+        if (zombie == null) {
+          SoulLog.warn(
+              "[soul] spawn-aborted reason={} entity={} cause=createFailed type=zombie",
+              request.reason(),
+              request.entityId());
+          return Optional.empty();
+        }
+        zombie.setUUID(request.entityId());
+        zombie.setPersistenceRequired();
+        zombie.setCustomName(Component.literal("灵魂敌对样例"));
+        zombie.setCustomNameVisible(true);
+        zombie.moveTo(pos.x, pos.y, pos.z, yaw, pitch);
+        zombie.setYHeadRot(yaw);
+        if (!level.tryAddFreshEntityWithPassengers(zombie)) {
+          zombie.discard();
+          SoulLog.warn(
+              "[soul] spawn-aborted reason={} entity={} cause=addFailed type=zombie",
+              request.reason(),
+              request.entityId());
+          return Optional.empty();
+        }
+        entity = zombie;
+      }
+
+      return Optional.of(
+          new SoulEntitySpawnResult(
+              request.entityId(), entity, request.factoryId(), restored, request.reason()));
+    }
+  }
+
+  private static final class TestChunkLoaderFactory implements SoulEntityFactory {
+
+    @Override
+    public Optional<SoulEntitySpawnResult> spawn(SoulEntitySpawnRequest request) {
+      ServerLevel level =
+          request.fallbackLevel().orElseGet(() -> request.server().getLevel(Level.OVERWORLD));
+      if (level == null) {
+        SoulLog.warn(
+            "[soul] spawn-aborted reason={} entity={} cause=noLevel",
+            request.reason(),
+            request.entityId());
+        return Optional.empty();
+      }
+
+      Vec3 pos = request.fallbackPosition();
+      SoulChunkLoaderEntity loader = CCEntities.SOUL_CHUNK_LOADER.get().create(level);
+      if (loader == null) {
+        SoulLog.warn(
+            "[soul] spawn-aborted reason={} entity={} cause=createFailed type=chunk_loader",
+            request.reason(),
+            request.entityId());
+        return Optional.empty();
+      }
+
+      loader.setUUID(request.entityId());
+      loader.moveTo(pos.x, pos.y, pos.z, request.yaw(), request.pitch());
+      int radius =
+          request.attribute(ATTR_CHUNK_RADIUS, Integer.class).orElse(loader.getTicketRadius());
+      loader.setTicketRadius(Math.max(1, radius));
+
+      Optional<CompoundTag> archived = request.archivedState();
+      archived.ifPresent(
+          tag -> {
+            if (tag.contains("data", net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+              try {
+                loader.readAdditionalSaveData(tag.getCompound("data"));
+              } catch (Throwable throwable) {
+                SoulLog.warn(
+                    "[soul] chunk-loader-restore-error entity={} reason={}",
+                    request.entityId(),
+                    throwable.getMessage());
+              }
+            }
+          });
+
+      if (!level.tryAddFreshEntityWithPassengers(loader)) {
+        loader.discard();
+        SoulLog.warn(
+            "[soul] spawn-aborted reason={} entity={} cause=addFailed type=chunk_loader",
+            request.reason(),
+            request.entityId());
+        return Optional.empty();
+      }
+
+      return Optional.of(
+          new SoulEntitySpawnResult(
+              request.entityId(),
+              loader,
+              request.factoryId(),
+              archived.isPresent(),
+              request.reason()));
+    }
+  }
+
+  public static Optional<SoulPlayer> respawnSoulFromProfile(
+      ServerPlayer owner,
+      UUID profileId,
+      GameProfile sourceProfile,
+      boolean forceDerivedId,
+      String reason) {
+    SoulEntitySpawnRequest request =
+        SoulEntitySpawnRequest.builder(
+                owner.serverLevel().getServer(), SOUL_PLAYER_FACTORY_ID, profileId)
+            .withOwner(owner)
+            .withFallbackLevel(owner.serverLevel())
+            .withFallbackPosition(owner.position())
+            .withYaw(owner.getYRot())
+            .withPitch(owner.getXRot())
+            .withReason(reason)
+            .withAttribute(ATTR_SOURCE_PROFILE, sourceProfile)
+            .withAttribute(ATTR_FORCE_DERIVED_ID, forceDerivedId)
+            .build();
+    return SoulEntityFactories.spawn(request).flatMap(SoulEntitySpawnResult::asSoulPlayer);
+  }
+
+  private static void applySpawnShield(SoulPlayer soulPlayer) {
+    int ticks = getSpawnShieldTicks();
+    if (ticks <= 0) return;
+    try {
+      soulPlayer.fallDistance = 0f;
+      // 使用抗性V，隐藏图标与粒子，持续 ticks；等价于“短暂无敌帧”。
+      soulPlayer.addEffect(
+          new net.minecraft.world.effect.MobEffectInstance(
+              net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE,
+              ticks,
+              4,
+              false,
+              false,
+              true));
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static int getSpawnShieldTicks() {
+    String v = System.getProperty("chestcavity.soul.spawnShieldTicks", "40");
+    try {
+      int n = Integer.parseInt(v);
+      return Math.max(0, Math.min(400, n));
+    } catch (NumberFormatException e) {
+      return 40;
+    }
+  }
+
+  /** Public helper to respawn a soul avatar for its owner using a best-effort identity. */
+  public static Optional<SoulPlayer> respawnForOwner(ServerPlayer owner, UUID soulId) {
+    return respawnForOwner(owner, soulId, null);
+  }
+
+  /** Respawn helper with optional spawn request (e.g., Gecko FX attachment directives). */
+  public static Optional<SoulPlayer> respawnForOwner(
+      ServerPlayer owner, UUID soulId, @Nullable SoulEntitySpawnRequest request) {
+    SoulIdentityService identityService = identities();
+    GameProfile identity = identityService.getIdentityOrDefault(soulId, owner.getGameProfile());
+    boolean forceDerived = !identityService.hasIdentity(soulId);
+    Optional<SoulPlayer> spawned =
+        respawnSoulFromProfile(owner, soulId, identity, forceDerived, "respawnForOwner");
+    spawned.ifPresent(soul -> applySpawnRequest(owner, soul, request));
+    return spawned;
+  }
+
+  /** 基于 {@link SoulGenerationRequest} 统一处理新分魂生成/复原。 除了实体生成，还会根据请求参数同步初始 Brain 模式与意图。 */
+  public static Optional<SoulPlayer> spawnFromRequest(
+      ServerPlayer owner, SoulGenerationRequest request) {
+    if (owner == null || request == null) {
+      return Optional.empty();
+    }
+    UUID soulId = request.soulId();
+    GameProfile identity = request.identity();
+    boolean forceDerived = request.forceDerivedIdentity();
+    if (identity == null) {
+      SoulIdentityService identityService = identities();
+      identity = identityService.getIdentityOrDefault(soulId, owner.getGameProfile());
+      forceDerived = forceDerived || !identityService.hasIdentity(soulId);
+    }
+    String reason = request.reason() != null ? request.reason() : "generation-request";
+    Optional<SoulPlayer> spawned =
+        respawnSoulFromProfile(owner, soulId, identity, forceDerived, reason);
+    if (spawned.isPresent()) {
+      var brain = net.tigereye.chestcavity.soul.fakeplayer.brain.BrainController.get();
+      if (request.initialMode() != null) {
+        brain.setMode(soulId, request.initialMode());
+      }
+      if (request.initialIntent() != null) {
+        brain.pushIntent(soulId, request.initialIntent());
+      }
+    }
+    return spawned;
+  }
+
+  private static void applySpawnRequest(
+      @Nullable ServerPlayer owner,
+      @Nullable SoulPlayer soul,
+      @Nullable SoulEntitySpawnRequest request) {
+    if (owner == null || soul == null || request == null) {
+      return;
+    }
+    // TODO: 后续支持 GeckoFx、Brain 预设等附加参数。
+  }
+
+  public static SpawnRequestBuilder newSpawnRequest(
+      ServerPlayer owner,
+      UUID soulId,
+      GameProfile sourceProfile,
+      boolean forceDerivedIdentity,
+      String reason) {
+    return new SpawnRequestBuilder(owner, soulId, sourceProfile, forceDerivedIdentity, reason);
+  }
+
+  public static Optional<SoulEntitySpawnResult> spawn(SpawnRequest request) {
+    if (request == null) {
+      return Optional.empty();
+    }
+    Optional<SoulEntitySpawnResult> result = SoulEntityFactories.spawn(request.request());
+    result
+        .flatMap(SoulEntitySpawnResult::asSoulPlayer)
+        .ifPresent(soul -> applySpawnRequest(request.owner(), soul, request.request()));
+    return result;
+  }
+
+  /** 强制将指定分魂传送到主人当前位置，必要时重生该分魂。 */
+  public static boolean forceTeleportToOwner(ServerPlayer ownerPlayer, UUID soulId) {
+    if (ownerPlayer == null || soulId == null) {
+      return false;
+    }
+    UUID ownerId = ownerPlayer.getUUID();
+    if (soulId.equals(ownerId)) {
+      return false;
+    }
+    SoulPlayer soul = ACTIVE_SOUL_PLAYERS.get(soulId);
+    if (soul == null || soul.isRemoved()) {
+      soul = respawnForOwner(ownerPlayer, soulId).orElse(null);
+    }
+    if (soul == null) {
+      return false;
+    }
+    if (!soul.getOwnerId().map(ownerId::equals).orElse(false)) {
+      return false;
+    }
+
+    ServerLevel targetLevel = ownerPlayer.serverLevel();
+    double minY = targetLevel.getMinBuildHeight() + 1;
+    double maxY = targetLevel.getMaxBuildHeight() - 2;
+    double safeY = Math.max(minY, Math.min(maxY, ownerPlayer.getY()));
+    Vec3 ownerPos = ownerPlayer.position();
+    Vec3 desiredPos = new Vec3(ownerPos.x, safeY, ownerPos.z);
+
+    BlockPos chunkPos = BlockPos.containing(desiredPos);
+    targetLevel.getChunkAt(chunkPos);
+
+    soul.unRide();
+    if (soul.level() != targetLevel) {
+      soul.teleportTo(
+          targetLevel,
+          desiredPos.x,
+          desiredPos.y,
+          desiredPos.z,
+          ownerPlayer.getYRot(),
+          ownerPlayer.getXRot());
+    } else {
+      soul.moveTo(
+          desiredPos.x, desiredPos.y, desiredPos.z, ownerPlayer.getYRot(), ownerPlayer.getXRot());
+    }
+    soul.setYHeadRot(ownerPlayer.getYHeadRot());
+    soul.setDeltaMovement(Vec3.ZERO);
+    soul.fallDistance = 0.0F;
+    soul.hurtMarked = true;
+    SoulNavigationMirror.clearGoal(soul);
+    SoulLook.faceTowards(soul, ownerPos);
+    SoulLog.info(
+        "[soul] force-teleport owner={} soul={} dim={} pos=({},{},{})",
+        ownerId,
+        soulId,
+        targetLevel.dimension().location(),
+        desiredPos.x,
+        desiredPos.y,
+        desiredPos.z);
+    return true;
+  }
+
+  /** 便捷调试：为执行者生成一个测试用的灵魂假人及其可视化外壳，并用新的 SoulProfile 回填状态。 */
+  public static Optional<SpawnResult> spawnTestFakePlayer(ServerPlayer executor) {
+    UUID soulId = UUID.randomUUID();
+    String baseName = executor.getGameProfile().getName();
+    if (baseName == null || baseName.isBlank()) {
+      baseName = "Soul";
+    }
+    String name = ("Soul" + baseName).replaceAll("[^A-Za-z0-9_]", "");
+    if (name.length() > 16) {
+      name = name.substring(0, 16);
+    }
+    GameProfile spawnProfile = new GameProfile(soulId, name);
+    identities().copyProperties(executor.getGameProfile(), spawnProfile);
+    SoulContainer container = CCAttachments.getSoulContainer(executor);
+    container.getOrCreateProfile(soulId);
+    ServerLevel level = executor.serverLevel();
+
+    SoulEntitySpawnRequest request =
+        SoulEntitySpawnRequest.builder(level.getServer(), SOUL_PLAYER_FACTORY_ID, soulId)
+            .withOwner(executor)
+            .withFallbackLevel(level)
+            .withFallbackPosition(executor.position())
+            .withYaw(executor.getYRot())
+            .withPitch(executor.getXRot())
+            .withReason("spawnTestFakePlayer")
+            .withAttribute(ATTR_SOURCE_PROFILE, spawnProfile)
+            .withAttribute(ATTR_FORCE_DERIVED_ID, Boolean.FALSE)
+            .build();
+
+    return SoulEntityFactories.spawn(request)
+        .flatMap(SoulEntitySpawnResult::asSoulPlayer)
+        .map(
+            soulPlayer -> {
+              soulPlayer
+                  .getOwnerId()
+                  .ifPresent(owner -> OWNER_ACTIVE_SOUL.putIfAbsent(owner, soulId));
+              return new SpawnResult(soulPlayer);
+            });
+  }
+
+  /** 保存指定灵魂假人的当前状态到其 Owner 的 SoulProfile 中。 */
+  public static void saveSoulPlayerState(UUID soulId) {
+    SoulPlayer player = ACTIVE_SOUL_PLAYERS.get(soulId);
+    if (player == null) {
+      // Fallback: if an entity UUID was accidentally passed, remap via ENTITY_TO_SOUL
+      UUID mapped = ENTITY_TO_SOUL.get(soulId);
+      if (mapped != null) {
+        player = ACTIVE_SOUL_PLAYERS.get(mapped);
+        if (player != null) {
+          SoulLog.warn(
+              "[soul] saveSoulPlayerState received entityUuid={}, remapped to profileId={}",
+              soulId,
+              mapped);
+          soulId = mapped;
+        }
+      }
+      if (player == null) {
+        return;
+      }
+    }
+    // 为什么：确保有稳定的 GameProfile 身份（皮肤/属性集），以便序列化/回放时一致。
+    ensureIdentity(soulId, player.getGameProfile(), false);
+    UUID owner = player.getOwnerId().orElse(null);
+    if (owner == null) {
+      return;
+    }
+    var server = player.serverLevel().getServer();
+    ServerPlayer ownerPlayer = server.getPlayerList().getPlayer(owner);
+    if (ownerPlayer != null) {
+      // 为什么（在线）：直接回写到 Owner 的容器，并标脏确保持久化。
+      var containerOpt = CCAttachments.getExistingSoulContainer(ownerPlayer);
+      if (containerOpt.isPresent()) {
+        var container = containerOpt.get();
+        container.getOrCreateProfile(soulId).updateFrom(player);
+        SoulProfileOps.markContainerDirty(ownerPlayer, container, "saveSoulPlayerState-online");
+      } else {
+        SoulLog.warn("[soul] saveSoulPlayerState: missing SoulContainer for owner {}", owner);
+      }
+    } else {
+      // 为什么（离线）：将快照写入 Overworld 的 SavedData，待下次登录时合并回容器。
+      var provider = player.serverLevel().registryAccess();
+      var snapshot =
+          net.tigereye.chestcavity.soul.profile.SoulProfile.fromSnapshot(
+              soulId,
+              net.tigereye.chestcavity.soul.profile.InventorySnapshot.capture(player),
+              net.tigereye.chestcavity.soul.profile.PlayerStatsSnapshot.capture(player),
+              net.tigereye.chestcavity.soul.profile.PlayerEffectsSnapshot.capture(player),
+              net.tigereye.chestcavity.soul.profile.PlayerPositionSnapshot.capture(player),
+              CapabilityPipeline.captureFor(player));
+      SoulOfflineStore.get(server).put(owner, soulId, snapshot.save(provider));
+    }
+  }
+
+  /**
+   * Periodically snapshot non-active soul players to reduce data loss risk. Excludes the soul the
+   * owner is currently possessing to avoid double work in the hot path.
+   */
+  public static void runBackgroundSnapshots(MinecraftServer server) {
+    final boolean LOG_SNAPSHOT = Boolean.getBoolean("chestcavity.debugSoul.snapshot");
+    if (ACTIVE_SOUL_PLAYERS.isEmpty()) {
+      return;
+    }
+
+    Map<UUID, List<SoulPlayer>> onlineByOwner = new java.util.HashMap<>();
+    java.util.LinkedHashSet<UUID> offlineSouls = new java.util.LinkedHashSet<>();
+
+    for (Map.Entry<UUID, SoulPlayer> entry : ACTIVE_SOUL_PLAYERS.entrySet()) {
+      UUID soulId = entry.getKey();
+      SoulPlayer soulPlayer = entry.getValue();
+      UUID ownerId = soulPlayer.getOwnerId().orElse(null);
+      if (ownerId == null) {
+        continue;
+      }
+      if (isOwnerPossessingSoul(ownerId, soulId)) {
+        continue; // skip the soul currently possessed by the owner
+      }
+      ServerPlayer ownerPlayer = server.getPlayerList().getPlayer(ownerId);
+      if (ownerPlayer != null) {
+        if (net.tigereye.chestcavity.soul.registry.BackgroundSnapshotFilters.get()
+            .shouldSnapshot(ownerId, soulId, soulPlayer)) {
+          onlineByOwner.computeIfAbsent(ownerId, key -> new ArrayList<>()).add(soulPlayer);
+        }
+      } else {
+        offlineSouls.add(soulId);
+      }
+    }
+
+    int savedSouls = 0;
+    int ownersTouched = 0;
+
+    for (Map.Entry<UUID, List<SoulPlayer>> entry : onlineByOwner.entrySet()) {
+      UUID ownerId = entry.getKey();
+      ServerPlayer ownerPlayer = server.getPlayerList().getPlayer(ownerId);
+      if (ownerPlayer == null) {
+        entry.getValue().forEach(soul -> offlineSouls.add(soul.getUUID()));
+        continue;
+      }
+      SoulContainer container = CCAttachments.getSoulContainer(ownerPlayer);
+      boolean touched = false;
+      for (SoulPlayer soulPlayer : entry.getValue()) {
+        // Use the profile UUID, not the in-world entity UUID, when writing snapshots.
+        // Using entity UUID here would create phantom profiles per-shell.
+        UUID soulId = soulPlayer.getSoulId();
+        ensureIdentity(soulId, soulPlayer.getGameProfile(), false);
+        container.getOrCreateProfile(soulId).updateFrom(soulPlayer);
+        touched = true;
+      }
+      if (touched) {
+        ownersTouched++;
+        savedSouls += entry.getValue().size();
+        SoulProfileOps.markContainerDirty(ownerPlayer, container, "background-save");
+        SoulPersistence.saveDirty(ownerPlayer);
+      }
+    }
+
+    if (!offlineSouls.isEmpty()) {
+      for (UUID soulId : offlineSouls) {
+        saveSoulPlayerState(soulId);
+      }
+      savedSouls += offlineSouls.size();
+    }
+
+    if (LOG_SNAPSHOT && savedSouls > 0) {
+      SoulLog.info(
+          "[soul] background-snapshot savedSouls={} ownersTouched={} offlineSouls={}",
+          savedSouls,
+          ownersTouched,
+          offlineSouls.size());
+    }
+  }
+
+  public static Optional<SoulPlayer> findSoulPlayer(UUID uuid) {
+    return Optional.ofNullable(ACTIVE_SOUL_PLAYERS.get(uuid));
+  }
+
+  /**
+   * Force container active profile to owner without externalizing/spawning any entities. Used for
+   * safe logout flows to avoid spawning during shutdown.
+   */
+  public static void forceOwner(ServerPlayer player) {
+    SoulContainer container = CCAttachments.getSoulContainer(player);
+    UUID owner = player.getUUID();
+    UUID prev = container.getActiveProfileId().orElse(owner);
+    // 为什么：在切回本体前，先把当前“附身”状态（可能是分魂）保存到容器，避免丢失最新改动。
+    container.updateActiveProfile();
+    // 为什么：直接把激活指针指向本体，不外化/不生成实体，确保登出流程安全无副作用。
+    container.setActiveProfile(owner);
+    // 为什么：标记附件变更，触发后续持久化，防止崩服/停服导致的状态丢失。
+    SoulProfileOps.markContainerDirty(player, container, "force-owner");
+    SoulLog.info(
+        "[soul] force-owner applied owner={} prevActive={} nowActive={}",
+        owner,
+        prev,
+        container.getActiveProfileId().orElse(owner));
+  }
+
+  /**
+   * On logout, flush all in-world souls that belong to the owner into the owner's container, mark
+   * the container dirty, and queue offline snapshots as a double safety net.
+   */
+  public static void refreshProfileSnapshot(
+      ServerPlayer ownerPlayer, UUID soulId, SoulProfile profile) {
+    UUID owner = ownerPlayer.getUUID();
+    if (soulId.equals(owner)) {
+      // Owner profile refresh: only from owner self when not possessing; otherwise from owner shell
+      // if present.
+      if (!isOwnerPossessing(owner)) {
+        if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get()
+            .allowOwnerSelfWrite(owner)) {
+          profile.updateFrom(ownerPlayer);
+          logRefresh("[soul] refreshSnapshot owner=SELF ownerId={}", owner);
+        } else {
+          logRefresh("[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-self", owner);
+        }
+      } else {
+        Optional<SoulPlayer> shell = getOwnerShell(owner);
+        if (shell.isPresent()) {
+          if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get()
+              .allowOwnerShellWrite(owner)) {
+            profile.updateFrom(shell.get());
+            logRefresh("[soul] refreshSnapshot owner=SHELL ownerId={}", owner);
+          } else {
+            logRefresh(
+                "[soul] refreshSnapshot owner=SKIP ownerId={} reason=policy-deny-shell", owner);
+          }
+        } else {
+          logRefresh(
+              "[soul] refreshSnapshot owner=SKIP ownerId={} reason=noShellWhilePossessing", owner);
+        }
+      }
+      return;
+    }
+    SoulPlayer soulPlayer = ACTIVE_SOUL_PLAYERS.get(soulId);
+    if (soulPlayer != null && soulPlayer.getOwnerId().map(owner::equals).orElse(false)) {
+      if (net.tigereye.chestcavity.soul.registry.SoulWritePolicyRegistry.get()
+          .allowSoulWrite(owner, soulId)) {
+        profile.updateFrom(soulPlayer);
+      } else {
+        logRefresh(
+            "[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=policy-deny-soul",
+            owner,
+            soulId);
+        return;
+      }
+      final boolean LOG_REFRESH = Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot");
+      if (LOG_REFRESH) {
+        SoulLog.info("[soul] refreshSnapshot soul=OK owner={} soulId={}", owner, soulId);
+      }
+    } else {
+      final boolean LOG_REFRESH = Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot");
+      if (LOG_REFRESH) {
+        SoulLog.info(
+            "[soul] refreshSnapshot soul=SKIP owner={} soulId={} reason=noActiveSoulOrWrongOwner",
+            owner,
+            soulId);
+      }
+    }
+  }
+
+  private static void logRefresh(String fmt, Object... args) {
+    if (!Boolean.getBoolean("chestcavity.debugSoul.refreshSnapshot")) return;
+    SoulLog.info(fmt, args);
+  }
+
+  public static Set<UUID> getOwnedSoulIds(UUID ownerId) {
+    return ACTIVE_SOUL_PLAYERS.entrySet().stream()
+        .filter(e -> e.getValue().getOwnerId().map(ownerId::equals).orElse(false))
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toCollection(HashSet::new));
+  }
+
+  /** 列出当前存活的灵魂假人基本信息，供调试/指令展示。 */
+  public static List<SoulPlayerInfo> listActive() {
+    return ACTIVE_SOUL_PLAYERS.values().stream()
+        .filter(
+            sp -> {
+              UUID owner = sp.getOwnerId().orElse(null);
+              if (owner == null) return true;
+              UUID profileId = ENTITY_TO_SOUL.get(sp.getUUID());
+              return profileId == null || !profileId.equals(owner);
+            })
+        .map(
+            sp ->
+                new SoulPlayerInfo(
+                    sp.getUUID(),
+                    sp.getOwnerId().orElse(null),
+                    sp.getOwnerId()
+                        .map(owner -> isOwnerPossessingSoul(owner, sp.getUUID()))
+                        .orElse(false)))
+        .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  /** 将执行者切换到目标灵魂/本体配置： - requestedId 可为灵魂 UUID 或可视化实体 UUID； - 目标属于执行者时，回写当前激活存档并恢复目标存档到假人与执行者本体。 */
+  public static boolean switchTo(ServerPlayer executor, UUID requestedId) {
+    SoulContainer container = CCAttachments.getSoulContainer(executor);
+    UUID ownerUuid = executor.getUUID();
+
+    // Resolve target
+    UUID targetId =
+        requestedId.equals(ownerUuid) ? ownerUuid : resolveSoulUuid(requestedId).orElse(null);
+    if (targetId == null) {
+      return false;
+    }
+
+    UUID currentId = container.getActiveProfileId().orElse(ownerUuid);
+    // Pre-switch hooks
+    net.tigereye.chestcavity.soul.registry.SoulSwitchHooks.preSwitch(executor, currentId, targetId);
+    if (currentId.equals(targetId)) {
+      return true; // no-op
+    }
+
+    // 1) Save current possession into its profile
+    SoulSwitchGuard.begin(executor, "switchTo");
+    try {
+      // Preserve the executor's currently selected hotbar index to avoid transient duplication
+      // when inventory/equipment are restored mid-switch.
+      int preservedSelected = executor.getInventory().selected;
+      if (preservedSelected < 0 || preservedSelected > 8)
+        preservedSelected = Math.max(0, Math.min(8, preservedSelected));
+      SoulProfile currentProfile;
+      if (currentId.equals(ownerUuid)) {
+        container.updateActiveProfile();
+        currentProfile = container.getOrCreateProfile(currentId);
+      } else {
+        currentProfile = container.getOrCreateProfile(currentId);
+        currentProfile.updateFrom(executor);
+      }
+
+      // 2) Capture player's current coordinates/rotations to leave a shell AFTER possession
+      final ServerLevel prevLevel = executor.serverLevel();
+      final double prevX = executor.getX();
+      final double prevY = executor.getY();
+      final double prevZ = executor.getZ();
+      final float prevYaw = executor.getYRot();
+      final float prevPitch = executor.getXRot();
+      final float prevHead = executor.getYHeadRot();
+
+      // 3) Prepare target:
+      // - If target is owner, do NOT spawn a temporary owner shell. Optionally teleport to owner's
+      // snapshot.
+      // - If target is a soul, ensure shell exists, teleport to it, then consume it.
+      SoulProfile targetProfile = container.getOrCreateProfile(targetId);
+      boolean liupaiSynced = GuzhenrenLiupaiSync.mergeMaxLiupai(currentProfile, targetProfile);
+      if (liupaiSynced) {
+        SoulProfileOps.markContainerDirty(executor, container, "switchTo-liupai-sync");
+      }
+      if (targetId.equals(ownerUuid)) {
+        // Optional: move executor to owner's last snapshot position for consistency
+        targetProfile
+            .position()
+            .ifPresent(
+                snapshot -> {
+                  ServerLevel tl = executor.server.getLevel(snapshot.dimension());
+                  if (tl != null) {
+                    double minY = tl.getMinBuildHeight() + 1;
+                    double maxY = tl.getMaxBuildHeight() - 2;
+                    double safeY = Math.max(minY, Math.min(maxY, snapshot.y()));
+                    executor.teleportTo(
+                        tl, snapshot.x(), safeY, snapshot.z(), snapshot.yaw(), snapshot.pitch());
+                    executor.setYHeadRot(snapshot.headYaw());
+                    SoulLog.info(
+                        "[soul] switch-teleport-to-owner-snapshot owner={} dim={} pos=({},{},{})",
+                        ownerUuid,
+                        tl.dimension().location(),
+                        snapshot.x(),
+                        safeY,
+                        snapshot.z());
+                  }
+                });
+      } else {
+        SoulPlayer targetShell = ACTIVE_SOUL_PLAYERS.get(targetId);
+        if (targetShell == null) {
+          SoulIdentityService identityService = identities();
+          var identity = identityService.getIdentityOrDefault(targetId, executor.getGameProfile());
+          boolean forceDerived = !identityService.hasIdentity(targetId);
+          targetShell =
+              respawnSoulFromProfile(
+                      executor, targetId, identity, forceDerived, "switchTo:prepareTarget")
+                  .orElse(null);
+        }
+        if (targetShell != null) {
+          // Teleport player to target shell position for seamless swap
+          ServerLevel tl = targetShell.serverLevel();
+          double minY = tl.getMinBuildHeight() + 1;
+          double maxY = tl.getMaxBuildHeight() - 2;
+          double safeY = Math.max(minY, Math.min(maxY, targetShell.getY()));
+          executor.teleportTo(
+              tl,
+              targetShell.getX(),
+              safeY,
+              targetShell.getZ(),
+              targetShell.getYRot(),
+              targetShell.getXRot());
+          executor.setYHeadRot(targetShell.getYHeadRot());
+          SoulLog.info(
+              "[soul] switch-teleport-to-target owner={} target={} dim={} pos=({},{},{})",
+              ownerUuid,
+              targetId,
+              tl.dimension().location(),
+              targetShell.getX(),
+              safeY,
+              targetShell.getZ());
+        }
+      }
+
+      // 应用目标档案（仅基础数据：物品/属性/效果+能力），不改位置
+      applyProfileBaseOnly(targetProfile, executor, "switchTo:applyBaseOnly");
+      // 选中槽位一致性：无论目标为分魂或本体，一律使用目标档案自身的 selectedHotbar（已在 restoreBase 内恢复）
+      // 同步当前主手槽位到客户端，避免客户端旧视图覆盖；并广播一次容器变更
+      executor.connection.send(
+          new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(
+              executor.getInventory().selected));
+      executor.inventoryMenu.broadcastChanges();
+      // Final equipment sync after selection is settled
+      net.tigereye.chestcavity.soul.util.SoulRenderSync.syncEquipmentForPlayer(executor);
+
+      // 若目标是分魂，则消费其外壳；目标为本体则仅在存在外壳时清理
+      if (!targetId.equals(ownerUuid)) {
+        handleRemoval(targetId, "switchTo:consumeTarget");
+      } else if (ACTIVE_SOUL_PLAYERS.containsKey(ownerUuid)) {
+        handleRemoval(ownerUuid, "switchTo:consumeOwnerIfPresent");
+      }
+      container.setActiveProfile(targetId);
+      if (targetId.equals(ownerUuid)) {
+        OWNER_ACTIVE_SOUL.remove(ownerUuid);
+      } else {
+        OWNER_ACTIVE_SOUL.put(ownerUuid, targetId);
+      }
+
+      // 4) Externalize the previous possessor NOW at the saved coordinates
+      if (currentId.equals(ownerUuid)) {
+        respawnSoulFromProfile(
+                executor, ownerUuid, executor.getGameProfile(), true, "switchTo:externalizeOwner")
+            .ifPresent(
+                shell -> {
+                  if (shell.level() != prevLevel) {
+                    double minY = prevLevel.getMinBuildHeight() + 1;
+                    double maxY = prevLevel.getMaxBuildHeight() - 2;
+                    double safeY = Math.max(minY, Math.min(maxY, prevY));
+                    shell.teleportTo(prevLevel, prevX, safeY, prevZ, prevYaw, prevPitch);
+                  } else {
+                    double minY = prevLevel.getMinBuildHeight() + 1;
+                    double maxY = prevLevel.getMaxBuildHeight() - 2;
+                    double safeY = Math.max(minY, Math.min(maxY, prevY));
+                    shell.moveTo(prevX, safeY, prevZ, prevYaw, prevPitch);
+                  }
+                  shell.setYHeadRot(prevHead);
+                  SoulLog.info(
+                      "[soul] externalize-override-position reason=switchTo:externalizeOwner soul={} dim={} pos=({},{},{})",
+                      ownerUuid,
+                      shell.level().dimension().location(),
+                      shell.getX(),
+                      shell.getY(),
+                      shell.getZ());
+                });
+      } else {
+        SoulIdentityService identityService = identities();
+        var identityPrev =
+            identityService.getIdentityOrDefault(currentId, executor.getGameProfile());
+        boolean forceDerivedPrev = !identityService.hasIdentity(currentId);
+        respawnSoulFromProfile(
+                executor,
+                currentId,
+                identityPrev,
+                forceDerivedPrev,
+                "switchTo:externalizeActiveSoul")
+            .ifPresent(
+                shell -> {
+                  if (shell.level() != prevLevel) {
+                    double minY = prevLevel.getMinBuildHeight() + 1;
+                    double maxY = prevLevel.getMaxBuildHeight() - 2;
+                    double safeY = Math.max(minY, Math.min(maxY, prevY));
+                    shell.teleportTo(prevLevel, prevX, safeY, prevZ, prevYaw, prevPitch);
+                  } else {
+                    double minY = prevLevel.getMinBuildHeight() + 1;
+                    double maxY = prevLevel.getMaxBuildHeight() - 2;
+                    double safeY = Math.max(minY, Math.min(maxY, prevY));
+                    shell.moveTo(prevX, safeY, prevZ, prevYaw, prevPitch);
+                  }
+                  shell.setYHeadRot(prevHead);
+                  SoulLog.info(
+                      "[soul] externalize-override-position reason=switchTo:externalizeActiveSoul soul={} dim={} pos=({},{},{})",
+                      currentId,
+                      shell.level().dimension().location(),
+                      shell.getX(),
+                      shell.getY(),
+                      shell.getZ());
+                });
+      }
+
+      // Post-switch hooks
+      net.tigereye.chestcavity.soul.registry.SoulSwitchHooks.postSwitch(
+          executor, currentId, targetId, true);
+      return true;
+    } finally {
+      SoulSwitchGuard.end(executor, "switchTo");
+    }
+  }
+
+  // 仅应用基础数据（背包/属性/效果），不改变位置，用于“先TP至目标壳，再继承数据”的切换流程
+  private static void applyProfileBaseOnly(
+      SoulProfile profile, ServerPlayer player, String reason) {
+    // Restore inventory/stats/effects; selection restored from InventorySnapshot inside restore
+    profile.restoreBase(player);
+    // Do NOT sync equipment here; final sync is performed by caller after selected slot is
+    // finalized
+    SoulLog.info("[soul] apply-base-only reason={} soul={}", reason, profile.id());
+  }
+
+  /** 解析输入 ID：若为灵魂 UUID 直接返回；若为可视化实体 UUID，转换为对应的灵魂 UUID。 */
+  public static Optional<UUID> resolveSoulUuid(UUID id) {
+    if (ACTIVE_SOUL_PLAYERS.containsKey(id)) {
+      return Optional.of(id);
+    }
+    UUID mapped = ENTITY_TO_SOUL.get(id);
+    if (mapped != null) {
+      return Optional.of(mapped);
+    }
+    return Optional.empty();
+  }
+
+  /** Brigadier 补全：为指令提供灵魂/可视化实体 UUID 建议。 */
+  public static CompletableFuture<Suggestions> suggestSoulPlayerUuids(
+      CommandSourceStack source, SuggestionsBuilder builder) {
+    if (source.getEntity() instanceof ServerPlayer player) {
+      UUID owner = player.getUUID();
+      // Suggest profile UUIDs, entity UUIDs, and names (from attachment or identities)
+      var container = CCAttachments.getSoulContainer(player);
+      java.util.Set<UUID> ownedSouls = new java.util.HashSet<>(container.getKnownSoulIds());
+      // Include any currently active shells (even if not in container yet)
+      ACTIVE_SOUL_PLAYERS.values().stream()
+          .filter(sp -> sp.getOwnerId().map(owner::equals).orElse(false))
+          .forEach(sp -> ownedSouls.add(ENTITY_TO_SOUL.getOrDefault(sp.getUUID(), sp.getSoulId())));
+      for (UUID sid : ownedSouls) {
+        builder.suggest("profile-" + sid);
+        builder.suggest(sid.toString()); // legacy plain UUID
+        // active entity id (prefixed + plain)
+        SoulPlayer sp = ACTIVE_SOUL_PLAYERS.get(sid);
+        if (sp != null) {
+          builder.suggest("entity-" + sp.getUUID());
+          builder.suggest(sp.getUUID().toString());
+        }
+        // name suggestions
+        String n = container.getName(sid);
+        if (n != null && !n.isEmpty()) builder.suggest(n);
+        GameProfile id = identities().getIdentity(sid);
+        if (id != null && id.getName() != null && !id.getName().isEmpty())
+          builder.suggest(id.getName());
+      }
+      builder.suggest("owner");
+      return builder.buildFuture();
+    }
+    ACTIVE_SOUL_PLAYERS.keySet().forEach(uuid -> builder.suggest(uuid.toString()));
+    return builder.buildFuture();
+  }
+
+  /**
+   * Brigadier completion for UUID-only arguments. Provides plain UUID strings that directly map to
+   * either the soul profile ID or the active entity UUID, ensuring compatibility with {@link
+   * UuidArgument}.
+   */
+  public static CompletableFuture<Suggestions> suggestSoulPlayerUuidLiterals(
+      CommandSourceStack source, SuggestionsBuilder builder) {
+    java.util.Set<String> literals = new LinkedHashSet<>();
+    if (source.getEntity() instanceof ServerPlayer player) {
+      UUID owner = player.getUUID();
+      var container = CCAttachments.getSoulContainer(player);
+      if (container != null) {
+        for (UUID sid : container.getKnownSoulIds()) {
+          if (sid == null || sid.equals(owner)) continue;
+          literals.add(sid.toString());
+          SoulPlayer sp = ACTIVE_SOUL_PLAYERS.get(sid);
+          if (sp != null) {
+            literals.add(sp.getUUID().toString());
+          }
+        }
+      }
+      ACTIVE_SOUL_PLAYERS.values().stream()
+          .filter(sp -> sp.getOwnerId().map(owner::equals).orElse(false))
+          .forEach(
+              sp -> {
+                literals.add(sp.getSoulId().toString());
+                literals.add(sp.getUUID().toString());
+              });
+    } else {
+      ACTIVE_SOUL_PLAYERS
+          .values()
+          .forEach(
+              sp -> {
+                literals.add(sp.getSoulId().toString());
+                literals.add(sp.getUUID().toString());
+              });
+    }
+    literals.forEach(builder::suggest);
+    return builder.buildFuture();
+  }
+
+  /**
+   * 根据多种标识解析灵魂 UUID：支持 profile-UUID、实体 UUID 以及玩家自定义名称。
+   *
+   * @param owner 当前指令执行者（用于限定名称空间与默认 owner）。
+   * @param token 用户输入的标识（可带 {@code profile-}、{@code entity-} 前缀）。
+   */
+  public static Optional<UUID> resolveSoulUuidFlexible(ServerPlayer owner, String token) {
+    token = unquote(token);
+    if (token == null || token.isBlank()) return Optional.empty();
+    if ("owner".equalsIgnoreCase(token)) return Optional.of(owner.getUUID());
+    // prefixed forms
+    if (token.startsWith("profile-") || token.startsWith("data-")) {
+      String raw = token.substring(token.indexOf('-') + 1);
+      try {
+        return Optional.of(UUID.fromString(raw));
+      } catch (IllegalArgumentException ignored) {
+      }
+    }
+    if (token.startsWith("entity-")) {
+      String raw = token.substring("entity-".length());
+      try {
+        UUID eid = UUID.fromString(raw);
+        UUID pid = ENTITY_TO_SOUL.get(eid);
+        if (pid != null) return Optional.of(pid);
+      } catch (IllegalArgumentException ignored) {
+      }
+    }
+    // try UUID directly (profile)
+    try {
+      UUID id = UUID.fromString(token);
+      Optional<UUID> mapped = resolveSoulUuid(id);
+      if (mapped.isPresent()) return mapped;
+      // If this UUID is actually a soul profile present in container, accept
+      SoulContainer c = CCAttachments.getSoulContainer(owner);
+      if (c.hasProfile(id)) return Optional.of(id);
+    } catch (IllegalArgumentException ignored) {
+    }
+    // By name: check container first, then identities
+    SoulContainer c = CCAttachments.getSoulContainer(owner);
+    for (var e : c.getAllNames().entrySet()) {
+      if (token.equals(e.getValue())) return Optional.of(e.getKey());
+    }
+    SoulIdentityService identityService = identities();
+    final String lookupName = token;
+    final UUID[] match = new UUID[1];
+    identityService.forEachIdentity(
+        (soulId, profile) -> {
+          if (match[0] != null || profile == null) {
+            return;
+          }
+          SoulPlayer sp = ACTIVE_SOUL_PLAYERS.get(soulId);
+          if (sp != null && sp.getOwnerId().map(owner.getUUID()::equals).orElse(false)) {
+            String name = profile.getName();
+            if (name != null && lookupName.equals(name)) {
+              match[0] = soulId;
+            }
+          }
+        });
+    if (match[0] != null) {
+      return Optional.of(match[0]);
+    }
+    return Optional.empty();
+  }
+
+  private static String unquote(String s) {
+    if (s == null) return null;
+    String t = s.trim();
+    if (t.length() >= 2 && t.startsWith("\"") && t.endsWith("\"")) {
+      return t.substring(1, t.length() - 1);
+    }
+    return t;
+  }
+
+  /** Rename and optionally apply immediately by respawning the shell. */
+  public static boolean rename(ServerPlayer owner, UUID soulId, String newName, boolean applyNow) {
+    SoulContainer c = CCAttachments.getSoulContainer(owner);
+    c.setName(owner, soulId, newName, "name-rename");
+    updateIdentityName(soulId, c.getName(soulId));
+    if (applyNow && ACTIVE_SOUL_PLAYERS.containsKey(soulId)) {
+      // Save, remove and respawn with new identity name
+      saveSoulPlayerState(soulId);
+      handleRemoval(soulId, "rename-apply");
+      return respawnForOwner(owner, soulId).isPresent();
+    }
+    return true;
+  }
+
+  /**
+   * Sets the soul's skin from an official Mojang player name by fetching its textures property via
+   * the server's session service. Keeps the current identity UUID and display name.
+   */
+  public static boolean setSkinFromMojangName(
+      ServerPlayer owner, UUID soulId, String mojangName, boolean applyNow) {
+    if (mojangName == null || mojangName.isBlank()) return false;
+    var server = owner.serverLevel().getServer();
+    // Fetch textures property from Mojang session server
+    java.util.Optional<com.mojang.authlib.properties.Property> texOpt =
+        fetchMojangTexturesByName(mojangName);
+    if (texOpt.isEmpty()) {
+      SoulLog.warn(
+          "[soul] setSkinFromMojangName: no textures for name={} (rate limit/offline?)",
+          mojangName);
+      return false;
+    }
+    // Update identity: keep existing UUID and display name
+    com.mojang.authlib.GameProfile existing = identities().getIdentity(soulId);
+    if (existing == null) {
+      // Create from owner's profile to keep base identity
+      existing = ensureIdentity(soulId, owner.getGameProfile(), false);
+    }
+    com.mojang.authlib.GameProfile updated =
+        new com.mojang.authlib.GameProfile(existing.getId(), existing.getName());
+    // Replace with textures only
+    updated.getProperties().clear();
+    updated.getProperties().put("textures", texOpt.get());
+    identities().putIdentity(soulId, updated);
+    SoulLog.info("[soul] skin-set soul={} name={} (applyNow={})", soulId, mojangName, applyNow);
+    if (applyNow && ACTIVE_SOUL_PLAYERS.containsKey(soulId)) {
+      saveSoulPlayerState(soulId);
+      handleRemoval(soulId, "skin-apply");
+      return respawnForOwner(owner, soulId).isPresent();
+    }
+    return true;
+  }
+
+  private static java.util.Optional<com.mojang.authlib.properties.Property>
+      fetchMojangTexturesByName(String mojangName) {
+    try {
+      java.net.http.HttpClient client =
+          java.net.http.HttpClient.newBuilder()
+              .connectTimeout(java.time.Duration.ofSeconds(3))
+              .build();
+      // 1) name -> uuid (no dashes)
+      java.net.URI nameUri =
+          java.net.URI.create(
+              "https://api.mojang.com/users/profiles/minecraft/"
+                  + java.net.URLEncoder.encode(
+                      mojangName, java.nio.charset.StandardCharsets.UTF_8));
+      java.net.http.HttpRequest req1 =
+          java.net.http.HttpRequest.newBuilder(nameUri)
+              .GET()
+              .timeout(java.time.Duration.ofSeconds(3))
+              .build();
+      java.net.http.HttpResponse<String> resp1 =
+          client.send(req1, java.net.http.HttpResponse.BodyHandlers.ofString());
+      if (resp1.statusCode() != 200) return java.util.Optional.empty();
+      String body1 = resp1.body();
+      String id = extractJsonString(body1, "id");
+      if (id == null || id.length() != 32) return java.util.Optional.empty();
+      String dashed =
+          id.substring(0, 8)
+              + "-"
+              + id.substring(8, 12)
+              + "-"
+              + id.substring(12, 16)
+              + "-"
+              + id.substring(16, 20)
+              + "-"
+              + id.substring(20);
+      // 2) uuid -> profile with properties
+      java.net.URI profUri =
+          java.net.URI.create(
+              "https://sessionserver.mojang.com/session/minecraft/profile/"
+                  + dashed
+                  + "?unsigned=false");
+      java.net.http.HttpRequest req2 =
+          java.net.http.HttpRequest.newBuilder(profUri)
+              .GET()
+              .timeout(java.time.Duration.ofSeconds(3))
+              .build();
+      java.net.http.HttpResponse<String> resp2 =
+          client.send(req2, java.net.http.HttpResponse.BodyHandlers.ofString());
+      if (resp2.statusCode() != 200) return java.util.Optional.empty();
+      String body2 = resp2.body();
+      // Find textures property value and signature (if present)
+      String value =
+          extractJsonStringInArrayObject(body2, "properties", "name", "textures", "value");
+      String sig =
+          extractJsonStringInArrayObject(body2, "properties", "name", "textures", "signature");
+      if (value == null) return java.util.Optional.empty();
+      com.mojang.authlib.properties.Property p =
+          sig != null
+              ? new com.mojang.authlib.properties.Property("textures", value, sig)
+              : new com.mojang.authlib.properties.Property("textures", value);
+      return java.util.Optional.of(p);
+    } catch (Exception e) {
+      SoulLog.warn(
+          "[soul] fetchMojangTexturesByName failed name={} cause={}", mojangName, e.toString());
+      return java.util.Optional.empty();
+    }
+  }
+
+  private static String extractJsonString(String json, String key) {
+    // naive parser for simple objects: "key":"value"
+    String pat = "\"" + key + "\"\s*:\s*\"";
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile(pat).matcher(json);
+    if (m.find()) {
+      int start = m.end();
+      int end = json.indexOf('"', start);
+      if (end > start) return json.substring(start, end);
+    }
+    return null;
+  }
+
+  private static String extractJsonStringInArrayObject(
+      String json, String arrayKey, String matchKey, String matchValue, String wantKey) {
+    // very naive: find arrayKey, then locate object where "matchKey":"matchValue", then read
+    // wantKey value
+    int arrIdx = json.indexOf("\"" + arrayKey + "\"");
+    if (arrIdx < 0) return null;
+    int objIdx = json.indexOf("\"" + matchKey + "\"\s*:\s*\"" + matchValue + "\"", arrIdx);
+    if (objIdx < 0) return null;
+    int wantIdx = json.indexOf("\"" + wantKey + "\"\s*:\s*\"", objIdx);
+    if (wantIdx < 0) return null;
+    int start = json.indexOf('"', wantIdx + ("\"" + wantKey + "\"\s*:\s*\"").length());
+    if (start < 0) return null;
+    int end = json.indexOf('"', start + 1);
+    if (end < 0) return null;
+    return json.substring(start + 1, end);
+  }
+
+  public static boolean remove(UUID id, ServerPlayer executor) {
+    Optional<UUID> resolved = resolveSoulUuid(id);
+    if (resolved.isEmpty()) {
+      return false;
+    }
+    UUID soulId = resolved.get();
+    return despawn(executor, soulId);
+  }
+
+  public static boolean despawn(ServerPlayer owner, UUID soulId) {
+    UUID ownerId = owner.getUUID();
+
+    SoulPlayer soul = ACTIVE_SOUL_PLAYERS.remove(soulId);
+    if (soul == null || soul.getOwnerId().map(ownerId::equals).orElse(false) == false) {
+      SoulLog.warn("[soul] despawn requested for non-active soul={} owner={}", soulId, ownerId);
+      return false;
+    }
+
+    ENTITY_TO_SOUL.remove(soul.getUUID());
+    clearActivePossession(ownerId, soulId);
+
+    SoulContainer container = CCAttachments.getSoulContainer(owner);
+    SoulProfile profile = container.getOrCreateProfile(soulId);
+    profile.updateFrom(soul);
+    SoulProfileOps.markContainerDirty(owner, container, "despawn");
+    SoulOfflineStore.get(owner.serverLevel().getServer())
+        .put(ownerId, soulId, profile.save(owner.registryAccess()));
+    profile.clearDirty();
+
+    handleRemoval(soulId, "despawn");
+    SoulLog.info("[soul] despawned soul={} owner={}", soulId, ownerId);
+    return true;
+  }
+
+  public static void removeByOwner(UUID ownerId) {
+    List<UUID> profileIds =
+        ACTIVE_SOUL_PLAYERS.entrySet().stream()
+            .filter(e -> e.getValue().getOwnerId().map(ownerId::equals).orElse(false))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+    for (UUID profileId : profileIds) {
+      SoulPlayer tracked = ACTIVE_SOUL_PLAYERS.get(profileId);
+      if (tracked == null) {
+        continue;
+      }
+      ServerPlayer ownerPlayer =
+          tracked.serverLevel().getServer().getPlayerList().getPlayer(ownerId);
+      if (ownerPlayer != null) {
+        despawn(ownerPlayer, profileId);
+      } else {
+        var provider = tracked.serverLevel().registryAccess();
+        SoulOfflineStore.get(tracked.serverLevel().getServer())
+            .put(ownerId, profileId, SoulProfile.capture(tracked, profileId).save(provider));
+        handleRemoval(profileId, "removeByOwner");
+      }
+      identities().removeIdentity(profileId);
+    }
+  }
+
+  public static void clearAll() {
+    List<UUID> ids = new ArrayList<>(ACTIVE_SOUL_PLAYERS.keySet());
+    ids.forEach(
+        soulId -> {
+          SoulPlayer soul = ACTIVE_SOUL_PLAYERS.remove(soulId);
+          if (soul != null) {
+            ENTITY_TO_SOUL.remove(soul.getUUID());
+            soul.remove(Entity.RemovalReason.DISCARDED);
+          }
+        });
+    OWNER_ACTIVE_SOUL.clear();
+    identities().clear();
+    ENTITY_TO_SOUL.clear();
+  }
+
+  public static int saveAll(ServerPlayer executor) {
+    var server = executor.serverLevel().getServer();
+    // 1) Flush all active SoulPlayers to owners' containers and mark attachments dirty
+    int soulsSaved = 0;
+    for (UUID soulId : ACTIVE_SOUL_PLAYERS.keySet()) {
+      saveSoulPlayerState(soulId);
+      soulsSaved++;
+    }
+    // 2) Update active profiles for all online players and mark attachments dirty
+    int playersTouched = 0;
+    for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+      CCAttachments.getExistingSoulContainer(player)
+          .ifPresent(
+              container -> {
+                container.updateActiveProfile();
+                player.setData(CCAttachments.SOUL_CONTAINER.get(), container);
+              });
+      playersTouched++;
+    }
+    // 3) Persist players and worlds
+    server.getPlayerList().saveAll();
+    server.getAllLevels().forEach(level -> level.save(null, false, false));
+    SoulLog.info("[soul] saveAll: soulsSaved={} playersTouched={}", soulsSaved, playersTouched);
+    return soulsSaved;
+  }
+
+  static void onSoulPlayerRemoved(SoulPlayer soulPlayer, String cause) {
+    UUID entityUuid = soulPlayer.getUUID();
+    if (!REMOVING_ENTITIES.add(entityUuid)) {
+      return; // already processing removal for this entity
+    }
+    try {
+      UUID profileId = soulPlayer.getSoulId();
+      UUID ownerId = soulPlayer.getOwnerId().orElse(null);
+      var server = soulPlayer.serverLevel().getServer();
+      ServerPlayer owner = ownerId != null ? server.getPlayerList().getPlayer(ownerId) : null;
+      // stop navigation mirror for this soul
+      net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.onSoulRemoved(profileId);
+      if (!ACTIVE_SOUL_PLAYERS.containsKey(profileId)) {
+        UUID mapped = ENTITY_TO_SOUL.get(entityUuid);
+        if (mapped != null) {
+          SoulLog.warn(
+              "[soul] onSoulPlayerRemoved received entityUuid={}, remapped to profileId={}",
+              entityUuid,
+              mapped);
+          profileId = mapped;
+        }
+      }
+      // Death semantics: honor keepInventory gamerule
+      boolean isDeath = "die".equalsIgnoreCase(cause);
+      if (isDeath) {
+        boolean keepInv =
+            soulPlayer
+                .serverLevel()
+                .getGameRules()
+                .getBoolean(net.minecraft.world.level.GameRules.RULE_KEEPINVENTORY);
+        if (keepInv && owner != null) {
+          // Update snapshot from the dying shell so inventory/position are preserved, then remove
+          // and immediately respawn a new shell
+          var container = CCAttachments.getSoulContainer(owner);
+          container.getOrCreateProfile(profileId).updateFrom(soulPlayer);
+          // Remove old shell mappings and entity
+          handleRemoval(profileId, "onSoulPlayerRemoved:die-keepInventory");
+          // Respawn at snapshot position
+          final UUID fOwnerId = ownerId;
+          final UUID fProfileId = profileId;
+          respawnForOwner(owner, profileId)
+              .ifPresentOrElse(
+                  spawned -> {
+                    // Ensure fresh shell starts alive
+                    spawned.setHealth(spawned.getMaxHealth());
+                    SoulLog.info(
+                        "[soul] auto-respawn reason=death-keepInventory owner={} soul={} dim={} pos=({},{},{})",
+                        fOwnerId,
+                        fProfileId,
+                        spawned.level().dimension().location(),
+                        spawned.getX(),
+                        spawned.getY(),
+                        spawned.getZ());
+                  },
+                  () ->
+                      SoulLog.warn(
+                          "[soul] auto-respawn failed reason=death-keepInventory owner={} soul={}",
+                          fOwnerId,
+                          fProfileId));
+          return; // skip purge branch
+        }
+        archiveSoulDeathEntry(soulPlayer, profileId, owner);
+      }
+      // Default: remove shell entity + mappings
+      handleRemoval(
+          profileId, cause != null ? "onSoulPlayerRemoved:" + cause : "onSoulPlayerRemoved");
+      // On death without keepInventory: purge profile data and identity entries
+      if (isDeath) {
+        if (ownerId != null) {
+          ServerPlayer ownerCurrent = server.getPlayerList().getPlayer(ownerId);
+          if (ownerCurrent != null) {
+            var container = CCAttachments.getSoulContainer(ownerCurrent);
+            container.removeProfile(ownerCurrent, profileId, "remove-on-death");
+            // purge identity caches
+            identities().removeIdentity(profileId);
+            SoulLog.info("[soul] purge-profile reason=death owner={} soul={}", ownerId, profileId);
+          } else {
+            SoulLog.warn(
+                "[soul] purge-profile skipped owner offline owner={} soul={}", ownerId, profileId);
+          }
+        }
+        if (ownerId != null) {
+          SoulOfflineStore.get(server).remove(ownerId, profileId);
+        }
+      }
+    } finally {
+      REMOVING_ENTITIES.remove(entityUuid);
+    }
+  }
+
+  private static void archiveSoulDeathEntry(
+      SoulPlayer soulPlayer, UUID profileId, @Nullable ServerPlayer owner) {
+    try {
+      SoulProfile snapshot = SoulProfile.capture(soulPlayer, profileId);
+      CompoundTag profileTag = snapshot.save(soulPlayer.registryAccess());
+
+      CompoundTag archive = new CompoundTag();
+      archive.putString("type", "chestcavity:soul_player_death");
+      archive.putUUID("soul_id", profileId);
+      soulPlayer.getOwnerId().ifPresent(id -> archive.putUUID("owner_id", id));
+      if (owner != null) {
+        archive.putString("owner_name", owner.getGameProfile().getName());
+      }
+      archive.putString("display_name", SoulIdentityViews.resolveDisplayName(owner, profileId));
+      archive.putString("dimension", soulPlayer.level().dimension().location().toString());
+      archive.putDouble("x", soulPlayer.getX());
+      archive.putDouble("y", soulPlayer.getY());
+      archive.putDouble("z", soulPlayer.getZ());
+      archive.putLong("timestamp", soulPlayer.level().getGameTime());
+      archive.put("profile", profileTag);
+
+      GameProfile identity = identities().getIdentity(profileId);
+      if (identity != null) {
+        archive.put("identity", encodeGameProfile(identity));
+      }
+
+      SoulEntityFactories.persist(soulPlayer.serverLevel().getServer(), profileId, archive);
+      SoulLog.info(
+          "[soul] archive-death stored owner={} soul={} dim={} pos=({},{},{})",
+          soulPlayer.getOwnerId().orElse(null),
+          profileId,
+          soulPlayer.level().dimension().location(),
+          soulPlayer.getX(),
+          soulPlayer.getY(),
+          soulPlayer.getZ());
+    } catch (Exception e) {
+      SoulLog.error("[soul] archive-death failed soul={}", e, profileId);
+    }
+  }
+
+  private static CompoundTag encodeGameProfile(GameProfile profile) {
+    CompoundTag tag = new CompoundTag();
+    if (profile.getId() != null) {
+      tag.putUUID("id", profile.getId());
+    }
+    if (profile.getName() != null && !profile.getName().isBlank()) {
+      tag.putString("name", profile.getName());
+    }
+    if (!profile.getProperties().isEmpty()) {
+      CompoundTag props = new CompoundTag();
+      for (String key : profile.getProperties().keySet()) {
+        ListTag list = new ListTag();
+        for (Property property : profile.getProperties().get(key)) {
+          CompoundTag entry = new CompoundTag();
+          entry.putString("value", property.value());
+          if (property.signature() != null && !property.signature().isBlank()) {
+            entry.putString("signature", property.signature());
+          }
+          list.add(entry);
+        }
+        if (!list.isEmpty()) {
+          props.put(key, list);
+        }
+      }
+      if (!props.isEmpty()) {
+        tag.put("properties", props);
+      }
+    }
+    return tag;
+  }
+
+  private static void handleRemoval(UUID soulUuid, String reason) {
+    SoulPlayer removed = ACTIVE_SOUL_PLAYERS.remove(soulUuid);
+    if (removed == null) {
+      // Fallback: caller might pass entity UUID; try remap
+      UUID mapped = ENTITY_TO_SOUL.remove(soulUuid);
+      if (mapped != null) {
+        SoulLog.warn(
+            "[soul] handleRemoval received entityUuid={}, remapped to profileId={} reason={} ",
+            soulUuid,
+            mapped,
+            reason);
+        soulUuid = mapped;
+        removed = ACTIVE_SOUL_PLAYERS.remove(soulUuid);
+      }
+    }
+    if (removed != null) {
+      // clear per-soul AI orders and navigation mirror
+      net.tigereye.chestcavity.soul.ai.SoulAIOrders.clear(soulUuid);
+      net.tigereye.chestcavity.soul.navigation.SoulNavigationMirror.onSoulRemoved(soulUuid);
+      // Ensure the in-world entity is properly removed to avoid stray visual models.
+      if (!removed.isRemoved()) {
+        removed.remove(Entity.RemovalReason.DISCARDED);
+      }
+      ENTITY_TO_SOUL.remove(removed.getUUID());
+      LEGIT_ENTITY_SPAWNS.remove(removed.getUUID());
+      ENTITY_SPAWN_REASON.remove(removed.getUUID());
+      removed
+          .serverLevel()
+          .getServer()
+          .getPlayerList()
+          .broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(removed.getUUID())));
+      UUID owner = removed.getOwnerId().orElse(null);
+      if (owner != null) {
+        clearActivePossession(owner, soulUuid);
+      }
+      SoulLog.info(
+          "[soul] despawn reason={} soul={} owner={} dim={} pos=({},{},{})",
+          reason,
+          soulUuid,
+          removed.getOwnerId().orElse(null),
+          removed.level().dimension().location(),
+          removed.getX(),
+          removed.getY(),
+          removed.getZ());
+    } else {
+      SoulLog.warn(
+          "[soul] handleRemoval could not find tracked soul for id={} reason={}", soulUuid, reason);
+    }
+  }
+
+  public static final class SpawnRequestBuilder {
+    private final ServerPlayer owner;
+    private final UUID soulId;
+    private final GameProfile sourceProfile;
+    private final boolean forceDerivedIdentity;
+    private final String reason;
+    private SoulProfile profile;
+
+    private SpawnRequestBuilder(
+        ServerPlayer owner,
+        UUID soulId,
+        GameProfile sourceProfile,
+        boolean forceDerivedIdentity,
+        String reason) {
+      this.owner = Objects.requireNonNull(owner, "owner");
+      this.soulId = Objects.requireNonNull(soulId, "soulId");
+      this.sourceProfile = Objects.requireNonNull(sourceProfile, "sourceProfile");
+      this.forceDerivedIdentity = forceDerivedIdentity;
+      this.reason = reason == null || reason.isBlank() ? "unspecified" : reason;
+    }
+
+    public SpawnRequestBuilder profile(@Nullable SoulProfile profile) {
+      this.profile = profile;
+      return this;
+    }
+
+    public SpawnRequest build() {
+      ServerLevel ownerLevel = owner.serverLevel();
+      ServerLevel fallbackLevel = ownerLevel;
+      Vec3 fallbackPosition = owner.position();
+      if (profile != null) {
+        var snapshotOpt = profile.position();
+        if (snapshotOpt.isPresent()) {
+          var snapshot = snapshotOpt.get();
+          ServerLevel snapshotLevel = ownerLevel.getServer().getLevel(snapshot.dimension());
+          if (snapshotLevel != null) {
+            fallbackLevel = snapshotLevel;
+            fallbackPosition = new Vec3(snapshot.x(), snapshot.y(), snapshot.z());
+          }
+        }
+      }
+      SoulEntitySpawnRequest.Builder builder =
+          SoulEntitySpawnRequest.builder(ownerLevel.getServer(), SOUL_PLAYER_FACTORY_ID, soulId)
+              .withOwner(owner)
+              .withFallbackLevel(fallbackLevel)
+              .withFallbackPosition(fallbackPosition)
+              .withYaw(owner.getYRot())
+              .withPitch(owner.getXRot())
+              .withReason(reason)
+              .withAttribute(ATTR_SOURCE_PROFILE, sourceProfile)
+              .withAttribute(ATTR_FORCE_DERIVED_ID, forceDerivedIdentity);
+      SoulEntitySpawnRequest request = builder.build();
+      return new SpawnRequest(owner, soulId, profile, request);
+    }
+  }
+
+  public record SpawnRequest(
+      ServerPlayer owner,
+      UUID soulId,
+      @Nullable SoulProfile profile,
+      SoulEntitySpawnRequest request) {}
+
+  public record SpawnResult(SoulPlayer soulPlayer) {}
+
+  public record SoulPlayerInfo(UUID soulUuid, @Nullable UUID ownerId, boolean active) {}
+
+  /** Resolve a user-facing display name for a soul. Falls back to a short id if unnamed. */
+  public static String resolveDisplayName(ServerPlayer owner, UUID soulId) {
+    return SoulIdentityViews.resolveDisplayName(owner, soulId);
+  }
+}

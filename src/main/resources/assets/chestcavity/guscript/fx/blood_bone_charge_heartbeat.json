@@ -1,0 +1,10 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.warden.heartbeat",
+      "volume": 0.9,
+      "pitch": 0.6
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:zi_li_geng_sheng_gu_3",
+  "organScores": [
+    {"id":"chestcavity:filtration","value": "1"},
+    {"id":"chestcavity:nerves","value": "1"},
+    {"id":"chestcavity:strength","value": "32"}
+  ]
+}

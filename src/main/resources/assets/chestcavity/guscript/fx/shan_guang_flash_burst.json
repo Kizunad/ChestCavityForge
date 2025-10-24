@@ -1,0 +1,51 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.beacon.power_select",
+      "volume": 1.0,
+      "pitch": 1.3
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.guardian.attack",
+      "volume": 0.7,
+      "pitch": 1.8
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:flash",
+      "count": 80,
+      "spread": [0.9, 0.6, 0.9],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:end_rod",
+      "count": 60,
+      "spread": [0.6, 0.7, 0.6],
+      "speed": 0.04
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#fff7cc",
+      "size": 1.5,
+      "count": 50,
+      "spread": [0.8, 0.3, 0.8],
+      "speed": 0.06
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dragon_breath",
+      "count": 30,
+      "spread": [0.4, 0.4, 0.4],
+      "speed": 0.03
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.4,
+      "duration": 6
+    }
+  ]
+}

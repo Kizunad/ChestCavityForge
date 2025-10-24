@@ -1,0 +1,13 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.beacon.deactivate", "volume": 0.6, "pitch": 1.0 },
+    { "type": "particle",
+      "particle": "minecraft:poof",
+      "speed": 0.02,
+      "spread": [0.35, 0.2, 0.35],
+      "offset": [0, 1.2, 0],
+      "count": 24
+    }
+  ]
+}
+

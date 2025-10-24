@@ -1,0 +1,6 @@
+{
+  "chestcavity": "chestcavity:types/undead/skeleton.json",
+  "entities": [
+    "alexsmobs:bone_serpent"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "itemID": "guzhenren:xiongpi",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:impact_resistant",
+      "value": "10"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "20"
+    }
+  ]
+}

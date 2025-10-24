@@ -1,0 +1,16 @@
+{
+  "id": "guzhenren:quanpi",
+  "title": "蛊材_土犬皮",
+  "summary": "",
+  "details": [
+    "防御：0.1",
+    "生命值：10",
+    "速度：0.1",
+    "力量：10"
+  ],
+  "tags": [
+    "蛊材_土犬皮",
+    "guzhenren:quanpi"
+  ],
+  "icon": "guzhenren:quanpi"
+}

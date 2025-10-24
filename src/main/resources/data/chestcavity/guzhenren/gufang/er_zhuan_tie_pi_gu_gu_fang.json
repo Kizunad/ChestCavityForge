@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:er_zhuan_tie_pi_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:t_tie_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:t_tie_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:raw_iron",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

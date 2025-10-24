@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:xiaohuigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:yizhuanhunpo",
+      "count": 1
+    },
+    {
+      "item": "minecraft:wooden_sword",
+      "count": 1
+    },
+    {
+      "item": "minecraft:book",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:xiaohuigu",
+    "count": 1
+  }
+}

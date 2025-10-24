@@ -1,0 +1,11 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "enter_actions": [
+        { "id": "spawn.entity", "entityId": "minecraft:armor_stand", "offset": [0.0, 0.0, 1.0], "noAi": true }
+      ]
+    }
+  }
+}
+

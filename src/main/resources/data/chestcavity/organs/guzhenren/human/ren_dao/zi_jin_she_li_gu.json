@@ -1,0 +1,10 @@
+{
+  "itemID": "guzhenren:zi_jin_she_li_gu",
+  "organScores": [
+    { "id": "guzhenren:zuida_zhenyuan", "value": "150" },
+    { "id": "guzhenren:zuida_hunpo", "value": "200" },
+    { "id": "guzhenren:shouyuan", "value": "20" },
+    { "id": "guzhenren:qiyun", "value": "20" }
+  ]
+}
+

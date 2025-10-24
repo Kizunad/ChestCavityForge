@@ -1,18 +1,45 @@
 package net.tigereye.chestcavity.interfaces;
 
-import net.minecraft.entity.Entity;
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-
 import java.util.Optional;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.registration.CCAttachments;
 
 public interface ChestCavityEntity {
-    static Optional<ChestCavityEntity> of(Entity entity) {
-        if (entity instanceof ChestCavityEntity) {
-            return Optional.of(((ChestCavityEntity) entity));
-        }
-        return Optional.empty();
+  static Optional<ChestCavityEntity> of(Entity entity) {
+    if (entity instanceof ChestCavityEntity chestCavityEntity) {
+      return Optional.of(chestCavityEntity);
+    }
+    if (entity instanceof LivingEntity living) {
+      return Optional.of(new AttachmentBacked(living));
+    }
+    return Optional.empty();
+  }
+
+  ChestCavityInstance getChestCavityInstance();
+
+  default void setChestCavityInstance(ChestCavityInstance cc) {
+    throw new UnsupportedOperationException();
+  }
+
+  final class AttachmentBacked implements ChestCavityEntity {
+    private final LivingEntity living;
+
+    private AttachmentBacked(LivingEntity living) {
+      this.living = living;
     }
 
-    ChestCavityInstance getChestCavityInstance();
-    void setChestCavityInstance(ChestCavityInstance cc);
+    @Override
+    public ChestCavityInstance getChestCavityInstance() {
+      return CCAttachments.getChestCavity(living);
+    }
+
+    @Override
+    public void setChestCavityInstance(ChestCavityInstance cc) {
+      cc.owner = living;
+      cc.inventory.setInstance(cc);
+      living.setData(CCAttachments.CHEST_CAVITY.get(), cc);
+    }
+  }
 }

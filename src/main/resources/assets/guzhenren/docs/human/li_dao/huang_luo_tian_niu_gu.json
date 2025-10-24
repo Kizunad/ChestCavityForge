@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:huang_luo_tian_niu_gu",
+  "title": "黄骆天牛蛊",
+  "summary": "",
+  "details": [
+    "力量：40",
+    "[被动] 每5秒尝试消耗100点BASE真元为持有者恢复3点精力，精力已满时不会扣除真元。",
+    "[主动] 冷却60秒，召唤疯牛向前冲锋并为施放者施加30秒精力消耗减少状态（默认减免30%）。"
+  ],
+  "tags": [
+    "黄骆天牛蛊",
+    "guzhenren:huang_luo_tian_niu_gu"
+  ],
+  "icon": "guzhenren:huang_luo_tian_niu_gu"
+}

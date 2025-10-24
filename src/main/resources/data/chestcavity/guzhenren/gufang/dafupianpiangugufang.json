@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:dafupianpiangugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:canfenggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:zi_li_geng_sheng_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jiu_nang_hua_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jiu_chong",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:cooked_beef",
+      "count": 1
+    },
+    {
+      "item": "minecraft:cooked_porkchop",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:dafupianpiangu",
+    "count": 1
+  }
+}

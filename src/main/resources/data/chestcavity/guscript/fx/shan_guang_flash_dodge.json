@@ -1,0 +1,26 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.beacon.ambient",
+      "volume": 0.6,
+      "pitch": 1.6
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:end_rod",
+      "count": 20,
+      "spread": [0.2, 0.3, 0.2],
+      "speed": 0.01
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#ffe9b8",
+      "size": 1.0,
+      "count": 14,
+      "spread": [0.18, 0.3, 0.18],
+      "speed": 0.015
+    }
+  ]
+}

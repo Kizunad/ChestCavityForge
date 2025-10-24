@@ -1,0 +1,12 @@
+{
+  "arity": 2,
+  "priority": 24,
+  "required": { "生长": 1, "爆发": 1 },
+  "result": {
+    "name": "蓄力爆发",
+    "operator_id": "chestcavity:charge_burst",
+    "kind": "operator",
+    "tags": ["蓄力爆发"]
+  }
+}
+

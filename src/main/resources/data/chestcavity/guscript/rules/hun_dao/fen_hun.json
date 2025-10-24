@@ -1,0 +1,13 @@
+{
+  "arity": 5,
+  "priority": 100,
+  "inhibitors": ["杀招"],
+  "required": { "大魂魄": 1, "蛊材_蛊师空窍": 1, "蛊材_蛊师心脏": 1, "脊椎":1 ,"希望":1},
+  "result": {
+    "name": "分魂",
+    "operator_id": "chestcavity:split_soul",
+    "kind": "composite",
+    "tags": ["分魂"],
+    "flow_id": "chestcavity:hun_dao/soul_spawn_custom"
+  }
+}

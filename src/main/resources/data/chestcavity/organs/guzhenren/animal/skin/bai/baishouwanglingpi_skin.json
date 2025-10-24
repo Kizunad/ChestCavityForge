@@ -1,0 +1,25 @@
+{
+  "itemID": "guzhenren:baishouwanglingpi",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "60"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "30"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "60"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "10"
+    }
+  ]
+}

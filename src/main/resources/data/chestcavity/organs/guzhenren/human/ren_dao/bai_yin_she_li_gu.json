@@ -1,0 +1,9 @@
+{
+  "itemID": "guzhenren:bai_yin_she_li_gu",
+  "organScores": [
+    { "id": "chestcavity:health", "value": "50" },
+    { "id": "guzhenren:shouyuan", "value": "8" },
+    { "id": "guzhenren:zuida_hunpo", "value": "80" }
+  ]
+}
+

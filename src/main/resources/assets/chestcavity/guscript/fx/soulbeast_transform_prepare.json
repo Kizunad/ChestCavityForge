@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.enchantment_table.use",
+      "volume": 0.7,
+      "pitch": 0.6
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 32,
+      "spread": [0.45, 1.0, 0.45],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:ash",
+      "count": 20,
+      "spread": [0.3, 0.6, 0.3],
+      "speed": 0.01
+    }
+  ]
+}

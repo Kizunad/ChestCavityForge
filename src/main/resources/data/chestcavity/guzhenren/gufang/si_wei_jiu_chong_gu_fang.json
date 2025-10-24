@@ -1,0 +1,38 @@
+{
+  "gufang_id": "guzhenren:si_wei_jiu_chong_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:jiu_chong",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jiu_chong",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:suan_jiu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tian_jiu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:kujiu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:llajiu",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:si_wei_jiu_chong",
+    "count": 1
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ff7a00",
+      "to_color": "#ffd27a",
+      "size": 0.45,
+      "count": 24,
+      "spread": [0.4, 0.15, 0.4],
+      "speed": 0.0
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:crit",
+      "count": 6,
+      "spread": [0.3, 0.3, 0.3],
+      "speed": 0.04
+    }
+  ]
+}

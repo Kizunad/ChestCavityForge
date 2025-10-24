@@ -1,0 +1,26 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.generic.explode",
+      "volume": 0.5,
+      "pitch": 1.6
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:poof",
+      "count": 14,
+      "spread": [0.25, 0.25, 0.25],
+      "speed": 0.18
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#d2bfff",
+      "size": 0.65,
+      "count": 20,
+      "spread": [0.3, 0.3, 0.3],
+      "speed": 0.05
+    }
+  ]
+}

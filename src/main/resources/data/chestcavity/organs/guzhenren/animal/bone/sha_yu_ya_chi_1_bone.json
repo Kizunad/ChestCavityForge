@@ -1,0 +1,25 @@
+{
+  "itemID": "guzhenren:sha_yu_ya_chi_1",
+  "organScores": [
+    {
+      "id": "chestcavity:strength",
+      "value": "60"
+    },
+    {
+      "id": "chestcavity:swim_speed",
+      "value": "0.45"
+    },
+    {
+      "id": "chestcavity:water_breath",
+      "value": "1.5"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "10"
+    }
+  ]
+}

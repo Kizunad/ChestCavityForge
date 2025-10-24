@@ -1,0 +1,25 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.generic.explode",
+      "volume": 0.6,
+      "pitch": 0.9
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#ff4422",
+      "size": 1.2,
+      "count": 18,
+      "speed": 0.25,
+      "spread": [0.45, 0.3, 0.45]
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.22,
+      "duration": 8
+    }
+  ]
+}
+

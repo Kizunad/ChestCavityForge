@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:songzhengugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:sheng_ji_xie",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:chou_pi_fei_chong",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:songzhengu",
+    "count": 1
+  }
+}

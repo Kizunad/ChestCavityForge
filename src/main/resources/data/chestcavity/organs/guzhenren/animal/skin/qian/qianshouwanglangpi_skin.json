@@ -1,0 +1,29 @@
+{
+  "itemID": "guzhenren:qqianshouwanglangpi",
+  "organScores": [
+    {
+      "id": "chestcavity:arrow_dodging",
+      "value": "50"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "1.0"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "50"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "40"
+    }
+  ]
+}

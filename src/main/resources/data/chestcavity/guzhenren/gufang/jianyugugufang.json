@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:jianyugugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:sanzhuanshexinggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianzhigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bai_yun_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:wanshouwanghupi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianjiu",
+      "count": 1
+    },
+    {
+      "item": "minecraft:shulker_shell",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:jianyugu",
+    "count": 1
+  }
+}

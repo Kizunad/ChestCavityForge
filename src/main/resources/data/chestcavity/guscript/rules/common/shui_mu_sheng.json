@@ -1,0 +1,17 @@
+{
+  "arity": 2,
+  "priority": 1,
+  "required": { "水道": 1, "木道": 1 },
+  "result": {
+    "name": "水生木",
+    "operator_id": "chestcavity:water_born_wood",
+    "kind": "operator",
+    "tags": ["水生木"],
+    "actions": [
+      { "id": "guzhenren.adjust", "identifier": "zhenyuan", "amount": 50.0 },
+      { "id": "guzhenren.adjust", "identifier": "jingli", "amount": 50.0 },
+      { "id": "gain.health", "amount": 20.0 },
+      { "id": "emit.fx", "fxId": "chestcavity:slash", "intensity": 0.9 }
+    ]
+  }
+}
