@@ -3,11 +3,12 @@ package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior;
 import com.mojang.logging.LogUtils;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -93,11 +94,10 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String LAST_WET_TICK_KEY = "LastWetTick";
   private static final String WATER_HEAL_READY_AT_KEY = "WaterHealReadyAt";
   private static final String SUMMON_SEQUENCE_KEY = "SummonSequence";
+  private static final String ACTIVE_SUMMONS_KEY = "ActiveSummons";
 
   private static final ResourceLocation WATER_HEAL_COOLDOWN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "cooldowns/yu_lin_gu_water_heal");
-
-  private static final Map<UUID, List<OwnedSharkEntity>> ACTIVE_SUMMONS = new ConcurrentHashMap<>();
 
   private YuLinGuBehavior() {}
 
@@ -228,9 +228,8 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     state.setBoolean(HAS_SHARK_ARMOR_KEY, false);
     state.setDouble(HUNGER_PROGRESS_KEY, 0.0);
     state.setInt(PROGRESS_KEY, 0);
-    if (entity instanceof Player player) {
-      ACTIVE_SUMMONS.remove(player.getUUID());
-    }
+    // 清理召唤物列表
+    saveSummonsToState(state, new ArrayList<>());
   }
 
   public void onEquip(
@@ -297,32 +296,50 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (owner == null) {
       return List.of();
     }
-    return ACTIVE_SUMMONS.getOrDefault(owner.getUUID(), List.of());
+    ItemStack organ = findYuLinGuOrgan(owner);
+    if (organ.isEmpty()) {
+      return List.of();
+    }
+    OrganState state = organState(organ, STATE_ROOT);
+    return loadSummonsFromState(state);
   }
 
   public void addSummon(Player owner, OwnedSharkEntity summon) {
     if (owner == null || summon == null) {
       return;
     }
-    ACTIVE_SUMMONS.compute(
-        owner.getUUID(),
-        (uuid, list) -> {
-          List<OwnedSharkEntity> target = list == null ? new ArrayList<>() : new ArrayList<>(list);
-          target.add(summon);
-          return target;
-        });
+    ItemStack organ = findYuLinGuOrgan(owner);
+    if (organ.isEmpty()) {
+      return;
+    }
+    OrganState state = organState(organ, STATE_ROOT);
+    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+    summons.add(summon);
+    saveSummonsToState(state, summons);
+
+    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    if (cc != null) {
+      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    }
   }
 
   public void removeSummon(Player owner, OwnedSharkEntity summon) {
     if (owner == null || summon == null) {
       return;
     }
-    ACTIVE_SUMMONS.computeIfPresent(
-        owner.getUUID(),
-        (uuid, list) -> {
-          list.removeIf(candidate -> Objects.equals(candidate.entityId(), summon.entityId()));
-          return list.isEmpty() ? null : new ArrayList<>(list);
-        });
+    ItemStack organ = findYuLinGuOrgan(owner);
+    if (organ.isEmpty()) {
+      return;
+    }
+    OrganState state = organState(organ, STATE_ROOT);
+    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+    summons.removeIf(candidate -> Objects.equals(candidate.entityId(), summon.entityId()));
+    saveSummonsToState(state, summons);
+
+    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    if (cc != null) {
+      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    }
   }
 
   public boolean isPlayerMoist(Player player) {
@@ -428,8 +445,13 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (level == null || owner == null) {
       return;
     }
-    List<OwnedSharkEntity> summons = ACTIVE_SUMMONS.get(owner.getUUID());
-    if (summons == null || summons.isEmpty()) {
+    ItemStack organ = findYuLinGuOrgan(owner);
+    if (organ.isEmpty()) {
+      return;
+    }
+    OrganState state = organState(organ, STATE_ROOT);
+    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+    if (summons.isEmpty()) {
       return;
     }
     List<OwnedSharkEntity> updated = new ArrayList<>(summons.size());
@@ -442,21 +464,38 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
       }
       updated.add(summon);
     }
-    if (updated.isEmpty()) {
-      ACTIVE_SUMMONS.remove(owner.getUUID());
-    } else if (updated.size() != summons.size()) {
-      ACTIVE_SUMMONS.put(owner.getUUID(), updated);
+    if (updated.size() != summons.size()) {
+      saveSummonsToState(state, updated);
+      ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+      if (cc != null) {
+        NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      }
     }
   }
 
   public int countSummons(Player owner) {
-    List<OwnedSharkEntity> summons = ACTIVE_SUMMONS.get(owner.getUUID());
-    return summons == null ? 0 : summons.size();
+    if (owner == null) {
+      return 0;
+    }
+    ItemStack organ = findYuLinGuOrgan(owner);
+    if (organ.isEmpty()) {
+      return 0;
+    }
+    OrganState state = organState(organ, STATE_ROOT);
+    return loadSummonsFromState(state).size();
   }
 
   public void pruneToLimit(Player owner) {
-    List<OwnedSharkEntity> summons = ACTIVE_SUMMONS.get(owner.getUUID());
-    if (summons == null || summons.size() <= MAX_SUMMONS) {
+    if (owner == null) {
+      return;
+    }
+    ItemStack organ = findYuLinGuOrgan(owner);
+    if (organ.isEmpty()) {
+      return;
+    }
+    OrganState state = organState(organ, STATE_ROOT);
+    List<OwnedSharkEntity> summons = loadSummonsFromState(state);
+    if (summons.size() <= MAX_SUMMONS) {
       return;
     }
     List<OwnedSharkEntity> sorted = new ArrayList<>(summons);
@@ -465,7 +504,12 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
       OwnedSharkEntity removed = sorted.remove(0);
       removed.discard(owner.level());
     }
-    ACTIVE_SUMMONS.put(owner.getUUID(), sorted);
+    saveSummonsToState(state, sorted);
+
+    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    if (cc != null) {
+      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    }
   }
 
   public boolean hasOrgan(ChestCavityInstance cc, ResourceLocation organId) {
@@ -493,5 +537,69 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
 
   public boolean hasWaterArmorSynergy(ChestCavityInstance cc) {
     return hasOrgan(cc, SHUI_JIA_GU_ID);
+  }
+
+  /** 从器官状态中读取召唤物列表。 */
+  private List<OwnedSharkEntity> loadSummonsFromState(OrganState state) {
+    if (state == null) {
+      return new ArrayList<>();
+    }
+    CompoundTag stateData = state.getData();
+    if (!stateData.contains(ACTIVE_SUMMONS_KEY)) {
+      return new ArrayList<>();
+    }
+    ListTag listTag = stateData.getList(ACTIVE_SUMMONS_KEY, Tag.TAG_COMPOUND);
+    List<OwnedSharkEntity> summons = new ArrayList<>(listTag.size());
+    for (int i = 0; i < listTag.size(); i++) {
+      CompoundTag summonTag = listTag.getCompound(i);
+      try {
+        UUID entityId = summonTag.getUUID("EntityId");
+        UUID ownerId = summonTag.getUUID("OwnerId");
+        int tier = summonTag.getInt("Tier");
+        long createdAt = summonTag.getLong("CreatedAt");
+        long expiresAt = summonTag.getLong("ExpiresAt");
+        summons.add(new OwnedSharkEntity(entityId, ownerId, tier, createdAt, expiresAt));
+      } catch (Exception e) {
+        LOGGER.warn("Failed to load summon from state", e);
+      }
+    }
+    return summons;
+  }
+
+  /** 将召唤物列表保存到器官状态中。 */
+  private void saveSummonsToState(OrganState state, List<OwnedSharkEntity> summons) {
+    if (state == null) {
+      return;
+    }
+    ListTag listTag = new ListTag();
+    for (OwnedSharkEntity summon : summons) {
+      CompoundTag summonTag = new CompoundTag();
+      summonTag.putUUID("EntityId", summon.entityId());
+      summonTag.putUUID("OwnerId", summon.ownerId());
+      summonTag.putInt("Tier", summon.tier());
+      summonTag.putLong("CreatedAt", summon.createdAt());
+      summonTag.putLong("ExpiresAt", summon.expiresAt());
+      listTag.add(summonTag);
+    }
+    state.getData().put(ACTIVE_SUMMONS_KEY, listTag);
+  }
+
+  /** 查找玩家的鱼鳞蛊器官。 */
+  private ItemStack findYuLinGuOrgan(Player player) {
+    if (player == null) {
+      return ItemStack.EMPTY;
+    }
+    ChestCavityInstance cc = ChestCavityInstance.of(player).orElse(null);
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
+    int size = cc.inventory.getContainerSize();
+    for (int i = 0; i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (matchesOrgan(stack, ORGAN_ID)) {
+        return stack;
+      }
+    }
+    return ItemStack.EMPTY;
   }
 }
