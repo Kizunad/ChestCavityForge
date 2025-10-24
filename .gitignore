@@ -7,3 +7,9 @@ gradle
 logs
 versions
 old_build.txt
+/.gradle
+/bin
+/logs
+/run
+/.gradle-home
+/.eclipse
