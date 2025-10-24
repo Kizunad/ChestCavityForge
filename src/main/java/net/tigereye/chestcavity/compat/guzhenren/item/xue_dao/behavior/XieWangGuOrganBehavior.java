@@ -11,9 +11,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -40,20 +40,20 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
+import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.DoTTypes;
 import net.tigereye.chestcavity.util.NetworkUtil;
-import net.tigereye.chestcavity.engine.dot.DoTEngine;
-import org.slf4j.Logger;
 import org.joml.Vector3f;
+import org.slf4j.Logger;
 
 /** 核心行为：血网蛊。负责维护领域状态、被动效果与主动技能共享逻辑。 */
 public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
@@ -190,7 +190,6 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     clearWeb(player);
   }
 
-
   /** 在胸腔背包中检索血网蛊实例，用于主动技能定位原件。 */
   public Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
@@ -281,8 +280,10 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     // 牵引强度稍微提一点点（原来 *0.45 很保守），再乘以抗性系数
     double strength = pull * 0.6;
-    double resistance = Optional.ofNullable(target.getAttribute(Attributes.KNOCKBACK_RESISTANCE))
-        .map(AttributeInstance::getValue).orElse(0.0);
+    double resistance =
+        Optional.ofNullable(target.getAttribute(Attributes.KNOCKBACK_RESISTANCE))
+            .map(AttributeInstance::getValue)
+            .orElse(0.0);
     double scale = 1.0 - Mth.clamp(resistance, 0.0, 1.0);
     if (scale <= 0.0) return false;
 
@@ -588,11 +589,11 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (attribute == null) return;
 
     // 1.21 构造器： (ResourceLocation id, double amount, Operation op)
-    AttributeModifier modifier = new AttributeModifier(
-        ATTACK_SPEED_DEBUFF_MODIFIER_ID,          // 你上面定义的 ResourceLocation
-        -0.20,                                    // -20% 总乘
-        AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
-    );
+    AttributeModifier modifier =
+        new AttributeModifier(
+            ATTACK_SPEED_DEBUFF_MODIFIER_ID, // 你上面定义的 ResourceLocation
+            -0.20, // -20% 总乘
+            AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 
     // has/remove 也都用 ResourceLocation 作为键
     if (!attribute.hasModifier(ATTACK_SPEED_DEBUFF_MODIFIER_ID)) {
@@ -603,7 +604,7 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     /*
      *  // 保险写法：先移除再加，等价于“有则更新、无则添加”
      *  attribute.removeModifier(ATTACK_SPEED_DEBUFF_MODIFIER_ID);
-     *  attribute.addTransientModifier(modifier);  
+     *  attribute.addTransientModifier(modifier);
      */
   }
 
@@ -613,7 +614,6 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       attribute.removeModifier(ATTACK_SPEED_DEBUFF_MODIFIER_ID);
     }
   }
-
 
   /** 打开古真人资源句柄，便于复用外部调用时的消耗结算。 */
   public Optional<ResourceHandle> openHandle(ServerPlayer player) {
@@ -701,8 +701,8 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return true;
   }
 
-
-  private static void drawParticleLine(ServerLevel level, Vec3 from, Vec3 to, double step, ParticleOptions type) {
+  private static void drawParticleLine(
+      ServerLevel level, Vec3 from, Vec3 to, double step, ParticleOptions type) {
     Vec3 dir = to.subtract(from);
     double len = dir.length();
     if (len < 1e-3) return;
@@ -717,14 +717,14 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if ((now % FX_TICK_GAP) != 0) return;
 
     // 领域边界：围一圈“血光”
-    final ParticleOptions SPIKE = ParticleTypes.DAMAGE_INDICATOR;  // 倒刺时溅血
+    final ParticleOptions SPIKE = ParticleTypes.DAMAGE_INDICATOR; // 倒刺时溅血
 
     Vec3 c = state.center;
     double y = c.y + 0.10;
     double r = state.radius;
 
     // 圆环密度跟半径走，最少 32 个点
-    int points = Math.max(32, (int)(r * 24));
+    int points = Math.max(32, (int) (r * 24));
     for (int i = 0; i < points; i++) {
       double a = (Math.PI * 2 * i) / points;
       double x = c.x + Math.cos(a) * r;
@@ -742,7 +742,7 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     // 锚点存在时画一个小圈提示范围
     if (state.anchorPos != null && state.anchorExpireTick > now) {
       double ar = 2.5; // 用你的 ANCHOR_RADIUS
-      int apoints = Math.max(24, (int)(ar * 20));
+      int apoints = Math.max(24, (int) (ar * 20));
       for (int i = 0; i < apoints; i++) {
         double a = (Math.PI * 2 * i) / apoints;
         double x = state.anchorPos.x + Math.cos(a) * ar;
@@ -763,7 +763,6 @@ public final class XieWangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       }
     }
   }
-
 
   /** 为外部联动提供的标记入口：当目标被判定为处于血网影响内时，延长其网缚持续时间。 */
   public void markWebbed(UUID entityId, long expireTick) {
