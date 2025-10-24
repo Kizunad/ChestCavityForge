@@ -33,6 +33,7 @@ import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command.SoulBeastCommands;
 import net.tigereye.chestcavity.config.CCConfig;
+import net.tigereye.chestcavity.config.CCGameRules;
 import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import net.tigereye.chestcavity.engine.reaction.ReactionEngine;
 import net.tigereye.chestcavity.guscript.command.GuScriptCommands;
@@ -118,6 +119,7 @@ public class ChestCavity {
 
     AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
     config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
+    CCGameRules.register();
     // Register mod resources
     // AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);
     // config = AutoConfig.getConfigHolder(CCConfig.class).getConfig();
