@@ -1,0 +1,7 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.amethyst_block.chime", "volume": 0.8, "pitch": 1.4 },
+    { "type": "particle", "particle": "minecraft:end_rod", "count": 12, "spread": [0.15, 0.15, 0.15], "speed": 0.02 },
+    { "type": "particle", "particle": "minecraft:dust", "color": "#e6f3ff", "size": 1.0, "count": 8, "spread": [0.2, 0.1, 0.2], "speed": 0.01 }
+  ]
+}

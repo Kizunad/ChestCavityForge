@@ -1,0 +1,12 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "enter_actions": [
+        { "id": "spawn.entity", "entityId": "minecraft:wolf", "offset": [1.0, 0.0, 0.0], "noAi": false },
+        { "type": "tame_nearby", "radius": 3.0, "sit": false, "persist": true },
+        { "type": "order_guard", "radius": 6.0, "seek_hostiles": true, "acquire_radius": 16.0 }
+      ]
+    }
+  }
+}

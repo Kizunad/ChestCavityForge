@@ -1,0 +1,6 @@
+{
+  "chestcavity": "chestcavity:types/compatibility/guzhenren/hounds/tu_quan.json",
+  "entities": [
+    "guzhenren:tu_quan"
+  ]
+}

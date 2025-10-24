@@ -1,0 +1,24 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "update_period": 5,
+      "update_actions": [
+        {
+          "type": "emit_gecko",
+          "fx": "chestcavity:dark_queen_model",
+          "anchor": "performer",
+          "offset": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "scale": 1.0,
+          "alpha": 0.9,
+          "loop": true,
+          "duration": 120
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "itemID": "guzhenren:sha_yu_yu_chi_4",
+  "organScores": [
+    {
+      "id": "chestcavity:strength",
+      "value": "170"
+    },
+    {
+      "id": "chestcavity:swim_speed",
+      "value": "5.1"
+    },
+    {
+      "id": "chestcavity:water_breath",
+      "value": "17"
+    },
+    {
+      "id": "guzhenren:niantou_zuida",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:shouyuan",
+      "value": "1"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "100"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "80"
+    }
+  ]
+}

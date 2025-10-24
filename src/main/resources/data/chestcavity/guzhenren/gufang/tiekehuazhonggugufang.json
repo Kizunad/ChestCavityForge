@@ -1,0 +1,38 @@
+{
+  "gufang_id": "guzhenren:tiekehuazhonggugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:bai_yin_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bai_yin_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tiekehuazhongzi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:netherite_hoe",
+      "count": 1
+    },
+    {
+      "item": "minecraft:wheat_seeds",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:tiekehuazhonggu",
+    "count": 1
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:jianjiaogugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:wanshouwanghugu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shi_suo_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:wanshouhuwangyan",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xueyingu",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:jianjiaogu",
+    "count": 1
+  }
+}

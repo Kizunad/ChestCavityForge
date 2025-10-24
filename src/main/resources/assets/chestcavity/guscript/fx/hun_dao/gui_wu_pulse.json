@@ -1,0 +1,20 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 18,
+      "speed": 0.015,
+      "spread": [0.7, 0.45, 0.7],
+      "offset": [0.0, 1.0, 0.0]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:ash",
+      "count": 10,
+      "speed": 0.02,
+      "spread": [0.6, 0.4, 0.6],
+      "offset": [0.0, 1.0, 0.0]
+    }
+  ]
+}

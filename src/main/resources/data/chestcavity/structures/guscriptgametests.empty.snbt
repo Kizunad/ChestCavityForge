@@ -1,0 +1,11 @@
+{
+  DataVersion: 3887,
+  size: [1, 1, 1],
+  structure_world_origin: [0, 0, 0],
+  structure_void: [],
+  entities: [],
+  blocks: [],
+  palette: [
+    { Name: "minecraft:air" }
+  ]
+}

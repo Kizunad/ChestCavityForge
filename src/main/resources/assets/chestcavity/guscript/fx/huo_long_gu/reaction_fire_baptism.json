@@ -1,0 +1,27 @@
+{
+  "modules": [
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 16,
+      "spread": [0.6, 0.6, 0.6],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ffd27a",
+      "to_color": "#ffffff",
+      "size": 0.32,
+      "count": 20,
+      "spread": [0.7, 0.4, 0.7],
+      "speed": 0.01
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:block.beacon.activate",
+      "volume": 0.7,
+      "pitch": 1.4
+    }
+  ]
+}

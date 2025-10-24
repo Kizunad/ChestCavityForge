@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:jin_zhen_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:t_tie_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:tong_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:gold_nugget",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:jin_zhen_gu",
+    "count": 1
+  }
+}

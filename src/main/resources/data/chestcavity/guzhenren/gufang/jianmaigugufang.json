@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:jianmaigugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:jinweijianxiagu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jinweijianxiagu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jinweijianxiagu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianjigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianhengu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jianhengu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:jianmaigu",
+    "count": 1
+  }
+}

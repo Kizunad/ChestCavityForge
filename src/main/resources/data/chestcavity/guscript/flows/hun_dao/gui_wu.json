@@ -1,0 +1,34 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        { "trigger": "start", "target": "releasing" }
+      ]
+    },
+    "releasing": {
+      "enter_actions": [
+        { "type": "set_variable_from_param", "param": "gui_wu.radius", "name": "gui_wu.radius", "default": 4.0 },
+        { "type": "set_cooldown", "key": "hun_dao.gui_wu", "ticks": 160 },
+        { "type": "emit_fx", "fx": "chestcavity:hun_dao/gui_wu_cast", "base_intensity": 1.0 },
+        { "type": "play_sound", "id": "minecraft:entity.illusioner.prepare_mirror", "anchor": "performer", "volume": 1.0, "pitch": 0.8 },
+        { "type": "area_effect", "id": "minecraft:slowness", "duration": 160, "amplifier": 3, "radius": 4.0, "radius_variable": "gui_wu.radius", "hostiles_only": true, "include_self": false, "show_particles": false, "show_icon": true },
+        { "type": "area_effect", "id": "minecraft:blindness", "duration": 100, "amplifier": 0, "radius": 4.0, "radius_variable": "gui_wu.radius", "hostiles_only": true, "include_self": false, "show_particles": false, "show_icon": true }
+      ],
+      "update_period": 20,
+      "update_actions": [
+        { "type": "emit_fx", "fx": "chestcavity:hun_dao/gui_wu_pulse", "base_intensity": 0.8 },
+        { "type": "area_effect", "id": "minecraft:slowness", "duration": 100, "amplifier": 3, "radius": 4.0, "radius_variable": "gui_wu.radius", "hostiles_only": true, "include_self": false, "show_particles": false, "show_icon": false },
+        { "type": "area_effect", "id": "minecraft:blindness", "duration": 80, "amplifier": 0, "radius": 4.0, "radius_variable": "gui_wu.radius", "hostiles_only": true, "include_self": false, "show_particles": false, "show_icon": false }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 60 }
+      ]
+    },
+    "cooldown": {
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 20 }
+      ]
+    }
+  }
+}

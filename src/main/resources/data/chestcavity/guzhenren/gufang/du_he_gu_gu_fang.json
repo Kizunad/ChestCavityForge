@@ -1,0 +1,38 @@
+{
+  "gufang_id": "guzhenren:du_he_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:ai_bie_chi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:suan_shui_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:du_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:qing_tong_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:chi_tie_she_li_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:du_he_gu",
+    "count": 1
+  }
+}

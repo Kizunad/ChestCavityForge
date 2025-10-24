@@ -1,0 +1,23 @@
+{
+  "itemID": "guzhenren:shou_gu",
+  "organScores": [
+    { "id": "chestcavity:health", "value": "0.5" },
+    { "id": "chestcavity:filtration", "value": "0.8" },
+    { "id": "chestcavity:detoxification", "value": "0.6" },
+    { "id": "chestcavity:endurance", "value": "0.4" },
+    { "id": "chestcavity:defense", "value": "0.2" },
+    { "id": "chestcavity:metabolism", "value": "-0.2" },
+    { "id": "chestcavity:incompatibility", "value": "0.1" },
+    { "id": "chestcavity:strength", "value": "-0.1" },
+    { "id": "chestcavity:speed", "value": "-0.05" },
+    { "id": "chestcavity:luck", "value": "0.1" },
+    { "id": "chestcavity:nutrition", "value": "-0.3" },
+
+    { "id": "guzhenren:shouyuan", "value": "0.5" },
+    { "id": "guzhenren:zuida_zhenyuan", "value": "2.0" },
+    { "id": "guzhenren:zhenyuan", "value": "1.0" },
+    { "id": "guzhenren:zuida_jingli", "value": "1.0" },
+    { "id": "guzhenren:hunpo_stability", "value": "0.5" },
+    { "id": "guzhenren:daohen_tiandao", "value": "0.2" }
+  ]
+}

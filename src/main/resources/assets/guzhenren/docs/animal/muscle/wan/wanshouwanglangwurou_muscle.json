@@ -1,0 +1,19 @@
+{
+  "id": "guzhenren:wanlangwurou",
+  "title": "蛊材_万兽王狼肉",
+  "summary": "",
+  "details": [
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：90",
+    "速度：1.8",
+    "力量：90",
+    "最大念头：40",
+    "最大魂魄：10",
+    "最大精力：80",
+    "最大真元：60"
+  ],
+  "tags": [
+    "蛊材_万兽王狼肉",
+    "guzhenren:wanlangwurou"
+  ],
+  "icon": "guzhenren:wanlangwurou"
+}

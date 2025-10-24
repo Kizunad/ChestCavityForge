@@ -1,0 +1,25 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "chestcavity:custom.fire.huo_yi",
+      "volume": 1.0,
+      "pitch": 1.0
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:flame",
+      "count": 20,
+      "spread": [0.3, 0.5, 0.3],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 12,
+      "spread": [0.25, 0.4, 0.25],
+      "speed": 0.01,
+      "offset": [0.0, 0.2, 0.0]
+    }
+  ]
+}

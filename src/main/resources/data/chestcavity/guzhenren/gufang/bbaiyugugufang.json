@@ -1,0 +1,38 @@
+{
+  "gufang_id": "guzhenren:bbaiyugugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:shi_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bai_yu_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shi_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:qing_feng_lun_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:feather",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

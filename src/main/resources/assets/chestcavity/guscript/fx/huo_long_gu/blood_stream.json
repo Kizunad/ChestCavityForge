@@ -1,0 +1,22 @@
+{
+  "modules": [
+    {
+      "type": "trail",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ff3300",
+      "to_color": "#ffd27a",
+      "size": 0.20,
+      "segments": 12,
+      "spacing": 0.20,
+      "spread": [0.04, 0.04, 0.04],
+      "speed": 0.01
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:small_flame",
+      "count": 6,
+      "spread": [0.25, 0.25, 0.25],
+      "speed": 0.03
+    }
+  ]
+}

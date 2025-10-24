@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:ju_chi_jin_wu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:jin_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xueqigu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:jin_zhen_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_cai_chi_lian_jin",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gu_cai_xuan_jin",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:ju_chi_jin_wu_gu",
+    "count": 1
+  }
+}

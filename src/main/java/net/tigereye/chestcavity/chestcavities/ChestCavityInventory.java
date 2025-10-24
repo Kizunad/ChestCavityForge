@@ -1,69 +1,98 @@
 package net.tigereye.chestcavity.chestcavities;
 
-
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 
-public class ChestCavityInventory extends Inventory {
+public class ChestCavityInventory extends SimpleContainer {
 
-    ChestCavityInstance instance;
-    boolean test;
+  ChestCavityInstance instance;
+  boolean test;
 
-    public ChestCavityInstance getInstance() {
-        return instance;
+  public ChestCavityInstance getInstance() {
+    return instance;
+  }
+
+  public void setInstance(ChestCavityInstance instance) {
+    this.instance = instance;
+  }
+
+  private static final int DEFAULT_COLUMNS = 9;
+  private static final int DEFAULT_ROWS = 4;
+
+  public ChestCavityInventory() {
+    super(DEFAULT_COLUMNS * DEFAULT_ROWS);
+  }
+
+  public ChestCavityInventory(int size, ChestCavityInstance instance) {
+    super(size);
+    this.instance = instance;
+  }
+
+  public void readTags(ListTag tags) {
+    readTags(tags, null);
+  }
+
+  public void readTags(ListTag tags, HolderLookup.Provider lookup) {
+    clearContent();
+    HolderLookup.Provider effectiveLookup = lookup;
+    if (effectiveLookup == null && instance != null && instance.owner != null) {
+      effectiveLookup = instance.owner.level().registryAccess();
     }
-
-    public void setInstance(ChestCavityInstance instance) {
-        this.instance = instance;
+    if (effectiveLookup == null) {
+      return;
     }
-
-    public ChestCavityInventory() {
-        super(27);
+    for (int j = 0; j < tags.size(); ++j) {
+      CompoundTag tag = tags.getCompound(j);
+      int slot = tag.getByte("Slot") & 255;
+      if (slot >= 0 && slot < this.getContainerSize()) {
+        this.setItem(slot, ItemStack.parseOptional(effectiveLookup, tag));
+      }
     }
+  }
 
-    public ChestCavityInventory(int size,ChestCavityInstance instance) {
-        super(size);
-        this.instance = instance;
+  public ListTag getTags() {
+    return getTags(null);
+  }
+
+  public ListTag getTags(HolderLookup.Provider lookup) {
+    ListTag list = new ListTag();
+
+    HolderLookup.Provider effectiveLookup = lookup;
+    if (effectiveLookup == null && instance != null && instance.owner != null) {
+      effectiveLookup = instance.owner.level().registryAccess();
     }
-
-    public void readTags(ListNBT tags) {
-        clearContent();
-        for(int j = 0; j < tags.size(); ++j) {
-            CompoundNBT NbtCompound = tags.getCompound(j);
-            int k = NbtCompound.getByte("Slot") & 255;
-            boolean f = NbtCompound.getBoolean("Forbidden");
-            if (k >= 0 && k < this.getContainerSize()) {
-                this.setItem(k, ItemStack.of(NbtCompound));
-            }
+    if (effectiveLookup == null) {
+      return list;
+    }
+    for (int i = 0; i < this.getContainerSize(); ++i) {
+      ItemStack itemStack = this.getItem(i);
+      if (!itemStack.isEmpty()) {
+        Tag raw = itemStack.save(effectiveLookup);
+        if (raw instanceof CompoundTag tag && !tag.isEmpty()) {
+          tag.putByte("Slot", (byte) i);
+          list.add(tag);
         }
-
+      }
     }
 
-    public ListNBT getTags() {
-        ListNBT list = new ListNBT();
+    return list;
+  }
 
-        for(int i = 0; i < this.getContainerSize(); ++i) {
-            ItemStack itemStack = this.getItem(i);
-            if (!itemStack.isEmpty()) {
-                CompoundNBT NbtCompound = new CompoundNBT();
-                NbtCompound.putByte("Slot", (byte)i);
-                itemStack.save(NbtCompound);
-                list.add(NbtCompound);
-            }
-        }
+  @Override
+  public boolean stillValid(Player player) {
 
-        return list;
+    if (instance == null) {
+      return true;
+    } // this is for if something goes wrong with that first moment before things sync
+    if (instance.owner.isDeadOrDying()) {
+      return false;
     }
-
-    @Override
-    public boolean stillValid(PlayerEntity player) {
-
-        if(instance == null) {return true;} //this is for if something goes wrong with that first moment before things sync
-        if(instance.owner.isDeadOrDying()){return false;}
-        return (player.distanceTo(instance.owner) < 8);
-    }
+    return (player.distanceTo(instance.owner) < 8);
+  }
 }

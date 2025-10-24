@@ -1,0 +1,7 @@
+{
+  "itemID": "guzhenren:zhi_zhuang_gu",
+  "organScores": [
+    {"id":"chestcavity:speed","value": "0.2"},
+    {"id":"chestcavity:strength","value": "32"}
+  ]
+}

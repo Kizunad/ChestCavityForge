@@ -1,0 +1,31 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.generic.explode",
+      "volume": 0.8,
+      "pitch": 1.2
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:flame",
+      "count": 24,
+      "spread": [0.7, 0.4, 0.7],
+      "speed": 0.08
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 12,
+      "spread": [0.8, 0.5, 0.8],
+      "speed": 0.03
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dripping_honey",
+      "count": 4,
+      "spread": [0.4, 0.3, 0.4],
+      "speed": 0.02
+    }
+  ]
+}

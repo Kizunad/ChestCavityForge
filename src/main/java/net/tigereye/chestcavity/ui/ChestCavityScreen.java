@@ -1,41 +1,41 @@
 package net.tigereye.chestcavity.ui;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.gui.screen.inventory.ContainerScreen;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Inventory;
 
-public class ChestCavityScreen extends ContainerScreen<Container> {
-    //A path to the gui texture. In this example we use the texture from the dispenser
-    private static final ResourceLocation TEXTURE = new ResourceLocation("minecraft", "textures/gui/container/shulker_box.png");
+public class ChestCavityScreen extends AbstractContainerScreen<ChestCavityScreenHandler> {
+  private static final ResourceLocation TEXTURE =
+      ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
 
-    public ChestCavityScreen(Container handler, PlayerInventory inventory, ITextComponent title) {
-        super(handler, inventory, title);
-    }
+  public ChestCavityScreen(ChestCavityScreenHandler handler, Inventory inventory, Component title) {
+    super(handler, inventory, title);
+    this.imageHeight = 114 + handler.getRows() * 18;
+    this.inventoryLabelY = this.imageHeight - 94;
+  }
 
-    @Override
-    protected void renderBg(MatrixStack matrices, float delta, int mouseX, int mouseY) {
-        RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-        this.minecraft.getTextureManager().bind(TEXTURE);
-        int x = (width - imageWidth) / 2;
-        int y = (height - imageHeight) / 2;
-        blit(matrices, x, y, 0, 0, imageWidth, imageHeight);
-    }
+  @Override
+  protected void renderBg(GuiGraphics graphics, float delta, int mouseX, int mouseY) {
+    int x = (width - imageWidth) / 2;
+    int y = (height - imageHeight) / 2;
+    int containerHeight = this.menu.getRows() * 18 + 17;
+    graphics.blit(TEXTURE, x, y, 0, 0, imageWidth, containerHeight);
+    graphics.blit(TEXTURE, x, y + containerHeight, 0, 126, imageWidth, 96);
+  }
 
-    @Override
-    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-        renderBackground(matrices);
-        super.render(matrices, mouseX, mouseY, delta);
-        renderTooltip(matrices, mouseX, mouseY);
-    }
+  @Override
+  public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    renderBackground(graphics, mouseX, mouseY, delta);
+    super.render(graphics, mouseX, mouseY, delta);
+    renderTooltip(graphics, mouseX, mouseY);
+  }
 
-    @Override
-    protected void init() {
-        super.init();
-        // Center the title
-        titleLabelX = (imageWidth - font.width(title)) / 2;
-    }
+  @Override
+  protected void init() {
+    super.init();
+    // Center the title
+    titleLabelX = (imageWidth - font.width(title)) / 2;
+  }
 }

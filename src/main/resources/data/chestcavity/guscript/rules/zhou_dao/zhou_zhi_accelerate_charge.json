@@ -1,0 +1,20 @@
+{
+  "priority": 20,
+  "arity": 2,
+  "required": {
+    "宙道": 1,
+    "念头": 1
+  },
+  "result": {
+    "name": "时念加速",
+    "operator_id": "chestcavity:zhou_zhi_accelerate",
+    "kind": "OPERATOR",
+    "tags": ["时念加速"],
+    "order": 0,
+    "export_modifiers": { "multiplier": true },
+    "actions": [
+      { "id": "export.time_scale_mult", "amount": 2.0 },
+      { "id": "export.modifier.multiplier", "amount": 0.5 }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "itemID": "guzhenren:xie_wang_gu",
+  "organScores": [
+    {"id": "chestcavity:silk", "value": "2.0"},
+    {"id": "chestcavity:defense", "value": "0.5"},
+    {"id": "guzhenren:daohen_xuedao", "value": "3.0"}
+  ],
+  "defaultCompatibility": 0.85
+}

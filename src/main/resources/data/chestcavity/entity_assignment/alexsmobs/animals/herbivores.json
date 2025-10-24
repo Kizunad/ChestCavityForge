@@ -1,0 +1,6 @@
+{
+  "chestcavity": "chestcavity:types/animals/herbivore.json",
+  "entities": [
+    "alexsmobs:gazelle"
+  ]
+}

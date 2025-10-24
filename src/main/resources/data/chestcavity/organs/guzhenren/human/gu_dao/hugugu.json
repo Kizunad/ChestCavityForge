@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:hugugu",
+  "organScores": [
+    { "id": "chestcavity:defense", "value": "6" },
+    {"id":"chestcavity:health","value": "1"}
+  ]
+}
+

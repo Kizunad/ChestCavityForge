@@ -1,0 +1,21 @@
+{
+  "itemID": "guzhenren:lingyangyan",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "10"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:luck",
+      "value": "0.01"
+    }
+  ]
+}

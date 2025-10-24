@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:gu_cai_chi_lian_jin",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "111.805"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "-0.759"
+    },
+    {
+      "id": "chestcavity:knockback_resistant",
+      "value": "0.586"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "gufang_id": "guzhenren:xiangguanggugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:xingxingshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:glowstone_dust",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.wither.spawn",
+      "volume": 0.6,
+      "pitch": 1.15
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 60,
+      "spread": [0.6, 1.2, 0.6],
+      "speed": 0.04
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:reverse_portal",
+      "count": 30,
+      "spread": [0.5, 1.0, 0.5],
+      "speed": 0.0
+    }
+  ]
+}

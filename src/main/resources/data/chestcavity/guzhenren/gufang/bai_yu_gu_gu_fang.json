@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:bai_yu_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:yu_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bai_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:emerald",
+      "count": 1
+    },
+    {
+      "item": "minecraft:diamond",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:bai_yu_gu",
+    "count": 1
+  }
+}

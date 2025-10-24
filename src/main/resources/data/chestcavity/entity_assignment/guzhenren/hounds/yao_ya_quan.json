@@ -1,0 +1,7 @@
+{
+  "chestcavity": "chestcavity:types/compatibility/guzhenren/hounds/yao_ya_quan.json",
+  "entities": [
+    "guzhenren:yao_ya_quan",
+    "guzhenren:3yao_ya_quan_biome_modifier"
+  ]
+}

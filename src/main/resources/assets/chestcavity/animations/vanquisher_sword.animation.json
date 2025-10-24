@@ -1,0 +1,136 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.chestcavity.vanquisher_sword.slash": {
+      "loop": false,
+      "animation_length": 6,
+      "bones": {
+        "bone": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                90.0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                88.39243,
+                1.91486,
+                139.97313
+              ],
+              "easing": "easeInQuart"
+            },
+            "2.0": {
+              "vector": [
+                110.27082,
+                -2.50959,
+                216.28061
+              ]
+            },
+            "3.0": {
+              "vector": [
+                252.65342,
+                -2.95289,
+                218.7438
+              ]
+            },
+            "4.0": {
+              "vector": [
+                348.65394,
+                45.52514,
+                155.03296
+              ]
+            },
+            "5.0": {
+              "vector": [
+                477.28915,
+                9.21425,
+                249.11229
+              ]
+            },
+            "6.0": {
+              "vector": [
+                450.24737,
+                1.18822,
+                176.81288
+              ]
+            }
+          },
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ],
+              "easing": "easeOutElastic"
+            },
+            "2.0": {
+              "vector": [
+                0,
+                0,
+                -14
+              ]
+            },
+            "3.0": {
+              "vector": [
+                -44,
+                0,
+                7
+              ],
+              "easing": "easeInExpo"
+            },
+            "4.0": {
+              "vector": [
+                -16,
+                0,
+                40
+              ]
+            },
+            "5.0": {
+              "vector": [
+                16,
+                -1,
+                16
+              ],
+              "easing": "easeOutCirc"
+            },
+            "6.0": {
+              "vector": [
+                1,
+                1,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "1.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "geckolib_format_version": 2
+}

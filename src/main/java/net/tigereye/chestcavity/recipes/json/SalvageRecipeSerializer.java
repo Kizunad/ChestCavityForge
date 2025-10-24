@@ -1,72 +1,65 @@
 package net.tigereye.chestcavity.recipes.json;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.tigereye.chestcavity.recipes.SalvageRecipe;
-import net.tigereye.chestcavity.registration.CCRecipes;
 
+public class SalvageRecipeSerializer implements RecipeSerializer<SalvageRecipe> {
+  private static final MapCodec<SalvageRecipe> CODEC =
+      RecordCodecBuilder.mapCodec(
+          instance ->
+              instance
+                  .group(
+                      CraftingBookCategory.CODEC
+                          .optionalFieldOf("category", CraftingBookCategory.MISC)
+                          .forGetter(SalvageRecipe::category),
+                      Ingredient.CODEC_NONEMPTY
+                          .fieldOf("ingredient")
+                          .forGetter(SalvageRecipe::getInput),
+                      Codec.INT
+                          .optionalFieldOf("required", 1)
+                          .forGetter(SalvageRecipe::getRequired),
+                      BuiltInRegistries.ITEM
+                          .byNameCodec()
+                          .fieldOf("result")
+                          .forGetter(SalvageRecipe::getOutputItem),
+                      Codec.INT
+                          .optionalFieldOf("count", 1)
+                          .forGetter(SalvageRecipe::getOutputCount))
+                  .apply(
+                      instance,
+                      (category, ingredient, required, resultItem, count) ->
+                          new SalvageRecipe(
+                              category, ingredient, required, new ItemStack(resultItem, count))));
 
-public class SalvageRecipeSerializer implements IRecipeSerializer<SalvageRecipe> {
+  private static final StreamCodec<RegistryFriendlyByteBuf, SalvageRecipe> STREAM_CODEC =
+      StreamCodec.composite(
+          CraftingBookCategory.STREAM_CODEC,
+          SalvageRecipe::category,
+          Ingredient.CONTENTS_STREAM_CODEC,
+          SalvageRecipe::getInput,
+          ByteBufCodecs.VAR_INT,
+          SalvageRecipe::getRequired,
+          ItemStack.STREAM_CODEC,
+          SalvageRecipe::getOutputPrototype,
+          SalvageRecipe::new);
 
-    @Override
-    public SalvageRecipe fromJson(ResourceLocation id, JsonObject json) {
-        SalvageRecipeJsonFormat recipeJson = new Gson().fromJson(json, SalvageRecipeJsonFormat.class);
+  @Override
+  public MapCodec<SalvageRecipe> codec() {
+    return CODEC;
+  }
 
-        if (recipeJson.ingredient == null || recipeJson.result == null) {
-            throw new JsonSyntaxException("A required attribute is missing!");
-        }
-
-        if (recipeJson.required == 0) recipeJson.required = 1;
-        if (recipeJson.count == 0) recipeJson.count = 1;
-        Ingredient input = Ingredient.fromJson(recipeJson.ingredient);
-        Item outputItem = Registry.ITEM.getOptional(new ResourceLocation(recipeJson.result))
-                // Validate the inputted item actually exists
-                .orElseThrow(() -> new JsonSyntaxException("No such item " + recipeJson.result));
-        ItemStack output = new ItemStack(outputItem, recipeJson.count);
-
-        return new SalvageRecipe(input, recipeJson.required, output, id);
-    }
-
-    @Override
-    public SalvageRecipe fromNetwork(ResourceLocation id, PacketBuffer buf) {
-        Ingredient input = Ingredient.fromNetwork(buf);
-        int required = buf.readInt();
-        ItemStack output = buf.readItem();
-        return new SalvageRecipe(input, required, output, id);
-    }
-
-    @Override
-    public void toNetwork(PacketBuffer buf, SalvageRecipe recipe) {
-        recipe.getInput().toNetwork(buf);
-        buf.writeInt(recipe.getRequired());
-        buf.writeItem(recipe.getResultItem());
-    }
-
-    @Override
-    public IRecipeSerializer<?> setRegistryName(ResourceLocation name) {
-        return this;
-    }
-
-    @Override
-    public ResourceLocation getRegistryName() {
-        return CCRecipes.SALVAGE_RECIPE_ID;
-    }
-
-    @Override
-    public Class<IRecipeSerializer<?>> getRegistryType() {
-        return castClass(IRecipeSerializer.class);
-    }
-
-    private static <G> Class<G> castClass(Class<?> cls)
-    {
-        return (Class<G>)cls;
-    }
+  @Override
+  public StreamCodec<RegistryFriendlyByteBuf, SalvageRecipe> streamCodec() {
+    return STREAM_CODEC;
+  }
 }

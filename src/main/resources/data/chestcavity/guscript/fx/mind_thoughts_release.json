@@ -1,0 +1,23 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.respawn_anchor.deplete", "volume": 0.6, "pitch": 1.35 },
+    { "type": "sound", "sound": "minecraft:block.amethyst_cluster.hit", "volume": 0.45, "pitch": 1.65 },
+    { "type": "particle",
+      "particle": "minecraft:dust",
+      "color": "#c5b6ff",
+      "size": 1.4,
+      "speed": 0.12,
+      "spread": [0.6, 0.3, 0.6],
+      "offset": [0, 1.5, 0],
+      "count": 36
+    },
+    { "type": "particle",
+      "particle": "minecraft:enchant",
+      "count": 24,
+      "speed": 0.05,
+      "spread": [0.4, 0.35, 0.4],
+      "offset": [0, 1.7, 0]
+    },
+    { "type": "screen_shake", "intensity": 0.1, "duration": 8 }
+  ]
+}

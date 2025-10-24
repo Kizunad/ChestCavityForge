@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:rou_bai_gu",
+  "organScores": [
+    {"id":"chestcavity:rot_digestion","value":"2"},
+    {"id":"chestcavity:health","value":"8"},
+    {"id":"chestcavity:digestion","value":"2"}
+  ]
+}

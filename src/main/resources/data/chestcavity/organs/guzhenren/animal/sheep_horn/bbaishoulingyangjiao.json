@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:bbaishoulingyangjiao",
+  "organScores": [
+    {
+      "id": "chestcavity:defense",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:filtration",
+      "value": "10"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "20"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.amethyst_block.chime",
+      "volume": 0.55,
+      "pitch": 1.4
+    },
+    {
+      "type": "trail",
+      "particle": "minecraft:end_rod",
+      "offset": [0.0, 1.6, 0.0],
+      "segments": 20,
+      "spacing": 0.19,
+      "speed": 0.05,
+      "spread": [0.02, 0.02, 0.02]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:glow",
+      "count": 10,
+      "offset": [0.0, 1.8, 0.0],
+      "spread": [0.15, 0.2, 0.15],
+      "speed": 0.0
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:shuilaogugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:shui_ke_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shui_zuan_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shui_zuan_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shui_guang_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shui_guang_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shui_guang_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:san_xing_hui_ying_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:liang_xing_hui_ying_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:liang_xing_hui_ying_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:liang_xing_hui_ying_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xing_ban_dian_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xing_ban_dian_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:xing_ban_dian_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

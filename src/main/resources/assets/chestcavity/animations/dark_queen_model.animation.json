@@ -1,0 +1,39 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"animation.chestcavity.dark_queen_model.swing": {
+			"animation_length": 3,
+			"bones": {
+				"bone": {
+					"rotation": {
+						"0.0": {
+							"vector": [-291.84101, 29.24582, -432.58143]
+						},
+						"1.5": {
+							"vector": [-298.21983, 23.13887, -446.99537],
+							"easing": "easeInQuint"
+						},
+						"3.0": {
+							"vector": [-464.55733, -22.92513, -599.50942],
+							"easing": "easeInCubic"
+						}
+					},
+					"position": {
+						"0.0": {
+							"vector": [-4, 13, 1]
+						},
+						"1.5": {
+							"vector": [-4, 12, 0],
+							"easing": "easeInSine"
+						},
+						"3.0": {
+							"vector": [22.34, 48.41, 9.22],
+							"easing": "easeInCirc"
+						}
+					}
+				}
+			}
+		}
+	},
+	"geckolib_format_version": 2
+}

@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:xie_yan_gu",
+  "organScores": [
+    {"id":"chestcavity:strength","value": "4"},
+    {"id":"chestcavity:speed","value": "2"},
+    {"id":"nerves","value":"0.5"}
+  ]
+}

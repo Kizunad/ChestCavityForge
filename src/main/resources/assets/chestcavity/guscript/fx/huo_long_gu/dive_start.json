@@ -1,0 +1,27 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:item.trident.riptide_3",
+      "volume": 0.8,
+      "pitch": 1.05
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#ffd27a",
+      "to_color": "#ffffff",
+      "size": 0.28,
+      "count": 18,
+      "spread": [0.45, 0.2, 0.45],
+      "speed": 0.02
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:flame",
+      "count": 12,
+      "spread": [0.4, 0.2, 0.4],
+      "speed": 0.04
+    }
+  ]
+}

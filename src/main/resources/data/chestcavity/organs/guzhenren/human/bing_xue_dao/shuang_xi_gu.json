@@ -1,0 +1,9 @@
+{
+  "itemID": "guzhenren:shuang_xi_gu",
+  "organScores": [
+    {"id": "chestcavity:breath_recovery", "value": 4},
+    {"id": "chestcavity:breath_capacity", "value": 4},
+    {"id": "chestcavity:endurance", "value": 4},
+    {"id": "chestcavity:speed", "value": 1}
+  ]
+}

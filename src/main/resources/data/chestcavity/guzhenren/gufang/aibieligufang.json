@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:aibieligufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:xinzang",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaixianxue",
+      "count": 1
+    },
+    {
+      "item": "minecraft:spider_eye",
+      "count": 1
+    },
+    {
+      "item": "minecraft:fermented_spider_eye",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "minecraft:air",
+    "count": 0
+  }
+}

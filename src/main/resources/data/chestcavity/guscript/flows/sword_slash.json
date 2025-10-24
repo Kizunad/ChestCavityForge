@@ -1,0 +1,94 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        {
+          "trigger": "start",
+          "target": "releasing",
+          "guards": [
+            {
+              "type": "cooldown",
+              "key": "chestcavity:sword_slash"
+            }
+          ],
+          "actions": [
+            {
+              "type": "set_cooldown",
+              "key": "chestcavity:sword_slash",
+              "ticks": 40
+            }
+          ]
+        }
+      ]
+    },
+    "releasing": {
+      "enter_actions": [
+        {
+          "type": "emit_gecko_relative",
+          "fx": "chestcavity:vanquisher_sword_slash_two",
+          "anchor": "performer",
+          "relative_offset": [
+            0.0,
+            -2.0,
+            3.0
+          ],
+          "scale": 1.0,
+          "alpha": 0.9,
+          "loop": false,
+          "duration": 89
+        },
+        {
+          "type": "play_break_air_sound",
+          "delay_ticks": 20,
+          "volume": 4.0,
+          "pitch": 1.2
+        },
+        {
+          "type": "play_break_air_sound",
+          "delay_ticks": 40,
+          "volume": 4.0,
+          "pitch": 1.0
+        },
+        {
+          "type": "play_break_air_sound",
+          "delay_ticks": 60,
+          "volume": 3.0,
+          "pitch": 0.8
+        },
+        {
+          "type": "slash_area",
+          "radius": 2.5,
+          "damage": 90.0,
+          "break_power": 5.0
+        },
+        {
+          "type": "slash_delayed_ray",
+          "delay_ticks": 50,
+          "length": 20.0,
+          "damage": 120.0,
+          "break_power": 5.0,
+          "ray_radius": 1
+        }
+      ],
+      "update_period": 5,
+      "transitions": [
+        {
+          "trigger": "auto",
+          "target": "cooldown",
+          "min_ticks": 8
+        }
+      ]
+    },
+    "cooldown": {
+      "enter_actions": [],
+      "transitions": [
+        {
+          "trigger": "auto",
+          "target": "idle",
+          "min_ticks": 20
+        }
+      ]
+    }
+  }
+}

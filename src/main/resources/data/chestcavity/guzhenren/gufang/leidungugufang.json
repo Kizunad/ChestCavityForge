@@ -1,0 +1,42 @@
+{
+  "gufang_id": "guzhenren:leidungugufang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:dianjianggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:dianwanggu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bei_jia_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:dianliugu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:bbaishouwanglangpi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:qqianshouwanglangpi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:leidungu",
+    "count": 1
+  }
+}

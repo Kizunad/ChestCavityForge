@@ -1,0 +1,18 @@
+{
+  "id": "guzhenren:qianlangwangrou",
+  "title": "蛊材_千兽王狼肉",
+  "summary": "",
+  "details": [
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：50",
+    "速度：1",
+    "力量：50",
+    "最大念头：10",
+    "最大精力：40",
+    "最大真元：40"
+  ],
+  "tags": [
+    "蛊材_千兽王狼肉",
+    "guzhenren:qianlangwangrou"
+  ],
+  "icon": "guzhenren:qianlangwangrou"
+}

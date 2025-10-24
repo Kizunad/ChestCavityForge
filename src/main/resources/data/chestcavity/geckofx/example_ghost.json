@@ -1,0 +1,10 @@
+{
+  "model": "chestcavity:geo/ghost_tiger.geo.json",
+  "texture": "minecraft:textures/entity/phantom.png",
+  "animation": "chestcavity:animations/ghost_tiger.animation.json",
+  "default_animation": "animation.chestcavity.ghost_tiger.idle",
+  "default_scale": 1.0,
+  "default_tint": "#FFFFFF",
+  "default_alpha": 1.0,
+  "blend": "translucent"
+}

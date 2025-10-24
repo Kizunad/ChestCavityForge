@@ -1,0 +1,34 @@
+{
+  "gufang_id": "guzhenren:hei_zong_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:shou_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shou_pi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:hei_shi_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:zhi_xin_cao_gen",
+      "count": 1
+    },
+    {
+      "item": "minecraft:leather_chestplate",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:hei_zong_gu",
+    "count": 1
+  }
+}

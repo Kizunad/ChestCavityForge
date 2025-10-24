@@ -1,165 +1,367 @@
-buildscript {
-    repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        mavenCentral()
-        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
-    }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
-        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'idea'
+    id 'net.neoforged.moddev' version '2.0.14-beta'
+    // 使用 GradleUp Shadow 做可选依赖重定位与打包（支持 Java 21 / Gradle 8+）
+    id 'com.gradleup.shadow' version '9.2.2'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'checkstyle'
+}
+
+
+version = mod_version
+group = mod_group_id
+
+// 默认内嵌的 Baritone 本地 Jar（如存在则自动启用，无需 -Pbaritone_local）
+def __baritoneLocalDefault = file('libs/baritone-api-neoforge-1.11.2.jar')
+// 可选的源码子模块 external/Baritone
+def __baritoneProject = findProject(':external:Baritone')
+// 统一开关：任一来源（源码子模块 / -Pbaritone_dep / -Pbaritone_local / 默认 libs jar）存在即启用打包
+def __baritoneOff = project.hasProperty('baritone_off')
+def __useBaritone = !__baritoneOff && 
+        ((__baritoneProject != null) || project.hasProperty('baritone_dep') || project.hasProperty('baritone_local') || __baritoneLocalDefault.exists())
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    // NeoForge 官方
+    maven { url = "https://maven.neoforged.net/releases" }
+
+    // Cloth Config
+    maven { url = "https://maven.shedaniel.me" }
+
+    // GeckoLib
+    maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven" }
+
+    // Modern UI
+    maven { url = "https://maven.izzel.io/releases" }
+    // Optional: Baritone (enable via -Pbaritone_dep=group:artifact:version)
+    if (project.hasProperty('baritone_dep')) {
+        maven { url = "https://impactdevelopment.github.io/maven" }
+        // Some forks publish to JitPack; add only if requested to avoid slowdown
+        if (project.hasProperty('baritone_repo_jitpack')) {
+            maven { url = "https://jitpack.io" }
+        }
     }
 }
-apply plugin: 'net.minecraftforge.gradle'
-// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
-apply plugin: 'eclipse'
-apply plugin: 'maven-publish'
 
-version = "${mod_version}-${mc_version}"
-group = "net.tigereye.${modid}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "${modid}"
+base {
+    archivesName = mod_id
+}
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
 
-minecraft {
-    // The mappings can be changed at any time, and must be in the following format.
-    // snapshot_YYYYMMDD   Snapshot are built nightly.
-    // stable_#            Stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
-    mappings channel: 'official', version: '1.16.5'
-    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+spotless {
+    java {
+        googleJavaFormat('1.17.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
 
-    //accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+checkstyle {
+    toolVersion = '10.20.0'
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    configProperties = [
+        "charset": "UTF-8"
+    ]
+}
 
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
     runs {
         client {
-            properties 'mixin.env.remapRefMap': 'true'
-            property 'mixin.env.refMapRemappingFile', "${project.projectDir}/build/createSrgToMcp/output.srg"
-            workingDirectory project.file('run_client')
-            arg "-mixin.config="+archivesBaseName+".mixins.json"
-
-
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                examplemod {
-                    source sourceSets.main
-                }
-            }
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
         server {
-            properties 'mixin.env.remapRefMap': 'true'
-            property 'mixin.env.refMapRemappingFile', "${project.projectDir}/build/createSrgToMcp/output.srg"
-            workingDirectory project.file('run_server')
-            arg "-mixin.config="+archivesBaseName+".mixins.json"
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
 
+        gameTestServer {
+            type = 'gameTestServer'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
 
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', file('src/main/resources/').absolutePath
+        }
 
-            mods {
-                examplemod {
-                    source sourceSets.main
-                }
-            }
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
         }
     }
 }
 
-repositories{
-    maven {
-        // location of the maven that hosts JEI files
-        name = "Progwml6 maven"
-        url = "https://dvs1.progwml6.com/files/maven/"
-    }
-    maven {
-        // location of a maven mirror for JEI files, as a fallback
-        name = "ModMaven"
-        url = "https://modmaven.dev/"
-    }
-    maven {
-        url "https://www.cursemaven.com"
-    }
-    jcenter()
-    mavenCentral()
+def mixinRefmapName = "${mod_id}.refmap.json"
+def generatedMixinResourcesDir = layout.buildDirectory.dir("generated/mixins")
+def generatedRefmapFile = generatedMixinResourcesDir.map { it.file(mixinRefmapName) }
+def mixinDefaultObfuscation = findProperty('mixin_default_obfuscation') ?: 'notch'
 
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    srcDir(generatedMixinResourcesDir)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.register('scanStrengthOrgans', Exec) { task ->
+    File scriptFile = project.file('scripts/scan_strength_organs.py')
+    task.onlyIf { scriptFile.exists() }
+    task.commandLine 'python3', scriptFile.absolutePath
+}
+
+tasks.register('generateCultivatorGuBugPools', Exec) { task ->
+    File scriptFile = project.file('scripts/generate_cultivator_gu_bug_pools.py')
+    task.onlyIf { scriptFile.exists() }
+    task.commandLine 'python3', scriptFile.absolutePath
+}
+
+tasks.named('compileJava', JavaCompile).configure {
+    dependsOn tasks.named('scanStrengthOrgans')
+    dependsOn tasks.named('generateCultivatorGuBugPools')
+    def refmapFile = generatedRefmapFile.get().asFile
+    options.compilerArgs += [
+            "-AdefaultObfuscationEnv=${mixinDefaultObfuscation}",
+            "-AoutRefMapFile=${refmapFile.absolutePath}"
+    ]
+    doFirst {
+        refmapFile.parentFile.mkdirs()
+    }
+}
+
+tasks.named('compileTestJava', JavaCompile).configure {
+    classpath = classpath.plus(tasks.named('compileJava', JavaCompile).get().classpath)
+    options.annotationProcessorPath = tasks.named('compileJava', JavaCompile).get().options.annotationProcessorPath
 }
 
 dependencies {
-    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
-    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
-    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
-    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}" //21
-    compileOnly fg.deobf("curse.maven:clothconfig-348521:3782784")
-    runtimeOnly fg.deobf("curse.maven:clothconfig-348521:3782784")
-    // You may put jars on which you depend on in ./libs or you may define them like so..
-    // compile "some.group:artifact:version:classifier"
-    // compile "some.group:artifact:version"
+    // ===== Cloth Config (强依赖，运行必需) =====
+    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    runtimeOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    testImplementation "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
 
-    // Real examples
-    // compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
-    // compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+    // ===== GeckoLib (动画库) =====
+    // 主模块按需依赖：编译期与运行期均可用（不打包）
+    compileOnly "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
+    runtimeOnly  "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
+    // 测试环境也提供（供单元测试/运行时类可见）
+    testImplementation "software.bernie.geckolib:geckolib-neoforge-${geckolib_mc}:${geckolib_version}"
 
-    // The 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
-    // provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+    // ===== Modern UI (界面框架前置) =====
+    compileOnly("icyllis.modernui:ModernUI-Core:${modernui_core_version}") { transitive = false }
+    compileOnly("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") { transitive = false }
+    compileOnly("icyllis.modernui:ModernUI-NeoForge:${modernui_version}") { transitive = false }
+    runtimeOnly("icyllis.modernui:ModernUI-Core:${modernui_core_version}") { transitive = false }
+    runtimeOnly("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") { transitive = false }
+    runtimeOnly("icyllis.modernui:ModernUI-NeoForge:${modernui_version}") { transitive = false }
+    testImplementation("icyllis.modernui:ModernUI-NeoForge:${modernui_version}") { transitive = false }
+    testRuntimeOnly("icyllis.modernui:ModernUI-Core:${modernui_core_version}") { transitive = false }
+    testRuntimeOnly("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") { transitive = false }
 
-    // These dependencies get remapped to your current MCP mappings
-    // deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+    // 本地 jar（AttributeFix、PlayerAnimator）
+    testImplementation files("libs/attributefix-neoforge-1.21.1-21.1.2.jar")
+    testImplementation files("libs/player-animation-lib-forge-2.0.1+1.21.1.jar")
+    testImplementation files("libs/gzr.jar")
+    testImplementation files("libs/Pehkui-3.8.3+1.21-neoforge.jar")
 
-    // For more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    testImplementation 'com.google.guava:guava:33.3.1-jre'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
 
+
+    annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
+
+    // ===== Baritone（可选：源码子模块 / 远程坐标 / 本地 Jar） =====
+    // 1) 源码子模块：仅编译期可见，避免在常规运行时产生第二个模组
+    if (__baritoneProject != null) {
+        compileOnly project(":external:Baritone")
+        testImplementation project(":external:Baritone")
+    }
+    // 2) 远程坐标：通过 -Pbaritone_dep=group:artifact:version 指定
+    //    例如 -Pbaritone_dep=cabaletta:baritone-api:1.21.1-SNAPSHOT
+    if (project.hasProperty('baritone_dep')) {
+        implementation project.property('baritone_dep')
+        testImplementation project.property('baritone_dep')
+    }
+    // 3) 本地 Jar：通过 -Pbaritone_local=/path/to/baritone.jar 指定
+    if (project.hasProperty('baritone_local')) {
+        def jarPath = project.property('baritone_local')
+        implementation files(jarPath)
+        testImplementation files(jarPath)
+    }
 }
 
-sourceSets {
-    main.resources.srcDirs += 'src/generated/resources'
+test {
+    useJUnitPlatform()
+    classpath += sourceSets.main.runtimeClasspath
 }
 
-// Example for how to get properties into the manifest for reading by the runtime..
+processResources {
+    def replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand replaceProperties
+    }
+}
+
+tasks.named('processResources').configure {
+    dependsOn(tasks.named('compileJava'))
+}
+
 jar {
     manifest {
-        attributes([
-                "Specification-Title": "${modid}",
-                "Specification-Vendor": "examplemodsareus",
-                "Specification-Version": "1", // We are version 1 of ourselves
-                "Implementation-Title": project.name,
-                "Implementation-Version": "${version}",
-                "Implementation-Vendor" :"examplemodsareus",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                "MixinConfigs": "${modid}.mixins.json"
+        attributes(
+                'Specification-Title'   : mod_id,
+                'Specification-Vendor'  : mod_group_id,
+                'Specification-Version' : '1',
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': mod_version,
+                'Implementation-Vendor' : mod_group_id,
+                'MixinConfigs'          : "${mod_id}.mixins.json"
+        )
+    }
+}
+
+// 可选嵌入依赖（Baritone）
+configurations { embed }
+
+dependencies {
+    // 1) 源码子模块：将产物打包进主 jar，并进行重定位；不引入其依赖（transitive=false），避免把 NeoForge 等塞入
+    if (__baritoneProject != null) {
+        embed(project(":external:Baritone")) { transitive = false }
+    }
+    // 2) 本地 Jar 优先
+    if (project.hasProperty('baritone_local')) {
+        def jarPath = project.property('baritone_local')
+        embed files(jarPath)
+    } else if (__baritoneLocalDefault.exists()) {
+        // 3) 回退到默认 libs 目录下的 jar（存在即自动启用）
+        embed files(__baritoneLocalDefault)
+    }
+    // 4) 远程坐标打包（不建议生产使用）
+    if (project.hasProperty('baritone_dep')) {
+        embed project.property('baritone_dep')
+    }
+}
+
+// 当提供 baritone 依赖时，使用 Shadow 产出主 jar 并进行重定位
+tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure { sh ->
+    if (__useBaritone) {
+        zip64 true
+        // 仅打包 embed 里的依赖，避免将 runtimeClasspath（NeoForge 等）塞进主包
+        configurations = [project.configurations.embed]
+        archiveClassifier.set('')
+        // 全局排除：避免把 Baritone 作为独立模组入口被识别
+        // 1) Baritone 模组入口路径（无论是否重定位，名称模式也排除）
+        sh.exclude 'baritone/launch/**'
+        sh.exclude 'com/github/cabaletta/baritone/launch/**'
+        sh.exclude 'baritone/neoforge/**'
+        sh.exclude 'com/github/cabaletta/baritone/neoforge/**'
+        sh.exclude 'baritone/forge/**'
+        sh.exclude 'com/github/cabaletta/baritone/forge/**'
+        // 2) 兜底：直接排除常见入口类名（不管包名如何，包含重定位后的场景）
+        sh.exclude '**/BaritoneForgeMod*.class'
+        sh.exclude '**/BaritoneMod*.class'
+        sh.exclude '**/BaritoneForge*.class'
+        // 仅打包 embed 配置里的依赖，避免把运行时所有依赖都塞进来
+        from({ project.configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } }) {
+            // 注意：只在依赖内容里排除 META-INF 与无关资源，保留本模组自己的 META-INF
+            exclude 'META-INF/**'
+            exclude 'pack.mcmeta'
+            exclude 'baritone/launch/**'
+            exclude 'com/github/cabaletta/baritone/launch/**'
+            exclude 'baritone/neoforge/**'
+            exclude 'com/github/cabaletta/baritone/neoforge/**'
+            exclude 'baritone/forge/**'
+            exclude 'com/github/cabaletta/baritone/forge/**'
+            exclude '**/BaritoneForgeMod*.class'
+            exclude '**/BaritoneMod*.class'
+            exclude '**/BaritoneForge*.class'
+        }
+        // 复制原 jar 的 manifest（保持 Mixin 配置与 mod 元信息）
+        manifest.attributes([
+                'Specification-Title'   : mod_id,
+                'Specification-Vendor'  : mod_group_id,
+                'Specification-Version' : '1',
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': mod_version,
+                'Implementation-Vendor' : mod_group_id,
+                'MixinConfigs'          : "${mod_id}.mixins.json"
         ])
+        mergeServiceFiles()
+        // 重定位（若存在这些包名则生效）
+        relocate 'baritone', 'net.tigereye.chestcavity.shadow.baritone'
+        relocate 'com.github.cabaletta.baritone', 'net.tigereye.chestcavity.shadow.com.github.cabaletta.baritone'
+    } else {
+        enabled = false
     }
 }
 
-// Example configuration to allow publishing using the maven-publish task
-// we define a custom artifact that is sourced from the reobfJar output task
-// and then declare that to be published
-// Note you'll need to add a repository here
-def reobfFile = file("$buildDir/reobfJar/output.jar")
-def reobfArtifact = artifacts.add('default', reobfFile) {
-    type 'jar'
-    builtBy 'reobfJar'
+// 启用 shadow 产物替代常规 jar（仅在提供 baritone 依赖时）
+tasks.named('jar').configure { it.enabled = !__useBaritone }
+tasks.named('assemble').configure { t ->
+    if (__useBaritone) {
+        dependsOn tasks.named('shadowJar')
+    }
 }
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact reobfArtifact
+
+// 备注：如需改用 Shadow 做重定位，请等待外网插件仓库可用后再切换。
+
+tasks.named('jar').configure { t ->
+    if (project.hasProperty('baritone_dep') || project.hasProperty('baritone_local')) {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        from({ project.configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } }) {
+            // 避免覆盖 manifest 与签名、及与我们无关的元数据
+            exclude 'META-INF/**'
+            exclude 'pack.mcmeta'
         }
     }
-    repositories {
-        maven {
-            url "file:///${project.projectDir}/mcmodsrepo"
-        }
-    }
 }
 
-apply plugin: 'org.spongepowered.mixin'
 
-mixin {
-    add sourceSets.main, "${modid}.refmap.json"
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
 }

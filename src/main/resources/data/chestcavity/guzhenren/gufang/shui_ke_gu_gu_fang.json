@@ -1,0 +1,30 @@
+{
+  "gufang_id": "guzhenren:shui_ke_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:shui_jian_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:shui_guang_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:yu_lin_gu",
+      "count": 1
+    },
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:water_bucket",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:shui_ke_gu",
+    "count": 1
+  }
+}

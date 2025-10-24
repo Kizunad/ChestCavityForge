@@ -1,0 +1,16 @@
+{
+  "id": "guzhenren:chi_tie_she_li_gu",
+  "title": "赤铁舍利蛊",
+  "summary": "",
+  "details": [
+    "最大真元：10",
+    "最大魂魄：50",
+    "[被动] 魂魄达到上限时自动清除自身缓慢与挖掘疲劳，冷却10分钟。",
+    "[主动] 宁心一瞬：消耗800点青铜真元与20点魂魄，立即恢复20%生命（上限200），冷却30秒。"
+  ],
+  "tags": [
+    "赤铁舍利蛊",
+    "guzhenren:chi_tie_she_li_gu"
+  ],
+  "icon": "guzhenren:chi_tie_she_li_gu"
+}

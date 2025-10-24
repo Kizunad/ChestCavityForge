@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.warden.sonic_boom",
+      "volume": 0.5,
+      "pitch": 1.8
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:small_flame",
+      "count": 16,
+      "spread": [0.3, 0.3, 0.3],
+      "speed": 0.08
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dragon_breath",
+      "count": 18,
+      "spread": [0.4, 0.4, 0.4],
+      "speed": 0.02
+    }
+  ]
+}

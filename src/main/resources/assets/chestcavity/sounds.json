@@ -1,0 +1,18 @@
+{
+  "custom.common.dong_dong": {
+    "sounds": [
+      { "name": "chestcavity:custom/common/dong_dong" }
+    ]
+  },
+  "custom.common.heart_beat": {
+    "sounds": [
+      { "name": "chestcavity:custom/common/heart_beat" }
+    ]
+  }
+,
+  "custom.wind.storm": {
+    "sounds": [
+      { "name": "chestcavity:custom/wind/storm" }
+    ]
+  }
+}

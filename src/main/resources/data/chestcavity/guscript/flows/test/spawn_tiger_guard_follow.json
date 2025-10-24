@@ -1,0 +1,17 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "enter_actions": [
+        { "id": "spawn.entity", "entityId": "guzhenren:hu", "offset": [1.0, 0.0, 0.0], "noAi": false },
+        { "type": "bind_owner_nudao", "radius": 3.0, "tame_if_possible": true },
+        { "type": "order_guard", "radius": 8.0, "seek_hostiles": true, "acquire_radius": 24.0 }
+      ],
+      "update_actions": [
+        { "type": "assist_player_attacks", "ally_radius": 12.0, "recent_ticks": 40, "acquire_radius": 24.0 }
+      ],
+      "update_period": 5
+    }
+  }
+}
+

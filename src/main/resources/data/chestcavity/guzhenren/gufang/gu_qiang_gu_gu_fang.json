@@ -1,0 +1,26 @@
+{
+  "gufang_id": "guzhenren:gu_qiang_gu_gu_fang",
+  "base_success": 0.5,
+  "inputs": [
+    {
+      "item": "guzhenren:gucaiyuanshi",
+      "count": 1
+    },
+    {
+      "item": "minecraft:bone",
+      "count": 1
+    },
+    {
+      "item": "minecraft:stick",
+      "count": 1
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 1
+    }
+  ],
+  "output": {
+    "item": "guzhenren:gu_qiang_gu",
+    "count": 1
+  }
+}

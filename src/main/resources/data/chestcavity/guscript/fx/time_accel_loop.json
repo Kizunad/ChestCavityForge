@@ -1,0 +1,14 @@
+{
+  "modules": [
+    { "type": "sound", "sound": "minecraft:block.beacon.ambient", "volume": 0.35, "pitch": 1.2 },
+    { "type": "trail",
+      "particle": "minecraft:crit",
+      "speed": 0.06,
+      "spread": [0.02, 0.02, 0.02],
+      "offset": [0, 1.4, 0],
+      "segments": 28,
+      "spacing": 0.22
+    }
+  ]
+}
+

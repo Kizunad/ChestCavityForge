@@ -1,0 +1,90 @@
+{
+  "initial_state": "idle",
+  "states": {
+    "idle": {
+      "transitions": [
+        { "trigger": "start", "target": "charging" }
+      ]
+    },
+    "charging": {
+      "enter_actions": [
+        { "type": "set_variable", "name": "hun_shou_hua.fail_reason", "value": 0.0, "value_type": "long" },
+        { "type": "emit_fx", "fx": "chestcavity:soulbeast_transform_prepare", "base_intensity": 1.0 }
+      ],
+      "transitions": [
+        {
+          "trigger": "auto",
+          "target": "cancel",
+          "guards": [
+            { "type": "hun_shou_hua_used", "expected": true }
+          ],
+          "actions": [
+            { "type": "set_variable", "name": "hun_shou_hua.fail_reason", "value": 2.0, "value_type": "long" }
+          ]
+        },
+        { "trigger": "auto", "target": "charged", "min_ticks": 20 },
+        { "trigger": "cancel", "target": "cancel" }
+      ]
+    },
+    "charged": {
+      "enter_fx": [ "chestcavity:soulbeast_transform_channel" ],
+      "update_period": 20,
+      "update_actions": [
+        {
+          "type": "consume_resources_combo",
+          "zhenyuan": 200.0,
+          "health": 1.0,
+          "failure_reason": "hun_shou_hua:resources"
+        },
+        { "type": "emit_fx", "fx": "chestcavity:soulbeast_transform_channel", "base_intensity": 0.75 }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "releasing", "min_ticks": 200 },
+        { "trigger": "cancel", "target": "cancel" }
+      ]
+    },
+    "releasing": {
+      "enter_fx": [ "chestcavity:soulbeast_transform_success" ],
+      "enter_actions": [
+        {
+          "type": "trigger_actions",
+          "actions": [
+            { "id": "action.soulbeast.transform", "source": "chestcavity:hun_dao/hun_shou_hua" },
+            { "id": "action.hun_shou_hua.mark_used" }
+          ]
+        }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 20 }
+      ]
+    },
+    "cooldown": {
+      "transitions": [
+        { "trigger": "auto", "target": "idle", "min_ticks": 200 }
+      ]
+    },
+    "cancel": {
+      "enter_actions": [
+        {
+          "type": "emit_fx_conditional",
+          "fx": "chestcavity:soulbeast_transform_fail",
+          "variable": "hun_shou_hua.fail_reason",
+          "skip_value": 2.0,
+          "intensity": 1.0
+        },
+        {
+          "type": "play_sound_conditional",
+          "id": "chestcavity:custom.soulbeast.fail_soulbeast_transform",
+          "anchor": "performer",
+          "variable": "hun_shou_hua.fail_reason",
+          "skip_value": 2.0,
+          "volume": 1.0,
+          "pitch": 1.0
+        }
+      ],
+      "transitions": [
+        { "trigger": "auto", "target": "cooldown", "min_ticks": 40 }
+      ]
+    }
+  }
+}

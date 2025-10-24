@@ -1,0 +1,202 @@
+{
+  "defaultChestCavity": [
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 0
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 1
+    },
+    {
+      "item": "chestcavity:animal_appendix",
+      "position": 2
+    },
+    {
+      "item": "chestcavity:animal_lung",
+      "position": 3
+    },
+    {
+      "item": "chestcavity:animal_heart",
+      "position": 4
+    },
+    {
+      "item": "chestcavity:animal_lung",
+      "position": 5
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 7
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 8
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 9
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 10
+    },
+    {
+      "item": "chestcavity:animal_spleen",
+      "position": 11
+    },
+    {
+      "item": "chestcavity:animal_kidney",
+      "position": 12
+    },
+    {
+      "item": "chestcavity:animal_spine",
+      "position": 13
+    },
+    {
+      "item": "chestcavity:animal_kidney",
+      "position": 14
+    },
+    {
+      "item": "chestcavity:animal_liver",
+      "position": 15
+    },
+    {
+      "item": "chestcavity:animal_rib",
+      "position": 16
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 17
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 18
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 19
+    },
+    {
+      "item": "chestcavity:herbivore_intestine",
+      "position": 20
+    },
+    {
+      "item": "chestcavity:herbivore_intestine",
+      "position": 21
+    },
+    {
+      "item": "chestcavity:herbivore_stomach",
+      "position": 22
+    },
+    {
+      "item": "chestcavity:herbivore_intestine",
+      "position": 23
+    },
+    {
+      "item": "chestcavity:herbivore_intestine",
+      "position": 24
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 25
+    },
+    {
+      "item": "chestcavity:animal_muscle",
+      "position": 26
+    }
+  ],
+  "randomGenerators": [
+    {
+      "id": "chestcavity:sheep/shui_dao",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:ling_xian_gu",
+        "guzhenren:shui_ti_gu",
+        "guzhenren:jiezegu",
+        "guzhenren:quan_yong_ming_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:sheep/bing_xue_dao",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:bing_bu_gu",
+        "guzhenren:bing_ji_gu",
+        "guzhenren:shuang_xi_gu",
+        "guzhenren:qing_re_gu"
+      ]
+    },
+    {
+      "id": "chestcavity:sheep/assorted_dao",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "items": [
+        "guzhenren:dianliugu",
+        "guzhenren:fen_shen_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:chou_pi_gu",
+        "guzhenren:liandaogu",
+        "guzhenren:ling_guang_yi_shan_gu",
+        "guzhenren:ganjingu",
+        "guzhenren:huorengu"
+      ]
+    }
+  ]
+}

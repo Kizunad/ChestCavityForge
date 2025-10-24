@@ -1,0 +1,684 @@
+package net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.fx.XiaoGuangFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TargetingOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
+import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.util.CombatUtil;
+import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
+import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+
+/** 光道·小光蛊（眼类器官）——提供折影残像、幻映分身与光遁步。 */
+public final class XiaoGuangGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
+    implements OrganSlowTickListener, OrganIncomingDamageListener {
+
+  public static final XiaoGuangGuOrganBehavior INSTANCE = new XiaoGuangGuOrganBehavior();
+
+  // 器官、能力的命名空间常量
+  private static final String MOD_ID = "guzhenren";
+  private static final ResourceLocation ORGAN_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiaoguanggu");
+  public static final ResourceLocation ABILITY_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "xiao_guang_illusion");
+
+  // 组织器官状态用的键值常量
+  private static final String STATE_ROOT = "XiaoGuangGu";
+  private static final String KEY_TIER = "Tier";
+  private static final String KEY_POINTS = "LuminaPoints";
+  private static final String KEY_MIRROR_EXPIRE_TICK = "MirrorExpireTick";
+  private static final String KEY_LAST_DODGE_TICK = "LastDodgeTick";
+  private static final String KEY_LAST_KILL_POINT_TICK = "LastKillPointTick";
+  private static final String KEY_LAST_DECOY_POINT_TICK = "LastDecoyPointTick";
+  private static final String KEY_LAST_LIGHTSTEP_POINT_TICK = "LastLightstepPointTick";
+  private static final String KEY_DODGE_READY_TICK = "BaseDodgeReadyTick";
+  private static final String KEY_LIGHTSTEP_READY_TICK = "LightstepReadyTick";
+  private static final String KEY_ABILITY_READY_TICK = "AbilityReadyTick";
+
+  // 小光蛊的转数与光辉点阈值
+  private static final int MIN_TIER = 2;
+  private static final int MAX_TIER = 4;
+  private static final int LUMINA_CAP = 200;
+  private static final int REQUIRE_TIER3 = 40;
+  private static final int REQUIRE_TIER4 = 120;
+
+  // 折影残像相关数值
+  private static final int MIRROR_DURATION_TICKS = 60;
+  private static final double MIRROR_PROJECTILE_MISS_CHANCE = 0.15D;
+  private static final double MIRROR_DAMAGE_REDUCTION = 0.15D;
+
+  // 闪避（短距离移位）相关参数
+  private static final double BASE_DODGE_CHANCE = 0.22D;
+  private static final float DODGE_MIN_DISTANCE = 0.8F;
+  private static final float DODGE_MAX_DISTANCE = 1.6F;
+  private static final float DODGE_YAW_RANGE = 100.0F;
+  private static final long DODGE_COOLDOWN_TICKS = 80L;
+
+  // 光遁步（触发折影后追加）相关参数
+  private static final long LIGHTSTEP_WINDOW_TICKS = 10L;
+  private static final long LIGHTSTEP_COOLDOWN_TICKS = 200L;
+  private static final double LIGHTSTEP_DISTANCE = 5.0D;
+  private static final int LIGHTSTEP_INVIS_TICKS = 20;
+  private static final int LIGHTSTEP_EXTRA_INVIS_TICKS = 10;
+  private static final int LIGHTSTEP_INVUL_TICKS = 20;
+
+  // 幻映分身主动技相关参数
+  private static final long ABILITY_COOLDOWN_TICKS = 360L;
+  private static final double ABILITY_ZHENYUAN_COST = 200.0D;
+  private static final double ABILITY_JINGLI_COST = 5.0D;
+  private static final int DECOY_LIFETIME_TICKS = 40;
+  private static final float DECOY_ATTACK_DAMAGE_RATIO = 0.3F;
+
+  // 各类光辉点奖励的冷却时间
+  private static final int POINT_COOLDOWN_KILL_TICKS = 40;
+  private static final int POINT_COOLDOWN_DECOY_TICKS = 100;
+  private static final int POINT_COOLDOWN_LIGHTSTEP_TICKS = 600;
+
+  // 幻映分身爆裂伤害参数
+  private static final float ILLUSION_BURST_DAMAGE = 2.0F;
+  private static final double ILLUSION_BURST_RADIUS = 3.0D;
+
+  // 记录存活分身的映射表，键为分身 UUID
+  private static final Map<UUID, DecoyInfo> ACTIVE_DECOYS = new ConcurrentHashMap<>();
+
+  private XiaoGuangGuOrganBehavior() {}
+
+  static {
+    // 注册主动能力与事件监听
+    OrganActivationListeners.register(ABILITY_ID, XiaoGuangGuOrganBehavior::activateAbility);
+    NeoForge.EVENT_BUS.addListener(XiaoGuangGuOrganBehavior::onLivingDeath);
+    NeoForge.EVENT_BUS.addListener(XiaoGuangGuOrganBehavior::onLivingIncomingDamage);
+  }
+
+  @Override
+  public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
+    if (entity == null || entity.level().isClientSide()) {
+      return;
+    }
+    if (!matchesOrgan(organ, ORGAN_ID)) {
+      return;
+    }
+    Level level = entity.level();
+    long gameTime = level.getGameTime();
+    OrganState state = organState(organ, STATE_ROOT);
+    resolveTier(state);
+
+    // 根据状态控制折影残像的反应标签是否持续
+    long expire = state.getLong(KEY_MIRROR_EXPIRE_TICK, 0L);
+    if (expire > gameTime) {
+      int remaining = (int) Math.max(1L, expire - gameTime);
+      ReactionTagOps.add(entity, ReactionTagKeys.MIRROR_IMAGE, remaining);
+    } else {
+      if (ReactionTagOps.has(entity, ReactionTagKeys.MIRROR_IMAGE)) {
+        ReactionTagOps.clear(entity, ReactionTagKeys.MIRROR_IMAGE);
+      }
+    }
+  }
+
+  @Override
+  public float onIncomingDamage(
+      DamageSource source,
+      LivingEntity victim,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      float damage) {
+    if (victim == null || victim.level().isClientSide() || damage <= 0.0F) {
+      return damage;
+    }
+    if (!matchesOrgan(organ, ORGAN_ID)) {
+      return damage;
+    }
+
+    Level level = victim.level();
+    long gameTime = level.getGameTime();
+    OrganState state = organState(organ, STATE_ROOT);
+    int tier = resolveTier(state);
+
+    MultiCooldown cooldown = createCooldown(cc, organ);
+    MultiCooldown.Entry dodgeReady = cooldown.entry(KEY_DODGE_READY_TICK).withDefault(0L);
+    MultiCooldown.Entry lightstepReady = cooldown.entry(KEY_LIGHTSTEP_READY_TICK).withDefault(0L);
+
+    boolean dodged = false;
+    if (gameTime >= dodgeReady.getReadyTick()) {
+      if (victim.getRandom().nextDouble() < BASE_DODGE_CHANCE) {
+        LivingEntity attacker = source.getEntity() instanceof LivingEntity living ? living : null;
+        dodged =
+            CombatUtil.performShortDodge(
+                victim,
+                attacker,
+                DODGE_MIN_DISTANCE,
+                DODGE_MAX_DISTANCE,
+                DODGE_YAW_RANGE,
+                SoundEvents.ALLAY_ITEM_TAKEN,
+                null);
+        if (dodged) {
+          long previous = state.getLong(KEY_LAST_DODGE_TICK, 0L);
+          dodgeReady.setReadyAt(gameTime + DODGE_COOLDOWN_TICKS);
+          handleMirrorTrigger(victim, cc, organ, state, gameTime);
+          OrganStateOps.setLong(
+              state, cc, organ, KEY_LAST_DODGE_TICK, gameTime, value -> Math.max(0L, value), 0L);
+          if (tier >= 4 && lightstepReady.isReady(gameTime)) {
+            if (previous > 0L && gameTime - previous <= LIGHTSTEP_WINDOW_TICKS) {
+              if (lightstepReady.tryStart(gameTime, LIGHTSTEP_COOLDOWN_TICKS)) {
+                performLightstep(victim, cc, organ, state, gameTime);
+              }
+            }
+          }
+          return 0.0F;
+        }
+      }
+    }
+
+    long mirrorExpire = state.getLong(KEY_MIRROR_EXPIRE_TICK, 0L);
+    if (mirrorExpire > gameTime && isRangedAttack(source)) {
+      if (victim.getRandom().nextDouble() < MIRROR_PROJECTILE_MISS_CHANCE) {
+        XiaoGuangFx.playMirrorEvade(victim);
+        return 0.0F;
+      }
+    }
+
+    if (mirrorExpire > gameTime) {
+      return (float) Math.max(0.0F, damage * (1.0F - MIRROR_DAMAGE_REDUCTION));
+    }
+    return damage;
+  }
+
+  /** 折影触发：写入残像持续时间、刷新反应标签并播发特效。 */
+  private void handleMirrorTrigger(
+      LivingEntity entity,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      OrganState state,
+      long gameTime) {
+    long expire = gameTime + MIRROR_DURATION_TICKS;
+    OrganStateOps.setLong(
+        state, cc, organ, KEY_MIRROR_EXPIRE_TICK, expire, value -> Math.max(0L, value), 0L);
+    ReactionTagOps.add(entity, ReactionTagKeys.MIRROR_IMAGE, MIRROR_DURATION_TICKS);
+    XiaoGuangFx.playMirrorTrigger(entity);
+  }
+
+  /** 光遁步：根据持有者的流派关键词调整距离与隐身时间，并瞬移、赋予减伤。 */
+  private void performLightstep(
+      LivingEntity entity,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      OrganState state,
+      long gameTime) {
+    boolean hasWind = hasFlowKeyword(cc, "feng");
+    boolean hasLightning = hasFlowKeyword(cc, "lei");
+    double distance = LIGHTSTEP_DISTANCE + (hasWind ? 2.0D : 0.0D);
+    Vec3 direction = entity.getLookAngle().normalize().scale(distance);
+    TeleportOps.blinkOffset(entity, direction);
+
+    int invisTicks = LIGHTSTEP_INVIS_TICKS + (hasWind ? LIGHTSTEP_EXTRA_INVIS_TICKS : 0);
+    entity.addEffect(
+        new MobEffectInstance(MobEffects.INVISIBILITY, invisTicks, 0, false, false, true));
+    entity.addEffect(
+        new MobEffectInstance(
+            MobEffects.DAMAGE_RESISTANCE, LIGHTSTEP_INVUL_TICKS, 4, false, false, true));
+
+    XiaoGuangFx.playLightstep(entity);
+
+    if (entity instanceof ServerPlayer player) {
+      ActiveSkillRegistry.scheduleReadyToast(
+          player, ABILITY_ID, gameTime + LIGHTSTEP_COOLDOWN_TICKS, gameTime);
+    }
+    maybeGrantPoints(
+        cc,
+        organ,
+        state,
+        entity,
+        1,
+        KEY_LAST_LIGHTSTEP_POINT_TICK,
+        POINT_COOLDOWN_LIGHTSTEP_TICKS,
+        gameTime);
+  }
+
+  /** 雷关键词加成的折影爆裂，用于分身被击毁时追加伤害。 */
+  private void triggerLightningPulse(ServerLevel level, LivingEntity owner, Vec3 center) {
+    if (level == null || owner == null || center == null) {
+      return;
+    }
+    AABB box = new AABB(center, center).inflate(ILLUSION_BURST_RADIUS);
+    List<LivingEntity> hostiles =
+        level.getEntitiesOfClass(
+            LivingEntity.class,
+            box,
+            target -> target != null && target.isAlive() && !target.isAlliedTo(owner));
+    for (LivingEntity hostile : hostiles) {
+      hostile.hurt(owner.damageSources().indirectMagic(owner, owner), 3.0F);
+    }
+    level.playSound(
+        null,
+        center.x,
+        center.y,
+        center.z,
+        SoundEvents.TRIDENT_THUNDER,
+        SoundSource.PLAYERS,
+        0.6F,
+        1.2F);
+  }
+
+  /** 判断是否为远程攻击：投射物、爆炸或非直接攻击都会触发。 */
+  private static boolean isRangedAttack(DamageSource source) {
+    if (source == null) {
+      return false;
+    }
+    if (source.is(DamageTypeTags.IS_PROJECTILE) || source.is(DamageTypeTags.IS_EXPLOSION)) {
+      return true;
+    }
+    Entity attacker = source.getEntity();
+    return attacker != null && !source.isDirect();
+  }
+
+  /** 主动能力：消耗资源生成幻映分身。 */
+  private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
+    if (!(entity instanceof Player player) || player.level().isClientSide()) {
+      return;
+    }
+    if (cc == null) {
+      return;
+    }
+    ItemStack organ = findOrgan(cc);
+    if (organ.isEmpty()) {
+      return;
+    }
+    OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+    int tier = INSTANCE.resolveTier(state);
+    MultiCooldown cooldown = INSTANCE.createCooldown(cc, organ);
+    MultiCooldown.Entry abilityReady = cooldown.entry(KEY_ABILITY_READY_TICK).withDefault(0L);
+    long gameTime = player.level().getGameTime();
+    if (!abilityReady.isReady(gameTime)) {
+      return;
+    }
+    // 严格扣除真元/精力，失败则直接返回
+    var payment = ResourceOps.consumeStrict(player, ABILITY_ZHENYUAN_COST, ABILITY_JINGLI_COST);
+    if (!payment.succeeded()) {
+      return;
+    }
+
+    abilityReady.setReadyAt(gameTime + ABILITY_COOLDOWN_TICKS);
+    NetworkUtil.sendOrganSlotUpdate(cc, organ);
+    if (player instanceof ServerPlayer serverPlayer) {
+      ActiveSkillRegistry.scheduleReadyToast(
+          serverPlayer, ABILITY_ID, abilityReady.getReadyTick(), gameTime);
+    }
+
+    spawnIllusionDecoy(player, cc, organ, state, tier, gameTime);
+  }
+
+  /** 生成幻映分身：复制外观、装备，并记录以便后续处理。 */
+  private static void spawnIllusionDecoy(
+      Player player,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      OrganState state,
+      int tier,
+      long gameTime) {
+    if (!(player.level() instanceof ServerLevel server)) {
+      return;
+    }
+    Vec3 spawnPos = player.position().add(player.getLookAngle().scale(1.5D));
+    PlayerSkinUtil.SkinSnapshot baseSkin = PlayerSkinUtil.capture(player);
+    PlayerSkinUtil.SkinSnapshot glowSkin =
+        PlayerSkinUtil.withTint(baseSkin, 0.85f, 0.95f, 1.0f, 0.65f);
+    XiaoGuangIllusionEntity decoy =
+        XiaoGuangIllusionEntity.create(server, player, spawnPos, glowSkin);
+    if (decoy == null) {
+      return;
+    }
+    server.addFreshEntity(decoy);
+    XiaoGuangFx.playIllusionSummon(player, decoy);
+
+    boolean hasLightning = INSTANCE.hasFlowKeyword(cc, "lei");
+    ACTIVE_DECOYS.put(decoy.getUUID(), new DecoyInfo(player.getUUID(), hasLightning));
+
+    TickOps.schedule(server, () -> removeDecoy(decoy, RemovalCause.EXPIRE), DECOY_LIFETIME_TICKS);
+    if (tier >= 3) {
+      TickOps.schedule(server, () -> performDecoyAttack(decoy), 10);
+    }
+  }
+
+  /** 分身突刺：简单取目标列表并造成按比例缩放的近战伤害。 */
+  private static void performDecoyAttack(XiaoGuangIllusionEntity decoy) {
+    DecoyInfo info = ACTIVE_DECOYS.get(decoy.getUUID());
+    if (info == null) {
+      return;
+    }
+    ServerLevel level = (ServerLevel) decoy.level();
+    Player owner = level.getPlayerByUUID(info.ownerId());
+    if (owner == null || !owner.isAlive()) {
+      return;
+    }
+    List<LivingEntity> hostiles = TargetingOps.hostilesWithinRadius(owner, level, 4.0D);
+    if (hostiles.isEmpty()) {
+      return;
+    }
+    LivingEntity target = hostiles.get(0);
+    double baseDamage =
+        owner.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)
+                != null
+            ? owner
+                .getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)
+                .getValue()
+            : owner.getAttackStrengthScale(0.5F) * 4.0F;
+    float damage = (float) (baseDamage * DECOY_ATTACK_DAMAGE_RATIO);
+    target.hurt(owner.damageSources().playerAttack(owner), damage);
+  }
+
+  /** 清除幻映分身：移除记录、播放爆裂效果，并在被击中时发放光辉点。 */
+  private static void removeDecoy(XiaoGuangIllusionEntity decoy, RemovalCause cause) {
+    if (decoy == null || !decoy.isAlive()) {
+      return;
+    }
+    DecoyInfo info = ACTIVE_DECOYS.remove(decoy.getUUID());
+    if (info == null) {
+      return;
+    }
+    if (!(decoy.level() instanceof ServerLevel server)) {
+      return;
+    }
+    Vec3 center = decoy.position();
+    decoy.disperse(server);
+    XiaoGuangFx.playIllusionBurst(server, center);
+    Player owner = server.getPlayerByUUID(info.ownerId());
+    if (owner == null) {
+      return;
+    }
+    applyBurstDamage(owner, server, center);
+    if (info.hasLightning()) {
+      INSTANCE.triggerLightningPulse(server, owner, center);
+    }
+    if (cause == RemovalCause.HIT) {
+      Optional<ChestCavityEntity> optional = ChestCavityEntity.of(owner);
+      if (optional.isPresent()) {
+        ChestCavityInstance cc = optional.get().getChestCavityInstance();
+        ItemStack organ = findOrgan(cc);
+        if (!organ.isEmpty()) {
+          OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+          INSTANCE.maybeGrantPoints(
+              cc,
+              organ,
+              state,
+              owner,
+              1,
+              KEY_LAST_DECOY_POINT_TICK,
+              POINT_COOLDOWN_DECOY_TICKS,
+              server.getGameTime());
+        }
+      }
+    }
+  }
+
+  /** 幻映爆裂：对周围敌对生物造成魔法伤害并施加反应标签。 */
+  private static void applyBurstDamage(Player owner, ServerLevel level, Vec3 center) {
+    AABB box = new AABB(center, center).inflate(ILLUSION_BURST_RADIUS);
+    List<LivingEntity> targets =
+        level.getEntitiesOfClass(
+            LivingEntity.class,
+            box,
+            entity -> entity != null && entity.isAlive() && !entity.isAlliedTo(owner));
+    for (LivingEntity target : targets) {
+      target.hurt(owner.damageSources().indirectMagic(owner, owner), ILLUSION_BURST_DAMAGE);
+      ReactionTagOps.add(target, ReactionTagKeys.ILLUSION_BURST, 40);
+    }
+    level.playSound(
+        null,
+        center.x,
+        center.y,
+        center.z,
+        SoundEvents.AMETHYST_BLOCK_CHIME,
+        SoundSource.PLAYERS,
+        0.5F,
+        1.4F);
+  }
+
+  /** 复制玩家装备外观到分身（保持1件拷贝）。 */
+  /** 判断是否存在特定流派关键词（简单地通过物品注册路径检索）。 */
+  private boolean hasFlowKeyword(ChestCavityInstance cc, String keyword) {
+    if (cc == null || cc.inventory == null || keyword == null || keyword.isBlank()) {
+      return false;
+    }
+    String lower = keyword.toLowerCase();
+    int size = cc.inventory.getContainerSize();
+    for (int i = 0; i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (stack == null || stack.isEmpty()) {
+        continue;
+      }
+      ResourceLocation id =
+          net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+      if (id != null) {
+        String path = id.toString().toLowerCase();
+        if (path.contains(lower)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** 发放光辉点：带有独立冷却，避免重复触发。 */
+  private void maybeGrantPoints(
+      ChestCavityInstance cc,
+      ItemStack organ,
+      OrganState state,
+      LivingEntity owner,
+      int amount,
+      String cooldownKey,
+      int cooldownTicks,
+      long gameTime) {
+    if (amount <= 0) {
+      return;
+    }
+    long last = state.getLong(cooldownKey, 0L);
+    if (gameTime - last < cooldownTicks) {
+      return;
+    }
+    boolean changed = grantLuminaPoints(cc, organ, state, owner, amount);
+    if (changed) {
+      OrganStateOps.setLong(
+          state, cc, organ, cooldownKey, gameTime, value -> Math.max(0L, value), 0L);
+    }
+  }
+
+  /** 更新光辉点并尝试提升转数。 */
+  private boolean grantLuminaPoints(
+      ChestCavityInstance cc, ItemStack organ, OrganState state, LivingEntity owner, int amount) {
+    if (amount <= 0) {
+      return false;
+    }
+    int tier = resolveTier(state);
+    int current = Math.max(0, state.getInt(KEY_POINTS, 0));
+    int added = Math.min(LUMINA_CAP, current + amount);
+    if (added != current) {
+      OrganStateOps.setInt(
+          state, cc, organ, KEY_POINTS, added, value -> Mth.clamp(value, 0, LUMINA_CAP), 0);
+    }
+    boolean upgraded = false;
+    while (tier < MAX_TIER) {
+      int requirement = tier == 2 ? REQUIRE_TIER3 : REQUIRE_TIER4;
+      if (added < requirement) {
+        break;
+      }
+      if (!meetsUpgradeRequirement(owner, tier + 1)) {
+        break;
+      }
+      tier++;
+      OrganStateOps.setInt(
+          state,
+          cc,
+          organ,
+          KEY_TIER,
+          tier,
+          value -> Mth.clamp(value, MIN_TIER, MAX_TIER),
+          MIN_TIER);
+      added = 0;
+      OrganStateOps.setInt(
+          state, cc, organ, KEY_POINTS, 0, value -> Mth.clamp(value, 0, LUMINA_CAP), 0);
+      upgraded = true;
+      if (owner instanceof ServerPlayer serverPlayer) {
+        serverPlayer.displayClientMessage(
+            net.minecraft.network.chat.Component.literal("小光蛊晋入第" + tier + "转"), true);
+      }
+    }
+    return added != current || upgraded;
+  }
+
+  /** 判断是否满足进阶条件（读取魂魄稳定与最大真元）。 */
+  private boolean meetsUpgradeRequirement(LivingEntity owner, int targetTier) {
+    if (owner == null) {
+      return false;
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(owner);
+    if (handleOpt.isEmpty()) {
+      return false;
+    }
+    ResourceHandle handle = handleOpt.get();
+    double stability = handle.read("hunpo_stability").orElse(0.0D);
+    double maxZhenyuan = handle.read("zuida_zhenyuan").orElse(0.0D);
+    return switch (targetTier) {
+      case 3 -> stability >= 0.3D && maxZhenyuan >= 0.5D;
+      case 4 -> stability >= 0.6D && maxZhenyuan >= 1.0D;
+      default -> true;
+    };
+  }
+
+  /** 读取并纠正当前转数。 */
+  private int resolveTier(OrganState state) {
+    if (state == null) {
+      return MIN_TIER;
+    }
+    int tier = Mth.clamp(state.getInt(KEY_TIER, MIN_TIER), MIN_TIER, MAX_TIER);
+    state.setInt(KEY_TIER, tier, value -> Mth.clamp(value, MIN_TIER, MAX_TIER), MIN_TIER);
+    return tier;
+  }
+
+  /** 遍历胸腔物品栏定位小光蛊本体。 */
+  private static ItemStack findOrgan(ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
+    int size = cc.inventory.getContainerSize();
+    for (int i = 0; i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (stack == null || stack.isEmpty()) {
+        continue;
+      }
+      ResourceLocation id =
+          net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+      if (Objects.equals(id, ORGAN_ID)) {
+        return stack;
+      }
+    }
+    return ItemStack.EMPTY;
+  }
+
+  /** 构建 MultiCooldown，并根据是否存在胸腔实例选择同步方式。 */
+  private MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
+    MultiCooldown.Builder builder =
+        MultiCooldown.builder(OrganState.of(organ, STATE_ROOT))
+            .withLongClamp(value -> Math.max(0L, value), 0L);
+    if (cc != null) {
+      builder.withSync(cc, organ);
+    } else {
+      builder.withOrgan(organ);
+    }
+    return builder.build();
+  }
+
+  /** 杀敌加点：仅限白天且需要装备小光蛊。 */
+  private static void onLivingDeath(LivingDeathEvent event) {
+    LivingEntity entity = event.getEntity();
+    DamageSource source = event.getSource();
+    Entity attackerEntity = source.getEntity();
+    if (!(attackerEntity instanceof Player player)) {
+      return;
+    }
+    if (player.level().isClientSide()) {
+      return;
+    }
+    if (!player.level().isDay()) {
+      return;
+    }
+    Optional<ChestCavityEntity> optional = ChestCavityEntity.of(player);
+    if (optional.isEmpty()) {
+      return;
+    }
+    ChestCavityInstance cc = optional.get().getChestCavityInstance();
+    if (cc == null) {
+      return;
+    }
+    ItemStack organ = findOrgan(cc);
+    if (organ.isEmpty()) {
+      return;
+    }
+    OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+    long gameTime = player.level().getGameTime();
+    INSTANCE.maybeGrantPoints(
+        cc, organ, state, player, 1, KEY_LAST_KILL_POINT_TICK, POINT_COOLDOWN_KILL_TICKS, gameTime);
+  }
+
+  /** 分身被攻击时取消伤害并触发爆裂流程。 */
+  private static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
+    if (!(event.getEntity() instanceof XiaoGuangIllusionEntity illusion)) {
+      return;
+    }
+    DecoyInfo info = ACTIVE_DECOYS.get(illusion.getUUID());
+    if (info == null) {
+      return;
+    }
+    event.setCanceled(true);
+    removeDecoy(illusion, RemovalCause.HIT);
+  }
+
+  // 分身移除原因：自然到期或被命中
+  private enum RemovalCause {
+    EXPIRE,
+    HIT
+  }
+
+  // 分身元数据：记录拥有者与是否具备雷关键词
+  private record DecoyInfo(UUID ownerId, boolean hasLightning) {}
+}

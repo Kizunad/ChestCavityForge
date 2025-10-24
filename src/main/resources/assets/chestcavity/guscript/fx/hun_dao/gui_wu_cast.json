@@ -1,0 +1,31 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:entity.witch.celebrate",
+      "volume": 0.9,
+      "pitch": 0.6
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:smoke",
+      "count": 30,
+      "speed": 0.02,
+      "spread": [0.6, 0.4, 0.6],
+      "offset": [0.0, 1.0, 0.0]
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:soul_fire_flame",
+      "count": 12,
+      "speed": 0.01,
+      "spread": [0.45, 0.35, 0.45],
+      "offset": [0.0, 1.1, 0.0]
+    },
+    {
+      "type": "screen_shake",
+      "intensity": 0.12,
+      "duration": 6
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "modules": [
+    {
+      "type": "sound",
+      "sound": "minecraft:block.amethyst_block.chime",
+      "volume": 0.6,
+      "pitch": 1.8
+    },
+    {
+      "type": "sound",
+      "sound": "minecraft:block.amethyst_cluster.place",
+      "volume": 0.55,
+      "pitch": 1.5
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:dust_color_transition",
+      "from_color": "#d7c8ff",
+      "to_color": "#ffffff",
+      "size": 0.6,
+      "count": 24,
+      "spread": [0.35, 0.25, 0.35],
+      "speed": 0.01
+    },
+    {
+      "type": "particle",
+      "particle": "minecraft:glow",
+      "count": 10,
+      "spread": [0.2, 0.2, 0.2],
+      "speed": 0.0
+    }
+  ]
+}
