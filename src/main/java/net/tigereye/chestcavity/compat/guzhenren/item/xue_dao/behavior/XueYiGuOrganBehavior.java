@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -72,6 +73,8 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String ENRAGED_UNTIL_KEY = "EnragedUntil";
   private static final String DAMAGE_ACCUMULATOR_KEY = "DamageAccum";
   private static final String ABSORPTION_READY_AT_KEY = "AbsorptionReadyAt";
+  private static final String BLOOD_REWARD_READY_AT_KEY = "BloodRewardReadyAt";
+  private static final String SYNERGY_FORCE_TAKE_READY_AT_KEY = "SynergyForceTakeReadyAt";
 
   // 被动参数
   private static final int ARMOR_MAX_STACKS = 10;
@@ -85,6 +88,19 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final float HARDENED_SHIELD_DAMAGE_THRESHOLD = 200.0f;
   private static final int HARDENED_SHIELD_COOLDOWN_TICKS = 600; // 30秒
   private static final float LIFE_COST_PERCENTAGE = 0.02f; // 2%当前HP
+  private static final int BLOOD_REWARD_COOLDOWN_TICKS = 160; // 8秒
+  private static final double BLOOD_REWARD_ZHENYUAN_AMOUNT = 50.0; // 返还真元量
+
+  // 联动技能参数
+  private static final int SYNERGY_FORCE_TAKE_COOLDOWN_TICKS = 300; // 15秒
+  private static final double SYNERGY_FORCE_TAKE_ZHENYUAN = 30.0; // 返还真元量
+  private static final int SYNERGY_FORCE_TAKE_FOOD = 2; // 返还饱食度
+
+  static {
+    // 注册血偿被动的击杀监听器
+    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+        XueYiGuOrganBehavior::onLivingDeath);
+  }
 
   private XueYiGuOrganBehavior() {}
 
@@ -113,6 +129,8 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       state.setLong(ENRAGED_UNTIL_KEY, 0L);
       state.setDouble(DAMAGE_ACCUMULATOR_KEY, 0.0);
       state.setLong(ABSORPTION_READY_AT_KEY, 0L);
+      state.setLong(BLOOD_REWARD_READY_AT_KEY, 0L);
+      state.setLong(SYNERGY_FORCE_TAKE_READY_AT_KEY, 0L);
     }
 
     sendSlotUpdate(cc, organ);
@@ -233,6 +251,9 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     // 被动: 渗透（每2次击中应用出血）
     handlePenetration(player, organ, state, cc, target);
 
+    // 联动4: 强取回流（对流血目标首次近战命中吸取饱食和真元）
+    handleSynergyForceTake(player, organ, state, cc, target);
+
     return damage;
   }
 
@@ -352,9 +373,20 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
    * 对目标应用渗透出血。
    */
   private void applyPenetrationBleed(ServerPlayer player, LivingEntity target) {
-    // TODO: 应用实际出血DoT（6伤害/秒持续3秒）
-    // 目前，应用瞬时伤害
-    target.hurt(player.damageSources().magic(), 6.0f);
+    // 应用流血DoT：6伤害/秒持续3秒
+    net.tigereye.chestcavity.engine.dot.DoTEngine.schedulePerSecond(
+        player,
+        target,
+        6.0, // 每秒6点伤害
+        3, // 持续3秒
+        null, // 无音效
+        0.0f,
+        0.0f,
+        net.tigereye.chestcavity.util.DoTTypes.XIE_WANG_BLEED, // 流血DoT类型
+        null,
+        net.tigereye.chestcavity.engine.dot.DoTEngine.FxAnchor.TARGET,
+        net.minecraft.world.phys.Vec3.ZERO,
+        1.0f);
   }
 
   /**
@@ -480,6 +512,40 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         && source.getDirectEntity() instanceof LivingEntity;
   }
 
+  // ============================================================
+  // 联动技能辅助方法
+  // ============================================================
+
+  /**
+   * 检查玩家是否装备了指定的器官。
+   */
+  private static boolean hasOrgan(ChestCavityInstance cc, ResourceLocation organId) {
+    if (cc == null || cc.inventory == null || organId == null) {
+      return false;
+    }
+
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (!stack.isEmpty()) {
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (organId.equals(itemId)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  // 联动器官的ID定义
+  private static final ResourceLocation TIEXUEGU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu"); // 铁血蛊
+  // TODO: 添加其他联动器官ID（当它们被实现后）
+  // private static final ResourceLocation LZXQ_GU_ID = ...; // 历战血窍蛊
+  // private static final ResourceLocation PENXUE_GU_ID = ...; // 喷血蛊
+  // private static final ResourceLocation QIANGQU_GU_ID = ...; // 强取蛊
+  // private static final ResourceLocation HUNDUN_GU_ID = ...; // 魂盾蛊
+
   private Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return Optional.empty();
@@ -505,4 +571,185 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     XueFengJiBiSkill.bootstrap();
     YiXueFanCiSkill.bootstrap();
   }
+
+  // ============================================================
+  // 被动4: 血偿 - 击杀流血敌人返还真元
+  // ============================================================
+
+  /**
+   * 击杀事件监听器：实现血偿被动。
+   */
+  private static void onLivingDeath(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
+    DamageSource source = event.getSource();
+    if (source == null) {
+      return;
+    }
+
+    // 检查击杀者是否为玩家
+    if (!(source.getEntity() instanceof ServerPlayer killer)) {
+      return;
+    }
+
+    LivingEntity victim = event.getEntity();
+    if (victim == null || victim.level().isClientSide()) {
+      return;
+    }
+
+    // 检查玩家是否装备了血衣蛊
+    Optional<net.tigereye.chestcavity.interfaces.ChestCavityEntity> ccEntityOpt =
+        net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(killer);
+    if (ccEntityOpt.isEmpty()) {
+      return;
+    }
+
+    ChestCavityInstance cc = ccEntityOpt.get().getChestCavityInstance();
+    Optional<ItemStack> organOpt = INSTANCE.findOrgan(cc);
+    if (organOpt.isEmpty()) {
+      return;
+    }
+
+    ItemStack organ = organOpt.get();
+    OrganState state = INSTANCE.organState(organ, STATE_ROOT);
+
+    // 检查冷却
+    long now = killer.level().getGameTime();
+    long readyAt = state.getLong(BLOOD_REWARD_READY_AT_KEY, 0L);
+    if (now < readyAt) {
+      return; // 冷却中
+    }
+
+    // 检查受害者是否有流血DoT
+    boolean hasBleed = hasBleedingEffect(victim);
+    if (!hasBleed) {
+      return;
+    }
+
+    // 返还真元
+    Optional<net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle>
+        handleOpt = net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.open(killer);
+    if (handleOpt.isPresent()) {
+      net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle handle =
+          handleOpt.get();
+      handle.replenishScaledZhenyuan(BLOOD_REWARD_ZHENYUAN_AMOUNT);
+
+      // 设置冷却
+      state.setLong(BLOOD_REWARD_READY_AT_KEY, now + BLOOD_REWARD_COOLDOWN_TICKS);
+
+      // 播放效果
+      if (killer.level() instanceof ServerLevel serverLevel) {
+        Vec3 victimPos = victim.position().add(0, victim.getBbHeight() * 0.5, 0);
+        XueYiGuEffects.playBloodReward(serverLevel, killer, victimPos);
+      }
+
+      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "{} Blood Reward triggered: killed bleeding enemy, restored {} zhenyuan",
+            LOG_PREFIX,
+            BLOOD_REWARD_ZHENYUAN_AMOUNT);
+      }
+    }
+  }
+
+  /**
+   * 检查实体是否有流血DoT效果。
+   */
+  private static boolean hasBleedingEffect(LivingEntity entity) {
+    if (entity == null) {
+      return false;
+    }
+
+    // 检查实体是否有待处理的流血DoT
+    List<net.tigereye.chestcavity.engine.dot.DoTEngine.DoTEntry> pendingDoTs =
+        net.tigereye.chestcavity.engine.dot.DoTEngine.getPendingForTarget(entity.getUUID());
+
+    for (net.tigereye.chestcavity.engine.dot.DoTEngine.DoTEntry entry : pendingDoTs) {
+      if (net.tigereye.chestcavity.util.DoTTypes.XIE_WANG_BLEED.equals(entry.typeId())) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // ============================================================
+  // 联动技能实现
+  // ============================================================
+
+  /**
+   * 联动4: 强取回流 - 对流血目标首次近战命中吸取饱食和真元。
+   */
+  private void handleSynergyForceTake(
+      ServerPlayer player,
+      ItemStack organ,
+      OrganState state,
+      ChestCavityInstance cc,
+      LivingEntity target) {
+    // TODO: 检查是否装备了强取蛊
+    // if (!hasOrgan(cc, QIANGQU_GU_ID)) {
+    //   return;
+    // }
+
+    long now = player.level().getGameTime();
+    long readyAt = state.getLong(SYNERGY_FORCE_TAKE_READY_AT_KEY, 0L);
+
+    if (now < readyAt) {
+      return; // 冷却中
+    }
+
+    // 检查目标是否有流血DoT
+    if (!hasBleedingEffect(target)) {
+      return;
+    }
+
+    // 吸取饱食
+    net.minecraft.world.food.FoodData foodData = player.getFoodData();
+    if (foodData != null) {
+      foodData.setFoodLevel(
+          Math.min(20, foodData.getFoodLevel() + SYNERGY_FORCE_TAKE_FOOD));
+    }
+
+    // 返还真元
+    Optional<net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle>
+        handleOpt = net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isPresent()) {
+      handleOpt.get().replenishScaledZhenyuan(SYNERGY_FORCE_TAKE_ZHENYUAN);
+    }
+
+    // 设置冷却
+    state.setLong(SYNERGY_FORCE_TAKE_READY_AT_KEY, now + SYNERGY_FORCE_TAKE_COOLDOWN_TICKS);
+
+    // 播放效果
+    if (player.level() instanceof ServerLevel serverLevel) {
+      Vec3 targetPos = target.position().add(0, target.getBbHeight() * 0.5, 0);
+      // 简单的粒子效果
+      serverLevel.sendParticles(
+          net.minecraft.core.particles.ParticleTypes.HEART,
+          targetPos.x,
+          targetPos.y,
+          targetPos.z,
+          3,
+          0.3,
+          0.3,
+          0.3,
+          0.1);
+    }
+
+    NetworkUtil.sendOrganSlotUpdate(cc, organ);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "{} Synergy Force Take triggered: drained {} food and {} zhenyuan from bleeding target",
+          LOG_PREFIX,
+          SYNERGY_FORCE_TAKE_FOOD,
+          SYNERGY_FORCE_TAKE_ZHENYUAN);
+    }
+  }
+
+  // TODO: 实现其他联动技能
+  // 联动1: 铁血披覆 - 需要在 XueYongPiShenSkill 中实现
+  // 联动2: 历战回转 - 需要在击杀事件中检测精英并刷新血束收紧冷却
+  // 联动3: 血雾喷涌 - 需要在 XueShuShouJinSkill 中实现
+  // 联动5: 魂盾叠层 - 需要在 XueFengJiBiSkill 中实现
 }
