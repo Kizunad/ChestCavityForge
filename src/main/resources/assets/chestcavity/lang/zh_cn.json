@@ -19,6 +19,8 @@
   "death.attack.chestcavity.alcohol_overdose.player": "%1$s 与 %2$s 交锋时醉死沙场君莫笑",
   "death.attack.chestcavity.shou_pi_gu_crash": "%1$s 被嵌甲冲撞碾成重创",
   "death.attack.chestcavity.shou_pi_gu_crash.player": "%1$s 被 %2$s 的嵌甲冲撞碾成重创",
+  "death.attack.chestcavity.organ_cost": "%1$s 因过度催动自身肉体而死",
+  "death.attack.chestcavity.organ_cost.player": "%1$s 因过度催动自身肉体而死",
   "message.guzhenren.jianjiteng.bonus": "剑脊藤颤动不休，藤骨间孕出一只蛊虫……",
   "message.guzhenren.chou_pi_gu.uncomfortable": "你感觉到肚子有点不舒服……",
   "message.guzhenren.chou_pi_gu.stench": "一股恶臭弥漫开来！",

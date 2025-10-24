@@ -48,6 +48,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+import net.tigereye.chestcavity.registration.CCDamageSources;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
@@ -589,14 +590,14 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       float cost = (float) (max * 0.01f);
       if (cost > 0.0f) {
         float before = player.getHealth();
-        float after = Math.max(0.0f, before - cost);
-        player.setHealth(after);
+        DamageSource source = CCDamageSources.organCost(player);
+        player.hurt(source, cost);
         if (DEBUG) {
           LOGGER.info(
-              "[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})",
-              1,
-              String.format(java.util.Locale.ROOT, "%.2f", before),
-              String.format(java.util.Locale.ROOT, "%.2f", after));
+              "[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})".formatted(
+                  1,
+                  String.format(java.util.Locale.ROOT, "%.2f", before),
+                  String.format(java.util.Locale.ROOT, "%.2f", player.getHealth())));
         }
       }
     }

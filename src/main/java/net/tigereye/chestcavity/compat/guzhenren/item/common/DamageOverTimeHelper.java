@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 public final class DamageOverTimeHelper {
 
   private static final Logger LOGGER = LogUtils.getLogger();
-  private static final boolean DEBUG = true;
+  private static final boolean DEBUG = false;
 
   private static final int TICKS_PER_SECOND = 20;
 

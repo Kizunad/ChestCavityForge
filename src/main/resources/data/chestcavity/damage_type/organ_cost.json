@@ -1,0 +1,8 @@
+{
+  "message_id": "chestcavity.organ_cost",
+  "exhaustion": 0.0,
+  "scaling": "never",
+  "effects": "hurt",
+  "death_message_type": "default",
+  "bypasses_armor": true
+}

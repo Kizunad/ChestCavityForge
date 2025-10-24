@@ -12,6 +12,7 @@ public final class CCDamageSources {
   public static final ResourceKey<DamageType> ORGAN_REJECTION = register("organ_rejection");
   public static final ResourceKey<DamageType> ALCOHOL_OVERDOSE = register("alcohol_overdose");
   public static final ResourceKey<DamageType> SHOU_PI_GU_CRASH = register("shou_pi_gu_crash");
+  public static final ResourceKey<DamageType> ORGAN_COST = register("organ_cost");
 
   private CCDamageSources() {}
 
@@ -38,5 +39,9 @@ public final class CCDamageSources {
    */
   public static DamageSource shouPiGuCrash(LivingEntity attacker) {
     return attacker.level().damageSources().source(SHOU_PI_GU_CRASH, attacker);
+  }
+
+  public static DamageSource organCost(LivingEntity entity) {
+    return entity.level().damageSources().source(ORGAN_COST, entity);
   }
 }
