@@ -273,8 +273,45 @@ public final class XueYongPiShenSkill {
     double tier = getTierLevel(player);
     float damage = BASE_BLEED_DAMAGE * (float) (1.0 + tier * 0.2);
 
+    // 联动1: 铁血披覆 - 如果装备了铁血蛊，获得额外伤害加成
+    Optional<net.tigereye.chestcavity.interfaces.ChestCavityEntity> ccEntityOpt =
+        net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(player);
+    if (ccEntityOpt.isPresent()) {
+      net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc =
+          ccEntityOpt.get().getChestCavityInstance();
+      if (hasTieXueGu(cc)) {
+        // 增强20%光环伤害
+        damage *= 1.2f;
+      }
+    }
+
     // Apply damage
     target.hurt(player.damageSources().magic(), damage);
+  }
+
+  /**
+   * 联动1: 铁血披覆 - 检查是否装备了铁血蛊。
+   */
+  private static boolean hasTieXueGu(net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
+
+    net.minecraft.resources.ResourceLocation tiexueguId =
+        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "tiexuegu");
+
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (!stack.isEmpty()) {
+        net.minecraft.resources.ResourceLocation itemId =
+            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (tiexueguId.equals(itemId)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /** Gets player's tier level (1-5). */

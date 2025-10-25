@@ -240,6 +240,19 @@ public final class XueFengJiBiSkill {
       return;
     }
 
+    // 联动5: 魂盾叠层 - 如果装备了魂盾蛊，额外增加吸收量
+    Optional<net.tigereye.chestcavity.interfaces.ChestCavityEntity> ccEntityOpt =
+        net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(player);
+    if (ccEntityOpt.isPresent()) {
+      net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc =
+          ccEntityOpt.get().getChestCavityInstance();
+      if (hasHunDunGu(cc)) {
+        // 增加30%的吸收量
+        amount *= 1.3f;
+        player.displayClientMessage(Component.literal("魂盾叠层：吸收量增强！"), true);
+      }
+    }
+
     // Apply absorption effect
     MobEffectInstance existingAbsorption = player.getEffect(MobEffects.ABSORPTION);
 
@@ -260,6 +273,31 @@ public final class XueFengJiBiSkill {
               MobEffects.ABSORPTION, ABSORPTION_DURATION_TICKS, 0, false, false, true));
       player.setAbsorptionAmount(amount);
     }
+  }
+
+  /**
+   * 联动5: 魂盾叠层 - 检查是否装备了魂盾蛊。
+   */
+  private static boolean hasHunDunGu(net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
+
+    net.minecraft.resources.ResourceLocation hundunguId =
+        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "hundungu");
+
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (!stack.isEmpty()) {
+        net.minecraft.resources.ResourceLocation itemId =
+            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (hundunguId.equals(itemId)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /** Clears harmful effects from player (bleeding, wither, poison). */
