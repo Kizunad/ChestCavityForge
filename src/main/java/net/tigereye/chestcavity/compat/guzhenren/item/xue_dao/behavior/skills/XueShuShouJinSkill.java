@@ -63,9 +63,7 @@ public final class XueShuShouJinSkill {
         XueShuShouJinSkill::activate);
   }
 
-  /**
-   * Activates blood bind skill when player triggers it.
-   */
+  /** Activates blood bind skill when player triggers it. */
   private static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
@@ -145,9 +143,7 @@ public final class XueShuShouJinSkill {
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 
-  /**
-   * Raytraces from player's eyes to find first living entity hit.
-   */
+  /** Raytraces from player's eyes to find first living entity hit. */
   private static Optional<LivingEntity> raytraceTarget(ServerPlayer player, Level level) {
     Vec3 eyePos = player.getEyePosition();
     Vec3 lookVec = player.getLookAngle();
@@ -155,8 +151,7 @@ public final class XueShuShouJinSkill {
 
     // First check block collision
     ClipContext blockContext =
-        new ClipContext(
-            eyePos, endPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player);
+        new ClipContext(eyePos, endPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player);
     HitResult blockHit = level.clip(blockContext);
 
     // Adjust end position if block hit
@@ -184,10 +179,9 @@ public final class XueShuShouJinSkill {
     return Optional.empty();
   }
 
-  /**
-   * Executes blood bind effect on target.
-   */
-  private static void executeBloodBind(ServerPlayer player, LivingEntity target, ServerLevel level) {
+  /** Executes blood bind effect on target. */
+  private static void executeBloodBind(
+      ServerPlayer player, LivingEntity target, ServerLevel level) {
     Vec3 startPos = player.getEyePosition();
     Vec3 targetPos = target.position().add(0, target.getBbHeight() * 0.5, 0);
 
@@ -200,7 +194,12 @@ public final class XueShuShouJinSkill {
     // Apply slowness effect
     target.addEffect(
         new MobEffectInstance(
-            MobEffects.MOVEMENT_SLOWDOWN, SLOWNESS_DURATION_TICKS, SLOWNESS_AMPLIFIER, false, true, true));
+            MobEffects.MOVEMENT_SLOWDOWN,
+            SLOWNESS_DURATION_TICKS,
+            SLOWNESS_AMPLIFIER,
+            false,
+            true,
+            true));
 
     // Apply bleed DoT
     applyBleedEffect(player, target);
@@ -212,9 +211,7 @@ public final class XueShuShouJinSkill {
     player.displayClientMessage(Component.literal("血束收紧命中！"), true);
   }
 
-  /**
-   * Applies bleeding effect to target.
-   */
+  /** Applies bleeding effect to target. */
   private static void applyBleedEffect(ServerPlayer player, LivingEntity target) {
     // TODO: Integrate with proper bleed system
     // For now, apply damage over time via effect
@@ -232,18 +229,14 @@ public final class XueShuShouJinSkill {
     target.hurt(player.damageSources().magic(), damagePerHit);
   }
 
-  /**
-   * Gets player's tier level (1-5).
-   */
+  /** Gets player's tier level (1-5). */
   private static double getTierLevel(ServerPlayer player) {
     // TODO: Implement tier detection
     // For now, return 2 (assume 2转)
     return 2.0;
   }
 
-  /**
-   * Finds xue yi gu organ in chest cavity.
-   */
+  /** Finds xue yi gu organ in chest cavity. */
   private static Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return Optional.empty();

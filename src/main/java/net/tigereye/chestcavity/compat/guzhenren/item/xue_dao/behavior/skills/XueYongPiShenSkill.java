@@ -60,9 +60,7 @@ public final class XueYongPiShenSkill {
         XueYongPiShenSkill::activate);
   }
 
-  /**
-   * Toggles blood aura on/off when player activates skill.
-   */
+  /** Toggles blood aura on/off when player activates skill. */
   private static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
@@ -89,9 +87,7 @@ public final class XueYongPiShenSkill {
     }
   }
 
-  /**
-   * Activates blood aura if cooldown is ready.
-   */
+  /** Activates blood aura if cooldown is ready. */
   private static void activateAura(
       ServerPlayer player, ChestCavityInstance cc, ItemStack organ, OrganState state) {
 
@@ -136,9 +132,7 @@ public final class XueYongPiShenSkill {
     player.displayClientMessage(Component.literal("血涌披身 - 已激活"), true);
   }
 
-  /**
-   * Deactivates blood aura and starts cooldown.
-   */
+  /** Deactivates blood aura and starts cooldown. */
   private static void deactivateAura(
       ServerPlayer player, ChestCavityInstance cc, ItemStack organ, OrganState state) {
 
@@ -170,9 +164,7 @@ public final class XueYongPiShenSkill {
     player.displayClientMessage(Component.literal("血涌披身 - 已停止"), true);
   }
 
-  /**
-   * Tick function called from organ behavior. Handles aura logic and resource consumption.
-   */
+  /** Tick function called from organ behavior. Handles aura logic and resource consumption. */
   public static void tickAura(ServerPlayer player, ChestCavityInstance cc, ItemStack organ) {
     OrganState state = OrganState.of(organ, STATE_ROOT);
 
@@ -242,17 +234,23 @@ public final class XueYongPiShenSkill {
     return true;
   }
 
-  /**
-   * Damages all nearby enemies within aura radius.
-   */
+  /** Damages all nearby enemies within aura radius. */
   private static void damageNearbyEnemies(ServerPlayer player, Level level) {
     Vec3 center = player.position();
     AABB searchBox =
-        new AABB(center.x - AURA_RADIUS, center.y - 1, center.z - AURA_RADIUS, center.x + AURA_RADIUS, center.y + player.getBbHeight() + 1, center.z + AURA_RADIUS);
+        new AABB(
+            center.x - AURA_RADIUS,
+            center.y - 1,
+            center.z - AURA_RADIUS,
+            center.x + AURA_RADIUS,
+            center.y + player.getBbHeight() + 1,
+            center.z + AURA_RADIUS);
 
     List<LivingEntity> nearbyEntities =
         level.getEntitiesOfClass(
-            LivingEntity.class, searchBox, entity -> entity != player && !entity.isAlliedTo(player));
+            LivingEntity.class,
+            searchBox,
+            entity -> entity != player && !entity.isAlliedTo(player));
 
     for (LivingEntity target : nearbyEntities) {
       // Apply bleed DoT
@@ -265,9 +263,7 @@ public final class XueYongPiShenSkill {
     }
   }
 
-  /**
-   * Applies bleeding effect to target.
-   */
+  /** Applies bleeding effect to target. */
   private static void applyBleedEffect(ServerPlayer player, LivingEntity target) {
     // TODO: Apply actual bleed DoT effect
     // This requires integration with the bleed system
@@ -281,18 +277,14 @@ public final class XueYongPiShenSkill {
     target.hurt(player.damageSources().magic(), damage);
   }
 
-  /**
-   * Gets player's tier level (1-5).
-   */
+  /** Gets player's tier level (1-5). */
   private static double getTierLevel(ServerPlayer player) {
     // TODO: Implement tier detection
     // For now, return 2 (assume 2转)
     return 2.0;
   }
 
-  /**
-   * Finds xue yi gu organ in chest cavity.
-   */
+  /** Finds xue yi gu organ in chest cavity. */
   private static Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return Optional.empty();
@@ -315,9 +307,7 @@ public final class XueYongPiShenSkill {
     return Optional.empty();
   }
 
-  /**
-   * Checks if aura is currently active for a player.
-   */
+  /** Checks if aura is currently active for a player. */
   public static boolean isAuraActive(ChestCavityInstance cc) {
     Optional<ItemStack> organOpt = findOrgan(cc);
     if (organOpt.isEmpty()) {
@@ -328,9 +318,7 @@ public final class XueYongPiShenSkill {
     return state.getBoolean(AURA_ACTIVE_KEY, false);
   }
 
-  /**
-   * Forces aura deactivation (called when organ is removed).
-   */
+  /** Forces aura deactivation (called when organ is removed). */
   public static void forceDeactivate(ItemStack organ) {
     OrganState state = OrganState.of(organ, STATE_ROOT);
     state.setBoolean(AURA_ACTIVE_KEY, false);

@@ -55,9 +55,7 @@ public final class YiXueFanCiSkill {
         YiXueFanCiSkill::activate);
   }
 
-  /**
-   * Activates blood reflect skill when player triggers it.
-   */
+  /** Activates blood reflect skill when player triggers it. */
   private static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
@@ -135,10 +133,9 @@ public final class YiXueFanCiSkill {
         now);
   }
 
-  /**
-   * Tick function for reflect window maintenance.
-   */
-  public static void tickReflectWindow(ServerPlayer player, ChestCavityInstance cc, ItemStack organ) {
+  /** Tick function for reflect window maintenance. */
+  public static void tickReflectWindow(
+      ServerPlayer player, ChestCavityInstance cc, ItemStack organ) {
     OrganState state = OrganState.of(organ, STATE_ROOT);
 
     Level level = player.level();
@@ -220,9 +217,7 @@ public final class YiXueFanCiSkill {
     return true;
   }
 
-  /**
-   * Applies reflected damage as bleeding effect on attacker.
-   */
+  /** Applies reflected damage as bleeding effect on attacker. */
   private static void applyReflectBleed(
       ServerPlayer player, LivingEntity attacker, float totalDamage) {
     // TODO: Apply actual bleed DoT through bleed system
@@ -232,9 +227,7 @@ public final class YiXueFanCiSkill {
     attacker.hurt(player.damageSources().thorns(player), totalDamage * 0.2f);
   }
 
-  /**
-   * Checks if reflect window is currently active.
-   */
+  /** Checks if reflect window is currently active. */
   public static boolean isReflectActive(ChestCavityInstance cc) {
     Optional<ItemStack> organOpt = findOrgan(cc);
     if (organOpt.isEmpty()) {
@@ -254,18 +247,14 @@ public final class YiXueFanCiSkill {
     return windowEnd > 0L && windowEnd != Long.MAX_VALUE;
   }
 
-  /**
-   * Forces reflect window to end (called when organ is removed).
-   */
+  /** Forces reflect window to end (called when organ is removed). */
   public static void forceDeactivate(ItemStack organ) {
     OrganState state = OrganState.of(organ, STATE_ROOT);
     state.setLong(REFLECT_WINDOW_END_KEY, 0L);
     state.setInt(REFLECT_TICK_COUNTER_KEY, 0);
   }
 
-  /**
-   * Finds xue yi gu organ in chest cavity.
-   */
+  /** Finds xue yi gu organ in chest cavity. */
   private static Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return Optional.empty();

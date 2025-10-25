@@ -60,9 +60,7 @@ public final class XueFengJiBiSkill {
         XueFengJiBiSkill::activate);
   }
 
-  /**
-   * Activates blood seal skill when player triggers it.
-   */
+  /** Activates blood seal skill when player triggers it. */
   private static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
@@ -140,9 +138,7 @@ public final class XueFengJiBiSkill {
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 
-  /**
-   * Finds all bleeding entities within scan radius.
-   */
+  /** Finds all bleeding entities within scan radius. */
   private static List<LivingEntity> findBleedingTargets(ServerPlayer player, ServerLevel level) {
     Vec3 center = player.position();
     AABB searchBox =
@@ -156,7 +152,9 @@ public final class XueFengJiBiSkill {
 
     List<LivingEntity> nearbyEntities =
         level.getEntitiesOfClass(
-            LivingEntity.class, searchBox, entity -> entity != player && !entity.isAlliedTo(player));
+            LivingEntity.class,
+            searchBox,
+            entity -> entity != player && !entity.isAlliedTo(player));
 
     List<LivingEntity> bleedingTargets = new ArrayList<>();
     for (LivingEntity entity : nearbyEntities) {
@@ -171,9 +169,7 @@ public final class XueFengJiBiSkill {
     return bleedingTargets;
   }
 
-  /**
-   * Checks if entity has harmful effects (proxy for bleeding).
-   */
+  /** Checks if entity has harmful effects (proxy for bleeding). */
   private static boolean hasHarmfulEffect(LivingEntity entity) {
     for (MobEffectInstance effect : entity.getActiveEffects()) {
       if (effect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL) {
@@ -183,9 +179,7 @@ public final class XueFengJiBiSkill {
     return false;
   }
 
-  /**
-   * Executes blood seal effect.
-   */
+  /** Executes blood seal effect. */
   private static void executeBloodSeal(
       ServerPlayer player, List<LivingEntity> targets, ServerLevel level) {
 
@@ -222,7 +216,8 @@ public final class XueFengJiBiSkill {
 
     // Apply absorption to player (delayed)
     final float finalAbsorptionAmount = totalAbsorption;
-    level.getServer()
+    level
+        .getServer()
         .tell(
             new net.minecraft.server.TickTask(
                 level.getServer().getTickCount() + 40,
@@ -239,9 +234,7 @@ public final class XueFengJiBiSkill {
         Component.literal("血缝急闭成功！获得 " + (int) totalAbsorption + " 点临时生命"), true);
   }
 
-  /**
-   * Applies absorption (temporary health) to player.
-   */
+  /** Applies absorption (temporary health) to player. */
   private static void applyAbsorption(ServerPlayer player, float amount) {
     if (amount <= 0) {
       return;
@@ -254,8 +247,7 @@ public final class XueFengJiBiSkill {
       // Stack with existing absorption (take higher amount, longer duration)
       float currentAmount = player.getAbsorptionAmount();
       float newAmount = Math.max(currentAmount, amount);
-      int newDuration =
-          Math.max(existingAbsorption.getDuration(), ABSORPTION_DURATION_TICKS);
+      int newDuration = Math.max(existingAbsorption.getDuration(), ABSORPTION_DURATION_TICKS);
 
       player.removeEffect(MobEffects.ABSORPTION);
       player.addEffect(
@@ -270,9 +262,7 @@ public final class XueFengJiBiSkill {
     }
   }
 
-  /**
-   * Clears harmful effects from player (bleeding, wither, poison).
-   */
+  /** Clears harmful effects from player (bleeding, wither, poison). */
   private static void clearHarmfulEffects(ServerPlayer player) {
     List<MobEffectInstance> toRemove = new ArrayList<>();
 
@@ -293,18 +283,14 @@ public final class XueFengJiBiSkill {
     }
   }
 
-  /**
-   * Gets player's tier level (1-5).
-   */
+  /** Gets player's tier level (1-5). */
   private static double getTierLevel(ServerPlayer player) {
     // TODO: Implement tier detection
     // For now, return 2 (assume 2转)
     return 2.0;
   }
 
-  /**
-   * Finds xue yi gu organ in chest cavity.
-   */
+  /** Finds xue yi gu organ in chest cavity. */
   private static Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return Optional.empty();

@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.xue_dao.behavior;
 
 import java.util.List;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -14,8 +13,8 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.FxOps;
 import org.joml.Vector3f;
 
 /**
- * Visual and audio effects for 血衣蛊 (Xue Yi Gu). All effects use vanilla particles and sounds
- * only. Provides quality scaling support for performance optimization.
+ * Visual and audio effects for 血衣蛊 (Xue Yi Gu). All effects use vanilla particles and sounds only.
+ * Provides quality scaling support for performance optimization.
  */
 public final class XueYiGuEffects {
 
@@ -52,8 +51,7 @@ public final class XueYiGuEffects {
         double x = center.x + Math.cos(angle) * radius;
         double z = center.z + Math.sin(angle) * radius;
 
-        FxOps.particles(
-            level, BLOOD_BRIGHT, new Vec3(x, center.y, z), 1, 0.05, 0.15, 0.05, 0.02);
+        FxOps.particles(level, BLOOD_BRIGHT, new Vec3(x, center.y, z), 1, 0.05, 0.15, 0.05, 0.02);
       }
     }
 
@@ -82,20 +80,9 @@ public final class XueYiGuEffects {
     // Sound: activation
     Vec3 pos = player.position();
     FxOps.playSound(
-        level,
-        pos,
-        SoundEvents.ARMOR_EQUIP_LEATHER.value(),
-        SoundSource.PLAYERS,
-        1.0f,
-        0.9f);
+        level, pos, SoundEvents.ARMOR_EQUIP_LEATHER.value(), SoundSource.PLAYERS, 1.0f, 0.9f);
 
-    FxOps.playSound(
-        level,
-        pos,
-        SoundEvents.WARDEN_HEARTBEAT,
-        SoundSource.PLAYERS,
-        0.3f,
-        0.7f);
+    FxOps.playSound(level, pos, SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 0.3f, 0.7f);
   }
 
   /** Plays continuous aura effect while blood aura is active. */
@@ -166,7 +153,12 @@ public final class XueYiGuEffects {
 
     // Sound: hit
     FxOps.playSound(
-        level, target.blockPosition().getCenter(),         SoundEvents.PLAYER_HURT_DROWN, SoundSource.PLAYERS, 0.4f, 1.2f);
+        level,
+        target.blockPosition().getCenter(),
+        SoundEvents.PLAYER_HURT_DROWN,
+        SoundSource.PLAYERS,
+        0.4f,
+        1.2f);
   }
 
   /** Plays deactivation effect when aura is turned off. */
@@ -253,19 +245,13 @@ public final class XueYiGuEffects {
       Vec3 point = start.add(direction.scale(i + 0.5));
 
       if (level.random.nextFloat() < 0.4f) {
-        FxOps.particles(
-            level, ParticleTypes.CRIMSON_SPORE, point, 2, 0.15, 0.15, 0.15, 0.03);
+        FxOps.particles(level, ParticleTypes.CRIMSON_SPORE, point, 2, 0.15, 0.15, 0.15, 0.03);
       }
     }
 
     // Sound: projectile
     FxOps.playSound(
-        level,
-        start,
-        SoundEvents.TRIDENT_THROW.value(),
-        SoundSource.PLAYERS,
-        0.9f,
-        1.3f);
+        level, start, SoundEvents.TRIDENT_THROW.value(), SoundSource.PLAYERS, 0.9f, 1.3f);
   }
 
   /** Plays impact effect when beam hits target. */
@@ -291,7 +277,8 @@ public final class XueYiGuEffects {
         double x = pos.x + Math.cos(rad) * radius;
         double z = pos.z + Math.sin(rad) * radius;
 
-        FxOps.particles(level, BLOOD_DARK, new Vec3(x, pos.y + heightOffset, z), 1, 0.0, 0.0, 0.0, 0.0);
+        FxOps.particles(
+            level, BLOOD_DARK, new Vec3(x, pos.y + heightOffset, z), 1, 0.0, 0.0, 0.0, 0.0);
       }
     }
 
@@ -300,8 +287,7 @@ public final class XueYiGuEffects {
     FxOps.playSound(
         level, targetPos, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0f, 0.9f);
 
-    FxOps.playSound(
-        level, targetPos, SoundEvents.GENERIC_HURT, SoundSource.PLAYERS, 0.5f, 1.1f);
+    FxOps.playSound(level, targetPos, SoundEvents.GENERIC_HURT, SoundSource.PLAYERS, 0.5f, 1.1f);
   }
 
   // ============================================================
@@ -323,7 +309,8 @@ public final class XueYiGuEffects {
         double z = center.z + Math.sin(angle) * radius;
 
         // Use crimson spore instead of entity effect for simplicity
-        FxOps.particles(level, ParticleTypes.CRIMSON_SPORE, new Vec3(x, center.y, z), 1, 0.0, 0.1, 0.0, 0.02);
+        FxOps.particles(
+            level, ParticleTypes.CRIMSON_SPORE, new Vec3(x, center.y, z), 1, 0.0, 0.1, 0.0, 0.02);
       }
     }
 
@@ -366,13 +353,11 @@ public final class XueYiGuEffects {
               double progress = particleIndex / 20.0;
               Vec3 currentPos = targetPos.add(direction.scale(distance * progress));
 
-              FxOps.particles(
-                  level, BLOOD_GLOW, currentPos, 1, 0.05, 0.05, 0.05, 0.1);
+              FxOps.particles(level, BLOOD_GLOW, currentPos, 1, 0.05, 0.05, 0.05, 0.1);
 
               // Heart particles every 5 steps
               if (particleIndex % 5 == 0) {
-                FxOps.particles(
-                    level, ParticleTypes.HEART, currentPos, 1, 0.0, 0.0, 0.0, 0.0);
+                FxOps.particles(level, ParticleTypes.HEART, currentPos, 1, 0.0, 0.0, 0.0, 0.0);
               }
             });
       }
@@ -414,8 +399,7 @@ public final class XueYiGuEffects {
 
     // Large absorption - totem effect
     if (amount >= 20) {
-      FxOps.particles(
-          level, ParticleTypes.TOTEM_OF_UNDYING, center, 8, 0.5, 0.6, 0.5, 0.1);
+      FxOps.particles(level, ParticleTypes.TOTEM_OF_UNDYING, center, 8, 0.5, 0.6, 0.5, 0.1);
     }
 
     // Debuff clear flash
@@ -482,12 +466,7 @@ public final class XueYiGuEffects {
     // Sound: activation
     Vec3 pos = player.position();
     FxOps.playSound(
-        level,
-        pos,
-        SoundEvents.NOTE_BLOCK_BASS.value(),
-        SoundSource.PLAYERS,
-        1.0f,
-        0.7f);
+        level, pos, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 0.7f);
 
     FxOps.playSound(
         level,
@@ -522,7 +501,8 @@ public final class XueYiGuEffects {
         double x = center.x + Math.cos(angle) * radius;
         double z = center.z + Math.sin(angle) * radius;
 
-        FxOps.particles(level, BLOOD_CRIMSON, new Vec3(x, center.y + 0.3, z), 1, 0.0, 0.1, 0.0, 0.0);
+        FxOps.particles(
+            level, BLOOD_CRIMSON, new Vec3(x, center.y + 0.3, z), 1, 0.0, 0.1, 0.0, 0.0);
       }
     }
 
@@ -536,7 +516,8 @@ public final class XueYiGuEffects {
         double x = center.x + Math.cos(angle) * radius;
         double z = center.z + Math.sin(angle) * radius;
 
-        FxOps.particles(level, BLOOD_DARK, new Vec3(x, center.y + height, z), 1, 0.0, 0.0, 0.0, 0.0);
+        FxOps.particles(
+            level, BLOOD_DARK, new Vec3(x, center.y + height, z), 1, 0.0, 0.0, 0.0, 0.0);
       }
     }
   }
@@ -550,15 +531,15 @@ public final class XueYiGuEffects {
     Vec3 direction = attackerPos.subtract(playerPos).normalize();
 
     // Shield counter-burst from player
-            FxOps.particles(
-                level,
-                BLOOD_GLOW,
-                playerPos,
-                8,
-                direction.x * 0.5,
-                direction.y * 0.5,
-                direction.z * 0.5,
-                0.3);
+    FxOps.particles(
+        level,
+        BLOOD_GLOW,
+        playerPos,
+        8,
+        direction.x * 0.5,
+        direction.y * 0.5,
+        direction.z * 0.5,
+        0.3);
     // Blood spike projectile to attacker
     double distance = playerPos.distanceTo(attackerPos);
     int spikeCount = (int) (distance * 3);
@@ -579,14 +560,7 @@ public final class XueYiGuEffects {
     // Impact on attacker
     int damageParticles = 5 + (int) (reflectedAmount / 10);
     FxOps.particles(
-        level,
-        ParticleTypes.DAMAGE_INDICATOR,
-        attackerPos,
-        damageParticles,
-        0.3,
-        0.5,
-        0.3,
-        0.15);
+        level, ParticleTypes.DAMAGE_INDICATOR, attackerPos, damageParticles, 0.3, 0.5, 0.3, 0.15);
 
     FxOps.particles(level, BLOOD_DARK, attackerPos, 8, 0.4, 0.5, 0.4, 0.1);
 
@@ -607,7 +581,12 @@ public final class XueYiGuEffects {
 
     // Sound: reflect trigger
     FxOps.playSound(
-        level, player.blockPosition().getCenter(), SoundEvents.GENERIC_HURT, SoundSource.PLAYERS, 0.8f, 1.1f);
+        level,
+        player.blockPosition().getCenter(),
+        SoundEvents.GENERIC_HURT,
+        SoundSource.PLAYERS,
+        0.8f,
+        1.1f);
 
     FxOps.playSound(
         level,
@@ -655,15 +634,7 @@ public final class XueYiGuEffects {
     Vec3 chest = player.position().add(0, player.getBbHeight() * 0.6, 0);
 
     // Use blood dark particles instead of entity effect
-    FxOps.particles(
-        level,
-        BLOOD_DARK,
-        chest,
-        3 + currentStacks,
-        0.2,
-        0.2,
-        0.2,
-        0.0);
+    FxOps.particles(level, BLOOD_DARK, chest, 3 + currentStacks, 0.2, 0.2, 0.2, 0.0);
 
     // Every 5 stacks - enhanced visual
     if (currentStacks % 5 == 0) {
@@ -696,7 +667,12 @@ public final class XueYiGuEffects {
     }
 
     FxOps.playSound(
-        level, target.blockPosition().getCenter(), SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 0.2f, 1.3f);
+        level,
+        target.blockPosition().getCenter(),
+        SoundEvents.PLAYER_HURT,
+        SoundSource.PLAYERS,
+        0.2f,
+        1.3f);
   }
 
   /** Enrage activation (passive: 越染越坚). */
@@ -806,7 +782,8 @@ public final class XueYiGuEffects {
               double x = center.x + Math.cos(angle) * radius;
               double z = center.z + Math.sin(angle) * radius;
 
-              FxOps.particles(level, BLOOD_CRIMSON, new Vec3(x, center.y, z), 1, 0.0, 0.0, 0.0, 0.0);
+              FxOps.particles(
+                  level, BLOOD_CRIMSON, new Vec3(x, center.y, z), 1, 0.0, 0.0, 0.0, 0.0);
             }
           });
     }
@@ -818,11 +795,15 @@ public final class XueYiGuEffects {
 
     FxOps.particles(level, BLOOD_DARK, chest, 6, 0.3, 0.3, 0.3, 0.08);
 
-    FxOps.particles(
-        level, ParticleTypes.DAMAGE_INDICATOR, chest, 2, 0.2, 0.2, 0.2, 0.05);
+    FxOps.particles(level, ParticleTypes.DAMAGE_INDICATOR, chest, 2, 0.2, 0.2, 0.2, 0.05);
 
     FxOps.playSound(
-        level, player.blockPosition().getCenter(),        SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 0.2f, 1.4f);
+        level,
+        player.blockPosition().getCenter(),
+        SoundEvents.PLAYER_HURT,
+        SoundSource.PLAYERS,
+        0.2f,
+        1.4f);
   }
 
   // ============================================================
