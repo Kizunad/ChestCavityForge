@@ -24,6 +24,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior.DaoHenSe
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastRequestSyncPayload;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastSyncPayload;
+import net.tigereye.chestcavity.compat.guzhenren.network.packets.TiePiProgressPayload;
 import net.tigereye.chestcavity.guscript.network.packets.FlowInputPayload;
 import net.tigereye.chestcavity.guscript.network.packets.FlowSyncPayload;
 import net.tigereye.chestcavity.guscript.network.packets.FxEventPayload;
@@ -162,6 +163,8 @@ public final class NetworkHandler {
             .STREAM_CODEC,
         net.tigereye.chestcavity.client.modernui.config.network.SoulConfigFollowTeleportSyncPayload
             ::handle);
+    registrar.playToClient(
+        TiePiProgressPayload.TYPE, TiePiProgressPayload.STREAM_CODEC, TiePiProgressPayload::handle);
     registrar.playToClient(
         net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.TYPE,
         net.tigereye.chestcavity.network.packets.CooldownReadyToastPayload.STREAM_CODEC,

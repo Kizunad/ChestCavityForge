@@ -36,6 +36,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ManLiTianN
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.XiongHaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZhiZhuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.ZiLiGengShengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jin_dao.behavior.TiePiGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.CaoQunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.JiuYeShengJiCaoOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.behavior.LiandaoGuOrganBehavior;
@@ -245,6 +246,54 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(YuLinGuBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("饵祭冷却结束", null));
+
+    register(
+        "guzhenren:tiepi/hardening",
+        "guzhenren:tiepi/hardening",
+        "guzhenren:t_tie_pi_gu",
+        tags("增益", "防御", "输出"),
+        "硬化：15 秒力量/防御/挖掘提升，期间每秒消耗精力与饱食；高阶延长持续并附加 5% 真实伤害",
+        "compat/guzhenren/item/jin_dao/behavior/TiePiGuBehavior.java",
+        () -> {
+          ensureClassLoaded(TiePiGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("硬化就绪", null));
+
+    register(
+        "guzhenren:tiepi/ironwall",
+        "guzhenren:tiepi/ironwall",
+        "guzhenren:t_tie_pi_gu",
+        tags("防御", "护盾"),
+        "铁壁：3 秒减伤 5%、移速 -15%，阶段加成延长持续与冷却缩减；吸收伤害累积铁皮 SP",
+        "compat/guzhenren/item/jin_dao/behavior/TiePiGuBehavior.java",
+        () -> {
+          ensureClassLoaded(TiePiGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("铁壁就绪", null));
+
+    register(
+        "guzhenren:tiepi/heavy_blow",
+        "guzhenren:tiepi/heavy_blow",
+        "guzhenren:t_tie_pi_gu",
+        tags("输出", "爆发"),
+        "沉击：蓄力至多 8 秒，下一次近战 +30% 伤害并附击退；命中方块直接破坏，阶段强化增伤与抗性",
+        "compat/guzhenren/item/jin_dao/behavior/TiePiGuBehavior.java",
+        () -> {
+          ensureClassLoaded(TiePiGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("沉击就绪", null));
+
+    register(
+            "guzhenren:tiepi/slam_fist",
+            "guzhenren:tiepi/slam_fist",
+            "guzhenren:t_tie_pi_gu",
+            tags("联动", "近战"),
+            "重拳沉坠：铁皮蛊 + 铁骨系联动，扇形重拳造成 100% 攻击伤害并刷新沉击冷却",
+            "compat/guzhenren/item/jin_dao/behavior/TiePiGuBehavior.java",
+            () -> {
+              ensureClassLoaded(TiePiGuBehavior.INSTANCE);
+            })
+        .withCooldownToast("重拳沉坠就绪");
 
     register(
         "guzhenren:skill/shou_pi_gu_drum",

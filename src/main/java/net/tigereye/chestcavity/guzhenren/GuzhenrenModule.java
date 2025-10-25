@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JianYingGuEvents;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoEntityAttributes;
+import net.tigereye.chestcavity.compat.guzhenren.item.jin_dao.JinDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.LiDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.mu_dao.MuDaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.ren_dao.RenDaoClientAbilities;
@@ -114,6 +115,7 @@ public final class GuzhenrenModule {
       modBus.addListener(YanDaoClientAbilities::onClientSetup);
       modBus.addListener(HunDaoClientAbilities::onClientSetup);
       modBus.addListener(YuDaoClientAbilities::onClientSetup);
+      modBus.addListener(JinDaoClientAbilities::onClientSetup);
       modBus.addListener(BianHuaDaoClientAbilities::onClientSetup);
       modBus.addListener(YunDaoCloudClientAbilities::onClientSetup);
       modBus.addListener(RenDaoClientAbilities::onClientSetup);

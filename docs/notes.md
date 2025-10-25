@@ -4382,6 +4382,7 @@ baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
       - 消耗念头数值: 1       - 80
       - 消耗饱食数值: 1       - 20
       - 消耗生命数值: 1       - 100
+  - 技能备注: 使用xxOps的实现，避免使用如GuzhenrenResourceBridge等底层函数导致耦合
   - [] 个主动技能
     - 方向
     - ChestCavityForge/src/main/java/net/tigereye/chestcavity/skill/ActiveSkillRegistry.java + 冷却Toast提示
@@ -4400,7 +4401,7 @@ baseCost / (2^(jieduan + zhuanshu*4) * zhuanshu * 3 / 96
 6. 若有升级路线，则声明如何升级，以及升级后效果
 7. 无需编译验证，只需检测json格式是否正确即可
 8. 上半部分为技能简述，下半部分为器官属性(可以参考其他文档)
-文档示范(技能介绍在前，器官属性(organscores)在后->score_name_overrides.json可查看翻译):
+UI文档示范(技能介绍在前，器官属性(organscores)在后->score_name_overrides.json可查看翻译,设计文档不需要也不能和UI提供为玩家查看的文档混淆):
   ```
   {
   "id": "itemID",
