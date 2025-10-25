@@ -274,6 +274,14 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     state.setInt(ARMOR_STACKS_KEY, 0);
     state.setInt(HIT_COUNTER_KEY, 0);
     state.setDouble(DAMAGE_ACCUMULATOR_KEY, 0.0);
+
+    // 清除饱和生命值（由血衣蛊提供的吸收效果）
+    if (entity instanceof ServerPlayer player) {
+      // 移除ABSORPTION药水效果
+      player.removeEffect(net.minecraft.world.effect.MobEffects.ABSORPTION);
+      // 重置饱和生命值
+      player.setAbsorptionAmount(0.0f);
+    }
   }
 
   // ============================================================

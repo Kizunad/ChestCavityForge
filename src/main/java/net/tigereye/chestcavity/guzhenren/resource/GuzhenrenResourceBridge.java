@@ -735,8 +735,10 @@ public final class GuzhenrenResourceBridge {
       syncPlayerVariables.invoke(variables, entity);
       return true;
     } catch (IllegalAccessException | InvocationTargetException e) {
-      LOGGER.warn(
-          "Failed to sync Guzhenren player variables for {}", entity.getName().getString(), e);
+      LOGGER.info(
+          "Failed to sync Guzhenren player variables for {} (non-fatal).",
+          entity.getName().getString(),
+          e);
       return false;
     }
   }

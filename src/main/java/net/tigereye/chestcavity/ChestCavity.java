@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity;
 
 // import com.github.alexthe666.alexsmobs.AlexsMobs;
-import icyllis.modernui.mc.neoforge.MenuScreenFactory;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.minecraft.resources.ResourceLocation;
@@ -15,7 +14,6 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
@@ -24,8 +22,6 @@ import net.tigereye.chestcavity.chestcavities.types.json.GeneratedChestCavityAss
 import net.tigereye.chestcavity.chestcavities.types.json.GeneratedChestCavityTypeManager;
 import net.tigereye.chestcavity.client.command.ModernUIClientCommands;
 import net.tigereye.chestcavity.client.input.ModernUIKeyDispatcher;
-import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
-import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.render.ChestCavityClientRenderers;
 import net.tigereye.chestcavity.command.ModernUiServerCommands;
@@ -46,7 +42,6 @@ import net.tigereye.chestcavity.guscript.registry.GuScriptLeafLoader;
 import net.tigereye.chestcavity.guscript.registry.GuScriptRuleLoader;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptListenerHooks;
 import net.tigereye.chestcavity.guscript.runtime.flow.GuScriptFlowEvents;
-import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.guzhenren.GuzhenrenModule;
 import net.tigereye.chestcavity.listeners.KeybindingClientListeners;
 import net.tigereye.chestcavity.network.NetworkHandler;
@@ -57,8 +52,10 @@ import net.tigereye.chestcavity.soul.command.SoulCommands;
 import net.tigereye.chestcavity.soul.entity.SoulClanSpawner;
 import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
 import net.tigereye.chestcavity.soul.entity.TestSoulSpawner;
+import net.tigereye.chestcavity.soul.playerghost.PlayerGhostEvents;
+import net.tigereye.chestcavity.soul.playerghost.PlayerGhostFactory;
+import net.tigereye.chestcavity.soul.playerghost.PlayerGhostSpawner;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
-import net.tigereye.chestcavity.ui.ChestCavityScreen;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -81,7 +78,6 @@ public class ChestCavity {
     IEventBus bus = modEventBus;
     bus.addListener(this::setup);
     bus.addListener(this::doClientStuff);
-    bus.addListener(this::registerMenuScreens);
     bus.addListener(this::doServerStuff);
     bus.addListener(NetworkHandler::registerCommon);
 
@@ -90,6 +86,7 @@ public class ChestCavity {
     NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerClone);
     NeoForge.EVENT_BUS.addListener(ServerEvents::onPlayerChangedDimension);
     NeoForge.EVENT_BUS.addListener(ServerEvents::onLivingDeath);
+    NeoForge.EVENT_BUS.addListener(PlayerGhostEvents::onPlayerDeath);
     NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
     NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onLivingDamage);
     NeoForge.EVENT_BUS.addListener(GuScriptListenerHooks::onPlayerTick);
@@ -103,6 +100,8 @@ public class ChestCavity {
     // Central DoT manager ticking
     DoTEngine.bootstrap();
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
+    NeoForge.EVENT_BUS.addListener(PlayerGhostSpawner::onServerTick);
+    PlayerGhostSpawner.init();
     SoulClanSpawner.init();
     if (FMLEnvironment.dist.isClient()) {
       NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);
@@ -166,15 +165,6 @@ public class ChestCavity {
   public void doClientStuff(FMLClientSetupEvent event) {
     FxClientHooks.init();
     event.enqueueWork(SkillHotbarClientData::initialize);
-  }
-
-  private void registerMenuScreens(RegisterMenuScreensEvent event) {
-    event.register(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), ChestCavityScreen::new);
-    event.register(CCContainers.GUSCRIPT_MENU.get(), GuScriptScreen::new);
-    event.register(
-        CCContainers.TEST_MODERN_UI_MENU.get(),
-        MenuScreenFactory.create(
-            menu -> new TestModernUIContainerFragment((TestModernUIContainerMenu) menu)));
   }
 
   public void doServerStuff(FMLDedicatedServerSetupEvent event) {
