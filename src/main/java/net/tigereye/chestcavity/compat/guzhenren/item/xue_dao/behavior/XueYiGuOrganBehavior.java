@@ -580,11 +580,11 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final ResourceLocation TIEXUEGU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu"); // 铁血蛊
   private static final ResourceLocation LZXQ_GU_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "lizhánxueqiaogu"); // 历战血窍蛊
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "li_zhan_xue_qi_gu"); // 历战血窍蛊
   private static final ResourceLocation PENXUE_GU_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "penxuegu"); // 喷血蛊
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "pen_xie_gu"); // 喷血蛊
   private static final ResourceLocation QIANGQU_GU_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "qiangqugu"); // 强取蛊
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "qiang_qu_gu"); // 强取蛊
   private static final ResourceLocation HUNDUN_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "hundungu"); // 魂盾蛊
 

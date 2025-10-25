@@ -76,32 +76,20 @@ public class ChestCavityConfigFragment extends Fragment {
       @Nullable ViewGroup container,
       @Nullable DataSet savedInstanceState) {
     var context = requireContext();
-    var root = new FrameLayout(context);
+    // 1. 将根布局改为 LinearLayout
+    var root = new LinearLayout(context);
+    root.setOrientation(LinearLayout.VERTICAL); // 2. 设置为垂直方向
     root.setLayoutParams(
-        new FrameLayout.LayoutParams(
+        new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     // 防止子视图在切页时越界绘制
     root.setClipToPadding(true);
     root.setClipChildren(true);
 
-    var pager = new ViewPager(context);
-    pager.setId(View.generateViewId());
-    pager.setAdapter(new ConfigPagerAdapter());
-    // 防越界绘制至相邻页
-    pager.setClipToPadding(true);
-    pager.setClipChildren(true);
-
-    var pagerParams =
-        new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-    pagerParams.gravity = Gravity.CENTER;
-    pagerParams.topMargin = root.dp(52);
-    root.addView(pager, pagerParams);
-
+    // --- 1. 配置 TabLayout (标签栏) ---
     var tabs = new TabLayout(context);
     tabs.setTabMode(TabLayout.MODE_AUTO);
     tabs.setTabGravity(TabLayout.GRAVITY_CENTER);
-    tabs.setupWithViewPager(pager);
 
     // 监听选项卡切换，控制含 SurfaceView 页的显隐，避免跨页叠绘
     tabs.addOnTabSelectedListener(
@@ -117,14 +105,36 @@ public class ChestCavityConfigFragment extends Fragment {
           @Override
           public void onTabReselected(TabLayout.Tab tab) {}
         });
+
+    // 为 Tabs 设置布局参数，高度为自适应
+    var tabParams =
+        new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    // 2. 先将 Tabs 添加到 root
+    root.addView(tabs, tabParams);
+
+    // --- 2. 配置 ViewPager (内容页) ---
+    var pager = new ViewPager(context);
+    pager.setId(View.generateViewId());
+    pager.setAdapter(new ConfigPagerAdapter());
+    // 防越界绘制至相邻页
+    pager.setClipToPadding(true);
+    pager.setClipChildren(true);
+
+    // 3. 将 ViewPager 链接到 Tabs
+    tabs.setupWithViewPager(pager);
+
+    // 4. 为 ViewPager 设置布局参数，使其填充所有剩余空间
+    var pagerParams =
+        new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 0); // 高度设为 0
+    pagerParams.weight = 1.0f; // 设置权重为 1
+
+    // 5. 在 Tabs 之后将 Pager 添加到 root
+    root.addView(pager, pagerParams);
+
     // 初始化一次
     updateIconSurfaceVisibility(0);
-
-    var tabParams =
-        new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    tabParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-    root.addView(tabs, tabParams);
 
     return root;
   }

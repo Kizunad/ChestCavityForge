@@ -296,7 +296,7 @@ public final class XueShuShouJinSkill {
     }
 
     net.minecraft.resources.ResourceLocation penxueguId =
-        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "penxuegu");
+        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "pen_xie_gu");
 
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack stack = cc.inventory.getItem(i);
