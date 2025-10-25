@@ -14,7 +14,9 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
-import net.tigereye.chestcavity.guzhenren;
+import net.tigereye.chestcavity.guzhenren.XindeItemKeys;
+import net.tigereye.chestcavity.guzhenren.XindeItemKeys.XindeItemConfig;
+import net.tigereye.chestcavity.guzhenren.XindeItemKeys.TradeCostItemConfig;
 
 /** 灵魂氏族商人的交易配置管理器 */
 public class SoulClanTradeOffers {
@@ -343,15 +345,6 @@ public class SoulClanTradeOffers {
                 50,
                 0.3f));
     // ========== 蛊真人自定义物品交易示例 ==========
-    addCustomTrade(
-        TradeRarity.T0,
-        "minecraft:dragon_head",
-        1,
-        "minecraft:elytra",
-        1,
-        1,
-        100,
-        0.5f);
 
     // ========== 其他模组物品交易示例 ==========
     // 使用 addCustomTrade 方法添加其他模组的物品交易
@@ -364,6 +357,110 @@ public class SoulClanTradeOffers {
     // 示例：Botania 模组交易
     // addCustomTrade(TradeRarity.T1, "botania:mana_diamond", 1, "minecraft:diamond", 2, 8, 10,
     // 0.15f);
+
+    // ========== 蛊真人心得物品随机交易 ==========
+    // T0 - 大师级心得交易（传说级）
+    addRandomXindeTrade(TradeRarity.T0, XindeItemKeys.XINDE_DASHI_LIST, 64, 50, 0.3f);
+    addRandomXindeTrade(TradeRarity.T0, XindeItemKeys.XINDE_DASHI_LIST, 48, 40, 0.25f);
+    addRandomXindeTrade(TradeRarity.T0, XindeItemKeys.XINDE_DASHI_LIST, 80, 60, 0.35f);
+
+    // T1 - 准大师级心得交易（史诗级）
+    addRandomXindeTrade(TradeRarity.T1, XindeItemKeys.XINDE_ZHUNDASHI_LIST, 32, 30, 0.2f);
+    addRandomXindeTrade(TradeRarity.T1, XindeItemKeys.XINDE_ZHUNDASHI_LIST, 24, 25, 0.15f);
+    addRandomXindeTrade(TradeRarity.T1, XindeItemKeys.XINDE_ZHUNDASHI_LIST, 40, 35, 0.25f);
+    addRandomXindeTrade(TradeRarity.T1, XindeItemKeys.XINDE_ZHUNDASHI_LIST, 28, 28, 0.18f);
+
+    // T2 - 普通级心得交易（稀有级）
+    addRandomXindeTrade(TradeRarity.T2, XindeItemKeys.XINDE_PUTONG_LIST, 16, 20, 0.15f);
+    addRandomXindeTrade(TradeRarity.T2, XindeItemKeys.XINDE_PUTONG_LIST, 12, 15, 0.1f);
+    addRandomXindeTrade(TradeRarity.T2, XindeItemKeys.XINDE_PUTONG_LIST, 20, 25, 0.2f);
+    addRandomXindeTrade(TradeRarity.T2, XindeItemKeys.XINDE_PUTONG_LIST, 14, 18, 0.12f);
+    addRandomXindeTrade(TradeRarity.T2, XindeItemKeys.XINDE_PUTONG_LIST, 18, 22, 0.15f);
+  }
+
+  /**
+   * 添加随机心得物品交易（输入随机，输出固定1个心得）
+   *
+   * @param rarity 稀有度等级
+   * @param xindeList 心得物品列表
+   * @param maxUses 最大使用次数
+   * @param xp 经验值
+   * @param priceMultiplier 价格倍数
+   */
+  private static void addRandomXindeTrade(
+      TradeRarity rarity,
+      List<XindeItemConfig> xindeList,
+      int maxUses,
+      int xp,
+      float priceMultiplier) {
+
+    addTrade(
+        rarity,
+        () -> {
+          RandomSource random = RandomSource.create();
+
+          // 随机选择一个交易所需物品
+          List<TradeCostItemConfig> costList = XindeItemKeys.getTradeCostListByRarity(rarity);
+          TradeCostItemConfig costConfig = XindeItemKeys.getRandomTradeCost(costList, random);
+
+          if (costConfig == null) {
+            // 如果列表为空，返回默认交易
+            return new MerchantOffer(
+                new ItemCost(Items.EMERALD_BLOCK, 1),
+                new ItemStack(Items.DIAMOND, 1),
+                16,
+                10,
+                0.1f);
+          }
+
+          // 获取交易所需物品
+          Item costItem = getItemById(costConfig.getItemId());
+          if (costItem == null) {
+            // 物品不存在，返回默认交易
+            return new MerchantOffer(
+                new ItemCost(Items.EMERALD_BLOCK, 1),
+                new ItemStack(Items.DIAMOND, 1),
+                16,
+                10,
+                0.1f);
+          }
+
+          // 随机生成交易所需数量
+          int costCount = costConfig.getRandomCount(random);
+
+          // 随机选择一个心得物品
+          XindeItemConfig xindeConfig = XindeItemKeys.getRandomXinde(xindeList, random);
+
+          if (xindeConfig == null) {
+            // 如果列表为空，返回默认交易
+            return new MerchantOffer(
+                new ItemCost(Items.EMERALD_BLOCK, 1),
+                new ItemStack(Items.DIAMOND, 1),
+                16,
+                10,
+                0.1f);
+          }
+
+          // 获取心得物品
+          Item xindeItem = getItemById(xindeConfig.getItemId());
+          if (xindeItem == null) {
+            // 物品不存在，返回默认交易
+            return new MerchantOffer(
+                new ItemCost(Items.EMERALD_BLOCK, 1),
+                new ItemStack(Items.DIAMOND, 1),
+                16,
+                10,
+                0.1f);
+          }
+
+          // 创建交易：X个随机物品 -> 1个心得物品
+          return new MerchantOffer(
+              new ItemCost(costItem, costCount),
+              new ItemStack(xindeItem, 1), // 固定输出1个
+              maxUses,
+              xp,
+              priceMultiplier);
+        });
   }
 
   /**

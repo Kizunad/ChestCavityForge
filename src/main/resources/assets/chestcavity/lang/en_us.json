@@ -1,4 +1,5 @@
 {
+    "entity.chestcavity.soul_clan.trader": "Trader",
     "death.attack.ccHeartbleed": "%1$s's sacrifice has nourished the sun",
     "death.attack.ccHeartbleed.player": "%2$s witnessed %1$s's sacrifice",
     "death.attack.ccOrganRejection": "%1$s died of medical complications",
