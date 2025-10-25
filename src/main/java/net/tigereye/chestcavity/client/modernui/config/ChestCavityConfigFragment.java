@@ -9,6 +9,7 @@ import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.LayoutInflater;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
+import icyllis.modernui.view.ViewParent;
 import icyllis.modernui.widget.AdapterView;
 import icyllis.modernui.widget.ArrayAdapter;
 import icyllis.modernui.widget.Button;
@@ -41,6 +42,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
+import net.tigereye.chestcavity.client.modernui.config.docs.CategoryTranslations;
 import net.tigereye.chestcavity.client.modernui.config.docs.DocEntry;
 import net.tigereye.chestcavity.client.modernui.config.docs.DocRegistry;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
@@ -159,13 +161,19 @@ public class ChestCavityConfigFragment extends Fragment {
             case 3 -> createDocsPage(container);
             default -> createSoulPlayerPage(container);
           };
-      container.addView(layout);
+      // Only add if the view doesn't already have a parent to avoid "child already has a parent"
+      if (layout.getParent() == null) {
+        container.addView(layout);
+      }
       return layout;
     }
 
     @Override
     public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
-      container.removeView((View) object);
+      // Defensive check to avoid removing a view that's not a child of this container
+      if (object instanceof View v && v.getParent() == container) {
+        container.removeView(v);
+      }
       if (position == 2) {
         skillIconScrollRef = null;
       } else if (position == 3) {
@@ -204,6 +212,7 @@ public class ChestCavityConfigFragment extends Fragment {
       var label = new TextView(context);
       label.setText("显示反应提示/调试输出");
       label.setTextSize(13);
+      label.setTextColor(0xFFDEE5F4); // Light color for labels
       row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
       var toggle = new CheckBox(context);
       boolean init = true;
@@ -265,7 +274,7 @@ public class ChestCavityConfigFragment extends Fragment {
       addBody(
           layout,
           "· 绑定 ModernUI 技能槽后，可在无 GUI 状态下直接释放蛊真人主动技。\n"
-              + "· 填写 skillId（示例：guzhenren:jiu_chong）后点击“绑定”即可追加该技能。\n"
+              + "· 点击文件夹按钮浏览不同道派的技能。\n"
               + "· 可使用 /testmodernUI keylisten true/false 快速启用或停用监听。");
 
       var statusView = new TextView(context);
@@ -278,11 +287,38 @@ public class ChestCavityConfigFragment extends Fragment {
       layout.addView(statusView, statusParams);
 
       ActiveSkillRegistry.bootstrap();
+      DocRegistry.reload();
 
       var selectedSlotRef = new AtomicReference<SimpleSkillSlotView>();
       var selectedSkillIdRef = new AtomicReference<ResourceLocation>();
 
-      // 图标容器：竖向网格（自动换行），占据实际高度，向下推后续内容
+      // Navigation state: [category, subcategory]
+      var currentCategory = new AtomicReference<String>("");
+      var currentSubcategory = new AtomicReference<String>("");
+
+      // Breadcrumb navigation with clickable segments
+      var breadcrumbRow = new LinearLayout(context);
+      breadcrumbRow.setOrientation(LinearLayout.HORIZONTAL);
+      breadcrumbRow.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+      var breadcrumbParams =
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      breadcrumbParams.topMargin = layout.dp(8);
+      breadcrumbParams.bottomMargin = layout.dp(4);
+      layout.addView(breadcrumbRow, breadcrumbParams);
+
+      // Folder container
+      var folderGrid = new LinearLayout(context);
+      folderGrid.setOrientation(LinearLayout.VERTICAL);
+      folderGrid.setGravity(Gravity.START);
+      folderGrid.setPadding(folderGrid.dp(4), folderGrid.dp(4), folderGrid.dp(4), folderGrid.dp(4));
+      var folderGridParams =
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      folderGridParams.topMargin = layout.dp(8);
+      layout.addView(folderGrid, folderGridParams);
+
+      // Icon container
       var iconGrid = new LinearLayout(context);
       iconGrid.setOrientation(LinearLayout.VERTICAL);
       iconGrid.setGravity(Gravity.START);
@@ -292,12 +328,17 @@ public class ChestCavityConfigFragment extends Fragment {
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
       iconGridParams.topMargin = layout.dp(8);
       layout.addView(iconGrid, iconGridParams);
-      // 保存引用供切页时显式隐藏/显示
       ChestCavityConfigFragment.this.skillIconScrollRef = iconGrid;
 
-      record SkillIcon(SimpleSkillSlotView view, ActiveSkillRegistry.ActiveSkillEntry entry) {}
+      record SkillIcon(SimpleSkillSlotView view, ActiveSkillRegistry.ActiveSkillEntry entry, String category, String subcategory) {}
 
-      var iconRecords = new ArrayList<SkillIcon>();
+      var allIconRecords = new ArrayList<SkillIcon>();
+
+      // Build skill to category mapping from DocRegistry
+      var skillToCategoryMap = new java.util.HashMap<ResourceLocation, DocEntry>();
+      for (DocEntry doc : DocRegistry.all()) {
+        skillToCategoryMap.put(doc.id(), doc);
+      }
 
       var registryEntries = new ArrayList<>(ActiveSkillRegistry.entries());
       registryEntries.sort(Comparator.comparing(e -> e.skillId().toString()));
@@ -313,6 +354,33 @@ public class ChestCavityConfigFragment extends Fragment {
         if (item == null) {
           continue;
         }
+
+        // Get category info from DocRegistry with smart matching:
+        // 1. Try exact skillId match
+        // 2. Try organId match (for multi-skill organs like qing_feng_lun_gu/dash)
+        // 3. Try ability ID match
+        DocEntry docEntry = skillToCategoryMap.get(entry.skillId());
+        if (docEntry == null && entry.organId() != null) {
+          docEntry = skillToCategoryMap.get(entry.organId());
+        }
+        if (docEntry == null && entry.abilityId() != null) {
+          docEntry = skillToCategoryMap.get(entry.abilityId());
+        }
+
+        String category = docEntry != null ? docEntry.category() : "";
+        String subcategory = docEntry != null ? docEntry.subcategory() : "";
+
+        // If still no category found, try to infer from organId path
+        if (category.isEmpty() && entry.organId() != null) {
+          String organPath = entry.organId().toString();
+          // Check if it's a guzhenren organ
+          if (organPath.startsWith("guzhenren:")) {
+            // Assume it's human dao by default for guzhenren organs without docs
+            category = "human";
+            subcategory = ""; // Will show in category root
+          }
+        }
+
         ItemStack iconStack = new ItemStack(item);
         String label = iconStack.getHoverName().getString();
         var slotView =
@@ -332,14 +400,217 @@ public class ChestCavityConfigFragment extends Fragment {
                   selectedSkillIdRef.set(entry.skillId());
                   statusView.setText("选中技能：" + entry.skillId() + " ｜ " + entry.description());
                 });
-        iconRecords.add(new SkillIcon(slotView, entry));
+        allIconRecords.add(new SkillIcon(slotView, entry, category, subcategory));
       }
 
       final int slotSizePx = layout.dp(36);
       final int cellWidthPx = Math.max(slotSizePx + layout.dp(12), layout.dp(72));
+      final int folderButtonWidth = layout.dp(120);
+      final int folderButtonHeight = layout.dp(40);
 
-      Runnable rebuildIcons =
+      // Use arrays to allow forward references in lambdas
+      final Runnable[] renderFoldersRef = new Runnable[1];
+      final Runnable[] renderIconsRef = new Runnable[1];
+      final Runnable[] updateBreadcrumbRef = new Runnable[1];
+
+      // Render folders based on current navigation level
+      Runnable renderFolders =
           () -> {
+            folderGrid.removeAllViews();
+            String category = currentCategory.get();
+            String subcategory = currentSubcategory.get();
+
+            int available = layout.getWidth() - layout.getPaddingLeft() - layout.getPaddingRight();
+            if (available <= 0) {
+              available = layout.dp(300); // fallback
+            }
+            int gap = layout.dp(6);
+            int colWidth = folderButtonWidth + gap * 2;
+            int columns = Math.max(1, available / colWidth);
+
+            if (category.isEmpty()) {
+              // Show top-level categories
+              var categories = allIconRecords.stream()
+                  .map(SkillIcon::category)
+                  .filter(c -> !c.isEmpty())
+                  .distinct()
+                  .sorted()
+                  .toList();
+
+              LinearLayout currentRow = null;
+              int col = 0;
+              for (String cat : categories) {
+                if (currentRow == null || col >= columns) {
+                  currentRow = new LinearLayout(context);
+                  currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                  currentRow.setGravity(Gravity.START);
+                  var rowParams =
+                      new LinearLayout.LayoutParams(
+                          ViewGroup.LayoutParams.MATCH_PARENT,
+                          ViewGroup.LayoutParams.WRAP_CONTENT);
+                  if (folderGrid.getChildCount() > 0) {
+                    rowParams.topMargin = gap;
+                  }
+                  folderGrid.addView(currentRow, rowParams);
+                  col = 0;
+                }
+
+                var folderButton = new Button(context);
+                folderButton.setText(CategoryTranslations.getCategoryName(cat));
+                folderButton.setGravity(Gravity.CENTER); // Center text
+
+                // Add visual styling to folder buttons
+                folderButton.setTextColor(0xFFFFFFFF);
+                // Create a drawable background with rounded corners
+                var bgDrawable = new ShapeDrawable();
+                bgDrawable.setColor(0x50406080); // Semi-transparent blue
+                bgDrawable.setCornerRadius(layout.dp(6)); // Rounded corners
+                bgDrawable.setStroke(layout.dp(1), 0x806BAEFF); // Light blue border
+                folderButton.setBackground(bgDrawable);
+                folderButton.setPadding(layout.dp(12), layout.dp(8), layout.dp(12), layout.dp(8));
+
+                // Pop-in animation: start small and scale up
+                folderButton.setScaleX(0.3f);
+                folderButton.setScaleY(0.3f);
+                folderButton.setAlpha(0f);
+                int animDelay = col * 50; // Stagger animation for each button
+                folderButton.postDelayed(
+                    () -> {
+                      // Simple animation using postDelayed
+                      animateButton(folderButton, 0.3f, 1f, 0f, 1f, 200);
+                    },
+                    animDelay);
+
+                String finalCat = cat;
+                folderButton.setOnClickListener(
+                    v -> {
+                      // Press animation effect
+                      animateButtonPress(v);
+
+                      currentCategory.set(finalCat);
+                      currentSubcategory.set("");
+                      renderFoldersRef[0].run();
+                      renderIconsRef[0].run();
+                      updateBreadcrumbRef[0].run();
+                    });
+                var params =
+                    new LinearLayout.LayoutParams(folderButtonWidth, folderButtonHeight);
+                params.leftMargin = gap;
+                params.rightMargin = gap;
+                params.bottomMargin = gap;
+                currentRow.addView(folderButton, params);
+                col++;
+              }
+            } else if (subcategory.isEmpty()) {
+              // Show subcategories for selected category
+              var subcategories = allIconRecords.stream()
+                  .filter(icon -> icon.category().equals(category))
+                  .map(SkillIcon::subcategory)
+                  .filter(sc -> !sc.isEmpty())
+                  .distinct()
+                  .sorted()
+                  .toList();
+
+              LinearLayout currentRow = null;
+              int col = 0;
+              for (String subcat : subcategories) {
+                if (currentRow == null || col >= columns) {
+                  currentRow = new LinearLayout(context);
+                  currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                  currentRow.setGravity(Gravity.START);
+                  var rowParams =
+                      new LinearLayout.LayoutParams(
+                          ViewGroup.LayoutParams.MATCH_PARENT,
+                          ViewGroup.LayoutParams.WRAP_CONTENT);
+                  if (folderGrid.getChildCount() > 0) {
+                    rowParams.topMargin = gap;
+                  }
+                  folderGrid.addView(currentRow, rowParams);
+                  col = 0;
+                }
+
+                var folderButton = new Button(context);
+                folderButton.setText(CategoryTranslations.getSubcategoryName(subcat));
+                folderButton.setGravity(Gravity.CENTER); // Center text
+
+                // Add visual styling to folder buttons
+                folderButton.setTextColor(0xFFFFFFFF);
+                // Create a drawable background with rounded corners
+                var bgDrawable = new ShapeDrawable();
+                bgDrawable.setColor(0x50406080); // Semi-transparent blue
+                bgDrawable.setCornerRadius(layout.dp(6)); // Rounded corners
+                bgDrawable.setStroke(layout.dp(1), 0x806BAEFF); // Light blue border
+                folderButton.setBackground(bgDrawable);
+                folderButton.setPadding(layout.dp(12), layout.dp(8), layout.dp(12), layout.dp(8));
+
+                // Pop-in animation: start small and scale up
+                folderButton.setScaleX(0.3f);
+                folderButton.setScaleY(0.3f);
+                folderButton.setAlpha(0f);
+                int animDelay = col * 50; // Stagger animation for each button
+                folderButton.postDelayed(
+                    () -> {
+                      // Simple animation using postDelayed
+                      animateButton(folderButton, 0.3f, 1f, 0f, 1f, 200);
+                    },
+                    animDelay);
+
+                String finalSubcat = subcat;
+                folderButton.setOnClickListener(
+                    v -> {
+                      // Press animation effect
+                      animateButtonPress(v);
+
+                      currentSubcategory.set(finalSubcat);
+                      renderFoldersRef[0].run();
+                      renderIconsRef[0].run();
+                      updateBreadcrumbRef[0].run();
+                    });
+                var params =
+                    new LinearLayout.LayoutParams(folderButtonWidth, folderButtonHeight);
+                params.leftMargin = gap;
+                params.rightMargin = gap;
+                params.bottomMargin = gap;
+                currentRow.addView(folderButton, params);
+                col++;
+              }
+            } else {
+              // At leaf level, no folders to show
+              folderGrid.setVisibility(View.GONE);
+              return;
+            }
+
+            folderGrid.setVisibility(View.VISIBLE);
+          };
+
+      // Render icons based on current filter
+      Runnable renderIcons =
+          () -> {
+            String category = currentCategory.get();
+            String subcategory = currentSubcategory.get();
+
+            // Filter icons
+            List<SkillIcon> filteredIcons;
+            if (category.isEmpty()) {
+              // Show all or none at root
+              filteredIcons = List.of();
+            } else if (subcategory.isEmpty()) {
+              // Show all skills in category
+              filteredIcons =
+                  allIconRecords.stream()
+                      .filter(icon -> icon.category().equals(category))
+                      .toList();
+            } else {
+              // Show skills in subcategory
+              filteredIcons =
+                  allIconRecords.stream()
+                      .filter(
+                          icon ->
+                              icon.category().equals(category)
+                                  && icon.subcategory().equals(subcategory))
+                      .toList();
+            }
+
             int available = layout.getWidth() - layout.getPaddingLeft() - layout.getPaddingRight();
             if (available <= 0) {
               return;
@@ -349,16 +620,32 @@ public class ChestCavityConfigFragment extends Fragment {
             int columns = Math.max(1, available / colWidth);
 
             iconGrid.removeAllViews();
+            if (filteredIcons.isEmpty()) {
+              if (!category.isEmpty() && !subcategory.isEmpty()) {
+                var emptyView = new TextView(context);
+                emptyView.setText("此分类下暂无技能");
+                emptyView.setTextSize(13);
+                emptyView.setTextColor(0xFFB5C7E3);
+                iconGrid.addView(
+                    emptyView,
+                    new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+              }
+              return;
+            }
+
             LinearLayout currentRow = null;
             int col = 0;
-            for (SkillIcon icon : iconRecords) {
+            for (SkillIcon icon : filteredIcons) {
               if (currentRow == null || col >= columns) {
                 currentRow = new LinearLayout(context);
                 currentRow.setOrientation(LinearLayout.HORIZONTAL);
                 currentRow.setGravity(Gravity.START);
                 var rowParams =
                     new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
                 if (iconGrid.getChildCount() > 0) {
                   rowParams.topMargin = gap;
                 }
@@ -370,41 +657,114 @@ public class ChestCavityConfigFragment extends Fragment {
               params.leftMargin = gap;
               params.rightMargin = gap;
               params.bottomMargin = gap;
-              currentRow.addView(icon.view(), params);
+              var slotView = icon.view();
+              ViewParent parent = slotView.getParent();
+              if (parent instanceof ViewGroup parentGroup) {
+                parentGroup.removeView(slotView);
+              }
+              currentRow.addView(slotView, params);
               icon.view().setSelected(icon.view() == selectedSlotRef.get());
               col++;
             }
+
+            if (!filteredIcons.isEmpty()) {
+              filteredIcons.get(0).view().performClick();
+            }
           };
 
-      // 等待测量完成后再构建网格
-      layout.post(rebuildIcons);
+      // Update breadcrumb with clickable navigation segments
+      Runnable updateBreadcrumb =
+          () -> {
+            breadcrumbRow.removeAllViews();
 
-      if (!iconRecords.isEmpty()) {
-        iconRecords.get(0).view().performClick();
-      }
+            String category = currentCategory.get();
+            String subcategory = currentSubcategory.get();
 
-      var iconActionRow = new LinearLayout(context);
-      iconActionRow.setOrientation(LinearLayout.HORIZONTAL);
-      iconActionRow.setGravity(Gravity.START);
+            // Helper to add breadcrumb segment
+            var addSegment =
+                new Object() {
+                  void add(String text, boolean clickable, Runnable onClick) {
+                    var textView = new TextView(context);
+                    textView.setText(text);
+                    textView.setTextSize(14);
+                    textView.setPadding(layout.dp(4), layout.dp(2), layout.dp(4), layout.dp(2));
 
-      var sortButton = new Button(context);
-      sortButton.setText("自动排序图标");
-      sortButton.setOnClickListener(
-          v -> {
-            iconRecords.sort(Comparator.comparing(record -> record.entry().skillId().toString()));
-            rebuildIcons.run();
-            statusView.setText("已按 skillId 排列图标。");
+                    if (clickable) {
+                      // Clickable segment (link style)
+                      textView.setTextColor(0xFF6BAEFF); // Light blue
+                      textView.setOnClickListener(v -> onClick.run());
+                    } else {
+                      // Current/non-clickable segment
+                      textView.setTextColor(0xFFFFFFFF); // White
+                    }
+
+                    breadcrumbRow.addView(
+                        textView,
+                        new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                  }
+
+                  void addSeparator() {
+                    var sep = new TextView(context);
+                    sep.setText(" > ");
+                    sep.setTextSize(14);
+                    sep.setTextColor(0xFFB5C7E3);
+                    breadcrumbRow.addView(
+                        sep,
+                        new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                  }
+                };
+
+            // Always show "全部" as clickable unless we're at root
+            boolean atRoot = category.isEmpty();
+            addSegment.add(
+                "全部",
+                !atRoot,
+                () -> {
+                  currentCategory.set("");
+                  currentSubcategory.set("");
+                  renderFoldersRef[0].run();
+                  renderIconsRef[0].run();
+                  updateBreadcrumbRef[0].run();
+                });
+
+            // Show category if selected
+            if (!category.isEmpty()) {
+              addSegment.addSeparator();
+              boolean inSubcategory = !subcategory.isEmpty();
+              addSegment.add(
+                  CategoryTranslations.getCategoryName(category),
+                  inSubcategory,
+                  () -> {
+                    currentSubcategory.set("");
+                    renderFoldersRef[0].run();
+                    renderIconsRef[0].run();
+                    updateBreadcrumbRef[0].run();
+                  });
+            }
+
+            // Show subcategory if selected
+            if (!subcategory.isEmpty()) {
+              addSegment.addSeparator();
+              addSegment.add(CategoryTranslations.getSubcategoryName(subcategory), false, null);
+            }
+          };
+
+      // Assign to arrays to allow forward references
+      renderFoldersRef[0] = renderFolders;
+      renderIconsRef[0] = renderIcons;
+      updateBreadcrumbRef[0] = updateBreadcrumb;
+
+      // Initial render
+      layout.post(
+          () -> {
+            renderFoldersRef[0].run();
+            renderIconsRef[0].run();
+            updateBreadcrumbRef[0].run();
           });
-      iconActionRow.addView(
-          sortButton,
-          new LinearLayout.LayoutParams(
-              ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-      var iconActionParams =
-          new LinearLayout.LayoutParams(
-              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-      iconActionParams.topMargin = layout.dp(4);
-      layout.addView(iconActionRow, iconActionParams);
 
       var sections = new java.util.LinkedHashMap<SkillHotbarKey, SkillSection>();
       for (SkillHotbarKey key : SkillHotbarKey.values()) {
@@ -1976,6 +2336,7 @@ public class ChestCavityConfigFragment extends Fragment {
       var tv = new TextView(layout.getContext());
       tv.setText(text);
       tv.setTextSize(sizeSp);
+      tv.setTextColor(0xFFEEF5FF); // Light blue-white color for headings
       tv.setGravity(Gravity.START);
       layout.addView(
           tv,
@@ -1987,6 +2348,7 @@ public class ChestCavityConfigFragment extends Fragment {
       var tv = new TextView(layout.getContext());
       tv.setText(text);
       tv.setTextSize(14);
+      tv.setTextColor(0xFFCBD8EC); // Light gray-blue color for body text
       tv.setLineSpacing(0, 1.1f);
       tv.setGravity(Gravity.START);
       var params =
@@ -2004,5 +2366,55 @@ public class ChestCavityConfigFragment extends Fragment {
     if (docsIconScrollRef != null) {
       docsIconScrollRef.setVisibility(pageIndex == 3 ? View.VISIBLE : View.GONE);
     }
+  }
+
+  /**
+   * Animates a view from start scale/alpha to end scale/alpha over a duration.
+   *
+   * @param view The view to animate
+   * @param startScale Initial scale (both X and Y)
+   * @param endScale Target scale (both X and Y)
+   * @param startAlpha Initial alpha (0-1)
+   * @param endAlpha Target alpha (0-1)
+   * @param durationMs Animation duration in milliseconds
+   */
+  private void animateButton(
+      View view, float startScale, float endScale, float startAlpha, float endAlpha, long durationMs) {
+    long startTime = System.currentTimeMillis();
+    Runnable animator =
+        new Runnable() {
+          @Override
+          public void run() {
+            long elapsed = System.currentTimeMillis() - startTime;
+            float progress = Math.min(1f, elapsed / (float) durationMs);
+
+            // Ease-out cubic interpolation for smooth animation
+            float eased = 1 - (float) Math.pow(1 - progress, 3);
+
+            float currentScale = startScale + (endScale - startScale) * eased;
+            float currentAlpha = startAlpha + (endAlpha - startAlpha) * eased;
+
+            view.setScaleX(currentScale);
+            view.setScaleY(currentScale);
+            view.setAlpha(currentAlpha);
+
+            if (progress < 1f) {
+              view.postDelayed(this, 16); // ~60fps
+            }
+          }
+        };
+    view.post(animator);
+  }
+
+  /**
+   * Plays a press animation: scale down then back up.
+   *
+   * @param view The view to animate
+   */
+  private void animateButtonPress(View view) {
+    // Scale down
+    animateButton(view, 1f, 0.92f, 1f, 1f, 100);
+    // Scale back up after delay
+    view.postDelayed(() -> animateButton(view, 0.92f, 1f, 1f, 1f, 100), 100);
   }
 }

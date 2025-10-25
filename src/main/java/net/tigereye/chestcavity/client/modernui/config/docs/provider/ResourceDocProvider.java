@@ -101,7 +101,46 @@ public final class ResourceDocProvider implements DocProvider {
     List<String> tags = readStringList(json.get("tags"));
     ItemStack icon = resolveIcon(asString(json, "icon"), source);
 
-    return new DocEntry(id, title, summary, details, tags, icon);
+    // Extract category and subcategory from the resource path
+    // Expected format: "docs/category/subcategory/filename.json"
+    String[] pathParts = extractCategoryFromPath(source.getPath());
+    String category = pathParts[0];
+    String subcategory = pathParts[1];
+
+    return new DocEntry(id, title, summary, details, tags, icon, category, subcategory);
+  }
+
+  /**
+   * Extracts category and subcategory from the resource path.
+   *
+   * @param path Resource path (e.g., "docs/human/bian_hua_dao/shou_pi_gu.json")
+   * @return Array of [category, subcategory], empty strings if not found
+   */
+  private static String[] extractCategoryFromPath(String path) {
+    String[] result = {"", ""};
+    if (path == null || path.isEmpty()) {
+      return result;
+    }
+
+    // Remove "docs/" prefix and ".json" suffix
+    String trimmed = path;
+    if (trimmed.startsWith(ROOT + "/")) {
+      trimmed = trimmed.substring((ROOT + "/").length());
+    }
+    if (trimmed.endsWith(".json")) {
+      trimmed = trimmed.substring(0, trimmed.length() - 5);
+    }
+
+    // Split by "/" to get path segments
+    String[] segments = trimmed.split("/");
+    if (segments.length >= 1) {
+      result[0] = segments[0]; // category (e.g., "human", "animal")
+    }
+    if (segments.length >= 2) {
+      result[1] = segments[1]; // subcategory (e.g., "bian_hua_dao", "feng_dao")
+    }
+
+    return result;
   }
 
   private static String asString(JsonObject json, String key) {

@@ -80,7 +80,10 @@ public final class ActiveSkillDocProvider implements DocProvider {
               summary,
               details,
               List.copyOf(tags),
-              icon));
+              icon,
+              "", // category - not applicable for active skill provider
+              ""  // subcategory - not applicable for active skill provider
+          ));
     }
     return entries;
   }
