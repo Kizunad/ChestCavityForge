@@ -28,7 +28,7 @@ import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerF
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.render.ChestCavityClientRenderers;
-import net.tigereye.chestcavity.command.ModernUIServerCommands;
+import net.tigereye.chestcavity.command.ModernUiServerCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command.SoulBeastCommands;
@@ -97,7 +97,7 @@ public class ChestCavity {
     NeoForge.EVENT_BUS.addListener(GuScriptFlowEvents::onPlayerLogout);
     NeoForge.EVENT_BUS.addListener(GuScriptCommands::register);
     NeoForge.EVENT_BUS.addListener(RecipeDebugCommands::register);
-    NeoForge.EVENT_BUS.addListener(ModernUIServerCommands::register);
+    NeoForge.EVENT_BUS.addListener(ModernUiServerCommands::register);
     NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
     NeoForge.EVENT_BUS.addListener(SoulCommands::register);
     // Central DoT manager ticking

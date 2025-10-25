@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCContainers;
 import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
 
+/** The screen handler for the chest cavity. */
 public class ChestCavityScreenHandler extends AbstractContainerMenu {
 
   private final ChestCavityInventory inventory;
@@ -23,17 +24,30 @@ public class ChestCavityScreenHandler extends AbstractContainerMenu {
 
   private static ChestCavityInventory getOrCreateChestCavityInventory(Inventory playerInventory) {
     Player player = playerInventory.player;
-    ChestCavityInstance playerCC = CCAttachments.getExistingChestCavity(player).orElse(null);
-    if (playerCC != null && playerCC.ccBeingOpened != null) {
-      return playerCC.ccBeingOpened.inventory;
+    ChestCavityInstance playerCc = CCAttachments.getExistingChestCavity(player).orElse(null);
+    if (playerCc != null && playerCc.ccBeingOpened != null) {
+      return playerCc.ccBeingOpened.inventory;
     }
     return new ChestCavityInventory();
   }
 
+  /**
+   * Creates a new ChestCavityScreenHandler.
+   *
+   * @param syncId The sync ID.
+   * @param playerInventory The player inventory.
+   */
   public ChestCavityScreenHandler(int syncId, Inventory playerInventory) {
     this(syncId, playerInventory, getOrCreateChestCavityInventory(playerInventory));
   }
 
+  /**
+   * Creates a new ChestCavityScreenHandler.
+   *
+   * @param syncId The sync ID.
+   * @param playerInventory The player inventory.
+   * @param inventory The chest cavity inventory.
+   */
   public ChestCavityScreenHandler(
       int syncId, Inventory playerInventory, ChestCavityInventory inventory) {
     super(CCContainers.CHEST_CAVITY_SCREEN_HANDLER.get(), syncId);

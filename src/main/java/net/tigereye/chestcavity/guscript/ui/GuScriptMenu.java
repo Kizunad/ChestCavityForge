@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.guscript.data.ListenerType;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCContainers;
 
+/** The screen handler for the Gu-script menu. */
 public class GuScriptMenu extends AbstractContainerMenu {
   private final Container container;
 
@@ -27,24 +28,23 @@ public class GuScriptMenu extends AbstractContainerMenu {
   private int pageIndex;
   private int pageCount = 1;
 
+  /**
+   * Creates a new GuScriptMenu.
+   *
+   * @param syncId The sync ID.
+   * @param inventory The player inventory.
+   */
   public GuScriptMenu(int syncId, Inventory inventory) {
     this(syncId, inventory, resolveContainer(inventory.player));
   }
 
-  private static Container resolveContainer(Player player) {
-    if (player == null) {
-      return new SimpleContainer(GuScriptAttachment.TOTAL_SLOTS);
-    }
-    if (player.level().isClientSide) {
-      ChestCavity.LOGGER.debug("[GuScript] Creating client-side stub container");
-      return new SimpleContainer(GuScriptAttachment.TOTAL_SLOTS);
-    }
-    ChestCavity.LOGGER.debug(
-        "[GuScript] Fetching server attachment container for {}",
-        player.getGameProfile().getName());
-    return CCAttachments.getGuScript(player);
-  }
-
+  /**
+   * Creates a new GuScriptMenu.
+   *
+   * @param syncId The sync ID.
+   * @param inventory The player inventory.
+   * @param container The container.
+   */
   public GuScriptMenu(int syncId, Inventory inventory, Container container) {
     super(CCContainers.GUSCRIPT_MENU.get(), syncId);
     this.container = container;
@@ -137,6 +137,20 @@ public class GuScriptMenu extends AbstractContainerMenu {
         });
   }
 
+  private static Container resolveContainer(Player player) {
+    if (player == null) {
+      return new SimpleContainer(GuScriptAttachment.TOTAL_SLOTS);
+    }
+    if (player.level().isClientSide) {
+      ChestCavity.LOGGER.debug("[GuScript] Creating client-side stub container");
+      return new SimpleContainer(GuScriptAttachment.TOTAL_SLOTS);
+    }
+    ChestCavity.LOGGER.debug(
+        "[GuScript] Fetching server attachment container for {}",
+        player.getGameProfile().getName());
+    return CCAttachments.getGuScript(player);
+  }
+
   public int getRows() {
     return ROWS;
   }
@@ -194,8 +208,8 @@ public class GuScriptMenu extends AbstractContainerMenu {
   }
 
   private static class BindingSlot extends Slot {
-    public BindingSlot(Container container, int index, int xPosition, int yPosition) {
-      super(container, index, xPosition, yPosition);
+    public BindingSlot(Container container, int index, int xPos, int yPos) {
+      super(container, index, xPos, yPos);
     }
 
     @Override
@@ -217,6 +231,11 @@ public class GuScriptMenu extends AbstractContainerMenu {
     return BindingTarget.fromOrdinal(bindingTargetOrdinal);
   }
 
+  /**
+   * Gets the listener type.
+   *
+   * @return The listener type.
+   */
   public ListenerType getListenerType() {
     return ListenerType.fromOrdinal(listenerTypeOrdinal);
   }

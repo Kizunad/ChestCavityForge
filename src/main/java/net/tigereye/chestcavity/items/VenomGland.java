@@ -21,8 +21,10 @@ import net.tigereye.chestcavity.registration.CCFoodComponents;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
+/** An item that represents a venom gland. */
 public class VenomGland extends Item implements OrganOnHitListener {
 
+  /** Creates a new VenomGland. */
   public VenomGland() {
     super(new Properties().stacksTo(1).food(CCFoodComponents.RAW_TOXIC_ORGAN_MEAT_FOOD_COMPONENT));
   }

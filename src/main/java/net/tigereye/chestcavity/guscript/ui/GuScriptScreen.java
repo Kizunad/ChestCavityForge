@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.guscript.data.BindingTarget;
 import net.tigereye.chestcavity.guscript.data.ListenerType;
 import net.tigereye.chestcavity.guscript.network.packets.GuScriptBindingTogglePayload;
 
+/** The screen for the Gu-script menu. */
 public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
   private static final ResourceLocation BACKGROUND =
       ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
@@ -26,6 +27,13 @@ public class GuScriptScreen extends AbstractContainerScreen<GuScriptMenu> {
   private int pageInfoY;
   private int navButtonHeight;
 
+  /**
+   * Creates a new GuScriptScreen.
+   *
+   * @param menu The menu.
+   * @param inventory The player inventory.
+   * @param title The title.
+   */
   public GuScriptScreen(GuScriptMenu menu, Inventory inventory, Component title) {
     super(menu, inventory, title);
     this.imageHeight = 114 + menu.getRows() * 18;

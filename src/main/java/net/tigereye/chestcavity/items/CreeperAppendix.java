@@ -8,8 +8,10 @@ import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
+/** An item that represents a creeper appendix. */
 public class CreeperAppendix extends Item {
 
+  /** Creates a new CreeperAppendix. */
   public CreeperAppendix() {
     super(new Item.Properties().stacksTo(1));
   }

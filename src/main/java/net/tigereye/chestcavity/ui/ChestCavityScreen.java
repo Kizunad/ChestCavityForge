@@ -6,10 +6,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
+/** A screen for the chest cavity. */
 public class ChestCavityScreen extends AbstractContainerScreen<ChestCavityScreenHandler> {
   private static final ResourceLocation TEXTURE =
       ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
 
+  /**
+   * Creates a new ChestCavityScreen.
+   *
+   * @param handler The screen handler.
+   * @param inventory The player inventory.
+   * @param title The screen title.
+   */
   public ChestCavityScreen(ChestCavityScreenHandler handler, Inventory inventory, Component title) {
     super(handler, inventory, title);
     this.imageHeight = 114 + handler.getRows() * 18;

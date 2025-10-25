@@ -23,8 +23,10 @@ import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.ui.ChestCavityScreenHandler;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 
+/** An item that can be used to open a chest cavity. */
 public class ChestOpener extends Item {
 
+  /** Creates a new ChestOpener. */
   public ChestOpener() {
     super(CCItems.CHEST_OPENER_PROPERTIES);
   }
@@ -47,10 +49,25 @@ public class ChestOpener extends Item {
         : InteractionResult.PASS;
   }
 
+  /**
+   * Opens the chest cavity of the target.
+   *
+   * @param player The player opening the chest cavity.
+   * @param target The target whose chest cavity is being opened.
+   * @return Whether the chest cavity was opened.
+   */
   public boolean openChestCavity(Player player, LivingEntity target) {
     return openChestCavity(player, target, true);
   }
 
+  /**
+   * Opens the chest cavity of the target.
+   *
+   * @param player The player opening the chest cavity.
+   * @param target The target whose chest cavity is being opened.
+   * @param shouldKnockback Whether the target should be knocked back.
+   * @return Whether the chest cavity was opened.
+   */
   public boolean openChestCavity(Player player, LivingEntity target, boolean shouldKnockback) {
     Optional<ChestCavityEntity> optional = ChestCavityEntity.of(target);
     ChestCavity.printOnDebug(
@@ -74,8 +91,8 @@ public class ChestOpener extends Item {
         }
         if (target.isAlive()) {
           ChestCavityInventory inv = ChestCavityUtil.openChestCavity(cc);
-          ChestCavityInstance playerCC = CCAttachments.getChestCavity(player);
-          playerCC.ccBeingOpened = cc;
+          ChestCavityInstance playerCc = CCAttachments.getChestCavity(player);
+          playerCc.ccBeingOpened = cc;
           player.openMenu(
               new SimpleMenuProvider(
                   (i, playerInventory, playerEntity) ->

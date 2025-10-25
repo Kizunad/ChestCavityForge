@@ -41,6 +41,12 @@ public record GuScriptSimulateCompilePayload(int pageIndex) implements CustomPac
     return TYPE;
   }
 
+  /**
+   * Handles the packet.
+   *
+   * @param payload The packet payload.
+   * @param context The packet context.
+   */
   public static void handle(GuScriptSimulateCompilePayload payload, IPayloadContext context) {
     context.enqueueWork(
         () -> {
@@ -65,7 +71,9 @@ public record GuScriptSimulateCompilePayload(int pageIndex) implements CustomPac
           int bindingSlot = page.items().size() - 1;
           for (int i = 0; i < bindingSlot; i++) {
             var stack = page.items().get(i);
-            if (stack.isEmpty()) continue;
+            if (stack.isEmpty()) {
+              continue;
+            }
             int slotIndex = i;
             var itemId = stack.getItem().builtInRegistryHolder().key().location();
             GuScriptRegistry.leaf(itemId)
@@ -99,7 +107,9 @@ public record GuScriptSimulateCompilePayload(int pageIndex) implements CustomPac
               // inputs
               boolean first = true;
               for (GuNode in : app.inputs()) {
-                if (!first) sb.append(" + ");
+                if (!first) {
+                  sb.append(" + ");
+                }
                 sb.append(in.name());
                 first = false;
               }

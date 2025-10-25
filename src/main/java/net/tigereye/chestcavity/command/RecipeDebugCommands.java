@@ -15,10 +15,16 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
+/** A command to dump all recipes in a given namespace. */
 public final class RecipeDebugCommands {
 
   private RecipeDebugCommands() {}
 
+  /**
+   * Register the command.
+   *
+   * @param event The command registration event.
+   */
   public static void register(RegisterCommandsEvent event) {
     CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
     dispatcher.register(

@@ -98,6 +98,12 @@ public record FxEventPayload(
     return TYPE;
   }
 
+  /**
+   * Handles the packet.
+   *
+   * @param payload The packet payload.
+   * @param context The packet context.
+   */
   public static void handle(FxEventPayload payload, IPayloadContext context) {
     context.enqueueWork(
         () -> {
