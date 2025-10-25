@@ -275,10 +275,9 @@ public final class XueFengJiBiSkill {
     }
   }
 
-  /**
-   * 联动5: 魂盾叠层 - 检查是否装备了魂盾蛊。
-   */
-  private static boolean hasHunDunGu(net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
+  /** 联动5: 魂盾叠层 - 检查是否装备了魂盾蛊。 */
+  private static boolean hasHunDunGu(
+      net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return false;
     }

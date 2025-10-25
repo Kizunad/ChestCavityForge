@@ -289,10 +289,9 @@ public final class XueYongPiShenSkill {
     target.hurt(player.damageSources().magic(), damage);
   }
 
-  /**
-   * 联动1: 铁血披覆 - 检查是否装备了铁血蛊。
-   */
-  private static boolean hasTieXueGu(net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
+  /** 联动1: 铁血披覆 - 检查是否装备了铁血蛊。 */
+  private static boolean hasTieXueGu(
+      net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return false;
     }

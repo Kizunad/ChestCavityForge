@@ -222,10 +222,9 @@ public final class XueShuShouJinSkill {
     player.displayClientMessage(Component.literal("血束收紧命中！"), true);
   }
 
-  /**
-   * 联动3: 血雾喷涌 - 在目标周围喷涌血雾，对附近敌人造成伤害。
-   */
-  private static void triggerBloodMist(ServerPlayer player, LivingEntity target, ServerLevel level) {
+  /** 联动3: 血雾喷涌 - 在目标周围喷涌血雾，对附近敌人造成伤害。 */
+  private static void triggerBloodMist(
+      ServerPlayer player, LivingEntity target, ServerLevel level) {
     double mistRadius = 3.0; // 血雾半径
     Vec3 center = target.position();
     AABB searchBox =
@@ -289,10 +288,9 @@ public final class XueShuShouJinSkill {
     }
   }
 
-  /**
-   * 联动3: 血雾喷涌 - 检查是否装备了喷血蛊。
-   */
-  private static boolean hasPenXueGu(net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
+  /** 联动3: 血雾喷涌 - 检查是否装备了喷血蛊。 */
+  private static boolean hasPenXueGu(
+      net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return false;
     }
@@ -366,11 +364,9 @@ public final class XueShuShouJinSkill {
     player.displayClientMessage(Component.literal(message), true);
   }
 
-  /**
-   * 联动2: 历战回转 - 刷新血束收紧冷却。
-   * 当击杀精英怪物且装备历战血窍蛊时调用。
-   */
-  public static void refreshCooldown(ChestCavityInstance cc, ItemStack xueyiguOrgan, OrganState xueyiguState) {
+  /** 联动2: 历战回转 - 刷新血束收紧冷却。 当击杀精英怪物且装备历战血窍蛊时调用。 */
+  public static void refreshCooldown(
+      ChestCavityInstance cc, ItemStack xueyiguOrgan, OrganState xueyiguState) {
     // 找到血衣蛊器官
     Optional<ItemStack> organOpt = findOrgan(cc);
     if (organOpt.isEmpty()) {

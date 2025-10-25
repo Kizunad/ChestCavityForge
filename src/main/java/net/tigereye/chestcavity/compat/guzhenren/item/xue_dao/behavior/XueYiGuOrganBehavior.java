@@ -4,9 +4,11 @@ import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -714,14 +716,25 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   /** 联动2: 历战回转 - 击杀精英怪物时刷新血束收紧冷却。 */
   private static void handleEliteKillRefresh(
-      ServerPlayer killer, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, OrganState state) {
+      ServerPlayer killer,
+      LivingEntity victim,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      OrganState state) {
     // 检查是否装备了历战血窍蛊
     if (!hasOrgan(cc, LZXQ_GU_ID)) {
       return;
     }
 
     // 检查受害者是否为精英怪物（检测是否有发光效果或Boss标签）
-    boolean isElite = victim.hasGlowingTag() || !victim.canChangeDimensions();
+    boolean isElite =
+        victim.hasGlowingTag()
+            || victim
+                .getType()
+                .is(
+                    TagKey.create(
+                        Registries.ENTITY_TYPE,
+                        ResourceLocation.fromNamespaceAndPath("forge", "bosses")));
 
     // 或者检查是否为Boss级别的怪物
     if (!isElite && victim.getType().is(net.minecraft.tags.EntityTypeTags.RAIDERS)) {
@@ -860,7 +873,11 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     // 发送消息给玩家
     player.displayClientMessage(
         net.minecraft.network.chat.Component.literal(
-            "强取回流：吸取了 " + SYNERGY_FORCE_TAKE_FOOD + " 饱食度和 " + SYNERGY_FORCE_TAKE_ZHENYUAN + " 真元！"),
+            "强取回流：吸取了 "
+                + SYNERGY_FORCE_TAKE_FOOD
+                + " 饱食度和 "
+                + SYNERGY_FORCE_TAKE_ZHENYUAN
+                + " 真元！"),
         true);
 
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
