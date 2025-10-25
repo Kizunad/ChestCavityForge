@@ -207,8 +207,111 @@ public final class XueShuShouJinSkill {
     // Play hit effect
     XueYiGuEffects.playBeamHit(level, target);
 
+    // 联动3: 血雾喷涌 - 如果装备了喷血蛊，在目标周围喷涌血雾
+    Optional<net.tigereye.chestcavity.interfaces.ChestCavityEntity> ccEntityOpt =
+        net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(player);
+    if (ccEntityOpt.isPresent()) {
+      net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc =
+          ccEntityOpt.get().getChestCavityInstance();
+      if (hasPenXueGu(cc)) {
+        triggerBloodMist(player, target, level);
+      }
+    }
+
     // Success feedback
     player.displayClientMessage(Component.literal("血束收紧命中！"), true);
+  }
+
+  /**
+   * 联动3: 血雾喷涌 - 在目标周围喷涌血雾，对附近敌人造成伤害。
+   */
+  private static void triggerBloodMist(ServerPlayer player, LivingEntity target, ServerLevel level) {
+    double mistRadius = 3.0; // 血雾半径
+    Vec3 center = target.position();
+    AABB searchBox =
+        new AABB(
+            center.x - mistRadius,
+            center.y - 1,
+            center.z - mistRadius,
+            center.x + mistRadius,
+            center.y + target.getBbHeight() + 1,
+            center.z + mistRadius);
+
+    java.util.List<LivingEntity> nearbyEntities =
+        level.getEntitiesOfClass(
+            LivingEntity.class,
+            searchBox,
+            entity -> entity != player && entity != target && !entity.isAlliedTo(player));
+
+    // 对附近敌人造成伤害
+    float mistDamage = 8.0f; // 血雾伤害
+    for (LivingEntity entity : nearbyEntities) {
+      entity.hurt(player.damageSources().magic(), mistDamage);
+
+      // 应用短暂减速
+      entity.addEffect(
+          new MobEffectInstance(
+              MobEffects.MOVEMENT_SLOWDOWN,
+              40, // 2秒
+              1, // 减速II
+              false,
+              true,
+              true));
+    }
+
+    // 播放血雾效果
+    Vec3 targetCenter = target.position().add(0, target.getBbHeight() * 0.5, 0);
+    level.sendParticles(
+        net.minecraft.core.particles.ParticleTypes.CRIMSON_SPORE,
+        targetCenter.x,
+        targetCenter.y,
+        targetCenter.z,
+        50,
+        mistRadius * 0.5,
+        mistRadius * 0.5,
+        mistRadius * 0.5,
+        0.1);
+
+    // 播放音效
+    level.playSound(
+        null,
+        target.getX(),
+        target.getY(),
+        target.getZ(),
+        net.minecraft.sounds.SoundEvents.BREWING_STAND_BREW,
+        net.minecraft.sounds.SoundSource.PLAYERS,
+        1.0f,
+        0.7f);
+
+    if (nearbyEntities.size() > 0) {
+      player.displayClientMessage(
+          Component.literal("血雾喷涌：波及 " + nearbyEntities.size() + " 个目标！"), true);
+    }
+  }
+
+  /**
+   * 联动3: 血雾喷涌 - 检查是否装备了喷血蛊。
+   */
+  private static boolean hasPenXueGu(net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
+
+    net.minecraft.resources.ResourceLocation penxueguId =
+        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "penxuegu");
+
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (!stack.isEmpty()) {
+        net.minecraft.resources.ResourceLocation itemId =
+            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (penxueguId.equals(itemId)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /** Applies bleeding effect to target. */
@@ -261,5 +364,27 @@ public final class XueShuShouJinSkill {
 
   private static void sendFailure(ServerPlayer player, String message) {
     player.displayClientMessage(Component.literal(message), true);
+  }
+
+  /**
+   * 联动2: 历战回转 - 刷新血束收紧冷却。
+   * 当击杀精英怪物且装备历战血窍蛊时调用。
+   */
+  public static void refreshCooldown(ChestCavityInstance cc, ItemStack xueyiguOrgan, OrganState xueyiguState) {
+    // 找到血衣蛊器官
+    Optional<ItemStack> organOpt = findOrgan(cc);
+    if (organOpt.isEmpty()) {
+      return;
+    }
+
+    ItemStack organ = organOpt.get();
+    OrganState state = OrganState.of(organ, STATE_ROOT);
+    MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
+    MultiCooldown.Entry entry = cooldown.entry(COOLDOWN_READY_AT_KEY).withDefault(0L);
+
+    // 重置冷却时间为当前时间（使技能立即可用）
+    entry.setReadyAt(0L);
+
+    NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 }

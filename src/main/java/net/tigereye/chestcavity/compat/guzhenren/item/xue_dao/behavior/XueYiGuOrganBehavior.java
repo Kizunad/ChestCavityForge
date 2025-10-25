@@ -577,12 +577,14 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   // 联动器官的ID定义
   private static final ResourceLocation TIEXUEGU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tiexuegu"); // 铁血蛊
-
-  // TODO: 添加其他联动器官ID（当它们被实现后）
-  // private static final ResourceLocation LZXQ_GU_ID = ...; // 历战血窍蛊
-  // private static final ResourceLocation PENXUE_GU_ID = ...; // 喷血蛊
-  // private static final ResourceLocation QIANGQU_GU_ID = ...; // 强取蛊
-  // private static final ResourceLocation HUNDUN_GU_ID = ...; // 魂盾蛊
+  private static final ResourceLocation LZXQ_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "lizhánxueqiaogu"); // 历战血窍蛊
+  private static final ResourceLocation PENXUE_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "penxuegu"); // 喷血蛊
+  private static final ResourceLocation QIANGQU_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "qiangqugu"); // 强取蛊
+  private static final ResourceLocation HUNDUN_GU_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "hundungu"); // 魂盾蛊
 
   private Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
@@ -612,6 +614,7 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   // ============================================================
   // 被动4: 血偿 - 击杀流血敌人返还真元
+  // 联动2: 历战回转 - 击杀精英时刷新血束收紧冷却
   // ============================================================
 
   /**
@@ -651,9 +654,24 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     ItemStack organ = organOpt.get();
     OrganState state = INSTANCE.organState(organ, STATE_ROOT);
-
-    // 检查冷却
     long now = killer.level().getGameTime();
+
+    // 被动4: 血偿 - 击杀流血敌人返还真元
+    handleBloodReward(killer, victim, cc, organ, state, now);
+
+    // 联动2: 历战回转 - 击杀精英时刷新血束收紧冷却
+    handleEliteKillRefresh(killer, victim, cc, organ, state);
+  }
+
+  /** 处理血偿被动：击杀流血敌人返还真元。 */
+  private static void handleBloodReward(
+      ServerPlayer killer,
+      LivingEntity victim,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      OrganState state,
+      long now) {
+    // 检查冷却
     long readyAt = state.getLong(BLOOD_REWARD_READY_AT_KEY, 0L);
     if (now < readyAt) {
       return; // 冷却中
@@ -691,6 +709,58 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             LOG_PREFIX,
             BLOOD_REWARD_ZHENYUAN_AMOUNT);
       }
+    }
+  }
+
+  /** 联动2: 历战回转 - 击杀精英怪物时刷新血束收紧冷却。 */
+  private static void handleEliteKillRefresh(
+      ServerPlayer killer, LivingEntity victim, ChestCavityInstance cc, ItemStack organ, OrganState state) {
+    // 检查是否装备了历战血窍蛊
+    if (!hasOrgan(cc, LZXQ_GU_ID)) {
+      return;
+    }
+
+    // 检查受害者是否为精英怪物（检测是否有发光效果或Boss标签）
+    boolean isElite = victim.hasGlowingTag() || !victim.canChangeDimensions();
+
+    // 或者检查是否为Boss级别的怪物
+    if (!isElite && victim.getType().is(net.minecraft.tags.EntityTypeTags.RAIDERS)) {
+      // 劫掠者也算作精英
+      isElite = true;
+    }
+
+    if (!isElite) {
+      return; // 不是精英，不触发
+    }
+
+    // 刷新血束收紧的冷却时间
+    XueShuShouJinSkill.refreshCooldown(cc, organ, state);
+
+    // 播放效果
+    if (killer.level() instanceof ServerLevel serverLevel) {
+      Vec3 killerPos = killer.position().add(0, killer.getBbHeight() * 0.5, 0);
+      // 播放金色粒子效果表示冷却刷新
+      serverLevel.sendParticles(
+          net.minecraft.core.particles.ParticleTypes.WAX_ON,
+          killerPos.x,
+          killerPos.y,
+          killerPos.z,
+          15,
+          0.3,
+          0.3,
+          0.3,
+          0.1);
+    }
+
+    // 发送消息给玩家
+    killer.displayClientMessage(
+        net.minecraft.network.chat.Component.literal("历战回转：击杀精英，血束收紧冷却已刷新！"), true);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "{} Elite Kill Refresh triggered: killed elite {}, refreshed Blood Bind cooldown",
+          LOG_PREFIX,
+          victim.getName().getString());
     }
   }
 
@@ -737,10 +807,10 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       OrganState state,
       ChestCavityInstance cc,
       LivingEntity target) {
-    // TODO: 检查是否装备了强取蛊
-    // if (!hasOrgan(cc, QIANGQU_GU_ID)) {
-    //   return;
-    // }
+    // 检查是否装备了强取蛊
+    if (!hasOrgan(cc, QIANGQU_GU_ID)) {
+      return;
+    }
 
     long now = player.level().getGameTime();
     long readyAt = state.getLong(SYNERGY_FORCE_TAKE_READY_AT_KEY, 0L);
@@ -787,6 +857,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
           0.1);
     }
 
+    // 发送消息给玩家
+    player.displayClientMessage(
+        net.minecraft.network.chat.Component.literal(
+            "强取回流：吸取了 " + SYNERGY_FORCE_TAKE_FOOD + " 饱食度和 " + SYNERGY_FORCE_TAKE_ZHENYUAN + " 真元！"),
+        true);
+
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
 
     if (LOGGER.isDebugEnabled()) {
@@ -798,9 +874,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  // TODO: 实现其他联动技能
-  // 联动1: 铁血披覆 - 需要在 XueYongPiShenSkill 中实现
-  // 联动2: 历战回转 - 需要在击杀事件中检测精英并刷新血束收紧冷却
-  // 联动3: 血雾喷涌 - 需要在 XueShuShouJinSkill 中实现
-  // 联动5: 魂盾叠层 - 需要在 XueFengJiBiSkill 中实现
+  // ============================================================
+  // 所有联动技能已实现完成
+  // ============================================================
+  // 联动1: 铁血披覆 - 已在 XueYongPiShenSkill 中实现（增强光环伤害）
+  // 联动2: 历战回转 - 已在 handleEliteKillRefresh 中实现（击杀精英刷新血束收紧冷却）
+  // 联动3: 血雾喷涌 - 已在 XueShuShouJinSkill 中实现（血束收紧命中后喷涌血雾）
+  // 联动4: 强取回流 - 已在 handleSynergyForceTake 中实现（对流血目标吸取饱食和真元）
+  // 联动5: 魂盾叠层 - 已在 XueFengJiBiSkill 中实现（增强吸收量）
 }
