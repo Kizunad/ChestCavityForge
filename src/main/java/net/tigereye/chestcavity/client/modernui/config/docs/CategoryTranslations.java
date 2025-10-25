@@ -14,8 +14,8 @@ public final class CategoryTranslations {
 
   static {
     // Main categories
-    CATEGORY_NAMES.put("human", "人道");
-    CATEGORY_NAMES.put("animal", "兽道");
+    CATEGORY_NAMES.put("human", "蛊虫器官");
+    CATEGORY_NAMES.put("animal", "野兽蛊材");
 
     // Subcategories (dao paths) - based on src/main/resources/assets/guzhenren/docs/human
     SUBCATEGORY_NAMES.put("bian_hua_dao", "变化道");
@@ -30,15 +30,15 @@ public final class CategoryTranslations {
     SUBCATEGORY_NAMES.put("lei_dao", "雷道");
     SUBCATEGORY_NAMES.put("li_dao", "力道");
     SUBCATEGORY_NAMES.put("mu_dao", "木道");
-    SUBCATEGORY_NAMES.put("ren_dao", "炼道");
+    SUBCATEGORY_NAMES.put("ren_dao", "人道");
     SUBCATEGORY_NAMES.put("shi_dao", "食道");
     SUBCATEGORY_NAMES.put("shui_dao", "水道");
     SUBCATEGORY_NAMES.put("tian_dao", "天道");
     SUBCATEGORY_NAMES.put("tu_dao", "土道");
-    SUBCATEGORY_NAMES.put("xin_dao", "心道");
+    SUBCATEGORY_NAMES.put("xin_dao", "星道");
     SUBCATEGORY_NAMES.put("xue_dao", "血道");
     SUBCATEGORY_NAMES.put("yan_dao", "炎道");
-    SUBCATEGORY_NAMES.put("yu_dao", "玉道");
+    SUBCATEGORY_NAMES.put("yu_dao", "宇道");
     SUBCATEGORY_NAMES.put("yue_dao", "月道");
     SUBCATEGORY_NAMES.put("yun_dao_cloud", "云道");
     SUBCATEGORY_NAMES.put("zhi_dao", "智道");

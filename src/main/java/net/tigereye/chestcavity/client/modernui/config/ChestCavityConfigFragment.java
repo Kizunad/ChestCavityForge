@@ -392,6 +392,9 @@ public class ChestCavityConfigFragment extends Fragment {
                 statusView,
                 layout.dp(36),
                 clicked -> {
+                  // Add click animation for skill icon
+                  animateButtonPress(clicked);
+
                   SimpleSkillSlotView previous = selectedSlotRef.getAndSet(clicked);
                   if (previous != null && previous != clicked) {
                     previous.setSelected(false);
@@ -664,6 +667,18 @@ public class ChestCavityConfigFragment extends Fragment {
               }
               currentRow.addView(slotView, params);
               icon.view().setSelected(icon.view() == selectedSlotRef.get());
+
+              // Add pop-in animation for skill icons
+              slotView.setScaleX(0.3f);
+              slotView.setScaleY(0.3f);
+              slotView.setAlpha(0f);
+              int iconAnimDelay = col * 40; // Stagger animation
+              slotView.postDelayed(
+                  () -> {
+                    animateButton(slotView, 0.3f, 1f, 0f, 1f, 180);
+                  },
+                  iconAnimDelay);
+
               col++;
             }
 
@@ -857,15 +872,21 @@ public class ChestCavityConfigFragment extends Fragment {
     private View createDocsPage(ViewGroup container) {
       var context = container.getContext();
 
-      var scroll = new ScrollView(context);
-      scroll.setClipToPadding(true);
-      scroll.setFillViewport(true);
+    var root = new FrameLayout(context);
 
-      var layout = baseLayout(context);
-      scroll.addView(
-          layout,
-          new ViewGroup.LayoutParams(
-              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    var scroll = new ScrollView(context);
+    scroll.setClipToPadding(true);
+    scroll.setFillViewport(true);
+    root.addView(
+        scroll,
+        new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    var layout = baseLayout(context);
+    scroll.addView(
+        layout,
+        new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
       addHeadline(layout, "器官与技能图鉴", 18);
 
@@ -887,12 +908,21 @@ public class ChestCavityConfigFragment extends Fragment {
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
       splitParams.topMargin = layout.dp(8);
       layout.addView(splitRow, splitParams);
+      final int detailPanelWidth = splitRow.dp(320);
+      final int detailPanelSpacing = splitRow.dp(12);
 
       var leftColumn = new LinearLayout(context);
       leftColumn.setOrientation(LinearLayout.VERTICAL);
       var leftParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
       leftParams.rightMargin = splitRow.dp(8);
       splitRow.addView(leftColumn, leftParams);
+
+      var spacer = new View(context);
+      spacer.setVisibility(View.INVISIBLE);
+      var spacerParams =
+          new LinearLayout.LayoutParams(
+              detailPanelWidth + detailPanelSpacing, ViewGroup.LayoutParams.MATCH_PARENT);
+      splitRow.addView(spacer, spacerParams);
 
       var iconGrid = new LinearLayout(context);
       iconGrid.setOrientation(LinearLayout.VERTICAL);
@@ -922,8 +952,12 @@ public class ChestCavityConfigFragment extends Fragment {
           new ViewGroup.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-      var detailParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-      splitRow.addView(detailScroll, detailParams);
+      var detailOverlayParams =
+          new FrameLayout.LayoutParams(detailPanelWidth, ViewGroup.LayoutParams.MATCH_PARENT);
+      detailOverlayParams.gravity = Gravity.TOP | Gravity.END;
+      detailOverlayParams.rightMargin = detailPanelSpacing;
+      detailOverlayParams.topMargin = 0;
+      root.addView(detailScroll, detailOverlayParams);
 
       Runnable renderEmpty =
           () -> {
@@ -1113,30 +1147,17 @@ public class ChestCavityConfigFragment extends Fragment {
             }
           };
 
-      Runnable updatePinnedDetail =
+      Runnable alignDetailPanel =
           () -> {
-            int anchor = detailScroll.getTop();
-            int scrollY = scroll.getScrollY();
-            if (scrollY <= anchor) {
-              detailScroll.setTranslationY(0f);
-              return;
+            FrameLayout.LayoutParams params =
+                (FrameLayout.LayoutParams) detailScroll.getLayoutParams();
+            int desiredTop = splitRow.getTop();
+            if (params.topMargin != desiredTop) {
+              params.topMargin = desiredTop;
+              detailScroll.setLayoutParams(params);
             }
-            int maxOffset = splitRow.getBottom() - detailScroll.getHeight() - anchor;
-            if (maxOffset < 0) {
-              maxOffset = 0;
-            }
-            int offset = scrollY - anchor;
-            detailScroll.setTranslationY((float) Math.min(offset, maxOffset));
           };
-
-      scroll.getViewTreeObserver().addOnScrollChangedListener(updatePinnedDetail::run);
-      splitRow.addOnLayoutChangeListener(
-          (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-              updatePinnedDetail.run());
-      detailScroll.addOnLayoutChangeListener(
-          (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-              updatePinnedDetail.run());
-      scroll.post(updatePinnedDetail);
+      scroll.post(alignDetailPanel);
 
       layout.addOnLayoutChangeListener(
           (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -1148,6 +1169,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 rebuild.accept(new ArrayList<>(current));
               }
             }
+            alignDetailPanel.run();
           });
 
       iconGrid.addOnLayoutChangeListener(
@@ -1161,6 +1183,10 @@ public class ChestCavityConfigFragment extends Fragment {
               }
             }
           });
+
+      splitRow.addOnLayoutChangeListener(
+          (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
+              alignDetailPanel.run());
 
       Consumer<String> applyQuery =
           query -> {
@@ -1202,7 +1228,7 @@ public class ChestCavityConfigFragment extends Fragment {
 
       applyQuery.accept("");
 
-      return scroll;
+      return root;
     }
 
     private final class SkillSection {
