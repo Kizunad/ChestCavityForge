@@ -96,7 +96,13 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private XueYiGuOrganBehavior() {}
 
-  /** 在装备器官时调用以初始化状态。 */
+  /**
+   * 在装备器官时调用以初始化状态。
+   *
+   * @param cc
+   * @param organ
+   * @param staleRemovalContexts
+   */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {
@@ -272,7 +278,14 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   // 被动技能实现
   // ============================================================
 
-  /** 被动1: 血衣 - 被近战击中时获得护甲层数。 */
+  /**
+   * 被动1: 血衣 - 被近战击中时获得护甲层数。
+   *
+   * @param player
+   * @param organ
+   * @param state
+   * @param cc
+   */
   private void gainArmorStack(
       ServerPlayer player, ItemStack organ, OrganState state, ChestCavityInstance cc) {
     int currentStacks = state.getInt(ARMOR_STACKS_KEY, 0);
@@ -292,7 +305,13 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 
-  /** tick护甲层数衰减（在10秒无伤害后每秒失去1层）。 */
+  /**
+   * tick护甲层数衰减（在10秒无伤害后每秒失去1层）。
+   *
+   * @param player
+   * @param organ
+   * @param cc
+   */
   private void tickArmorStackDecay(ServerPlayer player, ItemStack organ, ChestCavityInstance cc) {
     OrganState state = organState(organ, STATE_ROOT);
     int currentStacks = state.getInt(ARMOR_STACKS_KEY, 0);
@@ -319,7 +338,15 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  /** 被动2: 渗透 - 每2次近战击中应用出血DoT。 */
+  /**
+   * 被动2: 渗透 - 每2次近战击中应用出血DoT。
+   *
+   * @param player
+   * @param organ
+   * @param state
+   * @param cc
+   * @param target
+   */
   private void handlePenetration(
       ServerPlayer player,
       ItemStack organ,
@@ -353,7 +380,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     state.setInt(HIT_COUNTER_KEY, hitCount);
   }
 
-  /** 对目标应用渗透出血。 */
+  /**
+   * 对目标应用渗透出血。
+   *
+   * @param player
+   * @param target
+   */
   private void applyPenetrationBleed(ServerPlayer player, LivingEntity target) {
     // 应用流血DoT：6伤害/秒持续3秒
     net.tigereye.chestcavity.engine.dot.DoTEngine.schedulePerSecond(
@@ -371,7 +403,13 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         1.0f);
   }
 
-  /** 被动3: 狂暴防御 - 检查并激活狂暴状态。 */
+  /**
+   * 被动3: 狂暴防御 - 检查并激活狂暴状态。
+   *
+   * @param player
+   * @param state
+   * @return
+   */
   private boolean isEnraged(ServerPlayer player, OrganState state) {
     long now = player.level().getGameTime();
     long enragedUntil = state.getLong(ENRAGED_UNTIL_KEY, 0L);
@@ -398,7 +436,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return false;
   }
 
-  /** 维护狂暴视觉效果。 */
+  /**
+   * 维护狂暴视觉效果。
+   *
+   * @param player
+   * @param organ
+   */
   private void tickEnrageStatus(ServerPlayer player, ItemStack organ) {
     OrganState state = organState(organ, STATE_ROOT);
     long now = player.level().getGameTime();
@@ -410,7 +453,15 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  /** 被动5: 凝血盾牌 - 累积伤害以获得吸收。 */
+  /**
+   * 被动5: 凝血盾牌 - 累积伤害以获得吸收。
+   *
+   * @param player
+   * @param organ
+   * @param state
+   * @param cc
+   * @param damage
+   */
   private void accumulateDamageForShield(
       ServerPlayer player,
       ItemStack organ,
@@ -446,7 +497,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     state.setDouble(DAMAGE_ACCUMULATOR_KEY, accumulated);
   }
 
-  /** 应用凝血盾牌吸收。 */
+  /**
+   * 应用凝血盾牌吸收。
+   *
+   * @param player
+   * @param amount
+   */
   private void applyHardenedShield(ServerPlayer player, float amount) {
     // 添加吸收效果
     player.addEffect(
@@ -455,7 +511,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     player.setAbsorptionAmount(player.getAbsorptionAmount() + amount);
   }
 
-  /** 被动6: 代价 - 为主动技能扣除额外HP代价。 */
+  /**
+   * 被动6: 代价 - 为主动技能扣除额外HP代价。
+   *
+   * @param player
+   * @param cc
+   */
   public static void applyLifeCost(ServerPlayer player, ChestCavityInstance cc) {
     float currentHealth = player.getHealth();
     float cost = currentHealth * LIFE_COST_PERCENTAGE;
@@ -488,7 +549,13 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   // 联动技能辅助方法
   // ============================================================
 
-  /** 检查玩家是否装备了指定的器官。 */
+  /**
+   * 检查玩家是否装备了指定的器官。
+   *
+   * @param cc
+   * @param organId
+   * @return
+   */
   private static boolean hasOrgan(ChestCavityInstance cc, ResourceLocation organId) {
     if (cc == null || cc.inventory == null || organId == null) {
       return false;
@@ -547,7 +614,11 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   // 被动4: 血偿 - 击杀流血敌人返还真元
   // ============================================================
 
-  /** 击杀事件监听器：实现血偿被动。 */
+  /**
+   * 击杀事件监听器：实现血偿被动。
+   *
+   * @param event
+   */
   private static void onLivingDeath(
       net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
     DamageSource source = event.getSource();
@@ -623,7 +694,12 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  /** 检查实体是否有流血DoT效果。 */
+  /**
+   * 检查实体是否有流血DoT效果。
+   *
+   * @param entity
+   * @return
+   */
   private static boolean hasBleedingEffect(LivingEntity entity) {
     if (entity == null) {
       return false;
@@ -646,7 +722,15 @@ public final class XueYiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   // 联动技能实现
   // ============================================================
 
-  /** 联动4: 强取回流 - 对流血目标首次近战命中吸取饱食和真元。 */
+  /**
+   * 联动4: 强取回流 - 对流血目标首次近战命中吸取饱食和真元。
+   *
+   * @param player
+   * @param organ
+   * @param state
+   * @param cc
+   * @param target
+   */
   private void handleSynergyForceTake(
       ServerPlayer player,
       ItemStack organ,
