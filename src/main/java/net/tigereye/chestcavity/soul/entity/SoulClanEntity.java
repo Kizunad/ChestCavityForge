@@ -229,10 +229,7 @@ public class SoulClanEntity extends PathfinderMob implements Merchant {
     if (variant != Variant.TRADER) return InteractionResult.PASS;
 
     if (offers == null) {
-      offers = new MerchantOffers();
-      offers.add(
-          new MerchantOffer(
-              new ItemCost(Items.COBBLESTONE, 16), new ItemStack(Items.BREAD, 4), 16, 3, 0.05f));
+      offers = SoulClanTradeOffers.generateDefaultOffers(this.random);
     }
     this.setTradingPlayer(player);
     if (player instanceof ServerPlayer sp) {
