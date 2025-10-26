@@ -53,7 +53,6 @@ import net.tigereye.chestcavity.soul.entity.SoulClanSpawner;
 import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
 import net.tigereye.chestcavity.soul.entity.TestSoulSpawner;
 import net.tigereye.chestcavity.soul.playerghost.PlayerGhostEvents;
-import net.tigereye.chestcavity.soul.playerghost.PlayerGhostFactory;
 import net.tigereye.chestcavity.soul.playerghost.PlayerGhostSpawner;
 import net.tigereye.chestcavity.soul.profile.capability.CapabilitySnapshots;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
@@ -101,7 +100,6 @@ public class ChestCavity {
     DoTEngine.bootstrap();
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
     NeoForge.EVENT_BUS.addListener(PlayerGhostSpawner::onServerTick);
-    PlayerGhostSpawner.init();
     SoulClanSpawner.init();
     if (FMLEnvironment.dist.isClient()) {
       NeoForge.EVENT_BUS.addListener(KeybindingClientListeners::onClientTick);

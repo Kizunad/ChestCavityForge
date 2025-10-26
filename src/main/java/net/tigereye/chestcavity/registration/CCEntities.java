@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneG
 import net.tigereye.chestcavity.soul.entity.SoulChunkLoaderEntity;
 import net.tigereye.chestcavity.soul.entity.SoulClanEntity;
 import net.tigereye.chestcavity.soul.entity.TestSoulEntity;
+import net.tigereye.chestcavity.soul.playerghost.PlayerGhostEntity;
 
 /** Centralised entity type registration for the Chest Cavity mod. */
 public final class CCEntities {
@@ -122,4 +123,15 @@ public final class CCEntities {
                   .clientTrackingRange(48)
                   .updateInterval(2)
                   .build(ChestCavity.MODID + ":soul_clan"));
+
+  public static final DeferredHolder<EntityType<?>, EntityType<PlayerGhostEntity>> PLAYER_GHOST =
+      ENTITY_TYPES.register(
+          "player_ghost",
+          () ->
+              EntityType.Builder.<PlayerGhostEntity>of(
+                      PlayerGhostEntity::new, MobCategory.MONSTER)
+                  .sized(0.6f, 1.8f)
+                  .clientTrackingRange(64)
+                  .updateInterval(2)
+                  .build(ChestCavity.MODID + ":player_ghost"));
 }

@@ -56,7 +56,11 @@ public final class PlayerGhostEvents {
           archive.getDimension().location());
 
     } catch (Exception e) {
-      ChestCavity.LOGGER.error("[PlayerGhost] 记录玩家死亡时出错", e);
+      ChestCavity.LOGGER.warn(
+          "[PlayerGhost] 记录玩家死亡时出错 - 玩家: {} (UUID: {})",
+          player.getGameProfile().getName(),
+          player.getUUID(),
+          e);
     }
   }
 }

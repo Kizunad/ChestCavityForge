@@ -5,6 +5,7 @@ import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.soul.client.render.SoulChunkLoaderRenderer;
 import net.tigereye.chestcavity.soul.client.render.SoulClanRenderer;
 import net.tigereye.chestcavity.soul.client.render.TestSoulRenderer;
+import net.tigereye.chestcavity.soul.playerghost.client.PlayerGhostRenderer;
 
 /** Registers general-purpose client renderers for Chest Cavity entities. */
 public final class ChestCavityClientRenderers {
@@ -22,5 +23,7 @@ public final class ChestCavityClientRenderers {
     event.registerEntityRenderer(CCEntities.SOUL_CLAN.get(), SoulClanRenderer::new);
     event.registerEntityRenderer(CCEntities.TEST_SOUL.get(), TestSoulRenderer::new);
     event.registerEntityRenderer(CCEntities.SOUL_CHUNK_LOADER.get(), SoulChunkLoaderRenderer::new);
+    // 玩家幽灵使用玩家模型和动态皮肤
+    event.registerEntityRenderer(CCEntities.PLAYER_GHOST.get(), PlayerGhostRenderer::new);
   }
 }

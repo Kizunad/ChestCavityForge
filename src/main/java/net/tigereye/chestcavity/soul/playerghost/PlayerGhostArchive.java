@@ -50,6 +50,8 @@ public final class PlayerGhostArchive {
   // Skin information
   private final String skinPropertyValue;
   private final String skinPropertySignature;
+  private final String skinTexture; // ResourceLocation as string
+  private final String skinModel; // "default" or "slim"
 
   private PlayerGhostArchive(
       UUID playerId,
@@ -72,7 +74,9 @@ public final class PlayerGhostArchive {
       double movementSpeed,
       double knockbackResistance,
       String skinPropertyValue,
-      String skinPropertySignature) {
+      String skinPropertySignature,
+      String skinTexture,
+      String skinModel) {
     this.playerId = playerId;
     this.playerName = playerName;
     this.deathTimestamp = deathTimestamp;
@@ -94,6 +98,8 @@ public final class PlayerGhostArchive {
     this.knockbackResistance = knockbackResistance;
     this.skinPropertyValue = skinPropertyValue;
     this.skinPropertySignature = skinPropertySignature;
+    this.skinTexture = skinTexture;
+    this.skinModel = skinModel;
   }
 
   /**
@@ -124,6 +130,8 @@ public final class PlayerGhostArchive {
         net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil.capture(player);
     String skinPropertyValue = skinSnapshot.propertyValue();
     String skinPropertySignature = skinSnapshot.propertySignature();
+    String skinTexture = skinSnapshot.texture() != null ? skinSnapshot.texture().toString() : null;
+    String skinModel = skinSnapshot.model();
 
     return new PlayerGhostArchive(
         player.getUUID(),
@@ -146,7 +154,9 @@ public final class PlayerGhostArchive {
         movementSpeed,
         knockbackResistance,
         skinPropertyValue,
-        skinPropertySignature);
+        skinPropertySignature,
+        skinTexture,
+        skinModel);
   }
 
   /**
@@ -167,15 +177,27 @@ public final class PlayerGhostArchive {
     tag.putDouble("y", y);
     tag.putDouble("z", z);
 
-    // 装备
-    ListTag equipmentList = new ListTag();
-    equipmentList.add(helmet.save(provider));
-    equipmentList.add(chestplate.save(provider));
-    equipmentList.add(leggings.save(provider));
-    equipmentList.add(boots.save(provider));
-    equipmentList.add(mainHand.save(provider));
-    equipmentList.add(offHand.save(provider));
-    tag.put("equipment", equipmentList);
+    // 装备（只保存非空的 ItemStack，空的用特殊标记）
+    CompoundTag equipmentTag = new CompoundTag();
+    if (!helmet.isEmpty()) {
+      equipmentTag.put("helmet", helmet.save(provider));
+    }
+    if (!chestplate.isEmpty()) {
+      equipmentTag.put("chestplate", chestplate.save(provider));
+    }
+    if (!leggings.isEmpty()) {
+      equipmentTag.put("leggings", leggings.save(provider));
+    }
+    if (!boots.isEmpty()) {
+      equipmentTag.put("boots", boots.save(provider));
+    }
+    if (!mainHand.isEmpty()) {
+      equipmentTag.put("mainHand", mainHand.save(provider));
+    }
+    if (!offHand.isEmpty()) {
+      equipmentTag.put("offHand", offHand.save(provider));
+    }
+    tag.put("equipment", equipmentTag);
 
     // 属性
     CompoundTag attributes = new CompoundTag();
@@ -193,6 +215,12 @@ public final class PlayerGhostArchive {
     }
     if (skinPropertySignature != null) {
       tag.putString("skin_property_signature", skinPropertySignature);
+    }
+    if (skinTexture != null) {
+      tag.putString("skin_texture", skinTexture);
+    }
+    if (skinModel != null) {
+      tag.putString("skin_model", skinModel);
     }
 
     return tag;
@@ -217,14 +245,34 @@ public final class PlayerGhostArchive {
       double y = tag.getDouble("y");
       double z = tag.getDouble("z");
 
-      // 装备
-      ListTag equipmentList = tag.getList("equipment", Tag.TAG_COMPOUND);
-      ItemStack helmet = ItemStack.parse(provider, equipmentList.getCompound(0)).orElse(ItemStack.EMPTY);
-      ItemStack chestplate = ItemStack.parse(provider, equipmentList.getCompound(1)).orElse(ItemStack.EMPTY);
-      ItemStack leggings = ItemStack.parse(provider, equipmentList.getCompound(2)).orElse(ItemStack.EMPTY);
-      ItemStack boots = ItemStack.parse(provider, equipmentList.getCompound(3)).orElse(ItemStack.EMPTY);
-      ItemStack mainHand = ItemStack.parse(provider, equipmentList.getCompound(4)).orElse(ItemStack.EMPTY);
-      ItemStack offHand = ItemStack.parse(provider, equipmentList.getCompound(5)).orElse(ItemStack.EMPTY);
+      // 装备（从新的格式读取，兼容旧格式）
+      CompoundTag equipmentTag = tag.getCompound("equipment");
+      ItemStack helmet = ItemStack.EMPTY;
+      ItemStack chestplate = ItemStack.EMPTY;
+      ItemStack leggings = ItemStack.EMPTY;
+      ItemStack boots = ItemStack.EMPTY;
+      ItemStack mainHand = ItemStack.EMPTY;
+      ItemStack offHand = ItemStack.EMPTY;
+
+      // 尝试新格式（CompoundTag）
+      if (equipmentTag.contains("helmet")) {
+        helmet = ItemStack.parse(provider, equipmentTag.getCompound("helmet")).orElse(ItemStack.EMPTY);
+      }
+      if (equipmentTag.contains("chestplate")) {
+        chestplate = ItemStack.parse(provider, equipmentTag.getCompound("chestplate")).orElse(ItemStack.EMPTY);
+      }
+      if (equipmentTag.contains("leggings")) {
+        leggings = ItemStack.parse(provider, equipmentTag.getCompound("leggings")).orElse(ItemStack.EMPTY);
+      }
+      if (equipmentTag.contains("boots")) {
+        boots = ItemStack.parse(provider, equipmentTag.getCompound("boots")).orElse(ItemStack.EMPTY);
+      }
+      if (equipmentTag.contains("mainHand")) {
+        mainHand = ItemStack.parse(provider, equipmentTag.getCompound("mainHand")).orElse(ItemStack.EMPTY);
+      }
+      if (equipmentTag.contains("offHand")) {
+        offHand = ItemStack.parse(provider, equipmentTag.getCompound("offHand")).orElse(ItemStack.EMPTY);
+      }
 
       // 属性
       CompoundTag attributes = tag.getCompound("attributes");
@@ -238,6 +286,8 @@ public final class PlayerGhostArchive {
       // 皮肤
       String skinPropertyValue = tag.contains("skin_property_value") ? tag.getString("skin_property_value") : null;
       String skinPropertySignature = tag.contains("skin_property_signature") ? tag.getString("skin_property_signature") : null;
+      String skinTexture = tag.contains("skin_texture") ? tag.getString("skin_texture") : null;
+      String skinModel = tag.contains("skin_model") ? tag.getString("skin_model") : null;
 
       return new PlayerGhostArchive(
           playerId,
@@ -260,7 +310,9 @@ public final class PlayerGhostArchive {
           movementSpeed,
           knockbackResistance,
           skinPropertyValue,
-          skinPropertySignature);
+          skinPropertySignature,
+          skinTexture,
+          skinModel);
     } catch (Exception e) {
       return null;
     }
@@ -349,5 +401,13 @@ public final class PlayerGhostArchive {
 
   public String getSkinPropertySignature() {
     return skinPropertySignature;
+  }
+
+  public String getSkinTexture() {
+    return skinTexture;
+  }
+
+  public String getSkinModel() {
+    return skinModel;
   }
 }

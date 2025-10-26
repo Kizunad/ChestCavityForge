@@ -25,6 +25,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
@@ -33,6 +34,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAcc
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -489,6 +491,9 @@ public enum RouBaiguOrganBehavior
     if (player == null || cc == null || organ == null || organ.isEmpty()) {
       return;
     }
+    if (!isRestorationEnabled()) {
+      return;
+    }
 
     OrganState state = OrganState.of(organ, STATE_KEY);
     MultiCooldown cooldown = createCooldown(cc, organ);
@@ -878,6 +883,18 @@ public enum RouBaiguOrganBehavior
   private static LinkageChannel ensureSoftChannel(
       ActiveLinkageContext context, ResourceLocation id) {
     return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE).addPolicy(SOFT_CAP_POLICY);
+  }
+
+  private static boolean isRestorationEnabled() {
+    try {
+      CCConfig config = ChestCavity.config;
+      if (config == null) {
+        return true;
+      }
+      return config.GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION;
+    } catch (Throwable ignored) {
+      return true;
+    }
   }
 
   private record MissingOrgan(int slot, ResourceLocation id) {}

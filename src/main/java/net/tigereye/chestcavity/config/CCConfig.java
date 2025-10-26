@@ -175,6 +175,10 @@ public class CCConfig implements ConfigData {
   @ConfigEntry.Gui.CollapsibleObject
   public GuzhenrenBehaviorTuningConfig GUZHENREN_BEHAVIOR = new GuzhenrenBehaviorTuningConfig();
 
+  @ConfigEntry.Category("guzhenren_behavior")
+  @ConfigEntry.Gui.Tooltip
+  public boolean GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION = true;
+
   @ConfigEntry.Category("guzhenren_bing_xue_dao")
   @ConfigEntry.Gui.CollapsibleObject
   public GuzhenrenBingXueDaoConfig GUZHENREN_BING_XUE_DAO = new GuzhenrenBingXueDaoConfig();

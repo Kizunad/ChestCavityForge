@@ -2,9 +2,7 @@ package net.tigereye.chestcavity.soul.playerghost;
 
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -12,8 +10,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCGameRules;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories;
-import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
+import net.tigereye.chestcavity.registration.CCEntities;
 
 /**
  * 玩家幽灵定期刷新器
@@ -26,9 +23,6 @@ import net.tigereye.chestcavity.soul.fakeplayer.SoulEntitySpawnRequest;
  */
 public final class PlayerGhostSpawner {
 
-  public static final ResourceLocation FACTORY_ID =
-      ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "player_ghost");
-
   private static final int MIN_CHECK_INTERVAL_TICKS = 100;
   private static final int MAX_CHECK_INTERVAL_TICKS = 600;
   private static final double SPAWN_CHANCE = 0.01; // 1% 几率
@@ -39,14 +33,6 @@ public final class PlayerGhostSpawner {
   private static int cooldown = MIN_CHECK_INTERVAL_TICKS;
 
   private PlayerGhostSpawner() {}
-
-  /**
-   * 初始化并注册工厂
-   */
-  public static void init() {
-    SoulEntityFactories.register(FACTORY_ID, new PlayerGhostFactory());
-    ChestCavity.LOGGER.info("[PlayerGhost] 玩家幽灵系统已初始化");
-  }
 
   /**
    * 服务器 Tick 事件处理
@@ -107,69 +93,78 @@ public final class PlayerGhostSpawner {
    * @return 是否成功刷新
    */
   private static boolean trySpawn(ServerLevel level, PlayerGhostWorldData data) {
-    List<ServerPlayer> players = level.players();
-    if (players.isEmpty()) {
-      return false;
-    }
-
-    // 随机获取一个死亡记录
-    PlayerGhostArchive archive = data.getRandom();
-    if (archive == null) {
-      return false;
-    }
-
-    // 尝试多次找到合适的刷新位置
-    for (int i = 0; i < MAX_ATTEMPTS; i++) {
-      // 随机选择一个玩家作为锚点
-      ServerPlayer anchor = players.get(RANDOM.nextInt(players.size()));
-      Vec3 pos = anchor.position();
-
-      // 在玩家周围随机偏移
-      double offsetX = (RANDOM.nextDouble() * 2 - 1) * HORIZONTAL_RADIUS;
-      double offsetZ = (RANDOM.nextDouble() * 2 - 1) * HORIZONTAL_RADIUS;
-      int x = (int) Math.floor(pos.x + offsetX);
-      int z = (int) Math.floor(pos.z + offsetZ);
-      int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-
-      BlockPos spawnPos = new BlockPos(x, y, z);
-
-      // 检查地面是否坚固
-      if (!level.getBlockState(spawnPos.below()).isSolid()) {
-        continue;
+    try {
+      List<ServerPlayer> players = level.players();
+      if (players.isEmpty()) {
+        return false;
       }
 
-      // 生成幽灵实体
-      UUID ghostId = UUID.randomUUID();
-
-      // 将死亡记录存储到 SoulEntityArchive
-      net.tigereye.chestcavity.soul.fakeplayer.SoulEntityFactories.persist(
-          level.getServer(), ghostId, archive.toNbt(level.registryAccess()));
-
-      SoulEntitySpawnRequest request =
-          SoulEntitySpawnRequest.builder(level.getServer(), FACTORY_ID, ghostId)
-              .withFallbackLevel(level)
-              .withFallbackPosition(new Vec3(x + 0.5, y, z + 0.5))
-              .withReason("player_ghost_spawn")
-              .withArchiveMode(SoulEntitySpawnRequest.ArchiveMode.READ_ONLY)
-              .build();
-
-      boolean success =
-          SoulEntityFactories.spawn(request)
-              .map(result -> result.asSoulPlayer().isPresent())
-              .orElse(false);
-
-      if (success) {
-        ChestCavity.LOGGER.info(
-            "[PlayerGhost] 刷新玩家幽灵: {}的魂魄 于坐标 ({}, {}, {}) 维度 {}",
-            archive.getPlayerName(),
-            x,
-            y,
-            z,
-            level.dimension().location());
-        return true;
+      // 随机获取一个死亡记录
+      PlayerGhostArchive archive = data.getRandom();
+      if (archive == null) {
+        return false;
       }
-    }
 
-    return false;
+      // 尝试多次找到合适的刷新位置
+      for (int i = 0; i < MAX_ATTEMPTS; i++) {
+        try {
+          // 随机选择一个玩家作为锚点
+          ServerPlayer anchor = players.get(RANDOM.nextInt(players.size()));
+          Vec3 pos = anchor.position();
+
+          // 在玩家周围随机偏移
+          double offsetX = (RANDOM.nextDouble() * 2 - 1) * HORIZONTAL_RADIUS;
+          double offsetZ = (RANDOM.nextDouble() * 2 - 1) * HORIZONTAL_RADIUS;
+          int x = (int) Math.floor(pos.x + offsetX);
+          int z = (int) Math.floor(pos.z + offsetZ);
+          int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+
+          BlockPos spawnPos = new BlockPos(x, y, z);
+
+          // 检查地面是否坚固
+          if (!level.getBlockState(spawnPos.below()).isSolid()) {
+            continue;
+          }
+
+          // 创建幽灵实体
+          PlayerGhostEntity ghost =
+              PlayerGhostEntity.createFromArchive(CCEntities.PLAYER_GHOST.get(), level, archive);
+
+          // 设置位置
+          ghost.moveTo(x + 0.5, y, z + 0.5, RANDOM.nextFloat() * 360f, 0f);
+
+          // 添加到世界
+          boolean addedToWorld = level.tryAddFreshEntityWithPassengers(ghost);
+
+          if (addedToWorld) {
+            ChestCavity.LOGGER.info(
+                "[PlayerGhost] 刷新玩家幽灵: {}的魂魄 于坐标 ({}, {}, {}) 维度 {}",
+                archive.getPlayerName(),
+                x,
+                y,
+                z,
+                level.dimension().location());
+            return true;
+          } else {
+            ChestCavity.LOGGER.warn(
+                "[PlayerGhost] 刷新尝试 #{} 失败 - 无法添加到世界: {}",
+                i + 1,
+                archive.getPlayerName());
+          }
+        } catch (Exception e) {
+          ChestCavity.LOGGER.warn(
+              "[PlayerGhost] 刷新尝试 #{} 失败 - 玩家: {}",
+              i + 1,
+              archive.getPlayerName(),
+              e);
+          // 继续下一次尝试
+        }
+      }
+
+      return false;
+    } catch (Exception e) {
+      ChestCavity.LOGGER.warn("[PlayerGhost] 刷新幽灵时出错", e);
+      return false;
+    }
   }
 }

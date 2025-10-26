@@ -82,14 +82,6 @@ public final class SoulNavigationMirror {
           ParticleTypes.GLOW, target.x, particleY, target.z, 6, 0.2, 0.2, 0.2, 0.01);
     }
     GOALS.put(id, new Goal(target, speed, stopDistance, priority));
-    SoulLog.info(
-        "[soul][nav] goal_update soul={} target=({}, {}, {}) speed={} stop={}",
-        id,
-        target.x,
-        target.y,
-        target.z,
-        speed,
-        stopDistance);
     if (NAV_LOGS) {
       boolean changed = true;
       if (prev != null) {
@@ -102,18 +94,7 @@ public final class SoulNavigationMirror {
             dist2 > 0.25
                 || Math.abs(prev.speed() - speed) > 1e-6
                 || Math.abs(prev.stopDistance() - stopDistance) > 1e-6;
-      }
-      if (changed) {
-        SoulLog.info(
-            "[soul][nav] setGoal soul={} target=({}, {}, {}) speed={} stop={}",
-            id,
-            target.x,
-            target.y,
-            target.z,
-            speed,
-            stopDistance);
-      }
-    }
+      }}
   }
 
   public static void clearGoal(SoulPlayer soul) {

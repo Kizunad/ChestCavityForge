@@ -9,6 +9,8 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -16,6 +18,7 @@ import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.guzhenren.nudao.GuzhenrenNudaoBridge;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCItems;
@@ -76,7 +79,7 @@ public class ChestOpener extends Item {
     if (optional.isPresent()) {
       ChestCavityEntity chestCavityEntity = optional.get();
       ChestCavityInstance cc = chestCavityEntity.getChestCavityInstance();
-      if (target == player || cc.getChestCavityType().isOpenable(cc)) {
+      if (target == player || isOwnedByPlayer(player, target) || cc.getChestCavityType().isOpenable(cc)) {
         if (cc.getOrganScore(CCOrganScores.EASE_OF_ACCESS) > 0) {
           if (player.level().isClientSide) {
             player.playNotifySound(SoundEvents.CHEST_OPEN, SoundSource.PLAYERS, .75f, 1);
@@ -122,5 +125,29 @@ public class ChestOpener extends Item {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Checks if the target entity is owned by the player.
+   *
+   * @param player The player to check ownership against.
+   * @param target The target entity to check.
+   * @return Whether the target is owned by the player.
+   */
+  private boolean isOwnedByPlayer(Player player, LivingEntity target) {
+    // Check TamableAnimal (tamed animals like wolves, cats)
+    if (target instanceof TamableAnimal tamable) {
+      return tamable.isOwnedBy(player);
+    }
+
+    // Check OwnableEntity (summonable entities like iron golems)
+    if (target instanceof OwnableEntity ownable) {
+      return ownable.getOwner() == player;
+    }
+
+    // Check Guzhenren mod custom owner relationship
+    return GuzhenrenNudaoBridge.openSubject(target)
+        .map(handle -> handle.isOwnedBy(player))
+        .orElse(false);
   }
 }

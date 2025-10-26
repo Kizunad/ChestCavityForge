@@ -240,6 +240,45 @@ public class ChestCavityConfigFragment extends Fragment {
           row,
           new LinearLayout.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+      var rouRow = new LinearLayout(context);
+      rouRow.setOrientation(LinearLayout.HORIZONTAL);
+      rouRow.setGravity(Gravity.CENTER_VERTICAL);
+      var rouLabel = new TextView(context);
+      rouLabel.setText("肉白骨：启用被动器官恢复");
+      rouLabel.setTextSize(13);
+      rouLabel.setTextColor(0xFFDEE5F4);
+      rouRow.addView(
+          rouLabel,
+          new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+      var rouToggle = new CheckBox(context);
+      boolean rouInit = true;
+      try {
+        CCConfig cfg = ChestCavity.config;
+        if (cfg != null) {
+          rouInit = cfg.GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION;
+        }
+      } catch (Throwable ignored) {
+      }
+      rouToggle.setChecked(rouInit);
+      rouToggle.setOnCheckedChangeListener(
+          (buttonView, isChecked) -> {
+            try {
+              var holder = AutoConfig.getConfigHolder(CCConfig.class);
+              CCConfig cfg = holder.getConfig();
+              cfg.GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION = isChecked;
+              holder.save();
+            } catch (Throwable ignored) {
+            }
+          });
+      rouRow.addView(
+          rouToggle,
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      layout.addView(
+          rouRow,
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       return layout;
     }
 
