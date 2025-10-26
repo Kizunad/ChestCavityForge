@@ -14,6 +14,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
@@ -59,6 +60,15 @@ public final class CCAttachments {
                       .serialize(new SoulContainerSerializer())
                       .build());
 
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<YinYangDualityAttachment>>
+      YIN_YANG_DUALITY =
+          ATTACHMENT_TYPES.register(
+              "yin_yang_duality",
+              () ->
+                  AttachmentType.builder(CCAttachments::createYinYangDuality)
+                      .serialize(new YinYangDualityAttachment.Serializer())
+                      .build());
+
   private CCAttachments() {}
 
   private static ChestCavityInstance createInstance(IAttachmentHolder holder) {
@@ -102,12 +112,28 @@ public final class CCAttachments {
     return new SoulContainer(player);
   }
 
+  private static YinYangDualityAttachment createYinYangDuality(IAttachmentHolder holder) {
+    if (!(holder instanceof Player)) {
+      throw new IllegalStateException(
+          "YinYangDuality attachment can only be applied to players");
+    }
+    return new YinYangDualityAttachment();
+  }
+
   public static SoulContainer getSoulContainer(Player player) {
     return player.getData(SOUL_CONTAINER.get());
   }
 
   public static Optional<SoulContainer> getExistingSoulContainer(Player player) {
     return player.getExistingData(SOUL_CONTAINER.get());
+  }
+
+  public static YinYangDualityAttachment getYinYangDuality(Player player) {
+    return player.getData(YIN_YANG_DUALITY.get());
+  }
+
+  public static Optional<YinYangDualityAttachment> getExistingYinYangDuality(Player player) {
+    return player.getExistingData(YIN_YANG_DUALITY.get());
   }
 
   private static class ChestCavitySerializer

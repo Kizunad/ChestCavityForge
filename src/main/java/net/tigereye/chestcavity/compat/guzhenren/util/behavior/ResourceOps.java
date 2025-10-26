@@ -2,6 +2,8 @@ package net.tigereye.chestcavity.compat.guzhenren.util.behavior;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -13,6 +15,49 @@ import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
 public final class ResourceOps {
 
   private ResourceOps() {}
+
+  /** Attempts to open the Guzhenren {@link ResourceHandle} for the given living entity. */
+  public static Optional<ResourceHandle> openHandle(LivingEntity entity) {
+    if (entity == null) {
+      return Optional.empty();
+    }
+    return GuzhenrenResourceBridge.open(entity);
+  }
+
+  /** Attempts to open the Guzhenren {@link ResourceHandle} for the given player. */
+  public static Optional<ResourceHandle> openHandle(Player player) {
+    if (player == null) {
+      return Optional.empty();
+    }
+    return GuzhenrenResourceBridge.open(player);
+  }
+
+  /**
+   * Executes the provided mapper when a {@link ResourceHandle} is available for the given entity.
+   *
+   * @return optional mapping result, empty when handle missing or mapper is null
+   */
+  public static <T> Optional<T> mapHandle(
+      LivingEntity entity, Function<ResourceHandle, T> mapper) {
+    if (mapper == null) {
+      return Optional.empty();
+    }
+    return openHandle(entity).map(mapper);
+  }
+
+  /**
+   * Performs an action with the entity's {@link ResourceHandle} if available.
+   *
+   * @return true if the consumer ran, false otherwise
+   */
+  public static boolean withHandle(LivingEntity entity, Consumer<ResourceHandle> consumer) {
+    if (consumer == null) {
+      return false;
+    }
+    Optional<ResourceHandle> handleOpt = openHandle(entity);
+    handleOpt.ifPresent(consumer);
+    return handleOpt.isPresent();
+  }
 
   /** Consume zhenyuan/jingli strictly from a real player; no HP fallback. */
   public static GuzhenrenResourceCostHelper.ConsumptionResult consumeStrict(

@@ -18,6 +18,7 @@ import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
@@ -330,6 +331,66 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:yin_yang_zhuan_shen_gu/body",
+        "guzhenren:yin_yang_zhuan_shen_gu/body",
+        "guzhenren:yin_yang_zhuan_shen_gu",
+        tags("切换", "攻伐", "防御"),
+        "阴阳身：在阴身/阳身间切换，刷新锚点与属性倍率，冷却 120 秒",
+        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        () -> {
+          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("阴阳身就绪", null));
+
+    register(
+        "guzhenren:yin_yang_zhuan_shen_gu/tai_ji_swap",
+        "guzhenren:yin_yang_zhuan_shen_gu/tai_ji_swap",
+        "guzhenren:yin_yang_zhuan_shen_gu",
+        tags("位移", "无敌", "机动"),
+        "太极错位：与另一态锚点互换位置，首段获得 0.5 秒无敌，窗口内连发返还 50% 冷却",
+        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        () -> {
+          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("太极错位就绪", null));
+
+    register(
+        "guzhenren:yin_yang_zhuan_shen_gu/dual_strike",
+        "guzhenren:yin_yang_zhuan_shen_gu/dual_strike",
+        "guzhenren:yin_yang_zhuan_shen_gu",
+        tags("输出", "辅攻"),
+        "两界同击：开启 5 秒窗口，阴阳两态命中同一目标触发 0.8×较低基础攻击的投影伤害",
+        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        () -> {
+          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("两界同击就绪", null));
+
+    register(
+        "guzhenren:yin_yang_zhuan_shen_gu/transfer",
+        "guzhenren:yin_yang_zhuan_shen_gu/transfer",
+        "guzhenren:yin_yang_zhuan_shen_gu",
+        tags("资源", "辅助"),
+        "阴阳互渡：按真元→精力→魂魄→念头顺序把当前态 30% 资源注入另一态的离线池",
+        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        () -> {
+          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("阴阳互渡就绪", null));
+
+    register(
+        "guzhenren:yin_yang_zhuan_shen_gu/recall",
+        "guzhenren:yin_yang_zhuan_shen_gu/recall",
+        "guzhenren:yin_yang_zhuan_shen_gu",
+        tags("位移", "保命"),
+        "归位：瞬移至另一态锚点并清除 8 格仇恨，生命低于 20% 时获得 2 秒减伤",
+        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        () -> {
+          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("归位就绪", null));
 
     register(
         "guzhenren:skill/yinshi_tunnel",

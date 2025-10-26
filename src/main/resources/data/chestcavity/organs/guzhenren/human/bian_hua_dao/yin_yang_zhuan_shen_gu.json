@@ -1,0 +1,10 @@
+{
+  "itemID": "guzhenren:yin_yang_zhuan_shen_gu",
+  "organScores": [
+    {"id": "chestcavity:defense", "value": "2"},
+    {"id": "chestcavity:nerves", "value": "1"},
+    {"id": "chestcavity:strength", "value": "1"},
+    {"id": "guzhenren:zhenyuan", "value": "1"},
+    {"id": "guzhenren:zuida_zhenyuan", "value": "2"}
+  ]
+}
