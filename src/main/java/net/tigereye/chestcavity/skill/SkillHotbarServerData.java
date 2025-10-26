@@ -9,6 +9,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.client.modernui.network.SkillHotbarSnapshotPayload;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
@@ -23,7 +24,8 @@ public final class SkillHotbarServerData {
 
   public static void save(
       ServerPlayer player, Map<SkillHotbarKey, List<ResourceLocation>> bindings) {
-    CompoundTag persisted = player.getPersistentData();
+    CompoundTag persistentData = player.getPersistentData();
+    CompoundTag persisted = persistentData.getCompound(Player.PERSISTED_NBT_TAG);
     CompoundTag container = persisted.getCompound(TAG_ROOT);
     ListTag entries = new ListTag();
     if (bindings != null) {
@@ -48,10 +50,11 @@ public final class SkillHotbarServerData {
     }
     container.put("Entries", entries);
     persisted.put(TAG_ROOT, container);
+    persistentData.put(Player.PERSISTED_NBT_TAG, persisted);
   }
 
   public static Map<SkillHotbarKey, List<ResourceLocation>> load(ServerPlayer player) {
-    CompoundTag persisted = player.getPersistentData();
+    CompoundTag persisted = player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);
     CompoundTag container = persisted.getCompound(TAG_ROOT);
     ListTag entries = container.getList("Entries", ListTag.TAG_COMPOUND);
     Map<SkillHotbarKey, List<ResourceLocation>> map = new EnumMap<>(SkillHotbarKey.class);
