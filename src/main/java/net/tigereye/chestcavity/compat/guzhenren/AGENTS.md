@@ -6,10 +6,50 @@
 
 - **项目根目录**: `/home/kiz/Code/java/ChestCavityForge`
 - **工作目录**: 始终在项目根目录下工作
-- **构建命令**: 
+- **构建命令**:
   - `./gradlew compileJava` - 编译检查
   - `./gradlew test` - 运行测试
   - `./gradlew runClient` / `./gradlew runServer` - 手动测试
+
+### 测试框架（2025-01-28 新增）
+- **状态**: ✅ 已搭建，可运行
+- **框架**: JUnit 5 + Mockito
+- **测试目录**: `src/test/java/net/tigereye/chestcavity/`
+- **Mock 工具**: `src/test/java/net/tigereye/chestcavity/util/mock/`
+- **文档位置**:
+  - `docs/TESTING.md` - 完整测试指南
+  - `docs/HOW_TO_WRITE_TESTS.md` - 编写教程
+  - `docs/TESTING_SUMMARY.md` - 框架总结
+  - `docs/MANUAL_TEST_CHECKLIST.md` - 游戏内手动测试清单
+- **运行脚本**: `./scripts/run-tests.sh [all|unit|coverage|quick]`
+- **示例测试**: `src/test/java/net/tigereye/chestcavity/examples/SimpleTestExample.java` ✓
+
+**⚠️ 重要限制**：
+- Minecraft 核心类（Player、ServerLevel、LivingEntity 等）**无法被 Mockito mock**
+- 原因：这些类是 final 或有特殊类加载器，即使 mockito-inline 也无法绕过
+
+**✅ 推荐测试策略**：
+1. **测试纯逻辑**：将业务逻辑从 Minecraft 类中抽离为纯函数
+2. **可测试设计**：
+   ```java
+   // ❌ 难以测试（依赖 Minecraft 类）
+   public void onTick(Player player) {
+       float health = player.getHealth();
+       if (health < 10) { /* 复杂逻辑 */ }
+   }
+
+   // ✅ 易于测试（纯函数）
+   public static boolean needsHealing(float health) {
+       return health < 10;
+   }
+
+   @Test
+   void testNeedsHealing() {
+       assertTrue(needsHealing(5));
+       assertFalse(needsHealing(15));
+   }
+   ```
+3. **游戏内测试**：对于必须在游戏环境中测试的功能，使用手动测试清单
 
 ---
 
@@ -48,7 +88,41 @@
 
 ---
 
-## 开发指南
+## 开发与测试指南
+
+### 测试驱动开发（推荐）
+
+#### 编写可测试的代码
+在添加新器官或重构现有代码时，优先考虑可测试性：
+
+1. **抽离纯逻辑**：将计算、判断等逻辑抽离为静态纯函数
+2. **先写测试**：为纯函数编写单元测试
+3. **再集成**：将纯函数集成到器官行为中
+
+示例：
+```java
+// 1. 纯逻辑（可测试）
+public final class CooldownLogic {
+    public static int calculateScaledDuration(int baseDuration, float scaleFactor) {
+        return Math.max(0, (int)(baseDuration * scaleFactor));
+    }
+}
+
+// 2. 测试
+@Test
+void testCalculateScaledDuration() {
+    assertEquals(50, CooldownLogic.calculateScaledDuration(100, 0.5f));
+    assertEquals(0, CooldownLogic.calculateScaledDuration(100, -1.0f));
+}
+
+// 3. 器官行为中使用
+public void onSlowTick(ChestCavityInstance cc, ItemStack organ) {
+    int duration = CooldownLogic.calculateScaledDuration(baseCd, scale);
+    MultiCooldown.entry("key").setReadyAt(gameTime + duration);
+}
+```
+
+运行测试：`./gradlew test --tests "CooldownLogicTest"`
 
 ### 添加新器官
 
@@ -399,6 +473,38 @@ if (MultiCooldown.isReady(cc, COOLDOWN_KEY)) {
 3. **资源检查**: 所有资源操作都要检查返回值
 4. **边界条件**: 明确定义所有边界情况
 
+### 测试规范（新增）
+1. **纯逻辑优先**：复杂计算、条件判断抽离为纯函数并编写测试
+2. **测试命名**：使用清晰的 `@DisplayName` 注解，描述测试目的
+3. **AAA 模式**：Arrange（准备）→ Act（执行）→ Assert（断言）
+4. **边界测试**：必须测试边界值和异常情况
+5. **重构保护**：重构前先有测试，重构后测试必须通过
+
+**示例测试结构**：
+```java
+@DisplayName("资源消耗逻辑测试")
+class ResourceConsumptionTest {
+    @Test
+    @DisplayName("资源充足时应成功消耗")
+    void testConsumeSuccess() {
+        // Arrange
+        float available = 100f;
+        float cost = 50f;
+
+        // Act
+        boolean result = canConsume(available, cost);
+
+        // Assert
+        assertTrue(result, "充足资源应可消耗");
+    }
+}
+```
+
+**快速测试**：
+- 编译 + 测试：`./gradlew compileJava test`
+- 仅运行特定测试：`./gradlew test --tests "ResourceConsumptionTest"`
+- 生成覆盖率：`./gradlew test jacocoTestReport`
+
 ### 性能考虑
 - **慢速tick**: 资源维护和状态同步放在慢速tick中
 - **事件驱动**: 命中/伤害等高频事件保持轻量
@@ -458,18 +564,38 @@ A: 检查:
 
 ### 关键文件
 - **主入口**: [`GuzhenrenIntegrationModule.java`](module/GuzhenrenIntegrationModule.java)
-- **器官规范**: [`OrganIntegrationSpec.java`](module/OrganIntegrationSpec.java)  
+- **器官规范**: [`OrganIntegrationSpec.java`](module/OrganIntegrationSpec.java)
 - **资源助手**: [`ResourceOps.java`](util/behavior/ResourceOps.java)
 - **联动助手**: [`LedgerOps.java`](util/behavior/LedgerOps.java)
 - **冷却管理**: [`MultiCooldown.java`](util/behavior/MultiCooldown.java)
+
+### 测试相关文件（新增）
+- **测试指南**: `../../../../../../../docs/TESTING.md`
+- **编写教程**: `../../../../../../../docs/HOW_TO_WRITE_TESTS.md`
+- **测试示例**: `../../../../../../../src/test/java/net/tigereye/chestcavity/examples/SimpleTestExample.java`
+- **Mock 工具**: `../../../../../../../src/test/java/net/tigereye/chestcavity/util/mock/`
+- **运行脚本**: `../../../../../../../scripts/run-tests.sh`
 
 ### 开发工具
 ```bash
 # 构建检查
 ./gradlew compileJava
 
-# 运行测试
+# 运行所有测试（新增）
 ./gradlew test
+
+# 运行特定测试（新增）
+./gradlew test --tests "SimpleTestExample"
+
+# 生成测试覆盖率报告（新增）
+./gradlew test jacocoTestReport
+# 报告位置: build/reports/jacoco/test/html/index.html
+
+# 使用测试脚本（新增）
+./scripts/run-tests.sh all       # 运行所有测试
+./scripts/run-tests.sh unit      # 仅单元测试
+./scripts/run-tests.sh coverage  # 生成覆盖率
+./scripts/run-tests.sh quick     # 快速检查
 
 # 搜索代码
 rg "pattern" src/main/java

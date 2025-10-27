@@ -11,6 +11,15 @@
 - NeoForge 事件：mod 总线监听器通过 mod 构造函数注册（无 `FMLJavaModLoadingContext`）。
 - 使用 `rg`、`git diff`、`git status -sb` 进行导航；除非明确请求，避免破坏性命令。
 
+### 测试框架（2025-01-28 新增）
+- **框架**：JUnit 5 + Mockito（已配置，测试通过）
+- **位置**：`src/test/java/net/tigereye/chestcavity/`
+- **文档**：`docs/TESTING.md`（使用指南）、`docs/HOW_TO_WRITE_TESTS.md`（教程）、`docs/TESTING_SUMMARY.md`（总结）
+- **限制**：Minecraft 核心类（Player、ServerLevel 等）无法被 Mockito mock
+- **策略**：测试纯逻辑函数；将业务逻辑从 Minecraft 类中抽离为可测试的纯函数
+- **示例**：`src/test/java/net/tigereye/chestcavity/examples/SimpleTestExample.java`（可运行）
+- **运行**：`./gradlew test` 或 `./scripts/run-tests.sh`
+
 ## 沟通规范（重要）
 - 与用户沟通一律使用中文（含总结/说明/答复）。
 - 仅在思考、代码实现与代码注释需要时，可使用英文；但对用户可见的交互文案仍保持中文。
@@ -21,6 +30,7 @@
 - 如果任务需要多个直接操作，打开计划（`update_plan` 工具）并保持更新。
 - 优先使用现有助手（`LedgerOps`、`MultiCooldown`、`NBTCharge`、`OrganStateOps`、`ResourceOps`）而非临时代码。
 - 如果决策或待办事项影响未来工作，在此记录；否则保持低噪音。
+- **重构时优先编写测试**：将复杂逻辑抽离为纯函数后编写单元测试，再进行重构；测试保证功能不破坏。
 
 ---
 
