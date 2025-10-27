@@ -280,6 +280,45 @@ public class ChestCavityConfigFragment extends Fragment {
           rouRow,
           new LinearLayout.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+      var rouVacancyRow = new LinearLayout(context);
+      rouVacancyRow.setOrientation(LinearLayout.HORIZONTAL);
+      rouVacancyRow.setGravity(Gravity.CENTER_VERTICAL);
+      var rouVacancyLabel = new TextView(context);
+      rouVacancyLabel.setText("肉白骨：胸腔无空位时不生成新器官");
+      rouVacancyLabel.setTextSize(13);
+      rouVacancyLabel.setTextColor(0xFFDEE5F4);
+      rouVacancyRow.addView(
+          rouVacancyLabel,
+          new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+      var rouVacancyToggle = new CheckBox(context);
+      boolean rouVacancyInit = false;
+      try {
+        CCConfig cfg = ChestCavity.config;
+        if (cfg != null) {
+          rouVacancyInit = cfg.GUZHENREN_ROU_BAIGU_REQUIRE_EMPTY_SLOT;
+        }
+      } catch (Throwable ignored) {
+      }
+      rouVacancyToggle.setChecked(rouVacancyInit);
+      rouVacancyToggle.setOnCheckedChangeListener(
+          (buttonView, isChecked) -> {
+            try {
+              var holder = AutoConfig.getConfigHolder(CCConfig.class);
+              CCConfig cfg = holder.getConfig();
+              cfg.GUZHENREN_ROU_BAIGU_REQUIRE_EMPTY_SLOT = isChecked;
+              holder.save();
+            } catch (Throwable ignored) {
+            }
+          });
+      rouVacancyRow.addView(
+          rouVacancyToggle,
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      layout.addView(
+          rouVacancyRow,
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       return layout;
     }
 

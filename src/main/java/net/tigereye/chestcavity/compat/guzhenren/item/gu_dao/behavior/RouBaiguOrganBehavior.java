@@ -511,6 +511,10 @@ public enum RouBaiguOrganBehavior
     String targetItemId = readTargetItemId(organ);
     int progress = Math.max(0, state.getInt(PROGRESS_KEY, 0));
 
+    if (requiresEmptySlot() && !hasEmptyChestSlot(cc)) {
+      return;
+    }
+
     if (targetSlot < 0 || targetItemId.isEmpty()) {
       if (server != null
           && (selectionReady.getReadyTick() <= 0L || now >= selectionReady.getReadyTick())) {
@@ -895,6 +899,31 @@ public enum RouBaiguOrganBehavior
     } catch (Throwable ignored) {
       return true;
     }
+  }
+
+  private static boolean requiresEmptySlot() {
+    try {
+      CCConfig config = ChestCavity.config;
+      return config != null && config.GUZHENREN_ROU_BAIGU_REQUIRE_EMPTY_SLOT;
+    } catch (Throwable ignored) {
+      return false;
+    }
+  }
+
+  private static boolean hasEmptyChestSlot(ChestCavityInstance cc) {
+    if (cc == null) {
+      return true;
+    }
+    ChestCavityInventory inventory = cc.inventory;
+    if (inventory == null) {
+      return true;
+    }
+    for (int i = 0; i < inventory.getContainerSize(); i++) {
+      if (inventory.getItem(i).isEmpty()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private record MissingOrgan(int slot, ResourceLocation id) {}

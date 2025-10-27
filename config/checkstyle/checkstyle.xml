@@ -160,6 +160,15 @@
                                    may only be represented as '{}' when not part of a
                                    multi-block statement (4.1.3)"/>
     </module>
+    <!-- Lint: discourage direct baseCost overload of ResourceOps.tryConsumeScaledZhenyuan -->
+    <module name="RegexpSinglelineJava">
+      <!-- Matches single-line calls with exactly two args: (something, baseCost) -->
+      <property name="format"
+                value="ResourceOps\s*\.\s*tryConsumeScaledZhenyuan\s*\(\s*[^,]+\s*,\s*[^,\)]*\)"/>
+      <property name="message"
+                value="建议使用按‘转/阶段+单位用量’或Tier重载：tryConsumeScaledZhenyuan(handle, zhuanshu, jieduan, units) 或 tryConsumeTieredZhenyuan(...)"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
     <module name="OneStatementPerLine"/>
     <module name="MultipleVariableDeclarations"/>
     <module name="ArrayTypeStyle"/>

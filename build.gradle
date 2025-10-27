@@ -159,6 +159,18 @@ tasks.named('compileTestJava', JavaCompile).configure {
     options.annotationProcessorPath = tasks.named('compileJava', JavaCompile).get().options.annotationProcessorPath
 }
 
+// 在 'check' 阶段运行 Checkstyle（仅告警，不阻断构建）
+tasks.named('check').configure {
+    dependsOn tasks.named('checkstyleMain')
+}
+
+// 简易别名：`./gradlew lint` 仅运行 Checkstyle（输出 WARN，不阻断构建）
+tasks.register('lint') { t ->
+    t.group = 'verification'
+    t.description = 'Run Checkstyle to lint code (warnings only).'
+    t.dependsOn tasks.named('checkstyleMain')
+}
+
 dependencies {
     // ===== Cloth Config (强依赖，运行必需) =====
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"

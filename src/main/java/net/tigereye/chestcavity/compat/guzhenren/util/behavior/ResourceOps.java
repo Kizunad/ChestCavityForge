@@ -10,6 +10,8 @@ import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
+import net.tigereye.chestcavity.guzhenren.util.ZhenyuanBaseCosts;
+import net.tigereye.chestcavity.guzhenren.util.ZhenyuanBaseCosts.Tier;
 
 /** Thin wrappers around Guzhenren resource helpers to centralize common patterns. */
 public final class ResourceOps {
@@ -228,6 +230,23 @@ public final class ResourceOps {
     return handle.consumeScaledZhenyuan(baseCost);
   }
 
+  /**
+   * 按“设计转/阶段 + 单位用量（units）”消费真元：
+   * baseCost = ZhenyuanBaseCosts.baseForUnits(designZhuanshu, designJieduan, units)
+   * → handle.consumeScaledZhenyuan(baseCost)。
+   */
+  public static OptionalDouble tryConsumeScaledZhenyuan(
+      ResourceHandle handle, int designZhuanshu, int designJieduan, double units) {
+    if (handle == null) {
+      return OptionalDouble.empty();
+    }
+    if (!(units > 0.0) || !Double.isFinite(units)) {
+      return OptionalDouble.empty();
+    }
+    double base = ZhenyuanBaseCosts.baseForUnits(designZhuanshu, designJieduan, units);
+    return tryConsumeScaledZhenyuan(handle, base);
+  }
+
   public static OptionalDouble tryConsumeScaledZhenyuan(Player player, double baseCost) {
     if (player == null || baseCost <= 0.0) {
       return OptionalDouble.empty();
@@ -239,6 +258,19 @@ public final class ResourceOps {
     return tryConsumeScaledZhenyuan(handleOpt.get(), baseCost);
   }
 
+  /** see {@link #tryConsumeScaledZhenyuan(ResourceHandle, int, int, double)} */
+  public static OptionalDouble tryConsumeScaledZhenyuan(
+      Player player, int designZhuanshu, int designJieduan, double units) {
+    if (player == null) {
+      return OptionalDouble.empty();
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return tryConsumeScaledZhenyuan(handleOpt.get(), designZhuanshu, designJieduan, units);
+  }
+
   public static OptionalDouble tryConsumeScaledZhenyuan(LivingEntity entity, double baseCost) {
     if (entity == null || baseCost <= 0.0) {
       return OptionalDouble.empty();
@@ -248,6 +280,55 @@ public final class ResourceOps {
       return OptionalDouble.empty();
     }
     return tryConsumeScaledZhenyuan(handleOpt.get(), baseCost);
+  }
+
+  /** see {@link #tryConsumeScaledZhenyuan(ResourceHandle, int, int, double)} */
+  public static OptionalDouble tryConsumeScaledZhenyuan(
+      LivingEntity entity, int designZhuanshu, int designJieduan, double units) {
+    if (entity == null) {
+      return OptionalDouble.empty();
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(entity);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return tryConsumeScaledZhenyuan(handleOpt.get(), designZhuanshu, designJieduan, units);
+  }
+
+  /** 按推荐分级（Tier）消费真元。 */
+  public static OptionalDouble tryConsumeTieredZhenyuan(
+      ResourceHandle handle, int designZhuanshu, int designJieduan, Tier tier) {
+    if (handle == null || tier == null) {
+      return OptionalDouble.empty();
+    }
+    double base = ZhenyuanBaseCosts.baseForTier(designZhuanshu, designJieduan, tier);
+    return tryConsumeScaledZhenyuan(handle, base);
+  }
+
+  /** see {@link #tryConsumeTieredZhenyuan(ResourceHandle, int, int, Tier)} */
+  public static OptionalDouble tryConsumeTieredZhenyuan(
+      Player player, int designZhuanshu, int designJieduan, Tier tier) {
+    if (player == null || tier == null) {
+      return OptionalDouble.empty();
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return tryConsumeTieredZhenyuan(handleOpt.get(), designZhuanshu, designJieduan, tier);
+  }
+
+  /** see {@link #tryConsumeTieredZhenyuan(ResourceHandle, int, int, Tier)} */
+  public static OptionalDouble tryConsumeTieredZhenyuan(
+      LivingEntity entity, int designZhuanshu, int designJieduan, Tier tier) {
+    if (entity == null || tier == null) {
+      return OptionalDouble.empty();
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(entity);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return tryConsumeTieredZhenyuan(handleOpt.get(), designZhuanshu, designJieduan, tier);
   }
 
   public static OptionalDouble tryConsumeScaledJingli(ResourceHandle handle, double baseCost) {
