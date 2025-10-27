@@ -134,7 +134,8 @@ def main() -> None:
             changed_any = True
 
     if changed_any:
-        print("Updated cultivator gu bug pools based on Guzhenren organ registries.")
+        # print("Updated cultivator gu bug pools based on Guzhenren organ registries.")
+        pass
     else:
         print("Cultivator gu bug pools already up to date.")
 

@@ -8,6 +8,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageTags;
 import net.tigereye.chestcavity.soul.util.SoulLog;
 
 /**
@@ -41,6 +42,7 @@ public final class SoulSwitchGuard {
   public static void onIncomingDamage(LivingIncomingDamageEvent event) {
     if (!(event.getEntity() instanceof ServerPlayer player)) return;
     if (!isGuarded(player)) return;
+    if (event.getSource().is(GRDamageTags.BYPASS_ORGAN_HOOKS)) return;
     // Cancel any damage while guarded (prevents OUT_OF_WORLD style kills from compat during switch)
     event.setCanceled(true);
     SoulLog.info(

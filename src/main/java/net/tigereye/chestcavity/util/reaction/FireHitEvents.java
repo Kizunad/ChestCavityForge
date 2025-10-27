@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.util.reaction;
 import net.minecraft.tags.DamageTypeTags;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageTags;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 
@@ -15,6 +16,7 @@ public final class FireHitEvents {
     var source = event.getSource();
     var target = event.getEntity();
     if (source == null || target == null) return;
+    if (source.is(GRDamageTags.BYPASS_ORGAN_HOOKS)) return;
     if (!source.is(DamageTypeTags.IS_FIRE)) return;
     if (ReactionTagOps.has(target, ReactionTagKeys.FIRE_IMMUNE)) return;
     var attacker =

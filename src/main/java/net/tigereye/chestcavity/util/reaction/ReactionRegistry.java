@@ -1331,34 +1331,36 @@ public final class ReactionRegistry {
         ctx ->
             ChestCavity.config.REACTION.enableCorrosionSurge
                 && ReactionTagOps.has(ctx.target(), ReactionTagKeys.CORROSION_MARK)
+                && ReactionTagOps.has(ctx.target(), ReactionTagKeys.TOXIC_MARK)
                 && !ReactionTagOps.has(ctx.target(), ReactionTagKeys.CORROSION_IMMUNE),
         ctx -> {
           CCConfig.ReactionConfig C = ChestCavity.config.REACTION;
           LivingEntity target = ctx.target();
           LivingEntity attacker = ctx.attacker();
-          // 额外伤害 + 虚弱
-          if (attacker != null) {
-            target.hurt(
-                attacker.damageSources().mobAttack(attacker),
-                (float) Math.max(0.0D, C.corrosionSurgeBonusDamage));
-          } else {
-            target.hurt(
-                target.damageSources().generic(),
-                (float) Math.max(0.0D, C.corrosionSurgeBonusDamage));
-          }
-          target.addEffect(
-              new MobEffectInstance(
-                  MobEffects.WEAKNESS, Math.max(0, C.corrosionSurgeWeaknessTicks), 0, false, true));
+          double bonusDamage = Math.max(0.0D, C.corrosionSurgeBonusDamage);
           if (target.level() instanceof ServerLevel level) {
-            net.tigereye.chestcavity.engine.reaction.ResidueManager.spawnOrRefreshCorrosion(
+            float radius = (float) Math.max(1.0D, C.corrosionResidueRadius);
+            net.tigereye.chestcavity.engine.reaction.EffectsEngine.queueAoEDamage(
                 level,
                 target.getX(),
                 target.getY(),
                 target.getZ(),
-                C.corrosionResidueRadius,
-                C.corrosionResidueDurationTicks);
+                radius,
+                bonusDamage,
+                attacker,
+                net.tigereye.chestcavity.engine.reaction.EffectsEngine.VisualTheme.CORROSION);
+          } else if (bonusDamage > 0.0D) {
+            if (attacker != null) {
+              target.hurt(attacker.damageSources().mobAttack(attacker), (float) bonusDamage);
+            } else {
+              target.hurt(target.damageSources().generic(), (float) bonusDamage);
+            }
           }
+          target.addEffect(
+              new MobEffectInstance(
+                  MobEffects.WEAKNESS, Math.max(0, C.corrosionSurgeWeaknessTicks), 0, false, true));
           ReactionTagOps.clear(target, ReactionTagKeys.CORROSION_MARK);
+          ReactionTagOps.clear(target, ReactionTagKeys.TOXIC_MARK);
           ReactionTagOps.add(
               target, ReactionTagKeys.CORROSION_IMMUNE, Math.max(0, C.corrosionImmuneTicks));
           {
@@ -1367,7 +1369,7 @@ public final class ReactionRegistry {
             i18nMessage(attacker, "message.chestcavity.reaction.corrosion_surge.attacker", t);
             i18nMessage(target, "message.chestcavity.reaction.corrosion_surge.target", a);
           }
-          return ReactionResult.proceed();
+          return ReactionResult.cancel();
         });
 
     // 火×腐蚀（小爆）

@@ -13,5 +13,5 @@ for path in root.rglob('*.json'):
             if item_id:
                 items.add(item_id)
             break
-for item in sorted(items):
-    print(item)
+# for item in sorted(items):
+#     print(item)

@@ -17,6 +17,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
+import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageTags;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks;
@@ -131,6 +132,9 @@ public final class SoulBeastRuntimeEvents {
   public static void onIncomingDamage(LivingIncomingDamageEvent event) {
     LivingEntity victim = event.getEntity();
     if (victim == null || victim.level().isClientSide()) {
+      return;
+    }
+    if (event.getSource().is(GRDamageTags.BYPASS_ORGAN_HOOKS)) {
       return;
     }
     if (!SoulBeastStateManager.isActive(victim)) {

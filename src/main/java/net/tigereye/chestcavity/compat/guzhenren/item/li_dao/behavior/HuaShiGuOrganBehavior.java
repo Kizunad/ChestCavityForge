@@ -40,7 +40,9 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.AbstractLiDaoOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageSources;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.util.DamagePipeline;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -783,7 +785,20 @@ public final class HuaShiGuOrganBehavior extends AbstractLiDaoOrganBehavior
     double multiplier = 1.0 + stacks * OVERLOAD_DAMAGE_PER_STACK;
     float extraDamage = (float) (baseDamage * (multiplier - 1.0));
     if (extraDamage > 0.0f) {
-      target.hurt(player.damageSources().playerAttack(player), extraDamage);
+      if (DamagePipeline.active()) {
+        DamagePipeline.addBonus(extraDamage);
+      } else if (target.level() instanceof ServerLevel serverLevel) {
+        serverLevel
+            .getServer()
+            .execute(
+                () -> {
+                  if (target.isAlive()) {
+                    target.hurt(
+                        GRDamageSources.organInternal(serverLevel),
+                        extraDamage);
+                  }
+                });
+      }
     }
     double knockback = stacks * OVERLOAD_KB_PER_STACK;
     Vec3 direction = target.position().subtract(player.position()).normalize();
