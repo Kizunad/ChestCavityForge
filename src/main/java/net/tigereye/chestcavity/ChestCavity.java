@@ -26,6 +26,7 @@ import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.render.ChestCavityClientRenderers;
 import net.tigereye.chestcavity.command.ModernUiServerCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
+import net.tigereye.chestcavity.compat.guzhenren.commands.WuxingConfigCommand;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command.SoulBeastCommands;
 import net.tigereye.chestcavity.config.CCConfig;
@@ -96,6 +97,7 @@ public class ChestCavity {
     NeoForge.EVENT_BUS.addListener(ModernUiServerCommands::register);
     NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
     NeoForge.EVENT_BUS.addListener(SoulCommands::register);
+    NeoForge.EVENT_BUS.addListener(WuxingConfigCommand::register);
     // Central DoT manager ticking
     DoTEngine.bootstrap();
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);

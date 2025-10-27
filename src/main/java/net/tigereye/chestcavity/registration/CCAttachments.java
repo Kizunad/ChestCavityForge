@@ -14,6 +14,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
@@ -69,6 +70,15 @@ public final class CCAttachments {
                       .serialize(new YinYangDualityAttachment.Serializer())
                       .build());
 
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<WuxingHuaHenAttachment>>
+      WUXING_HUA_HEN =
+          ATTACHMENT_TYPES.register(
+              "wuxing_hua_hen",
+              () ->
+                  AttachmentType.builder(CCAttachments::createWuxingHuaHen)
+                      .serialize(new WuxingHuaHenAttachment.Serializer())
+                      .build());
+
   private CCAttachments() {}
 
   private static ChestCavityInstance createInstance(IAttachmentHolder holder) {
@@ -120,6 +130,14 @@ public final class CCAttachments {
     return new YinYangDualityAttachment();
   }
 
+  private static WuxingHuaHenAttachment createWuxingHuaHen(IAttachmentHolder holder) {
+    if (!(holder instanceof Player)) {
+      throw new IllegalStateException(
+          "WuxingHuaHen attachment can only be applied to players");
+    }
+    return new WuxingHuaHenAttachment();
+  }
+
   public static SoulContainer getSoulContainer(Player player) {
     return player.getData(SOUL_CONTAINER.get());
   }
@@ -134,6 +152,14 @@ public final class CCAttachments {
 
   public static Optional<YinYangDualityAttachment> getExistingYinYangDuality(Player player) {
     return player.getExistingData(YIN_YANG_DUALITY.get());
+  }
+
+  public static WuxingHuaHenAttachment getWuxingHuaHen(Player player) {
+    return player.getData(WUXING_HUA_HEN.get());
+  }
+
+  public static Optional<WuxingHuaHenAttachment> getExistingWuxingHuaHen(Player player) {
+    return player.getExistingData(WUXING_HUA_HEN.get());
   }
 
   private static class ChestCavitySerializer
