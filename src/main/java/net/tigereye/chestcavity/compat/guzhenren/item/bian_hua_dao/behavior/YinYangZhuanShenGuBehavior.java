@@ -2,10 +2,14 @@ package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -19,6 +23,7 @@ import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Anchor;
@@ -252,6 +257,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     attachment.setCooldown(SKILL_BODY_ID, nextReady);
     ActiveSkillRegistry.scheduleReadyToast(player, SKILL_BODY_ID, nextReady, now);
     sendAction(player, next == Mode.YANG ? "阳身护体" : "阴身出鞘");
+
+    // FX: 阴阳身切换粒子效果
+    playBodySwitchFx(player, next);
   }
 
   private void activateSwap(ServerPlayer player, ChestCavityInstance cc) {
@@ -278,6 +286,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     if (originOpt.isEmpty()) {
       return;
     }
+    // 记录起点位置用于粒子效果
+    Vec3 originPos = player.position();
+
     if (!YinYangDualityOps.teleportToAnchor(player, destination)) {
       sendFailure(player, "目标锚点不可达，太极错位失败。");
       return;
@@ -297,6 +308,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     long readyTick = now + cooldown;
     attachment.setCooldown(SKILL_SWAP_ID, readyTick);
     ActiveSkillRegistry.scheduleReadyToast(player, SKILL_SWAP_ID, readyTick, now);
+
+    // FX: 太极错位粒子效果
+    playSwapFx(player, originPos, player.position(), withinWindow);
   }
 
   private void activateDualStrike(ServerPlayer player, ChestCavityInstance cc) {
@@ -320,6 +334,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     attachment.setCooldown(SKILL_DUAL_STRIKE_ID, ready);
     ActiveSkillRegistry.scheduleReadyToast(player, SKILL_DUAL_STRIKE_ID, ready, now);
     sendAction(player, "两界同击窗口开启 5 秒");
+
+    // FX: 两界同击窗口开启
+    playDualStrikeActivateFx(player);
   }
 
   private void activateTransfer(ServerPlayer player, ChestCavityInstance cc) {
@@ -347,6 +364,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     attachment.setCooldown(SKILL_TRANSFER_ID, ready);
     ActiveSkillRegistry.scheduleReadyToast(player, SKILL_TRANSFER_ID, ready, now);
     sendAction(player, "阴阳互渡完成");
+
+    // FX: 阴阳互渡粒子效果
+    playTransferFx(player);
   }
 
   private void activateRecall(ServerPlayer player, ChestCavityInstance cc) {
@@ -379,6 +399,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     long ready = now + RECALL_COOLDOWN_TICKS;
     attachment.setCooldown(SKILL_RECALL_ID, ready);
     ActiveSkillRegistry.scheduleReadyToast(player, SKILL_RECALL_ID, ready, now);
+
+    // FX: 归位粒子效果
+    playRecallFx(player);
   }
 
   private boolean performTransfer(
@@ -460,6 +483,9 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
       }
       window.markYangHit();
     }
+    // FX: 命中粒子效果
+    playDualStrikeHitFx(player, target, window.yinHit() && window.yangHit());
+
     if (window.yinHit() && window.yangHit()) {
       double base =
           Math.max(0.0D, Math.min(window.baseAttackYin(), window.baseAttackYang()) * 0.8D);
@@ -582,12 +608,20 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
       foodData.setFoodLevel(Math.max(0, foodData.getFoodLevel() - 5));
       handle.adjustHunpo(-1.0D, true);
       handle.adjustNiantou(-1.0D, true);
+      // FX: 阳身充盈被动效果（每2秒触发一次避免刷屏）
+      if (player.level().getGameTime() % 40L == 0) {
+        playPassiveYangFx(player);
+      }
     } else {
       handle.adjustHunpo(20.0D, true);
       handle.adjustNiantou(2.0D, true);
       handle.adjustZhenyuan(10.0D, true);
       handle.adjustJingli(-1.0D, true);
       foodData.setFoodLevel(Math.max(0, foodData.getFoodLevel() - 5));
+      // FX: 阴身幽养被动效果（每2秒触发一次避免刷屏）
+      if (player.level().getGameTime() % 40L == 0) {
+        playPassiveYinFx(player);
+      }
     }
   }
 
@@ -685,6 +719,463 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
   private void sendAction(ServerPlayer player, String message) {
     player.displayClientMessage(Component.literal(message), true);
   }
+
+  // ========== FX 粒子效果实现 ==========
+
+  /** 阴阳身切换粒子效果 */
+  private void playBodySwitchFx(ServerPlayer player, Mode newMode) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 pos = player.position();
+    double x = pos.x;
+    double y = pos.y;
+    double z = pos.z;
+
+    // 入口：ENCHANT 围绕腰部顺时针扇形升腾
+    for (int i = 0; i < 30; i++) {
+      double angle = (i / 30.0) * Math.PI * 2;
+      double offsetX = Math.cos(angle) * 0.6;
+      double offsetZ = Math.sin(angle) * 0.6;
+      level.sendParticles(
+          ParticleTypes.ENCHANT,
+          x + offsetX,
+          y + 1.0,
+          z + offsetZ,
+          1,
+          0.0,
+          0.1,
+          0.0,
+          0.02);
+    }
+
+    if (newMode == Mode.YIN) {
+      // 阴态：SOUL + PORTAL 从足底外扩
+      for (int i = 0; i < 30; i++) {
+        double angle = Math.random() * Math.PI * 2;
+        double radius = Math.random() * 1.6;
+        double offsetX = Math.cos(angle) * radius;
+        double offsetZ = Math.sin(angle) * radius;
+        level.sendParticles(ParticleTypes.SOUL, x + offsetX, y + 0.1, z + offsetZ, 1, 0.0, 0.1, 0.0, 0.01);
+      }
+      for (int i = 0; i < 24; i++) {
+        double angle = Math.random() * Math.PI * 2;
+        double radius = Math.random() * 1.6;
+        double offsetX = Math.cos(angle) * radius;
+        double offsetZ = Math.sin(angle) * radius;
+        level.sendParticles(ParticleTypes.PORTAL, x + offsetX, y + 0.1, z + offsetZ, 1, 0.0, 0.1, 0.0, 0.02);
+      }
+    } else {
+      // 阳态：SWEEP_ATTACK 环形 + CLOUD 短雾
+      for (int i = 0; i < 12; i++) {
+        double angle = (i / 12.0) * Math.PI * 2;
+        double offsetX = Math.cos(angle) * 1.2;
+        double offsetZ = Math.sin(angle) * 1.2;
+        level.sendParticles(
+            ParticleTypes.SWEEP_ATTACK,
+            x + offsetX,
+            y + 0.5,
+            z + offsetZ,
+            1,
+            0.0,
+            0.0,
+            0.0,
+            0.0);
+      }
+      for (int i = 0; i < 20; i++) {
+        double offsetX = (Math.random() - 0.5) * 1.5;
+        double offsetY = Math.random() * 1.0;
+        double offsetZ = (Math.random() - 0.5) * 1.5;
+        level.sendParticles(ParticleTypes.CLOUD, x + offsetX, y + offsetY, z + offsetZ, 1, 0.0, 0.05, 0.0, 0.01);
+      }
+    }
+
+    // 收束：END_ROD 上升流
+    for (int i = 0; i < 12; i++) {
+      double offsetX = (Math.random() - 0.5) * 0.4;
+      double offsetZ = (Math.random() - 0.5) * 0.4;
+      level.sendParticles(ParticleTypes.END_ROD, x + offsetX, y + 0.5, z + offsetZ, 1, 0.0, 0.15, 0.0, 0.05);
+    }
+
+    // 音效
+    level.playSound(null, x, y, z, SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 0.7f, 1.0f);
+    level.playSound(null, x, y, z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.6f, 1.2f);
+  }
+
+  /** 太极错位粒子效果 */
+  private void playSwapFx(ServerPlayer player, Vec3 origin, Vec3 destination, boolean withinWindow) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+
+    // 起点门：PORTAL + REVERSE_PORTAL
+    for (int i = 0; i < 20; i++) {
+      double offsetX = (Math.random() - 0.5) * 1.2;
+      double offsetY = Math.random() * 2.0;
+      double offsetZ = (Math.random() - 0.5) * 1.2;
+      level.sendParticles(
+          ParticleTypes.PORTAL,
+          origin.x + offsetX,
+          origin.y + offsetY,
+          origin.z + offsetZ,
+          1,
+          0.0,
+          0.1,
+          0.0,
+          0.05);
+    }
+    for (int i = 0; i < 16; i++) {
+      double offsetX = (Math.random() - 0.5) * 1.2;
+      double offsetY = Math.random() * 2.0;
+      double offsetZ = (Math.random() - 0.5) * 1.2;
+      level.sendParticles(
+          ParticleTypes.REVERSE_PORTAL,
+          origin.x + offsetX,
+          origin.y + offsetY,
+          origin.z + offsetZ,
+          1,
+          0.0,
+          0.1,
+          0.0,
+          0.05);
+    }
+
+    // 终点门：PORTAL + REVERSE_PORTAL
+    for (int i = 0; i < 20; i++) {
+      double offsetX = (Math.random() - 0.5) * 1.2;
+      double offsetY = Math.random() * 2.0;
+      double offsetZ = (Math.random() - 0.5) * 1.2;
+      level.sendParticles(
+          ParticleTypes.PORTAL,
+          destination.x + offsetX,
+          destination.y + offsetY,
+          destination.z + offsetZ,
+          1,
+          0.0,
+          0.1,
+          0.0,
+          0.05);
+    }
+    for (int i = 0; i < 16; i++) {
+      double offsetX = (Math.random() - 0.5) * 1.2;
+      double offsetY = Math.random() * 2.0;
+      double offsetZ = (Math.random() - 0.5) * 1.2;
+      level.sendParticles(
+          ParticleTypes.REVERSE_PORTAL,
+          destination.x + offsetX,
+          destination.y + offsetY,
+          destination.z + offsetZ,
+          1,
+          0.0,
+          0.1,
+          0.0,
+          0.05);
+    }
+
+    // 切割轨迹：两点连线 END_ROD
+    Vec3 direction = destination.subtract(origin);
+    double distance = direction.length();
+    Vec3 step = direction.normalize().scale(0.6);
+    int steps = Math.min(16, (int) (distance / 0.6));
+    for (int i = 0; i < steps; i++) {
+      Vec3 point = origin.add(step.scale(i));
+      level.sendParticles(
+          ParticleTypes.END_ROD,
+          point.x,
+          point.y + 1.0,
+          point.z,
+          1,
+          0.0,
+          0.0,
+          0.0,
+          0.0);
+    }
+
+    // 无敌提示：头顶闪烁火花
+    if (!withinWindow) {
+      for (int i = 0; i < 6; i++) {
+        double offsetX = (Math.random() - 0.5) * 0.3;
+        double offsetZ = (Math.random() - 0.5) * 0.3;
+        level.sendParticles(
+            ParticleTypes.SMALL_FLAME,
+            destination.x + offsetX,
+            destination.y + 2.2,
+            destination.z + offsetZ,
+            1,
+            0.0,
+            0.0,
+            0.0,
+            0.02);
+      }
+    }
+
+    // 音效
+    level.playSound(
+        null,
+        destination.x,
+        destination.y,
+        destination.z,
+        SoundEvents.ENDERMAN_TELEPORT,
+        SoundSource.PLAYERS,
+        1.0f,
+        1.0f);
+    if (withinWindow) {
+      level.playSound(
+          null,
+          destination.x,
+          destination.y,
+          destination.z,
+          SoundEvents.EXPERIENCE_ORB_PICKUP,
+          SoundSource.PLAYERS,
+          0.6f,
+          1.5f);
+    }
+  }
+
+  /** 两界同击窗口开启粒子效果 */
+  private void playDualStrikeActivateFx(ServerPlayer player) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 pos = player.position();
+    double x = pos.x;
+    double y = pos.y;
+    double z = pos.z;
+
+    // 胸前漂浮 ENCHANT 微粒
+    for (int i = 0; i < 8; i++) {
+      double offsetX = (Math.random() - 0.5) * 0.5;
+      double offsetY = 1.2 + (Math.random() - 0.5) * 0.3;
+      double offsetZ = (Math.random() - 0.5) * 0.5;
+      level.sendParticles(ParticleTypes.ENCHANT, x + offsetX, y + offsetY, z + offsetZ, 1, 0.0, 0.02, 0.0, 0.01);
+    }
+
+    // 音效
+    level.playSound(null, x, y, z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.4f, 1.7f);
+  }
+
+  /** 两界同击命中粒子效果 */
+  private void playDualStrikeHitFx(ServerPlayer player, LivingEntity target, boolean bothHit) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 playerPos = player.position().add(0, player.getEyeHeight() * 0.7, 0);
+    Vec3 targetPos = target.position().add(0, target.getEyeHeight() * 0.5, 0);
+
+    // 弹道拖尾：CRIT
+    Vec3 direction = targetPos.subtract(playerPos);
+    double distance = direction.length();
+    Vec3 step = direction.normalize().scale(0.3);
+    int steps = Math.min(12, (int) (distance / 0.3));
+    for (int i = 0; i < steps; i++) {
+      Vec3 point = playerPos.add(step.scale(i));
+      level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 1, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    // 命中点：CRIT + ELECTRIC_SPARK
+    for (int i = 0; i < 10; i++) {
+      double offsetX = (Math.random() - 0.5) * 0.5;
+      double offsetY = (Math.random() - 0.5) * 0.5;
+      double offsetZ = (Math.random() - 0.5) * 0.5;
+      level.sendParticles(
+          ParticleTypes.CRIT,
+          targetPos.x + offsetX,
+          targetPos.y + offsetY,
+          targetPos.z + offsetZ,
+          1,
+          0.0,
+          0.0,
+          0.0,
+          0.05);
+    }
+    for (int i = 0; i < 8; i++) {
+      double offsetX = (Math.random() - 0.5) * 0.5;
+      double offsetY = (Math.random() - 0.5) * 0.5;
+      double offsetZ = (Math.random() - 0.5) * 0.5;
+      level.sendParticles(
+          ParticleTypes.ELECTRIC_SPARK,
+          targetPos.x + offsetX,
+          targetPos.y + offsetY,
+          targetPos.z + offsetZ,
+          1,
+          0.0,
+          0.0,
+          0.0,
+          0.05);
+    }
+
+    // 投影触发：ENCHANT 向外炸散
+    if (bothHit) {
+      for (int i = 0; i < 18; i++) {
+        double angle = Math.random() * Math.PI * 2;
+        double radius = Math.random() * 1.0;
+        double offsetX = Math.cos(angle) * radius;
+        double offsetZ = Math.sin(angle) * radius;
+        double offsetY = (Math.random() - 0.5) * 0.8;
+        level.sendParticles(
+            ParticleTypes.ENCHANT,
+            targetPos.x + offsetX,
+            targetPos.y + offsetY,
+            targetPos.z + offsetZ,
+            1,
+            offsetX * 0.2,
+            offsetY * 0.2,
+            offsetZ * 0.2,
+            0.1);
+      }
+      // 音效
+      level.playSound(
+          null,
+          targetPos.x,
+          targetPos.y,
+          targetPos.z,
+          SoundEvents.TRIDENT_THUNDER,
+          SoundSource.PLAYERS,
+          0.6f,
+          1.25f);
+    }
+  }
+
+  /** 阴阳互渡粒子效果 */
+  private void playTransferFx(ServerPlayer player) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 pos = player.position();
+    double x = pos.x;
+    double y = pos.y;
+    double z = pos.z;
+
+    // 引导：胸口 END_ROD 涌出
+    Vec3 lookDir = player.getLookAngle();
+    for (int i = 0; i < 15; i++) {
+      double dist = i * 0.5;
+      double offsetX = lookDir.x * dist + (Math.random() - 0.5) * 0.3;
+      double offsetY = 1.2 + lookDir.y * dist + (Math.random() - 0.5) * 0.3;
+      double offsetZ = lookDir.z * dist + (Math.random() - 0.5) * 0.3;
+      if (dist > 8.0) break;
+      level.sendParticles(ParticleTypes.END_ROD, x + offsetX, y + offsetY, z + offsetZ, 1, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    // 抵达：ENCHANT 漩涡 + SOUL
+    Vec3 endpoint = pos.add(lookDir.scale(Math.min(8.0, 4.0)));
+    for (int i = 0; i < 12; i++) {
+      double angle = (i / 12.0) * Math.PI * 2;
+      double radius = 0.6;
+      double offsetX = Math.cos(angle) * radius;
+      double offsetZ = Math.sin(angle) * radius;
+      level.sendParticles(
+          ParticleTypes.ENCHANT,
+          endpoint.x + offsetX,
+          endpoint.y + 1.0,
+          endpoint.z + offsetZ,
+          1,
+          -offsetX * 0.1,
+          0.0,
+          -offsetZ * 0.1,
+          0.05);
+    }
+    for (int i = 0; i < 8; i++) {
+      double offsetX = (Math.random() - 0.5) * 0.5;
+      double offsetY = (Math.random() - 0.5) * 0.5;
+      double offsetZ = (Math.random() - 0.5) * 0.5;
+      level.sendParticles(
+          ParticleTypes.SOUL,
+          endpoint.x + offsetX,
+          endpoint.y + 1.0 + offsetY,
+          endpoint.z + offsetZ,
+          1,
+          0.0,
+          0.05,
+          0.0,
+          0.02);
+    }
+
+    // 音效
+    level.playSound(null, x, y, z, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.8f, 1.4f);
+  }
+
+  /** 归位粒子效果 */
+  private void playRecallFx(ServerPlayer player) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 pos = player.position();
+    double x = pos.x;
+    double y = pos.y;
+    double z = pos.z;
+
+    // 回环：脚下 CLOUD 圆环 + SWEEP_ATTACK
+    for (int i = 0; i < 18; i++) {
+      double angle = (i / 18.0) * Math.PI * 2;
+      double offsetX = Math.cos(angle) * 1.2;
+      double offsetZ = Math.sin(angle) * 1.2;
+      level.sendParticles(ParticleTypes.CLOUD, x + offsetX, y + 0.1, z + offsetZ, 1, 0.0, 0.0, 0.0, 0.0);
+    }
+    for (int i = 0; i < 8; i++) {
+      double angle = (i / 8.0) * Math.PI * 2;
+      double offsetX = Math.cos(angle) * 1.0;
+      double offsetZ = Math.sin(angle) * 1.0;
+      level.sendParticles(
+          ParticleTypes.SWEEP_ATTACK,
+          x + offsetX,
+          y + 0.3,
+          z + offsetZ,
+          1,
+          0.0,
+          0.0,
+          0.0,
+          0.0);
+    }
+
+    // 锚点闪烁：GLOW + END_ROD
+    for (int i = 0; i < 10; i++) {
+      double offsetX = (Math.random() - 0.5) * 1.0;
+      double offsetY = Math.random() * 1.5;
+      double offsetZ = (Math.random() - 0.5) * 1.0;
+      level.sendParticles(ParticleTypes.GLOW, x + offsetX, y + offsetY, z + offsetZ, 1, 0.0, 0.05, 0.0, 0.02);
+    }
+    for (int i = 0; i < 10; i++) {
+      double offsetX = (Math.random() - 0.5) * 0.5;
+      double offsetZ = (Math.random() - 0.5) * 0.5;
+      level.sendParticles(ParticleTypes.END_ROD, x + offsetX, y + 0.2, z + offsetZ, 1, 0.0, 0.1, 0.0, 0.05);
+    }
+
+    // 音效
+    level.playSound(null, x, y, z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8f, 1.0f);
+  }
+
+  /** 阳身充盈被动粒子效果 */
+  private void playPassiveYangFx(ServerPlayer player) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 pos = player.position();
+    double x = pos.x;
+    double y = pos.y;
+    double z = pos.z;
+
+    // 胸前 HEART + CLOUD
+    level.sendParticles(ParticleTypes.HEART, x, y + 1.2, z, 1, 0.2, 0.1, 0.2, 0.0);
+    level.sendParticles(ParticleTypes.CLOUD, x, y + 1.0, z, 1, 0.2, 0.1, 0.2, 0.01);
+  }
+
+  /** 阴身幽养被动粒子效果 */
+  private void playPassiveYinFx(ServerPlayer player) {
+    if (!(player.level() instanceof ServerLevel level)) {
+      return;
+    }
+    Vec3 pos = player.position();
+    double x = pos.x;
+    double y = pos.y;
+    double z = pos.z;
+
+    // SOUL + ENCHANT 低密度火花
+    level.sendParticles(ParticleTypes.SOUL, x, y + 1.2, z, 1, 0.2, 0.1, 0.2, 0.01);
+    level.sendParticles(ParticleTypes.ENCHANT, x, y + 1.0, z, 1, 0.2, 0.1, 0.2, 0.01);
+  }
+
+  // ========== FX 粒子效果实现结束 ==========
 
   private record ResourceCost(
       double zhenyuan, double jingli, double hunpo, double niantou, int hunger, float health) {
