@@ -1160,10 +1160,13 @@ public final class ActiveSkillRegistry {
       String sourceHint,
       Runnable initializer,
       CooldownHint cooldownHint) {
-    initializer.run();
     ResourceLocation skill = ResourceLocation.parse(skillId);
     ResourceLocation ability = ResourceLocation.parse(abilityId);
     ResourceLocation organ = ResourceLocation.parse(organId);
+    if (initializer != null) {
+      ActivationBootstrap.register(ability, initializer);
+      initializer.run();
+    }
     ActiveSkillEntry previous =
         ENTRIES.put(
             skill,

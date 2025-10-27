@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.WuxingGuiBianBehavior;
 
 /**
  * 组合杀招注册表
@@ -117,7 +118,10 @@ public final class ComboSkillRegistry {
         "道痕转化",
         "将五行道痕逆转回变化道。支持暂时/永久模式，锚点越多税率越低（最多5个锚=免税），联动阴阳身享额外减税",
         tags("组合", "道痕", "五行", "逆转", "变化道"),
-        "compat/guzhenren/item/combo/WuxingGuiBianBehavior.java");
+        "compat/guzhenren/item/combo/WuxingGuiBianBehavior.java",
+        () -> {
+          Object unused = WuxingGuiBianBehavior.INSTANCE;
+        });
 
     register(
         "guzhenren:wuxing_gui_bian_config",
@@ -136,7 +140,10 @@ public final class ComboSkillRegistry {
         "配置",
         "五行归变·逆转的配置入口，可切换暂时/永久模式并查看暂时模式冻结返还状态",
         tags("组合", "配置", "道痕"),
-        "compat/guzhenren/item/combo/WuxingGuiBianBehavior.java");
+        "compat/guzhenren/item/combo/WuxingGuiBianBehavior.java",
+        () -> {
+          Object unused = WuxingGuiBianBehavior.INSTANCE;
+        });
 
     ChestCavity.LOGGER.info("[ComboSkillRegistry] Registered {} combo skills", ENTRIES.size());
   }
@@ -152,7 +159,36 @@ public final class ComboSkillRegistry {
       String description,
       List<String> tags,
       String sourceHint) {
+    register(
+        skillId,
+        displayName,
+        iconLocation,
+        requiredOrgans,
+        optionalOrgans,
+        category,
+        subcategory,
+        description,
+        tags,
+        sourceHint,
+        null);
+  }
+
+  private static void register(
+      String skillId,
+      String displayName,
+      ResourceLocation iconLocation,
+      List<ResourceLocation> requiredOrgans,
+      List<ResourceLocation> optionalOrgans,
+      String category,
+      String subcategory,
+      String description,
+      List<String> tags,
+      String sourceHint,
+      Runnable initializer) {
     ResourceLocation id = ResourceLocation.parse(skillId);
+    if (initializer != null) {
+      ActivationBootstrap.register(id, initializer);
+    }
     ComboSkillEntry previous =
         ENTRIES.put(
             id,

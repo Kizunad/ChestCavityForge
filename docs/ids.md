@@ -475,3 +475,4 @@
       "item.guzhenren.tu_qiang_gu": "土墙蛊",
       "item.guzhenren.tun_du_wa_gu": "吞毒蛙蛊",
       "item.guzhenren.tupigu": "土脾蛊",
+      "item.guzhenren.yu_jun_gu": "御军蛊",

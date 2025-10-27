@@ -1,0 +1,8 @@
+{
+  "itemID": "guzhenren:yu_jun_gu",
+  "organScores": [
+    { "id": "guzhenren:daohen_nudao", "value": "1.0" },
+    { "id": "chestcavity:defense", "value": "8" },
+    { "id": "chestcavity:speed", "value": "1" }
+  ]
+}

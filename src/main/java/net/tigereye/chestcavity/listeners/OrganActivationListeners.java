@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.registration.CCTags;
+import net.tigereye.chestcavity.skill.ActivationBootstrap;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
@@ -71,6 +72,10 @@ public class OrganActivationListeners {
   // init.
   private static boolean tryLazyRegister(ResourceLocation id) {
     if (id == null) return false;
+    ActivationBootstrap.ensureLoaded(id);
+    if (abilityIDMap.containsKey(id)) {
+      return true;
+    }
     String ns = id.getNamespace();
     String path = id.getPath();
     try {
