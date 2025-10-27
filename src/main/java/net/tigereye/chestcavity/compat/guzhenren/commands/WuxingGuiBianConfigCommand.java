@@ -8,8 +8,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.state.WuxingGuiBianAttachment;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.state.WuxingGuiBianAttachment.ConversionMode;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.state.WuxingGuiBianAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.state.WuxingGuiBianAttachment.ConversionMode;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**

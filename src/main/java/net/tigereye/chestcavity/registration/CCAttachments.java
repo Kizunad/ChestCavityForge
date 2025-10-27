@@ -16,7 +16,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.state.WuxingGuiBianAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.state.WuxingGuiBianAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.soul.container.SoulContainer;

@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.combo.state;
+package net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.state;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -155,3 +155,4 @@ public final class WuxingGuiBianAttachment {
     }
   }
 }
+

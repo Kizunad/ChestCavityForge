@@ -343,9 +343,9 @@ if (MultiCooldown.isReady(cc, COOLDOWN_KEY)) {
   - 环境/领域：残留域、地形、光照、水域等上下文。
   - 账本/附件：`LedgerOps` 通道值、附件状态（如 YinYang/Wuxing 附件）。
 - 目录组织：
-  - 家族路由：`compat/guzhenren/item/combo/<family>/` 下设 `<Family>ComboRegistry` 负责注册同家族 Combo（薄路由，不含重逻辑）。
-  - 通用实现：跨家族复用的 Combo/构件放在 `compat/guzhenren/item/combo/common/`。
-  - 状态附件：复杂 Combo 的状态（窗口/堆栈）放在 `compat/guzhenren/item/combo/state/`。
+  - 核心框架：跨杀招复用的上下文、消息等工具统一放在 `compat/guzhenren/item/combo/framework/`。
+  - 杀招实现：每个杀招拆分独立子目录 `compat/guzhenren/item/combo/<theme>/<combo>/`（例：`wuxing/gui_bian/` 下含 `runtime/logic/fx/state`）。
+  - 状态附件：随杀招放在其子目录下的 `state/`，不要再集中在旧的 `combo/state` 目录。
 - 注册分片：
   - 顶层由 `ComboSkillRegistry` 提供统一注册入口；`GuzhenrenIntegrationModule` 在构造阶段调用各家族 `<Family>ComboRegistry.registerAll()`。
   - 命名规范：`chestcavity:guzhenren/<family>/<organ>/combo/<name>`，避免与主动/被动冲突。

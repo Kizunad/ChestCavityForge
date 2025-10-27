@@ -88,7 +88,7 @@ public class OrganActivationListeners {
         } else if ("wuxing_gui_bian".equals(path) || "wuxing_gui_bian_config".equals(path)) {
           clazz =
               Class.forName(
-                  "net.tigereye.chestcavity.compat.guzhenren.item.combo.WuxingGuiBianBehavior");
+                  "net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.WuxingGuiBianBehavior");
         }
 
         if (clazz != null) {
