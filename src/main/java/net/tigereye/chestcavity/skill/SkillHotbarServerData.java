@@ -76,7 +76,10 @@ public final class SkillHotbarServerData {
         if (id == null) {
           continue;
         }
-        if (!ActiveSkillRegistry.isSkillRegistered(id)) {
+        // 检查技能是否在主动技能或组合杀招注册表中
+        boolean isActive = ActiveSkillRegistry.isSkillRegistered(id);
+        boolean isCombo = ComboSkillRegistry.isSkillRegistered(id);
+        if (!isActive && !isCombo) {
           ChestCavity.LOGGER.warn(
               "[modernui][skill-hotbar] skipping unregistered skill {} for key {}", id, key.id());
           continue;

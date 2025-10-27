@@ -23,12 +23,14 @@ public final class SimpleSkillSlotView extends LinearLayout {
 
   private final ResourceLocation entryId;
   private final ItemStack stack;
+  private final ResourceLocation iconTexture; // PNG图标路径（可选）
   private final String displayName;
   private final SlotSurfaceRenderer renderer;
   private final MinecraftSurfaceView surface;
   private final SelectionListener selectionListener;
   private boolean selected;
 
+  // 原构造函数（使用ItemStack图标）
   public SimpleSkillSlotView(
       @NonNull icyllis.modernui.core.Context context,
       ResourceLocation entryId,
@@ -37,9 +39,23 @@ public final class SimpleSkillSlotView extends LinearLayout {
       TextView statusView,
       int sizePx,
       SelectionListener selectionListener) {
+    this(context, entryId, iconStack, null, displayName, statusView, sizePx, selectionListener);
+  }
+
+  // 新构造函数（支持PNG图标）
+  public SimpleSkillSlotView(
+      @NonNull icyllis.modernui.core.Context context,
+      ResourceLocation entryId,
+      ItemStack iconStack,
+      ResourceLocation iconTexture,
+      String displayName,
+      TextView statusView,
+      int sizePx,
+      SelectionListener selectionListener) {
     super(context);
     this.entryId = Objects.requireNonNull(entryId, "entryId");
     this.stack = normalize(iconStack);
+    this.iconTexture = iconTexture; // 可为null，优先使用PNG，其次使用ItemStack
     this.displayName =
         displayName != null && !displayName.isBlank()
             ? displayName
@@ -136,7 +152,15 @@ public final class SimpleSkillSlotView extends LinearLayout {
         graphics.fill(guiWidth - 1, 0, guiWidth, guiHeight, color);
       }
 
-      if (!stack.isEmpty()) {
+      // 优先渲染PNG图标，否则渲染ItemStack
+      if (iconTexture != null) {
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        // PNG图标渲染：假设图标是16x16，居中显示
+        int iconSize = 16;
+        int iconX = guiWidth / 2 - iconSize / 2;
+        int iconY = guiHeight / 2 - iconSize / 2;
+        graphics.blit(iconTexture, iconX, iconY, 0, 0, iconSize, iconSize, iconSize, iconSize);
+      } else if (!stack.isEmpty()) {
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         int itemX = guiWidth / 2 - 8;
         int itemY = guiHeight / 2 - 8;

@@ -27,6 +27,7 @@ import net.tigereye.chestcavity.client.render.ChestCavityClientRenderers;
 import net.tigereye.chestcavity.command.ModernUiServerCommands;
 import net.tigereye.chestcavity.command.RecipeDebugCommands;
 import net.tigereye.chestcavity.compat.guzhenren.commands.WuxingConfigCommand;
+import net.tigereye.chestcavity.compat.guzhenren.commands.WuxingGuiBianConfigCommand;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command.SoulBeastCommands;
 import net.tigereye.chestcavity.config.CCConfig;
@@ -49,6 +50,7 @@ import net.tigereye.chestcavity.network.NetworkHandler;
 import net.tigereye.chestcavity.network.ServerEvents;
 import net.tigereye.chestcavity.registration.*;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.soul.command.SoulCommands;
 import net.tigereye.chestcavity.soul.entity.SoulClanSpawner;
 import net.tigereye.chestcavity.soul.entity.SoulEntityAttributes;
@@ -98,6 +100,7 @@ public class ChestCavity {
     NeoForge.EVENT_BUS.addListener(SoulBeastCommands::register);
     NeoForge.EVENT_BUS.addListener(SoulCommands::register);
     NeoForge.EVENT_BUS.addListener(WuxingConfigCommand::register);
+    NeoForge.EVENT_BUS.addListener(WuxingGuiBianConfigCommand::register);
     // Central DoT manager ticking
     DoTEngine.bootstrap();
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
@@ -142,6 +145,7 @@ public class ChestCavity {
     OrganRetentionRules.registerNamespace(MODID);
     if (ModList.get().isLoaded("guzhenren")) {
       ActiveSkillRegistry.bootstrap();
+      ComboSkillRegistry.bootstrap();
       GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
       ReactionEngine.bootstrap();
       // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。

@@ -57,6 +57,7 @@ import net.tigereye.chestcavity.client.modernui.widget.SimpleSkillSlotView;
 import net.tigereye.chestcavity.client.ui.ModernUiClientState;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
 
 /**
@@ -326,14 +327,67 @@ public class ChestCavityConfigFragment extends Fragment {
       layout.addView(statusView, statusParams);
 
       ActiveSkillRegistry.bootstrap();
+      ComboSkillRegistry.bootstrap();
       DocRegistry.reload();
 
       var selectedSlotRef = new AtomicReference<SimpleSkillSlotView>();
       var selectedSkillIdRef = new AtomicReference<ResourceLocation>();
 
+      // Mode switcher: "organs" (蛊虫器官) or "combos" (蛊虫杀招)
+      var currentMode = new AtomicReference<String>("organs");
+
       // Navigation state: [category, subcategory]
       var currentCategory = new AtomicReference<String>("");
       var currentSubcategory = new AtomicReference<String>("");
+
+      // Mode switcher buttons (蛊虫器官 / 蛊虫杀招)
+      var modeSwitcherRow = new LinearLayout(context);
+      modeSwitcherRow.setOrientation(LinearLayout.HORIZONTAL);
+      modeSwitcherRow.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+      var modeSwitcherParams =
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      modeSwitcherParams.topMargin = layout.dp(12);
+      modeSwitcherParams.bottomMargin = layout.dp(8);
+      layout.addView(modeSwitcherRow, modeSwitcherParams);
+
+      var organsModeButton = new Button(context);
+      organsModeButton.setText("蛊虫器官");
+      organsModeButton.setGravity(Gravity.CENTER);
+      organsModeButton.setPadding(layout.dp(16), layout.dp(8), layout.dp(16), layout.dp(8));
+
+      var combosModeButton = new Button(context);
+      combosModeButton.setText("蛊虫杀招");
+      combosModeButton.setGravity(Gravity.CENTER);
+      combosModeButton.setPadding(layout.dp(16), layout.dp(8), layout.dp(16), layout.dp(8));
+
+      // Style helper for mode buttons
+      Consumer<Button> updateModeButtonStyle =
+          button -> {
+            boolean isSelected = button == organsModeButton
+                ? currentMode.get().equals("organs")
+                : currentMode.get().equals("combos");
+            var bgDrawable = new ShapeDrawable();
+            if (isSelected) {
+              bgDrawable.setColor(0xFF4080FF); // Bright blue for selected
+              bgDrawable.setStroke(layout.dp(2), 0xFF80AFFF);
+            } else {
+              bgDrawable.setColor(0x40406080); // Dimmed for unselected
+              bgDrawable.setStroke(layout.dp(1), 0x606BAEFF);
+            }
+            bgDrawable.setCornerRadius(layout.dp(6));
+            button.setBackground(bgDrawable);
+            button.setTextColor(isSelected ? 0xFFFFFFFF : 0xFFB5C7E3);
+          };
+
+      var modeSwitcherButtonParams = new LinearLayout.LayoutParams(layout.dp(100), layout.dp(36));
+      modeSwitcherButtonParams.rightMargin = layout.dp(8);
+      modeSwitcherRow.addView(organsModeButton, modeSwitcherButtonParams);
+      modeSwitcherRow.addView(combosModeButton, modeSwitcherButtonParams);
+
+      // Initialize button styles
+      updateModeButtonStyle.accept(organsModeButton);
+      updateModeButtonStyle.accept(combosModeButton);
 
       // Breadcrumb navigation with clickable segments
       var breadcrumbRow = new LinearLayout(context);
@@ -369,81 +423,172 @@ public class ChestCavityConfigFragment extends Fragment {
       layout.addView(iconGrid, iconGridParams);
       ChestCavityConfigFragment.this.skillIconScrollRef = iconGrid;
 
-      record SkillIcon(SimpleSkillSlotView view, ActiveSkillRegistry.ActiveSkillEntry entry, String category, String subcategory) {}
+      record SkillIcon(
+          SimpleSkillSlotView view,
+          Object entry, // Either ActiveSkillEntry or ComboSkillEntry
+          String type, // "active" or "combo"
+          String category,
+          String subcategory) {}
 
       var allIconRecords = new ArrayList<SkillIcon>();
 
-      // Build skill to category mapping from DocRegistry
-      var skillToCategoryMap = new java.util.HashMap<ResourceLocation, DocEntry>();
-      for (DocEntry doc : DocRegistry.all()) {
-        skillToCategoryMap.put(doc.id(), doc);
-      }
+      // Forward reference arrays for rebuild function
+      final Runnable[] rebuildSkillIconsRef = new Runnable[1];
 
-      var registryEntries = new ArrayList<>(ActiveSkillRegistry.entries());
-      registryEntries.sort(Comparator.comparing(e -> e.skillId().toString()));
+      // Build skill icons based on current mode
+      Runnable rebuildSkillIcons =
+          () -> {
+            allIconRecords.clear();
+            String mode = currentMode.get();
 
-      for (ActiveSkillRegistry.ActiveSkillEntry entry : registryEntries) {
-        ResourceLocation organItem = entry.organId();
-        Item item =
-            organItem != null
-                ? net.minecraft.core.registries.BuiltInRegistries.ITEM
-                    .getOptional(organItem)
-                    .orElse(null)
-                : null;
-        if (item == null) {
-          continue;
-        }
+            if (mode.equals("organs")) {
+              // Build active skill icons
+              var skillToCategoryMap = new java.util.HashMap<ResourceLocation, DocEntry>();
+              for (DocEntry doc : DocRegistry.all()) {
+                skillToCategoryMap.put(doc.id(), doc);
+              }
 
-        // Get category info from DocRegistry with smart matching:
-        // 1. Try exact skillId match
-        // 2. Try organId match (for multi-skill organs like qing_feng_lun_gu/dash)
-        // 3. Try ability ID match
-        DocEntry docEntry = skillToCategoryMap.get(entry.skillId());
-        if (docEntry == null && entry.organId() != null) {
-          docEntry = skillToCategoryMap.get(entry.organId());
-        }
-        if (docEntry == null && entry.abilityId() != null) {
-          docEntry = skillToCategoryMap.get(entry.abilityId());
-        }
+              var registryEntries = new ArrayList<>(ActiveSkillRegistry.entries());
+              registryEntries.sort(Comparator.comparing(e -> e.skillId().toString()));
 
-        String category = docEntry != null ? docEntry.category() : "";
-        String subcategory = docEntry != null ? docEntry.subcategory() : "";
+              for (ActiveSkillRegistry.ActiveSkillEntry entry : registryEntries) {
+                ResourceLocation organItem = entry.organId();
+                Item item =
+                    organItem != null
+                        ? net.minecraft.core.registries.BuiltInRegistries.ITEM
+                            .getOptional(organItem)
+                            .orElse(null)
+                        : null;
+                if (item == null) {
+                  continue;
+                }
 
-        // If still no category found, try to infer from organId path
-        if (category.isEmpty() && entry.organId() != null) {
-          String organPath = entry.organId().toString();
-          // Check if it's a guzhenren organ
-          if (organPath.startsWith("guzhenren:")) {
-            // Assume it's human dao by default for guzhenren organs without docs
-            category = "human";
-            subcategory = ""; // Will show in category root
-          }
-        }
+                // Get category info from DocRegistry with smart matching:
+                // 1. Try exact skillId match
+                // 2. Try organId match (for multi-skill organs like qing_feng_lun_gu/dash)
+                // 3. Try ability ID match
+                DocEntry docEntry = skillToCategoryMap.get(entry.skillId());
+                if (docEntry == null && entry.organId() != null) {
+                  docEntry = skillToCategoryMap.get(entry.organId());
+                }
+                if (docEntry == null && entry.abilityId() != null) {
+                  docEntry = skillToCategoryMap.get(entry.abilityId());
+                }
 
-        ItemStack iconStack = new ItemStack(item);
-        String label = iconStack.getHoverName().getString();
-        var slotView =
-            new SimpleSkillSlotView(
-                context,
-                entry.skillId(),
-                iconStack,
-                label,
-                statusView,
-                layout.dp(36),
-                clicked -> {
-                  // Add click animation for skill icon
-                  animateButtonPress(clicked);
+                String category = docEntry != null ? docEntry.category() : "";
+                String subcategory = docEntry != null ? docEntry.subcategory() : "";
 
-                  SimpleSkillSlotView previous = selectedSlotRef.getAndSet(clicked);
-                  if (previous != null && previous != clicked) {
-                    previous.setSelected(false);
+                // If still no category found, try to infer from organId path
+                if (category.isEmpty() && entry.organId() != null) {
+                  String organPath = entry.organId().toString();
+                  // Check if it's a guzhenren organ
+                  if (organPath.startsWith("guzhenren:")) {
+                    // Assume it's human dao by default for guzhenren organs without docs
+                    category = "human";
+                    subcategory = ""; // Will show in category root
                   }
-                  clicked.setSelected(true);
-                  selectedSkillIdRef.set(entry.skillId());
-                  statusView.setText("选中技能：" + entry.skillId() + " ｜ " + entry.description());
-                });
-        allIconRecords.add(new SkillIcon(slotView, entry, category, subcategory));
-      }
+                }
+
+                ItemStack iconStack = new ItemStack(item);
+                String label = iconStack.getHoverName().getString();
+                var slotView =
+                    new SimpleSkillSlotView(
+                        context,
+                        entry.skillId(),
+                        iconStack,
+                        label,
+                        statusView,
+                        layout.dp(36),
+                        clicked -> {
+                          // Add click animation for skill icon
+                          animateButtonPress(clicked);
+
+                          SimpleSkillSlotView previous = selectedSlotRef.getAndSet(clicked);
+                          if (previous != null && previous != clicked) {
+                            previous.setSelected(false);
+                          }
+                          clicked.setSelected(true);
+                          selectedSkillIdRef.set(entry.skillId());
+                          statusView.setText(
+                              "选中技能：" + entry.skillId() + " ｜ " + entry.description());
+                        });
+                allIconRecords.add(new SkillIcon(slotView, entry, "active", category, subcategory));
+              }
+            } else if (mode.equals("combos")) {
+              // Build combo skill icons
+              var comboEntries = new ArrayList<>(ComboSkillRegistry.entries());
+              comboEntries.sort(Comparator.comparing(e -> e.skillId().toString()));
+
+              for (ComboSkillRegistry.ComboSkillEntry entry : comboEntries) {
+                // Use the category and subcategory from the entry directly
+                String category = entry.category() != null ? entry.category() : "";
+                String subcategory = entry.subcategory() != null ? entry.subcategory() : "";
+
+                // Create a fallback ItemStack (use first required organ)
+                ItemStack iconStack = ItemStack.EMPTY;
+                if (!entry.requiredOrgans().isEmpty()) {
+                  ResourceLocation firstOrgan = entry.requiredOrgans().get(0);
+                  Item item =
+                      net.minecraft.core.registries.BuiltInRegistries.ITEM
+                          .getOptional(firstOrgan)
+                          .orElse(null);
+                  if (item != null) {
+                    iconStack = new ItemStack(item);
+                  }
+                }
+
+                // Use displayName from entry
+                String label = entry.displayName();
+                var slotView =
+                    new SimpleSkillSlotView(
+                        context,
+                        entry.skillId(),
+                        iconStack,
+                        entry.iconLocation(), // 使用PNG图标
+                        label,
+                        statusView,
+                        layout.dp(36),
+                        clicked -> {
+                          // Add click animation for combo skill icon
+                          animateButtonPress(clicked);
+
+                          SimpleSkillSlotView previous = selectedSlotRef.getAndSet(clicked);
+                          if (previous != null && previous != clicked) {
+                            previous.setSelected(false);
+                          }
+                          clicked.setSelected(true);
+                          selectedSkillIdRef.set(entry.skillId());
+
+                          // Show combo skill info with organ requirements
+                          var player = Minecraft.getInstance().player;
+                          if (player != null) {
+                            var checkResult = ComboSkillRegistry.checkOrgans(player, entry);
+                            String status = checkResult.canActivate() ? "✓可激活" : "✗未满足";
+                            statusView.setText(
+                                String.format(
+                                    "选中杀招：%s %s | 必需器官：%d/%d | 锚点：%d/%d | %s",
+                                    entry.displayName(),
+                                    status,
+                                    checkResult.equippedRequired(),
+                                    checkResult.totalRequired(),
+                                    checkResult.equippedOptional(),
+                                    checkResult.totalOptional(),
+                                    entry.description()));
+                          } else {
+                            statusView.setText(
+                                "选中杀招：" + entry.displayName() + " ｜ " + entry.description());
+                          }
+                        });
+                allIconRecords.add(new SkillIcon(slotView, entry, "combo", category, subcategory));
+              }
+            }
+          };
+
+      // Assign to forward reference array
+      rebuildSkillIconsRef[0] = rebuildSkillIcons;
+
+      // Initial build of skill icons
+      rebuildSkillIcons.run();
 
       final int slotSizePx = layout.dp(36);
       final int cellWidthPx = Math.max(slotSizePx + layout.dp(12), layout.dp(72));
@@ -811,6 +956,41 @@ public class ChestCavityConfigFragment extends Fragment {
       renderFoldersRef[0] = renderFolders;
       renderIconsRef[0] = renderIcons;
       updateBreadcrumbRef[0] = updateBreadcrumb;
+
+      // Add onClick handlers for mode switcher buttons
+      organsModeButton.setOnClickListener(
+          v -> {
+            if (currentMode.get().equals("organs")) {
+              return; // Already in organs mode
+            }
+            animateButtonPress(v);
+            currentMode.set("organs");
+            currentCategory.set("");
+            currentSubcategory.set("");
+            rebuildSkillIconsRef[0].run();
+            updateModeButtonStyle.accept(organsModeButton);
+            updateModeButtonStyle.accept(combosModeButton);
+            renderFoldersRef[0].run();
+            renderIconsRef[0].run();
+            updateBreadcrumbRef[0].run();
+          });
+
+      combosModeButton.setOnClickListener(
+          v -> {
+            if (currentMode.get().equals("combos")) {
+              return; // Already in combos mode
+            }
+            animateButtonPress(v);
+            currentMode.set("combos");
+            currentCategory.set("");
+            currentSubcategory.set("");
+            rebuildSkillIconsRef[0].run();
+            updateModeButtonStyle.accept(organsModeButton);
+            updateModeButtonStyle.accept(combosModeButton);
+            renderFoldersRef[0].run();
+            renderIconsRef[0].run();
+            updateBreadcrumbRef[0].run();
+          });
 
       // Initial render
       layout.post(

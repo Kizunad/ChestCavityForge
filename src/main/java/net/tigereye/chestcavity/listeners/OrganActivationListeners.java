@@ -75,10 +75,18 @@ public class OrganActivationListeners {
     String path = id.getPath();
     try {
       if ("guzhenren".equals(ns)) {
+        Class<?> clazz = null;
         if ("huo_gu".equals(path)) {
-          Class<?> clazz =
+          clazz =
               Class.forName(
                   "net.tigereye.chestcavity.compat.guzhenren.item.yan_dao.behavior.HuoYiGuOrganBehavior");
+        } else if ("wuxing_gui_bian".equals(path) || "wuxing_gui_bian_config".equals(path)) {
+          clazz =
+              Class.forName(
+                  "net.tigereye.chestcavity.compat.guzhenren.item.combo.WuxingGuiBianBehavior");
+        }
+
+        if (clazz != null) {
           // Force initialise and touch static fields to ensure constructor ran
           try {
             java.lang.reflect.Field f = clazz.getDeclaredField("INSTANCE");

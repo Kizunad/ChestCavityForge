@@ -53,6 +53,9 @@ public class PlayerGhostEntity extends Monster {
   private static final ResourceLocation DEFAULT_TEXTURE =
       ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
 
+  // 防止在某些双重死亡流程中重复授予奖励
+  private boolean rewardGranted = false;
+
   public PlayerGhostEntity(EntityType<? extends Monster> type, Level level) {
     super(type, level);
   }
@@ -296,11 +299,17 @@ public class PlayerGhostEntity extends Monster {
       return;
     }
 
+    if (this.rewardGranted) {
+      return;
+    }
+
     // 获取击杀者
     Entity killer = source.getEntity();
     if (!(killer instanceof Player player)) {
       return;
     }
+
+    this.rewardGranted = true;
 
     // 给予随机奖励
     grantKillReward(player);
