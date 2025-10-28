@@ -81,6 +81,7 @@ public final class ActiveSkillDocProvider implements DocProvider {
               details,
               List.copyOf(tags),
               icon,
+              null, // iconTexture - not used for active skills
               "", // category - not applicable for active skill provider
               ""  // subcategory - not applicable for active skill provider
           ));

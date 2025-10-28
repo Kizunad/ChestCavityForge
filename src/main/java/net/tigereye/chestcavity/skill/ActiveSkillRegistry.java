@@ -18,7 +18,7 @@ import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.WuxingHuaHenBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
@@ -399,7 +399,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:yin_yang_zhuan_shen_gu",
         tags("转化", "道痕", "五行"),
         "五行化痕：消耗变化道痕转化为五行道痕（金/木/水/炎/土），支持多种比例与固定量模式，阴阳模式享受税减",
-        "compat/guzhenren/item/bian_hua_dao/behavior/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
         },
@@ -411,7 +411,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:yin_yang_zhuan_shen_gu",
         tags("撤销", "道痕"),
         "五行化痕·撤销：10 分钟窗口内可撤销上次转化，返还 80% 已转化的变化道痕与五行道痕",
-        "compat/guzhenren/item/bian_hua_dao/behavior/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
         },
@@ -423,7 +423,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:yin_yang_zhuan_shen_gu",
         tags("查询", "道痕"),
         "五行化痕·查询：检查当前撤销窗口状态，显示可撤销的道痕转化记录与剩余时间",
-        "compat/guzhenren/item/bian_hua_dao/behavior/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
         });
@@ -434,7 +434,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:yin_yang_zhuan_shen_gu",
         tags("配置", "道痕"),
         "五行化痕·配置：打开配置菜单，可点击切换目标元素（金/木/水/炎/土）与转化模式（比例/固定）",
-        "compat/guzhenren/item/bian_hua_dao/behavior/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
         });

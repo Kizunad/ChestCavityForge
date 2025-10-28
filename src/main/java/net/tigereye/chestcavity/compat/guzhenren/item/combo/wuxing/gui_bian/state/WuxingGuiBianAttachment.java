@@ -4,7 +4,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.attachment.IAttachmentHolder;
 import net.neoforged.neoforge.attachment.IAttachmentSerializer;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.state.WuxingHuaHenAttachment;
 
 /**
  * 五行归变·逆转 玩家附加数据
@@ -155,4 +155,3 @@ public final class WuxingGuiBianAttachment {
     }
   }
 }
-

@@ -235,13 +235,13 @@ if (MultiCooldown.isReady(cc, COOLDOWN_KEY)) {
 ---
 
 ## 未来迁移
-- 五行化痕行为将整体迁移至 `item/combo` 目录，定位为 Combo 杀招能力集成，原行为类保留占位接口以便逐步切换。
+- 五行化痕已迁移至 `item/combo/wuxing/hua_hen/`，并拆分为 Runtime/Cost/Fx/Messages 等模块，旧版行为类移除。
 
 ### 兼容层目录整形计划（compat/guzhenren）
 
 #### 问题盘点（杂乱/繁冗/错位）
 - 体量过大、职责混杂（应拆为“主动/被动/Combo”）
-  - `compat/guzhenren/item/bian_hua_dao/behavior/WuxingHuaHenBehavior.java`
+  - `compat/guzhenren/item/combo/wuxing/hua_hen/`（已完成拆分，供其他家族参考）
   - `compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java`
   - `compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java`
   - `compat/guzhenren/item/feng_dao/behavior/QingFengLunOrganBehavior.java`

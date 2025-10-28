@@ -13,6 +13,7 @@ public record DocEntry(
     List<String> details,
     List<String> tags,
     ItemStack icon,
+    ResourceLocation iconTexture,
     String category,
     String subcategory) {
   public DocEntry {

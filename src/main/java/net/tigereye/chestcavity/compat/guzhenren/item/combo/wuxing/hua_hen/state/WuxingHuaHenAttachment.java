@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state;
+package net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.state;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.HolderLookup;
@@ -172,9 +172,11 @@ public final class WuxingHuaHenAttachment {
   }
 
   /** Serializer for NeoForge attachment system */
-  public static final class Serializer implements IAttachmentSerializer<CompoundTag, WuxingHuaHenAttachment> {
+  public static final class Serializer
+      implements IAttachmentSerializer<CompoundTag, WuxingHuaHenAttachment> {
     @Override
-    public WuxingHuaHenAttachment read(IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
+    public WuxingHuaHenAttachment read(
+        IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
       WuxingHuaHenAttachment attachment = new WuxingHuaHenAttachment();
       attachment.load(provider, tag);
       return attachment;
@@ -186,3 +188,4 @@ public final class WuxingHuaHenAttachment {
     }
   }
 }
+

@@ -1,0 +1,20 @@
+{
+  "id": "guzhenren:wuxing_hua_hen",
+  "title": "五行化痕",
+  "summary": "将变化道痕转化为金/木/水/炎/土道痕，支持比例与固定模式。",
+  "iconTexture": "guzhenren:textures/skill/wuxing_gui_bian.png",
+  "details": [
+    "[效果] 消耗变化道痕并依设定产出金/木/水/炎/土道痕。",
+    "[配置] 菜单选择目标元素与比例/固定：全部/25%/50%/100%/固定10/25/50/100，设置沿用至归变。",
+    "[撤销] 10分钟内可撤销上次转化，扣除目标五行道痕并返还80%变化道。",
+    "[查询] 可查看撤销快照详情：元素/数量/剩余时间与可返还量。"
+  ],
+  "tags": [
+    "combo",
+    "wuxing",
+    "transmute",
+    "config",
+    "undo",
+    "query"
+  ]
+}

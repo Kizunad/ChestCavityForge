@@ -100,6 +100,7 @@ public final class ResourceDocProvider implements DocProvider {
     List<String> details = readStringList(json.get("details"));
     List<String> tags = readStringList(json.get("tags"));
     ItemStack icon = resolveIcon(asString(json, "icon"), source);
+    ResourceLocation iconTexture = resolveIconTexture(asString(json, "iconTexture"), source);
 
     // Extract category and subcategory from the resource path
     // Expected format: "docs/category/subcategory/filename.json"
@@ -107,7 +108,7 @@ public final class ResourceDocProvider implements DocProvider {
     String category = pathParts[0];
     String subcategory = pathParts[1];
 
-    return new DocEntry(id, title, summary, details, tags, icon, category, subcategory);
+    return new DocEntry(id, title, summary, details, tags, icon, iconTexture, category, subcategory);
   }
 
   /**
@@ -195,5 +196,17 @@ public final class ResourceDocProvider implements DocProvider {
       return ItemStack.EMPTY;
     }
     return new ItemStack(item);
+  }
+
+  private static ResourceLocation resolveIconTexture(String raw, ResourceLocation source) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    ResourceLocation textureId = ResourceLocation.tryParse(raw);
+    if (textureId == null) {
+      ChestCavity.LOGGER.warn("[docs] {} has invalid iconTexture id '{}'", source, raw);
+      return null;
+    }
+    return textureId;
   }
 }

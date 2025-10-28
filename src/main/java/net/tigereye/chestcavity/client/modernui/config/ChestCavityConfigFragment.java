@@ -1343,6 +1343,7 @@ public class ChestCavityConfigFragment extends Fragment {
                       context,
                       entry.id(),
                       entry.icon(),
+                      entry.iconTexture(),
                       entry.title(),
                       null,
                       slotSizePx,

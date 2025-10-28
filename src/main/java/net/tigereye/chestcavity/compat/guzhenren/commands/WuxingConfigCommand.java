@@ -8,9 +8,9 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment.Element;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment.Mode;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.state.WuxingHuaHenAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.state.WuxingHuaHenAttachment.Element;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.state.WuxingHuaHenAttachment.Mode;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**

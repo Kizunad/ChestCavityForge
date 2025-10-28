@@ -17,6 +17,8 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.WuxingGuiBianBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenTuning;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 
 /**
@@ -143,6 +145,94 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/wuxing/gui_bian/WuxingGuiBianBehavior.java",
         () -> {
           Object unused = WuxingGuiBianBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:wuxing_hua_hen",
+        "五行化痕",
+        WuxingHuaHenTuning.ICON,
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu")),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "jinfeigu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "mugangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "shuishengu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "huoxingu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "tupigu")),
+        "变化道杀招",
+        "道痕转化",
+        "消耗变化道痕转化为五行道痕（金/木/水/炎/土），支持多种比例与固定量模式，阴阳模式享受税减",
+        tags("组合", "道痕", "五行", "逆转", "变化道"),
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        () -> {
+          Object unused = WuxingHuaHenBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:wuxing_hua_hen_undo",
+        "五行化痕·撤销",
+        WuxingHuaHenTuning.ICON,
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu")),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "jinfeigu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "mugangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "shuishengu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "huoxingu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "tupigu")),
+        "变化道杀招",
+        "撤销",
+        "10 分钟窗口内可撤销上次转化，返还 80% 已转化的变化道痕",
+        tags("组合", "撤销", "道痕"),
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        () -> {
+          Object unused = WuxingHuaHenBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:wuxing_hua_hen_check",
+        "五行化痕·查询",
+        WuxingHuaHenTuning.ICON,
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu")),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "jinfeigu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "mugangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "shuishengu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "huoxingu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "tupigu")),
+        "变化道杀招",
+        "查询",
+        "检查当前撤销窗口状态，显示可撤销的道痕转化记录与剩余时间",
+        tags("组合", "查询", "道痕"),
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        () -> {
+          Object unused = WuxingHuaHenBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:wuxing_hua_hen_config",
+        "五行化痕·配置",
+        WuxingHuaHenTuning.ICON,
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu")),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "jinfeigu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "mugangu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "shuishengu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "huoxingu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "tupigu")),
+        "变化道杀招",
+        "配置",
+        "五行化痕的配置入口，可点击切换目标元素及转化模式",
+        tags("组合", "配置", "道痕"),
+        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        () -> {
+          Object unused = WuxingHuaHenBehavior.INSTANCE;
         });
 
     ChestCavity.LOGGER.info("[ComboSkillRegistry] Registered {} combo skills", ENTRIES.size());

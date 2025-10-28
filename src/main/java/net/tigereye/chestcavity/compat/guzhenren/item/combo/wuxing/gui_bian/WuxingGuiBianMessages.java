@@ -5,7 +5,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.WuxingHuaHenAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.state.WuxingHuaHenAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.framework.ComboSkillMessenger;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.state.WuxingGuiBianAttachment;
 
