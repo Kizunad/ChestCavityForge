@@ -516,6 +516,12 @@ public class ChestCavityConfigFragment extends Fragment {
 
                 String category = docEntry != null ? docEntry.category() : "";
                 String subcategory = docEntry != null ? docEntry.subcategory() : "";
+                // 若来自 docs/combo 下的文档导致分类被解析为 "combo"，这里忽略它，
+                // 避免在“蛊虫器官”模式下出现额外的 combo 类别按钮。
+                if ("combo".equals(category)) {
+                  category = "";
+                  subcategory = "";
+                }
 
                 // If still no category found, try to infer from organId path
                 if (category.isEmpty() && entry.organId() != null) {

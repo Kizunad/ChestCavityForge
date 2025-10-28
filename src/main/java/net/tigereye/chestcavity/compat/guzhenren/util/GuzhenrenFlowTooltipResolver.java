@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.util;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -10,10 +11,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -109,5 +112,63 @@ public final class GuzhenrenFlowTooltipResolver {
       ItemStack stack, @Nullable Level level, @Nullable Player viewer, TooltipFlag flag) {
     TooltipContext context = level != null ? TooltipContext.of(level) : TooltipContext.EMPTY;
     return inspect(stack, context, flag, viewer);
+  }
+
+  // ======== 整道系识别（方便在行为侧整体判断“是否具备 X 道器官”） ========
+
+  /**
+   * 判断玩家胸腔中是否存在任意物品的 tooltip 流派包含指定关键字（如“力道”“水道”“奴道”）。
+   * 采用大小写不敏感匹配，并做“去除‘道’后缀”的宽松匹配。
+   */
+  public static boolean hasFlow(ChestCavityInstance cc, Level level, String flowKeyword) {
+    if (cc == null || cc.inventory == null || level == null || flowKeyword == null) {
+      return false;
+    }
+    String normalizedKey = normalizeFlowKeyword(flowKeyword);
+    TooltipContext context = TooltipContext.of(level);
+    TooltipFlag flag = TooltipFlag.NORMAL;
+    for (int i = 0, size = cc.inventory.getContainerSize(); i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (stack.isEmpty()) continue;
+      FlowInfo info = inspect(stack, context, flag, null);
+      if (!info.hasFlow()) continue;
+      for (String f : info.flows()) {
+        if (flowMatch(normalizedKey, f)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** 任一关键字命中即返回 true。 */
+  public static boolean hasAnyFlow(ChestCavityInstance cc, Level level, String... flowKeywords) {
+    if (flowKeywords == null || flowKeywords.length == 0) return false;
+    for (String k : flowKeywords) {
+      if (hasFlow(cc, level, k)) return true;
+    }
+    return false;
+  }
+
+  private static boolean flowMatch(String normalizedKey, String rawFlow) {
+    if (rawFlow == null) return false;
+    String f = normalizeFlowKeyword(rawFlow);
+    // 完整包含 或 去尾后匹配（例如 影/影道）
+    return f.contains(normalizedKey)
+        || stripDaoSuffix(f).contains(stripDaoSuffix(normalizedKey));
+  }
+
+  private static String normalizeFlowKeyword(String s) {
+    if (s == null) return "";
+    String lowered = s.toLowerCase(Locale.ROOT).trim();
+    // 统一全角/空格等：这里只做最小处理
+    return lowered;
+  }
+
+  private static String stripDaoSuffix(String s) {
+    if (s.endsWith("道")) {
+      return s.substring(0, s.length() - 1);
+    }
+    return s;
   }
 }

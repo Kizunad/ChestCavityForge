@@ -16,9 +16,14 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.WuxingGuiBianBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.WuxingGuiBianBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.behavior.ShouPiFasciaLatchBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.behavior.ShouPiQianJiaCrashBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.behavior.ShouPiRollEvasionBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.behavior.ShouPiStoicReleaseBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenTuning;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
 
@@ -105,11 +110,76 @@ public final class ComboSkillRegistry {
     }
     bootstrapped = true;
 
+    // 兽皮蛊组合杀招
+    register(
+        "guzhenren:shou_pi_roll_evasion",
+        "皮走滚袭",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/shou_pi_roll.png"),
+        List.of(ShouPiGuOrganBehavior.ORGAN_ID),
+        List.of(
+            ShouPiGuOrganBehavior.HUPI_GU_ID, ShouPiGuOrganBehavior.TIE_GU_GU_ID),
+        "变化道杀招",
+        "机动",
+        "翻滚突进刷新厚皮窗口，并对最近敌人施加缓速与短时减伤窗",
+        tags("变化道", "机动", "防御", "兽皮", "combo"),
+        "compat/guzhenren/item/combo/bian_hua/shou_pi/roll/behavior/ShouPiRollEvasionBehavior.java",
+        () -> {
+          Object unused = ShouPiRollEvasionBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:shou_pi_fascia_latch",
+        "筋膜锁扣",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/shou_pi_fascia.png"),
+        List.of(ShouPiGuOrganBehavior.ORGAN_ID),
+        List.of(
+            ShouPiGuOrganBehavior.HUPI_GU_ID, ShouPiGuOrganBehavior.TIE_GU_GU_ID),
+        "变化道杀招",
+        "防御",
+        "引爆筋膜计数，获得额外减伤与护盾；铁骨强化冲击波，虎皮授予短暂坚韧",
+        tags("变化道", "防御", "护盾", "兽皮", "combo"),
+        "compat/guzhenren/item/combo/bian_hua/shou_pi/fascia_latch/behavior/ShouPiFasciaLatchBehavior.java",
+        () -> {
+          Object unused = ShouPiFasciaLatchBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:shou_pi_stoic_release",
+        "坚忍释放",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/shou_pi_stoic.png"),
+        List.of(ShouPiGuOrganBehavior.ORGAN_ID),
+        List.of(
+            ShouPiGuOrganBehavior.HUPI_GU_ID, ShouPiGuOrganBehavior.TIE_GU_GU_ID),
+        "变化道杀招",
+        "防御",
+        "释放坚忍层数，短窗强力减伤并获得护盾，额外强化下一次软反",
+        tags("变化道", "防御", "护盾", "兽皮", "combo"),
+        "compat/guzhenren/item/combo/bian_hua/shou_pi/stoic_release/behavior/ShouPiStoicReleaseBehavior.java",
+        () -> {
+          Object unused = ShouPiStoicReleaseBehavior.INSTANCE;
+        });
+
+    register(
+        "guzhenren:shou_pi_qian_jia_crash",
+        "嵌甲冲撞",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/shou_pi_crash.png"),
+        List.of(ShouPiGuOrganBehavior.ORGAN_ID),
+        List.of(
+            ShouPiGuOrganBehavior.HUPI_GU_ID, ShouPiGuOrganBehavior.TIE_GU_GU_ID),
+        "变化道杀招",
+        "爆发",
+        "突进并引爆软反池造成范围真实伤害，随后获得极短免疫窗",
+        tags("变化道", "输出", "防御", "兽皮", "combo"),
+        "compat/guzhenren/item/combo/bian_hua/shou_pi/qian_jia_crash/behavior/ShouPiQianJiaCrashBehavior.java",
+        () -> {
+          Object unused = ShouPiQianJiaCrashBehavior.INSTANCE;
+        });
+
     // 水/奴联动：鱼群（组合版）
     register(
         "guzhenren:yu_qun_combo",
         "鱼群·组合",
-        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/yu_qun.png"),
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/yu_qun_zu_he.png"),
         List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu")),
         List.of(),
         List.of("水道", "奴道"),
@@ -117,11 +187,11 @@ public final class ComboSkillRegistry {
         "水/奴联动",
         "水灵齐射的组合形态：随水/奴器官数量增强射程、宽度与控制",
         tags("组合", "水道", "奴道", "控制"),
-        "compat/guzhenren/item/combo/shui/yu_qun/YuQunComboBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/yu_qun/behavior/YuQunComboBehavior.java",
         () -> {
           try {
             Class.forName(
-                "net.tigereye.chestcavity.compat.guzhenren.item.combo.shui.yu_qun.YuQunComboBehavior");
+                "net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_qun.behavior.YuQunComboBehavior");
           } catch (Throwable ignored) {}
         });
 
@@ -129,7 +199,7 @@ public final class ComboSkillRegistry {
     register(
         "guzhenren:yu_shi_summon_combo",
         "饵祭召鲨·组合",
-        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/yu_shi_summon.png"),
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/er_ji_zhao_sha.png"),
         List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu")),
         List.of(),
         List.of("水道", "奴道"),
@@ -137,11 +207,11 @@ public final class ComboSkillRegistry {
         "水/奴联动",
         "召唤协战鲨鱼的组合形态：水道增强续航，奴道提升服从与编队管理",
         tags("组合", "水道", "奴道", "召唤"),
-        "compat/guzhenren/item/combo/shui/yu_shi/YuShiSummonComboBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/yu_shi/behavior/YuShiSummonComboBehavior.java",
         () -> {
           try {
             Class.forName(
-                "net.tigereye.chestcavity.compat.guzhenren.item.combo.shui.yu_shi.YuShiSummonComboBehavior");
+                "net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_shi.behavior.YuShiSummonComboBehavior");
           } catch (Throwable ignored) {}
         });
 
@@ -163,7 +233,7 @@ public final class ComboSkillRegistry {
         "道痕转化",
         "将五行道痕逆转回变化道。支持暂时/永久模式，锚点越多税率越低（最多5个锚=免税），联动阴阳身享额外减税",
         tags("组合", "道痕", "五行", "逆转", "变化道"),
-        "compat/guzhenren/item/combo/wuxing/gui_bian/WuxingGuiBianBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/wuxing/gui_bian/WuxingGuiBianBehavior.java",
         () -> {
           Object unused = WuxingGuiBianBehavior.INSTANCE;
         });
@@ -185,7 +255,7 @@ public final class ComboSkillRegistry {
         "配置",
         "五行归变·逆转的配置入口，可切换暂时/永久模式并查看暂时模式冻结返还状态",
         tags("组合", "配置", "道痕"),
-        "compat/guzhenren/item/combo/wuxing/gui_bian/WuxingGuiBianBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/wuxing/gui_bian/WuxingGuiBianBehavior.java",
         () -> {
           Object unused = WuxingGuiBianBehavior.INSTANCE;
         });
@@ -207,7 +277,7 @@ public final class ComboSkillRegistry {
         "道痕转化",
         "消耗变化道痕转化为五行道痕（金/木/水/炎/土），支持多种比例与固定量模式，阴阳模式享受税减",
         tags("组合", "道痕", "五行", "逆转", "变化道"),
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
         });
@@ -229,7 +299,7 @@ public final class ComboSkillRegistry {
         "撤销",
         "10 分钟窗口内可撤销上次转化，返还 80% 已转化的变化道痕",
         tags("组合", "撤销", "道痕"),
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
         });
@@ -251,7 +321,7 @@ public final class ComboSkillRegistry {
         "查询",
         "检查当前撤销窗口状态，显示可撤销的道痕转化记录与剩余时间",
         tags("组合", "查询", "道痕"),
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
         });
@@ -273,7 +343,7 @@ public final class ComboSkillRegistry {
         "配置",
         "五行化痕的配置入口，可点击切换目标元素及转化模式",
         tags("组合", "配置", "道痕"),
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
+        "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
         });

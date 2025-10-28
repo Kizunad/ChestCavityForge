@@ -1,10 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior;
 
-import com.mojang.logging.LogUtils;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.OptionalDouble;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -34,7 +32,6 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
@@ -46,7 +43,6 @@ import net.tigereye.chestcavity.util.AbsorptionHelper;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
-import org.slf4j.Logger;
 
 /**
  * 兽皮蛊（变化道核心防具）。
@@ -55,9 +51,8 @@ import org.slf4j.Logger;
  *
  * <ul>
  *   <li>软反伤：把本器官造成的减免量按百分比回溅给攻击者，并在 5 阶时溅射周围目标。
- *   <li>皮厚 / 筋膜收束：短时额外减伤与护盾，追踪每次受击并处理冷却。
- *   <li>坚忍计：累计净承伤叠层，满层后触发一次额外减伤与护盾并进入锁定。
- *   <li>主动技：硬皮鼓动（1 阶）、翻滚脱力（2 阶），以及与虎皮蛊/铁骨蛊联动的嵌甲冲撞。
+ *   <li>皮厚 / 筋膜 / 坚忍计：持续记录受击与净承伤，用于后续组合杀招触发，不再由器官被动自动引爆。
+ *   <li>主动技：硬皮鼓动（1 阶起）。
  *   <li>联动：软反伤命中后在 3 秒窗口内为目标挂载“皮虎同纹”标记。
  * </ul>
  */
@@ -66,46 +61,43 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   public static final ShouPiGuOrganBehavior INSTANCE = new ShouPiGuOrganBehavior();
 
-  private static final Logger LOGGER = LogUtils.getLogger();
   private static final String MOD_ID = "guzhenren";
 
-  private static final ResourceLocation ORGAN_ID =
+  public static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "shou_pi_gu");
-  private static final ResourceLocation HUPI_GU_ID =
+  public static final ResourceLocation HUPI_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "hupigu");
-  private static final ResourceLocation TIE_GU_GU_ID =
+  public static final ResourceLocation TIE_GU_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tie_gu_gu");
 
   private static final ResourceLocation ACTIVE_DRUM_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "skill/shou_pi_gu_drum");
-  private static final ResourceLocation ACTIVE_ROLL_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "skill/shou_pi_gu_roll");
-  private static final ResourceLocation SYNERGY_CRASH_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "synergy/qian_jia_chong_zhuang");
 
   private static final ResourceLocation KNOCKBACK_MODIFIER_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/shou_pi_gu_knockback");
   private static final ResourceLocation STOIC_ABSORBTION_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/shou_pi_gu_stoic");
 
-  private static final double THICK_SKIN_REDUCTION = 0.08D;
-  private static final int THICK_SKIN_WINDOW_TICKS = 20;
-  private static final int FASCIA_TRIGGER = 5;
-  private static final long FASCIA_COOLDOWN_TICKS = 200L; // 10s
-  private static final int STOIC_MAX_STACKS = 6;
-  private static final long STOIC_DEFAULT_LOCK_TICKS = 8 * 20L;
-  private static final long SOFT_POOL_WINDOW_TICKS = 5 * 20L;
+  public static final double THICK_SKIN_REDUCTION = 0.08D;
+  public static final int THICK_SKIN_WINDOW_TICKS = 20;
+  public static final int FASCIA_TRIGGER = 5;
+  public static final long FASCIA_COOLDOWN_TICKS = 200L; // 10s
+  public static final double FASCIA_ACTIVE_REDUCTION = 0.12D;
+  public static final int STOIC_MAX_STACKS = 6;
+  public static final long STOIC_DEFAULT_LOCK_TICKS = 8 * 20L;
+  public static final long SOFT_POOL_WINDOW_TICKS = 5 * 20L;
   private static final long S1_MARK_DURATION_TICKS = 3 * 20L;
-  private static final long ROLL_DAMAGE_WINDOW_TICKS = 12L; // 0.6s
-  private static final double ROLL_DAMAGE_REDUCTION = 0.6D;
-  private static final double ROLL_DISTANCE = 3.0D;
-  private static final double CRASH_DISTANCE = 4.0D;
-  private static final long CRASH_IMMUNE_TICKS = 10L;
-  private static final double CRASH_SPLASH_RADIUS = 1.5D;
-  private static final double STOIC_SLOW_RADIUS = 3.0D;
-  private static final int STOIC_SLOW_TICKS = 40;
-  private static final int STOIC_SLOW_AMPLIFIER = 0;
-  private static final long SOFT_PROJECTILE_COOLDOWN_TICKS = 12L; // 0.6s shared thorns window
+  public static final long ROLL_DAMAGE_WINDOW_TICKS = 12L; // 0.6s
+  public static final double ROLL_DAMAGE_REDUCTION = 0.6D;
+  public static final double ROLL_DISTANCE = 3.0D;
+  public static final double CRASH_DISTANCE = 4.0D;
+  public static final long CRASH_IMMUNE_TICKS = 10L;
+  public static final double CRASH_SPLASH_RADIUS = 1.5D;
+  public static final double STOIC_SLOW_RADIUS = 3.0D;
+  public static final int STOIC_SLOW_TICKS = 40;
+  public static final int STOIC_SLOW_AMPLIFIER = 0;
+  public static final long SOFT_PROJECTILE_COOLDOWN_TICKS = 12L; // 0.6s shared thorns window
+  public static final double STOIC_ACTIVE_SOFT_BONUS = 0.05D;
 
   private static final double ACTIVE_DRUM_DEFENSE_BONUS = 0.06D;
   private static final double ACTIVE_DRUM_SOFT_BONUS = 0.10D;
@@ -114,33 +106,37 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final double ACTIVE_DRUM_KNOCKBACK_RESIST = 0.5D;
   private static final double ACTIVE_DRUM_BASE_COST = 40.0D;
 
-  private static final double ACTIVE_ROLL_BASE_COST = 25.0D;
-  private static final long ACTIVE_ROLL_COOLDOWN_TICKS = 14 * 20L;
+  public static final double ACTIVE_ROLL_BASE_COST = 25.0D;
+  public static final long ACTIVE_ROLL_COOLDOWN_TICKS = 14 * 20L;
 
-  private static final double SYNERGY_CRASH_BASE_COST = 60.0D;
-  private static final long SYNERGY_CRASH_COOLDOWN_TICKS = 18 * 20L;
+  public static final double SYNERGY_CRASH_BASE_COST = 60.0D;
+  public static final long SYNERGY_CRASH_COOLDOWN_TICKS = 18 * 20L;
 
-  private static final String STATE_ROOT = "ShouPiGu";
-  private static final String KEY_STAGE = "Stage";
-  private static final String KEY_SOFT_READY = "SoftThornsReady";
-  private static final String KEY_SOFT_PROJECTILE_READY = "SoftThornsProjectileReady";
-  private static final String KEY_LAST_HIT = "LastHitTick";
-  private static final String KEY_THICK_SKIN_EXPIRE = "ThickSkinExpire";
-  private static final String KEY_THICK_SKIN_READY = "ThickSkinReady";
-  private static final String KEY_FASCIA_COOLDOWN = "FasciaCooldown";
-  private static final String KEY_FASCIA_COUNT = "FasciaHitCount";
-  private static final String KEY_STOIC_ACCUM = "StoicAccum";
-  private static final String KEY_STOIC_STACKS = "StoicStacks";
-  private static final String KEY_STOIC_READY = "StoicReady";
-  private static final String KEY_STOIC_LOCK_UNTIL = "StoicLockUntil";
-  private static final String KEY_SOFT_POOL_VALUE = "SoftReflectPool";
-  private static final String KEY_SOFT_POOL_EXPIRE = "SoftReflectExpire";
-  private static final String KEY_ACTIVE_DRUM_EXPIRE = "DrumExpire";
-  private static final String KEY_ACTIVE_DRUM_READY = "DrumReady";
-  private static final String KEY_ROLL_READY = "RollReady";
-  private static final String KEY_ROLL_EXPIRE = "RollExpire";
-  private static final String KEY_CRASH_READY = "CrashReady";
-  private static final String KEY_CRASH_IMMUNE = "CrashImmuneExpire";
+  public static final String STATE_ROOT = "ShouPiGu";
+  public static final String KEY_STAGE = "Stage";
+  public static final String KEY_SOFT_READY = "SoftThornsReady";
+  public static final String KEY_SOFT_PROJECTILE_READY = "SoftThornsProjectileReady";
+  public static final String KEY_LAST_HIT = "LastHitTick";
+  public static final String KEY_THICK_SKIN_EXPIRE = "ThickSkinExpire";
+  public static final String KEY_THICK_SKIN_READY = "ThickSkinReady";
+  public static final String KEY_FASCIA_COOLDOWN = "FasciaCooldown";
+  public static final String KEY_FASCIA_COUNT = "FasciaHitCount";
+  public static final String KEY_FASCIA_ACTIVE_UNTIL = "FasciaActiveUntil";
+  public static final String KEY_STOIC_ACCUM = "StoicAccum";
+  public static final String KEY_STOIC_STACKS = "StoicStacks";
+  public static final String KEY_STOIC_READY = "StoicReady";
+  public static final String KEY_STOIC_LOCK_UNTIL = "StoicLockUntil";
+  public static final String KEY_STOIC_ACTIVE_UNTIL = "StoicActiveUntil";
+  public static final String KEY_SOFT_POOL_VALUE = "SoftReflectPool";
+  public static final String KEY_SOFT_POOL_EXPIRE = "SoftReflectExpire";
+  public static final String KEY_SOFT_TEMP_BONUS = "SoftTempBonus";
+  public static final String KEY_SOFT_TEMP_BONUS_EXPIRE = "SoftTempBonusExpire";
+  public static final String KEY_ACTIVE_DRUM_EXPIRE = "DrumExpire";
+  public static final String KEY_ACTIVE_DRUM_READY = "DrumReady";
+  public static final String KEY_ROLL_READY = "RollReady";
+  public static final String KEY_ROLL_EXPIRE = "RollExpire";
+  public static final String KEY_CRASH_READY = "CrashReady";
+  public static final String KEY_CRASH_IMMUNE = "CrashImmuneExpire";
 
   private static final EnumMap<Tier, TierParameters> TIER_PARAMS = new EnumMap<>(Tier.class);
   private static final String MARK_NBT_KEY = "guzhenren:shou_pi_gu_marks";
@@ -180,20 +176,6 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
             INSTANCE.activateDrum(player, cc);
           }
         });
-    OrganActivationListeners.register(
-        ACTIVE_ROLL_ID,
-        (entity, cc) -> {
-          if (entity instanceof ServerPlayer player) {
-            INSTANCE.activateRoll(player, cc);
-          }
-        });
-    OrganActivationListeners.register(
-        SYNERGY_CRASH_ID,
-        (entity, cc) -> {
-          if (entity instanceof ServerPlayer player) {
-            INSTANCE.activateCrash(player, cc);
-          }
-        });
   }
 
   private ShouPiGuOrganBehavior() {}
@@ -221,15 +203,41 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
+    boolean updated = false;
+
     long rollExpire = state.getLong(KEY_ROLL_EXPIRE, 0L);
     if (rollExpire > 0L && now >= rollExpire) {
       state.setLong(KEY_ROLL_EXPIRE, 0L, value -> Math.max(0L, value), 0L);
-      NetworkUtil.sendOrganSlotUpdate(cc, organ);
+      updated = true;
     }
 
     long immuneExpire = state.getLong(KEY_CRASH_IMMUNE, 0L);
     if (immuneExpire > 0L && now >= immuneExpire) {
       state.setLong(KEY_CRASH_IMMUNE, 0L, value -> Math.max(0L, value), 0L);
+      updated = true;
+    }
+
+    long fasciaExpire = state.getLong(KEY_FASCIA_ACTIVE_UNTIL, 0L);
+    if (fasciaExpire > 0L && now >= fasciaExpire) {
+      state.setLong(KEY_FASCIA_ACTIVE_UNTIL, 0L, value -> Math.max(0L, value), 0L);
+      updated = true;
+    }
+
+    long stoicExpire = state.getLong(KEY_STOIC_ACTIVE_UNTIL, 0L);
+    if (stoicExpire > 0L && now >= stoicExpire) {
+      state.setLong(KEY_STOIC_ACTIVE_UNTIL, 0L, value -> Math.max(0L, value), 0L);
+      updated = true;
+    }
+
+    long bonusExpire = state.getLong(KEY_SOFT_TEMP_BONUS_EXPIRE, 0L);
+    if (bonusExpire > 0L && now >= bonusExpire) {
+      state.setDouble(
+          KEY_SOFT_TEMP_BONUS, 0.0D, value -> Math.max(0.0D, value), 0.0D);
+      state.setLong(KEY_SOFT_TEMP_BONUS_EXPIRE, 0L, value -> Math.max(0L, value), 0L);
+      updated = true;
+    }
+
+    if (updated) {
       NetworkUtil.sendOrganSlotUpdate(cc, organ);
     }
 
@@ -291,42 +299,26 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     int fasciaCount = Math.max(0, state.getInt(KEY_FASCIA_COUNT, 0) + 1);
-    collector.record(state.setInt(KEY_FASCIA_COUNT, fasciaCount, value -> Math.max(0, value), 0));
+    int clampedFascia = Math.min(fasciaCount, FASCIA_TRIGGER);
+    collector.record(
+        state.setInt(
+            KEY_FASCIA_COUNT,
+            clampedFascia,
+            value -> Math.max(0, Math.min(value, FASCIA_TRIGGER)),
+            0));
 
-    if (fasciaCount >= FASCIA_TRIGGER) {
-      long fasciaReady = state.getLong(KEY_FASCIA_COOLDOWN, 0L);
-      if (now >= fasciaReady) {
-        double before = workingDamage;
-        workingDamage *= 0.88D;
-        mitigatedFromOrgan += Math.max(0.0D, before - workingDamage);
-        applyShield(victim, 2.0F);
-        collector.record(
-            state.setLong(
-                KEY_FASCIA_COOLDOWN,
-                now + FASCIA_COOLDOWN_TICKS,
-                value -> Math.max(0L, value),
-                0L));
-        collector.record(state.setInt(KEY_FASCIA_COUNT, 0, value -> Math.max(0, value), 0));
-      }
+    long fasciaActiveUntil = state.getLong(KEY_FASCIA_ACTIVE_UNTIL, 0L);
+    if (fasciaActiveUntil > now) {
+      double before = workingDamage;
+      workingDamage *= 1.0D - FASCIA_ACTIVE_REDUCTION;
+      mitigatedFromOrgan += Math.max(0.0D, before - workingDamage);
     }
 
-    boolean stoicReady = state.getBoolean(KEY_STOIC_READY, false);
-    long stoicLockUntil = state.getLong(KEY_STOIC_LOCK_UNTIL, 0L);
-    if (stoicReady && now >= stoicLockUntil) {
+    long stoicActiveUntil = state.getLong(KEY_STOIC_ACTIVE_UNTIL, 0L);
+    if (stoicActiveUntil > now) {
       double beforeStoic = workingDamage;
       workingDamage *= 1.0D - params.stoicMitigation();
       mitigatedFromOrgan += Math.max(0.0D, beforeStoic - workingDamage);
-      applyShield(victim, params.stoicShield());
-      if (params.stage() == Tier.STAGE5) {
-        applyStoicSlow(victim);
-      }
-      collector.record(state.setBoolean(KEY_STOIC_READY, false, false));
-      collector.record(state.setInt(KEY_STOIC_STACKS, 0, value -> Math.max(0, value), 0));
-      collector.record(
-          state.setDouble(KEY_STOIC_ACCUM, 0.0D, value -> Math.max(0.0D, value), 0.0D));
-      collector.record(
-          state.setLong(
-              KEY_STOIC_LOCK_UNTIL, now + params.lockTicks(), value -> Math.max(0L, value), 0L));
     }
 
     if (state.getLong(KEY_CRASH_IMMUNE, 0L) > now) {
@@ -426,93 +418,6 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 
-  private void activateRoll(ServerPlayer player, ChestCavityInstance cc) {
-    if (player == null || cc == null) {
-      return;
-    }
-    ItemStack organ = findOrgan(cc);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    int stage = Math.max(1, state.getInt(KEY_STAGE, 1));
-    if (stage < 2) {
-      return;
-    }
-    MultiCooldown cooldown = cooldown(cc, organ, state);
-    long now = player.level().getGameTime();
-    MultiCooldown.Entry entry = cooldown.entry(KEY_ROLL_READY).withDefault(0L);
-    if (!entry.isReady(now)) {
-      return;
-    }
-    OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, ACTIVE_ROLL_BASE_COST);
-    if (consumed.isEmpty()) {
-      return;
-    }
-    Vec3 look = player.getLookAngle();
-    Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
-    if (horizontal.lengthSqr() < 1.0E-4D) {
-      horizontal = new Vec3(player.getLookAngle().x, 0.0D, player.getLookAngle().z);
-    }
-    Vec3 offset = horizontal.normalize().scale(ROLL_DISTANCE);
-    TeleportOps.blinkOffset(player, offset);
-    state.setLong(
-        KEY_ROLL_EXPIRE, now + ROLL_DAMAGE_WINDOW_TICKS, value -> Math.max(0L, value), 0L);
-    entry.setReadyAt(now + ACTIVE_ROLL_COOLDOWN_TICKS);
-    applyRollCounter(player);
-    applyRollSlow(player);
-    ActiveSkillRegistry.scheduleReadyToast(player, ACTIVE_ROLL_ID, entry.getReadyTick(), now);
-    NetworkUtil.sendOrganSlotUpdate(cc, organ);
-  }
-
-  private void activateCrash(ServerPlayer player, ChestCavityInstance cc) {
-    if (player == null || cc == null) {
-      return;
-    }
-    if (!hasOrgan(cc, HUPI_GU_ID) || !hasOrgan(cc, TIE_GU_GU_ID)) {
-      return;
-    }
-    ItemStack organ = findOrgan(cc);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    MultiCooldown cooldown = cooldown(cc, organ, state);
-    long now = player.level().getGameTime();
-    MultiCooldown.Entry entry = cooldown.entry(KEY_CRASH_READY).withDefault(0L);
-    if (!entry.isReady(now)) {
-      return;
-    }
-    OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, SYNERGY_CRASH_BASE_COST);
-    if (consumed.isEmpty()) {
-      return;
-    }
-    Vec3 look = player.getLookAngle();
-    Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
-    if (horizontal.lengthSqr() < 1.0E-4D) {
-      horizontal = new Vec3(1.0D, 0.0D, 0.0D);
-    }
-    Vec3 offset = horizontal.normalize().scale(CRASH_DISTANCE);
-    Optional<Vec3> destination = TeleportOps.blinkOffset(player, offset);
-    Vec3 center = destination.orElse(player.position());
-
-    double pool = resolveSoftPool(state, now);
-    double attackValue =
-        player.getAttribute(Attributes.ATTACK_DAMAGE) == null
-            ? 0.0D
-            : player.getAttribute(Attributes.ATTACK_DAMAGE).getValue();
-    double capped = Math.min(pool * 0.35D, 8.0D + attackValue * 0.6D);
-    if (capped > 0.0D) {
-      dealCrashDamage(player, center, capped);
-      state.setDouble(KEY_SOFT_POOL_VALUE, 0.0D, value -> Math.max(0.0D, value), 0.0D);
-      state.setLong(KEY_SOFT_POOL_EXPIRE, 0L, value -> Math.max(0L, value), 0L);
-    }
-    state.setLong(KEY_CRASH_IMMUNE, now + CRASH_IMMUNE_TICKS, value -> Math.max(0L, value), 0L);
-    entry.setReadyAt(now + SYNERGY_CRASH_COOLDOWN_TICKS);
-    ActiveSkillRegistry.scheduleReadyToast(player, SYNERGY_CRASH_ID, entry.getReadyTick(), now);
-    NetworkUtil.sendOrganSlotUpdate(cc, organ);
-  }
-
   private void applyDrumBuff(ServerPlayer player) {
     AttributeInstance attribute = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
     if (attribute != null) {
@@ -543,15 +448,20 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     AttributeOps.removeById(attribute, KNOCKBACK_MODIFIER_ID);
   }
 
-  private void applyRollCounter(LivingEntity entity) {
-    entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 15, 0, false, true));
+  public static void applyRollCounter(LivingEntity entity, int durationTicks, int amplifier) {
+    entity.addEffect(
+        new MobEffectInstance(
+            MobEffects.DAMAGE_RESISTANCE,
+            Math.max(1, durationTicks),
+            Math.max(0, amplifier),
+            false,
+            true));
   }
 
-  private void applyRollSlow(ServerPlayer player) {
+  public static void applyRollSlow(ServerPlayer player, int durationTicks, int amplifier, double radius) {
     if (!(player.level() instanceof ServerLevel serverLevel)) {
       return;
     }
-    double radius = 3.0D;
     List<LivingEntity> candidates =
         serverLevel.getEntitiesOfClass(
             LivingEntity.class,
@@ -567,15 +477,22 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       }
     }
     if (nearest != null) {
-      nearest.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20, 0, false, true));
+      nearest.addEffect(
+          new MobEffectInstance(
+              MobEffects.MOVEMENT_SLOWDOWN,
+              Math.max(1, durationTicks),
+              Math.max(0, amplifier),
+              false,
+              true));
     }
   }
 
-  private void dealCrashDamage(Player player, Vec3 center, double amount) {
+  public static void dealCrashDamage(Player player, Vec3 center, double amount, double radius) {
     if (!(player.level() instanceof ServerLevel serverLevel)) {
       return;
     }
-    AABB box = new AABB(center, center).inflate(CRASH_SPLASH_RADIUS, 1.0D, CRASH_SPLASH_RADIUS);
+    double clampedRadius = Math.max(0.5D, radius);
+    AABB box = new AABB(center, center).inflate(clampedRadius, 1.0D, clampedRadius);
     List<LivingEntity> targets =
         serverLevel.getEntitiesOfClass(
             LivingEntity.class, box, entity -> entity != player && entity.isAlive());
@@ -595,7 +512,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         1.0F);
   }
 
-  private void applyStoicSlow(LivingEntity owner) {
+  public static void applyStoicSlow(LivingEntity owner) {
     if (!(owner.level() instanceof ServerLevel serverLevel)) {
       return;
     }
@@ -610,7 +527,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  private void applyShield(LivingEntity victim, double amount) {
+  public static void applyShield(LivingEntity victim, double amount) {
     double updated = Math.max(0.0D, victim.getAbsorptionAmount() + amount);
     AbsorptionHelper.applyAbsorption(victim, updated, STOIC_ABSORBTION_ID, false);
   }
@@ -659,6 +576,13 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     baseEntry.setReadyAt(baseReadyTick);
 
     double bonus = state.getLong(KEY_ACTIVE_DRUM_EXPIRE, 0L) > now ? ACTIVE_DRUM_SOFT_BONUS : 0.0D;
+    long tempBonusExpire = state.getLong(KEY_SOFT_TEMP_BONUS_EXPIRE, 0L);
+    if (tempBonusExpire > now) {
+      bonus += Math.max(0.0D, state.getDouble(KEY_SOFT_TEMP_BONUS, 0.0D));
+    } else if (tempBonusExpire > 0L || state.getDouble(KEY_SOFT_TEMP_BONUS, 0.0D) > 0.0D) {
+      state.setDouble(KEY_SOFT_TEMP_BONUS, 0.0D, value -> Math.max(0.0D, value), 0.0D);
+      state.setLong(KEY_SOFT_TEMP_BONUS_EXPIRE, 0L, value -> Math.max(0L, value), 0L);
+    }
     double reflected = mitigated * (percent + bonus);
     if (reflected <= 0.0D) {
       return 0.0D;
@@ -723,7 +647,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     persistentData.put(MARK_NBT_KEY, marks);
   }
 
-  private void bumpSoftPool(
+  public static void bumpSoftPool(
       OrganState state, ChestCavityInstance cc, ItemStack organ, double amount, long now) {
     double current = resolveSoftPool(state, now);
     double updated = current + amount;
@@ -739,7 +663,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         0L);
   }
 
-  private double resolveSoftPool(OrganState state, long now) {
+  public static double resolveSoftPool(OrganState state, long now) {
     long expire = state.getLong(KEY_SOFT_POOL_EXPIRE, 0L);
     if (expire <= now) {
       return 0.0D;
@@ -784,24 +708,24 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     OrganStateOps.setBoolean(state, cc, organ, KEY_STOIC_READY, ready, false);
   }
 
-  private MultiCooldown cooldown(ChestCavityInstance cc, ItemStack organ, OrganState state) {
+  public static MultiCooldown cooldown(ChestCavityInstance cc, ItemStack organ, OrganState state) {
     MultiCooldown.Builder builder = MultiCooldown.builder(state).withSync(cc, organ);
     return builder.build();
   }
 
-  private void ensureStage(OrganState state, ChestCavityInstance cc, ItemStack organ) {
+  public static void ensureStage(OrganState state, ChestCavityInstance cc, ItemStack organ) {
     int stage = state.getInt(KEY_STAGE, 0);
     if (stage <= 0) {
       OrganStateOps.setInt(state, cc, organ, KEY_STAGE, 1, value -> Mth.clamp(value, 1, 5), 1);
     }
   }
 
-  private TierParameters tierParameters(OrganState state) {
+  public static TierParameters tierParameters(OrganState state) {
     int stage = Mth.clamp(state.getInt(KEY_STAGE, 1), 1, 5);
     return TIER_PARAMS.getOrDefault(Tier.fromStage(stage), TIER_PARAMS.get(Tier.STAGE1));
   }
 
-  private ItemStack findOrgan(ChestCavityInstance cc) {
+  public static ItemStack findOrgan(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return ItemStack.EMPTY;
     }
@@ -815,7 +739,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return ItemStack.EMPTY;
   }
 
-  private boolean hasOrgan(ChestCavityInstance cc, ResourceLocation organId) {
+  public static boolean hasOrgan(ChestCavityInstance cc, ResourceLocation organId) {
     if (cc == null || cc.inventory == null) {
       return false;
     }
@@ -828,7 +752,15 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return false;
   }
 
-  private enum Tier {
+  public static boolean matchesOrgan(ItemStack stack, ResourceLocation organId) {
+    return INSTANCE.matchesOrgan(stack, organId);
+  }
+
+  public static OrganState resolveState(ItemStack organ) {
+    return INSTANCE.organState(organ, STATE_ROOT);
+  }
+
+  public enum Tier {
     STAGE1(1),
     STAGE2(2),
     STAGE3(3),
@@ -856,7 +788,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  private record TierParameters(
+  public static record TierParameters(
       Tier stage,
       double softPercent,
       long cooldownTicks,

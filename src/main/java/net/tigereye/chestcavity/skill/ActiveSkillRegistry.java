@@ -18,7 +18,7 @@ import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
@@ -214,18 +214,6 @@ public final class ActiveSkillRegistry {
         CooldownHint.useOrgan("技能就绪", null));
 
     register(
-        "guzhenren:yu_qun",
-        "guzhenren:yu_qun",
-        "guzhenren:yu_lin_gu",
-        tags("控制", "机动"),
-        "鱼群：在水中或潮湿环境中发射水灵体齐射，击飞并减速前方敌人",
-        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuQunSkill.java",
-        () -> {
-          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("鱼群冷却结束", null));
-
-    register(
         "guzhenren:yu_yue",
         "guzhenren:yu_yue",
         "guzhenren:yu_lin_gu",
@@ -236,18 +224,6 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(YuLinGuBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("鱼跃冷却结束", null));
-
-    register(
-        "guzhenren:yu_shi_summon",
-        "guzhenren:yu_shi_summon",
-        "guzhenren:yu_lin_gu",
-        tags("召唤", "支援"),
-        "饵祭召鲨：消耗鲨鱼蛊材召唤协战鲨鱼，存在 120 秒且最多同时五条",
-        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuShiSummonSharkSkill.java",
-        () -> {
-          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("饵祭冷却结束", null));
 
     register(
         "guzhenren:tiepi/hardening",
@@ -303,30 +279,6 @@ public final class ActiveSkillRegistry {
         "guzhenren:shou_pi_gu",
         tags("防御", "反射"),
         "硬皮鼓动：5 秒内防御系数+6%，软反伤额外+10%，并获得 50% 击退抗性，冷却 20 秒",
-        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
-        () -> {
-          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("技能就绪", null));
-
-    register(
-        "guzhenren:skill/shou_pi_gu_roll",
-        "guzhenren:skill/shou_pi_gu_roll",
-        "guzhenren:shou_pi_gu",
-        tags("机动", "防御"),
-        "翻滚脱力：向前翻滚最多 3 格，0.6 秒内承伤-60%，并对最近敌人施加 1 秒缓慢，冷却 14 秒",
-        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
-        () -> {
-          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("技能就绪", null));
-
-    register(
-        "guzhenren:synergy/qian_jia_chong_zhuang",
-        "guzhenren:synergy/qian_jia_chong_zhuang",
-        "guzhenren:shou_pi_gu",
-        tags("联动", "输出", "防御"),
-        "嵌甲冲撞：与虎皮蛊、铁骨蛊共鸣突进 4 格，爆发过去 5 秒软反伤累计的 35%（上限=8+攻击×0.6）并获得 0.5 秒免伤，冷却 18 秒",
         "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
         () -> {
           ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);

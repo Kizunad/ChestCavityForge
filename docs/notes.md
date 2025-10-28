@@ -4421,3 +4421,5 @@ OrganScore示范(考虑已实现的key -> ids.md，不要编造):
   }
   ```
 ----------------------------------------------------
+
+src/main/java/net/tigereye/chestcavity/compat/guzhenren/AGENTS.md AGENTS.md docs/HOW_TO_WRITE_TESTS.md docs/TESTING.md 计划将 src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/ 重构，只保留一主动一被动，其余做成杀招src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/combo 迁移进此处. 你先将想法告诉我，保留哪个主动哪个被动(小细节: 注重蛊虫原生的能力的味道) 我审核后再做出调整

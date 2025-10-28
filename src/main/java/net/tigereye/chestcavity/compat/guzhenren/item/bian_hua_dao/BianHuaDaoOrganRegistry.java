@@ -5,8 +5,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills.YuQunSkill;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills.YuShiSummonSharkSkill;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills.YuYueSkill;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -56,10 +54,8 @@ public final class BianHuaDaoOrganRegistry {
               .build());
 
   static {
-    // Ensure the active skill classes are initialised so they can register hotkeys & listeners.
-    YuQunSkill.bootstrap();
+    // Ensure仅初始化“鱼跃破浪”主动
     YuYueSkill.bootstrap();
-    YuShiSummonSharkSkill.bootstrap();
   }
 
   private BianHuaDaoOrganRegistry() {}

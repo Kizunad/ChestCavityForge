@@ -777,28 +777,8 @@ public final class ZhiZhuangGuOrganBehavior extends AbstractLiDaoOrganBehavior
   }
 
   private static boolean hasSoulFlow(ChestCavityInstance cc, ServerLevel level) {
-    if (cc == null || cc.inventory == null) {
-      return false;
-    }
-    TooltipContext context = TooltipContext.of(level);
-    TooltipFlag flag = TooltipFlag.NORMAL;
-    for (int i = 0, size = cc.inventory.getContainerSize(); i < size; i++) {
-      ItemStack stack = cc.inventory.getItem(i);
-      if (stack.isEmpty()) {
-        continue;
-      }
-      GuzhenrenFlowTooltipResolver.FlowInfo info =
-          GuzhenrenFlowTooltipResolver.inspect(stack, context, flag, null);
-      if (!info.hasFlow()) {
-        continue;
-      }
-      for (String flow : info.flows()) {
-        if (flow != null && flow.toLowerCase(Locale.ROOT).contains(FLOW_KEY_YING_DAO)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    // 使用通用工具：整体识别“影道”是否存在于任一装备器官的流派中
+    return GuzhenrenFlowTooltipResolver.hasFlow(cc, level, FLOW_KEY_YING_DAO);
   }
 
   private static void spawnShadowTraverse(
