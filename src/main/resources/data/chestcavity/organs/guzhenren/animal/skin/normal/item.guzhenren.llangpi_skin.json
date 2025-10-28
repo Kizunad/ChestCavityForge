@@ -3,7 +3,7 @@
   "organScores": [
     {
       "id": "chestcavity:arrow_dodging",
-      "value": "10"
+      "value": "1"
     },
     {
       "id": "chestcavity:defense",
@@ -11,11 +11,11 @@
     },
     {
       "id": "chestcavity:speed",
-      "value": "0.2"
+      "value": "0.4"
     },
     {
       "id": "chestcavity:strength",
-      "value": "10"
+      "value": "1"
     }
   ]
 }

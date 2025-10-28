@@ -732,7 +732,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     int size = cc.inventory.getContainerSize();
     for (int i = 0; i < size; i++) {
       ItemStack stack = cc.inventory.getItem(i);
-      if (matchesOrgan(stack, ORGAN_ID)) {
+      if (isOrgan(stack, ORGAN_ID)) {
         return stack;
       }
     }
@@ -745,15 +745,15 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
     int size = cc.inventory.getContainerSize();
     for (int i = 0; i < size; i++) {
-      if (matchesOrgan(cc.inventory.getItem(i), organId)) {
+      if (isOrgan(cc.inventory.getItem(i), organId)) {
         return true;
       }
     }
     return false;
   }
 
-  public static boolean matchesOrgan(ItemStack stack, ResourceLocation organId) {
-    return INSTANCE.matchesOrgan(stack, organId);
+  public static boolean isOrgan(ItemStack stack, ResourceLocation organId) {
+    return ShouPiGuOrganBehavior.INSTANCE.matchesOrgan(stack, organId);
   }
 
   public static OrganState resolveState(ItemStack organ) {

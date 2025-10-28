@@ -26,7 +26,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 /** 筋膜锁扣——积累筋膜计数后由玩家主动引爆。 */
@@ -132,7 +132,7 @@ public final class ShouPiFasciaLatchBehavior {
             0.8F,
             0.9F + player.getRandom().nextFloat() * 0.1F);
 
-    ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
+    ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 
@@ -172,4 +172,3 @@ public final class ShouPiFasciaLatchBehavior {
         params.tenacityDurationTicks());
   }
 }
-

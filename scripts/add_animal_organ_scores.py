@@ -32,73 +32,83 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TARGET_DIR = REPO_ROOT / 'src/main/resources/data/chestcavity/organs/guzhenren/animal'
 
 
 # Map animal keyword -> base organ scores
-ANIMAL_BASE: Dict[str, Dict[str, int]] = {
+ANIMAL_BASE: Dict[str, Dict[str, Decimal]] = {
+    'sha_yu_ya_chi': {
+        'chestcavity:strength': Decimal('10'),
+        'chestcavity:swim_speed': Decimal('0.15'),
+        'chestcavity:water_breath': Decimal('0.5'),
+    },
+    'sha_yu_yu_chi': {
+        'chestcavity:strength': Decimal('10'),
+        'chestcavity:swim_speed': Decimal('0.3'),
+        'chestcavity:water_breath': Decimal('1'),
+    },
     'quan': {
-        'chestcavity:health': 10,
-        'chestcavity:strength': 10,
-        'chestcavity:speed': 0.1,
+        'chestcavity:health': Decimal('1'),
+        'chestcavity:strength': Decimal('2'),
+        'chestcavity:speed': Decimal('0.1'),
     },
     'hu': {
-        'chestcavity:health': 10,
-        'chestcavity:strength': 20,
-        'chestcavity:speed': 0.1,
-        'chestcavity:impact_resistant': 10,
+        'chestcavity:health': Decimal('1'),
+        'chestcavity:strength': Decimal('4'),
+        'chestcavity:speed': Decimal('0.05'),
+        'chestcavity:impact_resistant': Decimal('1'),
     },
     'xiong': {
-        'chestcavity:health': 20,
-        'chestcavity:strength': 20,
-        'chestcavity:defense': 20,
-        'chestcavity:impact_resistant': 10,
+        'chestcavity:health': Decimal('2'),
+        'chestcavity:strength': Decimal('4'),
+        'chestcavity:defense': Decimal('4'),
+        'chestcavity:impact_resistant': Decimal('1'),
     },
     'lang': {
-        'chestcavity:strength': 10,
-        'chestcavity:arrow_dodging': 10,
-        'chestcavity:speed': 0.2,
+        'chestcavity:strength': Decimal('1'),
+        'chestcavity:arrow_dodging': Decimal('1'),
+        'chestcavity:speed': Decimal('0.4'),
     },
     # 羚(羊) — filenames may include ling or (typo) liangyang
     'ling': {
-        'chestcavity:health': 20,
-        'chestcavity:filtration': 10,
-        'chestcavity:defense': 20,
+        'chestcavity:health': Decimal('8'),
+        'chestcavity:filtration': Decimal('1'),
+        'chestcavity:defense': Decimal('2'),
     },
 }
 
 # Rank bonuses
-RANK_BONUS: Dict[str, Dict[str, int]] = {
+RANK_BONUS: Dict[str, Dict[str, Decimal]] = {
     'bai': {  # 百兽王
-        'guzhenren:zuida_zhenyuan': 10,
-        'guzhenren:zuida_jingli': 10,
+        'guzhenren:zuida_zhenyuan': Decimal('10'),
+        'guzhenren:zuida_jingli': Decimal('10'),
     },
     'qian': {  # 千兽王
-        'guzhenren:zuida_zhenyuan': 40,
-        'guzhenren:zuida_jingli': 40,
-        'guzhenren:niantou_zuida': 10,
+        'guzhenren:zuida_zhenyuan': Decimal('40'),
+        'guzhenren:zuida_jingli': Decimal('40'),
     },
     'wan': {  # 万兽王
-        'guzhenren:zuida_zhenyuan': 60,
-        'guzhenren:zuida_jingli': 80,
-        'guzhenren:niantou_zuida': 40,
-        'guzhenren:zuida_hunpo': 10,
+        'guzhenren:zuida_zhenyuan': Decimal('60'),
+        'guzhenren:zuida_jingli': Decimal('80'),
+        'guzhenren:zuida_hunpo': Decimal('10'),
     },
     'shouhuang': {  # 兽皇
-        'guzhenren:zuida_zhenyuan': 80,
-        'guzhenren:zuida_jingli': 100,
-        'guzhenren:niantou_zuida': 80,
-        'guzhenren:zuida_hunpo': 40,
-        'guzhenren:shouyuan': 1,
+        'guzhenren:zuida_zhenyuan': Decimal('80'),
+        'guzhenren:zuida_jingli': Decimal('100'),
+        'guzhenren:zuida_hunpo': Decimal('40'),
+        'guzhenren:shouyuan': Decimal('10'),
     },
 }
 
 
 ANIMAL_PATTERNS: List[Tuple[str, re.Pattern]] = [
+    ('sha_yu_ya_chi', re.compile(r'sha[_]?yu[_]?ya[_]?chi', re.I)),
+    ('sha_yu_yu_chi', re.compile(r'sha[_]?yu[_]?yu[_]?chi', re.I)),
     ('quan', re.compile(r'quan', re.I)),
     ('hu', re.compile(r'(?<!shou)hu(?!ang)', re.I)),  # avoid matching in 'shouhuang'
     ('xiong', re.compile(r'xiong', re.I)),
@@ -137,6 +147,14 @@ def detect_rank_key(path: Path) -> str | None:
 
     # bone files encode rank in filename
     name = path.name.lower()
+    special = re.search(r'sha[_]?yu_(?:ya|yu)_chi_(\d+)', name)
+    if special:
+        return {
+            '1': 'bai',
+            '2': 'qian',
+            '3': 'wan',
+            '4': 'shouhuang',
+        }.get(special.group(1))
     if name.startswith('baishou') or 'baishouwang' in name:
         return 'bai'
     if name.startswith('qianshou') or 'qianshouwang' in name:
@@ -161,24 +179,46 @@ def save_json(p: Path, data: dict) -> None:
         f.write(text)
 
 
-def merge_scores(existing: List[dict], additions: Dict[str, int]) -> List[dict]:
-    by_id: Dict[str, int] = {}
-    for e in existing or []:
+def coerce_numeric(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if isinstance(value, str):
         try:
-            by_id[e['id']] = int(str(e['value']))
-        except Exception:
-            # Keep as-is if unparsable
-            try:
-                by_id[e['id']] = e['value']
-            except Exception:
-                pass
+            return Decimal(value)
+        except (InvalidOperation, ValueError):
+            return value
+    return value
 
-    # Overwrite/insert new values
+
+def format_value(value: Any) -> str:
+    if isinstance(value, Decimal):
+        if value == value.to_integral():
+            return str(value.quantize(Decimal('1')))
+        normalized = value.normalize()
+        as_str = format(normalized, 'f')
+        if '.' in as_str:
+            as_str = as_str.rstrip('0').rstrip('.')
+        return as_str or '0'
+    return str(value)
+
+
+def merge_scores(existing: List[dict], additions: Dict[str, Decimal]) -> List[dict]:
+    by_id: Dict[str, Any] = {}
+    for e in existing or []:
+        if not isinstance(e, dict):
+            continue
+        key = e.get('id')
+        if not key:
+            continue
+        value = coerce_numeric(e.get('value'))
+        by_id[key] = value
+
     for oid, val in additions.items():
-        by_id[oid] = val
+        by_id[oid] = coerce_numeric(val)
 
-    # Stable-ish order: chestcavity:* first, then guzhenren:*, then others
-    def sort_key(item: Tuple[str, int]) -> Tuple[int, str]:
+    def sort_key(item: Tuple[str, Any]) -> Tuple[int, str]:
         oid, _ = item
         if oid.startswith('chestcavity:'):
             return (0, oid)
@@ -186,7 +226,7 @@ def merge_scores(existing: List[dict], additions: Dict[str, int]) -> List[dict]:
             return (1, oid)
         return (2, oid)
 
-    return [{"id": k, "value": str(v)} for k, v in sorted(by_id.items(), key=sort_key)]
+    return [{"id": k, "value": format_value(v)} for k, v in sorted(by_id.items(), key=sort_key)]
 
 
 @dataclass
@@ -208,7 +248,7 @@ def process_file(p: Path, apply: bool) -> UpdateResult:
     bonus = RANK_BONUS.get(rank or '', {})
 
     # Scale base by (1 + 2^n) where n depends on rank, if rank recognized
-    mult = 1 + (2 ** RANK_POWER[rank]) if rank in RANK_POWER else 1
+    mult = Decimal(1 + (2 ** RANK_POWER[rank])) if rank in RANK_POWER else Decimal('1')
     scaled_base = {k: v * mult for k, v in base.items()}
 
     additions = {**scaled_base, **bonus}

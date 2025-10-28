@@ -17,7 +17,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.registration.CCAttachments;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry.ComboSkillEntry;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry.OrganCheckResult;
@@ -145,7 +145,7 @@ public final class WuxingGuiBianRuntime {
     }
     long readyTick = now + cooldown;
     yinyang.setCooldown(skillId, readyTick);
-    ActiveSkillRegistry.scheduleReadyToast(player, skillId, readyTick, now);
+    ComboSkillRegistry.scheduleReadyToast(player, skillId, readyTick, now);
 
     if (attachment.lastMode() == WuxingGuiBianAttachment.ConversionMode.TEMPORARY) {
       long expireTick = now + WuxingGuiBianTuning.TEMPORARY_FREEZE_DURATION;

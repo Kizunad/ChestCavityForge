@@ -16,7 +16,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 /** 坚忍释放——将累积的坚忍层数主动引爆。 */
@@ -152,8 +152,7 @@ public final class ShouPiStoicReleaseBehavior {
             0.7F,
             1.0F + player.getRandom().nextFloat() * 0.1F);
 
-    ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
+    ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 }
-

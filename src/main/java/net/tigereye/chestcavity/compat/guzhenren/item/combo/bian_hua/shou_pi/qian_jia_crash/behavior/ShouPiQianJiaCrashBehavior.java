@@ -25,7 +25,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 /** 嵌甲冲撞——兽皮蛊联动的爆发突进。 */
@@ -124,7 +124,7 @@ public final class ShouPiQianJiaCrashBehavior {
             0.7F,
             1.1F);
 
-    ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
+    ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 

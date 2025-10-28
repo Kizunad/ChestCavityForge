@@ -14,7 +14,7 @@
 
 行为约定
 - 注册：通过 `ActivationBootstrap.register` 懒加载；`ComboSkillRegistry` 中仅登记技能元数据与初始化器。
-- 资源/冷却：统一使用 `ResourceOps` + `MultiCooldown`，冷却挂在“承载器官”的 OrganState 下，配合 `ActiveSkillRegistry.scheduleReadyToast` 显示就绪提示。
+- 资源/冷却：统一使用 `ResourceOps` + `MultiCooldown`，冷却挂在“承载器官”的 OrganState 下，配合 `ComboSkillRegistry.scheduleReadyToast` 显示就绪提示。
 - 选择/判定：在 `calculator/` 提供纯函数（如锥形判定、强度参数计算）供行为层调用；行为层不写复杂数学。
 - 联动：通过 tooltip 流派或器官清单统计，转换为“可选协同计数/结构”，再交由 `calculator/` 计算最终系数。
 - 无掉落：召唤类统一打 `NoDropEvents` 标签，避免战利品/经验污染。
@@ -37,4 +37,3 @@
 命名与日志
 - 类名以 `Behavior/Logic/Tuning/Fx/Messages/Runtime` 收尾；
 - 日志维持安静（INFO 以下），失败提示走 `messages/` 拼装。
-

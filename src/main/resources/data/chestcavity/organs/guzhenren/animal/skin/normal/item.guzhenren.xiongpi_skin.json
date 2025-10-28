@@ -3,19 +3,19 @@
   "organScores": [
     {
       "id": "chestcavity:defense",
-      "value": "20"
+      "value": "4"
     },
     {
       "id": "chestcavity:health",
-      "value": "20"
+      "value": "2"
     },
     {
       "id": "chestcavity:impact_resistant",
-      "value": "10"
+      "value": "1"
     },
     {
       "id": "chestcavity:strength",
-      "value": "20"
+      "value": "4"
     }
   ]
 }

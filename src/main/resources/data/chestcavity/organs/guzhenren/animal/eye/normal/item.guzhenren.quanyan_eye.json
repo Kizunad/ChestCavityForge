@@ -3,7 +3,7 @@
   "organScores": [
     {
       "id": "chestcavity:health",
-      "value": "10"
+      "value": "1"
     },
     {
       "id": "chestcavity:luck",
@@ -15,7 +15,7 @@
     },
     {
       "id": "chestcavity:strength",
-      "value": "10"
+      "value": "2"
     }
   ]
 }

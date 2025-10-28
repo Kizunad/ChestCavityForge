@@ -16,8 +16,8 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.WuxingGuiBianBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.WuxingGuiBianBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.behavior.ShouPiFasciaLatchBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.behavior.ShouPiQianJiaCrashBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.behavior.ShouPiRollEvasionBehavior;
@@ -26,6 +26,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenTuning;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.CountdownOps;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry.CooldownHint;
 
 /**
  * 组合杀招注册表
@@ -58,12 +60,14 @@ public final class ComboSkillRegistry {
       String subcategory,
       String description,
       List<String> tags,
-      String sourceHint) {
+      String sourceHint,
+      CooldownHint cooldownHint) {
     public ComboSkillEntry {
       requiredOrgans = List.copyOf(requiredOrgans);
       optionalOrgans = List.copyOf(optionalOrgans);
       optionalFlows = List.copyOf(optionalFlows);
       tags = List.copyOf(tags);
+      cooldownHint = cooldownHint != null ? cooldownHint : DEFAULT_COOLDOWN_HINT;
     }
   }
 
@@ -100,6 +104,8 @@ public final class ComboSkillRegistry {
   }
 
   private static final Map<ResourceLocation, ComboSkillEntry> ENTRIES = new LinkedHashMap<>();
+  private static final CooldownHint DEFAULT_COOLDOWN_HINT =
+      CooldownHint.useOrgan("技能就绪", null);
   private static boolean bootstrapped = false;
 
   private ComboSkillRegistry() {}
@@ -125,7 +131,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/shou_pi/roll/behavior/ShouPiRollEvasionBehavior.java",
         () -> {
           Object unused = ShouPiRollEvasionBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:shou_pi_fascia_latch",
@@ -141,7 +148,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/shou_pi/fascia_latch/behavior/ShouPiFasciaLatchBehavior.java",
         () -> {
           Object unused = ShouPiFasciaLatchBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:shou_pi_stoic_release",
@@ -157,7 +165,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/shou_pi/stoic_release/behavior/ShouPiStoicReleaseBehavior.java",
         () -> {
           Object unused = ShouPiStoicReleaseBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:shou_pi_qian_jia_crash",
@@ -173,7 +182,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/shou_pi/qian_jia_crash/behavior/ShouPiQianJiaCrashBehavior.java",
         () -> {
           Object unused = ShouPiQianJiaCrashBehavior.INSTANCE;
-        });
+        },
+        null);
 
     // 水/奴联动：鱼群（组合版）
     register(
@@ -193,7 +203,8 @@ public final class ComboSkillRegistry {
             Class.forName(
                 "net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_qun.behavior.YuQunComboBehavior");
           } catch (Throwable ignored) {}
-        });
+        },
+        null);
 
     // 水/奴联动：饵祭召鲨（组合版）
     register(
@@ -213,7 +224,8 @@ public final class ComboSkillRegistry {
             Class.forName(
                 "net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_shi.behavior.YuShiSummonComboBehavior");
           } catch (Throwable ignored) {}
-        });
+        },
+        null);
 
     // 五行归变·逆转（变化道杀招）
     register(
@@ -236,7 +248,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/gui_bian/WuxingGuiBianBehavior.java",
         () -> {
           Object unused = WuxingGuiBianBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:wuxing_gui_bian_config",
@@ -258,7 +271,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/gui_bian/WuxingGuiBianBehavior.java",
         () -> {
           Object unused = WuxingGuiBianBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:wuxing_hua_hen",
@@ -280,7 +294,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:wuxing_hua_hen_undo",
@@ -302,7 +317,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:wuxing_hua_hen_check",
@@ -324,7 +340,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
-        });
+        },
+        null);
 
     register(
         "guzhenren:wuxing_hua_hen_config",
@@ -346,7 +363,8 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
-        });
+        },
+        null);
 
     ChestCavity.LOGGER.info("[ComboSkillRegistry] Registered {} combo skills", ENTRIES.size());
   }
@@ -375,6 +393,7 @@ public final class ComboSkillRegistry {
         description,
         tags,
         sourceHint,
+        null,
         null);
   }
 
@@ -402,6 +421,7 @@ public final class ComboSkillRegistry {
         description,
         tags,
         sourceHint,
+        null,
         null);
   }
 
@@ -417,11 +437,13 @@ public final class ComboSkillRegistry {
       String description,
       List<String> tags,
       String sourceHint,
-      Runnable initializer) {
+      Runnable initializer,
+      CooldownHint cooldownHint) {
     ResourceLocation id = ResourceLocation.parse(skillId);
     if (initializer != null) {
       ActivationBootstrap.register(id, initializer);
     }
+    CooldownHint resolvedHint = cooldownHint != null ? cooldownHint : DEFAULT_COOLDOWN_HINT;
     ComboSkillEntry previous =
         ENTRIES.put(
             id,
@@ -436,7 +458,8 @@ public final class ComboSkillRegistry {
                 subcategory,
                 description,
                 tags,
-                sourceHint));
+                sourceHint,
+                resolvedHint));
     if (previous != null) {
       ChestCavity.LOGGER.warn(
           "[ComboSkillRegistry] Duplicate registration for {}", id);
@@ -455,7 +478,8 @@ public final class ComboSkillRegistry {
       String description,
       List<String> tags,
       String sourceHint,
-      Runnable initializer) {
+      Runnable initializer,
+      CooldownHint cooldownHint) {
     register(
         skillId,
         displayName,
@@ -468,7 +492,8 @@ public final class ComboSkillRegistry {
         description,
         tags,
         sourceHint,
-        initializer);
+        initializer,
+        cooldownHint);
   }
 
   private static List<String> tags(String... values) {
@@ -660,5 +685,50 @@ public final class ComboSkillRegistry {
     // 通过 OrganActivationListeners 触发杀招
     boolean activated = OrganActivationListeners.activate(skillId, cc);
     return activated ? TriggerResult.SUCCESS : TriggerResult.FAILED;
+  }
+
+  public static void scheduleReadyToast(
+      ServerPlayer player, ResourceLocation skillId, long readyAtTick, long nowTick) {
+    if (player == null) {
+      return;
+    }
+    bootstrap();
+    ComboSkillEntry entry = ENTRIES.get(skillId);
+    if (entry == null) {
+      return;
+    }
+    CooldownHint hint = entry.cooldownHint();
+    ResourceLocation iconId =
+        hint.iconOverride() != null ? hint.iconOverride() : resolveDefaultIcon(entry);
+    ItemStack iconStack = ItemStack.EMPTY;
+    if (iconId != null) {
+      Item item = BuiltInRegistries.ITEM.getOptional(iconId).orElse(null);
+      if (item != null) {
+        iconStack = new ItemStack(item);
+      }
+    }
+    String title = hint.title();
+    if (title == null || title.isBlank()) {
+      title = "技能就绪";
+    }
+    String subtitle = hint.subtitle();
+    if ((subtitle == null || subtitle.isBlank()) && !iconStack.isEmpty()) {
+      subtitle = iconStack.getHoverName().getString();
+    }
+    CountdownOps.scheduleToastAt(
+        player.serverLevel(), player, readyAtTick, nowTick, iconStack, title, subtitle);
+  }
+
+  private static ResourceLocation resolveDefaultIcon(ComboSkillEntry entry) {
+    if (entry == null) {
+      return null;
+    }
+    if (!entry.requiredOrgans().isEmpty()) {
+      return entry.requiredOrgans().get(0);
+    }
+    if (!entry.optionalOrgans().isEmpty()) {
+      return entry.optionalOrgans().get(0);
+    }
+    return null;
   }
 }

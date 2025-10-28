@@ -3,7 +3,7 @@
   "organScores": [
     {
       "id": "chestcavity:strength",
-      "value": "340"
+      "value": "170"
     },
     {
       "id": "chestcavity:swim_speed",
@@ -19,7 +19,7 @@
     },
     {
       "id": "guzhenren:shouyuan",
-      "value": "1"
+      "value": "10"
     },
     {
       "id": "guzhenren:zuida_hunpo",

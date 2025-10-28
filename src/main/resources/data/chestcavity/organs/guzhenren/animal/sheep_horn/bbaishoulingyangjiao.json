@@ -3,15 +3,15 @@
   "organScores": [
     {
       "id": "chestcavity:defense",
-      "value": "20"
+      "value": "2"
     },
     {
       "id": "chestcavity:filtration",
-      "value": "10"
+      "value": "1"
     },
     {
       "id": "chestcavity:health",
-      "value": "20"
+      "value": "8"
     }
   ]
 }

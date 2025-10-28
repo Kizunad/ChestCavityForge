@@ -41,7 +41,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_shi.calc
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 /** 组合杀招：饵祭召鲨（组合） — 按材料阶数召唤协战鲨鱼，遵循数量上限与无掉落规则。 */
@@ -204,7 +204,7 @@ public final class YuShiSummonComboBehavior {
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
-    ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
+    ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
     serverLevel.playSound(
         null, player.blockPosition(), SoundEvents.DOLPHIN_SPLASH, SoundSource.PLAYERS, 1.0f, 0.9f);

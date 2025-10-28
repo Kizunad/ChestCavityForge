@@ -18,7 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 /** 皮走滚袭——兽皮蛊组合杀招：机动与反击窗口的再利用。 */
@@ -105,7 +105,7 @@ public final class ShouPiRollEvasionBehavior {
         value -> Math.max(0L, value),
         0L);
 
-    ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
+    ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 }

@@ -3,15 +3,15 @@
   "organScores": [
     {
       "id": "chestcavity:arrow_dodging",
-      "value": "30"
+      "value": "3"
     },
     {
       "id": "chestcavity:speed",
-      "value": "0.6000000000000001"
+      "value": "1.2"
     },
     {
       "id": "chestcavity:strength",
-      "value": "30"
+      "value": "3"
     },
     {
       "id": "guzhenren:zuida_jingli",

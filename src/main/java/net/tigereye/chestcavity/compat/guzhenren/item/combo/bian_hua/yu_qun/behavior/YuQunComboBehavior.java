@@ -24,7 +24,6 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
-import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_qun.calculator.YuQunComboLogic;
@@ -131,7 +130,7 @@ public final class YuQunComboBehavior {
     YuLinGuBehavior.INSTANCE.recordWetContact(player, organ);
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
-    ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
+    ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 

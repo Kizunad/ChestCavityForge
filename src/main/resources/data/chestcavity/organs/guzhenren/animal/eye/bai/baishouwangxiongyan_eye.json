@@ -3,19 +3,19 @@
   "organScores": [
     {
       "id": "chestcavity:defense",
-      "value": "60"
+      "value": "12"
     },
     {
       "id": "chestcavity:health",
-      "value": "60"
+      "value": "6"
     },
     {
       "id": "chestcavity:impact_resistant",
-      "value": "30"
+      "value": "3"
     },
     {
       "id": "chestcavity:strength",
-      "value": "60"
+      "value": "12"
     },
     {
       "id": "guzhenren:zuida_jingli",
