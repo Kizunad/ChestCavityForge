@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.gui_bian.Wuxi
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.wuxing.hua_hen.WuxingHuaHenTuning;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
 
 /**
  * 组合杀招注册表
@@ -47,6 +48,7 @@ public final class ComboSkillRegistry {
       ResourceLocation iconLocation,
       List<ResourceLocation> requiredOrgans,
       List<ResourceLocation> optionalOrgans,
+      List<String> optionalFlows,
       String category,
       String subcategory,
       String description,
@@ -55,6 +57,7 @@ public final class ComboSkillRegistry {
     public ComboSkillEntry {
       requiredOrgans = List.copyOf(requiredOrgans);
       optionalOrgans = List.copyOf(optionalOrgans);
+      optionalFlows = List.copyOf(optionalFlows);
       tags = List.copyOf(tags);
     }
   }
@@ -101,6 +104,46 @@ public final class ComboSkillRegistry {
       return;
     }
     bootstrapped = true;
+
+    // 水/奴联动：鱼群（组合版）
+    register(
+        "guzhenren:yu_qun_combo",
+        "鱼群·组合",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/yu_qun.png"),
+        List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu")),
+        List.of(),
+        List.of("水道", "奴道"),
+        "变化道杀招",
+        "水/奴联动",
+        "水灵齐射的组合形态：随水/奴器官数量增强射程、宽度与控制",
+        tags("组合", "水道", "奴道", "控制"),
+        "compat/guzhenren/item/combo/shui/yu_qun/YuQunComboBehavior.java",
+        () -> {
+          try {
+            Class.forName(
+                "net.tigereye.chestcavity.compat.guzhenren.item.combo.shui.yu_qun.YuQunComboBehavior");
+          } catch (Throwable ignored) {}
+        });
+
+    // 水/奴联动：饵祭召鲨（组合版）
+    register(
+        "guzhenren:yu_shi_summon_combo",
+        "饵祭召鲨·组合",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/yu_shi_summon.png"),
+        List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu")),
+        List.of(),
+        List.of("水道", "奴道"),
+        "变化道杀招",
+        "水/奴联动",
+        "召唤协战鲨鱼的组合形态：水道增强续航，奴道提升服从与编队管理",
+        tags("组合", "水道", "奴道", "召唤"),
+        "compat/guzhenren/item/combo/shui/yu_shi/YuShiSummonComboBehavior.java",
+        () -> {
+          try {
+            Class.forName(
+                "net.tigereye.chestcavity.compat.guzhenren.item.combo.shui.yu_shi.YuShiSummonComboBehavior");
+          } catch (Throwable ignored) {}
+        });
 
     // 五行归变·逆转（变化道杀招）
     register(
@@ -244,6 +287,7 @@ public final class ComboSkillRegistry {
       ResourceLocation iconLocation,
       List<ResourceLocation> requiredOrgans,
       List<ResourceLocation> optionalOrgans,
+      List<String> optionalFlows,
       String category,
       String subcategory,
       String description,
@@ -255,6 +299,34 @@ public final class ComboSkillRegistry {
         iconLocation,
         requiredOrgans,
         optionalOrgans,
+        optionalFlows,
+        category,
+        subcategory,
+        description,
+        tags,
+        sourceHint,
+        null);
+  }
+
+  // 兼容旧签名（无 optionalFlows）：默认 optionalFlows 为空
+  private static void register(
+      String skillId,
+      String displayName,
+      ResourceLocation iconLocation,
+      List<ResourceLocation> requiredOrgans,
+      List<ResourceLocation> optionalOrgans,
+      String category,
+      String subcategory,
+      String description,
+      List<String> tags,
+      String sourceHint) {
+    register(
+        skillId,
+        displayName,
+        iconLocation,
+        requiredOrgans,
+        optionalOrgans,
+        List.of(),
         category,
         subcategory,
         description,
@@ -269,6 +341,7 @@ public final class ComboSkillRegistry {
       ResourceLocation iconLocation,
       List<ResourceLocation> requiredOrgans,
       List<ResourceLocation> optionalOrgans,
+      List<String> optionalFlows,
       String category,
       String subcategory,
       String description,
@@ -288,6 +361,7 @@ public final class ComboSkillRegistry {
                 iconLocation,
                 requiredOrgans,
                 optionalOrgans,
+                optionalFlows,
                 category,
                 subcategory,
                 description,
@@ -297,6 +371,34 @@ public final class ComboSkillRegistry {
       ChestCavity.LOGGER.warn(
           "[ComboSkillRegistry] Duplicate registration for {}", id);
     }
+  }
+
+  // 兼容旧签名（无 optionalFlows）：默认 optionalFlows 为空
+  private static void register(
+      String skillId,
+      String displayName,
+      ResourceLocation iconLocation,
+      List<ResourceLocation> requiredOrgans,
+      List<ResourceLocation> optionalOrgans,
+      String category,
+      String subcategory,
+      String description,
+      List<String> tags,
+      String sourceHint,
+      Runnable initializer) {
+    register(
+        skillId,
+        displayName,
+        iconLocation,
+        requiredOrgans,
+        optionalOrgans,
+        List.of(),
+        category,
+        subcategory,
+        description,
+        tags,
+        sourceHint,
+        initializer);
   }
 
   private static List<String> tags(String... values) {
@@ -358,7 +460,13 @@ public final class ComboSkillRegistry {
       }
     }
 
+    // 检查可选流派（统计背包/胸腔中满足流派的器官数量）
+    if (!entry.optionalFlows().isEmpty()) {
+      equippedOptional += countFlowMatches(cc, player.level(), entry.optionalFlows());
+    }
+
     // 必需器官全部装备 且 至少有一个可选器官
+    int totalOptional = entry.optionalOrgans().size() + entry.optionalFlows().size();
     boolean canActivate = (equippedRequired == entry.requiredOrgans().size()) && (equippedOptional > 0);
 
     return new OrganCheckResult(
@@ -366,7 +474,7 @@ public final class ComboSkillRegistry {
         equippedRequired,
         entry.requiredOrgans().size(),
         equippedOptional,
-        entry.optionalOrgans().size(),
+        totalOptional,
         missingOrgans);
   }
 
@@ -406,6 +514,52 @@ public final class ComboSkillRegistry {
       }
     }
     return count;
+  }
+
+  /** 统计“可选协同”总量：可选器官件数 + 可选流派匹配件数。 */
+  public static int countOptionalSynergy(Player player, ComboSkillEntry entry) {
+    int count = countEquippedOrgans(player, entry.optionalOrgans());
+    if (!entry.optionalFlows().isEmpty()) {
+      ChestCavityInstance cc =
+          ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+      if (cc != null) {
+        count += countFlowMatches(cc, player.level(), entry.optionalFlows());
+      }
+    }
+    return count;
+  }
+
+  private static int countFlowMatches(
+      ChestCavityInstance cc, net.minecraft.world.level.Level level, List<String> flows) {
+    if (cc == null || cc.inventory == null || level == null || flows == null || flows.isEmpty()) {
+      return 0;
+    }
+    int matched = 0;
+    var context = net.minecraft.world.item.Item.TooltipContext.of(level);
+    var flag = net.minecraft.world.item.TooltipFlag.NORMAL;
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      var stack = cc.inventory.getItem(i);
+      if (stack.isEmpty()) continue;
+      var info = GuzhenrenFlowTooltipResolver.inspect(stack, context, flag, null);
+      if (!info.hasFlow()) continue;
+      for (String f : info.flows()) {
+        if (f == null) continue;
+        for (String key : flows) {
+          if (key == null) continue;
+          // 宽松匹配：同 Resolver.hasFlow 逻辑
+          String fk = f.toLowerCase(java.util.Locale.ROOT);
+          String kk = key.toLowerCase(java.util.Locale.ROOT);
+          if (fk.contains(kk) || fk.replace("道", "").contains(kk.replace("道", ""))) {
+            matched++;
+            break;
+          }
+        }
+        if (matched > 0 && matched == i + 1) {
+          // noop; simple continue
+        }
+      }
+    }
+    return matched;
   }
 
   /**
