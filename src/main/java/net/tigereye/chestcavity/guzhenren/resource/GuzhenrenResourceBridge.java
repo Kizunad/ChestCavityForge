@@ -901,7 +901,9 @@ public final class GuzhenrenResourceBridge {
      * @return the field name for the shazhao gu chong
      */
     private static String shazhaoGuChongField(int page, int slotIndex) {
-      if (slotIndex < 1 || slotIndex > 10) return null;
+      if (slotIndex < 1 || slotIndex > 10) {
+        return null;
+      }
       String prefix =
           switch (page) {
             case 1 -> "ShaZhao1_GuChong";
@@ -919,7 +921,9 @@ public final class GuzhenrenResourceBridge {
      * @return the field name for the shazhao durability
      */
     private static String shazhaoDurabilityField(int page, int slotIndex) {
-      if (slotIndex < 1 || slotIndex > 10) return null;
+      if (slotIndex < 1 || slotIndex > 10) {
+        return null;
+      }
       String prefix =
           switch (page) {
             case 1 -> "ShaZhao1_GuChong";
@@ -933,9 +937,13 @@ public final class GuzhenrenResourceBridge {
 
     public Optional<net.minecraft.world.item.ItemStack> readShaZhaoScroll(int page) {
       String fieldName = shazhaoScrollField(page);
-      if (fieldName == null) return Optional.empty();
+      if (fieldName == null) {
+        return Optional.empty();
+      }
       Optional<Field> f = resolveFieldByName(fieldName);
-      if (f.isEmpty()) return Optional.empty();
+      if (f.isEmpty()) {
+        return Optional.empty();
+      }
       try {
         Object value = f.get().get(this.variables);
         if (value instanceof net.minecraft.world.item.ItemStack stack) {
@@ -953,9 +961,13 @@ public final class GuzhenrenResourceBridge {
      */
     public boolean writeShaZhaoScroll(int page, net.minecraft.world.item.ItemStack stack) {
       String fieldName = shazhaoScrollField(page);
-      if (fieldName == null) return false;
+      if (fieldName == null) {
+        return false;
+      }
       Optional<Field> f = resolveFieldByName(fieldName);
-      if (f.isEmpty()) return false;
+      if (f.isEmpty()) {
+        return false;
+      }
       try {
         f.get()
             .set(
@@ -975,9 +987,13 @@ public final class GuzhenrenResourceBridge {
      */
     public Optional<net.minecraft.world.item.ItemStack> readShaZhaoSlot(int page, int slotIndex) {
       String fieldName = shazhaoGuChongField(page, slotIndex);
-      if (fieldName == null) return Optional.empty();
+      if (fieldName == null) {
+        return Optional.empty();
+      }
       Optional<Field> f = resolveFieldByName(fieldName);
-      if (f.isEmpty()) return Optional.empty();
+      if (f.isEmpty()) {
+        return Optional.empty();
+      }
       try {
         Object value = f.get().get(this.variables);
         if (value instanceof net.minecraft.world.item.ItemStack stack) {
@@ -991,9 +1007,13 @@ public final class GuzhenrenResourceBridge {
     public boolean writeShaZhaoSlot(
         int page, int slotIndex, net.minecraft.world.item.ItemStack stack) {
       String fieldName = shazhaoGuChongField(page, slotIndex);
-      if (fieldName == null) return false;
+      if (fieldName == null) {
+        return false;
+      }
       Optional<Field> f = resolveFieldByName(fieldName);
-      if (f.isEmpty()) return false;
+      if (f.isEmpty()) {
+        return false;
+      }
       try {
         f.get()
             .set(
@@ -1008,9 +1028,13 @@ public final class GuzhenrenResourceBridge {
 
     public OptionalDouble readShaZhaoDurability(int page, int slotIndex) {
       String fieldName = shazhaoDurabilityField(page, slotIndex);
-      if (fieldName == null) return OptionalDouble.empty();
+      if (fieldName == null) {
+        return OptionalDouble.empty();
+      }
       Optional<Field> f = resolveFieldByName(fieldName);
-      if (f.isEmpty()) return OptionalDouble.empty();
+      if (f.isEmpty()) {
+        return OptionalDouble.empty();
+      }
       try {
         Object value = f.get().get(this.variables);
         if (value instanceof Number n) {
@@ -1023,9 +1047,13 @@ public final class GuzhenrenResourceBridge {
 
     public OptionalDouble writeShaZhaoDurability(int page, int slotIndex, double value) {
       String fieldName = shazhaoDurabilityField(page, slotIndex);
-      if (fieldName == null) return OptionalDouble.empty();
+      if (fieldName == null) {
+        return OptionalDouble.empty();
+      }
       Optional<Field> f = resolveFieldByName(fieldName);
-      if (f.isEmpty()) return OptionalDouble.empty();
+      if (f.isEmpty()) {
+        return OptionalDouble.empty();
+      }
       try {
         f.get().set(this.variables, value);
         GuzhenrenResourceBridge.syncEntity(this.owner, this.variables);

@@ -10,7 +10,9 @@ public final class SoulLook {
 
   /** Instantly faces the target position with both head and body. */
   public static void faceTowards(LivingEntity entity, Vec3 target) {
-    if (entity == null || target == null) return;
+    if (entity == null || target == null) {
+      return;
+    }
     entity.lookAt(EntityAnchorArgument.Anchor.EYES, target);
   }
 }

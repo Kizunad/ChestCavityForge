@@ -135,7 +135,9 @@ public final class Cooldown {
 
     public boolean tickDown() {
       int cur = getTicks();
-      if (cur <= 0) return false;
+      if (cur <= 0) {
+        return false;
+      }
       setTicks(cur - 1);
       return true;
     }

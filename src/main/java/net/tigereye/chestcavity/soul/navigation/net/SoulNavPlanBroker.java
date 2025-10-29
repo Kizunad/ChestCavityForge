@@ -62,8 +62,9 @@ public final class SoulNavPlanBroker {
     } catch (Throwable t) {
       WAITING.remove(id);
       INFLIGHT.get(ownerId).decrementAndGet();
-      if (SoulLog.DEBUG_LOGS)
+      if (SoulLog.DEBUG_LOGS) {
         SoulLog.info("[soul][nav][baritone] failed to send plan req: {}", t.toString());
+      }
       STAT_SEND_FAILS.incrementAndGet();
       return Optional.empty();
     }
@@ -71,8 +72,9 @@ public final class SoulNavPlanBroker {
       List<Vec3> result = fut.get(Math.max(250L, timeoutMs), TimeUnit.MILLISECONDS);
       return Optional.ofNullable(result);
     } catch (Exception e) {
-      if (SoulLog.DEBUG_LOGS)
+      if (SoulLog.DEBUG_LOGS) {
         SoulLog.info("[soul][nav][baritone] plan timeout or error: {}", e.toString());
+      }
       STAT_TIMEOUTS.incrementAndGet();
       return Optional.empty();
     } finally {

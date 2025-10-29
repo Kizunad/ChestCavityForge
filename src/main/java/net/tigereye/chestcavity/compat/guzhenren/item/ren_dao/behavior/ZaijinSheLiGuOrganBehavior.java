@@ -63,10 +63,16 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
         || entity.level().isClientSide()
         || cc == null
         || organ == null
-        || organ.isEmpty()) return;
-    if (!matchesOrgan(organ)) return;
+        || organ.isEmpty()) {
+      return;
+    }
+    if (!matchesOrgan(organ)) {
+      return;
+    }
     ServerLevel server = entity.level() instanceof ServerLevel s ? s : null;
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
 
     MultiCooldown cd = createCooldown(cc, organ);
     MultiCooldown.Entry passiveReady = cd.entry(KEY_PASSIVE_READY_AT);
@@ -95,16 +101,24 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
   }
 
   public static void activateAbility(LivingEntity caster, ChestCavityInstance cc) {
-    if (caster == null || cc == null || caster.level().isClientSide()) return;
+    if (caster == null || cc == null || caster.level().isClientSide()) {
+      return;
+    }
     ItemStack organ = findPrimaryOrgan(cc);
-    if (organ.isEmpty()) return;
+    if (organ.isEmpty()) {
+      return;
+    }
     ServerLevel server = caster.level() instanceof ServerLevel s ? s : null;
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
 
     MultiCooldown cd = createCooldown(cc, organ);
     long now = server.getGameTime();
     long cdUntil = cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).getReadyTick();
-    if (now < Math.max(0L, cdUntil)) return;
+    if (now < Math.max(0L, cdUntil)) {
+      return;
+    }
 
     // 燃烧当前 50% 生命与真元
     burnHalfLifeAndZhenyuan(caster);
@@ -128,10 +142,14 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
   private static boolean consumePassiveCost(LivingEntity entity) {
     // 5000 基础真元 + 20 魂魄 + 20 精力
     var zrjl = ResourceOps.consumeStrict(entity, 5000.0, 0.0);
-    if (!zrjl.succeeded()) return false;
+    if (!zrjl.succeeded()) {
+      return false;
+    }
     var hp = ResourceOps.consumeHunpoStrict(entity, 20.0);
     if (!hp.succeeded()) {
-      if (entity instanceof Player p) ResourceOps.refund(p, zrjl);
+      if (entity instanceof Player p) {
+        ResourceOps.refund(p, zrjl);
+      }
       return false;
     }
     // 精力-20
@@ -189,17 +207,27 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
     for (Player player : players) {
       Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
           GuzhenrenResourceBridge.open(player);
-      if (handleOpt.isEmpty()) continue;
+      if (handleOpt.isEmpty()) {
+        continue;
+      }
       GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
       // 每秒回复最大10%
       double maxZr = handle.read("zuida_zhenyuan").orElse(0.0);
       double maxHp = player.getMaxHealth();
       double maxHunpo = handle.read("zuida_hunpo").orElse(0.0);
       double maxJingli = handle.read("zuida_jingli").orElse(0.0);
-      if (maxZr > 0.0) ResourceOps.tryReplenishScaledZhenyuan(player, maxZr * 0.10, true);
-      if (maxHunpo > 0.0) handle.adjustDouble("hunpo", maxHunpo * 0.10, true, "zuida_hunpo");
-      if (maxJingli > 0.0) ResourceOps.tryAdjustJingli(handle, maxJingli * 0.10, true);
-      if (maxHp > 0.0) player.heal((float) (maxHp * 0.10));
+      if (maxZr > 0.0) {
+        ResourceOps.tryReplenishScaledZhenyuan(player, maxZr * 0.10, true);
+      }
+      if (maxHunpo > 0.0) {
+        handle.adjustDouble("hunpo", maxHunpo * 0.10, true, "zuida_hunpo");
+      }
+      if (maxJingli > 0.0) {
+        ResourceOps.tryAdjustJingli(handle, maxJingli * 0.10, true);
+      }
+      if (maxHp > 0.0) {
+        player.heal((float) (maxHp * 0.10));
+      }
     }
     playNirvanaFxPulse(server, caster);
   }
@@ -304,16 +332,22 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
   }
 
   private static boolean matchesOrgan(ItemStack stack) {
-    if (stack == null || stack.isEmpty()) return false;
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
     ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
     return ORGAN_ID.equals(id);
   }
 
   private static ItemStack findPrimaryOrgan(ChestCavityInstance cc) {
-    if (cc == null || cc.inventory == null) return ItemStack.EMPTY;
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack candidate = cc.inventory.getItem(i);
-      if (matchesOrgan(candidate)) return candidate;
+      if (matchesOrgan(candidate)) {
+        return candidate;
+      }
     }
     return ItemStack.EMPTY;
   }
@@ -322,8 +356,11 @@ public enum ZaijinSheLiGuOrganBehavior implements OrganSlowTickListener {
     MultiCooldown.Builder b =
         MultiCooldown.builder(OrganState.of(organ, STATE_ROOT))
             .withLongClamp(value -> Math.max(0L, value), 0L);
-    if (cc != null) b.withSync(cc, organ);
-    else b.withOrgan(organ);
+    if (cc != null) {
+      b.withSync(cc, organ);
+    } else {
+      b.withOrgan(organ);
+    }
     return b.build();
   }
 }

@@ -12,7 +12,9 @@ public final class SoulActions {
   private SoulActions() {}
 
   public static void bootstrap() {
-    if (!BOOT.compareAndSet(false, true)) return;
+    if (!BOOT.compareAndSet(false, true)) {
+      return;
+    }
     ActionRegistry.register(new GuardAction());
     ActionRegistry.register(new ForceFightAction());
     ActionRegistry.register(new HealingAction());

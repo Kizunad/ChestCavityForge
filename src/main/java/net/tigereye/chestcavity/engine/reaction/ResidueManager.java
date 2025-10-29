@@ -121,7 +121,9 @@ public final class ResidueManager {
   }
 
   public static void tickFireResidues(MinecraftServer server) {
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
     var entries = new java.util.ArrayList<>(FIRE_KEYS.entrySet());
     for (var e : entries) {
       UUID id = e.getValue();
@@ -170,7 +172,9 @@ public final class ResidueManager {
                     .HUO_TAN
                     .emberMaxEntitiesPerTick);
         for (var le : list) {
-          if (applied >= max) break;
+          if (applied >= max) {
+            break;
+          }
           net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.addStacked(
               le,
               net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.FLAME_MARK,
@@ -194,7 +198,9 @@ public final class ResidueManager {
               Math.max(
                   0,
                   net.tigereye.chestcavity.ChestCavity.config.REACTION.HUO_TAN.emberIgniteSeconds);
-          if (igniteSec > 0) le.igniteForSeconds(igniteSec);
+          if (igniteSec > 0) {
+            le.igniteForSeconds(igniteSec);
+          }
           applied++;
         }
       }
@@ -259,7 +265,9 @@ public final class ResidueManager {
 
   public static int countFireResiduesNear(
       ServerLevel level, double x, double y, double z, double radius) {
-    if (level == null || radius <= 0.0D) return 0;
+    if (level == null || radius <= 0.0D) {
+      return 0;
+    }
     double r2 = radius * radius;
     int count = 0;
     for (var e : new java.util.ArrayList<>(FIRE_KEYS.entrySet())) {
@@ -267,14 +275,18 @@ public final class ResidueManager {
       var ent = level.getEntity(id);
       if (ent instanceof AreaEffectCloud aec) {
         double dx = aec.getX() - x, dy = aec.getY() - y, dz = aec.getZ() - z;
-        if (dx * dx + dy * dy + dz * dz <= r2) count++;
+        if (dx * dx + dy * dy + dz * dz <= r2) {
+          count++;
+        }
       }
     }
     return count;
   }
 
   private static AreaEffectCloud find(ServerLevel level, UUID id) {
-    if (level == null || id == null) return null;
+    if (level == null || id == null) {
+      return null;
+    }
     var e = level.getEntity(id);
     return e instanceof AreaEffectCloud a ? a : null;
   }

@@ -22,7 +22,9 @@ public final class SoulClanWorldData extends SavedData {
 
   public static SoulClanWorldData load(CompoundTag tag, HolderLookup.Provider registries) {
     SoulClanWorldData d = new SoulClanWorldData();
-    if (tag.hasUUID(TAG_ELDER)) d.elderId = tag.getUUID(TAG_ELDER);
+    if (tag.hasUUID(TAG_ELDER)) {
+      d.elderId = tag.getUUID(TAG_ELDER);
+    }
     int cap = tag.getInt(TAG_CAP);
     d.areaCap = cap > 0 ? cap : 12;
     return d;
@@ -30,7 +32,9 @@ public final class SoulClanWorldData extends SavedData {
 
   @Override
   public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-    if (elderId != null) tag.putUUID(TAG_ELDER, elderId);
+    if (elderId != null) {
+      tag.putUUID(TAG_ELDER, elderId);
+    }
     tag.putInt(TAG_CAP, areaCap);
     return tag;
   }

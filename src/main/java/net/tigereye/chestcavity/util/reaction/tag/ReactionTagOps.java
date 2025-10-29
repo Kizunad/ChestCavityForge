@@ -20,7 +20,9 @@ public final class ReactionTagOps {
   private static final Map<UUID, Map<ResourceLocation, Integer>> STACKS = new HashMap<>();
 
   public static void add(LivingEntity entity, ResourceLocation tagId, int durationTicks) {
-    if (entity == null || tagId == null || durationTicks <= 0) return;
+    if (entity == null || tagId == null || durationTicks <= 0) {
+      return;
+    }
     long expire = entity.level().getGameTime() + durationTicks;
     TAGS.computeIfAbsent(entity.getUUID(), k -> new HashMap<>()).put(tagId, expire);
   }
@@ -30,7 +32,9 @@ public final class ReactionTagOps {
    */
   public static void addStacked(
       LivingEntity entity, ResourceLocation tagId, int stacksDelta, int durationTicks) {
-    if (entity == null || tagId == null || durationTicks <= 0) return;
+    if (entity == null || tagId == null || durationTicks <= 0) {
+      return;
+    }
     long expire = entity.level().getGameTime() + durationTicks;
     TAGS.computeIfAbsent(entity.getUUID(), k -> new HashMap<>()).put(tagId, expire);
     Map<ResourceLocation, Integer> map =
@@ -42,27 +46,41 @@ public final class ReactionTagOps {
 
   /** 当前标签堆叠值（若未附着则为0）。 */
   public static int count(LivingEntity entity, ResourceLocation tagId) {
-    if (entity == null || tagId == null) return 0;
+    if (entity == null || tagId == null) {
+      return 0;
+    }
     Map<ResourceLocation, Integer> map = STACKS.get(entity.getUUID());
-    if (map == null) return 0;
+    if (map == null) {
+      return 0;
+    }
     return Math.max(0, map.getOrDefault(tagId, 0));
   }
 
   public static boolean has(LivingEntity entity, ResourceLocation tagId) {
-    if (entity == null || tagId == null) return false;
+    if (entity == null || tagId == null) {
+      return false;
+    }
     Map<ResourceLocation, Long> map = TAGS.get(entity.getUUID());
-    if (map == null) return false;
+    if (map == null) {
+      return false;
+    }
     Long exp = map.get(tagId);
     return exp != null && exp > entity.level().getGameTime();
   }
 
   /** Remaining ticks before the tag expires; zero if absent or already expired. */
   public static int remainingTicks(LivingEntity entity, ResourceLocation tagId) {
-    if (entity == null || tagId == null) return 0;
+    if (entity == null || tagId == null) {
+      return 0;
+    }
     Map<ResourceLocation, Long> map = TAGS.get(entity.getUUID());
-    if (map == null) return 0;
+    if (map == null) {
+      return 0;
+    }
     Long expire = map.get(tagId);
-    if (expire == null) return 0;
+    if (expire == null) {
+      return 0;
+    }
     long now = entity.level().getGameTime();
     long remaining = expire - now;
     if (remaining <= 0L) {
@@ -72,21 +90,29 @@ public final class ReactionTagOps {
   }
 
   public static void clear(LivingEntity entity, ResourceLocation tagId) {
-    if (entity == null || tagId == null) return;
+    if (entity == null || tagId == null) {
+      return;
+    }
     Map<ResourceLocation, Long> map = TAGS.get(entity.getUUID());
     if (map != null) {
       map.remove(tagId);
-      if (map.isEmpty()) TAGS.remove(entity.getUUID());
+      if (map.isEmpty()) {
+        TAGS.remove(entity.getUUID());
+      }
     }
     Map<ResourceLocation, Integer> s = STACKS.get(entity.getUUID());
     if (s != null) {
       s.remove(tagId);
-      if (s.isEmpty()) STACKS.remove(entity.getUUID());
+      if (s.isEmpty()) {
+        STACKS.remove(entity.getUUID());
+      }
     }
   }
 
   public static void purge(long nowServerTick) {
-    if (TAGS.isEmpty()) return;
+    if (TAGS.isEmpty()) {
+      return;
+    }
     Iterator<Map.Entry<UUID, Map<ResourceLocation, Long>>> it = TAGS.entrySet().iterator();
     while (it.hasNext()) {
       Map.Entry<UUID, Map<ResourceLocation, Long>> e = it.next();
@@ -96,7 +122,9 @@ public final class ReactionTagOps {
         continue;
       }
       inner.entrySet().removeIf(en -> en.getValue() <= nowServerTick);
-      if (inner.isEmpty()) it.remove();
+      if (inner.isEmpty()) {
+        it.remove();
+      }
       // 同步清理已过期标签的堆叠
       Map<ResourceLocation, Integer> s = STACKS.get(e.getKey());
       if (s != null) {
@@ -108,7 +136,9 @@ public final class ReactionTagOps {
             sit.remove();
           }
         }
-        if (s.isEmpty()) STACKS.remove(e.getKey());
+        if (s.isEmpty()) {
+          STACKS.remove(e.getKey());
+        }
       }
     }
   }

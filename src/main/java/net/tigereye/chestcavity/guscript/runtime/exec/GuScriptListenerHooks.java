@@ -79,7 +79,9 @@ public final class GuScriptListenerHooks {
 
   private static boolean isSameItemType(
       net.minecraft.world.item.ItemStack a, net.minecraft.world.item.ItemStack b) {
-    if (a.isEmpty() || b.isEmpty()) return false;
+    if (a.isEmpty() || b.isEmpty()) {
+      return false;
+    }
     return a.getItem() == b.getItem();
   }
 }

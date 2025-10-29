@@ -41,14 +41,20 @@ public final class SoulFollowTeleportTuning {
   }
 
   private static double clamp(double v, double min, double max) {
-    if (v < min) return min;
-    if (v > max) return max;
+    if (v < min) {
+      return min;
+    }
+    if (v > max) {
+      return max;
+    }
     return v;
   }
 
   private static double getDoubleProp(String key, double def, double min, double max) {
     String s = System.getProperty(key);
-    if (s == null) return def;
+    if (s == null) {
+      return def;
+    }
     try {
       return clamp(Double.parseDouble(s), min, max);
     } catch (NumberFormatException e) {

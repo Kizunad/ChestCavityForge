@@ -67,18 +67,28 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
 
   @Override
   public void onTickEnd(SoulPlayer player) {
-    if (!player.isAlive() || player.level().isClientSide()) return;
+    if (!player.isAlive() || player.level().isClientSide()) {
+      return;
+    }
     // Do not interfere with normal attacks: skip when eating/drinking or during attack cooldown
-    if (player.isUsingItem()) return;
+    if (player.isUsingItem()) {
+      return;
+    }
 
     float hp = player.getHealth();
     float max = player.getMaxHealth();
-    if (max <= 0) return;
-    if (hp / max > HEALTH_THRESHOLD_FRACTION && (max - hp) < HEALTH_MISSING_MIN) return;
+    if (max <= 0) {
+      return;
+    }
+    if (hp / max > HEALTH_THRESHOLD_FRACTION && (max - hp) < HEALTH_MISSING_MIN) {
+      return;
+    }
 
     long now = player.level().getGameTime();
     Long last = LAST_ATTEMPT.get(player.getSoulId());
-    if (last != null && now - last < ATTEMPT_COOLDOWN_TICKS) return;
+    if (last != null && now - last < ATTEMPT_COOLDOWN_TICKS) {
+      return;
+    }
 
     if (tryUseHealingItem(player)) {
       LAST_ATTEMPT.put(player.getSoulId(), now);
@@ -161,19 +171,29 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
   }
 
   private static boolean checkHasItem(SoulPlayer player, Item item) {
-    if (player.getCooldowns().isOnCooldown(item)) return true; // treat as present but cooling
+    if (player.getCooldowns().isOnCooldown(item)) {
+      return true; // treat as present but cooling
+    }
     return player.getInventory().contains(new ItemStack(item));
   }
 
   private static String merge(String base, String addition) {
-    if (addition == null || addition.isEmpty()) return base;
-    if (base.equals("none")) return addition;
+    if (addition == null || addition.isEmpty()) {
+      return base;
+    }
+    if (base.equals("none")) {
+      return addition;
+    }
     return base + "," + addition;
   }
 
   private static String append(String base, String addition) {
-    if (addition == null || addition.isEmpty()) return base;
-    if (base == null || base.isEmpty()) return addition;
+    if (addition == null || addition.isEmpty()) {
+      return base;
+    }
+    if (base == null || base.isEmpty()) {
+      return addition;
+    }
     return base + "," + addition;
   }
 
@@ -218,7 +238,9 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
   }
 
   private static void ensureGuzhenrenItems() {
-    if (!GUZ_LOADED.compareAndSet(false, true)) return;
+    if (!GUZ_LOADED.compareAndSet(false, true)) {
+      return;
+    }
     try {
       addIfPresent(LING_XIAN_GU);
       addIfPresent(SHENG_JI_XIE);
@@ -237,7 +259,9 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
 
   private static AttemptResult tryUseGuzhenrenItemStatic(SoulPlayer player) {
     ensureGuzhenrenItems();
-    if (GUZ_HEAL_ITEMS.isEmpty()) return new AttemptResult(false, "guzhenren-none", "");
+    if (GUZ_HEAL_ITEMS.isEmpty()) {
+      return new AttemptResult(false, "guzhenren-none", "");
+    }
     java.util.List<String> cooldowns = new java.util.ArrayList<>();
     java.util.List<String> missing = new java.util.ArrayList<>();
     for (Item item : GUZ_HEAL_ITEMS) {
@@ -290,10 +314,16 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
   private static int getIntProp(String key, int def, int lo, int hi) {
     try {
       String v = System.getProperty(key);
-      if (v == null) return def;
+      if (v == null) {
+        return def;
+      }
       int x = Integer.parseInt(v);
-      if (x < lo) return lo;
-      if (x > hi) return hi;
+      if (x < lo) {
+        return lo;
+      }
+      if (x > hi) {
+        return hi;
+      }
       return x;
     } catch (Throwable ignored) {
       return def;
@@ -303,10 +333,16 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
   private static float getFloatProp(String key, float def, float lo, float hi) {
     try {
       String v = System.getProperty(key);
-      if (v == null) return def;
+      if (v == null) {
+        return def;
+      }
       float x = Float.parseFloat(v);
-      if (x < lo) return lo;
-      if (x > hi) return hi;
+      if (x < lo) {
+        return lo;
+      }
+      if (x > hi) {
+        return hi;
+      }
       return x;
     } catch (Throwable ignored) {
       return def;
@@ -315,7 +351,9 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
 
   private static String describeCooldown(SoulPlayer player, Item item) {
     String key = BuiltInRegistries.ITEM.getKey(item).toString();
-    if (!player.getCooldowns().isOnCooldown(item)) return key + "@ready";
+    if (!player.getCooldowns().isOnCooldown(item)) {
+      return key + "@ready";
+    }
     OptionalLong ticks = CooldownIntrospector.remainingTicks(player, item);
     return ticks.isPresent() ? key + "@" + ticks.getAsLong() + "t" : key + "@cooldown";
   }
@@ -326,15 +364,23 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     private static boolean INITIALISED;
 
     private static OptionalLong remainingTicks(SoulPlayer player, Item item) {
-      if (!player.getCooldowns().isOnCooldown(item)) return OptionalLong.empty();
+      if (!player.getCooldowns().isOnCooldown(item)) {
+        return OptionalLong.empty();
+      }
       init();
-      if (COOLDOWN_MAP_FIELD == null || COOLDOWN_END_FIELD == null) return OptionalLong.empty();
+      if (COOLDOWN_MAP_FIELD == null || COOLDOWN_END_FIELD == null) {
+        return OptionalLong.empty();
+      }
       try {
         @SuppressWarnings("unchecked")
         Map<Item, ?> map = (Map<Item, ?>) COOLDOWN_MAP_FIELD.get(player.getCooldowns());
-        if (map == null) return OptionalLong.empty();
+        if (map == null) {
+          return OptionalLong.empty();
+        }
         Object instance = map.get(item);
-        if (instance == null) return OptionalLong.empty();
+        if (instance == null) {
+          return OptionalLong.empty();
+        }
         long end = COOLDOWN_END_FIELD.getLong(instance);
         long now = player.level().getGameTime();
         return OptionalLong.of(Math.max(0L, end - now));
@@ -344,7 +390,9 @@ public final class SelfHealHandler implements SoulRuntimeHandler {
     }
 
     private static void init() {
-      if (INITIALISED) return;
+      if (INITIALISED) {
+        return;
+      }
       INITIALISED = true;
       try {
         COOLDOWN_MAP_FIELD =

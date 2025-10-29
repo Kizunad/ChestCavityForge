@@ -56,15 +56,23 @@ public enum HuangJinSheLiGuOrganBehavior
   }
 
   public static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-    if (entity == null || cc == null || entity.level().isClientSide()) return;
+    if (entity == null || cc == null || entity.level().isClientSide()) {
+      return;
+    }
     ItemStack organ = findPrimaryOrgan(cc);
-    if (organ.isEmpty()) return;
+    if (organ.isEmpty()) {
+      return;
+    }
     ServerLevel server = entity.level() instanceof ServerLevel s ? s : null;
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
     MultiCooldown cd = createCooldown(cc, organ);
     long now = server.getGameTime();
     long cdUntil = Math.max(0L, cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).getReadyTick());
-    if (now < cdUntil) return;
+    if (now < cdUntil) {
+      return;
+    }
 
     // 自身：6s 抗性III + 缓慢III + 免击退
     entity.addEffect(
@@ -121,16 +129,24 @@ public enum HuangJinSheLiGuOrganBehavior
   }
 
   private static boolean isDotLike(DamageSource source, LivingEntity victim) {
-    if (source == null) return false;
+    if (source == null) {
+      return false;
+    }
     // 粗略判定：实体处于着火、身上有凋零/中毒/流血等持续性效果
     if (victim != null) {
-      if (victim.isOnFire()) return true;
-      if (victim.hasEffect(MobEffects.WITHER) || victim.hasEffect(MobEffects.POISON)) return true;
+      if (victim.isOnFire()) {
+        return true;
+      }
+      if (victim.hasEffect(MobEffects.WITHER) || victim.hasEffect(MobEffects.POISON)) {
+        return true;
+      }
       try {
         var bleedHolder = BuiltInRegistries.MOB_EFFECT.getHolder(BLEED_EFFECT_ID);
         if (bleedHolder.isPresent()) {
           Holder.Reference<net.minecraft.world.effect.MobEffect> ref = bleedHolder.get();
-          if (victim.hasEffect(ref)) return true;
+          if (victim.hasEffect(ref)) {
+            return true;
+          }
         }
       } catch (Throwable ignored) {
       }
@@ -140,10 +156,18 @@ public enum HuangJinSheLiGuOrganBehavior
   }
 
   private static boolean isHostileTo(LivingEntity self, LivingEntity other) {
-    if (other == null || !other.isAlive()) return false;
-    if (other == self) return false;
-    if (other.isAlliedTo(self)) return false;
-    if (other instanceof Mob mob && mob.getTarget() != null) return true;
+    if (other == null || !other.isAlive()) {
+      return false;
+    }
+    if (other == self) {
+      return false;
+    }
+    if (other.isAlliedTo(self)) {
+      return false;
+    }
+    if (other instanceof Mob mob && mob.getTarget() != null) {
+      return true;
+    }
     // 简单近似：非玩家、非同阵营视为潜在敌对
     return true;
   }
@@ -152,7 +176,9 @@ public enum HuangJinSheLiGuOrganBehavior
     var attr =
         entity.getAttribute(
             net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE);
-    if (attr == null) return;
+    if (attr == null) {
+      return;
+    }
     if (attr.hasModifier(KNOCKBACK_RESIST_ID)) {
       attr.removeModifier(KNOCKBACK_RESIST_ID);
     }
@@ -178,13 +204,17 @@ public enum HuangJinSheLiGuOrganBehavior
   }
 
   private static boolean matchesOrgan(ItemStack stack) {
-    if (stack == null || stack.isEmpty()) return false;
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
     ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
     return ORGAN_ID.equals(id);
   }
 
   private static ItemStack findPrimaryOrgan(ChestCavityInstance cc) {
-    if (cc == null || cc.inventory == null) return ItemStack.EMPTY;
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack candidate = cc.inventory.getItem(i);
       if (matchesOrgan(candidate)) {

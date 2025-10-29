@@ -35,11 +35,17 @@ public final class SoulNavigationTestHarness {
   // 可通过 -Dchestcavity.soul.testArrivalSlack=1.25 调整，默认 0.9 格。
   private static double arrivalSlackBlocks() {
     String v = System.getProperty("chestcavity.soul.testArrivalSlack");
-    if (v == null) return 0.9;
+    if (v == null) {
+      return 0.9;
+    }
     try {
       double d = Double.parseDouble(v);
-      if (d < 0) return 0.0;
-      if (d > 4) return 4.0;
+      if (d < 0) {
+        return 0.0;
+      }
+      if (d > 4) {
+        return 4.0;
+      }
       return d;
     } catch (NumberFormatException e) {
       return 0.9;

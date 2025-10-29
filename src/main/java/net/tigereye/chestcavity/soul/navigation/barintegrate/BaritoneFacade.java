@@ -49,9 +49,13 @@ public final class BaritoneFacade {
   }
 
   public static void ensureInitialized() {
-    if (initialized) return;
+    if (initialized) {
+      return;
+    }
     synchronized (BaritoneFacade.class) {
-      if (initialized) return;
+      if (initialized) {
+        return;
+      }
       try {
         clazzBaritoneAPI = tryLoadAny(API_CLASS_CANDIDATES);
         if (clazzBaritoneAPI == null) {
@@ -122,7 +126,9 @@ public final class BaritoneFacade {
 
   private static void cacheField(String name) {
     Field f = findSettingsField(name);
-    if (f != null) SETTINGS_FIELDS.put(name, f);
+    if (f != null) {
+      SETTINGS_FIELDS.put(name, f);
+    }
   }
 
   private static Field findSettingsField(String name) {
@@ -138,7 +144,9 @@ public final class BaritoneFacade {
    * conservatively on servers.
    */
   public static void applyBaselineSettings() {
-    if (!isAvailable()) return;
+    if (!isAvailable()) {
+      return;
+    }
     try {
       setBoolean("allowBreak", false);
       setBoolean("allowPlace", false);
@@ -155,7 +163,9 @@ public final class BaritoneFacade {
 
   private static Object getSettingObject(String fieldName) throws IllegalAccessException {
     Field f = SETTINGS_FIELDS.get(fieldName);
-    if (f == null) throw new IllegalStateException("Unknown setting field: " + fieldName);
+    if (f == null) {
+      throw new IllegalStateException("Unknown setting field: " + fieldName);
+    }
     return f.get(settingsInstance);
   }
 

@@ -9,7 +9,9 @@ public final class SoulFleeRegistry {
   private SoulFleeRegistry() {}
 
   public static void register(SoulFleeHandler handler) {
-    if (handler != null) HANDLERS.add(handler);
+    if (handler != null) {
+      HANDLERS.add(handler);
+    }
   }
 
   public static void unregister(SoulFleeHandler handler) {
@@ -19,7 +21,9 @@ public final class SoulFleeRegistry {
   public static boolean tryFlee(FleeContext ctx) {
     for (SoulFleeHandler h : HANDLERS) {
       try {
-        if (h.tryFlee(ctx)) return true;
+        if (h.tryFlee(ctx)) {
+          return true;
+        }
       } catch (Throwable t) {
         net.tigereye.chestcavity.soul.util.SoulLog.error("[soul][flee] handler threw", t);
       }

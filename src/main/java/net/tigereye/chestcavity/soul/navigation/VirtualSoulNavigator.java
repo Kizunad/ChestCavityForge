@@ -385,7 +385,9 @@ final class VirtualSoulNavigator implements ISoulNavigator {
   private void syncSpeedFromSoul(SoulPlayer soul) {
     AttributeInstance s = soul.getAttribute(Attributes.MOVEMENT_SPEED);
     AttributeInstance d = this.dummy.getAttribute(Attributes.MOVEMENT_SPEED);
-    if (s == null || d == null) return;
+    if (s == null || d == null) {
+      return;
+    }
     double v = s.getValue(); // final value including effects and equipment
     if (Math.abs(d.getBaseValue() - v) > 1e-4) {
       d.setBaseValue(v);
@@ -403,7 +405,9 @@ final class VirtualSoulNavigator implements ISoulNavigator {
   }
 
   private Mode selectNavFor(SoulPlayer soul) {
-    if (this.target == null) return Mode.GROUND;
+    if (this.target == null) {
+      return Mode.GROUND;
+    }
     // FLY when abilities report flying (granted via organ or command)
     if (soul.getAbilities().flying) {
       this.navCurrent.stop();
@@ -439,8 +443,12 @@ final class VirtualSoulNavigator implements ISoulNavigator {
     String v = System.getProperty("chestcavity.soul.runMultiplier", "1.3");
     try {
       double d = Double.parseDouble(v);
-      if (d < 1.0) d = 1.0; // 不低于行走速度
-      if (d > 2.0) d = 2.0; // 避免过高
+      if (d < 1.0) {
+        d = 1.0; // 不低于行走速度
+      }
+      if (d > 2.0) {
+        d = 2.0; // 避免过高
+      }
       return d;
     } catch (NumberFormatException e) {
       return 1.3;

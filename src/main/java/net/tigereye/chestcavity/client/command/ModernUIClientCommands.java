@@ -64,7 +64,9 @@ public final class ModernUIClientCommands {
                                           ctx, "itemId");
                                   ResourceLocation id = ResourceLocation.parse(idStr);
                                   var opt = BuiltInRegistries.ITEM.getOptional(id);
-                                  if (opt.isEmpty()) return 0;
+                                  if (opt.isEmpty()) {
+                                    return 0;
+                                  }
                                   Item item = opt.get();
                                   net.tigereye.chestcavity.client.ui.ReminderToast.showItem(
                                       "ModernUI Toast",
@@ -120,7 +122,9 @@ public final class ModernUIClientCommands {
                                           ctx, "itemId");
                                   ResourceLocation id = ResourceLocation.parse(idStr);
                                   var opt = BuiltInRegistries.ITEM.getOptional(id);
-                                  if (opt.isEmpty()) return 0;
+                                  if (opt.isEmpty()) {
+                                    return 0;
+                                  }
                                   Item item = opt.get();
                                   net.tigereye.chestcavity.client.hud.TestHudOverlay.setItemIcon(
                                       new ItemStack(item));

@@ -23,11 +23,17 @@ public final class SoulMessenger {
   private static final Map<UUID, Long> LAST_FLEE_SENT = new ConcurrentHashMap<>();
 
   public static void sendToOwner(SoulPlayer soul, String content, String context) {
-    if (!MSG_ENABLED) return;
+    if (!MSG_ENABLED) {
+      return;
+    }
     var ownerIdOpt = soul.getOwnerId();
-    if (ownerIdOpt.isEmpty()) return;
+    if (ownerIdOpt.isEmpty()) {
+      return;
+    }
     ServerPlayer owner = soul.serverLevel().getServer().getPlayerList().getPlayer(ownerIdOpt.get());
-    if (owner == null) return; // owner offline
+    if (owner == null) {
+      return; // owner offline
+    }
     String name = SoulIdentityViews.resolveDisplayName(owner, soul.getSoulId());
     String ctx = (context == null || context.isBlank()) ? "" : " (" + context + ")";
     Component line = Component.literal("[soul] [分魂] " + name + " : " + content + ctx);
@@ -36,7 +42,9 @@ public final class SoulMessenger {
 
   /** Convenience: send a "fleeing" cry for help with basic cooldown. */
   public static void sendFleeing(SoulPlayer soul) {
-    if (!MSG_ENABLED || !FLEE_MSG_ENABLED) return;
+    if (!MSG_ENABLED || !FLEE_MSG_ENABLED) {
+      return;
+    }
     long now = soul.serverLevel().getGameTime();
     UUID id = soul.getUUID();
     long last = LAST_FLEE_SENT.getOrDefault(id, Long.MIN_VALUE);
@@ -49,17 +57,25 @@ public final class SoulMessenger {
 
   private static boolean getBoolProp(String key, boolean def) {
     String v = System.getProperty(key);
-    if (v == null) return def;
+    if (v == null) {
+      return def;
+    }
     return v.equalsIgnoreCase("true") || v.equalsIgnoreCase("1") || v.equalsIgnoreCase("yes");
   }
 
   private static long getLongProp(String key, long def, long lo, long hi) {
     try {
       String v = System.getProperty(key);
-      if (v == null) return def;
+      if (v == null) {
+        return def;
+      }
       long x = Long.parseLong(v);
-      if (x < lo) return lo;
-      if (x > hi) return hi;
+      if (x < lo) {
+        return lo;
+      }
+      if (x > hi) {
+        return hi;
+      }
       return x;
     } catch (Throwable ignored) {
       return def;

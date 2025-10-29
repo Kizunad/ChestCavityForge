@@ -26,7 +26,9 @@ public final class CountdownOps {
       ItemStack icon,
       String title,
       String subtitle) {
-    if (level == null || player == null || ticks <= 0) return;
+    if (level == null || player == null || ticks <= 0) {
+      return;
+    }
     TickOps.schedule(level, () -> sendToast(player, icon, title, subtitle), ticks);
   }
 

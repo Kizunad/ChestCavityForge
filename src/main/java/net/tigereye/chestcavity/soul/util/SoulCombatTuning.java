@@ -12,7 +12,9 @@ public final class SoulCombatTuning {
 
   public static float guardHpRatio() {
     String v = System.getProperty(KEY_GUARD_HP_RATIO);
-    if (v == null) return DEFAULT_GUARD_HP_RATIO;
+    if (v == null) {
+      return DEFAULT_GUARD_HP_RATIO;
+    }
     try {
       return Math.max(0.5f, Float.parseFloat(v));
     } catch (NumberFormatException e) {

@@ -34,7 +34,9 @@ public final class SoulAIOrders {
 
   /** 将指令写入容器并同步持久化。 */
   public static void set(ServerPlayer owner, UUID soulId, Order order, String reason) {
-    if (order == null) order = Order.IDLE;
+    if (order == null) {
+      order = Order.IDLE;
+    }
     SoulContainer c = CCAttachments.getSoulContainer(owner);
     c.setOrder(owner, soulId, order, reason);
   }
@@ -47,7 +49,9 @@ public final class SoulAIOrders {
 
   /** 写入临时缓存中的指令。 */
   public static void set(UUID soulId, Order order) {
-    if (order == null) order = Order.IDLE;
+    if (order == null) {
+      order = Order.IDLE;
+    }
     EPHEMERAL.put(soulId, order);
   }
 

@@ -46,16 +46,26 @@ public record IfItemUseAction(
   @Override
   public void execute(GuScriptContext context) {
     Player performer = context.performer();
-    if (performer == null || performer.level().isClientSide()) return;
-    if (itemId == null || actions == null || actions.isEmpty()) return;
+    if (performer == null || performer.level().isClientSide()) {
+      return;
+    }
+    if (itemId == null || actions == null || actions.isEmpty()) {
+      return;
+    }
 
     Item item = BuiltInRegistries.ITEM.get(itemId);
-    if (item == null) return;
-    if (performer.getCooldowns().isOnCooldown(item)) return;
+    if (item == null) {
+      return;
+    }
+    if (performer.getCooldowns().isOnCooldown(item)) {
+      return;
+    }
 
     // 1) Choose hand/slot
     Pair<InteractionHand, Integer> choice = chooseHandAndSlot(performer, item, preferOffhand);
-    if (choice == null) return;
+    if (choice == null) {
+      return;
+    }
 
     InteractionHand hand = choice.getFirst();
     Integer slot = choice.getSecond();
@@ -73,7 +83,9 @@ public record IfItemUseAction(
       // Selection may have changed; try to re-resolve once from the target hand
       stack = performer.getItemInHand(hand);
       if (stack.isEmpty() || stack.getItem() != item) {
-        if (switched) performer.getInventory().selected = originalSelected;
+        if (switched) {
+          performer.getInventory().selected = originalSelected;
+        }
         return;
       }
     }
@@ -82,7 +94,9 @@ public record IfItemUseAction(
     boolean consumed = type.consumesAction() || type == InteractionResult.SUCCESS;
     if (!consumed) {
       // Revert selection if we changed it and failed
-      if (switched) performer.getInventory().selected = originalSelected;
+      if (switched) {
+        performer.getInventory().selected = originalSelected;
+      }
       return;
     }
 
@@ -97,10 +111,14 @@ public record IfItemUseAction(
 
     // 3) Apply cooldown like ender pearl
     int cd = Math.max(0, cooldownTicks);
-    if (cd > 0) performer.getCooldowns().addCooldown(item, cd);
+    if (cd > 0) {
+      performer.getCooldowns().addCooldown(item, cd);
+    }
 
     // 4) Run nested actions after a successful use
-    for (Action a : actions) a.execute(context);
+    for (Action a : actions) {
+      a.execute(context);
+    }
   }
 
   private static Pair<InteractionHand, Integer> chooseHandAndSlot(

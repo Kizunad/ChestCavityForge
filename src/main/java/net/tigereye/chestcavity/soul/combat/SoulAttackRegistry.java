@@ -12,7 +12,9 @@ public final class SoulAttackRegistry {
   private SoulAttackRegistry() {}
 
   public static void register(SoulAttackHandler handler) {
-    if (handler != null) HANDLERS.add(handler);
+    if (handler != null) {
+      HANDLERS.add(handler);
+    }
   }
 
   public static void unregister(SoulAttackHandler handler) {

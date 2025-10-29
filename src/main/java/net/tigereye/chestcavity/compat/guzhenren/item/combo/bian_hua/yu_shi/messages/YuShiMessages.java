@@ -7,11 +7,15 @@ public final class YuShiMessages {
   private YuShiMessages() {}
 
   public static void failure(ServerPlayer p, String text) {
-    if (p != null) p.displayClientMessage(Component.literal(text), true);
+    if (p != null) {
+      p.displayClientMessage(Component.literal(text), true);
+    }
   }
 
   public static void action(ServerPlayer p, String text) {
-    if (p != null) p.displayClientMessage(Component.literal(text), true);
+    if (p != null) {
+      p.displayClientMessage(Component.literal(text), true);
+    }
   }
 }
 
