@@ -3,6 +3,7 @@
   "title": "[变化道 杀招]五行归变",
   "summary": "将金/木/水/炎/土道道痕转化成变化道道痕，支持暂时与永久两种模式。",
   "iconTexture": "guzhenren:textures/skill/wuxing_gui_bian.png",
+  "icon": "guzhenren:yin_yang_zhuan_shen_gu",
   "details": [
     "[前置] 必须同时具备虹变蛊与阴阳转身蛊；配备五行锚点（肺/肝/肾/心/脾）可逐个降低税率。",
     "[模式] 暂时模式：20秒后自动返还原道痕（不收税）；永久模式：按锚点数量与阴/阳身收取2%~8%税。",

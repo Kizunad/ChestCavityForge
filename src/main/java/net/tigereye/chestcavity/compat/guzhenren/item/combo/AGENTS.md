@@ -1,39 +1,78 @@
 # 组合杀招（Combo）规范与最佳实践
 
-目标：为“变化道”及其他家族的组合杀招提供一致的、可测试、可维护的工程结构。所有新建/迁移的 combo 均应遵循本文约定。
+**目标**：为“变化道”及其他家族的组合杀招提供一致的、可测试、可维护的工程结构。所有新建/迁移的 combo 均应遵循本文约定。
 
-目录约定（按技能归档）
-- `compat/guzhenren/item/combo/<family>/<skill>/`
-  - `behavior/` 行为入口（对接 OrganActivationListeners、资源/冷却、目标选择、FX 调用）
-  - `calculator/` 纯函数计算（参数、范围、阈值、联动系数），必须可单元测试
-  - `runtime/` 运行时服务（冷却协调、跨 tick 状态机等）
-  - `tuning/` 参数表与动态调优（常量、阈值、Icon 声明等）
-  - `messages/` 玩家提示与文案（文本拼接集中化，便于本地化）
-  - `fx/` 客户端/服务端 FX（粒子、音效、可见化路径）
-  - `state/` 附加器/数据结构（例如最近一次配置、撤销窗口、召唤物追踪）
+---
 
-行为约定
-- 注册：通过 `ActivationBootstrap.register` 懒加载；`ComboSkillRegistry` 中仅登记技能元数据与初始化器。
-- 资源/冷却：统一使用 `ResourceOps` + `MultiCooldown`，冷却挂在“承载器官”的 OrganState 下，配合 `ComboSkillRegistry.scheduleReadyToast` 显示就绪提示。
-- 选择/判定：在 `calculator/` 提供纯函数（如锥形判定、强度参数计算）供行为层调用；行为层不写复杂数学。
-- 联动：通过 tooltip 流派或器官清单统计，转换为“可选协同计数/结构”，再交由 `calculator/` 计算最终系数。
-- 无掉落：召唤类统一打 `NoDropEvents` 标签，避免战利品/经验污染。
+## 完整开发流程
 
-测试约定
-- 单元测试位置：`src/test/java/**/combo/**`，优先覆盖 `calculator/` 中的纯函数；不 mock 核心 Minecraft 类型（见 docs/TESTING.md 限制）。
+开发一个新的组合杀招应严格遵循以下步骤，确保代码质量、可维护性和一致性。
 
-示例：变化道 · 鱼群 / 饵祭召鲨
-- `compat/guzhenren/item/combo/bian_hua/yu_qun/behavior/YuQunComboBehavior.java` 行为入口
-- `compat/guzhenren/item/combo/bian_hua/yu_qun/calculator/YuQunComboLogic.java` 纯函数
-- `compat/guzhenren/item/combo/bian_hua/yu_shi/behavior/YuShiSummonComboBehavior.java` 行为入口
-- `compat/guzhenren/item/combo/bian_hua/yu_shi/calculator/YuShiSummonComboLogic.java` 纯函数
+### 步骤 1：创建目录结构
+在 `compat/guzhenren/item/combo/<family>/<skill>/` 路径下，为新技能创建标准目录结构：
+- `behavior/`: 核心行为逻辑
+- `calculator/`: 纯函数计算模块
+- `tuning/`: 平衡性与数值常量
+- `messages/`: 玩家反馈文本
+- `fx/`: 粒子与音效
+- `state/`: (可选) 技能状态存储
+- `runtime/`: (可选) 跨 tick 运行时服务
 
-迁移策略
-1) 先落 `calculator/` + 单测，确保逻辑可验证；
-2) 再实现 `behavior/`，接入 `ResourceOps/MultiCooldown`；
-3) 需要时补 `fx/messages/runtime/state/tuning`；
-4) `ComboSkillRegistry` 使用新包路径的初始化器，避免早期类加载。
+### 步骤 2：核心逻辑与单元测试 (TDD)
+1.  **编写计算逻辑**: 在 `calculator/` 目录下创建 `...Calculator.java`。此类必须只包含纯函数（static methods），负责所有数值计算，如伤害、范围、持续时间等。
+2.  **编写单元测试**: 在 `src/test/java/...` 对应路径下创建 `...CalculatorTest.java`。
+    -   使用 JUnit 5 和 AssertJ 进行断言。
+    -   为每个计算方法编写多个测试用例，覆盖边界条件（如0、负值、最大值）。
+    -   遵循 `Arrange-Act-Assert` 模式。
+    -   这是**强制步骤**，确保核心算法的正确性。
 
-命名与日志
-- 类名以 `Behavior/Logic/Tuning/Fx/Messages/Runtime` 收尾；
-- 日志维持安静（INFO 以下），失败提示走 `messages/` 拼装。
+### 步骤 3：定义参数、文案与效果
+1.  **参数 (`tuning/`)**: 创建 `...Tuning.java`，将所有魔法数字（如冷却时间、资源消耗、效果强度）定义为公开静态常量。
+2.  **文案 (`messages/`)**: 创建 `...Messages.java`，将所有给玩家看的信息（如成功、失败、提示）定义为字符串常量和静态方法。
+3.  **效果 (`fx/`)**: 创建 `...Fx.java`，将所有粒子效果和音效的播放逻辑封装在静态方法中。
+
+### 步骤 4：组装行为逻辑
+1.  **创建行为类**: 在 `behavior/` 目录下创建 `...Behavior.java`。
+2.  **实现 `initialize()`**: 创建一个 `public static void initialize()` 方法，用于在 `ComboSkillRegistry` 中注册技能的激活监听器。
+3.  **实现 `activate()`**: 创建一个 `private static void activate(...)` 方法，作为技能的入口。
+    -   **前置检查**: 检查冷却、资源等条件。
+    -   **调用计算**: 从 `...Calculator` 获取计算结果。
+    -   **执行逻辑**: 调用 `...Fx` 播放效果，`...Messages` 发送消息。
+    -   **设置冷却**: 使用 `MultiCooldown` 设置技能冷却。
+    -   **发送Toast**: **必须**调用 `ComboSkillRegistry.scheduleReadyToast()` 来安排冷却完成提示。
+
+### 步骤 5：注册技能与文档
+1.  **注册技能**: 打开 `src/main/java/net/tigereye/chestcavity/skill/ComboSkillRegistry.java`。
+    -   在 `bootstrap()` 方法中，调用 `register()` 方法。
+    -   填写所有必要信息：技能ID、显示名称、**图标路径 (iconLocation)**、必需器官、可选器官/流派、分类、描述等。
+    -   在 `initializer` 参数中，传入 `...Behavior::initialize`。
+2.  **编写文档**: 在 `src/main/resources/assets/guzhenren/docs/combo/` 目录下创建对应的 `...json` 文件。
+    -   **`id`**: 技能ID，必须与注册表中的一致。
+    -   **`title`**: 技能的完整标题（例如 “杀招·太极错位”）。
+    -   **`summary`**: 一句话总结技能效果。
+    -   **`details`**: 详细描述技能的效果、消耗、冷却和需求。
+    -   **`icon`**: 作为图标的**物品ID**（例如 `guzhenren:yin_yang_zhuan_shen_gu`）。
+    -   **`iconTexture`**: 指向技能图标**纹理的文件路径**（例如 `guzhenren:textures/skill/yin_yang_tai_ji_swap.png`）。
+
+### 步骤 6：最终验证
+1.  运行 `./gradlew build` 或 `./gradlew check` 命令。
+2.  确保编译通过，并且没有引入新的 Checkstyle 警告。
+3.  运行 `./gradlew test` 确保所有单元测试（包括你为新技能编写的）都能通过。
+
+---
+
+## 行为约定
+- **注册**: 技能的 `...Behavior.java` 必须提供一个 `public static void initialize()` 方法，通过 `ActivationBootstrap.register` 懒加载激活逻辑。
+- **资源/冷却**:
+  - 统一使用 `ComboSkillUtil.tryPayCost()` 处理资源消耗。
+  - 统一使用 `MultiCooldown` 管理冷却，冷却状态应挂在核心承载器官的 `OrganState` 下。
+  - 必须调用 `ComboSkillRegistry.scheduleReadyToast()` 来显示冷却就绪提示。
+- **命名与日志**:
+  - 类名严格以 `Behavior`, `Calculator`, `Tuning`, `Fx`, `Messages` 等后缀结尾。
+  - 日志保持安静（INFO 以下），所有玩家反馈通过 `...Messages` 类处理。
+
+---
+
+## 示例
+- **阴阳转身蛊系列**: `compat/guzhenren/item/combo/bian_hua/yin_yang/`
+- **兽皮蛊系列**: `compat/guzhenren/item/combo/bian_hua/shou_pi/`

@@ -3,6 +3,7 @@
   "title": "[变化道 杀招]五行化痕",
   "summary": "将变化道痕转化为金/木/水/炎/土道痕，支持比例与固定模式。",
   "iconTexture": "guzhenren:textures/skill/wuxing_hua_hen.png",
+  "icon": "guzhenren:yin_yang_zhuan_shen_gu",
   "details": [
     "[前置] 必须同时具备虹变蛊与阴阳转身蛊；配备五行锚点（肺/肝/肾/心/脾）可逐个降低税率。",
     "[效果] 消耗变化道痕并依设定产出金/木/水/炎/土道痕。",
