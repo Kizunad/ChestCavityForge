@@ -637,9 +637,12 @@ public final class ComboSkillRegistry {
       equippedOptional += countFlowMatches(cc, player.level(), entry.optionalFlows());
     }
 
-    // 必需器官全部装备 且 至少有一个可选器官
+    // 必需器官全部装备；若配置有可选协同，则至少需要装备一个
     int totalOptional = entry.optionalOrgans().size() + entry.optionalFlows().size();
-    boolean canActivate = (equippedRequired == entry.requiredOrgans().size()) && (equippedOptional > 0);
+    boolean hasOptionalRequirement = totalOptional > 0;
+    boolean canActivate =
+        equippedRequired == entry.requiredOrgans().size()
+            && (!hasOptionalRequirement || equippedOptional > 0);
 
     return new OrganCheckResult(
         canActivate,
