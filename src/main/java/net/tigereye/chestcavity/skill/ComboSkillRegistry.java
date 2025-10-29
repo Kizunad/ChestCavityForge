@@ -24,6 +24,10 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.rol
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.behavior.ShouPiStoicReleaseBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.behavior.DualStrikeBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.recall.behavior.RecallBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.tai_ji_swap.behavior.TaiJiSwapBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.behavior.TransferBehavior;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.CountdownOps;
@@ -363,6 +367,79 @@ public final class ComboSkillRegistry {
         "compat/guzhenren/item/combo/bian_hua/wuxing/hua_hen/WuxingHuaHenBehavior.java",
         () -> {
           Object unused = WuxingHuaHenBehavior.INSTANCE;
+        },
+        null);
+
+    // 阴阳转身蛊组合杀招
+    register(
+        "guzhenren:yin_yang_tai_ji_swap",
+        "太极错位",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/ying_yang_zhuan_sheng_tai_ji_swap.png"),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu")),
+        List.of(),
+        "变化道杀招",
+        "位移",
+        "与另一形态上次所在的位置瞬移互换，并获得短暂无敌。是集机动与保命于一体的核心位移技能。",
+        tags("变化道", "位移", "保命", "阴阳"),
+        "compat/guzhenren/item/combo/bian_hua/yin_yang/tai_ji_swap/behavior/TaiJiSwapBehavior.java",
+        () -> {
+          TaiJiSwapBehavior.initialize();
+        },
+        null);
+
+    register(
+        "guzhenren:yin_yang_dual_strike",
+        "两界同击",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/ying_yang_zhuan_sheng_dual_strike.png"),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu")),
+        List.of(),
+        "变化道杀招",
+        "爆发",
+        "短时间内用阴阳双身连续攻击同一目标，引爆毁灭性的投影伤害。",
+        tags("变化道", "爆发", "输出", "阴阳"),
+        "compat/guzhenren/item/combo/bian_hua/yin_yang/dual_strike/behavior/DualStrikeBehavior.java",
+        () -> {
+          DualStrikeBehavior.initialize();
+        },
+        null);
+
+    register(
+        "guzhenren:yin_yang_transfer",
+        "阴阳互渡",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/ying_yang_zhuan_sheng_transfer.png"),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu")),
+        List.of(),
+        "变化道杀招",
+        "资源管理",
+        "在双形态的资源池之间转移30%的资源，实现灵活的战术续航。",
+        tags("变化道", "资源管理", "续航", "阴阳"),
+        "compat/guzhenren/item/combo/bian_hua/yin_yang/transfer/behavior/TransferBehavior.java",
+        () -> {
+          TransferBehavior.initialize();
+        },
+        null);
+
+    register(
+        "guzhenren:yin_yang_recall",
+        "归位",
+        ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/ying_yang_zhuan_sheng_recall.png"),
+        List.of(
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "yin_yang_zhuan_shen_gu"),
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "hongbiangu")),
+        List.of(),
+        "变化道杀招",
+        "保命",
+        "瞬移至另一形态的锚点，并清除仇恨，是绝境逢生的关键。",
+        tags("变化道", "位移", "保命", "阴阳", "传送"),
+        "compat/guzhenren/item/combo/bian_hua/yin_yang/recall/behavior/RecallBehavior.java",
+        () -> {
+          RecallBehavior.initialize();
         },
         null);
 

@@ -1,0 +1,20 @@
+{
+  "id": "guzhenren:yin_yang_transfer",
+  "title": "[变化到 杀招]杀招·阴阳互渡",
+  "summary": "阴阳转身蛊核心资源调配杀招。在双形态的资源池之间转移资源，实现灵活的战术续航。",
+  "details": [
+    "[效果] 将当前形态30%的各类资源（真元、精力、魂魄、念头）转移到另一形态的储备中。",
+    "[效果] 资源不足的类别将被跳过。",
+    "[消耗] 60真元, 6念头",
+    "[冷却] 40秒",
+    "[需求] 阴阳转身蛊, 虹变蛊"
+  ],
+  "tags": [
+    "变化道",
+    "资源管理",
+    "续航",
+    "阴阳"
+  ],
+  "icon": "guzhenren:yin_yang_zhuan_shen_gu",
+  "iconTexture": "guzhenren:textures/skill/ying_yang_zhuan_sheng_transfer.png"
+}

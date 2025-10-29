@@ -1,0 +1,21 @@
+{
+  "id": "guzhenren:yin_yang_tai_ji_swap",
+  "title": "[变化到 杀招]杀招·太极错位",
+  "summary": "阴阳转身蛊核心位移杀招。与另一形态的锚点互换位置，提供顶级的机动力与生存能力。",
+  "details": [
+    "[效果] 与另一形态的锚点瞬移互换位置，并记录新的锚点。",
+    "[效果] 成功传送后获得短暂的无敌效果，以及3秒的摔落、碰撞伤害减免。",
+    "[效果] 若在2秒的窗口内连续施展，冷却时间减半，但会失去无敌效果。",
+    "[消耗] 80真元, 8精力, 3念头",
+    "[冷却] 25秒",
+    "[需求] 阴阳转身蛊, 虹变蛊"
+  ],
+  "tags": [
+    "变化道",
+    "位移",
+    "保命",
+    "阴阳"
+  ],
+  "icon": "guzhenren:yin_yang_zhuan_shen_gu",
+  "iconTexture": "guzhenren:textures/skill/ying_yang_zhuan_sheng_tai_ji_swap.png"
+}

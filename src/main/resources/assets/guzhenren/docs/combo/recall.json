@@ -1,0 +1,22 @@
+{
+  "id": "guzhenren:yin_yang_recall",
+  "title": "[变化到 杀招]杀招·归位",
+  "summary": "阴阳转身蛊终极保命杀招。瞬移至另一形态的锚点，并清除仇恨，是绝境逢生的关键。",
+  "details": [
+    "[效果] 瞬间传送回另一形态的锚点位置。",
+    "[效果] 传送后清除周围8格内所有以你为目标的敌人的仇恨。",
+    "[效果] 若在低生命值（<20%）时使用，会获得2秒的伤害抗性II效果。",
+    "[消耗] 70真元, 5精力",
+    "[冷却] 45秒",
+    "[需求] 阴阳转身蛊, 虹变蛊"
+  ],
+  "tags": [
+    "变化道",
+    "位移",
+    "保命",
+    "阴阳",
+    "传送"
+  ],
+  "icon": "guzhenren:yin_yang_zhuan_shen_gu",
+  "iconTexture": "guzhenren:textures/skill/ying_yang_zhuan_sheng_recall.png"
+}
