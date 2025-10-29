@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.registration;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +24,37 @@ public final class GuzhenrenFlowActivationHooks {
 
   private static final CopyOnWriteArrayList<ActivationFlowListener> LISTENERS =
       new CopyOnWriteArrayList<>();
+
+  private static final Map<String, String> FLOW_EXPERIENCE_FIELDS =
+      Map.ofEntries(
+          Map.entry("bianha_dao", "liupai_bianhuadao"),
+          Map.entry("bing_xue_dao", "liupai_bingxuedao"),
+          Map.entry("du_dao", "liupai_dudao"),
+          Map.entry("feng_dao", "liupai_fengdao"),
+          Map.entry("gu_dao", "liupai_gudao"),
+          Map.entry("guang_dao", "liupai_guangdao"),
+          Map.entry("hun_dao", "liupai_hundao"),
+          Map.entry("huo_dao", "liupai_yandao"),
+          Map.entry("jin_dao", "liupai_jindao"),
+          Map.entry("li_dao", "liupai_lidao"),
+          Map.entry("lian_dao", "liupai_liandao"),
+          Map.entry("lv_dao", "liupai_lvdao"),
+          Map.entry("mu_dao", "liupai_mudao"),
+          Map.entry("nu_dao", "liupai_nudao"),
+          Map.entry("ren_dao", "liupai_rendao"),
+          Map.entry("shi_dao", "liupai_shidao"),
+          Map.entry("shui_dao", "liupai_shuidao"),
+          Map.entry("tian_dao", "liupai_tiandao"),
+          Map.entry("tou_dao", "liupai_toudao"),
+          Map.entry("tu_dao", "liupai_tudao"),
+          Map.entry("xin_dao", "liupai_xindao"),
+          Map.entry("xing_dao", "liupai_xingdao"),
+          Map.entry("xue_dao", "liupai_xuedao"),
+          Map.entry("ying_dao", "liupai_yingdao"),
+          Map.entry("yu_dao", "liupai_yudao"),
+          Map.entry("yue_dao", "liupai_yuedao"),
+          Map.entry("zhi_dao", "liupai_zhidao"),
+          Map.entry("zhou_dao", "liupai_zhoudao"));
 
   private GuzhenrenFlowActivationHooks() {}
 
@@ -64,6 +97,7 @@ public final class GuzhenrenFlowActivationHooks {
 
     ImmutableList<GuzhenrenFlowTooltipResolver.FlowInfo> itemFlows = collectInventoryFlows(cc);
     ImmutableSet<String> distinctFlows = collectDistinctFlows(itemFlows);
+    grantFlowExperience(player, itemFlows);
     ActivationFlowSnapshot snapshot =
         new ActivationFlowSnapshot(player, skillId, cc, entry, itemFlows, distinctFlows);
 
@@ -118,6 +152,26 @@ public final class GuzhenrenFlowActivationHooks {
       distinct.addAll(info.flows());
     }
     return ImmutableSet.copyOf(distinct);
+  }
+
+  private static void grantFlowExperience(
+      @Nullable ServerPlayer player, List<GuzhenrenFlowTooltipResolver.FlowInfo> itemFlows) {
+    if (player == null || player.level().isClientSide() || itemFlows == null) {
+      return;
+    }
+    GuzhenrenResourceBridge.open(player)
+        .ifPresent(
+            handle -> {
+              for (GuzhenrenFlowTooltipResolver.FlowInfo info : itemFlows) {
+                for (String flowKey : info.flows()) {
+                  String liupaiField = FLOW_EXPERIENCE_FIELDS.get(flowKey);
+                  if (liupaiField == null) {
+                    continue;
+                  }
+                  handle.adjustDouble(liupaiField, 1.0D, true);
+                }
+              }
+            });
   }
 
   /**
