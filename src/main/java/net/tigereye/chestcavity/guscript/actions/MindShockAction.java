@@ -43,6 +43,9 @@ public record MindShockAction(double damage, double range) implements Action {
     return "心灵冲击 " + damage + " (range=" + range + ")";
   }
 
+  /**
+   * Executes the action.
+   */
   @Override
   public void execute(GuScriptContext context) {
     Player performer = context.performer();

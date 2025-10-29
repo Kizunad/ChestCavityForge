@@ -6,12 +6,21 @@ import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 /**
+ * Action to adjust Guzhenren resource.
  * Adjusts a Guzhenren resource (e.g., zhenyuan/jingli) by a signed amount. Positive increases,
  * negative consumes. No-op for non-players or missing attachments.
  */
-public record AdjustGuzhenrenResourceAction(String identifier, double amount) implements Action {
+public class AdjustGuzhenrenResourceAction implements Action {
 
   public static final String ID = "guzhenren.adjust";
+
+  private final String identifier;
+  private final double amount;
+
+  public AdjustGuzhenrenResourceAction(String identifier, double amount) {
+    this.identifier = identifier;
+    this.amount = amount;
+  }
 
   @Override
   public String id() {

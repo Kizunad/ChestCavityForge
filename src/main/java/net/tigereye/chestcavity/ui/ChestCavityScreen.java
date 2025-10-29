@@ -6,7 +6,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
-/** A screen for the chest cavity. */
+/**
+ * The screen for the chest cavity GUI.
+ */
 public class ChestCavityScreen extends AbstractContainerScreen<ChestCavityScreenHandler> {
   private static final ResourceLocation TEXTURE =
       ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");

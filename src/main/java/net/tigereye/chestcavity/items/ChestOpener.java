@@ -26,7 +26,9 @@ import net.tigereye.chestcavity.registration.CCOrganScores;
 import net.tigereye.chestcavity.ui.ChestCavityScreenHandler;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 
-/** An item that can be used to open a chest cavity. */
+/**
+ * The chest opener item.
+ */
 public class ChestOpener extends Item {
 
   /** Creates a new ChestOpener. */
@@ -44,6 +46,15 @@ public class ChestOpener extends Item {
     }
   }
 
+  /**
+   * Opens the chest cavity of a target entity.
+   *
+   * @param stack the item stack
+   * @param target the target entity
+   * @param attacker the attacking entity
+   * @param hand the hand used
+   * @return the interaction result
+   */
   @Override
   public InteractionResult interactLivingEntity(
       ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
@@ -57,19 +68,6 @@ public class ChestOpener extends Item {
    *
    * @param player The player opening the chest cavity.
    * @param target The target whose chest cavity is being opened.
-   * @return Whether the chest cavity was opened.
-   */
-  public boolean openChestCavity(Player player, LivingEntity target) {
-    return openChestCavity(player, target, true);
-  }
-
-  /**
-   * Opens the chest cavity of the target.
-   *
-   * @param player The player opening the chest cavity.
-   * @param target The target whose chest cavity is being opened.
-   * @param shouldKnockback Whether the target should be knocked back.
-   * @return Whether the chest cavity was opened.
    */
   public boolean openChestCavity(Player player, LivingEntity target, boolean shouldKnockback) {
     Optional<ChestCavityEntity> optional = ChestCavityEntity.of(target);

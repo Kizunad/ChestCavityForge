@@ -43,6 +43,11 @@ public final class GuScriptFlowLoader extends SimpleJsonResourceReloadListener {
     super(GSON, "guscript/flows");
   }
 
+  /**
+   * Loads GuScript flows.
+   */
+  public static void load() {}
+
   @Override
   protected void apply(
       Map<ResourceLocation, JsonElement> object,

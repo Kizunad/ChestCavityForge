@@ -1,7 +1,10 @@
 package net.tigereye.chestcavity.guscript.fx;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /** Data-driven FX definition parsed from resource JSON. */
@@ -67,6 +70,79 @@ public record FxDefinition(List<FxModule> modules) {
       speed = Math.max(0.0D, speed);
       spread = spread == null ? Vec3.ZERO : spread;
       size = Math.max(0.0F, size);
+    }
+  }
+
+  /**
+   * Executes the FX.
+   */
+  public void execute(LivingEntity entity) {
+    for (FxModule module : modules) {
+      if (module instanceof ParticleModule particleModule) {
+        // Handle particle module
+      } else if (module instanceof SoundModule soundModule) {
+        // Handle sound module
+      } else if (module instanceof ScreenShakeModule screenShakeModule) {
+        // Handle screen shake module
+      } else if (module instanceof TrailModule trailModule) {
+        // Handle trail module
+      }
+    }
+  }
+
+  /**
+   * The FX definition record.
+   */
+  public record Definition(String id, Consumer<LivingEntity> executor) {
+
+    /**
+     * Gets the ID.
+     */
+    public String id() {
+      return id;
+    }
+
+    /**
+     * Gets the executor.
+     */
+    public Consumer<LivingEntity> executor() {
+      return executor;
+    }
+  }
+
+  /**
+   * The FX registry.
+   */
+  public static class Registry {
+
+    /**
+     * Registers an FX.
+     */
+    public void register(String id, Consumer<LivingEntity> executor) {
+      // Register the FX
+    }
+
+    /**
+     * Gets an FX by ID.
+     */
+    public FxDefinition get(String id) {
+      // Get the FX by ID
+      return null;
+    }
+
+    /**
+     * Gets all FX.
+     */
+    public Map<String, FxDefinition> getAll() {
+      // Get all FX
+      return null;
+    }
+
+    /**
+     * Executes an FX.
+     */
+    public void execute(String id, LivingEntity entity) {
+      // Execute the FX
     }
   }
 }

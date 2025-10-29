@@ -33,6 +33,9 @@ public final class EmitFailFxAction implements Action {
     return "Emit Hun Shou Hua failure FX";
   }
 
+  /**
+   * Executes the action.
+   */
   @Override
   public void execute(GuScriptContext context) {
     if (context == null || context.bridge() == null) {
@@ -44,5 +47,19 @@ public final class EmitFailFxAction implements Action {
             fxId,
             new FxEventParameters(
                 net.minecraft.world.phys.Vec3.ZERO, net.minecraft.world.phys.Vec3.ZERO, intensity));
+  }
+
+  /**
+   * Gets the FX ID.
+   */
+  public String getFxId() {
+    return fxId.toString();
+  }
+
+  /**
+   * Gets the intensity.
+   */
+  public float getIntensity() {
+    return intensity;
   }
 }

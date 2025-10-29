@@ -29,6 +29,13 @@ public final class GuScriptLeafLoader extends SimpleJsonResourceReloadListener {
     super(GSON, "guscript/leaves");
   }
 
+  /**
+   * Loads GuScript leaves.
+   */
+  public static void load() {
+    // ...existing code...
+  }
+
   @Override
   protected void apply(
       Map<ResourceLocation, JsonElement> object,

@@ -3,6 +3,9 @@ package net.tigereye.chestcavity.guscript.actions;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 
+/**
+ * Action to consume Zhenyuan.
+ */
 public record ConsumeZhenyuanAction(int amount) implements Action {
   public static final String ID = "consume.zhenyuan";
 

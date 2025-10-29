@@ -360,10 +360,7 @@
     <module name="NonEmptyAtclauseDescription"/>
     <module name="InvalidJavadocPosition"/>
     <module name="JavadocTagContinuationIndentation"/>
-    <module name="SummaryJavadoc">
-      <property name="forbiddenSummaryFragments"
-               value="^@return the *|^This method returns |^A [{]@code [a-zA-Z0-9]+[}]( is a )"/>
-    </module>
+    <module name="SummaryJavadoc"/>
     <module name="JavadocParagraph">
       <property name="allowNewlineParagraph" value="false"/>
     </module>

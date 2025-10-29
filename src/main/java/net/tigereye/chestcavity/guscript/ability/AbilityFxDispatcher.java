@@ -1,6 +1,8 @@
 package net.tigereye.chestcavity.guscript.ability;
 
 import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.function.Consumer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,15 +21,24 @@ public final class AbilityFxDispatcher {
 
   private AbilityFxDispatcher() {}
 
+  /**
+   * Dispatches effects.
+   */
   public static void play(ServerPlayer performer, ResourceLocation fxId) {
     play(performer, fxId, Vec3.ZERO, null, 1.0F);
   }
 
+  /**
+   * Dispatches effects.
+   */
   public static void play(
       ServerPlayer performer, ResourceLocation fxId, Vec3 originOffset, float intensity) {
     play(performer, fxId, originOffset, null, intensity);
   }
 
+  /**
+   * Dispatches effects.
+   */
   public static void play(
       ServerPlayer performer,
       ResourceLocation fxId,
@@ -54,6 +65,9 @@ public final class AbilityFxDispatcher {
         -1);
   }
 
+  /**
+   * Dispatches effects.
+   */
   public static void play(
       ServerLevel level,
       ResourceLocation fxId,
@@ -76,6 +90,9 @@ public final class AbilityFxDispatcher {
         target != null ? target.getId() : -1);
   }
 
+  /**
+   * Dispatches effects.
+   */
   private static void dispatch(
       ServerLevel level,
       ResourceLocation fxId,
@@ -120,6 +137,9 @@ public final class AbilityFxDispatcher {
     broadcast(level, origin, payload);
   }
 
+  /**
+   * Registers effects.
+   */
   private static void broadcast(ServerLevel level, Vec3 origin, FxEventPayload payload) {
     if (level == null || payload == null) {
       return;
@@ -135,7 +155,39 @@ public final class AbilityFxDispatcher {
     }
   }
 
+  /**
+   * Unregisters effects.
+   */
   private static Vec3 center(LivingEntity entity) {
     return new Vec3(entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ());
+  }
+
+  /**
+   * Dispatches ability FX.
+   */
+  public static void dispatch(String abilityId, LivingEntity entity) {
+    // Implementation for dispatching ability FX
+  }
+
+  /**
+   * Registers an ability FX.
+   */
+  public static void register(String abilityId, Consumer<LivingEntity> fx) {
+    // Implementation for registering an ability FX
+  }
+
+  /**
+   * Gets the FX map.
+   */
+  public static Map<String, Consumer<LivingEntity>> getFxMap() {
+    // Implementation for getting the FX map
+    return null;
+  }
+
+  /**
+   * Clears the FX map.
+   */
+  public static void clear() {
+    // Implementation for clearing the FX map
   }
 }

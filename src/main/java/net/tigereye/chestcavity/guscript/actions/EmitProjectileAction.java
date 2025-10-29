@@ -11,26 +11,36 @@ import net.minecraft.util.Mth;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 
-public record EmitProjectileAction(
-    String projectileId, double damage, Map<String, ParameterSource> parameters) implements Action {
+/** Action to emit projectile. */
+public class EmitProjectileAction implements Action {
   public static final String ID = "emit.projectile";
+
+  private final String projectileId;
+  private final double damage;
+  private final Map<String, ParameterSource> parameters;
 
   public EmitProjectileAction(String projectileId, double damage) {
     this(projectileId, damage, Map.of());
   }
 
-  public EmitProjectileAction {
-    Objects.requireNonNull(projectileId, "projectileId");
-    if (projectileId.isBlank()) {
+  public EmitProjectileAction(
+      String projectileId, double damage, Map<String, ParameterSource> parameters) {
+    this.projectileId = Objects.requireNonNull(projectileId, "projectileId");
+    if (this.projectileId.isBlank()) {
       throw new IllegalArgumentException("projectileId must not be blank");
     }
     if (Double.isNaN(damage) || Double.isInfinite(damage)) {
       throw new IllegalArgumentException("damage must be finite");
     }
-    parameters =
-        parameters == null || parameters.isEmpty()
-            ? Map.of()
-            : Collections.unmodifiableMap(parameters);
+    this.damage = damage;
+    if (parameters == null || parameters.isEmpty()) {
+      this.parameters = Map.of();
+    } else {
+      this.parameters =
+          Collections.unmodifiableMap(parameters instanceof LinkedHashMap<?, ?>
+              ? parameters
+              : new LinkedHashMap<>(parameters));
+    }
   }
 
   @Override
@@ -43,6 +53,7 @@ public record EmitProjectileAction(
     return "发射 " + projectileId + " (伤害 " + damage + ")";
   }
 
+  /** Executes the action. */
   @Override
   public void execute(GuScriptContext context) {
     double finalDamage = context.applyDamageModifiers(damage);

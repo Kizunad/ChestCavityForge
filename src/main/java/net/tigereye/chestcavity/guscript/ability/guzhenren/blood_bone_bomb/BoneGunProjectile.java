@@ -34,11 +34,25 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
   private double effectMultiplier = 1.0;
   private float impactDamage = 10.0f;
 
+  /**
+   * Initializes the projectile.
+   */
   public BoneGunProjectile(EntityType<? extends BoneGunProjectile> type, Level level) {
     super(type, level);
     this.setNoGravity(true);
   }
 
+  /**
+   * Creates a new BoneGunProjectile.
+   */
+  public BoneGunProjectile(Level level) {
+    super(CCEntities.BONE_GUN_PROJECTILE.get(), level);
+    this.setNoGravity(true);
+  }
+
+  /**
+   * Initializes the projectile.
+   */
   public BoneGunProjectile(Level level, LivingEntity shooter, ItemStack stack) {
     super(CCEntities.BONE_GUN_PROJECTILE.get(), shooter, level);
     this.setItem(stack.copy());
@@ -55,6 +69,9 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
     return CCItems.GUZHENREN_GU_QIANG;
   }
 
+  /**
+   * Ticks the projectile.
+   */
   @Override
   public void tick() {
     super.tick();
@@ -66,15 +83,18 @@ public class BoneGunProjectile extends ThrowableItemProjectile {
     }
   }
 
+  /**
+   * Handles entity hit.
+   */
   @Override
-  protected void onHitEntity(EntityHitResult hit) {
-    super.onHitEntity(hit);
+  protected void onHitEntity(EntityHitResult result) {
+    super.onHitEntity(result);
     if (this.level().isClientSide) {
       return;
     }
 
-    LivingEntity victim = hit.getEntity() instanceof LivingEntity living ? living : null;
-    Vec3 impact = hit.getLocation();
+    LivingEntity victim = result.getEntity() instanceof LivingEntity living ? living : null;
+    Vec3 impact = result.getLocation();
     playImpactFx(impact);
     if (victim != null) {
       String ownerName =

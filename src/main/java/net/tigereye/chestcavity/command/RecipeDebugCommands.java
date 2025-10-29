@@ -15,7 +15,11 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-/** A command to dump all recipes in a given namespace. */
+/**
+ * ChestCavityForge的调试命令类，用于处理配方相关的调试操作。
+ *
+ * <p>Handles recipe debug commands.
+ */
 public final class RecipeDebugCommands {
 
   private RecipeDebugCommands() {}

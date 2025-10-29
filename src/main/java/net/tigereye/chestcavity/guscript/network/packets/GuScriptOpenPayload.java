@@ -26,6 +26,11 @@ public record GuScriptOpenPayload() implements CustomPacketPayload {
     return TYPE;
   }
 
+  /**
+   * Handles the received payload.
+   *
+   * @param context the network context
+   */
   public static void handle(GuScriptOpenPayload payload, IPayloadContext context) {
     context.enqueueWork(
         () -> {

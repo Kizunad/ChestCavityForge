@@ -11,7 +11,9 @@ import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCContainers;
 import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
 
-/** The screen handler for the chest cavity. */
+/**
+ * The screen handler for the chest cavity GUI.
+ */
 public class ChestCavityScreenHandler extends AbstractContainerMenu {
 
   private final ChestCavityInventory inventory;

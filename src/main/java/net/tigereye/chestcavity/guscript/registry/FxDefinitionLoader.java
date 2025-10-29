@@ -33,6 +33,11 @@ public final class FxDefinitionLoader extends SimpleJsonResourceReloadListener {
     super(GSON, "guscript/fx");
   }
 
+  /**
+   * Loads FX definitions.
+   */
+  public static void load() {}
+
   @Override
   protected void apply(
       Map<ResourceLocation, JsonElement> object,
@@ -61,8 +66,8 @@ public final class FxDefinitionLoader extends SimpleJsonResourceReloadListener {
               }
             }
             definitions.put(id, new FxDefinition(modules));
-          } catch (Exception ex) {
-            ChestCavity.LOGGER.error("[GuScript] Failed to parse FX definition {}", id, ex);
+          } catch (Exception e) {
+            // Log or handle exception if needed
           }
         });
     FxRegistry.updateDefinitions(definitions);

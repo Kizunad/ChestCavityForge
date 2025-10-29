@@ -21,7 +21,9 @@ import net.tigereye.chestcavity.registration.CCFoodComponents;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
 import net.tigereye.chestcavity.util.CommonOrganUtil;
 
-/** An item that represents a venom gland. */
+/**
+ * When installed, this organ grants the host the ability to poison melee attackers.
+ */
 public class VenomGland extends Item implements OrganOnHitListener {
 
   /** Creates a new VenomGland. */

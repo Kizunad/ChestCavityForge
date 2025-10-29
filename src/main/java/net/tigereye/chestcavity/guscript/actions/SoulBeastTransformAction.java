@@ -14,10 +14,18 @@ public final class SoulBeastTransformAction implements Action {
 
   private final ResourceLocation source;
 
+  /**
+   * Creates a new SoulBeastTransformAction with the default source.
+   */
   public SoulBeastTransformAction() {
     this(HunShouHuaConstants.TRANSFORM_SOURCE);
   }
 
+  /**
+   * Creates a new SoulBeastTransformAction with the given source.
+   *
+   * @param source the source to use for transformation
+   */
   public SoulBeastTransformAction(ResourceLocation source) {
     this.source = source == null ? HunShouHuaConstants.TRANSFORM_SOURCE : source;
   }

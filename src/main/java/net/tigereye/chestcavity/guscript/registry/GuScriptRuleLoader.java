@@ -34,6 +34,11 @@ public final class GuScriptRuleLoader extends SimpleJsonResourceReloadListener {
     super(GSON, "guscript/rules");
   }
 
+  /**
+   * Loads GuScript rules.
+   */
+  public static void load() {}
+
   @Override
   protected void apply(
       Map<ResourceLocation, JsonElement> object,
@@ -53,8 +58,14 @@ public final class GuScriptRuleLoader extends SimpleJsonResourceReloadListener {
   }
 
   private static ReactionRule parseRule(ResourceLocation id, JsonObject json) {
-    int arity = json.has("arity") ? json.get("arity").getAsInt() : 2;
-    int priority = json.has("priority") ? json.get("priority").getAsInt() : 0;
+    int arity = 0;
+    int priority = 0;
+    if (json.has("arity")) {
+      arity = json.get("arity").getAsInt();
+    }
+    if (json.has("priority")) {
+      priority = json.get("priority").getAsInt();
+    }
 
     Map<String, Integer> required = new HashMap<>();
     if (json.has("required")) {

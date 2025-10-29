@@ -7,6 +7,9 @@ public final class GuScriptModule {
 
   private GuScriptModule() {}
 
+  /**
+   * Initializes the GuScript module.
+   */
   public static void bootstrap() {
     ActionRegistry.registerDefaults();
   }

@@ -52,7 +52,10 @@ import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
 import net.tigereye.chestcavity.guscript.runtime.reduce.GuScriptReducer;
 import net.tigereye.chestcavity.guscript.runtime.reduce.ReactionRule;
 
-public final class GuScriptCommands {
+/**
+ * Registers GuScript commands.
+ */
+public class GuScriptCommands {
 
   private GuScriptCommands() {}
 

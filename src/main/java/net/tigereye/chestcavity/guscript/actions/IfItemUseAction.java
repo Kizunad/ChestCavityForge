@@ -10,6 +10,11 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.item.ShovelItem;
+import net.minecraft.world.item.HoeItem;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 

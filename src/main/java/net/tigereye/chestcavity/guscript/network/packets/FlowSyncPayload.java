@@ -11,7 +11,9 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowState;
 import net.tigereye.chestcavity.guscript.runtime.flow.client.GuScriptClientFlows;
 
-/** Mirrors flow state changes to the client. */
+/**
+ * Mirrors flow state changes to the client.
+ */
 public record FlowSyncPayload(
     int entityId,
     ResourceLocation programId,
@@ -54,6 +56,12 @@ public record FlowSyncPayload(
     return TYPE;
   }
 
+  /**
+   * Handles the payload.
+   *
+   * @param payload the payload
+   * @param context the context
+   */
   public static void handle(FlowSyncPayload payload, IPayloadContext context) {
     context.enqueueWork(() -> GuScriptClientFlows.handleSync(payload));
   }

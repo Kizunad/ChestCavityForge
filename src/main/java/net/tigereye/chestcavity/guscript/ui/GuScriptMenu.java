@@ -255,4 +255,5 @@ public class GuScriptMenu extends AbstractContainerMenu {
   public int getPageCount() {
     return pageCount;
   }
+
 }

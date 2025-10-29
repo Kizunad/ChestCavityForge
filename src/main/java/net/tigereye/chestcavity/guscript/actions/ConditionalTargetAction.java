@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.guscript.actions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.guscript.ast.Action;
@@ -51,6 +52,9 @@ public final class ConditionalTargetAction implements Action {
     return "条件触发(目标)";
   }
 
+  /**
+   * Executes the action.
+   */
   @Override
   public void execute(GuScriptContext context) {
     Player performer = context.performer();
@@ -76,6 +80,13 @@ public final class ConditionalTargetAction implements Action {
     for (Action action : actions) {
       action.execute(context);
     }
+  }
+
+  /**
+   * Gets the condition.
+   */
+  public Predicate<LivingEntity> getCondition() {
+    return null;
   }
 
   public List<Action> actions() {

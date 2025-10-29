@@ -3,6 +3,9 @@ package net.tigereye.chestcavity.guscript.actions;
 import net.tigereye.chestcavity.guscript.ast.Action;
 import net.tigereye.chestcavity.guscript.runtime.exec.GuScriptContext;
 
+/**
+ * Action to export multiplier modifier.
+ */
 public record ExportMultiplierModifierAction(double amount) implements Action {
   public static final String ID = "export.modifier.multiplier";
 

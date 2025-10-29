@@ -25,6 +25,11 @@ public record FlowInputPayload(FlowInput input) implements CustomPacketPayload {
     return TYPE;
   }
 
+  /**
+   * Handles the received payload.
+   *
+   * @param context the network context
+   */
   public static void handle(FlowInputPayload payload, IPayloadContext context) {
     context.enqueueWork(
         () -> {

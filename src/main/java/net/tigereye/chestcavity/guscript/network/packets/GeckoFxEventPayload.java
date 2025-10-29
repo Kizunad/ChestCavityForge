@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.guscript.network.packets;
 
 import java.util.UUID;
+import java.util.Map;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -12,7 +13,12 @@ import net.tigereye.chestcavity.guscript.fx.gecko.client.GeckoFxClient;
 import net.tigereye.chestcavity.guscript.runtime.flow.fx.GeckoFxAnchor;
 import org.jetbrains.annotations.Nullable;
 
-/** S2C payload for GeckoLib-powered FX dispatched from flow actions. */
+/**
+ * Payload for Gecko FX event.
+ *
+ * @param eventId the event ID
+ * @param parameters the parameters
+ */
 public record GeckoFxEventPayload(
     ResourceLocation fxId,
     GeckoFxAnchor anchor,
@@ -145,6 +151,10 @@ public record GeckoFxEventPayload(
     return TYPE;
   }
 
+  /**
+   * Handles the received payload.
+   * @param context the network context
+   */
   public static void handle(GeckoFxEventPayload payload, IPayloadContext context) {
     context.enqueueWork(
         () -> {

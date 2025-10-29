@@ -15,6 +15,12 @@ public final class HunShouHuaPredicateAction implements Action {
   private final List<Action> ifUsed;
   private final List<Action> ifUnused;
 
+  /**
+   * Creates a new HunShouHuaPredicateAction.
+   *
+   * @param ifUsed Actions to execute if Hun Shou Hua has been used.
+   * @param ifUnused Actions to execute if Hun Shou Hua has not been used.
+   */
   public HunShouHuaPredicateAction(List<Action> ifUsed, List<Action> ifUnused) {
     this.ifUsed = ifUsed == null ? List.of() : List.copyOf(ifUsed);
     this.ifUnused = ifUnused == null ? List.of() : List.copyOf(ifUnused);
@@ -30,6 +36,9 @@ public final class HunShouHuaPredicateAction implements Action {
     return "Branch on Hun Shou Hua usage";
   }
 
+  /**
+   * Executes the action.
+   */
   @Override
   public void execute(GuScriptContext context) {
     if (context == null) {
