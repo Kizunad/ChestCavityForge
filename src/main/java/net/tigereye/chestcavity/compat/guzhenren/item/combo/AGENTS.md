@@ -58,6 +58,7 @@
 1.  运行 `./gradlew build` 或 `./gradlew check` 命令。
 2.  确保编译通过，并且没有引入新的 Checkstyle 警告。
 3.  运行 `./gradlew test` 确保所有单元测试（包括你为新技能编写的）都能通过。
+4.  运行 scripts/checker_combo.py 等checkers保证0警告
 
 ---
 

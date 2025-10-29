@@ -502,10 +502,17 @@ public final class GuzhenrenResourceBridge {
     return PlayerField.fromIdentifier(identifier).map(PlayerField::fieldName);
   }
 
+  /**
+   * @param identifier the identifier to resolve
+   * @return the documentation label for the given identifier
+   */
   public static Optional<String> documentationLabel(String identifier) {
     return PlayerField.fromIdentifier(identifier).flatMap(PlayerField::docLabel);
   }
 
+  /**
+   * @return a set of all canonical field names
+   */
   public static Set<String> canonicalFieldNames() {
     return Arrays.stream(PlayerField.values())
         .map(PlayerField::fieldName)
@@ -552,97 +559,99 @@ public final class GuzhenrenResourceBridge {
     return open((LivingEntity) player);
   }
 
-  public static Optional<Object> fetchVariables(Entity entity) {
-    if (entity == null) {
-      return Optional.empty();
+    public static Optional<Object> fetchVariables(Entity entity) {
+      if (entity == null) {
+        return Optional.empty();
+      }
+      AttachmentType<Object> attachmentType = resolveAttachmentType();
+      if (attachmentType == null) {
+        return Optional.empty();
+      }
+      Object variables;
+      try {
+        variables = entity.getData(attachmentType);
+      } catch (Throwable throwable) {
+        LOGGER.warn(
+            "Failed to access Guzhenren attachment for {}", entity.getName().getString(), throwable);
+        return Optional.empty();
+      }
+      if (variables == null) {
+        return Optional.empty();
+      }
+      return Optional.of(variables);
     }
-    AttachmentType<Object> attachmentType = resolveAttachmentType();
-    if (attachmentType == null) {
-      return Optional.empty();
+  
+    private static Optional<Field> resolveFieldByName(String fieldName) {
+      if (fieldName == null || fieldName.isBlank()) {
+        return Optional.empty();
+      }
+      ensureInitialised();
+      if (playerVariablesClass == null) {
+        return Optional.empty();
+      }
+      Field cached = NAME_FIELD_CACHE.get(fieldName);
+      if (cached != null) {
+        return Optional.of(cached);
+      }
+      try {
+        Field f = playerVariablesClass.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        NAME_FIELD_CACHE.put(fieldName, f);
+        return Optional.of(f);
+      } catch (NoSuchFieldException e) {
+        LOGGER.debug("Guzhenren PlayerVariables missing field '{}': {}", fieldName, e.toString());
+        return Optional.empty();
+      }
     }
-    Object variables;
-    try {
-      variables = entity.getData(attachmentType);
-    } catch (Throwable throwable) {
-      LOGGER.warn(
-          "Failed to access Guzhenren attachment for {}", entity.getName().getString(), throwable);
-      return Optional.empty();
+  
+    /**
+     * @return the player variables class
+     */
+    public static Optional<Class<?>> getPlayerVariablesClass() {
+      ensureInitialised();
+      return Optional.ofNullable(playerVariablesClass);
     }
-    if (variables == null) {
-      return Optional.empty();
-    }
-    return Optional.of(variables);
-  }
-
-  private static Optional<Field> resolveFieldByName(String fieldName) {
-    if (fieldName == null || fieldName.isBlank()) {
-      return Optional.empty();
-    }
-    ensureInitialised();
-    if (playerVariablesClass == null) {
-      return Optional.empty();
-    }
-    Field cached = NAME_FIELD_CACHE.get(fieldName);
-    if (cached != null) {
-      return Optional.of(cached);
-    }
-    try {
-      Field f = playerVariablesClass.getDeclaredField(fieldName);
-      f.setAccessible(true);
-      NAME_FIELD_CACHE.put(fieldName, f);
-      return Optional.of(f);
-    } catch (NoSuchFieldException e) {
-      LOGGER.debug("Guzhenren PlayerVariables missing field '{}': {}", fieldName, e.toString());
-      return Optional.empty();
-    }
-  }
-
-  public static Optional<Class<?>> getPlayerVariablesClass() {
-    ensureInitialised();
-    return Optional.ofNullable(playerVariablesClass);
-  }
-
-  /** Lazily resolve Guzhenren 的附件类型与字段信息；只执行一次，失败时保持 {@code available=false} 以便调用方判定是否启用兼容逻辑。 */
-  private static void ensureInitialised() {
-    if (attemptedInit) {
-      return;
-    }
-    synchronized (GuzhenrenResourceBridge.class) {
+  
+    /** Lazily resolve Guzhenren 的附件类型与字段信息；只执行一次，失败时保持 {@code available=false} 以便调用方判定是否启用兼容逻辑。 */
+    private static void ensureInitialised() {
       if (attemptedInit) {
         return;
       }
-      attemptedInit = true;
-      if (!ModList.get().isLoaded(MOD_ID)) {
-        LOGGER.debug("Guzhenren mod not detected; compat bridge disabled");
-        return;
-      }
-      try {
-        Class<?> variablesRootClass = Class.forName(VARIABLES_CLASS);
-        playerVariablesClass = Class.forName(PLAYER_VARIABLES_CLASS);
-
-        Field supplierField = variablesRootClass.getDeclaredField(PLAYER_VARIABLES_FIELD);
-        Object supplierRaw = supplierField.get(null);
-        if (!(supplierRaw instanceof Supplier<?> supplier)) {
-          LOGGER.warn("Unexpected type for Guzhenren PLAYER_VARIABLES field: {}", supplierRaw);
+      synchronized (GuzhenrenResourceBridge.class) {
+        if (attemptedInit) {
           return;
         }
-        playerVariablesSupplier = supplier;
-
-        syncPlayerVariables =
-            playerVariablesClass.getMethod(
-                SYNC_METHOD, Class.forName("net.minecraft.world.entity.Entity"));
-
-        available = true;
-        LOGGER.info("Guzhenren compat bridge initialised");
-      } catch (ClassNotFoundException
-          | NoSuchFieldException
-          | IllegalAccessException
-          | NoSuchMethodException e) {
-        LOGGER.warn("Failed to initialise Guzhenren compat bridge", e);
+        attemptedInit = true;
+        if (!ModList.get().isLoaded(MOD_ID)) {
+          LOGGER.debug("Guzhenren mod not detected; compat bridge disabled");
+          return;
+        }
+        try {
+          Class<?> variablesRootClass = Class.forName(VARIABLES_CLASS);
+          playerVariablesClass = Class.forName(PLAYER_VARIABLES_CLASS);
+  
+          Field supplierField = variablesRootClass.getDeclaredField(PLAYER_VARIABLES_FIELD);
+          Object supplierRaw = supplierField.get(null);
+          if (!(supplierRaw instanceof Supplier<?> supplier)) {
+            LOGGER.warn("Unexpected type for Guzhenren PLAYER_VARIABLES field: {}", supplierRaw);
+            return;
+          }
+          playerVariablesSupplier = supplier;
+  
+          syncPlayerVariables =
+              playerVariablesClass.getMethod(
+                  SYNC_METHOD, Class.forName("net.minecraft.world.entity.Entity"));
+  
+          available = true;
+          LOGGER.info("Guzhenren compat bridge initialised");
+        } catch (ClassNotFoundException
+            | NoSuchFieldException
+            | IllegalAccessException
+            | NoSuchMethodException e) {
+          LOGGER.warn("Failed to initialise Guzhenren compat bridge", e);
+        } 
       }
     }
-  }
-
   @SuppressWarnings("unchecked")
   private static AttachmentType<Object> resolveAttachmentType() {
     ensureInitialised();
@@ -872,6 +881,10 @@ public final class GuzhenrenResourceBridge {
     // ShaZhao (杀招) GUI helpers
     // -------------------------
 
+    /**
+     * @param page the page number
+     * @return the field name for the shazhao scroll
+     */
     private static String shazhaoScrollField(int page) {
       return switch (page) {
         case 1 -> "ShaZhao1";
@@ -882,6 +895,11 @@ public final class GuzhenrenResourceBridge {
       };
     }
 
+    /**
+     * @param page the page number
+     * @param slotIndex the slot index
+     * @return the field name for the shazhao gu chong
+     */
     private static String shazhaoGuChongField(int page, int slotIndex) {
       if (slotIndex < 1 || slotIndex > 10) return null;
       String prefix =
@@ -895,6 +913,11 @@ public final class GuzhenrenResourceBridge {
       return prefix == null ? null : prefix + slotIndex;
     }
 
+    /**
+     * @param page the page number
+     * @param slotIndex the slot index
+     * @return the field name for the shazhao durability
+     */
     private static String shazhaoDurabilityField(int page, int slotIndex) {
       if (slotIndex < 1 || slotIndex > 10) return null;
       String prefix =
@@ -923,6 +946,11 @@ public final class GuzhenrenResourceBridge {
       return Optional.empty();
     }
 
+    /**
+     * @param page the page number
+     * @param stack the item stack to write
+     * @return true if the write was successful
+     */
     public boolean writeShaZhaoScroll(int page, net.minecraft.world.item.ItemStack stack) {
       String fieldName = shazhaoScrollField(page);
       if (fieldName == null) return false;
@@ -940,6 +968,11 @@ public final class GuzhenrenResourceBridge {
       }
     }
 
+    /**
+     * @param page the page number
+     * @param slotIndex the slot index
+     * @return the item stack in the shazhao slot
+     */
     public Optional<net.minecraft.world.item.ItemStack> readShaZhaoSlot(int page, int slotIndex) {
       String fieldName = shazhaoGuChongField(page, slotIndex);
       if (fieldName == null) return Optional.empty();
