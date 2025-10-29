@@ -402,7 +402,9 @@ final class SlashFlowActions {
       int intRadius = (int) Math.ceil(rayRadius);
       for (int dx = -intRadius; dx <= intRadius; dx++) {
         for (int dz = -intRadius; dz <= intRadius; dz++) {
-          if (dx * dx + dz * dz > rayRadius * rayRadius) continue;
+          if (dx * dx + dz * dz > rayRadius * rayRadius) {
+            continue;
+          }
           for (int dy = -intRadius; dy <= intRadius; dy++) {
             cursor.set(baseX + dx, baseY + dy, baseZ + dz);
             if (slashBreakBlock(server, performer, cursor, breakPower)) {

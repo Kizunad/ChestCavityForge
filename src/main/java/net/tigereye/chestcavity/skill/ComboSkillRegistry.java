@@ -717,10 +717,14 @@ public final class ComboSkillRegistry {
       if (stack.isEmpty()) continue;
       var info = GuzhenrenFlowTooltipResolver.inspect(stack, context, flag, null);
       if (!info.hasFlow()) continue;
-      for (String f : info.flows()) {
-        if (f == null) continue;
-        for (String key : flows) {
-          if (key == null) continue;
+    for (String f : info.flows()) {
+      if (f == null) {
+        continue;
+      }
+      for (String key : flows) {
+        if (key == null) {
+          continue;
+        }
           // 宽松匹配：同 Resolver.hasFlow 逻辑
           String fk = f.toLowerCase(java.util.Locale.ROOT);
           String kk = key.toLowerCase(java.util.Locale.ROOT);

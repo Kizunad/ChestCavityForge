@@ -229,7 +229,9 @@ public final class DoTEngine {
       if (target == null || !target.isAlive()) continue;
       for (Map.Entry<UUID, Float> g : e.getValue().entrySet()) {
         float total = g.getValue();
-        if (total <= 0f) continue;
+        if (total <= 0f) {
+          continue;
+        }
         LivingEntity attacker = !g.getKey().equals(NONE) ? attackerCache.get(g.getKey()) : null;
         DamageSource source;
         if (attacker instanceof Player player) source = player.damageSources().playerAttack(player);

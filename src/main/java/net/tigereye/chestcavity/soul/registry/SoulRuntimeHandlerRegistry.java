@@ -31,7 +31,9 @@ public final class SoulRuntimeHandlerRegistry {
     float current = amount;
     for (SoulRuntimeHandler h : HANDLERS) {
       SoulHurtResult res = h.onHurt(player, source, current);
-      if (res == null) continue;
+      if (res == null) {
+        continue;
+      }
       switch (res.action()) {
         case CANCEL:
           return SoulHurtResult.cancel();

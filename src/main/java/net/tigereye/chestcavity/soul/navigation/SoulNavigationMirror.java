@@ -124,7 +124,9 @@ public final class SoulNavigationMirror {
         continue;
       }
       ISoulNavigator nav = NAVS.get(entityId);
-      if (nav == null) continue;
+      if (nav == null) {
+        continue;
+      }
       nav.tick(soul);
       // Navigator may clear its goal internally; external goal map is advisory only
     }

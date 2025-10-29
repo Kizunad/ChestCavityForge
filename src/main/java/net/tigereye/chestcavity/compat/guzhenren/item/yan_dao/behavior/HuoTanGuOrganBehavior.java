@@ -278,7 +278,9 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     java.util.Map<java.util.UUID, Float> damages = new java.util.HashMap<>();
     for (LivingEntity t : targets) {
       int stacks = ReactionTagOps.count(t, ReactionTagKeys.CHAR_PRESSURE);
-      if (stacks <= 0) continue;
+      if (stacks <= 0) {
+      continue;
+    }
       ReactionTagOps.clear(t, ReactionTagKeys.CHAR_PRESSURE);
       ReactionTagOps.add(t, ReactionTagKeys.FIRE_IMMUNE, Math.max(20, HC.extremeFireImmuneTicks));
       float total = Math.max(0.0f, stacks * HC.extremeDmgPerPressure);
@@ -312,7 +314,9 @@ public final class HuoTanGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       LivingEntity target = findLiving(level, e.getKey());
       if (target == null || !target.isAlive()) continue;
       float amount = e.getValue() * Math.max(0.0f, factor);
-      if (amount <= 0.0f) continue;
+      if (amount <= 0.0f) {
+        continue;
+      }
       target.hurt(caster.damageSources().indirectMagic(caster, caster), amount);
     }
     // 可在此处追加粒子/音效反馈（避免重复伤害，不用引擎爆炸）。
