@@ -1,7 +1,7 @@
 
 ChestCavity (NeoForge 1.21.1)
 =============================
-
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Kizunad/ChestCavityForge)
 简介 / Introduction
 -------------------
 Chest Cavity 是一个允许实体拥有“胸腔”与“器官分数”的玩法模组。本分支在 1.21.1 + NeoForge 上进行维护，并扩展了与“蛊真人”玩法的联动。
