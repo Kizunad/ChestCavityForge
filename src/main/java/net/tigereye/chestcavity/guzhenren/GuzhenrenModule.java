@@ -37,6 +37,7 @@ import net.tigereye.chestcavity.guscript.ability.guzhenren.Abilities;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BloodBoneBombClient;
 import net.tigereye.chestcavity.guzhenren.network.GuzhenrenNetworkBridge;
 import net.tigereye.chestcavity.guzhenren.network.PlayerSkinSyncClient;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceEvents;
 import net.tigereye.chestcavity.util.retention.OrganRetentionRules;
 
 /**
@@ -128,6 +129,10 @@ public final class GuzhenrenModule {
 
   private static void installForgeListeners(IEventBus forgeBus) {
     forgeBus.addListener(JianYingGuEvents::onServerTick);
+    forgeBus.addListener(GuzhenrenResourceEvents::onPlayerLoggedIn);
+    forgeBus.addListener(GuzhenrenResourceEvents::onPlayerRespawn);
+    forgeBus.addListener(GuzhenrenResourceEvents::onPlayerClone);
+    forgeBus.addListener(GuzhenrenResourceEvents::onPlayerChangedDimension);
     if (FMLEnvironment.dist.isClient()) {
       forgeBus.addListener(
           (ClientTickEvent.Post event) -> PlayerSkinSyncClient.onClientTick(event));

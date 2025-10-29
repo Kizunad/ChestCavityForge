@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
 import net.tigereye.chestcavity.chestcavities.ChestCavityType;
 import net.tigereye.chestcavity.chestcavities.types.GeneratedChestCavityType;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.listeners.OrganHealContext;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageContext;
@@ -160,105 +161,137 @@ public class ChestCavityInstance implements ContainerListener {
   public void fromTag(CompoundTag tag, LivingEntity owner, HolderLookup.Provider lookup) {
     LOGGER.debug("[Chest Cavity] Reading ChestCavityManager fromTag");
     this.owner = owner;
-    CompoundTag ccTag = null;
-    if (tag.contains("ChestCavity")) {
-      ChestCavity.printOnDebug("Found Save Data");
-      ccTag = tag.getCompound("ChestCavity");
-      this.opened = ccTag.getBoolean("opened");
-      this.heartBleedTimer = ccTag.getInt("HeartTimer");
-      this.bloodPoisonTimer = ccTag.getInt("KidneyTimer");
-      this.liverTimer = ccTag.getInt("LiverTimer");
-      this.metabolismRemainder = ccTag.getFloat("MetabolismRemainder");
-      this.lungRemainder = ccTag.getFloat("LungRemainder");
-      this.furnaceProgress = ccTag.getInt("FurnaceProgress");
-      this.photosynthesisProgress = ccTag.getInt("PhotosynthesisProgress");
-      if (ccTag.contains("compatibility_id")) {
-        this.compatibility_id = ccTag.getUUID("compatibility_id");
-      } else {
-        this.compatibility_id = owner.getUUID();
+    boolean suppressGuzhenrenSync = GuzhenrenResourceBridge.beginPlayerDataLoad(owner);
+    try {
+      CompoundTag ccTag = null;
+      if (tag.contains("ChestCavity")) {
+        ccTag = tag.getCompound("ChestCavity");
+        ChestCavity.printOnDebug("Found Save Data");
+        readChestCavityTag(ccTag, lookup);
+      } else if (tag.contains("cardinal_components")) {
+        readLegacyCardinalComponents(tag, lookup);
       }
+      ChestCavityUtil.evaluateChestCavity(this);
+      if (ccTag != null) {
+        LinkageManager.load(this, ccTag);
+      }
+    } finally {
+      GuzhenrenResourceBridge.endPlayerDataLoad(owner, suppressGuzhenrenSync);
+    }
+  }
+
+  /** 解析标准 ChestCavity NBT，重建背包、计时与随机填充信息。 */
+  private void readChestCavityTag(CompoundTag ccTag, HolderLookup.Provider lookup) {
+    applyCoreState(ccTag);
+    reloadInventory(ccTag, lookup);
+    restoreScoreboardUpgrades(ccTag);
+    restoreRandomFillers(ccTag, lookup);
+  }
+
+  private void applyCoreState(CompoundTag ccTag) {
+    this.opened = ccTag.getBoolean("opened");
+    this.heartBleedTimer = ccTag.getInt("HeartTimer");
+    this.bloodPoisonTimer = ccTag.getInt("KidneyTimer");
+    this.liverTimer = ccTag.getInt("LiverTimer");
+    this.metabolismRemainder = ccTag.getFloat("MetabolismRemainder");
+    this.lungRemainder = ccTag.getFloat("LungRemainder");
+    this.furnaceProgress = ccTag.getInt("FurnaceProgress");
+    this.photosynthesisProgress = ccTag.getInt("PhotosynthesisProgress");
+    if (ccTag.contains("compatibility_id")) {
+      this.compatibility_id = ccTag.getUUID("compatibility_id");
+    } else if (owner != null) {
+      this.compatibility_id = owner.getUUID();
+    }
+  }
+
+  private void reloadInventory(CompoundTag ccTag, HolderLookup.Provider lookup) {
+    try {
+      inventory.removeListener(this);
+    } catch (NullPointerException ignored) {
+    }
+    if (ccTag.contains("Inventory")) {
+      ListTag nbtList = ccTag.getList("Inventory", 10);
+      inventory.readTags(nbtList, lookup);
+    } else if (opened) {
+      LOGGER.warn(
+          "[Chest Cavity] "
+              + owner.getName().getContents()
+              + "'s Chest Cavity is mangled. It will be replaced");
+      ChestCavityUtil.generateChestCavityIfOpened(this);
+    }
+    inventory.addListener(this);
+  }
+
+  private void restoreScoreboardUpgrades(CompoundTag ccTag) {
+    scoreboardUpgrades.clear();
+    if (!ccTag.contains("ScoreboardUpgrades", Tag.TAG_LIST)) {
+      return;
+    }
+    ListTag upgrades = ccTag.getList("ScoreboardUpgrades", Tag.TAG_STRING);
+    for (int i = 0; i < upgrades.size(); i++) {
+      String rawId = upgrades.getString(i);
       try {
-        inventory.removeListener(this);
-      } catch (NullPointerException ignored) {
-      }
-      if (ccTag.contains("Inventory")) {
-        ListTag NbtList = ccTag.getList("Inventory", 10);
-        this.inventory.readTags(NbtList, lookup);
-      } else if (opened) {
-        LOGGER.warn(
-            "[Chest Cavity] "
-                + owner.getName().getContents()
-                + "'s Chest Cavity is mangled. It will be replaced");
-        ChestCavityUtil.generateChestCavityIfOpened(this);
-      }
-      inventory.addListener(this);
-      if (ccTag.contains("ScoreboardUpgrades", 9)) {
-        scoreboardUpgrades.clear();
-        ListTag upgrades = ccTag.getList("ScoreboardUpgrades", 8);
-        for (int i = 0; i < upgrades.size(); i++) {
-          String rawId = upgrades.getString(i);
-          try {
-            scoreboardUpgrades.add(ResourceLocation.parse(rawId));
-          } catch (IllegalArgumentException ignored) {
-            ChestCavity.LOGGER.warn(
-                "Ignored invalid scoreboard upgrade id '{}' while loading chest cavity data",
-                rawId);
-          }
-        }
-      }
-      randomFillersGenerated = ccTag.getBoolean("RandomFillersGenerated");
-      preGeneratedRandomFillers.clear();
-      if (ccTag.contains("RandomFillers", Tag.TAG_LIST)) {
-        HolderLookup.Provider effectiveLookup = lookup;
-        if (effectiveLookup == null && owner != null) {
-          effectiveLookup = owner.level().registryAccess();
-        }
-        if (effectiveLookup != null) {
-          ListTag fillers = ccTag.getList("RandomFillers", Tag.TAG_COMPOUND);
-          List<RandomFillerEntry> loaded = new ArrayList<>();
-          for (int i = 0; i < fillers.size(); i++) {
-            CompoundTag fillerTag = fillers.getCompound(i);
-            if (!fillerTag.contains("Slot", Tag.TAG_INT)
-                || !fillerTag.contains("Stack", Tag.TAG_COMPOUND)) {
-              continue;
-            }
-            int slot = fillerTag.getInt("Slot");
-            ItemStack stack =
-                ItemStack.parseOptional(effectiveLookup, fillerTag.getCompound("Stack"));
-            if (!stack.isEmpty()) {
-              loaded.add(new RandomFillerEntry(slot, stack));
-            }
-          }
-          replacePreGeneratedRandomFillers(loaded);
-          if (!loaded.isEmpty()) {
-            randomFillersGenerated = true;
-          }
-        }
-      }
-    } else if (tag.contains("cardinal_components")) {
-      CompoundTag temp = tag.getCompound("cardinal_components");
-      if (temp.contains("chestcavity:inventorycomponent")) {
-        temp = tag.getCompound("chestcavity:inventorycomponent");
-        if (temp.contains("chestcavity")) {
-          LOGGER.info(
-              "[Chest Cavity] Found "
-                  + owner.getName().getContents()
-                  + "'s old [Cardinal Components] Chest Cavity.");
-          opened = true;
-          ListTag NbtList = temp.getList("Inventory", 10);
-          try {
-            inventory.removeListener(this);
-          } catch (NullPointerException ignored) {
-          }
-          inventory.readTags(NbtList, lookup);
-          inventory.addListener(this);
-        }
+        scoreboardUpgrades.add(ResourceLocation.parse(rawId));
+      } catch (IllegalArgumentException ignored) {
+        ChestCavity.LOGGER.warn(
+            "Ignored invalid scoreboard upgrade id '{}' while loading chest cavity data", rawId);
       }
     }
-    ChestCavityUtil.evaluateChestCavity(this);
-    if (ccTag != null) {
-      LinkageManager.load(this, ccTag);
+  }
+
+  private void restoreRandomFillers(CompoundTag ccTag, HolderLookup.Provider lookup) {
+    randomFillersGenerated = ccTag.getBoolean("RandomFillersGenerated");
+    preGeneratedRandomFillers.clear();
+    if (!ccTag.contains("RandomFillers", Tag.TAG_LIST)) {
+      return;
     }
+    HolderLookup.Provider effectiveLookup = lookup;
+    if (effectiveLookup == null && owner != null) {
+      effectiveLookup = owner.level().registryAccess();
+    }
+    if (effectiveLookup == null) {
+      return;
+    }
+    ListTag fillers = ccTag.getList("RandomFillers", Tag.TAG_COMPOUND);
+    List<RandomFillerEntry> loaded = new ArrayList<>();
+    for (int i = 0; i < fillers.size(); i++) {
+      CompoundTag fillerTag = fillers.getCompound(i);
+      if (!fillerTag.contains("Slot", Tag.TAG_INT) || !fillerTag.contains("Stack", Tag.TAG_COMPOUND)) {
+        continue;
+      }
+      int slot = fillerTag.getInt("Slot");
+      ItemStack stack = ItemStack.parseOptional(effectiveLookup, fillerTag.getCompound("Stack"));
+      if (!stack.isEmpty()) {
+        loaded.add(new RandomFillerEntry(slot, stack));
+      }
+    }
+    replacePreGeneratedRandomFillers(loaded);
+    if (!loaded.isEmpty()) {
+      randomFillersGenerated = true;
+    }
+  }
+
+  /** 兼容旧版 Cardinal Components 存档结构。 */
+  private void readLegacyCardinalComponents(CompoundTag tag, HolderLookup.Provider lookup) {
+    CompoundTag cardinal = tag.getCompound("cardinal_components");
+    if (!cardinal.contains("chestcavity:inventorycomponent")) {
+      return;
+    }
+    CompoundTag legacy = tag.getCompound("chestcavity:inventorycomponent");
+    if (!legacy.contains("chestcavity")) {
+      return;
+    }
+    LOGGER.info(
+        "[Chest Cavity] Found {}'s old [Cardinal Components] Chest Cavity.",
+        owner.getName().getContents());
+    opened = true;
+    try {
+      inventory.removeListener(this);
+    } catch (NullPointerException ignored) {
+    }
+    ListTag nbtList = legacy.getList("Inventory", 10);
+    inventory.readTags(nbtList, lookup);
+    inventory.addListener(this);
   }
 
   public void toTag(CompoundTag tag) {

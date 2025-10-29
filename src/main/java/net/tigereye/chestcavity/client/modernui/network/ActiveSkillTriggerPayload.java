@@ -85,6 +85,13 @@ public record ActiveSkillTriggerPayload(ResourceLocation skillId) implements Cus
                     payload.skillId());
                 return;
               }
+              case BLOCKED_BY_HANDLER -> {
+                ChestCavity.LOGGER.debug(
+                    "[modernui][hotkey] player={} combo skill {} blocked by handler",
+                    serverPlayer.getScoreboardName(),
+                    payload.skillId());
+                return;
+              }
             }
           }
 
@@ -105,6 +112,10 @@ public record ActiveSkillTriggerPayload(ResourceLocation skillId) implements Cus
                 payload.skillId());
             case ABILITY_NOT_REGISTERED -> ChestCavity.LOGGER.warn(
                 "[modernui][hotkey] player={} triggered skill {} but no ability handler registered",
+                serverPlayer.getScoreboardName(),
+                payload.skillId());
+            case BLOCKED_BY_HANDLER -> ChestCavity.LOGGER.debug(
+                "[modernui][hotkey] player={} skill {} blocked by handler",
                 serverPlayer.getScoreboardName(),
                 payload.skillId());
           }

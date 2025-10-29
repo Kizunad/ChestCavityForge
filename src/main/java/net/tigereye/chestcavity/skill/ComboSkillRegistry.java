@@ -104,7 +104,8 @@ public final class ComboSkillRegistry {
     NOT_REGISTERED,    // 杀招未注册
     NO_CHEST_CAVITY,   // 玩家无胸腔
     MISSING_ORGAN,     // 缺少必需器官
-    FAILED             // 触发失败（其他原因）
+    FAILED,            // 触发失败（其他原因）
+    BLOCKED_BY_HANDLER // 被外部处理器拦截
   }
 
   private static final Map<ResourceLocation, ComboSkillEntry> ENTRIES = new LinkedHashMap<>();
@@ -766,9 +767,21 @@ public final class ComboSkillRegistry {
       return TriggerResult.MISSING_ORGAN;
     }
 
-    // 通过 OrganActivationListeners 触发杀招
+    SkillActivationHooks.ComboPreHookDecision decision =
+        SkillActivationHooks.fireComboPreHandlers(player, skillId, cc, entry);
+    if (decision.blocked()) {
+      TriggerResult blockedResult =
+          decision.overrideResult() != null
+              ? decision.overrideResult()
+              : TriggerResult.BLOCKED_BY_HANDLER;
+      SkillActivationHooks.fireComboPostHandlers(player, skillId, cc, entry, blockedResult);
+      return blockedResult;
+    }
+
     boolean activated = OrganActivationListeners.activate(skillId, cc);
-    return activated ? TriggerResult.SUCCESS : TriggerResult.FAILED;
+    TriggerResult result = activated ? TriggerResult.SUCCESS : TriggerResult.FAILED;
+    SkillActivationHooks.fireComboPostHandlers(player, skillId, cc, entry, result);
+    return result;
   }
 
   public static void scheduleReadyToast(

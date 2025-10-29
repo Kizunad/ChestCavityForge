@@ -12,9 +12,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -49,6 +51,10 @@ public final class GuzhenrenResourceBridge {
   private static Supplier<?> playerVariablesSupplier;
   private static Class<?> playerVariablesClass;
   private static Method syncPlayerVariables;
+  private static final ThreadLocal<Integer> SYNC_SUPPRESSION_DEPTH =
+      ThreadLocal.withInitial(() -> 0);
+  private static final Set<UUID> PENDING_SYNC = ConcurrentHashMap.newKeySet();
+  private static final int MAX_DEFERRED_SYNC_ATTEMPTS = 40;
 
   /** Mapping of all supported player variable fields. 承载附件字段映射，保证读写时使用固定枚举常量而非裸字符串。 */
   private enum PlayerField {
@@ -652,6 +658,135 @@ public final class GuzhenrenResourceBridge {
         } 
       }
     }
+  private static void pushSyncSuppression() {
+    int depth = SYNC_SUPPRESSION_DEPTH.get();
+    SYNC_SUPPRESSION_DEPTH.set(depth + 1);
+  }
+
+  private static void popSyncSuppression() {
+    int depth = SYNC_SUPPRESSION_DEPTH.get();
+    if (depth <= 1) {
+      SYNC_SUPPRESSION_DEPTH.remove();
+    } else {
+      SYNC_SUPPRESSION_DEPTH.set(depth - 1);
+    }
+  }
+
+  private static boolean isSyncSuppressed() {
+    return SYNC_SUPPRESSION_DEPTH.get() > 0;
+  }
+
+  public static boolean beginPlayerDataLoad(LivingEntity entity) {
+    if (!(entity instanceof ServerPlayer player) || entity.level().isClientSide()) {
+      return false;
+    }
+    if (!isAvailable()) {
+      return false;
+    }
+    pushSyncSuppression();
+    return true;
+  }
+
+  public static void endPlayerDataLoad(LivingEntity entity, boolean suppressed) {
+    if (!suppressed) {
+      return;
+    }
+    popSyncSuppression();
+    if (entity instanceof ServerPlayer player) {
+      requestDeferredSync(player);
+    }
+  }
+
+  public static void requestDeferredSync(ServerPlayer player) {
+    if (player == null || player.level().isClientSide()) {
+      return;
+    }
+    if (!isAvailable()) {
+      return;
+    }
+    if (isConnectionlessProxy(player)) {
+      return;
+    }
+    UUID uuid = player.getUUID();
+    PENDING_SYNC.add(uuid);
+    scheduleDeferredSync(player, 0);
+  }
+
+  private static boolean isConnectionlessProxy(ServerPlayer player) {
+    return player != null
+        && player.connection == null
+        && player.getClass() != ServerPlayer.class;
+  }
+
+  private static void scheduleDeferredSync(ServerPlayer player, int attempt) {
+    if (player == null || player.isRemoved()) {
+      return;
+    }
+    if (attempt > MAX_DEFERRED_SYNC_ATTEMPTS) {
+      return;
+    }
+    if (player.server == null) {
+      return;
+    }
+    player.server.execute(
+        () -> {
+          UUID uuid = player.getUUID();
+          if (!PENDING_SYNC.contains(uuid)) {
+            return;
+          }
+          if (isConnectionlessProxy(player)) {
+            PENDING_SYNC.remove(uuid);
+            return;
+          }
+          if (player.hasDisconnected() || player.connection == null) {
+            scheduleDeferredSync(player, attempt + 1);
+            return;
+          }
+          if (isSyncSuppressed()) {
+            scheduleDeferredSync(player, attempt + 1);
+            return;
+          }
+          Optional<Object> variablesOpt = fetchVariables(player);
+          if (variablesOpt.isEmpty()) {
+            scheduleDeferredSync(player, attempt + 1);
+            return;
+          }
+          if (attemptSync(player, variablesOpt.get())) {
+            PENDING_SYNC.remove(uuid);
+          } else {
+            scheduleDeferredSync(player, attempt + 1);
+          }
+        });
+  }
+
+  private static boolean attemptSync(ServerPlayer player, Object variables) {
+    if (player == null
+        || variables == null
+        || player.level().isClientSide()
+        || syncPlayerVariables == null) {
+      return false;
+    }
+    if (isConnectionlessProxy(player)) {
+      return false;
+    }
+    if (player.connection == null || player.hasDisconnected()) {
+      return false;
+    }
+    if (isSyncSuppressed()) {
+      return false;
+    }
+    try {
+      syncPlayerVariables.invoke(variables, player);
+      return true;
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      LOGGER.info(
+          "Failed to sync Guzhenren player variables for {} (non-fatal).",
+          player.getName().getString(),
+          e);
+      return false;
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static AttachmentType<Object> resolveAttachmentType() {
     ensureInitialised();
@@ -737,19 +872,18 @@ public final class GuzhenrenResourceBridge {
   }
 
   public static boolean syncEntity(Entity entity, Object variables) {
-    if (entity == null || entity.level().isClientSide() || syncPlayerVariables == null) {
+    if (!(entity instanceof ServerPlayer player)) {
       return false;
     }
-    try {
-      syncPlayerVariables.invoke(variables, entity);
+    if (isConnectionlessProxy(player)) {
+      return false;
+    }
+    if (attemptSync(player, variables)) {
+      PENDING_SYNC.remove(player.getUUID());
       return true;
-    } catch (IllegalAccessException | InvocationTargetException e) {
-      LOGGER.info(
-          "Failed to sync Guzhenren player variables for {} (non-fatal).",
-          entity.getName().getString(),
-          e);
-      return false;
     }
+    requestDeferredSync(player);
+    return false;
   }
 
   /** 封装对单个玩家附件的读写操作。实例在 {@link #open(Player)} 时创建，并在操作成功后负责触发同步。 */

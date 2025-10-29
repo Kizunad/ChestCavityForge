@@ -77,7 +77,8 @@ public final class ActiveSkillRegistry {
     NOT_REGISTERED,
     NO_CHEST_CAVITY,
     MISSING_ORGAN,
-    ABILITY_NOT_REGISTERED
+    ABILITY_NOT_REGISTERED,
+    BLOCKED_BY_HANDLER
   }
 
   public record ActiveSkillEntry(
@@ -1211,8 +1212,19 @@ public final class ActiveSkillRegistry {
     if (!hasOrganEquipped(cc, entry.organId())) {
       return TriggerResult.MISSING_ORGAN;
     }
+    SkillActivationHooks.ActivePreHookDecision decision =
+        SkillActivationHooks.fireActivePreHandlers(player, skillId, cc, entry);
+    if (decision.blocked()) {
+      TriggerResult blockedResult =
+          decision.overrideResult() != null ? decision.overrideResult() : TriggerResult.BLOCKED_BY_HANDLER;
+      SkillActivationHooks.fireActivePostHandlers(player, skillId, cc, entry, blockedResult);
+      return blockedResult;
+    }
     boolean activated = OrganActivationListeners.activate(entry.abilityId(), cc);
-    return activated ? TriggerResult.SUCCESS : TriggerResult.ABILITY_NOT_REGISTERED;
+    TriggerResult result =
+        activated ? TriggerResult.SUCCESS : TriggerResult.ABILITY_NOT_REGISTERED;
+    SkillActivationHooks.fireActivePostHandlers(player, skillId, cc, entry, result);
+    return result;
   }
 
   public static void scheduleReadyToast(
