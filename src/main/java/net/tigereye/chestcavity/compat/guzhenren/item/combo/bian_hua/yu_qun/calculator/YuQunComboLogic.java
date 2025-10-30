@@ -17,7 +17,7 @@ public final class YuQunComboLogic {
      * 此方法采用多阶段计算模型：
      * 1.  **输入软化**：将原始的道痕值和协同数通过非线性函数（log, sqrt）映射，以实现“递减收益”，防止数值爆炸。
      * 2.  **乘数计算**：将软化后的值通过带权重（可调）的公式合并，分别计算出增益乘数 G 和减益乘数 A，最终乘积为 M = G * A。
-     * 3.  **核心参数**：将乘数 M 应用于范围和推力，并额外叠加线性的协同加成。
+     * 3.  **核心参数**：将乘数 M 应用于范围、推力和伤害，并额外叠加线性的协同加成。
      * 4.  **宽度调整**：宽度（cos值）采用独立的加减模型，使各个道痕的影响更解耦、更直观。
      * 5.  **效果阈值**：减速和粒子效果基于软化后的道痕值和协同数，通过阈值判断触发。
      * </p>
@@ -54,9 +54,10 @@ public final class YuQunComboLogic {
         double A = Math.exp(-bF * FF);
         double M = G * A;
 
-        // 3) 具体参数：范围、推力用 M；基础加成再给一点协同直加，手感更线性
+        // 3) 具体参数：范围、推力、伤害用 M；基础加成再给一点协同直加，手感更线性
         double finalRange = (YuQunTuning.BASE_RANGE + 0.6 * s) * M;
         double finalPush = (YuQunTuning.BASE_PUSH + 0.02 * s) * M;
+        double finalDamage = YuQunTuning.BASE_DAMAGE * M;
 
         // 4) 宽度：cos 阈值用“显式加减”，而不是乘，以实现“水/变让它更宽，炎让它收窄”
         final double kW = YuQunTuning.KW_WATER_DAO_HEN_WIDTH_FACTOR;
@@ -80,7 +81,7 @@ public final class YuQunComboLogic {
         int slowAmplifier = (int) Math.floor((s + 2 * FW) / 5.0);
         boolean particles = s >= 8 || (FW + FC) > 0.8;
 
-        return new Parameters(finalRange, finalWidthCos, finalPush, slowDuration, slowAmplifier, particles);
+        return new Parameters(finalRange, finalWidthCos, finalPush, finalDamage, slowDuration, slowAmplifier, particles);
     }
 
     public static boolean isWithinCone(net.minecraft.world.phys.Vec3 origin, net.minecraft.world.phys.Vec3 direction, net.minecraft.world.phys.Vec3 target, double range, double width) {
@@ -98,6 +99,7 @@ public final class YuQunComboLogic {
      * @param range 技能的作用范围。
      * @param width 技能作用锥角的宽度（余弦值）。
      * @param pushStrength 技能的推动强度。
+     * @param damage 技能的基础伤害。
      * @param slowDurationTicks 减速效果的持续时间（ticks）。
      * @param slowAmplifier 减速效果的等级。
      * @param spawnSplashParticles 是否生成水花粒子效果。
@@ -106,6 +108,7 @@ public final class YuQunComboLogic {
         double range,
         double width,
         double pushStrength,
+        double damage,
         int slowDurationTicks,
         int slowAmplifier,
         boolean spawnSplashParticles) {}

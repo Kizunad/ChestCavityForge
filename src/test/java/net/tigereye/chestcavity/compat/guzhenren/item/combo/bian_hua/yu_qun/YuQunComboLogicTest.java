@@ -13,6 +13,7 @@ class YuQunComboLogicTest {
         assertEquals(8.0, params.range(), 1e-6);
         assertEquals(0.8, params.width(), 1e-6);
         assertEquals(1.2, params.pushStrength(), 1e-6);
+        assertEquals(10.0, params.damage(), 1e-6);
         assertEquals(60, params.slowDurationTicks());
         assertEquals(0, params.slowAmplifier());
         assertFalse(params.spawnSplashParticles());
@@ -24,6 +25,7 @@ class YuQunComboLogicTest {
         assertTrue(params.range() > 8.0);
         assertTrue(params.pushStrength() > 1.2);
         assertTrue(params.width() < 0.8); // Synergy widens the cone (decreases cos)
+        assertTrue(params.damage() > 10.0);
         assertEquals(96, params.slowDurationTicks());
         assertEquals(1, params.slowAmplifier());
         assertTrue(params.spawnSplashParticles());
@@ -35,6 +37,7 @@ class YuQunComboLogicTest {
         assertTrue(params.range() > 8.0);
         assertTrue(params.pushStrength() > 1.2);
         assertTrue(params.width() < 0.8);
+        assertTrue(params.damage() > 10.0);
         assertTrue(params.slowDurationTicks() > 60);
         assertEquals(0, params.slowAmplifier());
         assertFalse(params.spawnSplashParticles());
@@ -46,6 +49,7 @@ class YuQunComboLogicTest {
         assertTrue(params.range() < 8.0);
         assertTrue(params.pushStrength() < 1.2);
         assertTrue(params.width() > 0.8); // Fire narrows the cone (increases cos)
+        assertTrue(params.damage() < 10.0);
     }
 
     @Test
@@ -56,6 +60,7 @@ class YuQunComboLogicTest {
         assertTrue(Double.isFinite(params.range()));
         assertTrue(Double.isFinite(params.width()));
         assertTrue(Double.isFinite(params.pushStrength()));
+        assertTrue(Double.isFinite(params.damage()));
     }
 
     @Test

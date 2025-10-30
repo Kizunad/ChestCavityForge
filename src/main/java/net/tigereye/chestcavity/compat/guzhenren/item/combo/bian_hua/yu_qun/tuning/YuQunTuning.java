@@ -20,6 +20,8 @@ public final class YuQunTuning {
     public static final double BASE_WIDTH_COS = 0.8;
     /** 基础推动强度 */
     public static final double BASE_PUSH = 1.2;
+    /** 基础伤害 */
+    public static final double BASE_DAMAGE = 10.0;
 
     // ===================
     //  道痕软化映射

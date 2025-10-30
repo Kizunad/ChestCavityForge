@@ -47,8 +47,6 @@ public final class YuQunComboBehavior {
   private static final double ZHENYUAN_COST = 120.0;
   private static final double JINGLI_COST = 12.0;
   private static final int HUNGER_COST = 2;
-  private static final int COOLDOWN_TICKS = 20 * 12;
-  private static final double BASE_DAMAGE = 10.0;
 
   static {
     OrganActivationListeners.register(ABILITY_ID, YuQunComboBehavior::activate);
@@ -129,7 +127,7 @@ public final class YuQunComboBehavior {
         continue;
       }
       DamageComputeContext context =
-          DamageComputeContext.builder(player, BASE_DAMAGE)
+          DamageComputeContext.builder(player, params.damage())
               .defender(t)
               .skill(ABILITY_ID)
               .addKind(DamageKind.AOE)
