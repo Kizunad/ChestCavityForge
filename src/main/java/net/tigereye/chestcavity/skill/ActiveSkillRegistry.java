@@ -17,8 +17,10 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
@@ -282,7 +284,7 @@ public final class ActiveSkillRegistry {
         "硬皮鼓动：5 秒内防御系数+6%，软反伤额外+10%，并获得 50% 击退抗性，冷却 20 秒",
         "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
         () -> {
-          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+          ensureClassLoaded(ShouPiGuActive.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
 
@@ -294,7 +296,7 @@ public final class ActiveSkillRegistry {
         "阴阳身：在阴身/阳身间切换，刷新锚点与属性倍率，冷却 120 秒",
         "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
         () -> {
-          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+          ensureClassLoaded(YinYangZhuanShenGuActive.INSTANCE);
         },
         CooldownHint.useOrgan("阴阳身就绪", null));
 
