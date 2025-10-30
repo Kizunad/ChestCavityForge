@@ -1,6 +1,9 @@
 package net.tigereye.chestcavity.registration;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
@@ -15,9 +18,38 @@ import net.tigereye.chestcavity.skill.effects.builtin.ResourceFieldSnapshotEffec
  */
 public final class ActivationHookRegistry {
 
+  private static final Set<String> ENABLED_FAMILIES = new HashSet<>();
   private static boolean initialised = false;
 
   private ActivationHookRegistry() {}
+
+  /**
+   * Registers a family of passive abilities.
+   *
+   * @param id The ID of the family.
+   */
+  public static void registerFamily(String id) {
+    ENABLED_FAMILIES.add(id);
+  }
+
+  /**
+   * Checks if a family of passive abilities is enabled.
+   *
+   * @param id The ID of the family.
+   * @return True if the family is enabled, false otherwise.
+   */
+  public static boolean isFamilyEnabled(String id) {
+    return ENABLED_FAMILIES.contains(id);
+  }
+
+  /**
+   * Gets the set of all enabled families.
+   *
+   * @return An unmodifiable set of enabled family IDs.
+   */
+  public static Set<String> getEnabledFamilies() {
+    return Collections.unmodifiableSet(ENABLED_FAMILIES);
+  }
 
   /** 注册所有技能触发 Hook。 */
   public static void register() {
@@ -25,6 +57,13 @@ public final class ActivationHookRegistry {
       return;
     }
     initialised = true;
+
+    // Register default families
+    registerFamily("liupai_shuidao");
+    registerFamily("liupai_bianhuadao");
+    registerFamily("daohen_shuidao");
+    registerFamily("daohen_bianhuadao");
+    registerFamily("daohen_yandao");
 
     // 技能效果: 饵祭召鲨需要先快照关键 Guzhenren 资源字段
     SkillEffectBus.register(
