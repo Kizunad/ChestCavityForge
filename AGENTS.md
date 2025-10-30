@@ -52,6 +52,9 @@
 - 服务端激活链路：
   - 网络包 `ChestCavityHotkeyPayload.handle` 调用 `OrganActivationListeners.activate(id, cc)`；代码保持静音（INFO 以下）。
   - `OrganActivationListeners` 可保留"懒注册"兜底（按需加载行为类并重试），但默认静默失败，不打日志。
+- **参数快照**:
+  - 对于需要在激活前根据玩家状态（如道痕、流派经验）动态计算参数的技能，应在 `ActivationHookRegistry.java` 中注册一个 `ResourceFieldSnapshotEffect`。
+  - 这将确保在技能激活时，相关的玩家属性已经被快照，可以在技能的 `Behavior` 类中安全地使用。
 
 ### Guzhenren Ops 迁移（四步）
 1. **盘点**：用 `rg` 搜索 `LinkageManager.getContext|getOrCreateChannel|GuzhenrenResourceBridge.open|NBTCharge`，登记仍未走 `LedgerOps/ResourceOps/MultiCooldown/AbsorptionHelper` 的行为类。

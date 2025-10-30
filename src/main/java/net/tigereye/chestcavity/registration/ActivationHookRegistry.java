@@ -52,6 +52,14 @@ public final class ActivationHookRegistry {
                     "daohen_bianhuadao",
                     "daohen_yandao"))));
 
+    // 技能效果: 阴阳鸟技能集也需要同样的快照（用于参数与冷却按流派经验/道痕调整）
+    SkillEffectBus.register(
+        "^guzhenren:yin_yang_.*$",
+        CompositeEffect.of(
+            new ResourceFieldSnapshotEffect(
+                "yin_yang:",
+                List.of("liupai_bianhuadao", "daohen_bianhuadao"))));
+
     // 技能效果总线：前置/后置分发（默认无注册效果，零行为变更）
     SkillActivationHooks.registerActivePreHandler(
         "^guzhenren:.*$",

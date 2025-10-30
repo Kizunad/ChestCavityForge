@@ -12,6 +12,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYang
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.util.YinYangDualityOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.common.YinYangComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.calculator.DualStrikeCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.calculator.DualStrikeLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.calculator.DualStrikeParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.fx.DualStrikeFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.messages.DualStrikeMessages;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.tuning.DualStrikeTuning;
@@ -20,6 +22,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 
 /**
  * Behavior logic for the Dual Strike combo skill.
@@ -63,13 +66,19 @@ public final class DualStrikeBehavior {
             return;
         }
 
+        double changeDaoHen = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:daohen_bianhuadao", 0.0D);
+        double changeFlowExp = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:liupai_bianhuadao", 0.0D);
+
+        DualStrikeParameters params = DualStrikeLogic.computeParameters(changeDaoHen, changeFlowExp);
+
         DualStrikeWindow window = attachment.dualStrike();
         window.clear();
         window.start(null, now + DualStrikeTuning.STRIKE_WINDOW_TICKS);
         window.setBaseAttacks(
             attachment.pool(Mode.YIN).attackSnapshot(), attachment.pool(Mode.YANG).attackSnapshot());
+        window.setDamageFactor(params.damageFactor());
         
-        long ready = now + DualStrikeTuning.COOLDOWN_TICKS;
+        long ready = now + params.cooldownTicks();
         cooldown.entry(COOLDOWN_KEY).setReadyAt(ready);
 
         ComboSkillRegistry.scheduleReadyToast(player, SKILL_ID, ready, now);
@@ -110,7 +119,7 @@ public final class DualStrikeBehavior {
         DualStrikeFx.playHit(player, target, bothHit);
 
         if (bothHit) {
-            double damage = DualStrikeCalculator.calculateBonusDamage(window.baseAttackYin(), window.baseAttackYang());
+            double damage = DualStrikeCalculator.calculateBonusDamage(window.baseAttackYin(), window.baseAttackYang(), window.damageFactor());
             if (damage > 0.0D) {
                 target.hurt(player.damageSources().magic(), (float) damage);
             }

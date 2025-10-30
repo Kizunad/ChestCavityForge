@@ -28,6 +28,7 @@ public class CCOrganScores {
   public static final ResourceLocation DESTRUCTIVE_COLLISIONS =
       ChestCavity.id("destructive_collisions");
   public static final ResourceLocation EASE_OF_ACCESS = ChestCavity.id("ease_of_access");
+  public static final ResourceLocation FALL_RESISTANT = ChestCavity.id("fall_resistant");
   public static final ResourceLocation FIRE_RESISTANT = ChestCavity.id("fire_resistant");
   public static final ResourceLocation GLOWING = ChestCavity.id("glowing");
   public static final ResourceLocation HYDROALLERGENIC = ChestCavity.id("hydroallergenic");
