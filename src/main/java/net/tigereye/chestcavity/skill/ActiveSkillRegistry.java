@@ -301,51 +301,6 @@ public final class ActiveSkillRegistry {
         CooldownHint.useOrgan("阴阳身就绪", null));
 
 
-    register(
-        "guzhenren:wuxing_hua_hen",
-        "guzhenren:wuxing_hua_hen",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("转化", "道痕", "五行"),
-        "五行化痕：消耗变化道痕转化为五行道痕（金/木/水/炎/土），支持多种比例与固定量模式，阴阳模式享受税减",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("五行化痕就绪", null));
-
-    register(
-        "guzhenren:wuxing_hua_hen_undo",
-        "guzhenren:wuxing_hua_hen_undo",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("撤销", "道痕"),
-        "五行化痕·撤销：10 分钟窗口内可撤销上次转化，返还 80% 已转化的变化道痕与五行道痕",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("撤销就绪", null));
-
-    register(
-        "guzhenren:wuxing_hua_hen_check",
-        "guzhenren:wuxing_hua_hen_check",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("查询", "道痕"),
-        "五行化痕·查询：检查当前撤销窗口状态，显示可撤销的道痕转化记录与剩余时间",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        });
-
-    register(
-        "guzhenren:wuxing_hua_hen_config",
-        "guzhenren:wuxing_hua_hen_config",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("配置", "道痕"),
-        "五行化痕·配置：打开配置菜单，可点击切换目标元素（金/木/水/炎/土）与转化模式（比例/固定）",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        });
 
     register(
         "guzhenren:skill/yinshi_tunnel",
