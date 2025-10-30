@@ -12,6 +12,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYang
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Mode;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.util.YinYangDualityOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.common.YinYangComboUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.tai_ji_swap.calculator.TaiJiSwapLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.tai_ji_swap.calculator.TaiJiSwapParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.tai_ji_swap.fx.TaiJiSwapFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.tai_ji_swap.messages.TaiJiSwapMessages;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.tai_ji_swap.tuning.TaiJiSwapTuning;
@@ -20,6 +22,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 
 /**
  * Behavior logic for the Taiji Swap combo skill.
@@ -64,6 +67,13 @@ public final class TaiJiSwapBehavior {
             return;
         }
 
+        double changeDaoHen = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:daohen_bianhuadao", 0.0D);
+        double changeFlowExp = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:liupai_bianhuadao", 0.0D);
+
+        TaiJiSwapParameters params = TaiJiSwapLogic.computeParameters(changeDaoHen, changeFlowExp);
+        attachment.setFallDamageReduction(params.fallDamageReduction());
+        attachment.setFallResistance(params.fallDamageReduction());
+
         Mode currentMode = attachment.currentMode();
         Mode otherMode = currentMode.opposite();
         Anchor destination = attachment.anchor(otherMode);
@@ -95,7 +105,7 @@ public final class TaiJiSwapBehavior {
         attachment.setFallGuardEndTick(now + TaiJiSwapTuning.FALL_GUARD_TICKS);
 
         long cooldownDuration =
-            withinWindow ? Math.max(10L, TaiJiSwapTuning.COOLDOWN_TICKS / 2) : TaiJiSwapTuning.COOLDOWN_TICKS;
+            withinWindow ? Math.max(10L, params.cooldownTicks() / 2) : params.cooldownTicks();
         long readyTick = now + cooldownDuration;
         cooldown.entry(COOLDOWN_KEY).setReadyAt(readyTick);
 

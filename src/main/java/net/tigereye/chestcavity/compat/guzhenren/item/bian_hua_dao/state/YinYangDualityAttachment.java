@@ -40,6 +40,8 @@ public final class YinYangDualityAttachment {
   private long sealEndTick;
   private long swapWindowEndTick;
   private long fallGuardEndTick;
+  private float fallDamageReduction;
+  private float fallResistance;
 
   private ResourcePool yinPool = ResourcePool.empty();
   private ResourcePool yangPool = ResourcePool.empty();
@@ -121,6 +123,22 @@ public final class YinYangDualityAttachment {
     this.fallGuardEndTick = Math.max(0L, value);
   }
 
+  public float fallDamageReduction() {
+    return fallDamageReduction;
+  }
+
+  public void setFallDamageReduction(float value) {
+    this.fallDamageReduction = value;
+  }
+
+  public float fallResistance() {
+    return fallResistance;
+  }
+
+  public void setFallResistance(float value) {
+    this.fallResistance = value;
+  }
+
   public DualStrikeWindow dualStrike() {
     return dualStrike;
   }
@@ -154,6 +172,8 @@ public final class YinYangDualityAttachment {
     tag.putLong("SealEnd", sealEndTick);
     tag.putLong("SwapWindowEnd", swapWindowEndTick);
     tag.putLong("FallGuardEnd", fallGuardEndTick);
+    tag.putFloat("FallDamageReduction", fallDamageReduction);
+    tag.putFloat("FallResistance", fallResistance);
     tag.put("YinPool", yinPool.save());
     tag.put("YangPool", yangPool.save());
     tag.put("YinAnchor", yinAnchor.save());
@@ -176,6 +196,8 @@ public final class YinYangDualityAttachment {
     sealEndTick = Math.max(0L, tag.getLong("SealEnd"));
     swapWindowEndTick = Math.max(0L, tag.getLong("SwapWindowEnd"));
     fallGuardEndTick = Math.max(0L, tag.getLong("FallGuardEnd"));
+    fallDamageReduction = tag.getFloat("FallDamageReduction");
+    fallResistance = tag.getFloat("FallResistance");
     yinPool = ResourcePool.from(tag.getCompound("YinPool"));
     yangPool = ResourcePool.from(tag.getCompound("YangPool"));
     yinAnchor = Anchor.from(tag.getCompound("YinAnchor"));
@@ -518,6 +540,7 @@ public final class YinYangDualityAttachment {
     private long expireTick;
     private double baseAttackYin;
     private double baseAttackYang;
+    private double damageFactor;
 
     public Optional<UUID> targetId() {
       return Optional.ofNullable(targetId);
@@ -576,6 +599,14 @@ public final class YinYangDualityAttachment {
       this.baseAttackYang = yang;
     }
 
+    public double damageFactor() {
+        return damageFactor;
+    }
+
+    public void setDamageFactor(double damageFactor) {
+        this.damageFactor = damageFactor;
+    }
+
     public CompoundTag save() {
       CompoundTag tag = new CompoundTag();
       if (targetId != null) {
@@ -586,6 +617,7 @@ public final class YinYangDualityAttachment {
       tag.putLong("Expire", expireTick);
       tag.putDouble("YinAttack", baseAttackYin);
       tag.putDouble("YangAttack", baseAttackYang);
+      tag.putDouble("DamageFactor", damageFactor);
       return tag;
     }
 
@@ -604,6 +636,7 @@ public final class YinYangDualityAttachment {
       this.expireTick = Math.max(0L, tag.getLong("Expire"));
       this.baseAttackYin = tag.getDouble("YinAttack");
       this.baseAttackYang = tag.getDouble("YangAttack");
+      this.damageFactor = tag.getDouble("DamageFactor");
     }
 
     public void markYinHit() {

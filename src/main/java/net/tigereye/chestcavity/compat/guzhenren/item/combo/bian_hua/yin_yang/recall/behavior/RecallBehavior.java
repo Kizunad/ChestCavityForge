@@ -12,6 +12,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYang
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Mode;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.util.YinYangDualityOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.common.YinYangComboUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.recall.calculator.RecallLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.recall.calculator.RecallParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.recall.fx.RecallFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.recall.messages.RecallMessages;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.recall.tuning.RecallTuning;
@@ -20,6 +22,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 
 /**
  * Behavior logic for the Recall combo skill.
@@ -63,6 +66,11 @@ public final class RecallBehavior {
             return;
         }
 
+        double changeDaoHen = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:daohen_bianhuadao", 0.0D);
+        double changeFlowExp = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:liupai_bianhuadao", 0.0D);
+
+        RecallParameters params = RecallLogic.computeParameters(changeDaoHen, changeFlowExp);
+
         Mode other = attachment.currentMode().opposite();
         Anchor anchor = attachment.anchor(other);
         if (anchor == null || !anchor.isValid()) {
@@ -81,7 +89,7 @@ public final class RecallBehavior {
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 40, 1, false, false));
         }
 
-        long ready = now + RecallTuning.COOLDOWN_TICKS;
+        long ready = now + params.cooldownTicks();
         cooldown.entry(COOLDOWN_KEY).setReadyAt(ready);
 
         ComboSkillRegistry.scheduleReadyToast(player, SKILL_ID, ready, now);

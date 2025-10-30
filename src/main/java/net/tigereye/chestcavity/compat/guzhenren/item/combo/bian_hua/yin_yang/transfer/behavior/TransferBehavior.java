@@ -10,6 +10,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.co
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.calculator.TransferCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.fx.TransferFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.messages.TransferMessages;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.calculator.TransferLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.calculator.TransferParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.tuning.TransferTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.framework.ComboSkillUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -17,6 +19,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 
 /**
  * Behavior logic for the Transfer combo skill.
@@ -60,13 +63,18 @@ public final class TransferBehavior {
             return;
         }
 
+        double changeDaoHen = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:daohen_bianhuadao", 0.0D);
+        double changeFlowExp = SkillEffectBus.consumeMetadata(player, SKILL_ID, "yin_yang:liupai_bianhuadao", 0.0D);
+
+        TransferParameters params = TransferLogic.computeParameters(changeDaoHen, changeFlowExp);
+
         Optional<ResourceHandle> handleOpt = YinYangDualityOps.openHandle(player);
         if (handleOpt.isEmpty()) {
             TransferMessages.sendFailure(player, TransferMessages.CANNOT_READ_ATTACHMENT);
             return;
         }
 
-        double moved = TransferCalculator.performTransfer(attachment, handleOpt.get());
+        double moved = TransferCalculator.performTransfer(attachment, handleOpt.get(), params.transferRatio());
         if (moved <= 0.0D) {
             TransferMessages.sendFailure(player, TransferMessages.INSUFFICIENT_TRANSFER_AMOUNT);
             // Refund cost if nothing was transferred
@@ -74,7 +82,7 @@ public final class TransferBehavior {
             return;
         }
 
-        long ready = now + TransferTuning.COOLDOWN_TICKS;
+        long ready = now + params.cooldownTicks();
         cooldown.entry(COOLDOWN_KEY).setReadyAt(ready);
 
         ComboSkillRegistry.scheduleReadyToast(player, SKILL_ID, ready, now);

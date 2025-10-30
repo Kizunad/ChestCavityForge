@@ -11,14 +11,14 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 public final class TransferCalculator {
     private TransferCalculator() {}
 
-    public static double performTransfer(YinYangDualityAttachment attachment, ResourceHandle handle) {
+    public static double performTransfer(YinYangDualityAttachment attachment, ResourceHandle handle, double transferRatio) {
         Mode current = attachment.currentMode();
         Mode other = current.opposite();
         attachment.pool(other).ensureInitializedFrom(attachment.pool(current));
         double moved = 0.0D;
 
         double currentZhenyuan = handle.getZhenyuan().orElse(0.0D);
-        double sendZhenyuan = currentZhenyuan * TransferTuning.TRANSFER_RATIO;
+        double sendZhenyuan = currentZhenyuan * transferRatio;
         if (sendZhenyuan > 0.0D) {
             double accepted = attachment.pool(other).receiveZhenyuan(sendZhenyuan);
             if (accepted > 0.0D) {
@@ -28,7 +28,7 @@ public final class TransferCalculator {
         }
 
         double currentJingli = handle.getJingli().orElse(0.0D);
-        double sendJingli = currentJingli * TransferTuning.TRANSFER_RATIO;
+        double sendJingli = currentJingli * transferRatio;
         if (sendJingli > 0.0D) {
             double accepted = attachment.pool(other).receiveJingli(sendJingli);
             if (accepted > 0.0D) {
@@ -38,7 +38,7 @@ public final class TransferCalculator {
         }
 
         double currentHunpo = handle.getHunpo().orElse(0.0D);
-        double sendHunpo = currentHunpo * TransferTuning.TRANSFER_RATIO;
+        double sendHunpo = currentHunpo * transferRatio;
         if (sendHunpo > 0.0D) {
             double accepted = attachment.pool(other).receiveSoul(sendHunpo);
             if (accepted > 0.0D) {
@@ -48,7 +48,7 @@ public final class TransferCalculator {
         }
 
         double currentNian = handle.getNiantou().orElse(0.0D);
-        double sendNian = currentNian * TransferTuning.TRANSFER_RATIO;
+        double sendNian = currentNian * transferRatio;
         if (sendNian > 0.0D) {
             double accepted = attachment.pool(other).receiveNiantou(sendNian);
             if (accepted > 0.0D) {

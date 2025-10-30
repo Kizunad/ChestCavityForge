@@ -236,6 +236,9 @@ public class ChestCavityUtil {
     }
     if (source == cc.owner.level().damageSources().fall()) {
       damage = applyLeapingToFallDamage(cc, damage);
+      if (cc.getChestCavityType().getDefaultOrganScore(CCOrganScores.FALL_RESISTANT) > 0) {
+        damage *= (1 - cc.getOrganScore(CCOrganScores.FALL_RESISTANT));
+      }
     }
     if (source == cc.owner.level().damageSources().fall()
         || source == cc.owner.level().damageSources().flyIntoWall()) {

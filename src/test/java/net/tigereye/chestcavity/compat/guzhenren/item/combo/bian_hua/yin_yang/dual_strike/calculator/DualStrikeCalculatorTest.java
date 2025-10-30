@@ -20,7 +20,7 @@ class DualStrikeCalculatorTest {
         double expected = 10.0 * DualStrikeTuning.DAMAGE_FACTOR;
 
         // Act
-        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack);
+        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack, DualStrikeTuning.DAMAGE_FACTOR);
 
         // Assert
         assertEquals(expected, result, DELTA, "Damage should be based on the weaker Yin attack");
@@ -35,7 +35,7 @@ class DualStrikeCalculatorTest {
         double expected = 10.0 * DualStrikeTuning.DAMAGE_FACTOR;
 
         // Act
-        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack);
+        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack, DualStrikeTuning.DAMAGE_FACTOR);
 
         // Assert
         assertEquals(expected, result, DELTA, "Damage should be based on the weaker Yang attack");
@@ -49,7 +49,7 @@ class DualStrikeCalculatorTest {
         double yangAttack = 20.0;
 
         // Act
-        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack);
+        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack, DualStrikeTuning.DAMAGE_FACTOR);
 
         // Assert
         assertEquals(0.0, result, DELTA, "Damage should be zero if the weaker attack is zero");
@@ -63,7 +63,7 @@ class DualStrikeCalculatorTest {
         double yangAttack = 0.0;
 
         // Act
-        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack);
+        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack, DualStrikeTuning.DAMAGE_FACTOR);
 
         // Assert
         assertEquals(0.0, result, DELTA, "Damage should be zero if both attacks are zero");
@@ -78,7 +78,7 @@ class DualStrikeCalculatorTest {
         double expected = 15.0 * DualStrikeTuning.DAMAGE_FACTOR;
 
         // Act
-        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack);
+        double result = DualStrikeCalculator.calculateBonusDamage(yinAttack, yangAttack, DualStrikeTuning.DAMAGE_FACTOR);
 
         // Assert
         assertEquals(expected, result, DELTA, "Damage should be calculated correctly when attacks are equal");
