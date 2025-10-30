@@ -29,8 +29,10 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_qun.calculator.YuQunComboLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_qun.tuning.YuQunTuning;
 
 /** 鱼群组合杀招：复用原始鱼群技能的成本与冷却，并基于协同计算参数。 */
 public final class YuQunComboBehavior {
@@ -45,8 +47,6 @@ public final class YuQunComboBehavior {
   private static final double ZHENYUAN_COST = 120.0;
   private static final double JINGLI_COST = 12.0;
   private static final int HUNGER_COST = 2;
-  private static final int COOLDOWN_TICKS = 20 * 12;
-  private static final double BASE_DAMAGE = 10.0;
 
   static {
     OrganActivationListeners.register(ABILITY_ID, YuQunComboBehavior::activate);
@@ -100,9 +100,17 @@ public final class YuQunComboBehavior {
     }
     drainHunger(player, HUNGER_COST);
 
-    int opt = ComboSkillRegistry.countOptionalSynergy(player, entry);
+    // 获取道痕和流派经验
+    double waterDaoHen = SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_qun:daohen_shuidao", 0.0D);
+    double changeDaoHen = SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_qun:daohen_bianhuadao", 0.0D);
+    double fireDaoHen = SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_qun:daohen_yandao", 0.0D);
+    double waterFlowExp = SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_qun:liupai_shuidao", 0.0D);
+    double changeFlowExp = SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_qun:liupai_bianhuadao", 0.0D);
+    double totalExp = waterFlowExp + changeFlowExp;
+    int synergyCount = ComboSkillRegistry.countOptionalSynergy(player, entry);
 
-    YuQunComboLogic.Parameters params = YuQunComboLogic.computeParameters(opt);
+    // 计算技能参数
+    YuQunComboLogic.Parameters params = YuQunComboLogic.computeParameters(waterDaoHen, changeDaoHen, fireDaoHen, synergyCount);
     double range = params.range();
     double width = params.width();
 
@@ -119,7 +127,7 @@ public final class YuQunComboBehavior {
         continue;
       }
       DamageComputeContext context =
-          DamageComputeContext.builder(player, BASE_DAMAGE)
+          DamageComputeContext.builder(player, params.damage())
               .defender(t)
               .skill(ABILITY_ID)
               .addKind(DamageKind.AOE)
@@ -146,7 +154,10 @@ public final class YuQunComboBehavior {
         null, player.blockPosition(), SoundEvents.SALMON_FLOP, SoundSource.PLAYERS, 0.9f, 1.05f);
 
     YuLinGuBehavior.INSTANCE.recordWetContact(player, organ);
-    long readyAt = now + COOLDOWN_TICKS;
+
+    // 计算并设置冷却
+    int cooldownTicks = YuQunTuning.computeCooldownTicks(totalExp);
+    long readyAt = now + cooldownTicks;
     ready.setReadyAt(readyAt);
     ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
