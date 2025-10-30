@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator.FasciaParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning.ShouPiFasciaLatchTuning;
@@ -16,12 +17,13 @@ final class ShouPiFasciaLatchCalculatorTest {
   void computeRequiresTriggerCount() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> ShouPiFasciaLatchCalculator.compute(3, true, false));
+        () -> ShouPiFasciaLatchCalculator.compute(3, true, false, new BianHuaDaoSnapshot(0, 0)));
   }
 
   @Test
   void computeBaseValuesWithoutTieGuGu() {
-    FasciaParameters params = ShouPiFasciaLatchCalculator.compute(5, true, false);
+    FasciaParameters params =
+        ShouPiFasciaLatchCalculator.compute(5, true, false, new BianHuaDaoSnapshot(0, 0));
     assertEquals(ShouPiFasciaLatchTuning.BASE_SHIELD, params.shieldAmount(), 1.0E-6);
     assertTrue(params.grantTenacity());
     assertFalse(params.applyShockwave());
@@ -31,7 +33,8 @@ final class ShouPiFasciaLatchCalculatorTest {
 
   @Test
   void computeWithTieGuGuAddsShieldAndShockwave() {
-    FasciaParameters params = ShouPiFasciaLatchCalculator.compute(5, false, true);
+    FasciaParameters params =
+        ShouPiFasciaLatchCalculator.compute(5, false, true, new BianHuaDaoSnapshot(0, 0));
     assertEquals(
         ShouPiFasciaLatchTuning.BASE_SHIELD + ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD,
         params.shieldAmount(),

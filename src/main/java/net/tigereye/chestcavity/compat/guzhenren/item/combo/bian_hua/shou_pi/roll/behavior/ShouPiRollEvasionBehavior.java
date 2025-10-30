@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
@@ -70,7 +71,13 @@ public final class ShouPiRollEvasionBehavior {
       return;
     }
 
-    RollParameters params = ShouPiRollEvasionCalculator.compute(synergyCount);
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
+    RollParameters params =
+        ShouPiRollEvasionCalculator.compute(synergyCount, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     Vec3 look = player.getLookAngle();
     Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
@@ -86,7 +93,7 @@ public final class ShouPiRollEvasionBehavior {
         mitigationWindow,
         value -> Math.max(0L, value),
         0L);
-    entry.setReadyAt(now + ShouPiRollEvasionTuning.COOLDOWN_TICKS);
+    entry.setReadyAt(now + params.cooldown());
 
     ShouPiGuOrganBehavior.applyRollCounter(
         player, params.resistanceDurationTicks(), params.resistanceAmplifier());

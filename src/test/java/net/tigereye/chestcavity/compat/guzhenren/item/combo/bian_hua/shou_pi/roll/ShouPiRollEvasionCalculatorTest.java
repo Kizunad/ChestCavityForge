@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.tuning.ShouPiRollEvasionTuning;
@@ -13,7 +14,7 @@ final class ShouPiRollEvasionCalculatorTest {
 
   @Test
   void computeWithSingleSynergyUsesBaseBonuses() {
-    RollParameters params = ShouPiRollEvasionCalculator.compute(1);
+    RollParameters params = ShouPiRollEvasionCalculator.compute(1, new BianHuaDaoSnapshot(0, 0));
     assertEquals(
         ShouPiRollEvasionTuning.BASE_DISTANCE + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS,
         params.distance(),
@@ -29,7 +30,7 @@ final class ShouPiRollEvasionCalculatorTest {
 
   @Test
   void computeWithDualSynergyBoostsDistanceAndAmplifiers() {
-    RollParameters params = ShouPiRollEvasionCalculator.compute(2);
+    RollParameters params = ShouPiRollEvasionCalculator.compute(2, new BianHuaDaoSnapshot(0, 0));
     assertEquals(
         ShouPiRollEvasionTuning.BASE_DISTANCE
             + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS
@@ -46,7 +47,9 @@ final class ShouPiRollEvasionCalculatorTest {
 
   @Test
   void computeWithoutSynergyThrows() {
-    assertThrows(IllegalArgumentException.class, () -> ShouPiRollEvasionCalculator.compute(0));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> ShouPiRollEvasionCalculator.compute(0, new BianHuaDaoSnapshot(0, 0)));
   }
 }
 

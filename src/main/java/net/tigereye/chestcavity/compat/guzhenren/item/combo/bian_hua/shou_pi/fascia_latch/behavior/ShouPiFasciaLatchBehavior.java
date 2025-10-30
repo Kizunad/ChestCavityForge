@@ -16,6 +16,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator.FasciaParameters;
@@ -89,8 +90,14 @@ public final class ShouPiFasciaLatchBehavior {
       return;
     }
 
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
     FasciaParameters params =
-        ShouPiFasciaLatchCalculator.compute(fasciaHits, hasTigerGu, hasTieGuGu);
+        ShouPiFasciaLatchCalculator.compute(
+            fasciaHits, hasTigerGu, hasTieGuGu, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     OrganStateOps.setLong(
         state,
@@ -109,7 +116,7 @@ public final class ShouPiFasciaLatchBehavior {
         value -> Math.max(0, value),
         0);
 
-    entry.setReadyAt(now + ShouPiFasciaLatchTuning.COOLDOWN_TICKS);
+    entry.setReadyAt(now + params.cooldown());
 
     ShouPiGuOrganBehavior.applyShield(player, params.shieldAmount());
 
