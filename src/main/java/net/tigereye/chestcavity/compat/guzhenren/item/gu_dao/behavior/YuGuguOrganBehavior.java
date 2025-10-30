@@ -419,7 +419,9 @@ public enum YuGuguOrganBehavior
   }
 
   private static void sendEquipMessage(double effect) {
-    ChestCavity.LOGGER.info(String.format(Locale.ROOT, "[YuGugu] equip -> 增效 %.3f", effect));
+    if (ChestCavity.LOGGER.isDebugEnabled()) {
+      ChestCavity.LOGGER.debug(String.format(Locale.ROOT, "[YuGugu] equip -> 增效 %.3f", effect));
+    }
   }
 
   private static void sendHarvestMessage(
@@ -430,25 +432,32 @@ public enum YuGuguOrganBehavior
       double consumedEnergy,
       double effect) {
 
-    ChestCavity.LOGGER.info(
-        String.format(
-            Locale.ROOT,
-            "[YuGugu] +%d EmeraldGrowth %.1f -> %.1f | 真元消耗=%.1f | 能量消耗=%.1f | 增效=%.3f",
-            stackCount,
-            before,
-            after,
-            consumedZhenyuan,
-            consumedEnergy,
-            effect));
+    if (ChestCavity.LOGGER.isDebugEnabled()) {
+      ChestCavity.LOGGER.debug(
+          String.format(
+              Locale.ROOT,
+              "[YuGugu] +%d EmeraldGrowth %.1f -> %.1f | 真元消耗=%.1f | 能量消耗=%.1f | 增效=%.3f",
+              stackCount,
+              before,
+              after,
+              consumedZhenyuan,
+              consumedEnergy,
+              effect));
+    }
   }
 
   private static void sendDecayMessage(int updatedCharge, double effect) {
-    ChestCavity.LOGGER.info(
-        String.format(
-            Locale.ROOT, "[YuGugu] 资源不足 -> 衰减 charge=%d (增效 %.3f)", updatedCharge, effect));
+    if (ChestCavity.LOGGER.isDebugEnabled()) {
+      ChestCavity.LOGGER.debug(
+          String.format(
+              Locale.ROOT, "[YuGugu] 资源不足 -> 衰减 charge=%d (增效 %.3f)", updatedCharge, effect));
+    }
   }
 
   private static void sendRemovalMessage(double effect) {
-    ChestCavity.LOGGER.info(String.format(Locale.ROOT, "[YuGugu] removed -> 撤销增效 %.3f", effect));
+    if (ChestCavity.LOGGER.isDebugEnabled()) {
+      ChestCavity.LOGGER.debug(
+          String.format(Locale.ROOT, "[YuGugu] removed -> 撤销增效 %.3f", effect));
+    }
   }
 }
