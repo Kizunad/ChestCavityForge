@@ -1,30 +1,40 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning.ShouPiFasciaLatchTuning;
 
 /** 筋膜锁扣的纯逻辑计算器。 */
 public final class ShouPiFasciaLatchCalculator {
   private ShouPiFasciaLatchCalculator() {}
 
-  public static FasciaParameters compute(int fasciaHits, boolean hasTigerGu, boolean hasTieGuGu) {
+  public static FasciaParameters compute(
+      int fasciaHits, boolean hasTigerGu, boolean hasTieGuGu, BianHuaDaoSnapshot snapshot) {
     if (fasciaHits < ShouPiGuOrganBehavior.FASCIA_TRIGGER) {
       throw new IllegalArgumentException("fascia latch requires trigger count");
     }
-    double shield = ShouPiFasciaLatchTuning.BASE_SHIELD;
+    double shield = ShouPiComboLogic.applyDaoHenBuff(
+        ShouPiFasciaLatchTuning.BASE_SHIELD, snapshot.daoHen());
     if (hasTieGuGu) {
-      shield += ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD;
+      shield += ShouPiComboLogic.applyDaoHenBuff(
+          ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD, snapshot.daoHen());
     }
     return new FasciaParameters(
         ShouPiGuOrganBehavior.FASCIA_ACTIVE_REDUCTION,
         ShouPiFasciaLatchTuning.EFFECT_DURATION_TICKS,
         shield,
         hasTieGuGu,
-        ShouPiFasciaLatchTuning.SHOCKWAVE_RADIUS,
-        ShouPiFasciaLatchTuning.SHOCKWAVE_STRENGTH,
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiFasciaLatchTuning.SHOCKWAVE_RADIUS, snapshot.daoHen()),
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiFasciaLatchTuning.SHOCKWAVE_STRENGTH, snapshot.daoHen()),
         hasTigerGu,
         ShouPiFasciaLatchTuning.TENACITY_DURATION_TICKS,
-        ShouPiFasciaLatchTuning.TENACITY_KNOCKBACK_RESIST);
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiFasciaLatchTuning.TENACITY_KNOCKBACK_RESIST, snapshot.daoHen()),
+        ShouPiComboLogic.computeCooldown(
+            ShouPiFasciaLatchTuning.COOLDOWN_TICKS, snapshot.flowExperience()));
   }
 
   /** 筋膜锁扣计算结果。 */
@@ -37,6 +47,7 @@ public final class ShouPiFasciaLatchCalculator {
       double shockwaveStrength,
       boolean grantTenacity,
       int tenacityDurationTicks,
-      double tenacityKnockbackResist) {}
+      double tenacityKnockbackResist,
+      long cooldown) {}
 }
 

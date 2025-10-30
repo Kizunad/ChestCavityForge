@@ -15,6 +15,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator.CrashParameters;
@@ -85,8 +86,14 @@ public final class ShouPiQianJiaCrashBehavior {
         player.getAttribute(Attributes.ATTACK_DAMAGE) == null
             ? 0.0D
             : player.getAttribute(Attributes.ATTACK_DAMAGE).getValue();
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
     CrashParameters params =
-        ShouPiQianJiaCrashCalculator.compute(softPool, attackDamage, synergy);
+        ShouPiQianJiaCrashCalculator.compute(
+            softPool, attackDamage, synergy, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     Vec3 look = player.getLookAngle();
     Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
@@ -110,7 +117,7 @@ public final class ShouPiQianJiaCrashBehavior {
         now + ShouPiGuOrganBehavior.CRASH_IMMUNE_TICKS,
         value -> Math.max(0L, value),
         0L);
-    entry.setReadyAt(now + ShouPiQianJiaCrashTuning.COOLDOWN_TICKS);
+    entry.setReadyAt(now + params.cooldown());
 
     player
         .level()

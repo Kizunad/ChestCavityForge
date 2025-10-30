@@ -8,6 +8,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator.ShouPiStoicReleaseCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator.ShouPiStoicReleaseCalculator.StoicParameters;
@@ -77,7 +78,14 @@ public final class ShouPiStoicReleaseBehavior {
 
     ShouPiGuOrganBehavior.TierParameters tierParams =
         ShouPiGuOrganBehavior.tierParameters(state);
-    StoicParameters params = ShouPiStoicReleaseCalculator.compute(tierParams);
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
+    StoicParameters params =
+        ShouPiStoicReleaseCalculator.compute(
+            tierParams, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     OrganStateOps.setBoolean(
         state, cc, organ, ShouPiGuOrganBehavior.KEY_STOIC_READY, false, false);

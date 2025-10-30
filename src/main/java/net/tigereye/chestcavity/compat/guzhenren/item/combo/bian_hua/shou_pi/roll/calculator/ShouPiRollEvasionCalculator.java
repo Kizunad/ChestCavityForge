@@ -1,21 +1,27 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.tuning.ShouPiRollEvasionTuning;
 
 /** 皮走滚袭的纯逻辑计算器。 */
 public final class ShouPiRollEvasionCalculator {
   private ShouPiRollEvasionCalculator() {}
 
-  public static RollParameters compute(int armorSynergyCount) {
+  public static RollParameters compute(int armorSynergyCount, BianHuaDaoSnapshot snapshot) {
     if (armorSynergyCount <= 0) {
       throw new IllegalArgumentException("roll evasion requires at least one synergy organ");
     }
     int cappedSynergy = Math.min(armorSynergyCount, 2);
     double distance =
-        ShouPiRollEvasionTuning.BASE_DISTANCE + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS;
+        ShouPiComboLogic.applyDaoHenBuff(
+                ShouPiRollEvasionTuning.BASE_DISTANCE, snapshot.daoHen())
+            + ShouPiComboLogic.applyDaoHenBuff(
+                ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS, snapshot.daoHen());
     if (cappedSynergy >= 2) {
-      distance += ShouPiRollEvasionTuning.DUAL_DISTANCE_BONUS;
+      distance += ShouPiComboLogic.applyDaoHenBuff(
+          ShouPiRollEvasionTuning.DUAL_DISTANCE_BONUS, snapshot.daoHen());
     }
     int resistanceAmplifier =
         cappedSynergy >= 2
@@ -34,8 +40,11 @@ public final class ShouPiRollEvasionCalculator {
         resistanceAmplifier,
         slowTicks,
         slowAmplifier,
-        ShouPiRollEvasionTuning.TARGET_SEARCH_RADIUS,
-        (int) ShouPiGuOrganBehavior.ROLL_DAMAGE_WINDOW_TICKS);
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiRollEvasionTuning.TARGET_SEARCH_RADIUS, snapshot.daoHen()),
+        (int) ShouPiGuOrganBehavior.ROLL_DAMAGE_WINDOW_TICKS,
+        ShouPiComboLogic.computeCooldown(
+            ShouPiRollEvasionTuning.COOLDOWN_TICKS, snapshot.flowExperience()));
   }
 
   /** 皮走滚袭输出参数。 */
@@ -46,6 +55,7 @@ public final class ShouPiRollEvasionCalculator {
       int slowDurationTicks,
       int slowAmplifier,
       double slowRadius,
-      int mitigationWindowTicks) {}
+      int mitigationWindowTicks,
+      long cooldown) {}
 }
 
