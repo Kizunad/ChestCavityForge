@@ -607,6 +607,20 @@ public final class YuLinGuBehavior extends AbstractGuzhenrenOrganBehavior
   }
 
   /** 查找玩家的鱼鳞蛊器官。 */
+  public static ItemStack findOrgan(ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+        return ItemStack.EMPTY;
+    }
+    int size = cc.inventory.getContainerSize();
+    for (int i = 0; i < size; i++) {
+        ItemStack stack = cc.inventory.getItem(i);
+        if (INSTANCE.matchesOrgan(stack, ORGAN_ID)) {
+            return stack;
+        }
+    }
+    return ItemStack.EMPTY;
+  }
+
   private ItemStack findYuLinGuOrgan(Player player) {
     if (player == null) {
       return ItemStack.EMPTY;

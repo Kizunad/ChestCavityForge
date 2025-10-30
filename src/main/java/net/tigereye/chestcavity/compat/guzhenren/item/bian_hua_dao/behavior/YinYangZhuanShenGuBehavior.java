@@ -31,6 +31,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYang
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.DualStrikeWindow;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.util.YinYangDualityOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.dual_strike.behavior.DualStrikeBehavior;
+import static net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuIds.SKILL_BODY_ID;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -51,9 +52,6 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "yin_yang_zhuan_shen_gu");
-
-  private static final ResourceLocation SKILL_BODY_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "yin_yang_zhuan_shen_gu/body");
 
   private static final long BODY_COOLDOWN_TICKS = 120L * 20L;
   private static final long FALL_GUARD_TICKS = 60L; // 3 秒
@@ -80,17 +78,6 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
 
   private static final ResourceCost COST_BODY =
       new ResourceCost(200.0, 10.0, 5.0, 5.0, 5, 2.0f);
-
-
-  static {
-    OrganActivationListeners.register(
-        SKILL_BODY_ID,
-        (entity, cc) -> {
-          if (entity instanceof ServerPlayer player) {
-            INSTANCE.activateBody(player, cc);
-          }
-        });
-  }
 
   private YinYangZhuanShenGuBehavior() {}
 
@@ -175,7 +162,7 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
     return damage;
   }
 
-  private void activateBody(ServerPlayer player, ChestCavityInstance cc) {
+  public void activateBody(ServerPlayer player, ChestCavityInstance cc) {
     if (player.level().isClientSide() || cc == null || !hasOrganEquipped(cc)) {
       return;
     }
@@ -281,6 +268,24 @@ public final class YinYangZhuanShenGuBehavior extends AbstractGuzhenrenOrganBeha
       }
     }
     attachment.pool(mode).setAttackSnapshot(player.getAttributeValue(Attributes.ATTACK_DAMAGE));
+  }
+
+  public static ItemStack findOrgan(ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
+    int size = cc.inventory.getContainerSize();
+    Item targetItem = BuiltInRegistries.ITEM.getOptional(ORGAN_ID).orElse(null);
+    if (targetItem == null) {
+      return ItemStack.EMPTY;
+    }
+    for (int i = 0; i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (!stack.isEmpty() && stack.getItem() == targetItem) {
+        return stack;
+      }
+    }
+    return ItemStack.EMPTY;
   }
 
   private boolean hasOrganEquipped(ChestCavityInstance cc) {

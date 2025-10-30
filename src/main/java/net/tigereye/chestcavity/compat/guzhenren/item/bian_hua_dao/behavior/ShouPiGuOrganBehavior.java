@@ -70,9 +70,6 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   public static final ResourceLocation TIE_GU_GU_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tie_gu_gu");
 
-  private static final ResourceLocation ACTIVE_DRUM_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "skill/shou_pi_gu_drum");
-
   private static final ResourceLocation KNOCKBACK_MODIFIER_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/shou_pi_gu_knockback");
   private static final ResourceLocation STOIC_ABSORBTION_ID =
@@ -101,10 +98,10 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final double ACTIVE_DRUM_DEFENSE_BONUS = 0.06D;
   private static final double ACTIVE_DRUM_SOFT_BONUS = 0.10D;
-  private static final int ACTIVE_DRUM_DURATION_TICKS = 5 * 20;
-  private static final long ACTIVE_DRUM_COOLDOWN_TICKS = 20 * 20L;
+  public static final int ACTIVE_DRUM_DURATION_TICKS = 5 * 20;
+  public static final long ACTIVE_DRUM_COOLDOWN_TICKS = 20 * 20L;
   private static final double ACTIVE_DRUM_KNOCKBACK_RESIST = 0.5D;
-  private static final double ACTIVE_DRUM_BASE_COST = 40.0D;
+  public static final double ACTIVE_DRUM_BASE_COST = 40.0D;
 
   public static final double ACTIVE_ROLL_BASE_COST = 25.0D;
   public static final long ACTIVE_ROLL_COOLDOWN_TICKS = 14 * 20L;
@@ -168,14 +165,6 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     TIER_PARAMS.put(
         Tier.STAGE5,
         new TierParameters(Tier.STAGE5, 0.45D, 14L, 0.22D, 5, 200.0D, 0.45D, 10 * 20L));
-
-    OrganActivationListeners.register(
-        ACTIVE_DRUM_ID,
-        (entity, cc) -> {
-          if (entity instanceof ServerPlayer player) {
-            INSTANCE.activateDrum(player, cc);
-          }
-        });
   }
 
   private ShouPiGuOrganBehavior() {}
@@ -391,34 +380,7 @@ public final class ShouPiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return damage;
   }
 
-  private void activateDrum(ServerPlayer player, ChestCavityInstance cc) {
-    if (player == null || cc == null) {
-      return;
-    }
-    ItemStack organ = findOrgan(cc);
-    if (organ.isEmpty()) {
-      return;
-    }
-    OrganState state = organState(organ, STATE_ROOT);
-    MultiCooldown cooldown = cooldown(cc, organ, state);
-    long now = player.level().getGameTime();
-    MultiCooldown.Entry entry = cooldown.entry(KEY_ACTIVE_DRUM_READY).withDefault(0L);
-    if (!entry.isReady(now)) {
-      return;
-    }
-    OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, ACTIVE_DRUM_BASE_COST);
-    if (consumed.isEmpty()) {
-      return;
-    }
-    entry.setReadyAt(now + ACTIVE_DRUM_COOLDOWN_TICKS);
-    state.setLong(
-        KEY_ACTIVE_DRUM_EXPIRE, now + ACTIVE_DRUM_DURATION_TICKS, value -> Math.max(0L, value), 0L);
-    applyDrumBuff(player);
-    ActiveSkillRegistry.scheduleReadyToast(player, ACTIVE_DRUM_ID, entry.getReadyTick(), now);
-    NetworkUtil.sendOrganSlotUpdate(cc, organ);
-  }
-
-  private void applyDrumBuff(ServerPlayer player) {
+  public void applyDrumBuff(ServerPlayer player) {
     AttributeInstance attribute = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
     if (attribute != null) {
       AttributeModifier modifier =
