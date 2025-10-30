@@ -53,30 +53,30 @@ ANIMAL_BASE: Dict[str, Dict[str, Decimal]] = {
         'chestcavity:water_breath': Decimal('1'),
     },
     'quan': {
-        'chestcavity:health': Decimal('1'),
+        'chestcavity:health': Decimal('6'),
         'chestcavity:strength': Decimal('2'),
         'chestcavity:speed': Decimal('0.1'),
     },
     'hu': {
-        'chestcavity:health': Decimal('1'),
-        'chestcavity:strength': Decimal('4'),
+        'chestcavity:health': Decimal('4'),
+        'chestcavity:strength': Decimal('8'),
         'chestcavity:speed': Decimal('0.05'),
         'chestcavity:impact_resistant': Decimal('1'),
     },
     'xiong': {
-        'chestcavity:health': Decimal('2'),
+        'chestcavity:health': Decimal('8'),
         'chestcavity:strength': Decimal('4'),
         'chestcavity:defense': Decimal('4'),
         'chestcavity:impact_resistant': Decimal('1'),
     },
     'lang': {
-        'chestcavity:strength': Decimal('1'),
+        'chestcavity:strength': Decimal('4'),
         'chestcavity:arrow_dodging': Decimal('1'),
         'chestcavity:speed': Decimal('0.4'),
     },
     # 羚(羊) — filenames may include ling or (typo) liangyang
     'ling': {
-        'chestcavity:health': Decimal('8'),
+        'chestcavity:health': Decimal('10'),
         'chestcavity:filtration': Decimal('1'),
         'chestcavity:defense': Decimal('2'),
     },
