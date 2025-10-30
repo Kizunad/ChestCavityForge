@@ -12,10 +12,10 @@ class YuShiSummonComboLogicTest {
   void flowStatsCountsDistinctFlowsPerItem() {
     var flows =
         List.of(
-            List.of("水道", "奴道"),
-            List.of("水", "杂项"),
-            List.of("奴道", "辅助"),
-            List.of("无流派"));
+            List.of("shui_dao", "nu_dao"),
+            List.of("shui", "misc"),
+            List.of("nu_dao", "support"),
+            List.of("none"));
 
     YuShiSummonComboLogic.FlowStats stats = YuShiSummonComboLogic.computeFlowStats(flows);
     assertEquals(2, stats.waterCount());

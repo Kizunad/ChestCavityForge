@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 class SkillActivationHooksTest {
 
   private static final ResourceLocation ACTIVE_SKILL_ID =
-      new ResourceLocation("guzhenren", "test_active");
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "test_active");
   private static final ResourceLocation COMBO_SKILL_ID =
-      new ResourceLocation("guzhenren", "test_combo");
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "test_combo");
 
   private static ActiveSkillRegistry.ActiveSkillEntry dummyActiveEntry(ResourceLocation id) {
     return new ActiveSkillRegistry.ActiveSkillEntry(
@@ -28,7 +28,7 @@ class SkillActivationHooksTest {
         id,
         "display",
         id,
-        List.of(new ResourceLocation("guzhenren", "organ")),
+        List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "organ")),
         List.of(),
         List.of(),
         "cat",

@@ -47,6 +47,7 @@ public final class ComboSkillRegistry {
    *                     对应文件路径：assets/guzhenren/textures/skill/wuxing_gui_bian.png
    * @param requiredOrgans 必需器官列表（必须全部装备）
    * @param optionalOrgans 可选器官列表（装备任意一个即可触发，装备越多加成越强）
+   * @param optionalFlows 可选流派列表（装备任意一个即可触发，使用拼音键，如水道->"shui_dao"）
    * @param category 一级分类（如"变化道杀招"）
    * @param subcategory 二级分类（如"道痕转化"）
    * @param description 描述文本
@@ -197,7 +198,8 @@ public final class ComboSkillRegistry {
         ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/yu_qun_zu_he.png"),
         List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu")),
         List.of(),
-        List.of("水道", "奴道"),
+        // optionalFlows 使用拼音键，需与 GZRItemTags.FLOW_TAGS 的 key 对齐（例如 shui_dao/nu_dao）
+        List.of("shui_dao", "nu_dao"),
         "变化道杀招",
         "水/奴联动",
         "水灵齐射的组合形态：随水/奴器官数量增强射程、宽度与控制",
@@ -218,7 +220,8 @@ public final class ComboSkillRegistry {
         ResourceLocation.fromNamespaceAndPath("guzhenren", "textures/skill/er_ji_zhao_sha.png"),
         List.of(ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu")),
         List.of(),
-        List.of("水道", "奴道"),
+        // optionalFlows 使用拼音键，需与 GZRItemTags.FLOW_TAGS 的 key 对齐（例如 shui_dao/nu_dao）
+        List.of("shui_dao", "nu_dao"),
         "变化道杀招",
         "水/奴联动",
         "召唤协战鲨鱼的组合形态：水道增强续航，奴道提升服从与编队管理",

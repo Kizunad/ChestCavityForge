@@ -74,7 +74,8 @@ public final class ShengJiYeOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final double ENVIRONMENT_BONUS = 0.20D;
   private static final double ENVIRONMENT_PENALTY = 0.50D;
 
-  private static final String FLOW_KEY_MU_DAO = "木道";
+  // Flow keys采用拼音（参照 GZRItemTags.FLOW_TAGS），避免与汉字匹配失败
+  private static final String FLOW_KEY_MU_DAO = "mu_dao";
   private static final double LINGGEN_ZHENYUAN_BONUS = 0.10D;
 
   private static final ResourceLocation ABILITY_ID =

@@ -125,6 +125,10 @@ RANK_POWER: Dict[str, int] = {
     'shouhuang': 4,
 }
 
+REMOVED_SCORE_IDS = {
+    'guzhenren:niantou_zuida',
+}
+
 
 def detect_animal_key(path: Path) -> str | None:
     name = path.name.lower()
@@ -210,12 +214,14 @@ def merge_scores(existing: List[dict], additions: Dict[str, Decimal]) -> List[di
         if not isinstance(e, dict):
             continue
         key = e.get('id')
-        if not key:
+        if not key or key in REMOVED_SCORE_IDS:
             continue
         value = coerce_numeric(e.get('value'))
         by_id[key] = value
 
     for oid, val in additions.items():
+        if oid in REMOVED_SCORE_IDS:
+            continue
         by_id[oid] = coerce_numeric(val)
 
     def sort_key(item: Tuple[str, Any]) -> Tuple[int, str]:

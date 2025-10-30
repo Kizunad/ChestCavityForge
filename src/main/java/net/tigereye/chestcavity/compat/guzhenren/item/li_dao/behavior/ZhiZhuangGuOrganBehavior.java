@@ -159,7 +159,8 @@ public final class ZhiZhuangGuOrganBehavior extends AbstractLiDaoOrganBehavior
   private static final ParticleOptions TRAIL_PARTICLE = ParticleTypes.CLOUD;
   private static final ParticleOptions IMPACT_PARTICLE = ParticleTypes.SONIC_BOOM;
 
-  private static final String FLOW_KEY_YING_DAO = "影道";
+  // Flow keys统一采用拼音形式
+  private static final String FLOW_KEY_YING_DAO = "ying_dao";
 
   private static final Map<UUID, DashSession> ACTIVE_DASHES = new ConcurrentHashMap<>();
 

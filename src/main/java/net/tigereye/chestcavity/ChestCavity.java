@@ -147,6 +147,7 @@ public class ChestCavity {
       ActiveSkillRegistry.bootstrap();
       ComboSkillRegistry.bootstrap();
       ActivationHookRegistry.register();
+      UseItemHookRegistry.register();
       GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
       ReactionEngine.bootstrap();
       // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。

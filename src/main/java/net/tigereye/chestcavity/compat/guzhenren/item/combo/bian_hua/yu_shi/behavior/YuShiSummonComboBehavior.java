@@ -20,28 +20,28 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Item.TooltipContext;
-import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.entity.summon.OwnedSharkEntity;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.common.agent.Agents;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_shi.calculator.YuShiSummonComboLogic;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yu_shi.tuning.YuShiTuning;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.tigereye.chestcavity.util.NetworkUtil;
 
 /** 组合杀招：饵祭召鲨（组合） — 按材料阶数召唤协战鲨鱼，遵循数量上限与无掉落规则。 */
@@ -50,7 +50,6 @@ public final class YuShiSummonComboBehavior {
       ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_shi_summon_combo");
 
   // 成本与时序（承接器官主动的数值）
-  private static final int COOLDOWN_TICKS = 20 * 15;
   private static final double ZHENYUAN_COST = 900.0;
   private static final double JINGLI_COST = 10.0;
   private static final int HUNGER_COST = 1;
@@ -115,6 +114,16 @@ public final class YuShiSummonComboBehavior {
 
   private YuShiSummonComboBehavior() {}
 
+  /**
+   * 激活饵祭召鲨组合技。
+   * <p>
+   * 该方法检查玩家是否满足条件，包括是否有鱼鳞蛊、冷却时间、供品材料等，
+   * 然后消耗资源，计算召唤鲨鱼的等级和数量，生成对应的实体并应用修改器。
+   * </p>
+   *
+   * @param entity 激活此行为的实体，必须是ServerPlayer
+   * @param cc 胸腔实例，包含器官信息
+   */
   private static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) return;
     if (!(player.level() instanceof ServerLevel serverLevel)) return;
@@ -174,9 +183,39 @@ public final class YuShiSummonComboBehavior {
     int actualTier = Math.max(materialTier, unlocked);
     manageSummonLimit(behavior, player, actualTier, serverLevel);
 
-    YuShiSummonComboLogic.FlowStats flowStats = evaluateFlowStats(cc, serverLevel);
-    YuShiSummonComboLogic.SummonModifiers modifiers =
+    YuShiSummonComboLogic.FlowStats flowStats = evaluateFlowStats(player);
+    double waterFlowExp =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_shi:liupai_shuidao", 0.0D);
+    double changeFlowExp =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_shi:liupai_bianhuadao", 0.0D);
+    double totalExp = Math.max(0.0D, waterFlowExp + changeFlowExp);
+
+    YuShiSummonComboLogic.SummonModifiers baseModifiers =
         YuShiSummonComboLogic.computeModifiers(flowStats);
+
+    double waterDaoHen =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_shi:daohen_shuidao", 0.0D);
+    double changeDaoHen =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_shi:daohen_bianhuadao", 0.0D);
+    double fireDaoHen =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "yu_shi:daohen_yandao", 0.0D);
+
+    double daoBonus = (Math.max(0.0D, waterDaoHen) + Math.max(0.0D, changeDaoHen)) / 1000.0D;
+    double firePenalty = Math.max(0.0D, 1.0D - Math.max(0.0D, fireDaoHen) / 1000.0D);
+    double healthMultiplier =
+        baseModifiers.healthMultiplier() * Math.max(0.0D, 1.0D + daoBonus) * firePenalty;
+    double speedMultiplier =
+        baseModifiers.speedMultiplier() * Math.max(0.0D, 1.0D + daoBonus) * firePenalty;
+
+    YuShiSummonComboLogic.SummonModifiers modifiers =
+        new YuShiSummonComboLogic.SummonModifiers(
+            healthMultiplier,
+            speedMultiplier,
+            baseModifiers.regenDurationTicks(),
+            baseModifiers.regenAmplifier(),
+            baseModifiers.resistanceDurationTicks(),
+            baseModifiers.resistanceAmplifier(),
+            baseModifiers.ttlBonusTicks());
 
     // 生成实体并登记追踪
     EntityType<?> type = resolveEntityType(actualTier);
@@ -202,7 +241,8 @@ public final class YuShiSummonComboBehavior {
     behavior.addSummon(player, tracked);
     behavior.recordWetContact(player, organ);
 
-    long readyAt = now + COOLDOWN_TICKS;
+    int cooldownTicks = YuShiTuning.computeCooldownTicks(totalExp);
+    long readyAt = now + cooldownTicks;
     ready.setReadyAt(readyAt);
     ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
@@ -246,60 +286,47 @@ public final class YuShiSummonComboBehavior {
     return fallback == null ? 0 : fallback.intValue();
   }
 
-  private static YuShiSummonComboLogic.FlowStats evaluateFlowStats(
-      ChestCavityInstance cc, ServerLevel level) {
-    if (cc == null || cc.inventory == null) {
+  private static YuShiSummonComboLogic.FlowStats evaluateFlowStats(ServerPlayer player) {
+    List<GuzhenrenFlowTooltipResolver.FlowInfo> infos = Agents.collectInventoryFlows(player);
+    if (infos.isEmpty()) {
       return new YuShiSummonComboLogic.FlowStats(0, 0);
     }
-    TooltipContext context = TooltipContext.of(level);
-    TooltipFlag flag = TooltipFlag.NORMAL;
     List<List<String>> flows = new ArrayList<>();
-    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
-      ItemStack stack = cc.inventory.getItem(i);
-      if (stack.isEmpty()) {
-        continue;
-      }
-      var info = GuzhenrenFlowTooltipResolver.inspect(stack, context, flag, null);
-      if (info.hasFlow()) {
+    for (GuzhenrenFlowTooltipResolver.FlowInfo info : infos) {
+      if (info != null && info.hasFlow()) {
         flows.add(info.flows());
       }
     }
-    return YuShiSummonComboLogic.computeFlowStats(flows);
+    return flows.isEmpty() ? new YuShiSummonComboLogic.FlowStats(0, 0)
+        : YuShiSummonComboLogic.computeFlowStats(flows);
   }
 
   private static void applyModifiers(
       LivingEntity living, YuShiSummonComboLogic.SummonModifiers modifiers) {
-    AttributeInstance maxHealth = living.getAttribute(Attributes.MAX_HEALTH);
-    if (maxHealth != null) {
-      AttributeModifier existing = maxHealth.getModifier(HEALTH_MODIFIER_ID);
-      if (existing != null) {
-        maxHealth.removeModifier(existing);
-      }
-      double mult = modifiers.healthMultiplier();
-      if (Math.abs(mult - 1.0) > 1e-4) {
-        maxHealth.addTransientModifier(
-            new AttributeModifier(
-                HEALTH_MODIFIER_ID,
-                mult - 1.0,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
-        living.setHealth((float) maxHealth.getValue());
-      }
+    double healthMult = modifiers.healthMultiplier();
+    if (Math.abs(healthMult - 1.0D) > 1.0E-4D) {
+      Agents.applyTransientAttribute(
+          living,
+          Attributes.MAX_HEALTH,
+          HEALTH_MODIFIER_ID,
+          healthMult - 1.0D,
+          AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+      living.setHealth((float) living.getAttributeValue(Attributes.MAX_HEALTH));
+    } else {
+      Agents.removeAttribute(living, Attributes.MAX_HEALTH, HEALTH_MODIFIER_ID);
+      living.setHealth(Math.min(living.getHealth(), living.getMaxHealth()));
     }
 
-    AttributeInstance speed = living.getAttribute(Attributes.MOVEMENT_SPEED);
-    if (speed != null) {
-      AttributeModifier existing = speed.getModifier(SPEED_MODIFIER_ID);
-      if (existing != null) {
-        speed.removeModifier(existing);
-      }
-      double mult = modifiers.speedMultiplier();
-      if (Math.abs(mult - 1.0) > 1e-4) {
-        speed.addTransientModifier(
-            new AttributeModifier(
-                SPEED_MODIFIER_ID,
-                mult - 1.0,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
-      }
+    double speedMult = modifiers.speedMultiplier();
+    if (Math.abs(speedMult - 1.0D) > 1.0E-4D) {
+      Agents.applyTransientAttribute(
+          living,
+          Attributes.MOVEMENT_SPEED,
+          SPEED_MODIFIER_ID,
+          speedMult - 1.0D,
+          AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    } else {
+      Agents.removeAttribute(living, Attributes.MOVEMENT_SPEED, SPEED_MODIFIER_ID);
     }
 
     if (modifiers.regenDurationTicks() > 0) {
