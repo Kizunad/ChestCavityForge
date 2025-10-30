@@ -16,6 +16,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageCalculator;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageComputeContext;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageKind;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageResult;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -42,6 +46,7 @@ public final class YuQunComboBehavior {
   private static final double JINGLI_COST = 12.0;
   private static final int HUNGER_COST = 2;
   private static final int COOLDOWN_TICKS = 20 * 12;
+  private static final double BASE_DAMAGE = 10.0;
 
   static {
     OrganActivationListeners.register(ABILITY_ID, YuQunComboBehavior::activate);
@@ -112,6 +117,19 @@ public final class YuQunComboBehavior {
     for (LivingEntity t : targets) {
       if (!YuQunComboLogic.isWithinCone(origin, dir, t.getEyePosition(), range, width)) {
         continue;
+      }
+      DamageComputeContext context =
+          DamageComputeContext.builder(player, BASE_DAMAGE)
+              .defender(t)
+              .skill(ABILITY_ID)
+              .addKind(DamageKind.AOE)
+              .addKind(DamageKind.ACTIVE_SKILL)
+              .addKind(DamageKind.COMBO)
+              .build();
+      DamageResult damageResult = DamageCalculator.compute(context);
+      float appliedDamage = (float) damageResult.scaled();
+      if (appliedDamage > 0.0f) {
+        t.hurt(serverLevel.damageSources().playerAttack(player), appliedDamage);
       }
       double push = params.pushStrength();
       t.push(dir.x * push, 0.35, dir.z * push);

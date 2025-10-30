@@ -8,6 +8,7 @@ public enum DamageKind {
   TRUE_DAMAGE,
   FIRE,
   FROST,
-  POISON
+  POISON,
+  ACTIVE_SKILL,
+  COMBO
 }
-

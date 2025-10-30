@@ -28,7 +28,7 @@
   - `DamageComputeContext`：只读上下文（攻击者/受击者/基础伤害/skillId/castId/标签）。
   - `DamageResult`：结果与明细（`base/scaled/breakdown/predictedAbsorptionSpent/predictedHealthDamage`）。
   - `SkillDamageModifier`：可插拔规则接口（`apply(ctx,current,sink)`）。
-  - `DamageKind`：简单类型标签（MELEE/PROJECTILE/AOE/TRUE_DAMAGE/FIRE/FROST/POISON）。
+  - `DamageKind`：简单类型标签（MELEE/PROJECTILE/AOE/TRUE_DAMAGE/FIRE/FROST/POISON/ACTIVE_SKILL/COMBO）。
   - 内置规则（按顺序执行）：
     1) `mod/AttackerFlagBonusModifier`：从技能一次性标记（FlagEffect）消费增伤（`one_hit_bonus`、`one_cast_bonus`）。需要调用方传入 `skillId + castId` 才会消费；否则不生效。
     2) `mod/DefenderResistanceModifier`：读取受击者的 vanilla 抗性（DAMAGE_RESISTANCE）按等级近似减伤（每级 20%，最大 80%）。
