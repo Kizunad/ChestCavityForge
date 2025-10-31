@@ -11,9 +11,12 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.calculator.CooldownOps;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -29,12 +32,9 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.DamageOverTimeHelper;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.config.CCConfig;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
-import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
-import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
@@ -53,8 +53,7 @@ import org.slf4j.Logger;
 public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     implements OrganSlowTickListener,
         OrganOnGroundListener,
-        OrganRemovalListener,
-        IncreaseEffectContributor {
+        OrganRemovalListener {
 
   public static final ShuangXiGuOrganBehavior INSTANCE = new ShuangXiGuOrganBehavior();
 
@@ -91,10 +90,6 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
     return DEFAULTS;
   }
 
-  static {
-    OrganActivationListeners.register(ABILITY_ID, ShuangXiGuOrganBehavior::activateAbility);
-  }
-
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {
@@ -104,11 +99,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
       return;
     }
 
-    LedgerOps.ensureChannel(cc, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE);
-    LedgerOps.registerContributor(cc, organ, this, BING_XUE_INCREASE_EFFECT);
-
     registerRemovalHook(cc, organ, this, staleRemovalContexts);
-    refreshIncreaseContribution(cc, organ);
   }
 
   @Override
@@ -119,7 +110,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
     if (!matchesOrgan(organ, CCItems.GUZHENREN_SHUANG_XI_GU, ORGAN_ID)) {
       return;
     }
-    refreshIncreaseContribution(cc, organ);
+    // refreshIncreaseContribution(cc, organ);
 
     if (!hasBingJiGu(cc)) {
       return;
@@ -153,46 +144,9 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
     if (!matchesOrgan(organ, CCItems.GUZHENREN_SHUANG_XI_GU, ORGAN_ID)) {
       return;
     }
-    LedgerOps.remove(cc, organ, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE, true);
-    ActiveLinkageContext context = LedgerOps.context(cc);
-    if (context != null) {
-      context.increaseEffects().unregisterContributor(organ);
-    }
-    NetworkUtil.sendOrganSlotUpdate(cc, organ);
   }
 
   public void ensureAttached(ChestCavityInstance cc) {
-    if (cc == null) {
-      return;
-    }
-    LedgerOps.ensureChannel(cc, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE);
-  }
-
-  @Override
-  public void rebuildIncreaseEffects(
-      ChestCavityInstance cc,
-      ActiveLinkageContext context,
-      ItemStack organ,
-      IncreaseEffectLedger.Registrar registrar) {
-    if (organ == null || organ.isEmpty()) {
-      return;
-    }
-    CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig config = cfg();
-    int count = Math.max(1, organ.getCount());
-    double perStack = Math.max(0.0D, config.increasePerStack);
-    LedgerOps.ensureChannel(context, BING_XUE_INCREASE_EFFECT, NON_NEGATIVE);
-    registrar.record(BING_XUE_INCREASE_EFFECT, count, count * perStack);
-  }
-
-  private void refreshIncreaseContribution(ChestCavityInstance cc, ItemStack organ) {
-    if (cc == null || organ == null || organ.isEmpty()) {
-      return;
-    }
-    CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig config = cfg();
-    int count = Math.max(1, organ.getCount());
-    double perStack = Math.max(0.0D, config.increasePerStack);
-    double target = count * perStack;
-    LedgerOps.set(cc, organ, BING_XUE_INCREASE_EFFECT, count, target, NON_NEGATIVE, true);
   }
 
   private static void clearColdEffects(
@@ -286,86 +240,93 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
     return ItemStack.EMPTY;
   }
 
-  private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-    if (entity == null || cc == null || entity.level().isClientSide()) {
-      return;
-    }
-    ItemStack organ = findOrgan(cc);
-    if (organ.isEmpty()) {
-      return;
-    }
-    // 先支付基础真元，不允许健康回退
-    CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig config = cfg();
-    var consume = ResourceOps.consumeStrict(entity, config.baseZhenyuanCost, 0.0);
-    if (!consume.succeeded()) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "[compat/guzhenren][shuang_xi] ability blocked: zhenyuan cost={} failure={}",
-            config.baseZhenyuanCost,
-            consume.failureReason());
+  public static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
+      if (entity == null || cc == null || entity.level().isClientSide() || !(entity instanceof ServerPlayer player)) {
+          return;
       }
-      return;
-    }
-    Level level = entity.level();
-    if (!(level instanceof ServerLevel server)) {
-      return;
-    }
-    Vec3 origin = entity.getEyePosition();
-    Vec3 look = entity.getLookAngle().normalize();
-    double abilityRange = Math.max(0.0D, config.abilityRange);
-    double coneThreshold = Mth.clamp(config.coneDotThreshold, -1.0D, 1.0D);
-    double frostbiteChance = Mth.clamp(config.frostbiteChance, 0.0D, 1.0D);
-    double frostbiteBasePercent = Math.max(0.0D, config.frostbiteDamagePercent);
-    int frostbiteDurationSeconds = Math.max(0, config.frostbiteDurationSeconds);
-    AABB search = entity.getBoundingBox().expandTowards(look.scale(abilityRange)).inflate(1.5);
-    List<LivingEntity> candidates =
-        server.getEntitiesOfClass(
-            LivingEntity.class,
-            search,
-            target -> target != entity && target.isAlive() && !target.isAlliedTo(entity));
-    List<LivingEntity> affected = new ArrayList<>();
-    for (LivingEntity target : candidates) {
-      Vec3 toTarget = target.getEyePosition().subtract(origin);
-      double distance = toTarget.length();
-      if (distance <= 0.0001D || distance > abilityRange) {
-        continue;
+      ItemStack organ = findOrgan(cc);
+      if (organ.isEmpty()) {
+          return;
       }
-      Vec3 direction = toTarget.normalize();
-      double dot = direction.dot(look);
-      if (dot < coneThreshold) {
-        continue;
+
+      // Read from snapshot
+      double daohen = SkillEffectBus.consumeMetadata(player, ABILITY_ID, ComputedBingXueDaohenEffect.DAO_HEN_KEY, 0.0);
+      int liupaiExp = (int) SkillEffectBus.consumeMetadata(player, ABILITY_ID, "bing_xue:liupai_bingxuedao", 0.0);
+      double multiplier = 1.0 + Math.max(0.0, daohen);
+
+      CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig config = cfg();
+      long cooldown = CooldownOps.withBingXueExp(config.baseCooldownTicks, liupaiExp);
+
+      if (player.getCooldowns().isOnCooldown(organ.getItem())) {
+          return;
       }
-      affected.add(target);
-      applyColdEffect(target, config);
-      if (entity.getRandom().nextDouble() < frostbiteChance) {
-        double increase = 0.0;
-        increase =
-            LedgerOps.lookupChannel(cc, BING_XUE_INCREASE_EFFECT)
-                .map(LinkageChannel::get)
-                .orElse(0.0);
-        double percent = Math.max(0.0, frostbiteBasePercent + increase);
-        if (LOGGER.isInfoEnabled()) {
-          LOGGER.info(
-              "[compat/guzhenren][shuang_xi] apply frostbite DoT: base={} increase={} final={} target={}",
-              frostbiteBasePercent,
-              increase,
-              percent,
-              target.getName().getString());
-        }
-        DamageOverTimeHelper.applyBaseAttackPercentDoT(
-            entity,
-            target,
-            percent,
-            frostbiteDurationSeconds,
-            SoundEvents.GLASS_BREAK,
-            0.55f,
-            1.25f,
-            net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE);
+
+      var consume = ResourceOps.consumeStrict(entity, config.baseZhenyuanCost, 0.0);
+      if (!consume.succeeded()) {
+          if (LOGGER.isDebugEnabled()) {
+              LOGGER.debug(
+                  "[compat/guzhenren][shuang_xi] ability blocked: zhenyuan cost={} failure={}",
+                  config.baseZhenyuanCost,
+                  consume.failureReason());
+          }
+          return;
       }
-    }
+      Level level = entity.level();
+      if (!(level instanceof ServerLevel server)) {
+          return;
+      }
+      Vec3 origin = entity.getEyePosition();
+      Vec3 look = entity.getLookAngle().normalize();
+      double abilityRange = Math.max(0.0D, config.abilityRange);
+      double coneThreshold = Mth.clamp(config.coneDotThreshold, -1.0D, 1.0D);
+      double frostbiteChance = Mth.clamp(config.frostbiteChance, 0.0D, 1.0D);
+      double frostbiteBasePercent = Math.max(0.0D, config.frostbiteDamagePercent);
+      int frostbiteDurationSeconds = Math.max(0, config.frostbiteDurationSeconds);
+      AABB search = entity.getBoundingBox().expandTowards(look.scale(abilityRange)).inflate(1.5);
+      List<LivingEntity> candidates =
+          server.getEntitiesOfClass(
+              LivingEntity.class,
+              search,
+              target -> target != entity && target.isAlive() && !target.isAlliedTo(entity));
+      List<LivingEntity> affected = new ArrayList<>();
+      for (LivingEntity target : candidates) {
+          Vec3 toTarget = target.getEyePosition().subtract(origin);
+          double distance = toTarget.length();
+          if (distance <= 0.0001D || distance > abilityRange) {
+              continue;
+          }
+          Vec3 direction = toTarget.normalize();
+          double dot = direction.dot(look);
+          if (dot < coneThreshold) {
+              continue;
+          }
+          affected.add(target);
+          applyColdEffect(target, config);
+          if (entity.getRandom().nextDouble() < frostbiteChance) {
+              double percent = frostbiteBasePercent * multiplier;
+              if (LOGGER.isInfoEnabled()) {
+                  LOGGER.info(
+                      "[compat/guzhenren][shuang_xi] apply frostbite DoT: base={} daohen={} final={} target={}",
+                      frostbiteBasePercent,
+                      daohen,
+                      percent,
+                      target.getName().getString());
+              }
+              DamageOverTimeHelper.applyBaseAttackPercentDoT(
+                  entity,
+                  target,
+                  percent,
+                  frostbiteDurationSeconds,
+                  SoundEvents.GLASS_BREAK,
+                  0.55f,
+                  1.25f,
+                  net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE);
+          }
+      }
     spawnBreathParticles(
         server, origin, look, affected.isEmpty() ? entity : affected.get(0), config);
     playBreathSound(level, entity, !affected.isEmpty());
+    player.getCooldowns().addCooldown(organ.getItem(), (int)cooldown);
   }
 
   private static void applyColdEffect(

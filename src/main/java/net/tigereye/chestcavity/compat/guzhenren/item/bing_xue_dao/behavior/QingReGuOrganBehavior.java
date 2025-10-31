@@ -43,8 +43,6 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "qing_re_gu");
   private static final ResourceLocation JADE_BONE_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu");
-  private static final ResourceLocation BING_XUE_INCREASE_EFFECT =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bing_xue_dao_increase_effect");
   private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
   private static final CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig DEFAULTS =
@@ -148,21 +146,9 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     CCConfig.GuzhenrenBingXueDaoConfig.QingReGuConfig config = cfg();
-    double increase = Math.max(0.0, lookupIncreaseEffect(cc));
-    double reductionFraction = config.fireDamageReduction * (1.0 + increase);
+    double reductionFraction = config.fireDamageReduction;
     double multiplier = Math.max(0.0, 1.0 - reductionFraction);
     return (float) (damage * multiplier);
-  }
-
-  public void ensureAttached(ChestCavityInstance cc) {
-    if (cc == null) {
-      return;
-    }
-    ActiveLinkageContext context = LinkageManager.getContext(cc);
-    if (context == null) {
-      return;
-    }
-    context.getOrCreateChannel(BING_XUE_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
   }
 
   private static void maybeClearPoison(
@@ -173,14 +159,6 @@ public final class QingReGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (entity.getRandom().nextDouble() < config.poisonClearChance) {
       entity.removeEffect(MobEffects.POISON);
     }
-  }
-
-  private static double lookupIncreaseEffect(ChestCavityInstance cc) {
-    ActiveLinkageContext context = LinkageManager.getContext(cc);
-    if (context == null) {
-      return 0.0;
-    }
-    return context.lookupChannel(BING_XUE_INCREASE_EFFECT).map(LinkageChannel::get).orElse(0.0);
   }
 
   private static boolean hasJadeBone(ChestCavityInstance cc) {
