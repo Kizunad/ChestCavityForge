@@ -3,8 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.ro
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.tuning.ShouPiRollEvasionTuning;
@@ -14,7 +13,7 @@ final class ShouPiRollEvasionCalculatorTest {
 
   @Test
   void computeWithSingleSynergyUsesBaseBonuses() {
-    RollParameters params = ShouPiRollEvasionCalculator.compute(1, new BianHuaDaoSnapshot(0, 0));
+    RollParameters params = ShouPiRollEvasionCalculator.compute(1);
     assertEquals(
         ShouPiRollEvasionTuning.BASE_DISTANCE + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS,
         params.distance(),
@@ -25,12 +24,12 @@ final class ShouPiRollEvasionCalculatorTest {
     assertEquals(ShouPiRollEvasionTuning.BASE_SLOW_TICKS, params.slowDurationTicks());
     assertEquals(ShouPiRollEvasionTuning.BASE_SLOW_AMPLIFIER, params.slowAmplifier());
     assertEquals(
-        (int) ShouPiGuOrganBehavior.ROLL_DAMAGE_WINDOW_TICKS, params.mitigationWindowTicks());
+        (int) ShouPiGuTuning.ROLL_DAMAGE_WINDOW_TICKS, params.mitigationWindowTicks());
   }
 
   @Test
   void computeWithDualSynergyBoostsDistanceAndAmplifiers() {
-    RollParameters params = ShouPiRollEvasionCalculator.compute(2, new BianHuaDaoSnapshot(0, 0));
+    RollParameters params = ShouPiRollEvasionCalculator.compute(2);
     assertEquals(
         ShouPiRollEvasionTuning.BASE_DISTANCE
             + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS
@@ -49,7 +48,6 @@ final class ShouPiRollEvasionCalculatorTest {
   void computeWithoutSynergyThrows() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> ShouPiRollEvasionCalculator.compute(0, new BianHuaDaoSnapshot(0, 0)));
+        () -> ShouPiRollEvasionCalculator.compute(0));
   }
 }
-
