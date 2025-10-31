@@ -7,6 +7,8 @@ import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.behavior.ChouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.calculator.ChouPiGuCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.tuning.ChouPiTuning;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /** Event bridge for Du Dao organs. */
@@ -39,10 +41,9 @@ public final class DuDaoOrganEvents {
 
     double triggerChance = 0.0;
     if (consumed.is(ItemTags.MEAT) || consumed.is(Items.ROTTEN_FLESH)) {
-      triggerChance = ChouPiGuOrganBehavior.FOOD_TRIGGER_BASE_CHANCE;
-      if (consumed.is(Items.ROTTEN_FLESH)) {
-        triggerChance *= ChouPiGuOrganBehavior.ROTTEN_FOOD_MULTIPLIER;
-      }
+      boolean rotten = consumed.is(Items.ROTTEN_FLESH);
+      triggerChance =
+          ChouPiGuCalculator.foodTriggerChance(rotten, ChouPiTuning.FOOD_TRIGGER_BASE_CHANCE);
     }
     if (triggerChance <= 0.0) {
       return;

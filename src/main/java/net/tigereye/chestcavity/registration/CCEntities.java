@@ -9,6 +9,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.entity.MadBullEntity;
 import net.tigereye.chestcavity.entity.SwordSlashProjectile;
 import net.tigereye.chestcavity.guscript.ability.guzhenren.blood_bone_bomb.BoneGunProjectile;
@@ -134,4 +135,14 @@ public final class CCEntities {
                   .clientTrackingRange(64)
                   .updateInterval(2)
                   .build(ChestCavity.MODID + ":player_ghost"));
+
+  public static final DeferredHolder<EntityType<?>, EntityType<FlyingSwordEntity>> FLYING_SWORD =
+      ENTITY_TYPES.register(
+          "flying_sword",
+          () ->
+              EntityType.Builder.<FlyingSwordEntity>of(FlyingSwordEntity::new, MobCategory.MISC)
+                  .sized(0.5f, 0.5f)
+                  .clientTrackingRange(64)
+                  .updateInterval(1)
+                  .build(ChestCavity.MODID + ":flying_sword"));
 }

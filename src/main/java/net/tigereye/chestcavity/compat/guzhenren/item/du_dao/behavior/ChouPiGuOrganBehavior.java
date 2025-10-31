@@ -31,6 +31,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.tuning.ChouPiTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.calculator.ChouPiGuCalculator;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
@@ -41,13 +43,14 @@ import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 // ReactionEngine 相关调用已不在此类使用，移除旧导入。
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.fx.ChouPiFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.du_dao.messages.ChouPiMessages;
 
 /** Behaviour implementation for 臭屁蛊 (Chou Pi Gu). */
 public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
   INSTANCE;
 
-  public static final double FOOD_TRIGGER_BASE_CHANCE = 0.30;
-  public static final double ROTTEN_FOOD_MULTIPLIER = 2.0;
+  // 数值常量已迁出至 ChouPiTuning，行为内仅保留 ID 等。
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation DU_DAO_INCREASE_EFFECT =
@@ -58,23 +61,7 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
   private static final String INTERVAL_KEY = "NextIntervalTicks";
   private static final ResourceLocation READY_AT_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "ready_at/chou_pi_gu_interval");
-  private static final int RANDOM_INTERVAL_MIN_TICKS =
-      BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "RANDOM_INTERVAL_MIN_TICKS", 100);
-  private static final int RANDOM_INTERVAL_MAX_TICKS =
-      BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "RANDOM_INTERVAL_MAX_TICKS", 400);
-  private static final int SLOW_TICK_STEP =
-      BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "SLOW_TICK_STEP", 20);
-  private static final double DAMAGE_TRIGGER_BASE_CHANCE = 0.20;
-  private static final double SELF_DEBUFF_CHANCE = 0.10;
-  private static final double ATTRACT_CHANCE = 0.01;
-  private static final double EFFECT_RADIUS = 3.0;
-  private static final double PANIC_DISTANCE = 6.0;
-  private static final double PARTICLE_BACK_OFFSET = 0.8;
-  private static final double PARTICLE_VERTICAL_OFFSET = 0.1;
-  private static final int PARTICLE_SMOKE_COUNT =
-      BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "PARTICLE_SMOKE_COUNT", 18);
-  private static final int PARTICLE_SNEEZE_COUNT =
-      BehaviorConfigAccess.getInt(ChouPiGuOrganBehavior.class, "PARTICLE_SNEEZE_COUNT", 10);
+  // 视图效果/行为数值均从 ChouPiTuning 读取。
   private static final ResourceLocation[] ATTRACTABLE_ENTITIES =
       new ResourceLocation[] {
         ResourceLocation.fromNamespaceAndPath(MOD_ID, "choupifeichonggu"),
@@ -114,17 +101,11 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
           server,
           server.getGameTime(),
           () -> {
-            if (!releaseGas(player, cc, organ, random, TriggerCause.RANDOM)) {
-              int interval = randomInterval(random);
-              MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
-              e.setReadyAt(server.getGameTime() + interval);
-              e.onReady(server, server.getGameTime(), () -> {});
-            } else {
-              int interval = randomInterval(random);
-              MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
-              e.setReadyAt(server.getGameTime() + interval);
-              e.onReady(server, server.getGameTime(), () -> {});
-            }
+            // 无论是否成功释放，下一次都按随机间隔排队
+            int intervalNext = randomInterval(random);
+            MultiCooldown.Entry e = createCooldown(cc, organ).entry(READY_AT_ID.toString());
+            e.setReadyAt(server.getGameTime() + intervalNext);
+            e.onReady(server, server.getGameTime(), () -> {});
           });
     }
   }
@@ -173,8 +154,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
     RandomSource random = victim.getRandom();
     if (victim instanceof Player player) {
       double increase = Math.max(0.0, getPoisonIncrease(cc));
-      double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
-      if (random.nextDouble() < Math.min(1.0, chance)) {
+      double chance =
+          ChouPiGuCalculator.triggerChanceWithIncrease(
+              ChouPiTuning.DAMAGE_TRIGGER_BASE_CHANCE, increase);
+      if (ChouPiGuCalculator.shouldTrigger(chance, random.nextDouble())) {
         releaseGas(player, cc, organ, random, TriggerCause.DAMAGE);
         if (player.level() instanceof ServerLevel server) {
           int interval = randomInterval(random);
@@ -203,8 +186,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
     }
 
     double increase = Math.max(0.0, getPoisonIncrease(cc));
-    double chance = DAMAGE_TRIGGER_BASE_CHANCE * (1.0 + increase);
-    if (random.nextDouble() < Math.min(1.0, chance)) {
+    double chance =
+        ChouPiGuCalculator.triggerChanceWithIncrease(
+            ChouPiTuning.DAMAGE_TRIGGER_BASE_CHANCE, increase);
+    if (ChouPiGuCalculator.shouldTrigger(chance, random.nextDouble())) {
       releaseGas(victim, cc, organ, random, TriggerCause.DAMAGE);
       if (victim.level() instanceof ServerLevel server) {
         int interval = randomInterval(random);
@@ -272,83 +257,20 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
       ItemStack organ,
       RandomSource random,
       TriggerCause cause) {
-    playSounds(level, entity, random);
-    spawnParticles(level, entity, random);
-    broadcastMessages(level, entity, random, cause);
+    if (ChouPiTuning.FX_SOUND_ENABLED) {
+      ChouPiFx.playSounds(level, entity, random);
+    }
+    if (ChouPiTuning.FX_PARTICLE_ENABLED) {
+      ChouPiFx.spawnParticles(level, entity, random);
+    }
+    ChouPiMessages.notify(level, entity, random);
     applyDebuffs(level, entity, cc, organ, random);
     maybeDebuffSelf(entity, cc, organ, random);
     panicNearbyCreatures(level, entity, random);
     maybeSummonAttractedCreature(level, entity, random);
   }
 
-  private static void playSounds(Level level, LivingEntity entity, RandomSource random) {
-    double x = entity.getX();
-    double y = entity.getY();
-    double z = entity.getZ();
-    float puffPitch = 0.65f + random.nextFloat() * 0.15f;
-    float squishPitch = 0.5f + random.nextFloat() * 0.2f;
-    level.playSound(
-        null, x, y, z, SoundEvents.PUFFER_FISH_BLOW_UP, SoundSource.PLAYERS, 0.9f, puffPitch);
-    level.playSound(
-        null, x, y, z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.6f, squishPitch);
-  }
-
-  private static void spawnParticles(ServerLevel level, LivingEntity entity, RandomSource random) {
-    Vec3 look = entity.getLookAngle();
-    Vec3 back = look.normalize().scale(-PARTICLE_BACK_OFFSET);
-    Vec3 base = entity.position().add(back).add(0.0, PARTICLE_VERTICAL_OFFSET, 0.0);
-    Vec3 lateral = new Vec3(look.z, 0.0, -look.x);
-    if (lateral.lengthSqr() < 1.0E-4) {
-      lateral = new Vec3(1.0, 0.0, 0.0);
-    }
-    lateral = lateral.normalize();
-
-    for (int i = 0; i < PARTICLE_SMOKE_COUNT; i++) {
-      double sideways = (random.nextDouble() - 0.5) * 0.8;
-      double vertical = (random.nextDouble() - 0.5) * 0.2;
-      Vec3 offset = lateral.scale(sideways).add(0.0, vertical, 0.0);
-      Vec3 pos = base.add(offset);
-      double speed = 0.02 + random.nextDouble() * 0.02;
-      level.sendParticles(ParticleTypes.SMOKE, pos.x, pos.y, pos.z, 1, 0.02, 0.02, 0.02, speed);
-    }
-    level.sendParticles(
-        ParticleTypes.SNEEZE,
-        base.x,
-        base.y,
-        base.z,
-        PARTICLE_SNEEZE_COUNT,
-        0.35,
-        0.15,
-        0.35,
-        0.01);
-    // 轻量补充粒子（通用，不依赖颜色参数）
-    level.sendParticles(ParticleTypes.ASH, base.x, base.y, base.z, 3, 0.2, 0.1, 0.2, 0.005);
-  }
-
-  private static void broadcastMessages(
-      ServerLevel level, LivingEntity entity, RandomSource random, TriggerCause cause) {
-    if (!(entity instanceof Player player)) {
-      return;
-    }
-    Component selfMessage =
-        random.nextBoolean()
-            ? Component.translatable("message.guzhenren.chou_pi_gu.uncomfortable")
-            : Component.translatable("message.guzhenren.chou_pi_gu.stench");
-    player.sendSystemMessage(selfMessage);
-
-    Component broadcast =
-        Component.translatable(
-            "message.guzhenren.chou_pi_gu.odor_broadcast", player.getDisplayName());
-    for (ServerPlayer other : level.players()) {
-      if (other == player) {
-        continue;
-      }
-      if (other.distanceTo(player) > 32.0f) {
-        continue;
-      }
-      other.sendSystemMessage(broadcast);
-    }
-  }
+  
 
   private void applyDebuffs(
       ServerLevel level,
@@ -357,10 +279,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
       ItemStack organ,
       RandomSource random) {
     int stackCount = Math.max(1, organ.getCount());
-    int duration = Math.max(20, stackCount * 40);
-    int poisonAmplifier = Math.max(0, Mth.floor(getPoisonIncrease(cc)));
+    int duration = ChouPiGuCalculator.effectDurationTicks(stackCount);
+    int poisonAmplifier = ChouPiGuCalculator.poisonAmplifier(getPoisonIncrease(cc));
 
-    AABB area = entity.getBoundingBox().inflate(EFFECT_RADIUS);
+    AABB area = entity.getBoundingBox().inflate(ChouPiTuning.EFFECT_RADIUS);
     List<LivingEntity> victims =
         level.getEntitiesOfClass(
             LivingEntity.class,
@@ -372,8 +294,8 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
         entity.getX(),
         entity.getY(),
         entity.getZ(),
-        (float) Math.max(1.2F, EFFECT_RADIUS * 0.6F),
-        Math.max(40, duration / 2));
+        ChouPiGuCalculator.residueRadius(ChouPiTuning.EFFECT_RADIUS),
+        ChouPiGuCalculator.residueDurationTicks(duration));
     for (LivingEntity victim : victims) {
       victim.addEffect(
           new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
@@ -388,12 +310,12 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
 
   private void maybeDebuffSelf(
       LivingEntity entity, ChestCavityInstance cc, ItemStack organ, RandomSource random) {
-    if (random.nextDouble() >= SELF_DEBUFF_CHANCE) {
+    if (!ChouPiGuCalculator.shouldTrigger(ChouPiTuning.SELF_DEBUFF_CHANCE, random.nextDouble())) {
       return;
     }
     int stackCount = Math.max(1, organ.getCount());
-    int duration = Math.max(20, stackCount * 40);
-    int poisonAmplifier = Math.max(0, Mth.floor(getPoisonIncrease(cc)));
+    int duration = ChouPiGuCalculator.effectDurationTicks(stackCount);
+    int poisonAmplifier = ChouPiGuCalculator.poisonAmplifier(getPoisonIncrease(cc));
     entity.addEffect(
         new MobEffectInstance(MobEffects.POISON, duration, poisonAmplifier, false, true, true));
     entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, false, true, true));
@@ -401,7 +323,7 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
   }
 
   private void panicNearbyCreatures(ServerLevel level, LivingEntity entity, RandomSource random) {
-    AABB area = entity.getBoundingBox().inflate(PANIC_DISTANCE);
+    AABB area = entity.getBoundingBox().inflate(ChouPiTuning.PANIC_DISTANCE);
     List<PathfinderMob> mobs =
         level.getEntitiesOfClass(
             PathfinderMob.class,
@@ -409,7 +331,8 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
             mob ->
                 mob != null
                     && mob.isAlive()
-                    && mob.distanceToSqr(entity) <= PANIC_DISTANCE * PANIC_DISTANCE
+                    && mob.distanceToSqr(entity)
+                        <= (double) (ChouPiTuning.PANIC_DISTANCE * ChouPiTuning.PANIC_DISTANCE)
                     && (mob instanceof Animal || mob instanceof AbstractVillager));
     Vec3 entityPos = entity.position();
     for (PathfinderMob mob : mobs) {
@@ -417,14 +340,15 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
       if (away.lengthSqr() < 1.0E-4) {
         away = new Vec3(random.nextDouble() - 0.5, 0.0, random.nextDouble() - 0.5);
       }
-      Vec3 target = mob.position().add(away.normalize().scale(PANIC_DISTANCE));
+      Vec3 target = mob.position().add(away.normalize().scale(ChouPiTuning.PANIC_DISTANCE));
       mob.getNavigation().moveTo(target.x, target.y, target.z, 1.4);
     }
   }
 
   private void maybeSummonAttractedCreature(
       ServerLevel level, LivingEntity entity, RandomSource random) {
-    if (random.nextDouble() >= ATTRACT_CHANCE || ATTRACTABLE_ENTITIES.length == 0) {
+    if (!ChouPiGuCalculator.shouldTrigger(ChouPiTuning.ATTRACT_CHANCE, random.nextDouble())
+        || ATTRACTABLE_ENTITIES.length == 0) {
       return;
     }
     ResourceLocation id = ATTRACTABLE_ENTITIES[random.nextInt(ATTRACTABLE_ENTITIES.length)];
@@ -468,11 +392,10 @@ public enum ChouPiGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
   }
 
   private static int randomInterval(RandomSource random) {
-    if (RANDOM_INTERVAL_MAX_TICKS <= RANDOM_INTERVAL_MIN_TICKS) {
-      return RANDOM_INTERVAL_MIN_TICKS;
-    }
-    return RANDOM_INTERVAL_MIN_TICKS
-        + random.nextInt(RANDOM_INTERVAL_MAX_TICKS - RANDOM_INTERVAL_MIN_TICKS + 1);
+    return ChouPiGuCalculator.randomIntervalTicks(
+        ChouPiTuning.RANDOM_INTERVAL_MIN_TICKS,
+        ChouPiTuning.RANDOM_INTERVAL_MAX_TICKS,
+        random.nextDouble());
   }
 
   private static double getPoisonIncrease(ChestCavityInstance cc) {
