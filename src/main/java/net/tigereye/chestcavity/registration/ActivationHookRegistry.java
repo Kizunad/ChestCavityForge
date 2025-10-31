@@ -64,6 +64,15 @@ public final class ActivationHookRegistry {
     registerFamily("daohen_shuidao");
     registerFamily("daohen_bianhuadao");
     registerFamily("daohen_yandao");
+    registerFamily("liupai_bingxuedao");
+
+    // 技能效果: 冰雪道技能集需要快照道痕与流派经验
+    SkillEffectBus.register(
+        "^guzhenren:(bing_ji_gu_.*|shuang_xi_gu_.*)$",
+        CompositeEffect.of(
+            new ResourceFieldSnapshotEffect("bing_xue:", List.of("liupai_bingxuedao")),
+            new net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ComputedBingXueDaohenEffect()
+        ));
 
     // 技能效果: 饵祭召鲨需要先快照关键 Guzhenren 资源字段
     SkillEffectBus.register(
@@ -97,6 +106,14 @@ public final class ActivationHookRegistry {
         CompositeEffect.of(
             new ResourceFieldSnapshotEffect(
                 "yin_yang:",
+                List.of("liupai_bianhuadao", "daohen_bianhuadao"))));
+
+    // 技能效果: 兽皮技能集也需要同样的快照（用于参数与冷却按流派经验/道痕调整）
+    SkillEffectBus.register(
+        "^guzhenren:shou_pi_.*$",
+        CompositeEffect.of(
+            new ResourceFieldSnapshotEffect(
+                "shou_pi:",
                 List.of("liupai_bianhuadao", "daohen_bianhuadao"))));
 
     // 技能效果总线：前置/后置分发（默认无注册效果，零行为变更）

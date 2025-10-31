@@ -11,11 +11,12 @@ public final class ShouPiStoicReleaseCalculator {
     boolean applySlow = tierParams.stage() == ShouPiGuTuning.Tier.STAGE5;
     return new StoicParameters(
         tierParams.stoicMitigation(),
-        tierParams.stoicShield(),
+        ShouPiComboLogic.applyDaoHenBuff(tierParams.stoicShield(), snapshot.daoHen()),
         ShouPiStoicReleaseTuning.ACTIVE_DURATION_TICKS,
         tierParams.lockTicks(),
         applySlow,
-        ShouPiStoicReleaseTuning.SOFT_REFLECT_BONUS);
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiStoicReleaseTuning.SOFT_REFLECT_BONUS, snapshot.daoHen()));
   }
 
   /** 坚忍释放输出参数。 */

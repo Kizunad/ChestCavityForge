@@ -1,6 +1,8 @@
 # Guzhenren 主动技清单
 
 > 来源：`src/main/java/net/tigereye/chestcavity/skill/ActiveSkillRegistry.java`（自动整理，含最新迁移进度）
+>
+> 核心机制（如道痕、流派经验）的计算公式，参见 [mechanics.md](guzhenren/mechanics.md)。
 
 | SkillId | OrganId | 标签 | 描述 | 源文件 |
 | --- | --- | --- | --- | --- |

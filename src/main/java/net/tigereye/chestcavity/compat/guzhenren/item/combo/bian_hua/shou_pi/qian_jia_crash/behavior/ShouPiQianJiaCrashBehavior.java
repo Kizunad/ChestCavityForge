@@ -86,8 +86,14 @@ public final class ShouPiQianJiaCrashBehavior {
         player.getAttribute(Attributes.ATTACK_DAMAGE) == null
             ? 0.0D
             : player.getAttribute(Attributes.ATTACK_DAMAGE).getValue();
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
     CrashParameters params =
-        ShouPiQianJiaCrashCalculator.compute(softPool, attackDamage, synergy);
+        ShouPiQianJiaCrashCalculator.compute(
+            softPool, attackDamage, synergy, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     Vec3 look = player.getLookAngle();
     Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
@@ -111,7 +117,7 @@ public final class ShouPiQianJiaCrashBehavior {
         now + ShouPiGuTuning.CRASH_IMMUNE_TICKS,
         value -> Math.max(0L, value),
         0L);
-    entry.setReadyAt(now + ShouPiQianJiaCrashTuning.COOLDOWN_TICKS);
+    entry.setReadyAt(now + params.cooldown());
 
     player
         .level()

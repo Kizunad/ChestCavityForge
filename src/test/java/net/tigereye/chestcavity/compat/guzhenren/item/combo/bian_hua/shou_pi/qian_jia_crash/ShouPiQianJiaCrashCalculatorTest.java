@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qi
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator.CrashParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.tuning.ShouPiQianJiaCrashTuning;
@@ -15,12 +16,13 @@ final class ShouPiQianJiaCrashCalculatorTest {
   void computeRequiresSynergy() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> ShouPiQianJiaCrashCalculator.compute(10.0D, 5.0D, 0));
+        () -> ShouPiQianJiaCrashCalculator.compute(10.0D, 5.0D, 0, new BianHuaDaoSnapshot(0, 0)));
   }
 
   @Test
   void computeCapsDamageAgainstSoftPool() {
-    CrashParameters params = ShouPiQianJiaCrashCalculator.compute(20.0D, 6.0D, 1);
+    CrashParameters params =
+        ShouPiQianJiaCrashCalculator.compute(20.0D, 6.0D, 1, new BianHuaDaoSnapshot(0, 0));
     double ratio = ShouPiQianJiaCrashTuning.BASE_REFLECT_RATIO;
     double cap =
         ShouPiQianJiaCrashTuning.BASE_DAMAGE_CAP
@@ -32,7 +34,8 @@ final class ShouPiQianJiaCrashCalculatorTest {
 
   @Test
   void computeDualSynergyIncreasesDamageAndRadius() {
-    CrashParameters params = ShouPiQianJiaCrashCalculator.compute(15.0D, 4.0D, 2);
+    CrashParameters params =
+        ShouPiQianJiaCrashCalculator.compute(15.0D, 4.0D, 2, new BianHuaDaoSnapshot(0, 0));
     double ratio =
         ShouPiQianJiaCrashTuning.BASE_REFLECT_RATIO + ShouPiQianJiaCrashTuning.DUAL_REFLECT_BONUS;
     double cap =

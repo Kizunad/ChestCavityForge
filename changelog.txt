@@ -1,3 +1,5 @@
+See docs/CHANGELOG.md for a more detailed and user-friendly changelog.
+
 1.18.x Changelog
 40.1
 ====

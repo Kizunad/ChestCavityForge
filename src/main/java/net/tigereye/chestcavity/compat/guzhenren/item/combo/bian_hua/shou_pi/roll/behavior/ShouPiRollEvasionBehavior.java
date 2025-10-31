@@ -71,7 +71,13 @@ public final class ShouPiRollEvasionBehavior {
       return;
     }
 
-    RollParameters params = ShouPiRollEvasionCalculator.compute(synergyCount);
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
+    RollParameters params =
+        ShouPiRollEvasionCalculator.compute(synergyCount, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     Vec3 look = player.getLookAngle();
     Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
@@ -87,7 +93,7 @@ public final class ShouPiRollEvasionBehavior {
         mitigationWindow,
         value -> Math.max(0L, value),
         0L);
-    entry.setReadyAt(now + ShouPiRollEvasionTuning.COOLDOWN_TICKS);
+    entry.setReadyAt(now + params.cooldown());
 
     ShouPiGuCalculator.applyRollCounter(
         player, params.resistanceDurationTicks(), params.resistanceAmplifier());

@@ -11,20 +11,27 @@ public final class ShouPiFasciaLatchCalculator {
     if (fasciaHits < ShouPiGuTuning.FASCIA_TRIGGER) {
       throw new IllegalArgumentException("fascia latch requires trigger count");
     }
-    double shield = ShouPiFasciaLatchTuning.BASE_SHIELD;
+    double shield = ShouPiComboLogic.applyDaoHenBuff(
+        ShouPiFasciaLatchTuning.BASE_SHIELD, snapshot.daoHen());
     if (hasTieGuGu) {
-      shield += ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD;
+      shield += ShouPiComboLogic.applyDaoHenBuff(
+          ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD, snapshot.daoHen());
     }
     return new FasciaParameters(
         ShouPiGuTuning.FASCIA_ACTIVE_REDUCTION,
         ShouPiFasciaLatchTuning.EFFECT_DURATION_TICKS,
         shield,
         hasTieGuGu,
-        ShouPiFasciaLatchTuning.SHOCKWAVE_RADIUS,
-        ShouPiFasciaLatchTuning.SHOCKWAVE_STRENGTH,
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiFasciaLatchTuning.SHOCKWAVE_RADIUS, snapshot.daoHen()),
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiFasciaLatchTuning.SHOCKWAVE_STRENGTH, snapshot.daoHen()),
         hasTigerGu,
         ShouPiFasciaLatchTuning.TENACITY_DURATION_TICKS,
-        ShouPiFasciaLatchTuning.TENACITY_KNOCKBACK_RESIST);
+        ShouPiComboLogic.applyDaoHenBuff(
+            ShouPiFasciaLatchTuning.TENACITY_KNOCKBACK_RESIST, snapshot.daoHen()),
+        ShouPiComboLogic.computeCooldown(
+            ShouPiFasciaLatchTuning.COOLDOWN_TICKS, snapshot.flowExperience()));
   }
 
   /** 筋膜锁扣计算结果。 */
@@ -37,6 +44,7 @@ public final class ShouPiFasciaLatchCalculator {
       double shockwaveStrength,
       boolean grantTenacity,
       int tenacityDurationTicks,
-      double tenacityKnockbackResist) {}
+      double tenacityKnockbackResist,
+      long cooldown) {}
 }
 

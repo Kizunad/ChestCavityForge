@@ -151,6 +151,8 @@ public class ChestCavity {
       net.tigereye.chestcavity.compat.common.passive.PassiveBus.init();
       net.tigereye.chestcavity.compat.guzhenren.GuzhenrenCompatBootstrap
           .registerBianHuaDaoPassives();
+      net.tigereye.chestcavity.compat.guzhenren.GuzhenrenCompatBootstrap
+          .registerBingXueDaoPassives();
       GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
       ReactionEngine.bootstrap();
       // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。

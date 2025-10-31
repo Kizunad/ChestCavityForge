@@ -90,8 +90,14 @@ public final class ShouPiFasciaLatchBehavior {
       return;
     }
 
+    var snapshot =
+        cc.owner
+            .getPersistentData()
+            .getCompound("SkillEffectBus")
+            .getCompound("shou_pi:" + ABILITY_ID.getPath());
     FasciaParameters params =
-        ShouPiFasciaLatchCalculator.compute(fasciaHits, hasTigerGu, hasTieGuGu);
+        ShouPiFasciaLatchCalculator.compute(
+            fasciaHits, hasTigerGu, hasTieGuGu, BianHuaDaoSnapshot.fromNBT(snapshot));
 
     OrganStateOps.setLong(
         state,
@@ -110,7 +116,7 @@ public final class ShouPiFasciaLatchBehavior {
         value -> Math.max(0, value),
         0);
 
-    entry.setReadyAt(now + ShouPiFasciaLatchTuning.COOLDOWN_TICKS);
+    entry.setReadyAt(now + params.cooldown());
 
     ShouPiGuCalculator.applyShield(player, params.shieldAmount());
 
