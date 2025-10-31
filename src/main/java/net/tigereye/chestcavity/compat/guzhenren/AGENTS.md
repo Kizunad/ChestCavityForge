@@ -67,6 +67,34 @@
 - [`AbsorptionHelper`](util/behavior/AbsorptionHelper.java) - 护盾恢复与上限管理
 - **特性**: 自动处理 MAX_ABSORPTION 属性注册，防止修饰符泄漏
 
+### 数值/冷却缩放（Scaling）
+**职责**: 统一“各道系”增益随道痕提升的缩放与冷却缩减（CDR）计算，避免魔法数与重复实现
+- 接口：`compat/guzhenren/util/behavior/Scaling.java`
+- 默认实现：`compat/guzhenren/util/behavior/StandardScaling.java`（`Scaling.DEFAULT` 即可使用）
+- 单道缩放：`scaleByDao(base, dao, coeff, min, max)` → `base * (1 + coeff * dao)` 并钳制
+- 多道缩放：`scaleByDaoMulti(base, double[] dao, double[] coeff, min, max)` → `base * (1 + Σ(dao[i]*coeff[i]))`
+- 冷却（秒）：`cooldown(baseSeconds, cdr, minSeconds, cdrCap)`（加法 CDR，受 `cdrCap` 上限与最小 CD 约束）
+- 含道系 CDR：
+  - 单道：`withDaoCdr(baseSeconds, dao, daoCoeff, extraCdr, minSeconds, cdrCap)`
+  - 多道：`withDaoCdrMulti(baseSeconds, double[] dao, double[] coeff, extraCdr, minSeconds, cdrCap)`
+- 工具：`secondsToTicks(double)`、`ticksToSeconds(long)`、`clamp`、`dot`
+
+示例（伪代码）：
+```java
+double dmg = Scaling.DEFAULT.scaleByDaoMulti(
+    tuning.baseDamage(),
+    new double[]{ daoIce, daoLei },
+    new double[]{ tuning.kIce(), tuning.kLei() },
+    tuning.minDmg(), tuning.maxDmg());
+
+double cdSec = Scaling.DEFAULT.withDaoCdrMulti(
+    tuning.baseCdSec(),
+    new double[]{ daoIce, daoLei },
+    new double[]{ tuning.cdrIce(), tuning.cdrLei() },
+    snapshot.extraCdr(), tuning.minCdSec(), tuning.cdrCap());
+MultiCooldown.setIfReady(cc, ABILITY_ID, Scaling.DEFAULT.secondsToTicks(cdSec));
+```
+
 ---
 
 ## 灵魂系统开发
