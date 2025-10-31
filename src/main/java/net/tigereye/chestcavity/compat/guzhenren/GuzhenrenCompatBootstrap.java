@@ -1,8 +1,16 @@
 package net.tigereye.chestcavity.compat.guzhenren;
 
 import net.tigereye.chestcavity.compat.common.passive.PassiveBus;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yin_yang_zhuan_shen_gu.behavior.YinYangZhuanShenGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.behavior.YuLinGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills.YuQunSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills.YuShiSummonSharkSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.skills.YuYueSkill;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.passive.YinYangZhuanShenGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.passive.YuLinGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingBuGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.QingReGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuPassive;
 import net.tigereye.chestcavity.registration.ActivationHookRegistry;
 
 public final class GuzhenrenCompatBootstrap {
@@ -12,8 +20,13 @@ public final class GuzhenrenCompatBootstrap {
     if (ActivationHookRegistry.isFamilyEnabled("liupai_bianhuadao")) {
       PassiveBus.register("liupai_bianhuadao", ShouPiGuPassive::new);
 
-      PassiveBus.register("liupai_bianhuadao", () -> YinYangZhuanShenGuPassive.INSTANCE);
+      PassiveBus.register("liupai_bianhuadao", () -> net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.passive.YinYangZhuanShenGuPassive.INSTANCE);
       PassiveBus.register("liupai_bianhuadao", YuLinGuPassive::new);
+      // 触发 enum Active 类加载以完成静态注册
+      net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.active.YuYueActive.INSTANCE.name();
+      net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.active.YuQunActive.INSTANCE.name();
+      net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.active.YuShiSummonSharkActive.INSTANCE.name();
+      net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.active.YinYangZhuanShenGuActive.INSTANCE.name();
     }
   }
 

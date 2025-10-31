@@ -8,8 +8,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps;
+import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
@@ -55,9 +55,9 @@ public final class ShouPiRollEvasionBehavior {
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuCalculator.ensureStage(state, cc, organ);
+    ShouPiGuOps.ensureStage(state, cc, organ);
 
-    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
+    MultiCooldown cooldown = net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps.cooldown(cc, organ, state);
     long now = player.level().getGameTime();
     MultiCooldown.Entry entry =
         cooldown.entry(ShouPiGuTuning.KEY_ROLL_READY).withDefault(0L);
@@ -71,13 +71,7 @@ public final class ShouPiRollEvasionBehavior {
       return;
     }
 
-    var snapshot =
-        cc.owner
-            .getPersistentData()
-            .getCompound("SkillEffectBus")
-            .getCompound("shou_pi:" + ABILITY_ID.getPath());
-    RollParameters params =
-        ShouPiRollEvasionCalculator.compute(synergyCount, BianHuaDaoSnapshot.fromNBT(snapshot));
+    RollParameters params = ShouPiRollEvasionCalculator.compute(synergyCount);
 
     Vec3 look = player.getLookAngle();
     Vec3 horizontal = new Vec3(look.x, 0.0D, look.z);
@@ -95,9 +89,9 @@ public final class ShouPiRollEvasionBehavior {
         0L);
     entry.setReadyAt(now + params.cooldown());
 
-    ShouPiGuCalculator.applyRollCounter(
+    ShouPiGuOps.applyRollCounter(
         player, params.resistanceDurationTicks(), params.resistanceAmplifier());
-    ShouPiGuCalculator.applyRollSlow(
+    ShouPiGuOps.applyRollSlow(
         player, params.slowDurationTicks(), params.slowAmplifier(), params.slowRadius());
 
     // 刷新厚皮窗口，便于下一次受击时立即触发

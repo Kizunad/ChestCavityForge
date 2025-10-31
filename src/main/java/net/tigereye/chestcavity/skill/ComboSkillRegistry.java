@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.WuxingGuiBianBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.behavior.ShouPiFasciaLatchBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.behavior.ShouPiQianJiaCrashBehavior;

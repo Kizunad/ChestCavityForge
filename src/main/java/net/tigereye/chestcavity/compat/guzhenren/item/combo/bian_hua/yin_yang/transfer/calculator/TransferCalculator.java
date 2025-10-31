@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.calculator;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Mode;
+import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment;
+import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment.Mode;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.yin_yang.transfer.tuning.TransferTuning;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 

@@ -12,6 +12,9 @@ public final class BianHuaDaoClientAbilities {
   public static void onClientSetup(FMLClientSetupEvent event) {
     // 按规范：仅以字面 ResourceLocation 加入，避免类常量触发早期类加载
     register(ResourceLocation.parse("guzhenren:yu_yue"));
+    register(ResourceLocation.parse("guzhenren:yu_qun"));
+    register(ResourceLocation.parse("guzhenren:yu_shi_summon"));
+    register(ResourceLocation.parse("guzhenren:yin_yang_zhuan_shen_gu/body"));
   }
 
   private static void register(ResourceLocation id) {

@@ -15,8 +15,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps;
+import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator.FasciaParameters;
@@ -60,23 +60,21 @@ public final class ShouPiFasciaLatchBehavior {
       return;
     }
 
-    boolean hasTigerGu =
-        ShouPiGuCalculator.hasOrgan(cc, ShouPiGuTuning.HUPI_GU_ID);
-    boolean hasTieGuGu =
-        ShouPiGuCalculator.hasOrgan(cc, ShouPiGuTuning.TIE_GU_GU_ID);
+    boolean hasTigerGu = ShouPiGuOps.hasOrgan(cc, ShouPiGuTuning.HUPI_GU_ID);
+    boolean hasTieGuGu = ShouPiGuOps.hasOrgan(cc, ShouPiGuTuning.TIE_GU_GU_ID);
     if (!hasTigerGu && !hasTieGuGu) {
       return;
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuCalculator.ensureStage(state, cc, organ);
+    ShouPiGuOps.ensureStage(state, cc, organ);
 
     int fasciaHits = state.getInt(ShouPiGuTuning.KEY_FASCIA_COUNT, 0);
     if (fasciaHits < ShouPiGuTuning.FASCIA_TRIGGER) {
       return;
     }
 
-    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
+    MultiCooldown cooldown = ShouPiGuOps.cooldown(cc, organ, state);
     long now = player.level().getGameTime();
     MultiCooldown.Entry entry =
         cooldown.entry(ShouPiGuTuning.KEY_FASCIA_COOLDOWN).withDefault(0L);
@@ -90,14 +88,8 @@ public final class ShouPiFasciaLatchBehavior {
       return;
     }
 
-    var snapshot =
-        cc.owner
-            .getPersistentData()
-            .getCompound("SkillEffectBus")
-            .getCompound("shou_pi:" + ABILITY_ID.getPath());
     FasciaParameters params =
-        ShouPiFasciaLatchCalculator.compute(
-            fasciaHits, hasTigerGu, hasTieGuGu, BianHuaDaoSnapshot.fromNBT(snapshot));
+        ShouPiFasciaLatchCalculator.compute(fasciaHits, hasTigerGu, hasTieGuGu);
 
     OrganStateOps.setLong(
         state,
@@ -118,7 +110,7 @@ public final class ShouPiFasciaLatchBehavior {
 
     entry.setReadyAt(now + params.cooldown());
 
-    ShouPiGuCalculator.applyShield(player, params.shieldAmount());
+    ShouPiGuOps.applyShield(player, params.shieldAmount());
 
     if (params.applyShockwave()) {
       applyShockwave(player, params);

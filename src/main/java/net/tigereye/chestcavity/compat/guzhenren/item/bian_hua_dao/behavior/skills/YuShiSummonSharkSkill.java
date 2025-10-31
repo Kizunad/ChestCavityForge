@@ -24,7 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.entity.summon.OwnedSharkEntity;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
+import net.tigereye.chestcavity.compat.common.organ.yu.YuLinGuOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -122,7 +122,7 @@ public final class YuShiSummonSharkSkill {
     OrganActivationListeners.register(ABILITY_ID, YuShiSummonSharkSkill::activate);
   }
 
-  private static void activate(LivingEntity entity, ChestCavityInstance cc) {
+  public static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
     }
@@ -171,9 +171,9 @@ public final class YuShiSummonSharkSkill {
 
     consumeOffering(player, inventory, offering, OFFERING_COST);
 
-    int unlocked = YuLinGuCalculator.unlockedSharkTier(organ);
+    int unlocked = YuLinGuOps.unlockedSharkTier(organ);
     if (materialTier > unlocked) {
-      YuLinGuCalculator.unlockSharkTier(organ, materialTier);
+      YuLinGuOps.unlockSharkTier(organ, materialTier);
       unlocked = materialTier;
     }
     int actualTier = Math.max(materialTier, unlocked);
@@ -199,8 +199,8 @@ public final class YuShiSummonSharkSkill {
 
     OwnedSharkEntity tracked =
         new OwnedSharkEntity(living.getUUID(), player.getUUID(), actualTier, now, now + TTL_TICKS);
-    YuLinGuCalculator.addSummon(player, tracked);
-    YuLinGuCalculator.recordWetContact(player, organ);
+    YuLinGuOps.addSummon(player, tracked);
+    YuLinGuOps.recordWetContact(player, organ);
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
@@ -213,7 +213,7 @@ public final class YuShiSummonSharkSkill {
 
   private static void manageSummonLimit(
       ServerPlayer owner, int incomingTier, ServerLevel level) {
-    List<OwnedSharkEntity> existing = new ArrayList<>(YuLinGuCalculator.getSummons(owner));
+    List<OwnedSharkEntity> existing = new ArrayList<>(YuLinGuOps.getSummons(owner));
     if (existing.size() < 5) {
       return;
     }
@@ -232,7 +232,7 @@ public final class YuShiSummonSharkSkill {
     }
     if (victim != null) {
       victim.discard(level);
-      YuLinGuCalculator.removeSummon(owner, victim);
+      YuLinGuOps.removeSummon(owner, victim);
     }
   }
 

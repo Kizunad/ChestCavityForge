@@ -7,8 +7,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps;
+import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator.ShouPiStoicReleaseCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator.ShouPiStoicReleaseCalculator.StoicParameters;
@@ -54,7 +54,7 @@ public final class ShouPiStoicReleaseBehavior {
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuCalculator.ensureStage(state, cc, organ);
+    ShouPiGuOps.ensureStage(state, cc, organ);
 
     if (!state.getBoolean(ShouPiGuTuning.KEY_STOIC_READY, false)) {
       return;
@@ -71,13 +71,13 @@ public final class ShouPiStoicReleaseBehavior {
       return;
     }
 
-    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
+    MultiCooldown cooldown = ShouPiGuOps.cooldown(cc, organ, state);
     // 使用专用 entry 记录窗口，便于 UI 提示
     MultiCooldown.Entry entry =
         cooldown.entry(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL).withDefault(0L);
 
     ShouPiGuTuning.TierParameters tierParams =
-        ShouPiGuCalculator.tierParameters(state);
+        ShouPiGuOps.tierParameters(state);
     StoicParameters params = ShouPiStoicReleaseCalculator.compute(tierParams);
 
     OrganStateOps.setBoolean(
@@ -136,9 +136,9 @@ public final class ShouPiStoicReleaseBehavior {
           0L);
     }
 
-    ShouPiGuCalculator.applyShield(player, params.shieldAmount());
+    ShouPiGuOps.applyShield(player, params.shieldAmount());
     if (params.applySlowAura()) {
-      ShouPiGuCalculator.applyStoicSlow(player);
+      ShouPiGuOps.applyStoicSlow(player);
     }
 
     player

@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
+import net.tigereye.chestcavity.compat.common.organ.yu.YuLinGuOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -46,7 +46,7 @@ public final class YuYueSkill {
     OrganActivationListeners.register(ABILITY_ID, YuYueSkill::activate);
   }
 
-  private static void activate(LivingEntity entity, ChestCavityInstance cc) {
+  public static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
     }
@@ -60,7 +60,7 @@ public final class YuYueSkill {
 
     boolean inWater = player.isInWaterOrBubble();
     OrganState state = OrganState.of(organ, "YuLinGu");
-    boolean moist = inWater || YuLinGuCalculator.isPlayerMoist(player, state, player.level().getGameTime());
+    boolean moist = inWater || YuLinGuOps.isPlayerMoist(player, state, player.level().getGameTime());
     if (!moist) {
       sendFailure(player, "需要潮湿或水中才能鱼跃破浪。");
       return;
@@ -68,14 +68,13 @@ public final class YuYueSkill {
 
     Level level = player.level();
     long now = level.getGameTime();
-    OrganState state = OrganState.of(organ, "YuLinGu");
     MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
     MultiCooldown.Entry ready = cooldown.entry(COOLDOWN_KEY).withDefault(0L);
     if (!ready.isReady(now)) {
       return;
     }
 
-    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+    Optional<ResourceHandle> handleOpt = net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(player);
     if (handleOpt.isEmpty()) {
       return;
     }
@@ -90,10 +89,10 @@ public final class YuYueSkill {
     }
 
     double baseRange = inWater ? 7.0 : 4.0;
-    if (YuLinGuCalculator.hasTailSynergy(cc)) {
+    if (YuLinGuOps.hasTailSynergy(cc)) {
       baseRange += inWater ? 3.0 : 1.5;
     }
-    boolean upgraded = YuLinGuCalculator.hasSharkArmor(organ);
+    boolean upgraded = YuLinGuOps.hasSharkArmor(organ);
     if (upgraded) {
       baseRange += 1.0;
     }
@@ -105,7 +104,7 @@ public final class YuYueSkill {
     player.hurtMarked = true;
     player.hasImpulse = true;
     player.fallDistance = 0.0f;
-    if (YuLinGuCalculator.hasTailSynergy(cc)) {
+    if (YuLinGuOps.hasTailSynergy(cc)) {
       player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 20, 0, false, false));
     }
     if (upgraded) {
@@ -113,7 +112,7 @@ public final class YuYueSkill {
     }
 
     pushCollisions(player, dashDir, baseRange);
-    YuLinGuCalculator.recordWetContact(player, organ);
+    YuLinGuOps.recordWetContact(player, organ);
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);

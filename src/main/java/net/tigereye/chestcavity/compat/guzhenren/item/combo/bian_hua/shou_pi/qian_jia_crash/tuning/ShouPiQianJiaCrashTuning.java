@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.tuning;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 
 /** 嵌甲冲撞调参常量。 */
 public final class ShouPiQianJiaCrashTuning {

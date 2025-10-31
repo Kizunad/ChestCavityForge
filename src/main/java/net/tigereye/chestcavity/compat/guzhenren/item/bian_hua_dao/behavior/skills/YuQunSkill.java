@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
+import net.tigereye.chestcavity.compat.common.organ.yu.YuLinGuOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -51,7 +51,7 @@ public final class YuQunSkill {
     OrganActivationListeners.register(ABILITY_ID, YuQunSkill::activate);
   }
 
-  private static void activate(LivingEntity entity, ChestCavityInstance cc) {
+  public static void activate(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || cc == null) {
       return;
     }
@@ -63,21 +63,22 @@ public final class YuQunSkill {
       return;
     }
     OrganState state = OrganState.of(organ, "YuLinGu");
-    if (!YuLinGuCalculator.hasFishArmor(organ) && !YuLinGuCalculator.isPlayerMoist(player, state, player.level().getGameTime())) {
+    if (!YuLinGuOps.hasFishArmor(organ)
+        && !YuLinGuOps.isPlayerMoist(
+            player, state, player.level().getGameTime())) {
       sendFailure(player, "需要水中或潮湿状态才能施展鱼群。");
       return;
     }
 
     Level level = player.level();
     long now = level.getGameTime();
-    OrganState state = OrganState.of(organ, "YuLinGu");
     MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
     MultiCooldown.Entry ready = cooldown.entry(COOLDOWN_KEY).withDefault(0L);
     if (!ready.isReady(now)) {
       return;
     }
 
-    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+    Optional<ResourceHandle> handleOpt = net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(player);
     if (handleOpt.isEmpty()) {
       return;
     }
@@ -90,11 +91,11 @@ public final class YuQunSkill {
       sendFailure(player, "精力不足，鱼群溃散。");
       return;
     }
-    drainHunger(player, HUNGER_COST, YuLinGuCalculator.isPlayerMoist(player, state, now));
+    drainHunger(player, HUNGER_COST, YuLinGuOps.isPlayerMoist(player, state, now));
 
-    boolean upgraded = YuLinGuCalculator.hasSharkArmor(organ);
+    boolean upgraded = YuLinGuOps.hasSharkArmor(organ);
     performVolley(player, upgraded);
-    YuLinGuCalculator.addProgress(player, cc, organ, upgraded ? 2 : 1);
+    YuLinGuOps.addProgress(player, cc, organ, upgraded ? 2 : 1);
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
