@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator;
 
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.tuning.ShouPiStoicReleaseTuning;
 
 /** 坚忍释放的纯逻辑计算器（安全默认实现，移除未实现依赖）。 */

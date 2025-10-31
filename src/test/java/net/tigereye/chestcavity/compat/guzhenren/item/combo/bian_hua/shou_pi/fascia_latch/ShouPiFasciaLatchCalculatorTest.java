@@ -3,7 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fa
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator.FasciaParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning.ShouPiFasciaLatchTuning;

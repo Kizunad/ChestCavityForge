@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua
 
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment.Element;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment.Mode;
-import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 
 /**
  * 五行化痕 数值计算工具。

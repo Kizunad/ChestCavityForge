@@ -203,7 +203,15 @@ public class SwordShadowClone extends PathfinderMob {
       Vec3 tip = swordTip(anchor);
       SingleSwordProjectile.spawn(this.level(), owner, anchor, tip, skinTint, display);
     }
-    JianYingGuOrganBehavior.applyTrueDamage(owner, target, damage);
+    JianYingGuOrganBehavior.applyTrueDamage(
+        owner,
+        target,
+        damage,
+        JianYingGuOrganBehavior.ABILITY_ID,
+        java.util.Set.of(
+            net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.MELEE,
+            net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.TRUE_DAMAGE,
+            net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.ACTIVE_SKILL));
     target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20, 2, false, true, true));
   }
 

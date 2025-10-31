@@ -3,8 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.co
 import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps;
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.shou_pi.ShouPiGuOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 
 /**

@@ -8,8 +8,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps;
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.shou_pi.ShouPiGuOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
@@ -57,7 +57,7 @@ public final class ShouPiRollEvasionBehavior {
     var state = ShouPiComboUtil.resolveState(organ);
     ShouPiGuOps.ensureStage(state, cc, organ);
 
-    MultiCooldown cooldown = net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps.cooldown(cc, organ, state);
+    MultiCooldown cooldown = net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.shou_pi.ShouPiGuOps.cooldown(cc, organ, state);
     long now = player.level().getGameTime();
     MultiCooldown.Entry entry =
         cooldown.entry(ShouPiGuTuning.KEY_ROLL_READY).withDefault(0L);

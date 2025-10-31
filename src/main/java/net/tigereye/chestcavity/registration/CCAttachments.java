@@ -14,7 +14,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
-import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.state.WuxingGuiBianAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;

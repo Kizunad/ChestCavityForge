@@ -11,6 +11,7 @@ import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
+import java.util.Set;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -34,15 +35,15 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.ShadowService;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYingTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianYingCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
-import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
@@ -50,6 +51,9 @@ import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import org.apache.logging.log4j.Logger;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageCalculator;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageKind;
+import net.tigereye.chestcavity.compat.common.skillcalc.DamageResult;
 
 /** Behaviour for 剑影蛊. Handles passive shadow strikes, afterimages, and the sword clone ability. */
 public enum JianYingGuOrganBehavior implements OrganOnHitListener {
@@ -60,48 +64,22 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "jian_ying_gu");
   public static final ResourceLocation ABILITY_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "jian_ying_fenshen");
+  private static final ResourceLocation SKILL_PASSIVE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "jian_dao/shadow_strike");
+  private static final ResourceLocation SKILL_AFTERIMAGE_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "jian_dao/afterimage");
 
   private static final ResourceLocation JIAN_DAO_INCREASE_EFFECT =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/jian_dao_increase_effect");
 
   private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
-  private static final double COST_ZHENYUAN = 2000.0;
-  private static final double PASSIVE_COST_RATIO = 0.10;
-  private static final double PASSIVE_ZHENYUAN_COST = COST_ZHENYUAN * PASSIVE_COST_RATIO;
   private static final double PASSIVE_TRIGGER_CHANCE = 0.10;
-  private static final double ACTIVE_ZHENYUAN_MULTIPLIER = 2.0;
-  private static final double ACTIVE_JINGLI_COST = 50.0;
-
-  private static final float BASE_DAMAGE =
-      BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "BASE_DAMAGE", 150.0f);
-  private static final float PASSIVE_INITIAL_MULTIPLIER =
-      BehaviorConfigAccess.getFloat(
-          JianYingGuOrganBehavior.class, "PASSIVE_INITIAL_MULTIPLIER", 0.40f);
-  private static final float PASSIVE_MIN_MULTIPLIER =
-      BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "PASSIVE_MIN_MULTIPLIER", 0.15f);
-  private static final float PASSIVE_DECAY_STEP =
-      BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "PASSIVE_DECAY_STEP", 0.05f);
-  private static final long PASSIVE_RESET_WINDOW = 40L;
-
-  private static final float CLONE_DAMAGE_RATIO =
-      BehaviorConfigAccess.getFloat(JianYingGuOrganBehavior.class, "CLONE_DAMAGE_RATIO", 0.25f);
-  private static final int CLONE_DURATION_TICKS =
-      BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "CLONE_DURATION_TICKS", 100);
-  private static final int CLONE_COOLDOWN_TICKS =
-      BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "CLONE_COOLDOWN_TICKS", 400);
   private static final String STATE_ROOT = "JianYingGu";
   private static final String ACTIVE_READY_KEY = "ActiveReadyAt";
 
   private static final double AFTERIMAGE_CHANCE = 0.1;
-  private static final int AFTERIMAGE_DELAY_TICKS =
-      BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "AFTERIMAGE_DELAY_TICKS", 20);
-  private static final double AFTERIMAGE_DAMAGE_RATIO = 0.20;
-  private static final int AFTERIMAGE_DURATION_TICKS =
-      BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "AFTERIMAGE_DURATION_TICKS", 20);
   private static final double AFTERIMAGE_RADIUS = 3.0;
-  private static final int SWORD_SCAR_DURATION_TICKS =
-      BehaviorConfigAccess.getInt(JianYingGuOrganBehavior.class, "SWORD_SCAR_DURATION_TICKS", 120);
 
   private static final Map<UUID, SwordShadowState> SWORD_STATES = new ConcurrentHashMap<>();
   private static final Map<UUID, ArrayDeque<Long>> COOLDOWN_HISTORY = new ConcurrentHashMap<>();
@@ -145,11 +123,17 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       return damage;
     }
 
-    double efficiency = 1.0 + ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
+    double efficiency =
+        1.0 + LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE).get();
 
     double passiveDamage = triggerSwordShadow(player, target, efficiency);
     if (passiveDamage > 0.0) {
-      applyTrueDamage(player, target, (float) passiveDamage);
+      applyTrueDamage(
+          player,
+          target,
+          (float) passiveDamage,
+          SKILL_PASSIVE_ID,
+          java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
     }
 
     commandClones(player, target);
@@ -160,7 +144,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
   }
 
   public void ensureAttached(ChestCavityInstance cc) {
-    ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT);
+    LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE);
   }
 
   public void tickLevel(ServerLevel level) {
@@ -192,7 +176,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
     double efficiency = 1.0;
     if (cc != null) {
-      LinkageChannel channel = ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT);
+      LinkageChannel channel =
+          LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE);
       efficiency += channel.get();
     }
 
@@ -207,9 +192,14 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       return true;
     }
 
-    float damage = (float) (BASE_DAMAGE * AFTERIMAGE_DAMAGE_RATIO * efficiency);
+    float damage = JianYingCalculator.afterimageDamage(efficiency);
     for (LivingEntity victim : victims) {
-      applyTrueDamage(player, victim, damage);
+      applyTrueDamage(
+          player,
+          victim,
+          damage,
+          SKILL_AFTERIMAGE_ID,
+          java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
       level.sendParticles(
           ParticleTypes.SWEEP_ATTACK,
           victim.getX(),
@@ -263,13 +253,13 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
           spawnPos,
           ShadowService.JIAN_DAO_AFTERIMAGE,
           0.0f,
-          AFTERIMAGE_DURATION_TICKS);
+          JianYingTuning.AFTERIMAGE_DURATION_TICKS);
     }
     AFTERIMAGES.add(
         new AfterimageTask(
             player.getUUID(),
             level.dimension(),
-            level.getGameTime() + AFTERIMAGE_DELAY_TICKS,
+            level.getGameTime() + JianYingTuning.AFTERIMAGE_DELAY_TICKS,
             origin));
   }
 
@@ -277,7 +267,12 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     if (player.getRandom().nextDouble() >= PASSIVE_TRIGGER_CHANCE) {
       return 0.0;
     }
-    OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, PASSIVE_ZHENYUAN_COST);
+    OptionalDouble consumed =
+        ResourceOps.tryConsumeTieredZhenyuan(
+            player,
+            JianYingTuning.DESIGN_ZHUANSHU,
+            JianYingTuning.DESIGN_JIEDUAN,
+            JianYingTuning.PASSIVE_ZHENYUAN_TIER);
     if (consumed.isEmpty()) {
       return 0.0;
     }
@@ -285,12 +280,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     long now = player.level().getGameTime();
     SwordShadowState state =
         SWORD_STATES.computeIfAbsent(player.getUUID(), unused -> new SwordShadowState());
-    float multiplier;
-    if (now - state.lastTriggerTick > PASSIVE_RESET_WINDOW) {
-      multiplier = PASSIVE_INITIAL_MULTIPLIER;
-    } else {
-      multiplier = Math.max(PASSIVE_MIN_MULTIPLIER, state.lastMultiplier - PASSIVE_DECAY_STEP);
-    }
+    float multiplier =
+        JianYingCalculator.passiveMultiplier(state.lastTriggerTick, now, state.lastMultiplier);
     state.lastTriggerTick = now;
     state.lastMultiplier = multiplier;
 
@@ -301,7 +292,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     Vec3 tip = ShadowService.swordTip(player, anchor);
     SingleSwordProjectile.spawn(player.level(), player, anchor, tip, tint, display);
 
-    return BASE_DAMAGE * multiplier * efficiency;
+    return JianYingTuning.BASE_DAMAGE * multiplier * efficiency;
   }
 
   private static void commandClones(Player player, LivingEntity target) {
@@ -355,7 +346,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
         while (!history.isEmpty()) {
           head = history.peekFirst();
           long delta = now - head;
-          if (delta >= CLONE_COOLDOWN_TICKS) {
+          if (delta >= JianYingTuning.CLONE_COOLDOWN_TICKS) {
             history.pollFirst();
           } else {
             break;
@@ -371,8 +362,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     if (history.size() >= organCount && !history.isEmpty()) {
       long head = history.peekFirst();
       long elapsed = now - head;
-      if (elapsed < CLONE_COOLDOWN_TICKS) {
-        long remaining = CLONE_COOLDOWN_TICKS - elapsed;
+      if (elapsed < JianYingTuning.CLONE_COOLDOWN_TICKS) {
+        long remaining = JianYingTuning.CLONE_COOLDOWN_TICKS - elapsed;
         logAbility(
             player,
             "EXIT",
@@ -402,16 +393,18 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       return;
     }
     double jingliBefore = jingliBeforeOpt.getAsDouble();
-    if (jingliBefore < ACTIVE_JINGLI_COST) {
+    if (jingliBefore < JianYingTuning.ACTIVE_JINGLI_COST) {
       logAbility(
           player,
           "EXIT",
           "jingli_insufficient",
-          String.format(Locale.ROOT, "have=%.1f required=%.1f", jingliBefore, ACTIVE_JINGLI_COST));
+          String.format(
+              Locale.ROOT, "have=%.1f required=%.1f", jingliBefore, JianYingTuning.ACTIVE_JINGLI_COST));
       return;
     }
 
-    OptionalDouble jingliAfterOpt = ResourceOps.tryAdjustJingli(handle, -ACTIVE_JINGLI_COST, true);
+    OptionalDouble jingliAfterOpt =
+        ResourceOps.tryAdjustJingli(handle, -JianYingTuning.ACTIVE_JINGLI_COST, true);
     if (jingliAfterOpt.isEmpty()) {
       logAbility(
           player,
@@ -421,7 +414,11 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       return;
     }
     OptionalDouble zhenAfterOpt =
-        ResourceOps.tryConsumeScaledZhenyuan(handle, COST_ZHENYUAN * ACTIVE_ZHENYUAN_MULTIPLIER);
+        ResourceOps.tryConsumeTieredZhenyuan(
+            handle,
+            JianYingTuning.DESIGN_ZHUANSHU,
+            JianYingTuning.DESIGN_JIEDUAN,
+            JianYingTuning.ACTIVE_ZHENYUAN_TIER);
     if (zhenAfterOpt.isEmpty()) {
       ResourceOps.trySetJingli(handle, jingliBefore);
       String detail;
@@ -431,7 +428,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
                 Locale.ROOT,
                 "have=%.1f required=%.1f",
                 zhenBeforeOpt.getAsDouble(),
-                COST_ZHENYUAN * ACTIVE_ZHENYUAN_MULTIPLIER);
+                -1.0);
       } else {
         detail = "zhenyuan_unreadable";
       }
@@ -442,7 +439,8 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     int clones = 2 + player.getRandom().nextInt(2);
     double efficiency = 1.0;
     if (cc != null) {
-      efficiency += ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT).get();
+      efficiency +=
+          LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE).get();
     }
 
     Level level = player.level();
@@ -453,7 +451,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
 
     PlayerSkinUtil.SkinSnapshot tint =
         PlayerSkinUtil.withTint(PlayerSkinUtil.capture(player), 0.05f, 0.05f, 0.1f, 0.55f);
-    float cloneDamage = (float) (BASE_DAMAGE * CLONE_DAMAGE_RATIO * efficiency);
+    float cloneDamage = JianYingCalculator.cloneDamage(efficiency);
     RandomSource random = player.getRandom();
     int spawned = 0;
     for (int i = 0; i < clones; i++) {
@@ -461,7 +459,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       Vec3 spawnPos = player.position().add(offset);
       SwordShadowClone clone = SwordShadowClone.spawn(server, player, spawnPos, tint, cloneDamage);
       if (clone != null) {
-        clone.setLifetime(CLONE_DURATION_TICKS);
+        clone.setLifetime(JianYingTuning.CLONE_DURATION_TICKS);
         spawned++;
       }
     }
@@ -506,7 +504,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     double zhenSpent =
         zhenBeforeOpt.isPresent() && zhenAfterOpt.isPresent()
             ? Math.max(0.0, zhenBeforeOpt.getAsDouble() - zhenAfterOpt.getAsDouble())
-            : COST_ZHENYUAN * ACTIVE_ZHENYUAN_MULTIPLIER;
+            : 0.0;
     logAbility(
         player,
         "EXIT",
@@ -533,7 +531,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
               .build();
       long nowTick = server.getGameTime();
       MultiCooldown.Entry ready = cooldown.entry(ACTIVE_READY_KEY);
-      long readyAt = nowTick + CLONE_COOLDOWN_TICKS;
+      long readyAt = nowTick + JianYingTuning.CLONE_COOLDOWN_TICKS;
       ready.setReadyAt(readyAt);
       ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, nowTick);
     }
@@ -554,11 +552,6 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       }
     }
     return false;
-  }
-
-  private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
-    ActiveLinkageContext context = LinkageManager.getContext(cc);
-    return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
   }
 
   private static int countOrgans(ChestCavityInstance cc) {
@@ -604,7 +597,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
   }
 
   public static int getCloneCooldownTicks() {
-    return CLONE_COOLDOWN_TICKS;
+    return JianYingTuning.CLONE_COOLDOWN_TICKS;
   }
 
   private static boolean isMeleeAttack(DamageSource source) {
@@ -639,9 +632,38 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
   }
 
   public static void applyTrueDamage(Player player, LivingEntity target, float amount) {
-    if (target == null || amount <= 0.0f) {
+    // 默认视为被动近战斩击
+    applyTrueDamage(
+        player,
+        target,
+        amount,
+        SKILL_PASSIVE_ID,
+        java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
+  }
+
+  public static void applyTrueDamage(
+      Player player, LivingEntity target, float baseAmount, ResourceLocation skillId, Set<DamageKind> kinds) {
+    if (target == null || baseAmount <= 0.0f) {
       return;
     }
+    double scaled = baseAmount;
+    try {
+      long castId = player == null ? 0L : player.level().getGameTime();
+      DamageResult result =
+          DamageCalculator.compute(
+              player == null ? target : player,
+              target,
+              baseAmount,
+              skillId == null ? SKILL_PASSIVE_ID : skillId,
+              castId,
+              kinds == null ? java.util.Set.of() : kinds);
+      scaled = Math.max(0.0, result.scaled());
+    } catch (Throwable ignored) {}
+    // 按“准真实伤害”方式应用修正后的伤害
+    doApplyTrueDamage(player, target, (float) scaled);
+  }
+
+  private static void doApplyTrueDamage(Player player, LivingEntity target, float amount) {
     if (Boolean.TRUE.equals(REENTRY_GUARD.get())) {
       return;
     }
@@ -676,7 +698,9 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
             .ifPresent(
                 ccIgnored ->
                     ReactionTagOps.add(
-                        target, ReactionTagKeys.SWORD_SCAR, SWORD_SCAR_DURATION_TICKS));
+                        target,
+                        ReactionTagKeys.SWORD_SCAR,
+                        JianYingTuning.SWORD_SCAR_DURATION_TICKS));
       }
     } finally {
       REENTRY_GUARD.remove();
@@ -685,7 +709,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
 
   private static final class SwordShadowState {
     private long lastTriggerTick;
-    private float lastMultiplier = PASSIVE_INITIAL_MULTIPLIER;
+    private float lastMultiplier = JianYingTuning.PASSIVE_INITIAL_MULTIPLIER;
   }
 
   private record AfterimageTask(

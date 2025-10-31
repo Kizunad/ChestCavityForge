@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment;
-import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 
 /**
  * 五行归变·逆转 数值计算。

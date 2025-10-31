@@ -15,6 +15,10 @@ public final class DefenderResistanceModifier implements SkillDamageModifier {
   public double apply(DamageComputeContext ctx, double current, SkillDamageSink sink) {
     if (current <= 0.0) return 0.0;
     if (ctx.defender() == null) return current;
+    // TRUE_DAMAGE 视为“绕过常规抗性”，在计算阶段跳过该修正
+    if (ctx.kind(net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.TRUE_DAMAGE)) {
+      return current;
+    }
     MobEffectInstance inst = ctx.defender().living().getEffect(MobEffects.DAMAGE_RESISTANCE);
     if (inst == null) return current;
     int amp = Math.max(0, inst.getAmplifier());
@@ -24,4 +28,3 @@ public final class DefenderResistanceModifier implements SkillDamageModifier {
     return after;
   }
 }
-

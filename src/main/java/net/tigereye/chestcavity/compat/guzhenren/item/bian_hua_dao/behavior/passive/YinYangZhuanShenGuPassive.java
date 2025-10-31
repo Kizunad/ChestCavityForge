@@ -6,7 +6,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.common.passive.PassiveHook;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.runtime.yin_yang.YinYangRuntime;
-import net.tigereye.chestcavity.compat.common.state.YinYangDualityOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityOps;
 import org.jetbrains.annotations.NotNull;
 
 public enum YinYangZhuanShenGuPassive implements PassiveHook {

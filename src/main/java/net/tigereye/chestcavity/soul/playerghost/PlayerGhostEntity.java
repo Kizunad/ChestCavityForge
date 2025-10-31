@@ -353,9 +353,10 @@ public class PlayerGhostEntity extends Monster {
 
     AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
     if (maxHealth != null) {
+      // 使用唯一 ID 的永久修饰符进行叠加，避免“Modifier is already applied”崩溃
       AttributeModifier modifier =
           new AttributeModifier(
-              ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "ghost_kill_health"),
+              uniqueGhostRewardId("modifiers/ghost_kill/health", player),
               amount,
               AttributeModifier.Operation.ADD_VALUE);
       maxHealth.addPermanentModifier(modifier);
@@ -379,9 +380,10 @@ public class PlayerGhostEntity extends Monster {
 
     AttributeInstance attackDamage = player.getAttribute(Attributes.ATTACK_DAMAGE);
     if (attackDamage != null) {
+      // 使用唯一 ID 的永久修饰符进行叠加，避免“Modifier is already applied”崩溃
       AttributeModifier modifier =
           new AttributeModifier(
-              ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "ghost_kill_attack"),
+              uniqueGhostRewardId("modifiers/ghost_kill/attack", player),
               amount,
               AttributeModifier.Operation.ADD_VALUE);
       attackDamage.addPermanentModifier(modifier);
@@ -485,5 +487,15 @@ public class PlayerGhostEntity extends Monster {
       // 兜底返回（理论上不会执行到）
       return MAX_HEALTH;
     }
+  }
+
+  /**
+   * 生成用于击杀奖励的唯一修饰符 ID，确保多次奖励可以叠加且不会因重复 ID 崩溃。
+   */
+  private static ResourceLocation uniqueGhostRewardId(String basePath, Player player) {
+    long t = player.level().getGameTime();
+    int r = player.getRandom().nextInt();
+    String suffix = Long.toString(t, 36) + "_" + Integer.toUnsignedString(r, 36);
+    return ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, basePath + "/" + suffix);
   }
 }

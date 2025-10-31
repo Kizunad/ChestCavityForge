@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.common.organ.yu.YuLinGuOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.yu.YuLinGuOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -25,8 +25,8 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
-import net.tigereye.chestcavity.compat.common.tuning.YuQunTuning;
-import net.tigereye.chestcavity.compat.common.organ.yu.YuQunCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.YuQunTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.yu.YuQunCalculator;
 
 /** [主动A] 鱼群：短延时齐射水灵体，对前方敌人造成击飞与潮湿减速。 */
 public final class YuQunSkill {

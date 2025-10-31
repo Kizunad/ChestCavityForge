@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.tuning;
 
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 
 /** 坚忍释放调参常量。 */
 public final class ShouPiStoicReleaseTuning {
@@ -10,4 +10,3 @@ public final class ShouPiStoicReleaseTuning {
   public static final int ACTIVE_DURATION_TICKS = 20;
   public static final double SOFT_REFLECT_BONUS = ShouPiGuTuning.STOIC_ACTIVE_SOFT_BONUS;
 }
-

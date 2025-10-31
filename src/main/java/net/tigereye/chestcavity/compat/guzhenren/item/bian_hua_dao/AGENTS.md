@@ -18,7 +18,7 @@
 - 被动总线：YuLinGuPassive（slowTick 转发至 Calculator）、YinYangZhuanShenGuPassive（迁至 behavior/passive，逻辑等价）
 - Organ 行为壳：YuLinGuOrganBehavior（slowTick 维护召唤）、YinYangZhuanShenGuOrganBehavior（slowTick 桥接）、ShouPiGuOrganBehavior（常量壳）
 - OrganRegistry：BianHuaDaoOrganRegistry 登记 YuLinGu/YinYang slowTick 监听
-- 公共 Ops：Yu / 阴阳 / 兽皮三套 `*Calculator` 与 `*Tuning` 统一迁入 `compat/common/organ|tuning`，item 层全部改为调用 `calculator/*Ops`
+- 公共 Ops：Yu / 阴阳 / 兽皮三套 `*Calculator` 与 `*Tuning` 已统一迁入 `compat/guzhenren/item/bian_hua_dao/behavior/organ|tuning`，item 层全部改为调用对应门面/计算器
 - 组合技分层：`combo/bian_hua` 已建立 `behavior/`、`runtime/`、`calculator/`、`tuning/`、`state/`、`messages/`、`fx/` 目录；YuShi/YuQun 行为仅注册并转发到 runtime
 - 构建：`./gradlew compileJava` 通过
 
@@ -39,7 +39,7 @@
     - Yu：`yu_lin_gu.calculator.YuLinGuCalculator` → `calculator.YuLinGuOps`
     - 阴阳：`yin_yang_zhuan_shen_gu.calculator.YinYangZhuanShenGuCalculator` → `calculator.YinYangOps`
     - 兽皮：`shou_pi_gu.calculator.ShouPiGuCalculator` → `calculator.ShouPiGuOps`
-  -（2025-xx 更新）Yu/YinYang/ShouPi 的 Calculator 与 Tuning 已统一迁入 `compat/common/organ|tuning`，组合技与主体共享同一实现。
+  -（2025-xx 更新）Yu/YinYang/ShouPi 的 Calculator 与 Tuning 已统一迁入 `compat/guzhenren/item/bian_hua_dao/behavior/organ|tuning`，组合技与主体共享同一实现。
 - 审计命令：
   - `rg -n "yu_lin_gu\.calculator\.YuLinGuCalculator" src/main/java`
   - `rg -n "yin_yang_zhuan_shen_gu\.calculator\.YinYangZhuanShenGuCalculator" src/main/java`
@@ -63,7 +63,7 @@
 ---
 
 ## 目录收口与删除（第三阶段）
-- 已完成：三套 Calculator / Tuning 统一迁移至 `compat/common` 并清除旧目录。
+- 已完成：三套 Calculator / Tuning 统一迁移至 `compat/guzhenren/item/bian_hua_dao/behavior/organ` 与 `compat/guzhenren/item/bian_hua_dao/tuning`。
 - 待办：根据后续重构进度，分批迁移 runtime/fx/messages 等执行层逻辑，最终缩减行为监听至统一模板。
 
 ---

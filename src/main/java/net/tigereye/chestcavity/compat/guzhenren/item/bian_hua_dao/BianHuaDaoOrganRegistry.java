@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao;
 
 import java.util.List;
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
-import net.tigereye.chestcavity.compat.common.tuning.YinYangZhuanShenGuTuning;
-import net.tigereye.chestcavity.compat.common.tuning.YuLinGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.YinYangZhuanShenGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.YuLinGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.ShouPiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.passive.YinYangZhuanShenGuPassive;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.passive.YuLinGuPassive;

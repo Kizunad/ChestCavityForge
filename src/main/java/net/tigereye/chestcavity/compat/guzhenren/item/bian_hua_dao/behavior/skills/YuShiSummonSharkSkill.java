@@ -24,7 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.entity.summon.OwnedSharkEntity;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
-import net.tigereye.chestcavity.compat.common.organ.yu.YuLinGuOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.yu.YuLinGuOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -33,8 +33,8 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
-import net.tigereye.chestcavity.compat.common.tuning.YuShiSummonTuning;
-import net.tigereye.chestcavity.compat.common.organ.yu.YuShiSummonCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.YuShiSummonTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.yu.YuShiSummonCalculator;
 
 /** [主动C] 饵祭召鲨：消耗对应蛊材召唤鲨鱼同伴，最多同时存在五条。 */
 public final class YuShiSummonSharkSkill {

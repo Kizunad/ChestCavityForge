@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning;
 
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 
 /** 筋膜锁扣调参常量。 */
 public final class ShouPiFasciaLatchTuning {
@@ -16,4 +16,3 @@ public final class ShouPiFasciaLatchTuning {
   public static final int TENACITY_DURATION_TICKS = 20;
   public static final double TENACITY_KNOCKBACK_RESIST = 0.25D;
 }
-
