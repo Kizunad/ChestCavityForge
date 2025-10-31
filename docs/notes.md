@@ -1,4 +1,25 @@
 为了可玩性，设定 " 三转开始才能稳定替代 原生器官 "
+# 变化道（BianHuaDao）combo ↔ item 职责分离（2025-10-31）
+- 统一策略：主动（翻滚/冲撞/筋膜锁扣/坚忍释放）全部归入 combo；item 侧仅保留“鼓/被动”和器官状态。
+- ShouPi（兽皮）
+  - ShouPiGuRollActive / ShouPiGuCrashActive 通过 `ComboSkillRegistry.trigger(...)` 桥接到
+    `shou_pi_roll_evasion` / `shou_pi_qian_jia_crash`；移除了 ShouPiRuntime 中的 roll/crash 激活实现。
+  - 计算/调参：combo 专用 `.../roll|qian_jia_crash/ calculator + tuning`，不再依赖 item 调参；
+    item 仅保留鼓/坚忍/软反池等内聚逻辑与键名。
+  - FX：新增 `ShouPiComboFx`，并迁入 Crash/FasciaLatch/StoicRelease 的音效，后续粒子也在此归口。
+- Yu（鱼）
+  - Combo 版 `yu_qun_combo`、`yu_shi_summon_combo` 均已有独立 `.../fx/` 与 runtime，item 版（YuYue/YuQun/YuShiSummon）
+    的调参/计算下沉到 `compat/common/organ/yu + tuning`；两套路径互不干扰。
+- YinYang（阴阳）
+  - 组合技（双击/换位/召回/传递）在 combo 子目录；阴阳转身（item）被动结算统一在 Calculator，并以 Tuning 配参。
+
+验证
+- `./gradlew compileJava` 与 `./gradlew test` 通过。
+- 客户端热键提示新增：`guzhenren:shou_pi_roll_evasion`、`guzhenren:shou_pi_qian_jia_crash`（与 item 桥接保持一致）。
+
+后续建议
+- 如需彻底去除旧路径，可标注/清理 ShouPiRuntime 中与 combo 重叠的剩余常量/注释，并把粒子 FX 也迁入 Fx 归口类。
+- 其它家族的 combo（若有新增）沿用“calculator + tuning + fx + behavior”四件套结构，避免与 item 混杂。
 
 "item.guzhenren.gu_zhu_gu": "骨竹蛊", 骨竹 - 生长 - 强化 - 持续性 - 加快/(或者x转前唯一充能方法?)其他骨道蛊虫充能 - 使用 真元 (被动增长) / 食用骨粉(催化) (主动)
 
@@ -4423,3 +4444,6 @@ OrganScore示范(考虑已实现的key -> ids.md，不要编造):
 ----------------------------------------------------
 
 src/main/java/net/tigereye/chestcavity/compat/guzhenren/AGENTS.md AGENTS.md docs/HOW_TO_WRITE_TESTS.md docs/TESTING.md 计划将 src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/ 重构，只保留一主动一被动，其余做成杀招src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/combo 迁移进此处. 你先将想法告诉我，保留哪个主动哪个被动(小细节: 注重蛊虫原生的能力的味道) 我审核后再做出调整
+
+
+剑道

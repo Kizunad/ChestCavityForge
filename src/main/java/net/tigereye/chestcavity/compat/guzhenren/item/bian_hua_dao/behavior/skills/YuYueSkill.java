@@ -25,20 +25,21 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.common.tuning.YuYueTuning;
+import net.tigereye.chestcavity.compat.common.organ.yu.YuYueCalculator;
 
 /** [主动B] 鱼跃破浪：水中高速冲刺并破浪而出，潮湿状态下提供低幅位移。 */
 public final class YuYueSkill {
 
-  public static final ResourceLocation ABILITY_ID =
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_yue");
+  public static final ResourceLocation ABILITY_ID = YuYueTuning.ABILITY_ID;
 
   private static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath("guzhenren", "yu_lin_gu");
 
-  private static final String COOLDOWN_KEY = "YuYueReadyAt";
-  private static final int COOLDOWN_TICKS = 20 * 7;
-  private static final double ZHENYUAN_COST = 400.0;
-  private static final double JINGLI_COST = 8.0;
+  private static final String COOLDOWN_KEY = YuYueTuning.COOLDOWN_KEY;
+  private static final int COOLDOWN_TICKS = YuYueTuning.COOLDOWN_TICKS;
+  private static final double ZHENYUAN_COST = YuYueTuning.ZHENYUAN_COST;
+  private static final double JINGLI_COST = YuYueTuning.JINGLI_COST;
 
   private YuYueSkill() {}
 
@@ -88,60 +89,26 @@ public final class YuYueSkill {
       return;
     }
 
-    double baseRange = inWater ? 7.0 : 4.0;
-    if (YuLinGuOps.hasTailSynergy(cc)) {
-      baseRange += inWater ? 3.0 : 1.5;
-    }
+    boolean tail = YuLinGuOps.hasTailSynergy(cc);
     boolean upgraded = YuLinGuOps.hasSharkArmor(organ);
-    if (upgraded) {
-      baseRange += 1.0;
-    }
+    double baseRange = YuYueCalculator.computeBaseRange(inWater, tail, upgraded);
 
     Vec3 dashDir = player.getLookAngle().normalize();
-    double horizontalScale = baseRange * 0.45;
-    double vertical = inWater ? 0.25 : 0.12;
+    double horizontalScale = YuYueCalculator.computeHorizontalScale(baseRange);
+    double vertical = YuYueCalculator.computeVertical(inWater);
     player.setDeltaMovement(dashDir.x * horizontalScale, vertical, dashDir.z * horizontalScale);
     player.hurtMarked = true;
     player.hasImpulse = true;
     player.fallDistance = 0.0f;
-    if (YuLinGuOps.hasTailSynergy(cc)) {
-      player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 20, 0, false, false));
-    }
-    if (upgraded) {
-      player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 20, 0, false, false));
-    }
+    YuYueCalculator.grantAuxiliaryBuffs(player, tail, upgraded);
 
-    pushCollisions(player, dashDir, baseRange);
+    YuYueCalculator.pushCollisions(player, dashDir, baseRange);
     YuLinGuOps.recordWetContact(player, organ);
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
     ActiveSkillRegistry.scheduleReadyToast(player, ABILITY_ID, readyAt, now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
-    level.playSound(
-        null, player.blockPosition(), SoundEvents.DOLPHIN_JUMP, SoundSource.PLAYERS, 0.9f, 1.1f);
-  }
-
-  private static void pushCollisions(Player player, Vec3 direction, double range) {
-    Level level = player.level();
-    Vec3 start = player.position();
-    AABB swept = player.getBoundingBox().expandTowards(direction.scale(range)).inflate(1.0);
-    List<LivingEntity> targets =
-        level.getEntitiesOfClass(
-            LivingEntity.class,
-            swept,
-            candidate ->
-                candidate != player && candidate.isAlive() && !candidate.isAlliedTo(player));
-    for (LivingEntity target : targets) {
-      Vec3 toTarget = target.position().subtract(start);
-      double proj = toTarget.dot(direction);
-      if (proj < 0.0 || proj > range) {
-        continue;
-      }
-      double strength = 0.35 + (player.isInWaterOrBubble() ? 0.2 : 0.0);
-      target.push(direction.x * strength, 0.25, direction.z * strength);
-      target.hurtMarked = true;
-    }
   }
 
   private static ItemStack findOrgan(ChestCavityInstance cc) {

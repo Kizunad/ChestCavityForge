@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.common.organ.yin_yang;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.compat.common.tuning.YinYangZhuanShenGuTuning;
 import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 
 /**
  * 阴阳转身蛊聚合入口。
@@ -40,5 +41,10 @@ public final class YinYangOps {
 
   public static long bodyCooldownTicks() {
     return YinYangZhuanShenGuTuning.BODY_COOLDOWN_TICKS;
+  }
+
+  public static void runPassives(
+      ServerPlayer player, YinYangDualityAttachment attachment, ResourceHandle handle, long now) {
+    YinYangZhuanShenGuCalculator.runPassives(player, attachment, handle, now);
   }
 }

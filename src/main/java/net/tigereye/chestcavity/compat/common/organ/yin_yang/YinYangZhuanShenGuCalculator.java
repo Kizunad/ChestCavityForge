@@ -10,11 +10,13 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.food.FoodData;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.common.state.YinYangDualityAttachment.Mode;
 import net.tigereye.chestcavity.compat.common.tuning.YinYangZhuanShenGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 
 public class YinYangZhuanShenGuCalculator {
 
@@ -195,5 +197,33 @@ public class YinYangZhuanShenGuCalculator {
         double z = pos.z;
         level.sendParticles(ParticleTypes.SOUL, x, y + 1.2, z, 1, 0.2, 0.1, 0.2, 0.01);
         level.sendParticles(ParticleTypes.ENCHANT, x, y + 1.0, z, 1, 0.2, 0.1, 0.2, 0.01);
+    }
+
+    /**
+     * 运行阴/阳模式下的被动资源与状态结算。
+     */
+    public static void runPassives(
+        ServerPlayer player, YinYangDualityAttachment attachment, ResourceHandle handle, long now) {
+        Mode mode = attachment.currentMode();
+        FoodData foodData = player.getFoodData();
+        if (mode == Mode.YANG) {
+            handle.adjustJingli(YinYangZhuanShenGuTuning.YANG_JINGLI_PER_TICK, true);
+            player.heal(YinYangZhuanShenGuTuning.YANG_HEAL_PER_TICK);
+            foodData.setFoodLevel(Math.max(0, foodData.getFoodLevel() - YinYangZhuanShenGuTuning.YANG_HUNGER_COST));
+            handle.adjustHunpo(YinYangZhuanShenGuTuning.YANG_HUNPO_DELTA, true);
+            handle.adjustNiantou(YinYangZhuanShenGuTuning.YANG_NIANTOU_DELTA, true);
+            if (now % YinYangZhuanShenGuTuning.PASSIVE_FX_INTERVAL_TICKS == 0) {
+                playPassiveYangFx(player);
+            }
+        } else {
+            handle.adjustHunpo(YinYangZhuanShenGuTuning.YIN_HUNPO_PER_TICK, true);
+            handle.adjustNiantou(YinYangZhuanShenGuTuning.YIN_NIANTOU_PER_TICK, true);
+            handle.adjustZhenyuan(YinYangZhuanShenGuTuning.YIN_ZHENYUAN_PER_TICK, true);
+            handle.adjustJingli(YinYangZhuanShenGuTuning.YIN_JINGLI_DELTA, true);
+            foodData.setFoodLevel(Math.max(0, foodData.getFoodLevel() - YinYangZhuanShenGuTuning.YIN_HUNGER_COST));
+            if (now % YinYangZhuanShenGuTuning.PASSIVE_FX_INTERVAL_TICKS == 0) {
+                playPassiveYinFx(player);
+            }
+        }
     }
 }

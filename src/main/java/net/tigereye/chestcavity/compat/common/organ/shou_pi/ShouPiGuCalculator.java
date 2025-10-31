@@ -107,12 +107,38 @@ public final class ShouPiGuCalculator {
 
   public static void applyRollCounter(LivingEntity player, int resistanceDurationTicks,
       int resistanceAmplifier) {
-    // empty
+    if (player == null || resistanceDurationTicks <= 0) {
+      return;
+    }
+    player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+        net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE,
+        resistanceDurationTicks,
+        Math.max(0, resistanceAmplifier),
+        true,
+        false));
   }
 
   public static void applyRollSlow(ServerPlayer player, int slowDurationTicks, int slowAmplifier,
       double slowRadius) {
-    // empty
+    if (player == null || slowDurationTicks <= 0 || slowRadius <= 0) {
+      return;
+    }
+    net.minecraft.world.phys.AABB area = new net.minecraft.world.phys.AABB(
+        player.getX() - slowRadius,
+        player.getY() - slowRadius,
+        player.getZ() - slowRadius,
+        player.getX() + slowRadius,
+        player.getY() + slowRadius,
+        player.getZ() + slowRadius);
+    java.util.List<net.minecraft.world.entity.LivingEntity> targets =
+        player.level().getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, area,
+            (entity) -> entity != player && entity.isAlive());
+    for (net.minecraft.world.entity.LivingEntity target : targets) {
+      target.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+          net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN,
+          slowDurationTicks,
+          Math.max(0, slowAmplifier)));
+    }
   }
 
   public static void dealCrashDamage(ServerPlayer player, Vec3 center,
@@ -153,5 +179,54 @@ public final class ShouPiGuCalculator {
       return poolValue / 2;
     }
     return 0;
+  }
+
+  /**
+   * 计算实际承受伤害，应用翻滚减伤/冲撞免疫与柔反池抵消，并做下限钳制。
+   */
+  public static float computeIncomingDamage(OrganState state, float baseDamage, long now) {
+    float damage = baseDamage;
+    if (state.getLong(ShouPiGuTuning.KEY_ROLL_EXPIRE, 0L) > now) {
+      damage *= (1.0 - ShouPiGuTuning.ROLL_DAMAGE_REDUCTION);
+    }
+    if (state.getLong(ShouPiGuTuning.KEY_CRASH_IMMUNE, 0L) > now) {
+      return 0F;
+    }
+    double reflected = resolveSoftPool(state, now);
+    if (reflected > 0) {
+      damage -= reflected;
+    }
+    if (damage < 0) {
+      damage = 0;
+    }
+    return damage;
+  }
+
+  /**
+   * 受击时更新坚忍层数并在阈值时给予护盾与锁定。
+   */
+  public static void updateStoicStacksAndMaybeShield(LivingEntity player, OrganState state,
+      long now) {
+    if (state.getLong(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL, 0L) < now) {
+      int stacks = state.getInt(ShouPiGuTuning.KEY_STOIC_STACKS, 0) + 1;
+      if (stacks >= ShouPiGuTuning.STOIC_MAX_STACKS) {
+        var tierParams = tierParameters(state);
+        applyShield(player, tierParams.stoicShield());
+        state.setLong(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL, now + tierParams.lockTicks());
+        state.setInt(ShouPiGuTuning.KEY_STOIC_STACKS, 0);
+      } else {
+        state.setInt(ShouPiGuTuning.KEY_STOIC_STACKS, stacks);
+      }
+    }
+  }
+
+  /**
+   * 近战命中时按比例累加柔反池，并刷新过期时间。
+   */
+  public static void accumulateSoftPoolOnHit(OrganState state, float dealtDamage, long now) {
+    double currentPool = state.getDouble(ShouPiGuTuning.KEY_SOFT_POOL_VALUE, 0);
+    double add = dealtDamage * ShouPiGuTuning.SOFT_POOL_ON_HIT_FRACTION;
+    state.setDouble(ShouPiGuTuning.KEY_SOFT_POOL_VALUE, currentPool + add);
+    state.setLong(ShouPiGuTuning.KEY_SOFT_POOL_EXPIRE, now + ShouPiGuTuning.SOFT_POOL_WINDOW_TICKS);
   }
 }

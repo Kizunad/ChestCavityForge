@@ -14,16 +14,13 @@ public final class ShouPiGuTuning {
   public static final int STOIC_MAX_STACKS = 6;
   public static final long STOIC_DEFAULT_LOCK_TICKS = 8 * 20L;
   public static final long SOFT_POOL_WINDOW_TICKS = 5 * 20L;
-  public static final long ROLL_DAMAGE_WINDOW_TICKS = 12L; // 0.6s
   public static final double ROLL_DAMAGE_REDUCTION = 0.6D;
-  public static final double ROLL_DISTANCE = 3.0D;
-  public static final double CRASH_DISTANCE = 4.0D;
-  public static final long CRASH_IMMUNE_TICKS = 10L;
-  public static final double CRASH_SPLASH_RADIUS = 1.5D;
+  public static final double CRASH_SPLASH_DAMAGE = 10.0D;
   public static final double STOIC_SLOW_RADIUS = 3.0D;
   public static final int STOIC_SLOW_TICKS = 40;
   public static final int STOIC_SLOW_AMPLIFIER = 0;
   public static final long SOFT_PROJECTILE_COOLDOWN_TICKS = 12L; // 0.6s shared thorns window
+  public static final double SOFT_POOL_ON_HIT_FRACTION = 0.5D;
   public static final double STOIC_ACTIVE_SOFT_BONUS = 0.05D;
 
   public static final double ACTIVE_DRUM_DEFENSE_BONUS = 0.06D;
@@ -31,13 +28,10 @@ public final class ShouPiGuTuning {
   public static final int ACTIVE_DRUM_DURATION_TICKS = 5 * 20;
   public static final long ACTIVE_DRUM_COOLDOWN_TICKS = 20 * 20L;
   public static final double ACTIVE_DRUM_KNOCKBACK_RESIST = 0.5D;
+  public static final int ACTIVE_DRUM_RESISTANCE_AMPLIFIER = 0;
   public static final double ACTIVE_DRUM_BASE_COST = 40.0D;
 
-  public static final double ACTIVE_ROLL_BASE_COST = 25.0D;
-  public static final long ACTIVE_ROLL_COOLDOWN_TICKS = 14 * 20L;
-
-  public static final double SYNERGY_CRASH_BASE_COST = 60.0D;
-  public static final long SYNERGY_CRASH_COOLDOWN_TICKS = 18 * 20L;
+  // 说明：翻滚/冲撞的数值（距离/窗口/成本/冷却/免疫/半径）已迁至 combo tuning，避免 item 与 combo 混杂。
 
   public static final double DAO_HEN_COST_SCALE = 0.2; // Each point of Dao Hen reduces cost by 20%
   public static final double DAO_HEN_COOLDOWN_SCALE =
@@ -104,10 +98,7 @@ public final class ShouPiGuTuning {
   public static final String KEY_SOFT_POOL_EXPIRE = "SoftReflectExpire";
   public static final ResourceLocation ACTIVE_DRUM_ID =
       ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_drum");
-  public static final ResourceLocation ACTIVE_ROLL_ID =
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_roll");
-  public static final ResourceLocation ACTIVE_CRASH_ID =
-      ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_crash");
+  // 说明：roll/crash 的主动触发已完全迁至 combo ID，Item 侧不再保留 ACTIVE_* 映射。
   public static final String KEY_STOIC_READY = "StoicReady";
   public static final String KEY_TIER = "Tier";
   public static final String KEY_SOFT_THORNS_WINDOW = "SoftThornsWindow";

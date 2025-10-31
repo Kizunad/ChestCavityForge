@@ -1,6 +1,5 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator;
 
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.tuning.ShouPiQianJiaCrashTuning;
 
 /** 嵌甲冲撞的纯逻辑计算器（安全默认实现，移除未实现依赖）。 */
@@ -20,7 +19,7 @@ public final class ShouPiQianJiaCrashCalculator {
         + attackDamage * ShouPiQianJiaCrashTuning.ATTACK_SCALE
         + (cappedSynergy >= 2 ? ShouPiQianJiaCrashTuning.DUAL_DAMAGE_CAP_BONUS : 0.0);
     damage = Math.min(damage, cap);
-    double radius = ShouPiGuTuning.CRASH_SPLASH_RADIUS
+    double radius = ShouPiQianJiaCrashTuning.BASE_SPLASH_RADIUS
         + (cappedSynergy >= 2 ? ShouPiQianJiaCrashTuning.DUAL_RADIUS_BONUS : 0.0);
     long cooldown = ShouPiQianJiaCrashTuning.COOLDOWN_TICKS;
     return new CrashParameters(damage, radius, cooldown);

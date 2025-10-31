@@ -31,7 +31,7 @@ public final class YinYangRuntime {
     YinYangDualityOps.openHandle(player)
         .ifPresent(
             handle -> {
-              runPassives(player, attachment, handle, now);
+              YinYangOps.runPassives(player, attachment, handle, now);
               attachment.pool(attachment.currentMode()).capture(player, handle);
             });
     if (!attachment.dualStrike().isActive(now)) {
@@ -90,27 +90,8 @@ public final class YinYangRuntime {
 
   private static void runPassives(
       ServerPlayer player, YinYangDualityAttachment attachment, ResourceHandle handle, long now) {
-    Mode mode = attachment.currentMode();
-    FoodData foodData = player.getFoodData();
-    if (mode == Mode.YANG) {
-      handle.adjustJingli(10.0D, true);
-      player.heal(20.0F);
-      foodData.setFoodLevel(Math.max(0, foodData.getFoodLevel() - 5));
-      handle.adjustHunpo(-1.0D, true);
-      handle.adjustNiantou(-1.0D, true);
-      if (now % 40L == 0) {
-        YinYangOps.playPassiveYangFx(player);
-      }
-    } else {
-      handle.adjustHunpo(20.0D, true);
-      handle.adjustNiantou(2.0D, true);
-      handle.adjustZhenyuan(10.0D, true);
-      handle.adjustJingli(-1.0D, true);
-      foodData.setFoodLevel(Math.max(0, foodData.getFoodLevel() - 5));
-      if (now % 40L == 0) {
-        YinYangOps.playPassiveYinFx(player);
-      }
-    }
+    // 逻辑下沉 Calculator，保留转发以避免破坏调用方
+    YinYangOps.runPassives(player, attachment, handle, now);
   }
 
   private static void ensureAnchorPresent(

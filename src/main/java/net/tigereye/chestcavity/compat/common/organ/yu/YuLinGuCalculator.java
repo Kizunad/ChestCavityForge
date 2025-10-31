@@ -41,15 +41,14 @@ public class YuLinGuCalculator {
     }
 
     public static void applyArmorBuffs(Player player, boolean hasSharkArmor) {
-        int graceDuration = 60;
-        int graceAmplifier = hasSharkArmor ? 1 : 0;
-        player.addEffect(
-            new MobEffectInstance(
-                MobEffects.DOLPHINS_GRACE, graceDuration, graceAmplifier, true, false));
-        player.addEffect(
-            new MobEffectInstance(MobEffects.WATER_BREATHING, graceDuration, 0, true, false));
+        int graceAmplifier = hasSharkArmor ? YuLinGuTuning.ARMOR_GRACE_AMP_SHARK : 0;
+        player.addEffect(new MobEffectInstance(
+            MobEffects.DOLPHINS_GRACE, YuLinGuTuning.ARMOR_GRACE_TICKS, graceAmplifier, true, false));
+        player.addEffect(new MobEffectInstance(
+            MobEffects.WATER_BREATHING, YuLinGuTuning.ARMOR_GRACE_TICKS, 0, true, false));
         if (hasSharkArmor) {
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 40, 0, true, false));
+            player.addEffect(new MobEffectInstance(
+                MobEffects.DAMAGE_RESISTANCE, YuLinGuTuning.ARMOR_RESIST_TICKS, 0, true, false));
         }
     }
 

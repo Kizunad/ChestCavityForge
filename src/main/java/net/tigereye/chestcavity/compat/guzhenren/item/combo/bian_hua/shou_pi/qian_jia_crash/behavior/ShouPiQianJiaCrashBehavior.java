@@ -4,8 +4,6 @@ import java.util.OptionalDouble;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.com
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator.CrashParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.tuning.ShouPiQianJiaCrashTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -94,7 +93,7 @@ public final class ShouPiQianJiaCrashBehavior {
     if (horizontal.lengthSqr() < 1.0E-4D) {
       horizontal = new Vec3(1.0D, 0.0D, 0.0D);
     }
-    Vec3 offset = horizontal.normalize().scale(ShouPiGuTuning.CRASH_DISTANCE);
+    Vec3 offset = horizontal.normalize().scale(ShouPiQianJiaCrashTuning.CRASH_DISTANCE);
     Vec3 center = TeleportOps.blinkOffset(player, offset).orElse(player.position());
 
     resetSoftPool(state, cc, organ);
@@ -108,22 +107,14 @@ public final class ShouPiQianJiaCrashBehavior {
         cc,
         organ,
         ShouPiGuTuning.KEY_CRASH_IMMUNE,
-        now + ShouPiGuTuning.CRASH_IMMUNE_TICKS,
+        now + ShouPiQianJiaCrashTuning.IMMUNE_TICKS,
         value -> Math.max(0L, value),
         0L);
     entry.setReadyAt(now + params.cooldown());
 
-    player
-        .level()
-        .playSound(
-            null,
-            center.x,
-            center.y,
-            center.z,
-            SoundEvents.ANVIL_FALL,
-            SoundSource.PLAYERS,
-            0.7F,
-            1.1F);
+    if (player.level() instanceof ServerLevel serverLevel) {
+      ShouPiComboFx.playCrash(serverLevel, center.x, center.y, center.z);
+    }
 
     ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);

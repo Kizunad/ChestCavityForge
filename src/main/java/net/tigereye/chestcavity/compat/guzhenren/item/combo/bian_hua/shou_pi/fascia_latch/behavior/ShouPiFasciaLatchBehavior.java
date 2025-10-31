@@ -4,8 +4,6 @@ import java.util.OptionalDouble;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -29,6 +27,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboFx;
 
 /** 筋膜锁扣——积累筋膜计数后由玩家主动引爆。 */
 public final class ShouPiFasciaLatchBehavior {
@@ -119,17 +118,9 @@ public final class ShouPiFasciaLatchBehavior {
       grantTenacity(player, params);
     }
 
-    player
-        .level()
-        .playSound(
-            null,
-            player.getX(),
-            player.getY(),
-            player.getZ(),
-            SoundEvents.SHIELD_BLOCK,
-            SoundSource.PLAYERS,
-            0.8F,
-            0.9F + player.getRandom().nextFloat() * 0.1F);
+    if (player.level() instanceof ServerLevel serverLevel) {
+      ShouPiComboFx.playFasciaLatch(serverLevel, player.getX(), player.getY(), player.getZ());
+    }
 
     ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);

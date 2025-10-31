@@ -1,53 +1,49 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.tuning.ShouPiRollEvasionTuning;
 import org.junit.jupiter.api.Test;
 
-final class ShouPiRollEvasionCalculatorTest {
+public class ShouPiRollEvasionCalculatorTest {
 
   @Test
-  void computeWithSingleSynergyUsesBaseBonuses() {
-    RollParameters params = ShouPiRollEvasionCalculator.compute(1);
+  void compute_withSingleSynergy_usesBaseAndSingleBonuses() {
+    RollParameters p = ShouPiRollEvasionCalculator.compute(1);
     assertEquals(
         ShouPiRollEvasionTuning.BASE_DISTANCE + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS,
-        params.distance(),
-        1.0E-6);
-    assertEquals(
-        ShouPiRollEvasionTuning.RESISTANCE_DURATION_TICKS, params.resistanceDurationTicks());
-    assertEquals(ShouPiRollEvasionTuning.BASE_RESISTANCE_AMPLIFIER, params.resistanceAmplifier());
-    assertEquals(ShouPiRollEvasionTuning.BASE_SLOW_TICKS, params.slowDurationTicks());
-    assertEquals(ShouPiRollEvasionTuning.BASE_SLOW_AMPLIFIER, params.slowAmplifier());
-    assertEquals(
-        (int) ShouPiGuTuning.ROLL_DAMAGE_WINDOW_TICKS, params.mitigationWindowTicks());
+        p.distance(),
+        1e-6);
+    assertEquals(ShouPiRollEvasionTuning.RESISTANCE_DURATION_TICKS, p.resistanceDurationTicks());
+    assertEquals(ShouPiRollEvasionTuning.BASE_RESISTANCE_AMPLIFIER, p.resistanceAmplifier());
+    assertEquals(ShouPiRollEvasionTuning.BASE_SLOW_TICKS, p.slowDurationTicks());
+    assertEquals(ShouPiRollEvasionTuning.BASE_SLOW_AMPLIFIER, p.slowAmplifier());
+    assertEquals(ShouPiRollEvasionTuning.TARGET_SEARCH_RADIUS, p.slowRadius(), 1e-6);
+    assertEquals(ShouPiRollEvasionTuning.MITIGATION_WINDOW_TICKS, p.mitigationWindowTicks());
+    assertEquals(ShouPiRollEvasionTuning.COOLDOWN_TICKS, p.cooldown());
   }
 
   @Test
-  void computeWithDualSynergyBoostsDistanceAndAmplifiers() {
-    RollParameters params = ShouPiRollEvasionCalculator.compute(2);
+  void compute_withDualSynergy_appliesDualBonuses() {
+    RollParameters p = ShouPiRollEvasionCalculator.compute(2);
     assertEquals(
         ShouPiRollEvasionTuning.BASE_DISTANCE
             + ShouPiRollEvasionTuning.SYNERGY_DISTANCE_BONUS
             + ShouPiRollEvasionTuning.DUAL_DISTANCE_BONUS,
-        params.distance(),
-        1.0E-6);
-    assertEquals(
-        ShouPiRollEvasionTuning.DUAL_RESISTANCE_AMPLIFIER, params.resistanceAmplifier());
+        p.distance(),
+        1e-6);
+    assertEquals(ShouPiRollEvasionTuning.DUAL_RESISTANCE_AMPLIFIER, p.resistanceAmplifier());
     assertEquals(
         ShouPiRollEvasionTuning.BASE_SLOW_TICKS + ShouPiRollEvasionTuning.DUAL_SLOW_EXTRA_TICKS,
-        params.slowDurationTicks());
-    assertEquals(ShouPiRollEvasionTuning.DUAL_SLOW_AMPLIFIER, params.slowAmplifier());
+        p.slowDurationTicks());
+    assertEquals(ShouPiRollEvasionTuning.DUAL_SLOW_AMPLIFIER, p.slowAmplifier());
   }
 
   @Test
-  void computeWithoutSynergyThrows() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> ShouPiRollEvasionCalculator.compute(0));
+  void compute_requiresAtLeastOneSynergy() {
+    assertThrows(IllegalArgumentException.class, () -> ShouPiRollEvasionCalculator.compute(0));
   }
 }
+

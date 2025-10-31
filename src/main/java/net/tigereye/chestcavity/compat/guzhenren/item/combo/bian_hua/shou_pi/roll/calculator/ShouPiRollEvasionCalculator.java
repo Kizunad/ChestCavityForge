@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator;
 
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.tuning.ShouPiRollEvasionTuning;
-import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 
 /** 皮走滚袭的纯逻辑计算器（安全默认实现，移除未实现依赖）。 */
 public final class ShouPiRollEvasionCalculator {
@@ -35,7 +34,7 @@ public final class ShouPiRollEvasionCalculator {
         slowTicks,
         slowAmplifier,
         slowRadius,
-        (int) ShouPiGuTuning.ROLL_DAMAGE_WINDOW_TICKS,
+        ShouPiRollEvasionTuning.MITIGATION_WINDOW_TICKS,
         cooldown);
   }
 

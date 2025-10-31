@@ -16,6 +16,11 @@ public final class YuLinGuTuning {
     public static final int WATER_HEAL_COOLDOWN_FINAL_TICKS = 20 * 12;
     public static final int MAX_SUMMONS = 5;
 
+    // 护甲状态 Buff 时长/幅度（由 YuLinGuCalculator.applyArmorBuffs 使用）
+    public static final int ARMOR_GRACE_TICKS = 60; // 海豚恩惠/水下呼吸 时长
+    public static final int ARMOR_GRACE_AMP_SHARK = 1; // 鲨甲时海豚恩惠放大
+    public static final int ARMOR_RESIST_TICKS = 40; // 鲨甲时额外抗性时长
+
     public static final String STATE_ROOT = "YuLinGu";
     public static final String PROGRESS_KEY = "FishArmorProgress";
     public static final String HAS_FISH_ARMOR_KEY = "HasFishArmor";

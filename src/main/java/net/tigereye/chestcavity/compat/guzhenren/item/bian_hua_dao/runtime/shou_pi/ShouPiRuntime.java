@@ -81,7 +81,8 @@ public final class ShouPiRuntime {
 
   private static void applyDrumBuff(ServerPlayer player) {
     player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE,
-        ShouPiGuTuning.ACTIVE_DRUM_DURATION_TICKS, 0));
+        ShouPiGuTuning.ACTIVE_DRUM_DURATION_TICKS,
+        ShouPiGuTuning.ACTIVE_DRUM_RESISTANCE_AMPLIFIER));
     AttributeInstance knockbackResistance = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
     if (knockbackResistance != null) {
       knockbackResistance.removeModifier(DRUM_KNOCKBACK_RESISTANCE_ID);
@@ -92,95 +93,8 @@ public final class ShouPiRuntime {
     }
   }
 
-  public static void activateRoll(ServerPlayer player, ChestCavityInstance cc, long now) {
-    if (player == null || cc == null) {
-      return;
-    }
-    ItemStack organ = ShouPiGuOps.findOrgan(cc);
-    if (organ.isEmpty()) {
-      FailNotifier.notifyThrottled(player,
-          Component.translatable(ShouPiMessages.FAIL_MISSING_ORGAN));
-      return;
-    }
-    OrganState state = ShouPiGuOps.resolveState(organ);
-    MultiCooldown cooldown = ShouPiGuOps.cooldown(cc, organ, state);
-    MultiCooldown.Entry entry =
-        cooldown.entry(ShouPiGuTuning.KEY_ROLL_READY).withDefault(0L);
-    if (!entry.isReady(now)) {
-      FailNotifier.notifyThrottled(player,
-          Component.translatable(ShouPiMessages.FAIL_ON_COOLDOWN));
-      return;
-    }
-    var scaling = ShouPiGuCalculator.calculateScaling(player, ShouPiGuTuning.ACTIVE_ROLL_ID);
-    double finalCost = ShouPiGuTuning.ACTIVE_ROLL_BASE_COST * scaling.costMultiplier();
-
-    OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, finalCost);
-    if (consumed.isEmpty()) {
-      FailNotifier.notifyThrottled(player,
-          Component.translatable(ShouPiMessages.FAIL_NO_ZHENYUAN));
-      return;
-    }
-
-    long finalCooldown =
-        (long) (ShouPiGuTuning.ACTIVE_ROLL_COOLDOWN_TICKS * scaling.cooldownMultiplier());
-    entry.setReadyAt(now + finalCooldown);
-    state.setLong(
-        ShouPiGuTuning.KEY_ROLL_EXPIRE,
-        now + ShouPiGuTuning.ROLL_DAMAGE_WINDOW_TICKS,
-        value -> Math.max(0L, value),
-        0L);
-    player.move(net.minecraft.world.entity.MoverType.SELF, player.getLookAngle().scale(ShouPiGuTuning.ROLL_DISTANCE));
-    ShouPiFx.playRollSound(player.serverLevel(), player);
-    ActiveSkillRegistry.scheduleReadyToast(
-        player, ShouPiGuTuning.ACTIVE_ROLL_ID, entry.getReadyTick(), now);
-    NetworkUtil.sendOrganSlotUpdate(cc, organ);
-  }
-
-  public static void activateCrash(ServerPlayer player, ChestCavityInstance cc, long now) {
-    if (player == null || cc == null) {
-      return;
-    }
-    ItemStack organ = ShouPiGuOps.findOrgan(cc);
-    if (organ.isEmpty()) {
-      FailNotifier.notifyThrottled(player,
-          Component.translatable(ShouPiMessages.FAIL_MISSING_ORGAN));
-      return;
-    }
-    OrganState state = ShouPiGuOps.resolveState(organ);
-    MultiCooldown cooldown = ShouPiGuOps.cooldown(cc, organ, state);
-    MultiCooldown.Entry entry =
-        cooldown.entry(ShouPiGuTuning.KEY_CRASH_READY).withDefault(0L);
-    if (!entry.isReady(now)) {
-      FailNotifier.notifyThrottled(player,
-          Component.translatable(ShouPiMessages.FAIL_ON_COOLDOWN));
-      return;
-    }
-    var scaling = ShouPiGuCalculator.calculateScaling(player, ShouPiGuTuning.ACTIVE_CRASH_ID);
-    double finalCost = ShouPiGuTuning.SYNERGY_CRASH_BASE_COST * scaling.costMultiplier();
-
-    OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(player, finalCost);
-    if (consumed.isEmpty()) {
-      FailNotifier.notifyThrottled(player,
-          Component.translatable(ShouPiMessages.FAIL_NO_ZHENYUAN));
-      return;
-    }
-
-    long finalCooldown =
-        (long) (ShouPiGuTuning.SYNERGY_CRASH_COOLDOWN_TICKS * scaling.cooldownMultiplier());
-    entry.setReadyAt(now + finalCooldown);
-    state.setLong(
-        ShouPiGuTuning.KEY_CRASH_IMMUNE,
-        now + ShouPiGuTuning.CRASH_IMMUNE_TICKS,
-        value -> Math.max(0L, value),
-        0L);
-    player.move(net.minecraft.world.entity.MoverType.SELF, player.getLookAngle().scale(ShouPiGuTuning.CRASH_DISTANCE));
-    ShouPiFx.playCrashSound(player.serverLevel(), player);
-    ShouPiFx.crashBurst(player.serverLevel(), player.getX(), player.getY(), player.getZ());
-    ShouPiGuCalculator.dealCrashDamage(player, player.position(), 10, ShouPiGuTuning.CRASH_SPLASH_RADIUS);
-    ActiveSkillRegistry.scheduleReadyToast(
-        player, ShouPiGuTuning.ACTIVE_CRASH_ID, entry.getReadyTick(), now);
-    NetworkUtil.sendOrganSlotUpdate(cc, organ);
-  }
+  // 注意：翻滚与冲撞主动已迁至 combo 行为实现（见 ShouPiRollEvasionBehavior / ShouPiQianJiaCrashBehavior）。
+  // 这里不再提供对应的 Runtime 激活动作，避免 item 与 combo 混杂。
 
   public static void onSlowTick(ServerPlayer player, ChestCavityInstance cc, ItemStack organ,
       long now) {
@@ -200,35 +114,8 @@ public final class ShouPiRuntime {
   public static float onHurt(ServerPlayer player, ChestCavityInstance cc, ItemStack organ,
       net.minecraft.world.damagesource.DamageSource source, float damage, long now) {
     OrganState state = ShouPiGuOps.resolveState(organ);
-    // Roll and Crash immunity windows
-    if (state.getLong(ShouPiGuTuning.KEY_ROLL_EXPIRE, 0L) > now) {
-      damage *= (1.0 - ShouPiGuTuning.ROLL_DAMAGE_REDUCTION);
-    }
-    if (state.getLong(ShouPiGuTuning.KEY_CRASH_IMMUNE, 0L) > now) {
-      damage = 0;
-    }
-
-    // Soft reflection pool reduction
-    double reflected = ShouPiGuCalculator.resolveSoftPool(state, now);
-    if (reflected > 0) {
-      damage -= reflected;
-      if (damage < 0) {
-        damage = 0;
-      }
-    }
-    // Stoic trigger and shield
-    if (state.getLong(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL, 0L) < now) {
-      int stacks = state.getInt(ShouPiGuTuning.KEY_STOIC_STACKS, 0) + 1;
-      if (stacks >= ShouPiGuTuning.STOIC_MAX_STACKS) {
-        var tierParams = ShouPiGuCalculator.tierParameters(state);
-        ShouPiGuCalculator.applyShield(player, tierParams.stoicShield());
-        state.setLong(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL, now + tierParams.lockTicks());
-        state.setInt(ShouPiGuTuning.KEY_STOIC_STACKS, 0);
-      } else {
-        state.setInt(ShouPiGuTuning.KEY_STOIC_STACKS, stacks);
-      }
-    }
-
+    damage = ShouPiGuCalculator.computeIncomingDamage(state, damage, now);
+    ShouPiGuCalculator.updateStoicStacksAndMaybeShield(player, state, now);
     return damage;
   }
 
@@ -239,9 +126,7 @@ public final class ShouPiRuntime {
     MultiCooldown.Entry entry =
         cooldown.entry(ShouPiGuTuning.KEY_SOFT_THORNS_WINDOW).withDefault(0L);
     if (entry.isReady(now)) {
-      double currentPool = state.getDouble(ShouPiGuTuning.KEY_SOFT_POOL_VALUE, 0);
-      state.setDouble(ShouPiGuTuning.KEY_SOFT_POOL_VALUE, currentPool + damage / 2);
-      state.setLong(ShouPiGuTuning.KEY_SOFT_POOL_EXPIRE, now + ShouPiGuTuning.SOFT_POOL_WINDOW_TICKS);
+      ShouPiGuCalculator.accumulateSoftPoolOnHit(state, damage, now);
       entry.setReadyAt(now + ShouPiGuTuning.SOFT_PROJECTILE_COOLDOWN_TICKS);
     }
   }

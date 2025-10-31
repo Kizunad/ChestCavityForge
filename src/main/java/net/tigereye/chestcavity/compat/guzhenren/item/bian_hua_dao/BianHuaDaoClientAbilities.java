@@ -15,8 +15,10 @@ public final class BianHuaDaoClientAbilities {
     register(ResourceLocation.parse("guzhenren:yu_qun"));
     register(ResourceLocation.parse("guzhenren:yu_shi_summon"));
     register(ResourceLocation.parse("guzhenren:yin_yang_zhuan_shen_gu/body"));
-    register(ResourceLocation.parse("guzhenren:skill/shou_pi_gu_roll"));
-    register(ResourceLocation.parse("guzhenren:skill/shou_pi_gu_crash"));
+    // 兽皮：仅展示 combo 版（roll_evasion/qian_jia_crash），item 旧 ID 已移除
+    // 同步展示 combo 技能（与 item 桥接一致）
+    register(ResourceLocation.parse("guzhenren:shou_pi_roll_evasion"));
+    register(ResourceLocation.parse("guzhenren:shou_pi_qian_jia_crash"));
   }
 
   private static void register(ResourceLocation id) {

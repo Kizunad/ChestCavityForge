@@ -3,8 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.st
 import java.util.OptionalDouble;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.common.organ.shou_pi.ShouPiGuOps;
@@ -19,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboFx;
 
 /** 坚忍释放——将累积的坚忍层数主动引爆。 */
 public final class ShouPiStoicReleaseBehavior {
@@ -141,17 +141,9 @@ public final class ShouPiStoicReleaseBehavior {
       ShouPiGuOps.applyStoicSlow(player);
     }
 
-    player
-        .level()
-        .playSound(
-            null,
-            player.getX(),
-            player.getY(),
-            player.getZ(),
-            SoundEvents.ANVIL_USE,
-            SoundSource.PLAYERS,
-            0.7F,
-            1.0F + player.getRandom().nextFloat() * 0.1F);
+    if (player.level() instanceof ServerLevel serverLevel) {
+      ShouPiComboFx.playStoicRelease(serverLevel, player.getX(), player.getY(), player.getZ());
+    }
 
     ComboSkillRegistry.scheduleReadyToast(player, ABILITY_ID, entry.getReadyTick(), now);
     NetworkUtil.sendOrganSlotUpdate(cc, organ);
