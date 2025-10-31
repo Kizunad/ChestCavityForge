@@ -15,6 +15,8 @@ public final class BianHuaDaoClientAbilities {
     register(ResourceLocation.parse("guzhenren:yu_qun"));
     register(ResourceLocation.parse("guzhenren:yu_shi_summon"));
     register(ResourceLocation.parse("guzhenren:yin_yang_zhuan_shen_gu/body"));
+    register(ResourceLocation.parse("guzhenren:skill/shou_pi_gu_roll"));
+    register(ResourceLocation.parse("guzhenren:skill/shou_pi_gu_crash"));
   }
 
   private static void register(ResourceLocation id) {

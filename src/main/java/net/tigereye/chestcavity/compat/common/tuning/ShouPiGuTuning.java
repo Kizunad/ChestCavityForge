@@ -3,7 +3,9 @@ package net.tigereye.chestcavity.compat.common.tuning;
 import net.minecraft.resources.ResourceLocation;
 
 public final class ShouPiGuTuning {
-    public static final ResourceLocation ORGAN_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "shou_pi_gu");
+  public static final ResourceLocation ORGAN_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "shou_pi_gu");
+  public static final String STATE_ROOT_KEY = "ShouPiGu";
   public static final double THICK_SKIN_REDUCTION = 0.08D;
   public static final int THICK_SKIN_WINDOW_TICKS = 20;
   public static final int FASCIA_TRIGGER = 5;
@@ -37,44 +39,78 @@ public final class ShouPiGuTuning {
   public static final double SYNERGY_CRASH_BASE_COST = 60.0D;
   public static final long SYNERGY_CRASH_COOLDOWN_TICKS = 18 * 20L;
 
-    public static final String KEY_STOIC_STACKS = "StoicStacks";
-    public static final String KEY_STOIC_ACCUM = "StoicAccumulator";
-    public static final String KEY_STOIC_ACTIVE_UNTIL = "StoicActiveUntil";
-    public static final String KEY_STOIC_LOCK_UNTIL = "StoicLockUntil";
-    public static final String KEY_SOFT_TEMP_BONUS = "SoftTempBonus";
-    public static final String KEY_SOFT_TEMP_BONUS_EXPIRE = "SoftTempBonusExpire";
-    public static final String KEY_FASCIA_COUNT = "FasciaCount";
-    public static final String KEY_FASCIA_COOLDOWN = "FasciaCooldown";
-    public static final String KEY_FASCIA_ACTIVE_UNTIL = "FasciaActiveUntil";
-    public static final String KEY_ACTIVE_DRUM_READY = "ActiveDrumReady";
-    public static final String KEY_ACTIVE_DRUM_EXPIRE = "ActiveDrumExpire";
-
-    public static final net.minecraft.resources.ResourceLocation HUPI_GU_ID =
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "hupigu");
-    public static final net.minecraft.resources.ResourceLocation TIE_GU_GU_ID =
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "tie_gu_gu");
+  public static final double DAO_HEN_COST_SCALE = 0.2; // Each point of Dao Hen reduces cost by 20%
+  public static final double DAO_HEN_COOLDOWN_SCALE =
+      -0.1; // Each point of Dao Hen reduces cooldown by 10%
+  public static final double LIUPAI_COST_SCALE =
+      -0.001; // Each point of Liupai Exp reduces cost by 0.1%
+  public static final double LIUPAI_COOLDOWN_SCALE =
+      -0.0005; // Each point of Liupai Exp reduces cooldown by 0.05%
+  public static final double MIN_COST_MULTIPLIER = 0.5; // Minimum cost is 50% of base
+  public static final double MIN_COOLDOWN_MULTIPLIER = 0.5; // Minimum cooldown is 50% of base
 
 
-    public enum Tier {
-        STAGE1,
-        STAGE2,
-        STAGE3,
-        STAGE4,
-        STAGE5
-    }
+  public static final String KEY_STOIC_STACKS = "StoicStacks";
+  public static final String KEY_STOIC_ACCUM = "StoicAccumulator";
+  public static final String KEY_STOIC_ACTIVE_UNTIL = "StoicActiveUntil";
+  public static final String KEY_STOIC_LOCK_UNTIL = "StoicLockUntil";
+  public static final String KEY_SOFT_TEMP_BONUS = "SoftTempBonus";
+  public static final String KEY_SOFT_TEMP_BONUS_EXPIRE = "SoftTempBonusExpire";
+  public static final String KEY_FASCIA_COUNT = "FasciaCount";
+  public static final String KEY_FASCIA_COOLDOWN = "FasciaCooldown";
+  public static final String KEY_FASCIA_ACTIVE_UNTIL = "FasciaActiveUntil";
+  public static final String KEY_ACTIVE_DRUM_READY = "ActiveDrumReady";
+  public static final String KEY_ACTIVE_DRUM_EXPIRE = "ActiveDrumExpire";
 
-    public record TierParameters(Tier stage, double stoicMitigation, double stoicShield, long lockTicks) {}
+  public static final net.minecraft.resources.ResourceLocation HUPI_GU_ID =
+      net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "hupigu");
+  public static final net.minecraft.resources.ResourceLocation TIE_GU_GU_ID =
+      net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "tie_gu_gu");
 
-    public static final String KEY_ROLL_READY = "RollReady";
-    public static final String KEY_ROLL_EXPIRE = "RollExpire";
-    public static final String KEY_CRASH_READY = "CrashReady";
-    public static final String KEY_CRASH_IMMUNE = "CrashImmuneExpire";
-    public static final String KEY_THICK_SKIN_READY = "ThickSkinReady";
-    public static final String KEY_THICK_SKIN_EXPIRE = "ThickSkinExpire";
-    public static final String KEY_SOFT_POOL_VALUE = "SoftReflectPool";
-    public static final String KEY_SOFT_POOL_EXPIRE = "SoftReflectExpire";
-    public static final ResourceLocation ACTIVE_DRUM_ID = ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_drum");
-    public static final String KEY_STOIC_READY = "StoicReady";
+
+  public enum Tier {
+    STAGE1,
+    STAGE2,
+    STAGE3,
+    STAGE4,
+    STAGE5
+  }
+
+  public record TierParameters(Tier stage, double stoicMitigation, double stoicShield,
+      long lockTicks) {
+  }
+  public record ScalingParameters(double costMultiplier, double cooldownMultiplier,
+      double durationMultiplier, double magnitudeMultiplier) {
+  }
+
+  public static final TierParameters TIER1 =
+      new TierParameters(Tier.STAGE1, 0.04, 2.0, 10 * 20L);
+  public static final TierParameters TIER2 =
+      new TierParameters(Tier.STAGE2, 0.06, 3.0, 9 * 20L);
+  public static final TierParameters TIER3 =
+      new TierParameters(Tier.STAGE3, 0.08, 4.0, 8 * 20L);
+  public static final TierParameters TIER4 =
+      new TierParameters(Tier.STAGE4, 0.10, 5.0, 7 * 20L);
+  public static final TierParameters TIER5 =
+      new TierParameters(Tier.STAGE5, 0.12, 6.0, 6 * 20L);
+
+  public static final String KEY_ROLL_READY = "RollReady";
+  public static final String KEY_ROLL_EXPIRE = "RollExpire";
+  public static final String KEY_CRASH_READY = "CrashReady";
+  public static final String KEY_CRASH_IMMUNE = "CrashImmuneExpire";
+  public static final String KEY_THICK_SKIN_READY = "ThickSkinReady";
+  public static final String KEY_THICK_SKIN_EXPIRE = "ThickSkinExpire";
+  public static final String KEY_SOFT_POOL_VALUE = "SoftReflectPool";
+  public static final String KEY_SOFT_POOL_EXPIRE = "SoftReflectExpire";
+  public static final ResourceLocation ACTIVE_DRUM_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_drum");
+  public static final ResourceLocation ACTIVE_ROLL_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_roll");
+  public static final ResourceLocation ACTIVE_CRASH_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "skill/shou_pi_gu_crash");
+  public static final String KEY_STOIC_READY = "StoicReady";
+  public static final String KEY_TIER = "Tier";
+  public static final String KEY_SOFT_THORNS_WINDOW = "SoftThornsWindow";
 
 
   private ShouPiGuTuning() {}

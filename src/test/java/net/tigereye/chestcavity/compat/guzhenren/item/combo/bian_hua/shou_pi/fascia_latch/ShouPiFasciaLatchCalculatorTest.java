@@ -1,11 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.common.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator.FasciaParameters;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning.ShouPiFasciaLatchTuning;
@@ -17,30 +15,29 @@ final class ShouPiFasciaLatchCalculatorTest {
   void computeRequiresTriggerCount() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> ShouPiFasciaLatchCalculator.compute(3, true, false, new BianHuaDaoSnapshot(0, 0)));
+        () -> ShouPiFasciaLatchCalculator.compute(3, true, false));
   }
 
   @Test
-  void computeBaseValuesWithoutTieGuGu() {
+  void computeWithTigerSynergyGrantsTenacity() {
     FasciaParameters params =
-        ShouPiFasciaLatchCalculator.compute(5, true, false, new BianHuaDaoSnapshot(0, 0));
-    assertEquals(ShouPiFasciaLatchTuning.BASE_SHIELD, params.shieldAmount(), 1.0E-6);
-    assertTrue(params.grantTenacity());
-    assertFalse(params.applyShockwave());
+        ShouPiFasciaLatchCalculator.compute(5, true, false);
     assertEquals(
-        ShouPiFasciaLatchTuning.TENACITY_DURATION_TICKS, params.tenacityDurationTicks());
-  }
-
-  @Test
-  void computeWithTieGuGuAddsShieldAndShockwave() {
-    FasciaParameters params =
-        ShouPiFasciaLatchCalculator.compute(5, false, true, new BianHuaDaoSnapshot(0, 0));
+        ShouPiGuTuning.FASCIA_ACTIVE_REDUCTION, params.damageReduction(), 1.0E-6);
     assertEquals(
-        ShouPiFasciaLatchTuning.BASE_SHIELD + ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD,
-        params.shieldAmount(),
+        ShouPiFasciaLatchTuning.TENACITY_KNOCKBACK_RESIST,
+        params.tenacityKnockbackResist(),
         1.0E-6);
-    assertTrue(params.applyShockwave());
-    assertFalse(params.grantTenacity());
+  }
+
+  @Test
+  void computeWithIronSynergyAddsShockwaveAndShield() {
+    FasciaParameters params =
+        ShouPiFasciaLatchCalculator.compute(5, false, true);
+    assertEquals(ShouPiFasciaLatchTuning.BASE_SHIELD + ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD, params.shieldAmount(), 1.0E-6);
+    assertEquals(
+        ShouPiFasciaLatchTuning.SHOCKWAVE_RADIUS, params.shockwaveRadius(), 1.0E-6);
+    assertEquals(
+        ShouPiFasciaLatchTuning.SHOCKWAVE_STRENGTH, params.shockwaveStrength(), 1.0E-6);
   }
 }
-

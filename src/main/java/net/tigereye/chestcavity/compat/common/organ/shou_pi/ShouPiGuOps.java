@@ -10,15 +10,15 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 
 /** 兽皮蛊聚合入口。 */
+import net.minecraft.resources.ResourceLocation;
+
 public final class ShouPiGuOps {
   private ShouPiGuOps() {}
 
+  public static final ResourceLocation ORGAN_ID = ShouPiGuTuning.ORGAN_ID;
+
   public static MultiCooldown cooldown(ChestCavityInstance cc, ItemStack organ, OrganState state) {
     return ShouPiGuCalculator.cooldown(cc, organ, state);
-  }
-
-  public static void applyDrumBuff(ServerPlayer player) {
-    ShouPiGuCalculator.applyDrumBuff(player);
   }
 
   public static void ensureStage(OrganState state, ChestCavityInstance cc, ItemStack organ) {
