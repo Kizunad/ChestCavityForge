@@ -15,7 +15,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator.ShouPiFasciaLatchCalculator.FasciaParameters;
@@ -60,25 +61,25 @@ public final class ShouPiFasciaLatchBehavior {
     }
 
     boolean hasTigerGu =
-        ShouPiGuOrganBehavior.hasOrgan(cc, ShouPiGuOrganBehavior.HUPI_GU_ID);
+        ShouPiGuCalculator.hasOrgan(cc, ShouPiGuTuning.HUPI_GU_ID);
     boolean hasTieGuGu =
-        ShouPiGuOrganBehavior.hasOrgan(cc, ShouPiGuOrganBehavior.TIE_GU_GU_ID);
+        ShouPiGuCalculator.hasOrgan(cc, ShouPiGuTuning.TIE_GU_GU_ID);
     if (!hasTigerGu && !hasTieGuGu) {
       return;
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuOrganBehavior.ensureStage(state, cc, organ);
+    ShouPiGuCalculator.ensureStage(state, cc, organ);
 
-    int fasciaHits = state.getInt(ShouPiGuOrganBehavior.KEY_FASCIA_COUNT, 0);
-    if (fasciaHits < ShouPiGuOrganBehavior.FASCIA_TRIGGER) {
+    int fasciaHits = state.getInt(ShouPiGuTuning.KEY_FASCIA_COUNT, 0);
+    if (fasciaHits < ShouPiGuTuning.FASCIA_TRIGGER) {
       return;
     }
 
-    MultiCooldown cooldown = ShouPiGuOrganBehavior.cooldown(cc, organ, state);
+    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
     long now = player.level().getGameTime();
     MultiCooldown.Entry entry =
-        cooldown.entry(ShouPiGuOrganBehavior.KEY_FASCIA_COOLDOWN).withDefault(0L);
+        cooldown.entry(ShouPiGuTuning.KEY_FASCIA_COOLDOWN).withDefault(0L);
     if (!entry.isReady(now)) {
       return;
     }
@@ -96,7 +97,7 @@ public final class ShouPiFasciaLatchBehavior {
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_FASCIA_ACTIVE_UNTIL,
+        ShouPiGuTuning.KEY_FASCIA_ACTIVE_UNTIL,
         now + params.durationTicks(),
         value -> Math.max(0L, value),
         0L);
@@ -104,14 +105,14 @@ public final class ShouPiFasciaLatchBehavior {
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_FASCIA_COUNT,
+        ShouPiGuTuning.KEY_FASCIA_COUNT,
         0,
         value -> Math.max(0, value),
         0);
 
     entry.setReadyAt(now + ShouPiFasciaLatchTuning.COOLDOWN_TICKS);
 
-    ShouPiGuOrganBehavior.applyShield(player, params.shieldAmount());
+    ShouPiGuCalculator.applyShield(player, params.shieldAmount());
 
     if (params.applyShockwave()) {
       applyShockwave(player, params);

@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning.ShouPiFasciaLatchTuning;
 
 /** 筋膜锁扣的纯逻辑计算器。 */
@@ -8,7 +8,7 @@ public final class ShouPiFasciaLatchCalculator {
   private ShouPiFasciaLatchCalculator() {}
 
   public static FasciaParameters compute(int fasciaHits, boolean hasTigerGu, boolean hasTieGuGu) {
-    if (fasciaHits < ShouPiGuOrganBehavior.FASCIA_TRIGGER) {
+    if (fasciaHits < ShouPiGuTuning.FASCIA_TRIGGER) {
       throw new IllegalArgumentException("fascia latch requires trigger count");
     }
     double shield = ShouPiFasciaLatchTuning.BASE_SHIELD;
@@ -16,7 +16,7 @@ public final class ShouPiFasciaLatchCalculator {
       shield += ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD;
     }
     return new FasciaParameters(
-        ShouPiGuOrganBehavior.FASCIA_ACTIVE_REDUCTION,
+        ShouPiGuTuning.FASCIA_ACTIVE_REDUCTION,
         ShouPiFasciaLatchTuning.EFFECT_DURATION_TICKS,
         shield,
         hasTieGuGu,

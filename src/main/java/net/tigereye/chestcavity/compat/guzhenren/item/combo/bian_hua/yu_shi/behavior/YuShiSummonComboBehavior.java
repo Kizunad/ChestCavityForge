@@ -29,7 +29,7 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.entity.summon.OwnedSharkEntity;
 import net.tigereye.chestcavity.compat.guzhenren.event.NoDropEvents;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.common.agent.Agents;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
@@ -174,14 +174,13 @@ public final class YuShiSummonComboBehavior {
     consumeOffering(player, inventory, offering, OFFERING_COST);
 
     // 阶梯解锁与数量上限
-    YuLinGuBehavior behavior = YuLinGuBehavior.INSTANCE;
-    int unlocked = behavior.unlockedSharkTier(organ);
+    int unlocked = YuLinGuCalculator.unlockedSharkTier(organ);
     if (materialTier > unlocked) {
-      behavior.unlockSharkTier(organ, materialTier);
+      YuLinGuCalculator.unlockSharkTier(organ, materialTier);
       unlocked = materialTier;
     }
     int actualTier = Math.max(materialTier, unlocked);
-    manageSummonLimit(behavior, player, actualTier, serverLevel);
+    manageSummonLimit(player, actualTier, serverLevel);
 
     YuShiSummonComboLogic.FlowStats flowStats = evaluateFlowStats(player);
     double waterFlowExp =
@@ -238,8 +237,8 @@ public final class YuShiSummonComboBehavior {
             actualTier,
             now,
             now + TTL_TICKS + modifiers.ttlBonusTicks());
-    behavior.addSummon(player, tracked);
-    behavior.recordWetContact(player, organ);
+    YuLinGuCalculator.addSummon(player, tracked);
+    YuLinGuCalculator.recordWetContact(player, organ);
 
     int cooldownTicks = YuShiTuning.computeCooldownTicks(totalExp);
     long readyAt = now + cooldownTicks;
@@ -251,8 +250,8 @@ public final class YuShiSummonComboBehavior {
   }
 
   private static void manageSummonLimit(
-      YuLinGuBehavior behavior, ServerPlayer owner, int incomingTier, ServerLevel level) {
-    List<OwnedSharkEntity> existing = new ArrayList<>(behavior.getSummons(owner));
+      ServerPlayer owner, int incomingTier, ServerLevel level) {
+    List<OwnedSharkEntity> existing = new ArrayList<>(YuLinGuCalculator.getSummons(owner));
     if (existing.size() < 5) return;
     existing.sort(
         Comparator.comparingInt(OwnedSharkEntity::tier).thenComparingLong(OwnedSharkEntity::createdAt));
@@ -266,7 +265,7 @@ public final class YuShiSummonComboBehavior {
     if (victim == null) victim = existing.get(0);
     if (victim != null) {
       victim.discard(level);
-      behavior.removeSummon(owner, victim);
+      YuLinGuCalculator.removeSummon(owner, victim);
     }
   }
 

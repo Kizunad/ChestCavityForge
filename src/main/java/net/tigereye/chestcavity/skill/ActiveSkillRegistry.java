@@ -17,10 +17,9 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.behavior.ShouPiGuActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yin_yang_zhuan_shen_gu.behavior.YinYangZhuanShenGuActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
@@ -214,17 +213,6 @@ public final class ActiveSkillRegistry {
         },
         CooldownHint.useOrgan("技能就绪", null));
 
-    register(
-        "guzhenren:yu_yue",
-        "guzhenren:yu_yue",
-        "guzhenren:yu_lin_gu",
-        tags("机动", "位移"),
-        "鱼跃破浪：水中高速冲刺破浪，潮湿状态下也可短距离跃进并获得缓降",
-        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuYueSkill.java",
-        () -> {
-          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("鱼跃冷却结束", null));
 
     register(
         "guzhenren:tiepi/hardening",
@@ -280,9 +268,9 @@ public final class ActiveSkillRegistry {
         "guzhenren:shou_pi_gu",
         tags("防御", "反射"),
         "硬皮鼓动：5 秒内防御系数+6%，软反伤额外+10%，并获得 50% 击退抗性，冷却 20 秒",
-        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        "compat/guzhenren/item/bian_hua_dao/shou_pi_gu/behavior/ShouPiGuActive.java",
         () -> {
-          ensureClassLoaded(ShouPiGuOrganBehavior.INSTANCE);
+          ensureClassLoaded(ShouPiGuActive.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
 
@@ -292,105 +280,13 @@ public final class ActiveSkillRegistry {
         "guzhenren:yin_yang_zhuan_shen_gu",
         tags("切换", "攻伐", "防御"),
         "阴阳身：在阴身/阳身间切换，刷新锚点与属性倍率，冷却 120 秒",
-        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        "compat/guzhenren/item/bian_hua_dao/yin_yang_zhuan_shen_gu/behavior/YinYangZhuanShenGuActive.java",
         () -> {
-          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
+          ensureClassLoaded(YinYangZhuanShenGuActive.INSTANCE);
         },
         CooldownHint.useOrgan("阴阳身就绪", null));
 
-    register(
-        "guzhenren:yin_yang_zhuan_shen_gu/tai_ji_swap",
-        "guzhenren:yin_yang_zhuan_shen_gu/tai_ji_swap",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("位移", "无敌", "机动"),
-        "太极错位：与另一态锚点互换位置，首段获得 0.5 秒无敌，窗口内连发返还 50% 冷却",
-        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
-        () -> {
-          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("太极错位就绪", null));
 
-    register(
-        "guzhenren:yin_yang_zhuan_shen_gu/dual_strike",
-        "guzhenren:yin_yang_zhuan_shen_gu/dual_strike",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("输出", "辅攻"),
-        "两界同击：开启 5 秒窗口，阴阳两态命中同一目标触发 0.8×较低基础攻击的投影伤害",
-        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
-        () -> {
-          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("两界同击就绪", null));
-
-    register(
-        "guzhenren:yin_yang_zhuan_shen_gu/transfer",
-        "guzhenren:yin_yang_zhuan_shen_gu/transfer",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("资源", "辅助"),
-        "阴阳互渡：按真元→精力→魂魄→念头顺序把当前态 30% 资源注入另一态的离线池",
-        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
-        () -> {
-          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("阴阳互渡就绪", null));
-
-    register(
-        "guzhenren:yin_yang_zhuan_shen_gu/recall",
-        "guzhenren:yin_yang_zhuan_shen_gu/recall",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("位移", "保命"),
-        "归位：瞬移至另一态锚点并清除 8 格仇恨，生命低于 20% 时获得 2 秒减伤",
-        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
-        () -> {
-          ensureClassLoaded(YinYangZhuanShenGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("归位就绪", null));
-
-    register(
-        "guzhenren:wuxing_hua_hen",
-        "guzhenren:wuxing_hua_hen",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("转化", "道痕", "五行"),
-        "五行化痕：消耗变化道痕转化为五行道痕（金/木/水/炎/土），支持多种比例与固定量模式，阴阳模式享受税减",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("五行化痕就绪", null));
-
-    register(
-        "guzhenren:wuxing_hua_hen_undo",
-        "guzhenren:wuxing_hua_hen_undo",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("撤销", "道痕"),
-        "五行化痕·撤销：10 分钟窗口内可撤销上次转化，返还 80% 已转化的变化道痕与五行道痕",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("撤销就绪", null));
-
-    register(
-        "guzhenren:wuxing_hua_hen_check",
-        "guzhenren:wuxing_hua_hen_check",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("查询", "道痕"),
-        "五行化痕·查询：检查当前撤销窗口状态，显示可撤销的道痕转化记录与剩余时间",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        });
-
-    register(
-        "guzhenren:wuxing_hua_hen_config",
-        "guzhenren:wuxing_hua_hen_config",
-        "guzhenren:yin_yang_zhuan_shen_gu",
-        tags("配置", "道痕"),
-        "五行化痕·配置：打开配置菜单，可点击切换目标元素（金/木/水/炎/土）与转化模式（比例/固定）",
-        "compat/guzhenren/item/combo/wuxing/hua_hen/WuxingHuaHenBehavior.java",
-        () -> {
-          ensureClassLoaded(WuxingHuaHenBehavior.INSTANCE);
-        });
 
     register(
         "guzhenren:skill/yinshi_tunnel",

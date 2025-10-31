@@ -4,9 +4,13 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodData;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.cost.ResourceCost;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper;
@@ -415,5 +419,96 @@ public final class ResourceOps {
       return OptionalDouble.empty();
     }
     return tryAdjustDouble(handleOpt.get(), field, amount, clampToMax, maxField);
+  }
+
+  public static boolean payCost(ServerPlayer player, ResourceCost cost, String failureHint) {
+    if (cost.isZero()) {
+      return true;
+    }
+    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isEmpty()) {
+      sendFailure(player, failureHint);
+      return false;
+    }
+    ResourceHandle handle = handleOpt.get();
+    double spentZhenyuan = 0.0D;
+    boolean spentJingli = false;
+    boolean spentHunpo = false;
+    boolean spentNiantou = false;
+    FoodData foodData = player.getFoodData();
+    int prevFood = foodData.getFoodLevel();
+    float prevSaturation = foodData.getSaturationLevel();
+    float prevHealth = player.getHealth();
+    boolean success = false;
+    try {
+      if (cost.zhenyuan() > 0.0D) {
+        OptionalDouble consumed = ResourceOps.tryConsumeScaledZhenyuan(handle, cost.zhenyuan());
+        if (consumed.isEmpty()) {
+          return fail(player, failureHint);
+        }
+        spentZhenyuan = consumed.getAsDouble();
+      }
+      if (cost.jingli() > 0.0D) {
+        if (handle.adjustJingli(-cost.jingli(), true).isEmpty()) {
+          return fail(player, failureHint);
+        }
+        spentJingli = true;
+      }
+      if (cost.hunpo() > 0.0D) {
+        if (handle.adjustHunpo(-cost.hunpo(), true).isEmpty()) {
+          return fail(player, failureHint);
+        }
+        spentHunpo = true;
+      }
+      if (cost.niantou() > 0.0D) {
+        if (handle.adjustNiantou(-cost.niantou(), true).isEmpty()) {
+          return fail(player, failureHint);
+        }
+        spentNiantou = true;
+      }
+      if (cost.hunger() > 0) {
+        if (foodData.getFoodLevel() < cost.hunger()) {
+          return fail(player, failureHint);
+        }
+        foodData.setFoodLevel(foodData.getFoodLevel() - cost.hunger());
+      }
+      if (cost.health() > 0.0f) {
+        if (player.getHealth() <= cost.health() + 1.0f) {
+          return fail(player, failureHint);
+        }
+        if (!ResourceOps.drainHealth(player, cost.health())) {
+          return fail(player, failureHint);
+        }
+      }
+      success = true;
+      return true;
+    } finally {
+      if (!success) {
+        if (spentZhenyuan > 0.0D) {
+          handle.adjustZhenyuan(spentZhenyuan, true);
+        }
+        if (spentJingli) {
+          handle.adjustJingli(cost.jingli(), true);
+        }
+        if (spentHunpo) {
+          handle.adjustHunpo(cost.hunpo(), true);
+        }
+        if (spentNiantou) {
+          handle.adjustNiantou(cost.niantou(), true);
+        }
+        foodData.setFoodLevel(prevFood);
+        foodData.setSaturation(prevSaturation);
+        player.setHealth(prevHealth);
+      }
+    }
+  }
+
+  private static boolean fail(ServerPlayer player, String message) {
+    sendFailure(player, message);
+    return false;
+  }
+
+  private static void sendFailure(ServerPlayer player, String message) {
+    player.displayClientMessage(Component.literal(message), true);
   }
 }

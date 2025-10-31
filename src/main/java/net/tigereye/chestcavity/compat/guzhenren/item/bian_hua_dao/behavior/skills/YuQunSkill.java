@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -62,8 +62,8 @@ public final class YuQunSkill {
     if (organ.isEmpty()) {
       return;
     }
-    YuLinGuBehavior behavior = YuLinGuBehavior.INSTANCE;
-    if (!behavior.hasFishArmor(organ) && !behavior.isPlayerMoist(player, organ)) {
+    OrganState state = OrganState.of(organ, "YuLinGu");
+    if (!YuLinGuCalculator.hasFishArmor(organ) && !YuLinGuCalculator.isPlayerMoist(player, state, player.level().getGameTime())) {
       sendFailure(player, "需要水中或潮湿状态才能施展鱼群。");
       return;
     }
@@ -90,11 +90,11 @@ public final class YuQunSkill {
       sendFailure(player, "精力不足，鱼群溃散。");
       return;
     }
-    drainHunger(player, HUNGER_COST, behavior.isPlayerMoist(player, organ));
+    drainHunger(player, HUNGER_COST, YuLinGuCalculator.isPlayerMoist(player, state, now));
 
-    boolean upgraded = behavior.hasSharkArmor(organ);
+    boolean upgraded = YuLinGuCalculator.hasSharkArmor(organ);
     performVolley(player, upgraded);
-    behavior.addProgress(player, cc, organ, upgraded ? 2 : 1);
+    YuLinGuCalculator.addProgress(player, cc, organ, upgraded ? 2 : 1);
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);

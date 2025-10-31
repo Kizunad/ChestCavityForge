@@ -21,7 +21,7 @@ import net.tigereye.chestcavity.compat.common.skillcalc.DamageComputeContext;
 import net.tigereye.chestcavity.compat.common.skillcalc.DamageKind;
 import net.tigereye.chestcavity.compat.common.skillcalc.DamageResult;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -153,7 +153,7 @@ public final class YuQunComboBehavior {
     level.playSound(
         null, player.blockPosition(), SoundEvents.SALMON_FLOP, SoundSource.PLAYERS, 0.9f, 1.05f);
 
-    YuLinGuBehavior.INSTANCE.recordWetContact(player, organ);
+    YuLinGuCalculator.recordWetContact(player, organ);
 
     // 计算并设置冷却
     int cooldownTicks = YuQunTuning.computeCooldownTicks(totalExp);
