@@ -64,6 +64,15 @@ public final class ActivationHookRegistry {
     registerFamily("daohen_shuidao");
     registerFamily("daohen_bianhuadao");
     registerFamily("daohen_yandao");
+    registerFamily("liupai_bingxuedao");
+
+    // 技能效果: 冰雪道技能集需要快照道痕与流派经验
+    SkillEffectBus.register(
+        "^guzhenren:(bing_ji_gu_.*|shuang_xi_gu_.*)$",
+        CompositeEffect.of(
+            new ResourceFieldSnapshotEffect("bing_xue:", List.of("liupai_bingxuedao")),
+            new net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ComputedBingXueDaohenEffect()
+        ));
 
     // 技能效果: 饵祭召鲨需要先快照关键 Guzhenren 资源字段
     SkillEffectBus.register(

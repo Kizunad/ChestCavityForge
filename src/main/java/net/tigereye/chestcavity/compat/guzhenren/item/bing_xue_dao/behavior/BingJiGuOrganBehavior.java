@@ -13,9 +13,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -75,8 +77,6 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_gu_gu");
   private static final ResourceLocation ICE_BURST_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "bing_bao_gu");
-  private static final ResourceLocation BING_XUE_INCREASE_EFFECT =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/bing_xue_dao_increase_effect");
   private static final ResourceLocation BLEED_EFFECT_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "lliuxue");
   private static final ResourceLocation ICE_COLD_EFFECT_ID =
@@ -114,10 +114,6 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return DEFAULTS;
   }
 
-  static {
-    OrganActivationListeners.register(ABILITY_ID, BingJiGuOrganBehavior::activateAbility);
-  }
-
   private BingJiGuOrganBehavior() {}
 
   @Override
@@ -143,17 +139,13 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
     CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config = cfg();
 
-    ActiveLinkageContext context = LinkageManager.getContext(cc);
-    double efficiency = 1.0 + lookupIncreaseEffect(context);
-
     boolean paid =
         ResourceOps.tryConsumeScaledZhenyuan(handle, config.zhenyuanBaseCost * stackCount)
             .isPresent();
     if (DEBUG) {
       LOGGER.info(
-          "[compat/guzhenren][ice_skin] slow tick: stacks={}, eff={}, paidZhenyuan={} (cost={})",
+          "[compat/guzhenren][ice_skin] slow tick: stacks={}, paidZhenyuan={} (cost={})",
           stackCount,
-          String.format(java.util.Locale.ROOT, "%.3f", efficiency),
           paid,
           String.format(java.util.Locale.ROOT, "%.1f", config.zhenyuanBaseCost * stackCount));
     }
@@ -173,7 +165,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         }
       }
       if (absorptionReady.isReady(player.level().getGameTime())) {
-        tickAbsorption(player, cc, organ, stackCount, efficiency, config);
+        tickAbsorption(player, cc, organ, stackCount, config);
         absorptionReady.setReadyAt(
             player.level().getGameTime() + (long) config.slowTickIntervalsPerMinute * 80);
       }
@@ -205,16 +197,14 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
 
-    double efficiency = 1.0 + lookupIncreaseEffect(LinkageManager.getContext(cc));
-    float bonus = (float) (damage * config.bonusDamageFraction * Math.max(0.0, efficiency));
+    float bonus = (float) (damage * config.bonusDamageFraction);
     if (bonus > 0.0f) {
       applyColdEffect(target, config);
       if (DEBUG) {
         LOGGER.info(
-            "[compat/guzhenren][ice_skin] onHit bonus: baseDamage={} bonus={} eff={}",
+            "[compat/guzhenren][ice_skin] onHit bonus: baseDamage={} bonus={}",
             String.format(java.util.Locale.ROOT, "%.2f", damage),
-            String.format(java.util.Locale.ROOT, "%.2f", bonus),
-            String.format(java.util.Locale.ROOT, "%.3f", efficiency));
+            String.format(java.util.Locale.ROOT, "%.2f", bonus));
       }
       return damage + bonus;
     }
@@ -246,58 +236,27 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
   }
 
-  public void ensureAttached(ChestCavityInstance cc) {
-    if (cc == null) {
-      return;
-    }
-    ActiveLinkageContext context = LinkageManager.getContext(cc);
-    if (context == null) {
-      return;
-    }
-    ensureIncreaseChannel(context, BING_XUE_INCREASE_EFFECT);
-  }
-
-  private static void ensureIncreaseChannel(ActiveLinkageContext context, ResourceLocation id) {
-    if (context == null || id == null) {
-      return;
-    }
-    context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE);
-  }
-
-  private static double lookupIncreaseEffect(ActiveLinkageContext context) {
-    if (context == null) {
-      return 0.0;
-    }
-    return context.lookupChannel(BING_XUE_INCREASE_EFFECT).map(LinkageChannel::get).orElse(0.0);
-  }
 
   private static void tickAbsorption(
       Player player,
       ChestCavityInstance cc,
       ItemStack organ,
       int stacks,
-      double efficiency,
       CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config) {
     if (player == null || player.level().isClientSide()) {
       return;
     }
     try {
-      double eff = efficiency; // recompute live
-      ActiveLinkageContext context = LinkageManager.getContext(cc);
-      if (context != null) {
-        eff = 1.0 + lookupIncreaseEffect(context);
-      }
       int sc = Math.max(1, organ == null ? stacks : organ.getCount());
-      float gain = (float) (config.absorptionPerTrigger * Math.max(1, sc) * Math.max(0.0, eff));
+      float gain = (float) (config.absorptionPerTrigger * Math.max(1, sc));
       float before = player.getAbsorptionAmount();
       double cap = config.absorptionCap;
       double target = Math.min(cap, before + gain);
       AbsorptionHelper.applyAbsorption(player, (float) target, ABSORPTION_MODIFIER_ID, false);
       if (DEBUG) {
         LOGGER.info(
-            "[compat/guzhenren][ice_skin] absorption tick: +{} (eff={}, stacks={}) {} -> {}",
+            "[compat/guzhenren][ice_skin] absorption tick: +{} (stacks={}) {} -> {}",
             String.format(java.util.Locale.ROOT, "%.1f", gain),
-            String.format(java.util.Locale.ROOT, "%.3f", eff),
             sc,
             String.format(java.util.Locale.ROOT, "%.1f", before),
             String.format(java.util.Locale.ROOT, "%.1f", player.getAbsorptionAmount()));
@@ -516,47 +475,55 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return "muscle".equals(path) || path.endsWith("_muscle");
   }
 
-  private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-    if (entity == null || cc == null || entity.level().isClientSide()) {
-      return;
+  public static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
+    if (entity == null || cc == null || entity.level().isClientSide() || !(entity instanceof ServerPlayer)) {
+        return;
     }
+    ServerPlayer player = (ServerPlayer) entity;
     ItemStack organ = findOrgan(cc);
     if (organ.isEmpty() || !hasJadeBone(cc)) {
-      if (DEBUG) {
-        LOGGER.info(
-            "[compat/guzhenren][ice_skin] activate rejected: organEmpty={} hasJadeBone={}",
-            organ.isEmpty(),
-            hasJadeBone(cc));
-      }
-      return;
+        if (DEBUG) {
+            LOGGER.info(
+                "[compat/guzhenren][ice_skin] activate rejected: organEmpty={} hasJadeBone={}",
+                organ.isEmpty(),
+                hasJadeBone(cc));
+        }
+        return;
     }
     if (!consumeMuscle(cc)) {
-      if (DEBUG) {
-        LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: no consumable muscle found");
-      }
-      return;
+        if (DEBUG) {
+            LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: no consumable muscle found");
+        }
+        return;
     }
     Level level = entity.level();
     if (!(level instanceof ServerLevel server)) {
-      return;
+        return;
     }
+
+    // Read from snapshot
+    double daohen = SkillEffectBus.consumeMetadata(player, ABILITY_ID, ComputedBingXueDaohenEffect.DAO_HEN_KEY, 0.0);
+    double multiplier = 1.0 + Math.max(0.0, daohen);
+
     CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config = cfg();
     int stacks = Math.max(1, organ.getCount());
-    double efficiency = 1.0 + lookupIncreaseEffect(LinkageManager.getContext(cc));
+
     double baseDamage =
         config.iceBurstBaseDamage * Math.pow(config.iceBurstStackDamageScale, stacks - 1);
-    baseDamage *= Math.max(0.0, efficiency);
+    baseDamage *= multiplier;
     if (hasBingBao(cc)) {
-      baseDamage *= 1.0 + config.iceBurstBingBaoMultiplier;
+        baseDamage *= 1.0 + config.iceBurstBingBaoMultiplier;
     }
     double radius = config.iceBurstRadius + Math.max(0, stacks - 1) * config.iceBurstRadiusPerStack;
+    radius *= multiplier;
+
     if (DEBUG) {
-      LOGGER.info(
-          "[compat/guzhenren][ice_skin] activating burst: stacks={}, eff={}, damageBase={}, radius={}",
-          stacks,
-          String.format(java.util.Locale.ROOT, "%.3f", efficiency),
-          String.format(java.util.Locale.ROOT, "%.2f", baseDamage),
-          String.format(java.util.Locale.ROOT, "%.2f", radius));
+        LOGGER.info(
+            "[compat/guzhenren][ice_skin] activating burst: stacks={}, daohen={}, damageBase={}, radius={}",
+            stacks,
+            String.format(java.util.Locale.ROOT, "%.3f", daohen),
+            String.format(java.util.Locale.ROOT, "%.2f", baseDamage),
+            String.format(java.util.Locale.ROOT, "%.2f", radius));
     }
 
     // Play explosion sound FX at the performer
@@ -573,68 +540,63 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     int slowDuration = Math.max(0, config.iceBurstSlowDurationTicks);
     int slowAmplifier = Mth.clamp((int) Math.round(config.iceBurstSlowAmplifier), 0, 255);
     for (LivingEntity target : victims) {
-      double distance = Math.sqrt(target.distanceToSqr(origin));
-      double falloff = Math.max(0.0, 1.0 - (distance / radius));
-      float damage = (float) (baseDamage * falloff);
-      if (damage > 0.0f) {
-        DamageSource source =
-            entity instanceof Player player
-                ? player.damageSources().playerAttack(player)
-                : server.damageSources().mobAttack(entity);
-        target.hurt(source, damage);
-        target.addEffect(
-            new MobEffectInstance(
-                MobEffects.MOVEMENT_SLOWDOWN, slowDuration, slowAmplifier, false, true, true));
-        target.addEffect(
-            new MobEffectInstance(
-                MobEffects.DIG_SLOWDOWN, slowDuration, slowAmplifier, false, true, true));
-        applyColdEffect(target, config);
-        if (DEBUG) {
-          LOGGER.info(
-              "[compat/guzhenren][ice_skin] hit {} for {} (falloff={})",
-              target.getName().getString(),
-              String.format(java.util.Locale.ROOT, "%.2f", damage),
-              String.format(java.util.Locale.ROOT, "%.2f", falloff));
+        double distance = Math.sqrt(target.distanceToSqr(origin));
+        double falloff = Math.max(0.0, 1.0 - (distance / radius));
+        float damage = (float) (baseDamage * falloff);
+        if (damage > 0.0f) {
+            DamageSource source = player.damageSources().playerAttack(player);
+            target.hurt(source, damage);
+            target.addEffect(
+                new MobEffectInstance(
+                    MobEffects.MOVEMENT_SLOWDOWN, slowDuration, slowAmplifier, false, true, true));
+            target.addEffect(
+                new MobEffectInstance(
+                    MobEffects.DIG_SLOWDOWN, slowDuration, slowAmplifier, false, true, true));
+            applyColdEffect(target, config);
+            if (DEBUG) {
+                LOGGER.info(
+                    "[compat/guzhenren][ice_skin] hit {} for {} (falloff={})",
+                    target.getName().getString(),
+                    String.format(java.util.Locale.ROOT, "%.2f", damage),
+                    String.format(java.util.Locale.ROOT, "%.2f", falloff));
+            }
         }
-      }
     }
 
     triggerBurstFlow(entity, radius, victims.size(), config);
 
     // 在爆心留下短暂的“霜雾残留域”，用于区域控场（轻量粒子与减速均由引擎处理）
     if (server != null) {
-      float residueRadius = (float) Math.max(0.5F, radius * 0.6F);
-      int residueDuration = Math.max(40, (int) (config.iceEffectDurationTicks * 0.8));
-      int slowAmp = Math.max(0, (int) Math.round(config.iceBurstSlowAmplifier));
-      ResidueManager.spawnOrRefreshFrost(
-          server, origin.x, origin.y, origin.z, residueRadius, residueDuration, slowAmp);
-      // 少量雪花粒子点缀
-      server.sendParticles(
-          ParticleTypes.SNOWFLAKE, origin.x, origin.y + 0.2, origin.z, 12, 0.4, 0.2, 0.4, 0.02);
-      if (entity instanceof Player p && !p.level().isClientSide()) {
-        p.sendSystemMessage(
-            net.minecraft.network.chat.Component.translatable(
-                "message.chestcavity.bingxue.iceburst_residue"));
-      }
+        float residueRadius = (float) Math.max(0.5F, radius * 0.6F);
+        int residueDuration = Math.max(40, (int) (config.iceEffectDurationTicks * 0.8));
+        int slowAmp = Math.max(0, (int) Math.round(config.iceBurstSlowAmplifier));
+        ResidueManager.spawnOrRefreshFrost(
+            server, origin.x, origin.y, origin.z, residueRadius, residueDuration, slowAmp);
+        // 少量雪花粒子点缀
+        server.sendParticles(
+            ParticleTypes.SNOWFLAKE, origin.x, origin.y + 0.2, origin.z, 12, 0.4, 0.2, 0.4, 0.02);
+        if (!player.level().isClientSide()) {
+            player.sendSystemMessage(
+                net.minecraft.network.chat.Component.translatable(
+                    "message.chestcavity.bingxue.iceburst_residue"));
+        }
     }
 
     // Deduct 1% of player's max health as activation cost
-    if (entity instanceof Player player) {
-      float max = player.getMaxHealth();
-      float cost = (float) (max * 0.01f);
-      if (cost > 0.0f) {
+    float max = player.getMaxHealth();
+    float cost = (float) (max * 0.01f);
+    if (cost > 0.0f) {
         float before = player.getHealth();
         DamageSource source = CCDamageSources.organCost(player);
         player.hurt(source, cost);
         if (DEBUG) {
-          LOGGER.info(
-              "[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})"
-                  .formatted(
-                      1,
-                      String.format(java.util.Locale.ROOT, "%.2f", before),
-                      String.format(java.util.Locale.ROOT, "%.2f", player.getHealth())));
+            LOGGER.info(
+                "[compat/guzhenren][ice_skin] health cost applied: {}% ({} -> {})"
+                    .formatted(
+                        1,
+                        String.format(java.util.Locale.ROOT, "%.2f", before),
+                        String.format(java.util.Locale.ROOT, "%.2f", player.getHealth())));
         }
-      }
     }
   }
 

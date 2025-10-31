@@ -30,7 +30,6 @@ public final class BingXueDaoOrganRegistry {
               .addSlowTickListener(BingJiGuOrganBehavior.INSTANCE)
               .addOnHitListener(BingJiGuOrganBehavior.INSTANCE)
               .addRemovalListener(BingJiGuOrganBehavior.INSTANCE)
-              .ensureAttached(BingJiGuOrganBehavior.INSTANCE::ensureAttached)
               .onEquip(BingJiGuOrganBehavior.INSTANCE::onEquip)
               .build(),
           OrganIntegrationSpec.builder(SHUANG_XI_GU_ID)
@@ -43,7 +42,6 @@ public final class BingXueDaoOrganRegistry {
           OrganIntegrationSpec.builder(QING_RE_GU_ID)
               .addSlowTickListener(QingReGuOrganBehavior.INSTANCE)
               .addIncomingDamageListener(QingReGuOrganBehavior.INSTANCE)
-              .ensureAttached(QingReGuOrganBehavior.INSTANCE::ensureAttached)
               .build());
 
   private BingXueDaoOrganRegistry() {}

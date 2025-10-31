@@ -325,6 +325,7 @@ public class CCConfig implements ConfigData {
       public int breathParticleSteps = 12;
       public double breathParticleSpacing = 0.45D;
       public double baseZhenyuanCost = 800.0D;
+      public int baseCooldownTicks = 200;
     }
 
     public static class BingBuGuConfig {

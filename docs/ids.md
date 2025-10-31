@@ -124,6 +124,7 @@
         DAOHEN_MENGDAO("daohen_mengdao", "梦道道痕"),
         DAOHEN_BINGDAO("daohen_bingdao", "兵道道痕"),
         DAOHEN_BIANHUADAO("daohen_bianhuadao", "变化道道痕"),
+# 机制参考：[guzhenren/mechanics.md](guzhenren/mechanics.md)
 ----------------------------- 蛊虫---------------------------------------------
       "item.guzhenren.bai_gu_che_lun_gu": "白骨车轮蛊",
       "item.guzhenren.bai_shi_gu": "白豕蛊",

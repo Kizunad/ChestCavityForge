@@ -975,7 +975,7 @@ public final class ActiveSkillRegistry {
         "锥形霜息附加寒冷与霜蚀 DoT，强度受冰雪道增益影响",
         "compat/guzhenren/item/bing_xue_dao/behavior/ShuangXiGuOrganBehavior.java:67",
         () -> {
-          ensureClassLoaded(ShuangXiGuOrganBehavior.INSTANCE);
+          ensureClassLoaded(net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuActive.INSTANCE);
         });
 
     register(
@@ -986,7 +986,7 @@ public final class ActiveSkillRegistry {
         "拥有玉骨时引爆寒冰冲击波，对范围敌人造成伤害与高额减速",
         "compat/guzhenren/item/bing_xue_dao/behavior/BingJiGuOrganBehavior.java:75",
         () -> {
-          ensureClassLoaded(BingJiGuOrganBehavior.INSTANCE);
+          ensureClassLoaded(net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuActive.INSTANCE);
         });
 
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
