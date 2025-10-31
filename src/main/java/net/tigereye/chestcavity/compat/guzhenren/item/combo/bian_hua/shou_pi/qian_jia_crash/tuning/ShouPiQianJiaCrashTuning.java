@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.tuning;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 
 /** 嵌甲冲撞调参常量。 */
 public final class ShouPiQianJiaCrashTuning {
@@ -13,7 +13,7 @@ public final class ShouPiQianJiaCrashTuning {
   public static final double ATTACK_SCALE = 0.6D;
   public static final double DUAL_RADIUS_BONUS = 0.4D;
 
-  public static final double ZHENYUAN_COST = ShouPiGuOrganBehavior.SYNERGY_CRASH_BASE_COST;
-  public static final long COOLDOWN_TICKS = ShouPiGuOrganBehavior.SYNERGY_CRASH_COOLDOWN_TICKS;
+  public static final double ZHENYUAN_COST = ShouPiGuTuning.SYNERGY_CRASH_BASE_COST;
+  public static final long COOLDOWN_TICKS = ShouPiGuTuning.SYNERGY_CRASH_COOLDOWN_TICKS;
 }
 

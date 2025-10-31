@@ -8,8 +8,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.roll.calculator.ShouPiRollEvasionCalculator.RollParameters;
@@ -55,12 +55,12 @@ public final class ShouPiRollEvasionBehavior {
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuOrganBehavior.ensureStage(state, cc, organ);
+    ShouPiGuCalculator.ensureStage(state, cc, organ);
 
-    MultiCooldown cooldown = ShouPiGuOrganBehavior.cooldown(cc, organ, state);
+    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
     long now = player.level().getGameTime();
     MultiCooldown.Entry entry =
-        cooldown.entry(ShouPiGuOrganBehavior.KEY_ROLL_READY).withDefault(0L);
+        cooldown.entry(ShouPiGuTuning.KEY_ROLL_READY).withDefault(0L);
     if (!entry.isReady(now)) {
       return;
     }
@@ -89,26 +89,26 @@ public final class ShouPiRollEvasionBehavior {
 
     long mitigationWindow = now + Mth.clamp(params.mitigationWindowTicks(), 1, 40);
     state.setLong(
-        ShouPiGuOrganBehavior.KEY_ROLL_EXPIRE,
+        ShouPiGuTuning.KEY_ROLL_EXPIRE,
         mitigationWindow,
         value -> Math.max(0L, value),
         0L);
     entry.setReadyAt(now + params.cooldown());
 
-    ShouPiGuOrganBehavior.applyRollCounter(
+    ShouPiGuCalculator.applyRollCounter(
         player, params.resistanceDurationTicks(), params.resistanceAmplifier());
-    ShouPiGuOrganBehavior.applyRollSlow(
+    ShouPiGuCalculator.applyRollSlow(
         player, params.slowDurationTicks(), params.slowAmplifier(), params.slowRadius());
 
     // 刷新厚皮窗口，便于下一次受击时立即触发
     OrganStateOps.setBoolean(
-        state, cc, organ, ShouPiGuOrganBehavior.KEY_THICK_SKIN_READY, true, false);
+        state, cc, organ, ShouPiGuTuning.KEY_THICK_SKIN_READY, true, false);
     OrganStateOps.setLong(
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_THICK_SKIN_EXPIRE,
-        now + ShouPiGuOrganBehavior.THICK_SKIN_WINDOW_TICKS,
+        ShouPiGuTuning.KEY_THICK_SKIN_EXPIRE,
+        now + ShouPiGuTuning.THICK_SKIN_WINDOW_TICKS,
         value -> Math.max(0L, value),
         0L);
 

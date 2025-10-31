@@ -3,7 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.co
 import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 
 /**
@@ -21,7 +22,7 @@ public final class ShouPiComboUtil {
    * @return 存在则返回非空 Optional，否则 Optional.empty()
    */
   public static Optional<ItemStack> findOrgan(ChestCavityInstance cc) {
-    ItemStack organ = ShouPiGuOrganBehavior.findOrgan(cc);
+    ItemStack organ = ShouPiGuCalculator.findOrgan(cc);
     return organ.isEmpty() ? Optional.empty() : Optional.of(organ);
   }
 
@@ -33,10 +34,10 @@ public final class ShouPiComboUtil {
   /** 计算“虎皮蛊 / 铁骨蛊”联动数量（0~2）。 */
   public static int countArmorSynergy(ChestCavityInstance cc) {
     int count = 0;
-    if (ShouPiGuOrganBehavior.hasOrgan(cc, ShouPiGuOrganBehavior.HUPI_GU_ID)) {
+    if (ShouPiGuCalculator.hasOrgan(cc, ShouPiGuTuning.HUPI_GU_ID)) {
       count++;
     }
-    if (ShouPiGuOrganBehavior.hasOrgan(cc, ShouPiGuOrganBehavior.TIE_GU_GU_ID)) {
+    if (ShouPiGuCalculator.hasOrgan(cc, ShouPiGuTuning.TIE_GU_GU_ID)) {
       count++;
     }
     return count;
@@ -49,7 +50,7 @@ public final class ShouPiComboUtil {
 
   /** 快速获取 OrganState。假定调用方已确认 organ 非空。 */
   public static OrganState resolveState(ItemStack organ) {
-    return ShouPiGuOrganBehavior.resolveState(organ);
+    return ShouPiGuCalculator.resolveState(organ);
   }
 }
 

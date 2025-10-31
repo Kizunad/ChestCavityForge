@@ -6,11 +6,16 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yin_yang_zhuan_shen_gu.tuning.YinYangZhuanShenGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Anchor;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Mode;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -126,5 +131,23 @@ public final class YinYangDualityOps {
     attachment.pool(nextMode).ensureInitializedFrom(attachment.pool(current));
     attachment.pool(nextMode).apply(player, handle);
     return true;
+  }
+
+  public static boolean hasOrgan(ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
+    int size = cc.inventory.getContainerSize();
+    Item targetItem = BuiltInRegistries.ITEM.getOptional(YinYangZhuanShenGuTuning.ORGAN_ID).orElse(null);
+    if (targetItem == null) {
+      return false;
+    }
+    for (int i = 0; i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (!stack.isEmpty() && stack.getItem() == targetItem) {
+        return true;
+      }
+    }
+    return false;
   }
 }

@@ -17,12 +17,9 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuActive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.behavior.ShouPiGuActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.WuxingHuaHenBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuActive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yin_yang_zhuan_shen_gu.behavior.YinYangZhuanShenGuActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.behavior.QingFengLunOrganBehavior;
@@ -216,17 +213,6 @@ public final class ActiveSkillRegistry {
         },
         CooldownHint.useOrgan("技能就绪", null));
 
-    register(
-        "guzhenren:yu_yue",
-        "guzhenren:yu_yue",
-        "guzhenren:yu_lin_gu",
-        tags("机动", "位移"),
-        "鱼跃破浪：水中高速冲刺破浪，潮湿状态下也可短距离跃进并获得缓降",
-        "compat/guzhenren/item/bian_hua_dao/behavior/skills/YuYueSkill.java",
-        () -> {
-          ensureClassLoaded(YuLinGuBehavior.INSTANCE);
-        },
-        CooldownHint.useOrgan("鱼跃冷却结束", null));
 
     register(
         "guzhenren:tiepi/hardening",
@@ -282,7 +268,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:shou_pi_gu",
         tags("防御", "反射"),
         "硬皮鼓动：5 秒内防御系数+6%，软反伤额外+10%，并获得 50% 击退抗性，冷却 20 秒",
-        "compat/guzhenren/item/bian_hua_dao/behavior/ShouPiGuOrganBehavior.java",
+        "compat/guzhenren/item/bian_hua_dao/shou_pi_gu/behavior/ShouPiGuActive.java",
         () -> {
           ensureClassLoaded(ShouPiGuActive.INSTANCE);
         },
@@ -294,7 +280,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:yin_yang_zhuan_shen_gu",
         tags("切换", "攻伐", "防御"),
         "阴阳身：在阴身/阳身间切换，刷新锚点与属性倍率，冷却 120 秒",
-        "compat/guzhenren/item/bian_hua_dao/behavior/YinYangZhuanShenGuBehavior.java",
+        "compat/guzhenren/item/bian_hua_dao/yin_yang_zhuan_shen_gu/behavior/YinYangZhuanShenGuActive.java",
         () -> {
           ensureClassLoaded(YinYangZhuanShenGuActive.INSTANCE);
         },

@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.calculator.YuLinGuCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
@@ -58,9 +58,9 @@ public final class YuYueSkill {
       return;
     }
 
-    YuLinGuBehavior behavior = YuLinGuBehavior.INSTANCE;
     boolean inWater = player.isInWaterOrBubble();
-    boolean moist = inWater || behavior.isPlayerMoist(player, organ);
+    OrganState state = OrganState.of(organ, "YuLinGu");
+    boolean moist = inWater || YuLinGuCalculator.isPlayerMoist(player, state, player.level().getGameTime());
     if (!moist) {
       sendFailure(player, "需要潮湿或水中才能鱼跃破浪。");
       return;
@@ -90,10 +90,10 @@ public final class YuYueSkill {
     }
 
     double baseRange = inWater ? 7.0 : 4.0;
-    if (behavior.hasTailSynergy(cc)) {
+    if (YuLinGuCalculator.hasTailSynergy(cc)) {
       baseRange += inWater ? 3.0 : 1.5;
     }
-    boolean upgraded = behavior.hasSharkArmor(organ);
+    boolean upgraded = YuLinGuCalculator.hasSharkArmor(organ);
     if (upgraded) {
       baseRange += 1.0;
     }
@@ -105,7 +105,7 @@ public final class YuYueSkill {
     player.hurtMarked = true;
     player.hasImpulse = true;
     player.fallDistance = 0.0f;
-    if (behavior.hasTailSynergy(cc)) {
+    if (YuLinGuCalculator.hasTailSynergy(cc)) {
       player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 20, 0, false, false));
     }
     if (upgraded) {
@@ -113,7 +113,7 @@ public final class YuYueSkill {
     }
 
     pushCollisions(player, dashDir, baseRange);
-    behavior.recordWetContact(player, organ);
+    YuLinGuCalculator.recordWetContact(player, organ);
 
     long readyAt = now + COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
