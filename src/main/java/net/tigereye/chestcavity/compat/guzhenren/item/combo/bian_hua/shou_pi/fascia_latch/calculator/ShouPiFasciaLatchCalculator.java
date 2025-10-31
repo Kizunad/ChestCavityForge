@@ -1,17 +1,14 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.calculator;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.fascia_latch.tuning.ShouPiFasciaLatchTuning;
 
 /** 筋膜锁扣的纯逻辑计算器。 */
 public final class ShouPiFasciaLatchCalculator {
   private ShouPiFasciaLatchCalculator() {}
 
-  public static FasciaParameters compute(
-      int fasciaHits, boolean hasTigerGu, boolean hasTieGuGu, BianHuaDaoSnapshot snapshot) {
-    if (fasciaHits < ShouPiGuOrganBehavior.FASCIA_TRIGGER) {
+  public static FasciaParameters compute(int fasciaHits, boolean hasTigerGu, boolean hasTieGuGu) {
+    if (fasciaHits < ShouPiGuTuning.FASCIA_TRIGGER) {
       throw new IllegalArgumentException("fascia latch requires trigger count");
     }
     double shield = ShouPiComboLogic.applyDaoHenBuff(
@@ -21,7 +18,7 @@ public final class ShouPiFasciaLatchCalculator {
           ShouPiFasciaLatchTuning.IRON_EXTRA_SHIELD, snapshot.daoHen());
     }
     return new FasciaParameters(
-        ShouPiGuOrganBehavior.FASCIA_ACTIVE_REDUCTION,
+        ShouPiGuTuning.FASCIA_ACTIVE_REDUCTION,
         ShouPiFasciaLatchTuning.EFFECT_DURATION_TICKS,
         shield,
         hasTieGuGu,

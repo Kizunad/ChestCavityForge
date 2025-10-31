@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.tuning.ShouPiQianJiaCrashTuning;
 
 /** 嵌甲冲撞的纯逻辑计算器。 */
@@ -35,7 +33,7 @@ public final class ShouPiQianJiaCrashCalculator {
           ShouPiQianJiaCrashTuning.DUAL_DAMAGE_CAP_BONUS, snapshot.daoHen());
     }
     damage = Math.min(damage, cap);
-    double radius = ShouPiGuOrganBehavior.CRASH_SPLASH_RADIUS;
+    double radius = ShouPiGuTuning.CRASH_SPLASH_RADIUS;
     if (cappedSynergy >= 2) {
       radius += ShouPiComboLogic.applyDaoHenBuff(
           ShouPiQianJiaCrashTuning.DUAL_RADIUS_BONUS, snapshot.daoHen());

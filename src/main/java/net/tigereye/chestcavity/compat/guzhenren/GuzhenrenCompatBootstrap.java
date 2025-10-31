@@ -1,13 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren;
 
 import net.tigereye.chestcavity.compat.common.passive.PassiveBus;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YinYangZhuanShenGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.YuLinGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingBuGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.QingReGuPassive;
-import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ShuangXiGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yin_yang_zhuan_shen_gu.behavior.YinYangZhuanShenGuPassive;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.yu_lin_gu.behavior.YuLinGuPassive;
 import net.tigereye.chestcavity.registration.ActivationHookRegistry;
 
 public final class GuzhenrenCompatBootstrap {
@@ -16,7 +11,8 @@ public final class GuzhenrenCompatBootstrap {
   public static void registerBianHuaDaoPassives() {
     if (ActivationHookRegistry.isFamilyEnabled("liupai_bianhuadao")) {
       PassiveBus.register("liupai_bianhuadao", ShouPiGuPassive::new);
-      PassiveBus.register("liupai_bianhuadao", YinYangZhuanShenGuPassive::new);
+
+      PassiveBus.register("liupai_bianhuadao", () -> YinYangZhuanShenGuPassive.INSTANCE);
       PassiveBus.register("liupai_bianhuadao", YuLinGuPassive::new);
     }
   }

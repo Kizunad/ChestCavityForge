@@ -14,8 +14,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.qian_jia_crash.calculator.ShouPiQianJiaCrashCalculator.CrashParameters;
@@ -65,12 +65,12 @@ public final class ShouPiQianJiaCrashBehavior {
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuOrganBehavior.ensureStage(state, cc, organ);
+    ShouPiGuCalculator.ensureStage(state, cc, organ);
 
-    MultiCooldown cooldown = ShouPiGuOrganBehavior.cooldown(cc, organ, state);
+    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
     long now = player.level().getGameTime();
     MultiCooldown.Entry entry =
-        cooldown.entry(ShouPiGuOrganBehavior.KEY_CRASH_READY).withDefault(0L);
+        cooldown.entry(ShouPiGuTuning.KEY_CRASH_READY).withDefault(0L);
     if (!entry.isReady(now)) {
       return;
     }
@@ -81,7 +81,7 @@ public final class ShouPiQianJiaCrashBehavior {
       return;
     }
 
-    double softPool = ShouPiGuOrganBehavior.resolveSoftPool(state, now);
+    double softPool = ShouPiGuCalculator.resolveSoftPool(state, now);
     double attackDamage =
         player.getAttribute(Attributes.ATTACK_DAMAGE) == null
             ? 0.0D
@@ -100,12 +100,12 @@ public final class ShouPiQianJiaCrashBehavior {
     if (horizontal.lengthSqr() < 1.0E-4D) {
       horizontal = new Vec3(1.0D, 0.0D, 0.0D);
     }
-    Vec3 offset = horizontal.normalize().scale(ShouPiGuOrganBehavior.CRASH_DISTANCE);
+    Vec3 offset = horizontal.normalize().scale(ShouPiGuTuning.CRASH_DISTANCE);
     Vec3 center = TeleportOps.blinkOffset(player, offset).orElse(player.position());
 
     resetSoftPool(state, cc, organ);
     if (params.damage() > 0.0D) {
-      ShouPiGuOrganBehavior.dealCrashDamage(player, center, params.damage(), params.radius());
+      ShouPiGuCalculator.dealCrashDamage(player, center, params.damage(), params.radius());
       applyCrashSlow(player, center, params.radius());
     }
 
@@ -113,8 +113,8 @@ public final class ShouPiQianJiaCrashBehavior {
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_CRASH_IMMUNE,
-        now + ShouPiGuOrganBehavior.CRASH_IMMUNE_TICKS,
+        ShouPiGuTuning.KEY_CRASH_IMMUNE,
+        now + ShouPiGuTuning.CRASH_IMMUNE_TICKS,
         value -> Math.max(0L, value),
         0L);
     entry.setReadyAt(now + params.cooldown());
@@ -137,9 +137,9 @@ public final class ShouPiQianJiaCrashBehavior {
 
   private static void resetSoftPool(OrganState state, ChestCavityInstance cc, ItemStack organ) {
     OrganStateOps.setDouble(
-        state, cc, organ, ShouPiGuOrganBehavior.KEY_SOFT_POOL_VALUE, 0.0D, value -> 0.0D, 0.0D);
+        state, cc, organ, ShouPiGuTuning.KEY_SOFT_POOL_VALUE, 0.0D, value -> 0.0D, 0.0D);
     OrganStateOps.setLong(
-        state, cc, organ, ShouPiGuOrganBehavior.KEY_SOFT_POOL_EXPIRE, 0L, value -> 0L, 0L);
+        state, cc, organ, ShouPiGuTuning.KEY_SOFT_POOL_EXPIRE, 0L, value -> 0L, 0L);
   }
 
   private static void applyCrashSlow(ServerPlayer player, Vec3 center, double radius) {

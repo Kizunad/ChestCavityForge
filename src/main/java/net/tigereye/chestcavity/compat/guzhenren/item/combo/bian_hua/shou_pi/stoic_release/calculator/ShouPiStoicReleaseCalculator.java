@@ -1,17 +1,14 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.tuning.ShouPiStoicReleaseTuning;
 
 /** 坚忍释放的纯逻辑计算器。 */
 public final class ShouPiStoicReleaseCalculator {
   private ShouPiStoicReleaseCalculator() {}
 
-  public static StoicParameters compute(
-      ShouPiGuOrganBehavior.TierParameters tierParams, BianHuaDaoSnapshot snapshot) {
-    boolean applySlow = tierParams.stage() == ShouPiGuOrganBehavior.Tier.STAGE5;
+  public static StoicParameters compute(ShouPiGuTuning.TierParameters tierParams) {
+    boolean applySlow = tierParams.stage() == ShouPiGuTuning.Tier.STAGE5;
     return new StoicParameters(
         tierParams.stoicMitigation(),
         ShouPiComboLogic.applyDaoHenBuff(tierParams.stoicShield(), snapshot.daoHen()),

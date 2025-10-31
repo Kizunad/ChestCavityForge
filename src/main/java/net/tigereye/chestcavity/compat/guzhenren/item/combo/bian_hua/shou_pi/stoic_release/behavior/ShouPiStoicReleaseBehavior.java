@@ -7,8 +7,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.ShouPiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboLogic.BianHuaDaoSnapshot;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.calculator.ShouPiGuCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.shou_pi_gu.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.common.ShouPiComboUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator.ShouPiStoicReleaseCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.shou_pi.stoic_release.calculator.ShouPiStoicReleaseCalculator.StoicParameters;
@@ -54,12 +54,12 @@ public final class ShouPiStoicReleaseBehavior {
     }
 
     var state = ShouPiComboUtil.resolveState(organ);
-    ShouPiGuOrganBehavior.ensureStage(state, cc, organ);
+    ShouPiGuCalculator.ensureStage(state, cc, organ);
 
-    if (!state.getBoolean(ShouPiGuOrganBehavior.KEY_STOIC_READY, false)) {
+    if (!state.getBoolean(ShouPiGuTuning.KEY_STOIC_READY, false)) {
       return;
     }
-    long lockUntil = state.getLong(ShouPiGuOrganBehavior.KEY_STOIC_LOCK_UNTIL, 0L);
+    long lockUntil = state.getLong(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL, 0L);
     long now = player.level().getGameTime();
     if (lockUntil > now) {
       return;
@@ -71,29 +71,22 @@ public final class ShouPiStoicReleaseBehavior {
       return;
     }
 
-    MultiCooldown cooldown = ShouPiGuOrganBehavior.cooldown(cc, organ, state);
+    MultiCooldown cooldown = ShouPiGuCalculator.cooldown(cc, organ, state);
     // 使用专用 entry 记录窗口，便于 UI 提示
     MultiCooldown.Entry entry =
-        cooldown.entry(ShouPiGuOrganBehavior.KEY_STOIC_LOCK_UNTIL).withDefault(0L);
+        cooldown.entry(ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL).withDefault(0L);
 
-    ShouPiGuOrganBehavior.TierParameters tierParams =
-        ShouPiGuOrganBehavior.tierParameters(state);
-    var snapshot =
-        cc.owner
-            .getPersistentData()
-            .getCompound("SkillEffectBus")
-            .getCompound("shou_pi:" + ABILITY_ID.getPath());
-    StoicParameters params =
-        ShouPiStoicReleaseCalculator.compute(
-            tierParams, BianHuaDaoSnapshot.fromNBT(snapshot));
+    ShouPiGuTuning.TierParameters tierParams =
+        ShouPiGuCalculator.tierParameters(state);
+    StoicParameters params = ShouPiStoicReleaseCalculator.compute(tierParams);
 
     OrganStateOps.setBoolean(
-        state, cc, organ, ShouPiGuOrganBehavior.KEY_STOIC_READY, false, false);
+        state, cc, organ, ShouPiGuTuning.KEY_STOIC_READY, false, false);
     OrganStateOps.setInt(
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_STOIC_STACKS,
+        ShouPiGuTuning.KEY_STOIC_STACKS,
         0,
         value -> Math.max(0, value),
         0);
@@ -101,7 +94,7 @@ public final class ShouPiStoicReleaseBehavior {
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_STOIC_ACCUM,
+        ShouPiGuTuning.KEY_STOIC_ACCUM,
         0.0D,
         value -> Math.max(0.0D, value),
         0.0D);
@@ -110,7 +103,7 @@ public final class ShouPiStoicReleaseBehavior {
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_STOIC_ACTIVE_UNTIL,
+        ShouPiGuTuning.KEY_STOIC_ACTIVE_UNTIL,
         now + params.activeDurationTicks(),
         value -> Math.max(0L, value),
         0L);
@@ -118,7 +111,7 @@ public final class ShouPiStoicReleaseBehavior {
         state,
         cc,
         organ,
-        ShouPiGuOrganBehavior.KEY_STOIC_LOCK_UNTIL,
+        ShouPiGuTuning.KEY_STOIC_LOCK_UNTIL,
         now + params.lockTicks(),
         value -> Math.max(0L, value),
         0L);
@@ -129,7 +122,7 @@ public final class ShouPiStoicReleaseBehavior {
           state,
           cc,
           organ,
-          ShouPiGuOrganBehavior.KEY_SOFT_TEMP_BONUS,
+          ShouPiGuTuning.KEY_SOFT_TEMP_BONUS,
           params.softReflectBonus(),
           value -> Math.max(0.0D, value),
           0.0D);
@@ -137,15 +130,15 @@ public final class ShouPiStoicReleaseBehavior {
           state,
           cc,
           organ,
-          ShouPiGuOrganBehavior.KEY_SOFT_TEMP_BONUS_EXPIRE,
+          ShouPiGuTuning.KEY_SOFT_TEMP_BONUS_EXPIRE,
           now + params.activeDurationTicks(),
           value -> Math.max(0L, value),
           0L);
     }
 
-    ShouPiGuOrganBehavior.applyShield(player, params.shieldAmount());
+    ShouPiGuCalculator.applyShield(player, params.shieldAmount());
     if (params.applySlowAura()) {
-      ShouPiGuOrganBehavior.applyStoicSlow(player);
+      ShouPiGuCalculator.applyStoicSlow(player);
     }
 
     player
