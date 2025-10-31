@@ -19,6 +19,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -54,6 +55,11 @@ import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCDamageSources;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.tuning.BingJiTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.state.BingJiStateKeys;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.calculator.AoEFalloff;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.fx.BingJiFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.messages.BingXueMessages;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
@@ -85,33 +91,17 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   public static final ResourceLocation ABILITY_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "bing_ji_gu_iceburst");
   private static final ResourceLocation ICE_BURST_FLOW_ID =
-      ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "bing_xue_burst");
+      BingJiTuning.ICE_BURST_FLOW_ID;
   private static final ResourceLocation ABSORPTION_MODIFIER_ID =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "modifiers/bing_ji_gu_absorption");
+      BingJiTuning.ABSORPTION_MODIFIER_ID;
 
   private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
   private static final String STATE_ROOT = "BingJiGu";
-  private static final String ABSORPTION_TIMER_KEY =
-      "AbsorptionTimer"; // legacy int (unused for scheduling)
-  private static final String ABSORPTION_READY_AT_KEY =
-      "AbsorptionReadyAt"; // timestamp-style scheduling
-  private static final String INVULN_COOLDOWN_KEY = "InvulnCooldown"; // legacy int key (unused)
-  private static final String INVULN_READY_AT_KEY = "InvulnReadyAt"; // timestamp-style readyAt
   private static final boolean DEBUG = false;
 
-  private static final CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig DEFAULTS =
-      new CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig();
-
   private static CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig cfg() {
-    CCConfig root = ChestCavity.config;
-    if (root != null) {
-      CCConfig.GuzhenrenBingXueDaoConfig group = root.GUZHENREN_BING_XUE_DAO;
-      if (group != null && group.BING_JI_GU != null) {
-        return group.BING_JI_GU;
-      }
-    }
-    return DEFAULTS;
+    return BingJiTuning.cfg();
   }
 
   private BingJiGuOrganBehavior() {}
@@ -150,7 +140,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
           String.format(java.util.Locale.ROOT, "%.1f", config.zhenyuanBaseCost * stackCount));
     }
     MultiCooldown cooldown = createCooldown(cc, organ);
-    MultiCooldown.Entry absorptionReady = cooldown.entry(ABSORPTION_READY_AT_KEY);
+    MultiCooldown.Entry absorptionReady = BingJiStateKeys.absorptionEntry(cooldown);
 
     if (paid) {
       ResourceOps.adjustJingli(player, config.jingliPerTick * stackCount);
@@ -231,8 +221,8 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     RemovalRegistration registration = registerRemovalHook(cc, organ, this, staleRemovalContexts);
     if (!registration.alreadyRegistered()) {
       MultiCooldown cooldown = createCooldown(cc, organ);
-      cooldown.entryInt(ABSORPTION_TIMER_KEY).clear();
-      cooldown.entry(INVULN_READY_AT_KEY).setReadyAt(0L);
+      cooldown.entryInt(BingJiStateKeys.ABSORPTION_TIMER_KEY).clear();
+      BingJiStateKeys.invulnEntry(cooldown).setReadyAt(0L);
     }
   }
 
@@ -284,7 +274,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     CCConfig.GuzhenrenBingXueDaoConfig.BingJiGuConfig config = cfg();
     MultiCooldown cooldown = createCooldown(cc, organ);
-    MultiCooldown.Entry invulnReady = cooldown.entry(INVULN_READY_AT_KEY);
+    MultiCooldown.Entry invulnReady = net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.state.BingJiStateKeys.invulnEntry(cooldown);
     long now = player.level().getGameTime();
 
     if (invulnReady.isReady(now)) {
@@ -481,16 +471,25 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
     ServerPlayer player = (ServerPlayer) entity;
     ItemStack organ = findOrgan(cc);
-    if (organ.isEmpty() || !hasJadeBone(cc)) {
+    if (organ.isEmpty()) {
+        Notifier.notifyThrottled(player, Component.translatable(
+            net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.messages.BingXueMessages.FAIL_NEED_BING_JI_GU));
         if (DEBUG) {
-            LOGGER.info(
-                "[compat/guzhenren][ice_skin] activate rejected: organEmpty={} hasJadeBone={}",
-                organ.isEmpty(),
-                hasJadeBone(cc));
+            LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: organ missing");
+        }
+        return;
+    }
+    if (!hasJadeBone(cc)) {
+        Notifier.notifyThrottled(player, Component.translatable(
+            net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.messages.BingXueMessages.FAIL_NEED_JADE_BONE));
+        if (DEBUG) {
+            LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: missing jade bone");
         }
         return;
     }
     if (!consumeMuscle(cc)) {
+        Notifier.notifyThrottled(player, Component.translatable(
+            net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.messages.BingXueMessages.FAIL_NO_MUSCLE));
         if (DEBUG) {
             LOGGER.info("[compat/guzhenren][ice_skin] activate rejected: no consumable muscle found");
         }
@@ -527,13 +526,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
 
     // Play explosion sound FX at the performer
-    server.playSound(
-        null,
-        entity.blockPosition(),
-        SoundEvents.GENERIC_EXPLODE.value(),
-        SoundSource.PLAYERS,
-        1.0F,
-        1.0F);
+    BingJiFx.playBurstSound(server, entity);
 
     Vec3 origin = entity.position();
     List<LivingEntity> victims = gatherTargets(entity, server, radius);
@@ -541,7 +534,7 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     int slowAmplifier = Mth.clamp((int) Math.round(config.iceBurstSlowAmplifier), 0, 255);
     for (LivingEntity target : victims) {
         double distance = Math.sqrt(target.distanceToSqr(origin));
-        double falloff = Math.max(0.0, 1.0 - (distance / radius));
+        double falloff = AoEFalloff.linear(distance, radius);
         float damage = (float) (baseDamage * falloff);
         if (damage > 0.0f) {
             DamageSource source = player.damageSources().playerAttack(player);
@@ -572,13 +565,12 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         int slowAmp = Math.max(0, (int) Math.round(config.iceBurstSlowAmplifier));
         ResidueManager.spawnOrRefreshFrost(
             server, origin.x, origin.y, origin.z, residueRadius, residueDuration, slowAmp);
-        // 少量雪花粒子点缀
-        server.sendParticles(
-            ParticleTypes.SNOWFLAKE, origin.x, origin.y + 0.2, origin.z, 12, 0.4, 0.2, 0.4, 0.02);
+        // 少量雪花粒子点缀 + 提示
+        BingJiFx.snowflakeBurst(server, origin.x, origin.y, origin.z);
         if (!player.level().isClientSide()) {
             player.sendSystemMessage(
                 net.minecraft.network.chat.Component.translatable(
-                    "message.chestcavity.bingxue.iceburst_residue"));
+                    BingXueMessages.ICEBURST_RESIDUE));
         }
     }
 
@@ -597,6 +589,21 @@ public final class BingJiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
                         String.format(java.util.Locale.ROOT, "%.2f", before),
                         String.format(java.util.Locale.ROOT, "%.2f", player.getHealth())));
         }
+    }
+  }
+
+  // 失败消息节流器：每玩家80刻最多提示一次
+  private static final class Notifier {
+    private static final java.util.WeakHashMap<ServerPlayer, Long> NEXT = new java.util.WeakHashMap<>();
+    private static final long COOLDOWN_TICKS = 80L;
+
+    static void notifyThrottled(ServerPlayer player, Component message) {
+      if (player == null || player.level() == null || player.level().isClientSide()) return;
+      long now = player.level().getGameTime();
+      long next = NEXT.getOrDefault(player, 0L);
+      if (now < next) return;
+      player.sendSystemMessage(message);
+      NEXT.put(player, now + COOLDOWN_TICKS);
     }
   }
 

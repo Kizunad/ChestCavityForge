@@ -44,6 +44,9 @@ import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.util.NetworkUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.tuning.ShuangXiTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.calculator.ConeFilter;
+import net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.fx.ShuangXiFx;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 // ReactionEngine runtime逻辑已迁移至 engine/reaction；此类未直接使用可移除旧导入。
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
@@ -80,14 +83,7 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
   private ShuangXiGuOrganBehavior() {}
 
   private static CCConfig.GuzhenrenBingXueDaoConfig.ShuangXiGuConfig cfg() {
-    CCConfig root = ChestCavity.config;
-    if (root != null) {
-      CCConfig.GuzhenrenBingXueDaoConfig group = root.GUZHENREN_BING_XUE_DAO;
-      if (group != null && group.SHUANG_XI_GU != null) {
-        return group.SHUANG_XI_GU;
-      }
-    }
-    return DEFAULTS;
+    return ShuangXiTuning.cfg();
   }
 
   public void onEquip(
@@ -295,9 +291,8 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
           if (distance <= 0.0001D || distance > abilityRange) {
               continue;
           }
-          Vec3 direction = toTarget.normalize();
-          double dot = direction.dot(look);
-          if (dot < coneThreshold) {
+          if (!ConeFilter.matches(
+              look.x, look.y, look.z, toTarget.x, toTarget.y, toTarget.z, coneThreshold)) {
               continue;
           }
           affected.add(target);
@@ -323,9 +318,14 @@ public final class ShuangXiGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
                   net.tigereye.chestcavity.util.DoTTypes.SHUANG_XI_FROSTBITE);
           }
       }
-    spawnBreathParticles(
-        server, origin, look, affected.isEmpty() ? entity : affected.get(0), config);
-    playBreathSound(level, entity, !affected.isEmpty());
+    ShuangXiFx.spawnBreathParticles(
+        server,
+        origin,
+        look,
+        affected.isEmpty() ? entity : affected.get(0),
+        Math.max(0, config.breathParticleSteps),
+        config.breathParticleSpacing);
+    ShuangXiFx.playBreathSound(level, entity, !affected.isEmpty());
     player.getCooldowns().addCooldown(organ.getItem(), (int)cooldown);
   }
 
