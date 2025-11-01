@@ -198,6 +198,16 @@ public final class NetworkHandler {
         net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanResponsePayload.TYPE,
         net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanResponsePayload.STREAM_CODEC,
         net.tigereye.chestcavity.soul.navigation.net.SoulNavPlanResponsePayload::handle);
+
+    // Domain sync (通用领域渲染同步)
+    registrar.playToClient(
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainSyncPayload.TYPE,
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainSyncPayload.STREAM_CODEC,
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainSyncPayload::handle);
+    registrar.playToClient(
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload.TYPE,
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload.STREAM_CODEC,
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload::handle);
   }
 
   public static void sendChestCavityUpdate(ServerPlayer player, ChestCavityUpdatePayload payload) {

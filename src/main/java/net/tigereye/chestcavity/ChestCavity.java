@@ -112,6 +112,9 @@ public class ChestCavity {
       NeoForge.EVENT_BUS.addListener(GeckoFxClient::onClientTick);
       NeoForge.EVENT_BUS.addListener(GeckoFxClient::onRenderLevel);
       NeoForge.EVENT_BUS.addListener(ModernUIClientCommands::register);
+      // 通用领域PNG渲染器
+      NeoForge.EVENT_BUS.addListener(
+          net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer::render);
     }
 
     if (FMLEnvironment.dist.isClient()) {
