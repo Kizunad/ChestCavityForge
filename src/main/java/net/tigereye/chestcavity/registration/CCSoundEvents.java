@@ -40,4 +40,39 @@ public final class CCSoundEvents {
       SOUND_EVENTS.register(
           "custom.fight.punch",
           () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.fight.punch")));
+
+  // ===== Flying Sword =====
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_SPAWN =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.spawn",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.flyingsword.spawn")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_RECALL =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.recall",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.flyingsword.recall")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_SWING =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.swing",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.flyingsword.swing")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_HIT =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.hit",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.flyingsword.hit")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_BLOCK_BREAK =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.block_break",
+          () ->
+              SoundEvent.createVariableRangeEvent(
+                  ChestCavity.id("custom.flyingsword.block_break")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_OUT_OF_ENERGY =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.out_of_energy",
+          () ->
+              SoundEvent.createVariableRangeEvent(
+                  ChestCavity.id("custom.flyingsword.out_of_energy")));
 }

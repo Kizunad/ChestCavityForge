@@ -103,24 +103,95 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
     public int level;
     public int experience;
     public float durability;
+    public net.minecraft.nbt.CompoundTag chestCavity; // 保存胸腔内容
+    // 额外：渲染与类型信息（用于恢复后保持外观与分型）
+    // 优先持久化完整的 ItemStack NBT，以保留附魔发光/自定义组件；旧版兼容保留 itemId。
+    public @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag displayItem; // 完整 ItemStack NBT
+    public @org.jetbrains.annotations.Nullable net.minecraft.resources.ResourceLocation displayItemId; // 兼容字段
+    public @org.jetbrains.annotations.Nullable String modelKey;
+    public @org.jetbrains.annotations.Nullable String soundProfile;
+    public @org.jetbrains.annotations.Nullable String swordType; // FlyingSwordType 的注册名
+    public @org.jetbrains.annotations.Nullable String displayItemUUID; // 稳定物品UUID字符串
+    public boolean itemWithdrawn; // 是否已从存储中“拿出”物品（true 时禁止恢复/召唤）
 
     public RecalledSword(
-        FlyingSwordAttributes attributes, int level, int experience, float durability) {
+        FlyingSwordAttributes attributes,
+        int level,
+        int experience,
+        float durability,
+        net.minecraft.nbt.CompoundTag chestCavity,
+        @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag displayItem,
+        @org.jetbrains.annotations.Nullable net.minecraft.resources.ResourceLocation displayItemId,
+        @org.jetbrains.annotations.Nullable String modelKey,
+        @org.jetbrains.annotations.Nullable String soundProfile,
+        @org.jetbrains.annotations.Nullable String swordType,
+        @org.jetbrains.annotations.Nullable String displayItemUUID) {
       this.attributes = attributes;
       this.level = level;
       this.experience = experience;
       this.durability = durability;
+      this.chestCavity = chestCavity;
+      this.displayItem = displayItem;
+      this.displayItemId = displayItemId;
+      this.modelKey = modelKey;
+      this.soundProfile = soundProfile;
+      this.swordType = swordType;
+      this.displayItemUUID = displayItemUUID;
+      this.itemWithdrawn = false;
     }
 
     /**
      * 从实体创建召回数据
      */
     public static RecalledSword fromEntity(FlyingSwordEntity entity) {
+      net.minecraft.nbt.CompoundTag ccTag = new net.minecraft.nbt.CompoundTag();
+      try {
+        var provider = entity.registryAccess();
+        var cc = net.tigereye.chestcavity.registration.CCAttachments.getChestCavity(entity);
+        net.minecraft.nbt.CompoundTag wrapper = new net.minecraft.nbt.CompoundTag();
+        cc.toTag(wrapper, provider);
+        ccTag = wrapper.getCompound("ChestCavity");
+      } catch (Throwable t) {
+        net.tigereye.chestcavity.ChestCavity.LOGGER.warn(
+            "[FlyingSword] Failed to capture chest cavity on recall; continuing without it", t);
+      }
+      // 显示模型（完整 ItemStack + UUID + itemId 回退）
+      net.minecraft.world.item.ItemStack display = entity.getDisplayItemStack();
+      net.minecraft.nbt.CompoundTag displayTag = null;
+      net.minecraft.resources.ResourceLocation displayId = null;
+      java.util.Optional<java.util.UUID> displayUuid = java.util.Optional.empty();
+      if (display != null && !display.isEmpty()) {
+        // 保存完整 ItemStack NBT（含附魔/组件），并保留 itemId 作为回退
+        try {
+          net.minecraft.nbt.Tag raw = display.save(entity.registryAccess());
+          if (raw instanceof net.minecraft.nbt.CompoundTag ct) {
+            displayTag = ct.copy();
+          }
+        } catch (Throwable ignored) {}
+        displayId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(display.getItem());
+        displayUuid = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util
+            .ItemIdentityUtil.getItemUUID(display);
+      }
+
+      // 模型键与音效档
+      String modelKey = entity.getModelKey();
+      String soundProfile = entity.getSoundProfile();
+
+      // 飞剑类型注册名
+      String swordType = entity.getSwordType().getRegistryName();
+
       return new RecalledSword(
           entity.getSwordAttributes(),
           entity.getSwordLevel(),
           entity.getExperience(),
-          entity.getDurability());
+          entity.getDurability(),
+          ccTag,
+          displayTag,
+          displayId,
+          modelKey == null || modelKey.isEmpty() ? null : modelKey,
+          soundProfile == null || soundProfile.isEmpty() ? null : soundProfile,
+          swordType,
+          displayUuid.map(java.util.UUID::toString).orElse(null));
     }
 
     /**
@@ -134,6 +205,28 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       tag.putInt("Level", level);
       tag.putInt("Experience", experience);
       tag.putFloat("Durability", durability);
+      if (chestCavity != null && !chestCavity.isEmpty()) {
+        tag.put("ChestCavity", chestCavity.copy());
+      }
+      if (displayItem != null && !displayItem.isEmpty()) {
+        tag.put("DisplayItem", displayItem.copy());
+      }
+      if (displayItemId != null) {
+        tag.putString("DisplayItemId", displayItemId.toString());
+      }
+      if (displayItemUUID != null && !displayItemUUID.isEmpty()) {
+        tag.putString("DisplayItemUUID", displayItemUUID);
+      }
+      tag.putBoolean("ItemWithdrawn", itemWithdrawn);
+      if (modelKey != null && !modelKey.isEmpty()) {
+        tag.putString("ModelKey", modelKey);
+      }
+      if (soundProfile != null && !soundProfile.isEmpty()) {
+        tag.putString("SoundProfile", soundProfile);
+      }
+      if (swordType != null && !swordType.isEmpty()) {
+        tag.putString("SwordType", swordType);
+      }
       return tag;
     }
 
@@ -151,8 +244,39 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       int level = tag.getInt("Level");
       int experience = tag.getInt("Experience");
       float durability = tag.getFloat("Durability");
+      net.minecraft.nbt.CompoundTag ccTag =
+          tag.contains("ChestCavity") ? tag.getCompound("ChestCavity").copy() : new CompoundTag();
 
-      return new RecalledSword(attributes, level, experience, durability);
+      net.minecraft.nbt.CompoundTag displayItem = null;
+      if (tag.contains("DisplayItem")) {
+        displayItem = tag.getCompound("DisplayItem").copy();
+      }
+      net.minecraft.resources.ResourceLocation displayItemId = null;
+      if (tag.contains("DisplayItemId")) {
+        try {
+          displayItemId = net.minecraft.resources.ResourceLocation.parse(tag.getString("DisplayItemId"));
+        } catch (Exception ignored) {
+          displayItemId = null;
+        }
+      }
+      String modelKey = tag.contains("ModelKey") ? tag.getString("ModelKey") : null;
+      String soundProfile = tag.contains("SoundProfile") ? tag.getString("SoundProfile") : null;
+      String swordType = tag.contains("SwordType") ? tag.getString("SwordType") : null;
+      String displayItemUUID = tag.contains("DisplayItemUUID") ? tag.getString("DisplayItemUUID") : null;
+      boolean withdrawn = tag.contains("ItemWithdrawn") && tag.getBoolean("ItemWithdrawn");
+
+      return new RecalledSword(
+          attributes,
+          level,
+          experience,
+          durability,
+          ccTag,
+          displayItem,
+          displayItemId,
+          modelKey,
+          soundProfile,
+          swordType,
+          displayItemUUID) {{ this.itemWithdrawn = withdrawn; }};
     }
   }
 }

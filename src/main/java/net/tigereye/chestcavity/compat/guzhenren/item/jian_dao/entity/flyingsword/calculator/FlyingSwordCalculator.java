@@ -68,6 +68,7 @@ public final class FlyingSwordCalculator {
           case ORBIT -> FlyingSwordTuning.UPKEEP_ORBIT_MULT;
           case GUARD -> FlyingSwordTuning.UPKEEP_GUARD_MULT;
           case HUNT -> FlyingSwordTuning.UPKEEP_HUNT_MULT;
+          case HOVER -> FlyingSwordTuning.UPKEEP_ORBIT_MULT; // 悬浮近似环绕消耗
         };
 
     // 状态倍率

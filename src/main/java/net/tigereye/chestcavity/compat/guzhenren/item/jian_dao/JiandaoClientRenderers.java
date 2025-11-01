@@ -18,5 +18,9 @@ public final class JiandaoClientRenderers {
         CCEntities.SWORD_SHADOW_CLONE.get(), SwordShadowCloneRenderer::new);
     event.registerEntityRenderer(
         CCEntities.FLYING_SWORD.get(), FlyingSwordRenderer::new);
+    event.registerEntityRenderer(
+        CCEntities.FLYING_SWORD_ZHENG_DAO.get(), FlyingSwordRenderer::new);
+    event.registerEntityRenderer(
+        CCEntities.FLYING_SWORD_REN_SHOU_ZANG_SHENG.get(), FlyingSwordRenderer::new);
   }
 }

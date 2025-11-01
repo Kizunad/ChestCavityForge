@@ -11,7 +11,10 @@ public enum AIMode {
   GUARD("guard", "防守"),
 
   /** 出击模式：主动扫描并攻击目标 */
-  HUNT("hunt", "出击");
+  HUNT("hunt", "出击"),
+
+  /** 悬浮模式：靠近主人并在近身处悬停 */
+  HOVER("hover", "悬浮");
 
   private final String id;
   private final String displayName;

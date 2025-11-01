@@ -145,4 +145,30 @@ public final class CCEntities {
                   .clientTrackingRange(64)
                   .updateInterval(1)
                   .build(ChestCavity.MODID + ":flying_sword"));
+
+  // 与 FLYING_SWORD 逻辑相同的“正道飞剑”，用于数据驱动的特殊初始器官
+  public static final DeferredHolder<EntityType<?>, EntityType<FlyingSwordEntity>>
+      FLYING_SWORD_ZHENG_DAO =
+          ENTITY_TYPES.register(
+              "flying_sword_zheng_dao",
+              () ->
+                  EntityType.Builder.<FlyingSwordEntity>of(
+                          FlyingSwordEntity::new, MobCategory.MISC)
+                      .sized(0.5f, 0.5f)
+                      .clientTrackingRange(64)
+                      .updateInterval(1)
+                      .build(ChestCavity.MODID + ":flying_sword_zheng_dao"));
+
+  // 与 FLYING_SWORD 逻辑相同的“人兽葬生”飞剑（拼音），用于数据驱动的特殊初始器官
+  public static final DeferredHolder<EntityType<?>, EntityType<FlyingSwordEntity>>
+      FLYING_SWORD_REN_SHOU_ZANG_SHENG =
+          ENTITY_TYPES.register(
+              "flying_sword_ren_shou_zang_sheng",
+              () ->
+                  EntityType.Builder.<FlyingSwordEntity>of(
+                          FlyingSwordEntity::new, MobCategory.MISC)
+                      .sized(0.5f, 0.5f)
+                      .clientTrackingRange(64)
+                      .updateInterval(1)
+                      .build(ChestCavity.MODID + ":flying_sword_ren_shou_zang_sheng"));
 }

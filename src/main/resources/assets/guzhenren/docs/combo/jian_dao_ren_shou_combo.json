@@ -1,0 +1,14 @@
+{
+  "id": "guzhenren:jian_dao_ren_shou_combo",
+  "title": "[剑道 杀招]葬生飞剑召令",
+  "summary": "以近村为供脉，心跳催动，终召人兽葬生飞剑。",
+  "icon": "guzhenren:ren_shou_zang_sheng_gu",
+  "iconTexture": "guzhenren:textures/skill/flying_sword_summon_ren_shou_zang_sheng.png",
+  "details": [
+    "[前置] 需装备：人兽葬生蛊、御军蛊、剑痕蛊、剑迹蛊；小魂蛊/剑纹蛊为可选协同",
+    "[祭献] 以施放者为心，半径8格内的村民每5tick扣5生命并回响心跳，直至扣尽或达到上限",
+    "[召唤] 以主手物品承继属性生成‘葬生飞剑’，并将累积扣血注入飞剑耐久（上限钳制）",
+    "[外观] 生成时播放三环剑阵；音效：心跳"
+  ],
+  "tags": ["剑道", "魔道", "杀招", "飞剑", "献祭", "combo"]
+}

@@ -1,0 +1,7 @@
+{
+  "chestcavity": "chestcavity:types/flying_swords/flying_sword.json",
+  "entities": [
+    "chestcavity:flying_sword"
+  ]
+}
+

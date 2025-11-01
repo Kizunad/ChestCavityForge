@@ -25,5 +25,15 @@ public final class DefaultHooks {
             out.damageMult *= factor;
           }
         });
+
+    // 规则：耐久损耗按 剑道流派经验 的倒数缩放 => 乘以 (1 / ownerSwordPathExp)
+    // 经验越高，损耗越低；当经验<=0 或无定义时不生效
+    FlyingSwordCalcRegistry.register(
+        (ctx, out) -> {
+          double exp = ctx.ownerSwordPathExp;
+          if (Double.isFinite(exp) && exp > 0.0) {
+            out.durabilityLossMult *= (1.0 / exp);
+          }
+        });
   }
 }

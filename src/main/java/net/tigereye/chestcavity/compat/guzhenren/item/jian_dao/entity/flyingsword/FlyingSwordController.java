@@ -98,7 +98,8 @@ public final class FlyingSwordController {
     AIMode next = switch (current) {
       case ORBIT -> AIMode.GUARD;
       case GUARD -> AIMode.HUNT;
-      case HUNT -> AIMode.ORBIT;
+      case HUNT -> AIMode.HOVER;
+      case HOVER -> AIMode.ORBIT;
     };
 
     sword.setAIMode(next);
@@ -142,11 +143,43 @@ public final class FlyingSwordController {
           net.minecraft.network.chat.Component.literal("[飞剑] 召回失败 - 存储已满 (最多10个)"));
     }
 
-    // 召回特效
+    // 触发onDespawnOrRecall事件钩子（在discard之前）
     if (sword.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+      // 准备目标ItemStack（如果要回写NBT）
+      net.minecraft.world.item.ItemStack targetStack = null;
+      if (success) {
+        // 召回成功，准备一个空ItemStack作为占位（实际数据已保存到Storage）
+        // 钩子可以在这里添加额外NBT到customData
+        targetStack =
+            new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
+      }
+
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context
+          .DespawnContext despawnCtx =
+          new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+              .context.DespawnContext(
+              sword,
+              serverLevel,
+              owner,
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                  .context.DespawnContext.Reason.RECALLED,
+              targetStack);
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+          .FlyingSwordEventRegistry.fireDespawnOrRecall(despawnCtx);
+
+      // 检查是否被钩子阻止消散
+      if (despawnCtx.preventDespawn) {
+        return;
+      }
+
+      // 召回特效（已在DefaultEventHooks中处理，这里保留兼容）
       net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx.FlyingSwordFX
           .spawnRecallEffect(serverLevel, sword);
     }
+
+    // 音效：召回
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
+        .playRecall(sword);
 
     sword.discard();
   }
@@ -272,5 +305,56 @@ public final class FlyingSwordController {
       sword.setTargetEntity(null);
     }
     return swords.size();
+  }
+
+  /** 召回在场飞剑（按列表索引，1-based）。返回是否成功。 */
+  public static boolean recallByIndex(ServerLevel level, Player owner, int index1) {
+    List<FlyingSwordEntity> swords = getPlayerSwords(level, owner);
+    if (index1 < 1 || index1 > swords.size()) {
+      return false;
+    }
+    recall(swords.get(index1 - 1));
+    return true;
+  }
+
+  /** 设置在场第 index(1-based) 把飞剑的模式。返回是否成功。 */
+  public static boolean setModeByIndex(ServerLevel level, Player owner, int index1,
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode mode) {
+    List<FlyingSwordEntity> swords = getPlayerSwords(level, owner);
+    if (index1 < 1 || index1 > swords.size()) {
+      return false;
+    }
+    FlyingSwordEntity sword = swords.get(index1 - 1);
+    sword.setAIMode(mode);
+    return true;
+  }
+
+  // ========== 指定飞剑（Selection） ==========
+  /** 设置玩家当前“已指定”的飞剑。 */
+  public static boolean setSelectedSword(Player owner, FlyingSwordEntity sword) {
+    if (owner == null || sword == null || sword.isRemoved()) return false;
+    if (!sword.isOwnedBy(owner)) return false;
+    var sel = net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordSelection(owner);
+    sel.setSelectedSword(sword.getUUID());
+    return true;
+  }
+
+  /** 清除玩家“已指定”的飞剑。 */
+  public static void clearSelectedSword(Player owner) {
+    if (owner == null) return;
+    net.tigereye.chestcavity.registration.CCAttachments
+        .getFlyingSwordSelection(owner)
+        .clear();
+  }
+
+  /** 获取玩家“已指定”的飞剑（若仍存活）。 */
+  @Nullable
+  public static FlyingSwordEntity getSelectedSword(ServerLevel level, Player owner) {
+    if (owner == null || level == null) return null;
+    var sel = net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordSelection(owner);
+    var selected = sel.getSelectedSword();
+    if (selected.isEmpty()) return null;
+    var entity = level.getEntity(selected.get());
+    return (entity instanceof FlyingSwordEntity fs && fs.isOwnedBy(owner)) ? fs : null;
   }
 }

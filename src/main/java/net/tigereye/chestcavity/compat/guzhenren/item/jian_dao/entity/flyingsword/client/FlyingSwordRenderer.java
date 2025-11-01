@@ -28,7 +28,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public class FlyingSwordRenderer extends EntityRenderer<FlyingSwordEntity> {
 
   private final ItemRenderer itemRenderer;
-  private static final ItemStack DISPLAY_ITEM = new ItemStack(Items.IRON_SWORD);
+  // 由实体提供显示用物品栈；保留铁剑作为兜底
+  private static final ItemStack FALLBACK_DISPLAY_ITEM = new ItemStack(Items.IRON_SWORD);
 
   public FlyingSwordRenderer(EntityRendererProvider.Context context) {
     super(context);
@@ -78,9 +79,14 @@ public class FlyingSwordRenderer extends EntityRenderer<FlyingSwordEntity> {
     // 缩放
     poseStack.scale(1.0f, 1.0f, 1.0f);
 
-    // 渲染铁剑物品
+    // 渲染实体指定的物品模型
+    ItemStack display = entity.getDisplayItemStack();
+    if (display == null || display.isEmpty()) {
+      display = FALLBACK_DISPLAY_ITEM;
+    }
+
     this.itemRenderer.renderStatic(
-        DISPLAY_ITEM,
+        display,
         ItemDisplayContext.NONE,
         packedLight,
         OverlayTexture.NO_OVERLAY,

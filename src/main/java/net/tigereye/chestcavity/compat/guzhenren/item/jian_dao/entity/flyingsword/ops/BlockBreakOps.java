@@ -96,6 +96,7 @@ public final class BlockBreakOps {
     int mineableCount = 0;
     int eligible = 0;
     int broken = 0;
+    boolean playedSound = false;
     for (int x = minX; x <= maxX && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK; x++) {
       for (int y = minY; y <= maxY && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK; y++) {
         for (int z = minZ; z <= maxZ && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK; z++) {
@@ -117,6 +118,11 @@ public final class BlockBreakOps {
           // 破坏
           if (level.destroyBlock(pos, true, sword)) {
             broken++;
+            if (!playedSound) {
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
+                  .playBlockBreak(sword);
+              playedSound = true;
+            }
             if (FlyingSwordBlockBreakTuning.BREAK_DEBUG_LOGS && sword.tickCount % 20 == 0) {
               net.tigereye.chestcavity.ChestCavity.LOGGER.info(
                   String.format(
@@ -130,11 +136,45 @@ public final class BlockBreakOps {
                 FlyingSwordCalculator.calculateDurabilityLossFromBlock(hardness, toolTier);
             float total =
                 net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
-                    .FlyingSwordCalculator.calculateDurabilityLoss(
-                        duraBlock, sword.getSwordAttributes().duraLossRatio, true);
-            sword.damageDurability(total);
+                    .FlyingSwordCalculator.calculateDurabilityLossWithContext(
+                        duraBlock, sword.getSwordAttributes().duraLossRatio, true, ctx);
 
             double decel = FlyingSwordBlockBreakTuning.BREAK_DECEL_PER_BLOCK;
+
+            // 触发onBlockBreak事件钩子
+            var owner = sword.getOwner();
+            if (owner != null) {
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                  .context.BlockBreakContext breakCtx =
+                  new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+                      .events.context.BlockBreakContext(
+                      sword,
+                      level,
+                      owner,
+                      pos,
+                      state,
+                      hardness,
+                      speed,
+                      toolTier,
+                      total,
+                      decel);
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                  .FlyingSwordEventRegistry.fireBlockBreak(breakCtx);
+
+              // 使用钩子修改后的值
+              total = (float) breakCtx.durabilityLoss;
+              decel = breakCtx.deceleration;
+
+              // 应用耐久损耗（可被钩子跳过）
+              if (!breakCtx.skipDurability) {
+                sword.damageDurability(total);
+              }
+            } else {
+              // 无主人时直接应用
+              sword.damageDurability(total);
+            }
+
+            // 应用减速
             if (decel > 0.0) {
               Vec3 v = sword.getDeltaMovement().scale(Math.max(0.0, 1.0 - decel));
               sword.setDeltaMovement(v);

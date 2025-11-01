@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -12,6 +13,8 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
+import net.tigereye.chestcavity.compat.guzhenren.client.skin.SkinHandle;
+import net.tigereye.chestcavity.compat.guzhenren.client.skin.SkinResolver;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 
 /** Renders sword shadow clones as translucent, tinted versions of the owning player's skin. */
@@ -30,6 +33,25 @@ public class SwordShadowCloneRenderer
 
   @Override
   public ResourceLocation getTextureLocation(SwordShadowClone entity) {
+    Minecraft minecraft = Minecraft.getInstance();
+    if (minecraft != null && minecraft.level != null) {
+      ResourceLocation fallback = entity.getSkinTexture();
+      String model = entity.getSkinModel();
+      String skinUrl = guessSkinUrl(fallback);
+      var handle =
+          new SkinHandle(
+              entity.getUUID(),
+              "",
+              "",
+              model,
+              skinUrl,
+              fallback,
+              null);
+      var layers = SkinResolver.resolve(handle);
+      if (layers.base() != null) {
+        return layers.base();
+      }
+    }
     return entity.getSkinTexture();
   }
 
@@ -49,10 +71,12 @@ public class SwordShadowCloneRenderer
 
   private static final class TintLayer
       extends RenderLayer<SwordShadowClone, PlayerModel<SwordShadowClone>> {
+    private final SwordShadowCloneRenderer parent;
     private final PlayerModel<SwordShadowClone> slimModel;
 
     private TintLayer(SwordShadowCloneRenderer renderer, EntityRendererProvider.Context context) {
       super(renderer);
+      this.parent = renderer;
       this.slimModel = new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER_SLIM), true);
     }
 
@@ -78,8 +102,8 @@ public class SwordShadowCloneRenderer
               (int) (tint[0] * 255.0f),
               (int) (tint[1] * 255.0f),
               (int) (tint[2] * 255.0f));
-      VertexConsumer consumer =
-          buffer.getBuffer(RenderType.entityTranslucent(entity.getSkinTexture()));
+      ResourceLocation texture = parent.getTextureLocation(entity);
+      VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucent(texture));
       model.renderToBuffer(
           poseStack,
           consumer,
@@ -87,5 +111,22 @@ public class SwordShadowCloneRenderer
           LivingEntityRenderer.getOverlayCoords(entity, 0.0f),
           argb);
     }
+  }
+
+  private static String guessSkinUrl(ResourceLocation texture) {
+    if (texture == null) return null;
+    if ("minecraft".equals(texture.getNamespace())) {
+      String path = texture.getPath();
+      if (path != null && path.startsWith("skins/")) {
+        int idx = path.lastIndexOf('/') + 1;
+        if (idx > 0 && idx < path.length()) {
+          String hash = path.substring(idx);
+          if (!hash.isBlank()) {
+            return "https://textures.minecraft.net/texture/" + hash;
+          }
+        }
+      }
+    }
+    return null;
   }
 }

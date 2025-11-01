@@ -14,6 +14,9 @@ public final class FlyingSwordCombatTuning {
   /** 攻击冷却（ticks） */
   public static final int ATTACK_COOLDOWN_TICKS = configInt("ATTACK_COOLDOWN_TICKS", 10);
 
+  /** 调试日志：碰撞检测心跳日志（默认关闭） */
+  public static final boolean COMBAT_DEBUG_LOGS = configBool("COMBAT_DEBUG_LOGS", false);
+
   private static double config(String key, double def) {
     return BehaviorConfigAccess.getFloat(FlyingSwordCombatTuning.class, key, (float) def);
   }
@@ -21,5 +24,8 @@ public final class FlyingSwordCombatTuning {
   private static int configInt(String key, int def) {
     return BehaviorConfigAccess.getInt(FlyingSwordCombatTuning.class, key, def);
   }
-}
 
+  private static boolean configBool(String key, boolean def) {
+    return BehaviorConfigAccess.getBoolean(FlyingSwordCombatTuning.class, key, def);
+  }
+}

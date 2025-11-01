@@ -99,6 +99,18 @@ public final class CCAttachments {
                       .serialize(new FlyingSwordStorageSerializer())
                       .build());
 
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+              .FlyingSwordSelection>>
+      FLYING_SWORD_SELECTION =
+          ATTACHMENT_TYPES.register(
+              "flying_sword_selection",
+              () ->
+                  AttachmentType.builder(
+                          CCAttachments::createFlyingSwordSelection)
+                      .serialize(new FlyingSwordSelectionSerializer())
+                      .build());
+
   private CCAttachments() {}
 
   private static ChestCavityInstance createInstance(IAttachmentHolder holder) {
@@ -174,6 +186,17 @@ public final class CCAttachments {
     return new FlyingSwordStorage();
   }
 
+  private static net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+          .FlyingSwordSelection
+      createFlyingSwordSelection(IAttachmentHolder holder) {
+    if (!(holder instanceof Player)) {
+      throw new IllegalStateException(
+          "FlyingSwordSelection attachment can only be applied to players");
+    }
+    return new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+        .FlyingSwordSelection();
+  }
+
   public static SoulContainer getSoulContainer(Player player) {
     return player.getData(SOUL_CONTAINER.get());
   }
@@ -212,6 +235,19 @@ public final class CCAttachments {
 
   public static Optional<FlyingSwordStorage> getExistingFlyingSwordStorage(Player player) {
     return player.getExistingData(FLYING_SWORD_STORAGE.get());
+  }
+
+  public static net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+          .FlyingSwordSelection
+      getFlyingSwordSelection(Player player) {
+    return player.getData(FLYING_SWORD_SELECTION.get());
+  }
+
+  public static Optional<
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+              .FlyingSwordSelection>
+      getExistingFlyingSwordSelection(Player player) {
+    return player.getExistingData(FLYING_SWORD_SELECTION.get());
   }
 
   private static class ChestCavitySerializer
@@ -305,6 +341,35 @@ public final class CCAttachments {
 
     @Override
     public CompoundTag write(FlyingSwordStorage attachment, HolderLookup.Provider provider) {
+      return attachment.serializeNBT(provider);
+    }
+  }
+
+  private static class FlyingSwordSelectionSerializer
+      implements IAttachmentSerializer<
+          CompoundTag,
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+              .FlyingSwordSelection> {
+    @Override
+    public net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+            .FlyingSwordSelection
+        read(
+            IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
+      var sel =
+          new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+              .FlyingSwordSelection();
+      if (!tag.isEmpty()) {
+        sel.deserializeNBT(provider, tag);
+      }
+      return sel;
+    }
+
+    @Override
+    public CompoundTag write(
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+                .FlyingSwordSelection
+            attachment,
+        HolderLookup.Provider provider) {
       return attachment.serializeNBT(provider);
     }
   }

@@ -56,6 +56,12 @@ public final class FlyingSwordTuning {
       FlyingSwordInheritTuning.INHERIT_ATTACK_DAMAGE_COEF;
   public static final double INHERIT_ATTACK_SPEED_COEF =
       FlyingSwordInheritTuning.INHERIT_ATTACK_SPEED_COEF;
+  public static final double INHERIT_MAX_DAMAGE_TO_MAX_DURABILITY_COEF =
+      FlyingSwordInheritTuning.INHERIT_MAX_DAMAGE_TO_MAX_DURABILITY_COEF;
+  public static final double INHERIT_ARMOR_TO_MAX_DURABILITY_COEF =
+      FlyingSwordInheritTuning.INHERIT_ARMOR_TO_MAX_DURABILITY_COEF;
+  public static final double INHERIT_ARMOR_DURA_LOSS_MULT_PER_POINT =
+      FlyingSwordInheritTuning.INHERIT_ARMOR_DURA_LOSS_MULT_PER_POINT;
 
   // AI 行为
   public static final double ORBIT_TARGET_DISTANCE = FlyingSwordAITuning.ORBIT_TARGET_DISTANCE;

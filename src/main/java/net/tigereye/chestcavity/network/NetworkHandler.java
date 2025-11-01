@@ -45,6 +45,9 @@ public final class NetworkHandler {
 
   private NetworkHandler() {}
 
+  // 防重注册：部分环境下 RegisterPayloadHandlersEvent 可能被多次触发
+  private static boolean FLYINGSWORD_TUI_PAYLOADS_REGISTERED = false;
+
   public static void registerCommon(RegisterPayloadHandlersEvent event) {
     PayloadRegistrar registrar = event.registrar("1");
     registrar.playToServer(
@@ -87,10 +90,22 @@ public final class NetworkHandler {
         TestModernUIContainerRequestPayload.TYPE,
         TestModernUIContainerRequestPayload.STREAM_CODEC,
         TestModernUIContainerRequestPayload::handle);
+    if (!FLYINGSWORD_TUI_PAYLOADS_REGISTERED) {
+      registrar.playToServer(
+          net.tigereye.chestcavity.client.modernui.network.FlyingSwordWithdrawPayload.TYPE,
+          net.tigereye.chestcavity.client.modernui.network.FlyingSwordWithdrawPayload.STREAM_CODEC,
+          net.tigereye.chestcavity.client.modernui.network.FlyingSwordWithdrawPayload::handle);
+      registrar.playToServer(
+          net.tigereye.chestcavity.client.modernui.network.FlyingSwordDepositPayload.TYPE,
+          net.tigereye.chestcavity.client.modernui.network.FlyingSwordDepositPayload.STREAM_CODEC,
+          net.tigereye.chestcavity.client.modernui.network.FlyingSwordDepositPayload::handle);
+      FLYINGSWORD_TUI_PAYLOADS_REGISTERED = true;
+    }
     registrar.playToServer(
         ActiveSkillTriggerPayload.TYPE,
         ActiveSkillTriggerPayload.STREAM_CODEC,
         ActiveSkillTriggerPayload::handle);
+    // Flying Sword TUI actions 已在上方带防重注册的分支中完成注册
     registrar.playToServer(
         SkillHotbarUpdatePayload.TYPE,
         SkillHotbarUpdatePayload.STREAM_CODEC,

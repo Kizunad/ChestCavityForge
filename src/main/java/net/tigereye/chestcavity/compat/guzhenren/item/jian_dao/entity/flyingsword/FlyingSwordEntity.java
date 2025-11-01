@@ -7,6 +7,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -15,6 +17,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -62,6 +65,18 @@ public class FlyingSwordEntity extends PathfinderMob {
   private static final EntityDataAccessor<Float> SPEED_CURRENT =
       SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.FLOAT);
 
+  // 显示模型与音效档（可运行时定制）
+  private static final EntityDataAccessor<ItemStack> DISPLAY_ITEM_STACK =
+      SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.ITEM_STACK);
+  private static final EntityDataAccessor<String> MODEL_KEY =
+      SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.STRING);
+  private static final EntityDataAccessor<String> SOUND_PROFILE =
+      SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.STRING);
+
+  // 飞剑类型（用于区分正道/魔道/默认）
+  private static final EntityDataAccessor<String> SWORD_TYPE =
+      SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.STRING);
+
   // ========== 缓存字段 ==========
   @Nullable
   private Player cachedOwner;
@@ -105,6 +120,10 @@ public class FlyingSwordEntity extends PathfinderMob {
     builder.define(EXPERIENCE, 0);
     builder.define(DURABILITY, (float) FlyingSwordTuning.MAX_DURABILITY);
     builder.define(SPEED_CURRENT, (float) FlyingSwordTuning.SPEED_BASE);
+    builder.define(DISPLAY_ITEM_STACK, new ItemStack(Items.IRON_SWORD));
+    builder.define(MODEL_KEY, "");
+    builder.define(SOUND_PROFILE, "");
+    builder.define(SWORD_TYPE, FlyingSwordType.DEFAULT.getRegistryName());
   }
 
   @Override
@@ -183,6 +202,8 @@ public class FlyingSwordEntity extends PathfinderMob {
 
   public void setSwordAttributes(FlyingSwordAttributes attributes) {
     this.attributes = attributes;
+    // 属性变化后，同步生命-耐久关系
+    syncHealthWithDurability();
   }
 
   // ========== 等级与经验 ==========
@@ -233,6 +254,14 @@ public class FlyingSwordEntity extends PathfinderMob {
     float clamped = (float) FlyingSwordCalculator.clamp(
         durability, 0.0, attributes.maxDurability);
     this.entityData.set(DURABILITY, clamped);
+    // 生命值与耐久绑定：最大生命 = 最大耐久；当前生命 = 当前耐久
+    AttributeInstance hp = this.getAttribute(Attributes.MAX_HEALTH);
+    if (hp != null) {
+      if (hp.getBaseValue() != attributes.maxDurability) {
+        hp.setBaseValue(Math.max(1.0, attributes.maxDurability));
+      }
+    }
+    this.setHealth(clamped);
   }
 
   public void damageDurability(float amount) {
@@ -252,6 +281,53 @@ public class FlyingSwordEntity extends PathfinderMob {
 
   public void setCurrentSpeed(float speed) {
     this.entityData.set(SPEED_CURRENT, speed);
+  }
+
+  // ========== 显示模型/音效 档 ==========
+  public ItemStack getDisplayItemStack() {
+    return this.entityData.get(DISPLAY_ITEM_STACK);
+  }
+
+  public void setDisplayItemStack(ItemStack stack) {
+    if (stack == null) stack = ItemStack.EMPTY;
+    this.entityData.set(DISPLAY_ITEM_STACK, stack);
+    // 同步名字到实体（用于名称牌显示）
+    try {
+      if (!stack.isEmpty() && net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+          .FlyingSwordModelTuning.SHOW_ITEM_NAME) {
+        this.setCustomName(stack.getHoverName());
+        this.setCustomNameVisible(true);
+      }
+    } catch (Throwable ignored) {}
+  }
+
+  public String getModelKey() {
+    return this.entityData.get(MODEL_KEY);
+  }
+
+  public void setModelKey(String key) {
+    if (key == null) key = "";
+    this.entityData.set(MODEL_KEY, key);
+  }
+
+  public String getSoundProfile() {
+    return this.entityData.get(SOUND_PROFILE);
+  }
+
+  public void setSoundProfile(String profile) {
+    if (profile == null) profile = "";
+    this.entityData.set(SOUND_PROFILE, profile);
+  }
+
+  // ========== 飞剑类型管理 ==========
+  public FlyingSwordType getSwordType() {
+    String registryName = this.entityData.get(SWORD_TYPE);
+    return FlyingSwordType.fromRegistryName(registryName);
+  }
+
+  public void setSwordType(FlyingSwordType type) {
+    if (type == null) type = FlyingSwordType.DEFAULT;
+    this.entityData.set(SWORD_TYPE, type.getRegistryName());
   }
 
   // ========== Tick 逻辑 ==========
@@ -279,29 +355,47 @@ public class FlyingSwordEntity extends PathfinderMob {
       return;
     }
 
+    // 触发onTick事件钩子
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context
+        .TickContext tickCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+            .context.TickContext(
+            this, (net.minecraft.server.level.ServerLevel) this.level(), owner, getAIMode(), this.tickCount);
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+        .FlyingSwordEventRegistry.fireTick(tickCtx);
+
     // 攻击冷却递减
     if (attackCooldown > 0) {
       attackCooldown--;
     }
 
-    // 维持消耗检查
-    upkeepTicks++;
-    if (upkeepTicks >= FlyingSwordTuning.UPKEEP_CHECK_INTERVAL) {
+    // 维持消耗检查（可被钩子跳过）
+    if (!tickCtx.skipUpkeep) {
+      upkeepTicks++;
+    }
+    if (!tickCtx.skipUpkeep && upkeepTicks >= FlyingSwordTuning.UPKEEP_CHECK_INTERVAL) {
       upkeepTicks = 0;
       if (!net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops
           .UpkeepOps.consumeIntervalUpkeep(this, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL)) {
+        // 音效：真元不足
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
+            .playOutOfEnergy(this);
         // 维持不足，召回
         recallToOwner();
         return;
       }
     }
 
-    // AI行为逻辑
-    tickAI();
+    // AI行为逻辑（可被钩子跳过）
+    if (!tickCtx.skipAI) {
+      tickAI();
+    }
 
-    // 破块逻辑（速度分段 + 镐子可破范围）
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.BlockBreakOps
-        .tickBlockBreak(this);
+    // 破块逻辑（速度分段 + 镐子可破范围，可被钩子跳过）
+    if (!tickCtx.skipBlockBreak) {
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.BlockBreakOps
+          .tickBlockBreak(this);
+    }
   }
 
   // 维持消耗逻辑已迁移到 ops.UpkeepOps
@@ -338,6 +432,9 @@ public class FlyingSwordEntity extends PathfinderMob {
         net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
             .HuntBehavior.tick(this, owner, nearest);
       }
+      case HOVER ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+              .HoverBehavior.tick(this, owner);
     }
 
     // 检测碰撞攻击（集中在战斗模块）
@@ -455,12 +552,32 @@ public class FlyingSwordEntity extends PathfinderMob {
   // ========== 交互逻辑 ==========
   @Override
   public InteractionResult mobInteract(Player player, InteractionHand hand) {
+    // 若手持 chest_opener，放行给物品交互（打开胸腔），不执行默认召回
+    var opener = net.tigereye.chestcavity.registration.CCItems.CHEST_OPENER.get();
+    if (player.getItemInHand(hand).is(opener) || player.getOffhandItem().is(opener)) {
+      return InteractionResult.PASS;
+    }
     if (this.level().isClientSide) {
       return InteractionResult.SUCCESS;
     }
 
-    // 右键召回
-    if (isOwnedBy(player)) {
+    boolean isOwner = isOwnedBy(player);
+
+    // 触发onInteract事件钩子
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context
+        .InteractContext interactCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+            .context.InteractContext(this, player, hand, isOwner);
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+        .FlyingSwordEventRegistry.fireInteract(interactCtx);
+
+    // 检查是否被钩子拦截
+    if (interactCtx.cancelDefault) {
+      return interactCtx.customResult;
+    }
+
+    // 右键召回（仅主人）
+    if (isOwner) {
       recallToOwner();
       return InteractionResult.SUCCESS;
     }
@@ -475,6 +592,23 @@ public class FlyingSwordEntity extends PathfinderMob {
     }
   }
 
+  /** 将实体生命值与耐久绑定（1:1），并限制到当前上限。 */
+  public void syncHealthWithDurability() {
+    try {
+      AttributeInstance hp = this.getAttribute(Attributes.MAX_HEALTH);
+      if (hp != null) {
+        hp.setBaseValue(Math.max(1.0, attributes.maxDurability));
+      }
+      float cur = getDurability();
+      float clamped = (float) FlyingSwordCalculator.clamp(cur, 0.0, attributes.maxDurability);
+      if (clamped != cur) {
+        this.entityData.set(DURABILITY, clamped);
+      }
+      this.setHealth(clamped);
+    } catch (Throwable ignored) {
+    }
+  }
+
   // ========== 伤害处理 ==========
   @Override
   public boolean hurt(DamageSource source, float amount) {
@@ -482,15 +616,69 @@ public class FlyingSwordEntity extends PathfinderMob {
       return false;
     }
 
-    // 耐久损耗
-    float duraLoss = FlyingSwordCalculator.calculateDurabilityLoss(
-        amount,
-        attributes.duraLossRatio,
-        false
-    );
+    Player owner = getOwner();
+    if (owner == null) {
+      // 无主人：按基础规则消耗耐久，并与生命同步
+      float duraLoss =
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+              .FlyingSwordCalculator.calculateDurabilityLoss(
+                  amount, attributes.duraLossRatio, false);
+      damageDurability(duraLoss);
+      if (!this.isRemoved()) {
+        this.setHealth(this.getDurability());
+      }
+      super.hurt(source, 0.0F);
+      return true;
+    }
+
+    // 触发onHurt事件钩子
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context
+        .HurtContext hurtCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+            .context.HurtContext(
+            this, (net.minecraft.server.level.ServerLevel) this.level(), owner, source, amount);
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+        .FlyingSwordEventRegistry.fireHurt(hurtCtx);
+
+    // 检查是否被钩子取消
+    if (hurtCtx.cancelled) {
+      return false;
+    }
+
+    // 使用钩子修改后的伤害
+    amount = hurtCtx.damage;
+
+    // 应用折返效果
+    if (hurtCtx.triggerRetreat) {
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.impl
+          .DefaultEventHooks.applyRetreat(this);
+    }
+
+    // 应用虚弱状态
+    if (hurtCtx.triggerWeakened) {
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.impl
+          .DefaultEventHooks.applyWeakened(this, hurtCtx.weakenedDuration);
+    }
+
+    // 耐久损耗（带上下文，应用流派经验等影响）
+    float duraLoss =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+            .FlyingSwordCalculator.calculateDurabilityLossWithContext(
+                amount,
+                attributes.duraLossRatio,
+                false,
+                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+                    .calculator.context.CalcContexts.from(this));
     damageDurability(duraLoss);
 
-    return super.hurt(source, amount);
+    // 保持生命值与耐久一致
+    if (!this.isRemoved()) {
+      this.setHealth(this.getDurability());
+    }
+
+    // 调用父类以保持受击副作用，但避免重复扣血：传入0伤害
+    super.hurt(source, 0.0F);
+    return true;
   }
 
   @Override
@@ -541,16 +729,39 @@ public class FlyingSwordEntity extends PathfinderMob {
       this.attributes = FlyingSwordAttributes.loadFromNBT(tag.getCompound("Attributes"));
     }
 
+    // 展示模型与音效档
+    if (tag.contains("DisplayItem")) {
+      ItemStack stack = ItemStack.parseOptional(this.registryAccess(), tag.getCompound("DisplayItem"));
+      if (!stack.isEmpty()) {
+        this.setDisplayItemStack(stack);
+      }
+    }
+    if (tag.contains("ModelKey")) {
+      setModelKey(tag.getString("ModelKey"));
+    }
+    if (tag.contains("SoundProfile")) {
+      setSoundProfile(tag.getString("SoundProfile"));
+    }
+
+    // 飞剑类型
+    if (tag.contains("SwordType")) {
+      FlyingSwordType type = FlyingSwordType.fromRegistryName(tag.getString("SwordType"));
+      setSwordType(type);
+    }
+
     // Age
     this.age = tag.getInt("Age");
     this.upkeepTicks = tag.getInt("UpkeepTicks");
+
+    // 同步生命-耐久
+    syncHealthWithDurability();
   }
 
   @Override
   public void addAdditionalSaveData(CompoundTag tag) {
     super.addAdditionalSaveData(tag);
 
-    // Owner
+    // Owner（持久化召唤者，以便重载后关联）
     this.entityData.get(OWNER).ifPresent(uuid -> tag.putUUID("Owner", uuid));
 
     // AI Mode
@@ -574,6 +785,21 @@ public class FlyingSwordEntity extends PathfinderMob {
     // Age
     tag.putInt("Age", this.age);
     tag.putInt("UpkeepTicks", this.upkeepTicks);
+
+    // 展示模型与音效档
+    ItemStack display = getDisplayItemStack();
+    if (display != null && !display.isEmpty()) {
+      tag.put("DisplayItem", display.save(this.registryAccess()));
+    }
+    if (!getModelKey().isEmpty()) {
+      tag.putString("ModelKey", getModelKey());
+    }
+    if (!getSoundProfile().isEmpty()) {
+      tag.putString("SoundProfile", getSoundProfile());
+    }
+
+    // 飞剑类型
+    tag.putString("SwordType", getSwordType().getRegistryName());
   }
 
   // ========== 攻击逻辑 ==========
@@ -584,17 +810,39 @@ public class FlyingSwordEntity extends PathfinderMob {
 
   // ========== 工厂方法 ==========
   /**
-   * 创建飞剑实体
+   * 创建飞剑实体（默认类型）
    */
   public static FlyingSwordEntity create(
       ServerLevel level,
       Player owner,
       Vec3 spawnPos,
       @Nullable FlyingSwordAttributes.AttributeModifiers modifiers) {
+    return create(
+        level,
+        owner,
+        spawnPos,
+        modifiers,
+        net.tigereye.chestcavity.registration.CCEntities.FLYING_SWORD.get());
+  }
 
-    EntityType<FlyingSwordEntity> type =
-        net.tigereye.chestcavity.registration.CCEntities.FLYING_SWORD.get();
-    FlyingSwordEntity sword = type.create(level);
+  /**
+   * 创建飞剑实体（指定实体类型）
+   *
+   * @param level 服务端世界
+   * @param owner 主人
+   * @param spawnPos 生成位置
+   * @param modifiers 释放继承修正
+   * @param entityType 实体类型（用于确定飞剑类型）
+   * @return 创建的飞剑实体
+   */
+  public static FlyingSwordEntity create(
+      ServerLevel level,
+      Player owner,
+      Vec3 spawnPos,
+      @Nullable FlyingSwordAttributes.AttributeModifiers modifiers,
+      EntityType<FlyingSwordEntity> entityType) {
+
+    FlyingSwordEntity sword = entityType.create(level);
 
     if (sword == null) {
       return null;
@@ -604,10 +852,18 @@ public class FlyingSwordEntity extends PathfinderMob {
     sword.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, owner.getYRot(), 0);
     sword.setOwner(owner);
 
+    // 从EntityType推导并设置飞剑类型
+    FlyingSwordType swordType = FlyingSwordType.fromEntityTypeId(
+        net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entityType));
+    sword.setSwordType(swordType);
+
     // 应用释放继承修正
     if (modifiers != null) {
       sword.getSwordAttributes().applyModifiers(modifiers);
     }
+
+    // 绑定生命与耐久
+    sword.syncHealthWithDurability();
 
     return sword;
   }

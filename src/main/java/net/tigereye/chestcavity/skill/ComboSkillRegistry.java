@@ -447,6 +447,61 @@ public final class ComboSkillRegistry {
         },
         null);
 
+    // 剑道（占位）
+    register(
+        "guzhenren:jian_dao_first_combo",
+        "飞剑召令",
+        net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.tuning.JianDaoComboTuning.ICON,
+        List.of(
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.ZHI_LU_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.YU_JUN_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.YI_ZHUAN_REN_DAO_XI_WANG_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.JIAN_QI_GU
+        ),
+        List.of(),
+        "剑道组合杀招",
+        "召唤",
+        net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.tuning.JianDaoComboTuning.DESCRIPTION,
+        tags("组合", "剑道", "占位"),
+        "compat/guzhenren/item/combo/jian_dao/behavior/JianDaoFirstComboBehavior.java",
+        () -> {
+          try {
+            Class.forName(
+                "net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.behavior.JianDaoFirstComboBehavior");
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.behavior.JianDaoFirstComboBehavior.initialize();
+          } catch (Throwable ignored) {}
+        },
+        null);
+
+    // 剑道（魔道分支）——葬生飞剑召令（框架）
+    register(
+        net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.SKILL_ID_REN_SHOU.toString(),
+        "葬生飞剑召令",
+        net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.tuning.JianDaoRenShouComboTuning.ICON,
+        List.of(
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.REN_SHOU_ZANG_SHENG_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.YU_JUN_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.JIAN_HEN_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.JIAN_JI_GU
+        ),
+        List.of(
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.XIAO_HUN_GU,
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.JianDaoComboRegistry.JIAN_WEN_GU
+        ),
+        "剑道组合杀招",
+        "献祭",
+        net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.tuning.JianDaoRenShouComboTuning.DESCRIPTION,
+        tags("组合", "剑道", "魔道", "献祭", "飞剑"),
+        "compat/guzhenren/item/combo/jian_dao/behavior/JianDaoRenShouComboBehavior.java",
+        () -> {
+          try {
+            Class.forName(
+                "net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.behavior.JianDaoRenShouComboBehavior");
+            net.tigereye.chestcavity.compat.guzhenren.item.combo.jian_dao.behavior.JianDaoRenShouComboBehavior.initialize();
+          } catch (Throwable ignored) {}
+        },
+        null);
+
     ChestCavity.LOGGER.info("[ComboSkillRegistry] Registered {} combo skills", ENTRIES.size());
   }
 

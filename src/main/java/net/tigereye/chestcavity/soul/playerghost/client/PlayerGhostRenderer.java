@@ -1,10 +1,13 @@
 package net.tigereye.chestcavity.soul.playerghost.client;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.client.skin.SkinHandle;
+import net.tigereye.chestcavity.compat.guzhenren.client.skin.SkinResolver;
 import net.tigereye.chestcavity.soul.playerghost.PlayerGhostEntity;
 
 /**
@@ -25,6 +28,42 @@ public class PlayerGhostRenderer
 
   @Override
   public ResourceLocation getTextureLocation(PlayerGhostEntity entity) {
+    Minecraft minecraft = Minecraft.getInstance();
+    if (minecraft != null && minecraft.level != null) {
+      ResourceLocation fallback = entity.getSkinTexture();
+      String model = entity.getSkinModel();
+      String skinUrl = guessSkinUrl(fallback);
+      var handle =
+          new SkinHandle(
+              entity.getUUID(),
+              "",
+              "",
+              model,
+              skinUrl,
+              fallback,
+              null);
+      var layers = SkinResolver.resolve(handle);
+      if (layers.base() != null) {
+        return layers.base();
+      }
+    }
     return entity.getSkinTexture();
+  }
+
+  private static String guessSkinUrl(ResourceLocation texture) {
+    if (texture == null) return null;
+    if ("minecraft".equals(texture.getNamespace())) {
+      String path = texture.getPath();
+      if (path != null && path.startsWith("skins/")) {
+        int idx = path.lastIndexOf('/') + 1;
+        if (idx > 0 && idx < path.length()) {
+          String hash = path.substring(idx);
+          if (!hash.isBlank()) {
+            return "https://textures.minecraft.net/texture/" + hash;
+          }
+        }
+      }
+    }
+    return null;
   }
 }

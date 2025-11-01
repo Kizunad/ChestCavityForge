@@ -60,6 +60,12 @@ public final class FlyingSwordCommand {
             .then(Commands.literal("recall").executes(FlyingSwordCommand::recallAll))
             // /flyingsword restore
             .then(Commands.literal("restore").executes(FlyingSwordCommand::restoreAll))
+            // /flyingsword restore_index <index>
+            .then(
+                Commands.literal("restore_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::restoreByIndex)))
             // /flyingsword mode <orbit|guard|hunt>
             .then(
                 Commands.literal("mode")
@@ -70,6 +76,7 @@ public final class FlyingSwordCommand {
                                   builder.suggest("orbit");
                                   builder.suggest("guard");
                                   builder.suggest("hunt");
+                                  builder.suggest("hover");
                                   return builder.buildFuture();
                                 })
                             .executes(FlyingSwordCommand::setMode)))
@@ -77,8 +84,84 @@ public final class FlyingSwordCommand {
             .then(Commands.literal("status").executes(FlyingSwordCommand::showStatus))
             // /flyingsword list
             .then(Commands.literal("list").executes(FlyingSwordCommand::listSwords))
+            // /flyingsword recall_index <index>
+            .then(
+                Commands.literal("recall_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::recallByIndex)))
+            // /flyingsword mode_index <index> <mode>
+            .then(
+                Commands.literal("mode_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .then(
+                                Commands.argument("mode", StringArgumentType.word())
+                                    .suggests(
+                                        (ctx, builder) -> {
+                                          builder.suggest("orbit");
+                                          builder.suggest("guard");
+                                          builder.suggest("hunt");
+                                          builder.suggest("hover");
+                                          return builder.buildFuture();
+                                        })
+                                    .executes(FlyingSwordCommand::setModeByIndex))))
             // /flyingsword clear
             .then(Commands.literal("clear").executes(FlyingSwordCommand::clearTargets))
+            // /flyingsword ui / ui_active [page] / ui_storage [page]
+            .then(Commands.literal("ui").executes(FlyingSwordCommand::openUI))
+            .then(
+                Commands.literal("ui_active")
+                    .then(
+                        Commands.argument("page", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::openUIActive)))
+            .then(
+                Commands.literal("ui_storage")
+                    .then(
+                        Commands.argument("page", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::openUIStorage)))
+            // /flyingsword withdraw_index <index>
+            .then(
+                Commands.literal("withdraw_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::withdrawByIndex)))
+            // /flyingsword deposit_index <index>
+            .then(
+                Commands.literal("deposit_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::depositByIndex)))
+            // /flyingsword select <nearest|index>
+            .then(
+                Commands.literal("select")
+                    .then(Commands.literal("nearest").executes(FlyingSwordCommand::selectNearest))
+                    .then(
+                        Commands.literal("index")
+                            .then(
+                                Commands.argument(
+                                        "index", IntegerArgumentType.integer(1, 999))
+                                    .executes(FlyingSwordCommand::selectByIndex)))
+                    .then(Commands.literal("clear").executes(FlyingSwordCommand::clearSelection))
+                    .then(Commands.literal("show").executes(FlyingSwordCommand::showSelection)))
+            // /flyingsword recall_selected
+            .then(
+                Commands.literal("recall_selected")
+                    .executes(FlyingSwordCommand::recallSelected))
+            // /flyingsword mode_selected <orbit|guard|hunt|hover>
+            .then(
+                Commands.literal("mode_selected")
+                    .then(
+                        Commands.argument("mode", StringArgumentType.word())
+                            .suggests(
+                                (ctx, builder) -> {
+                                  builder.suggest("orbit");
+                                  builder.suggest("guard");
+                                  builder.suggest("hunt");
+                                  builder.suggest("hover");
+                                  return builder.buildFuture();
+                                })
+                            .executes(FlyingSwordCommand::setModeSelected)))
             // /flyingsword storage
             .then(Commands.literal("storage").executes(FlyingSwordCommand::checkStorage))
             // /flyingsword debug
@@ -217,6 +300,22 @@ public final class FlyingSwordCommand {
     return count;
   }
 
+  private static int restoreByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    boolean ok =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+            .FlyingSwordSpawner.restoreOne(level, player, index);
+    if (ok) {
+      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Restored one"), true);
+      return 1;
+    }
+    ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to restore"));
+    return 0;
+  }
+
   private static int setMode(CommandContext<CommandSourceStack> ctx)
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -231,7 +330,7 @@ public final class FlyingSwordCommand {
           .sendFailure(
               Component.literal(
                   String.format(
-                      "[flyingsword] Invalid mode: %s (valid: orbit, guard, hunt)", modeStr)));
+                      "[flyingsword] Invalid mode: %s (valid: orbit, guard, hunt, hover)", modeStr)));
       return 0;
     }
 
@@ -356,6 +455,179 @@ public final class FlyingSwordCommand {
     return count;
   }
 
+  private static int recallByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    boolean ok =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+            .FlyingSwordController.recallByIndex(level, player, index);
+    if (ok) {
+      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Recalled one"), true);
+      return 1;
+    }
+    ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to recall"));
+    return 0;
+  }
+
+  private static int setModeByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    String modeStr = StringArgumentType.getString(ctx, "mode");
+    var mode =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode
+            .fromId(modeStr);
+    boolean ok =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+            .FlyingSwordController.setModeByIndex(level, player, index, mode);
+    if (ok) {
+      ctx.getSource()
+          .sendSuccess(
+              () ->
+                  Component.literal(
+                      String.format(
+                          java.util.Locale.ROOT,
+                          "[flyingsword] Sword #%d set to mode: %s",
+                          index, mode.getDisplayName())),
+              true);
+      return 1;
+    }
+    ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to set mode"));
+    return 0;
+  }
+
+  // ========== Selection commands ==========
+  private static int selectNearest(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    FlyingSwordEntity sword = FlyingSwordController.getNearestSword(level, player);
+    if (sword == null) {
+      ctx.getSource().sendFailure(Component.literal("[flyingsword] No sword found nearby"));
+      return 0;
+    }
+    boolean ok = FlyingSwordController.setSelectedSword(player, sword);
+    if (ok) {
+      ctx.getSource()
+          .sendSuccess(
+              () ->
+                  Component.literal(
+                      String.format(
+                          "[flyingsword] Selected nearest sword (Lv.%d, Dist: %.1fm)",
+                          sword.getSwordLevel(), sword.distanceTo(player))),
+              false);
+      return 1;
+    }
+    ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to select sword"));
+    return 0;
+  }
+
+  private static int selectByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    java.util.List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
+    if (swords.isEmpty()) {
+      ctx.getSource().sendFailure(Component.literal("[flyingsword] No flying swords"));
+      return 0;
+    }
+    if (index < 1 || index > swords.size()) {
+      ctx.getSource()
+          .sendFailure(
+              Component.literal(
+                  String.format(
+                      "[flyingsword] Invalid index %d (1..%d)", index, swords.size())));
+      return 0;
+    }
+    FlyingSwordEntity sword = swords.get(index - 1);
+    boolean ok = FlyingSwordController.setSelectedSword(player, sword);
+    if (ok) {
+      ctx.getSource()
+          .sendSuccess(
+              () ->
+                  Component.literal(
+                      String.format(
+                          "[flyingsword] Selected sword #%d (Lv.%d, Dist: %.1fm)",
+                          index, sword.getSwordLevel(), sword.distanceTo(player))),
+              false);
+      return 1;
+    }
+    ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to select sword"));
+    return 0;
+  }
+
+  private static int clearSelection(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    FlyingSwordController.clearSelectedSword(player);
+    ctx.getSource().sendSuccess(
+        () -> Component.literal("[flyingsword] Selection cleared"), false);
+    return 1;
+  }
+
+  private static int showSelection(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    FlyingSwordEntity sword = FlyingSwordController.getSelectedSword(level, player);
+    if (sword == null) {
+      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] No selected sword"), false);
+      return 0;
+    }
+    String msg =
+        String.format(
+            java.util.Locale.ROOT,
+            "[flyingsword] Selected: Lv.%d | Mode:%s | Dur:%.0f/%.0f | Dist:%.1fm",
+            sword.getSwordLevel(),
+            sword.getAIMode().getDisplayName(),
+            sword.getDurability(),
+            sword.getSwordAttributes().maxDurability,
+            sword.distanceTo(player));
+    ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
+    return 1;
+  }
+
+  private static int recallSelected(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    FlyingSwordEntity sword = FlyingSwordController.getSelectedSword(level, player);
+    if (sword == null) {
+      ctx.getSource().sendFailure(Component.literal("[flyingsword] No selected sword"));
+      return 0;
+    }
+    FlyingSwordController.recall(sword);
+    ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Recalled selected sword"), true);
+    return 1;
+  }
+
+  private static int setModeSelected(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    FlyingSwordEntity sword = FlyingSwordController.getSelectedSword(level, player);
+    if (sword == null) {
+      ctx.getSource().sendFailure(Component.literal("[flyingsword] No selected sword"));
+      return 0;
+    }
+    String modeStr = StringArgumentType.getString(ctx, "mode");
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode mode =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode
+            .fromId(modeStr);
+    sword.setAIMode(mode);
+    ctx.getSource()
+        .sendSuccess(
+            () ->
+                Component.literal(
+                    String.format("[flyingsword] Selected sword set to mode: %s", mode.getDisplayName())),
+            true);
+    return 1;
+  }
+
   private static int checkStorage(CommandContext<CommandSourceStack> ctx)
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -386,6 +658,55 @@ public final class FlyingSwordCommand {
     ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
 
     return count;
+  }
+
+  private static int openUI(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ui
+            .FlyingSwordTUI
+        .openMain(player);
+    return 1;
+  }
+
+  private static int openUIActive(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    int page = IntegerArgumentType.getInteger(ctx, "page");
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ui
+            .FlyingSwordTUI
+        .openActiveList(player, page);
+    return 1;
+  }
+
+  private static int openUIStorage(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    int page = IntegerArgumentType.getInteger(ctx, "page");
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ui
+            .FlyingSwordTUI
+        .openStorageList(player, page);
+    return 1;
+  }
+
+  private static int withdrawByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ui
+            .FlyingSwordTUIOps
+        .withdrawDisplayItem(player.serverLevel(), player, index);
+    return 1;
+  }
+
+  private static int depositByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ui
+            .FlyingSwordTUIOps
+        .depositMainHand(player.serverLevel(), player, index);
+    return 1;
   }
 
   private static int debugInfo(CommandContext<CommandSourceStack> ctx)

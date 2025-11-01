@@ -52,8 +52,8 @@ public final class FlyingSwordCombat {
 
     LivingEntity target = sword.getTargetEntity();
 
-    // 调试：显示目标状态
-    if (sword.tickCount % 20 == 0) { // 每秒显示一次
+    // 调试：显示目标状态（默认静音，可在配置开启）
+    if (FlyingSwordCombatTuning.COMBAT_DEBUG_LOGS && sword.tickCount % 20 == 0) {
       ChestCavity.LOGGER.info(
           "[FlyingSword] Tick collision check: target={}, cooldown={}",
           target != null ? target.getName().getString() : "NULL",
@@ -69,6 +69,9 @@ public final class FlyingSwordCombat {
 
     // 调试信息
     if (distance <= ATTACK_RANGE) {
+      // 音效：挥砍
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
+          .playSwing(sword);
       ChestCavity.LOGGER.info(
           "[FlyingSword] Collision detected! Distance: {}, attempting attack...",
           String.format("%.2f", distance));
@@ -147,8 +150,33 @@ public final class FlyingSwordCombat {
         String.format("%.1f", target.getMaxHealth()),
         target.isInvulnerableTo(sword.damageSources().playerAttack(owner)));
 
-    // 造成伤害
     DamageSource damageSource = sword.damageSources().playerAttack(owner);
+
+    // 触发onHitEntity事件钩子
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context
+        .HitEntityContext hitCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+            .context.HitEntityContext(
+            sword,
+            (ServerLevel) sword.level(),
+            owner,
+            target,
+            damageSource,
+            speed,
+            damage);
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+        .FlyingSwordEventRegistry.fireHitEntity(hitCtx);
+
+    // 检查是否被钩子取消
+    if (hitCtx.cancelled) {
+      ChestCavity.LOGGER.debug("[FlyingSword] Attack cancelled by event hook");
+      return false;
+    }
+
+    // 使用钩子修改后的伤害
+    damage = hitCtx.damage;
+
+    // 造成伤害
     boolean success = target.hurt(damageSource, (float) damage);
 
     ChestCavity.LOGGER.info(
@@ -157,6 +185,9 @@ public final class FlyingSwordCombat {
         String.format("%.1f", target.getHealth()));
 
     if (success) {
+      // 音效：命中
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
+          .playHit(sword);
       // 调试信息
       ChestCavity.LOGGER.debug(
           "[FlyingSword] Hit success! Target health: {}/{}",
@@ -166,39 +197,44 @@ public final class FlyingSwordCombat {
       // 攻击碰撞粒子特效
       if (sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnAttackImpact(
-            serverLevel, target.position().add(0, target.getBbHeight() / 2, 0), damage);
+            serverLevel, sword, target.position().add(0, target.getBbHeight() / 2, 0), damage);
       }
 
-      // 耐久损耗
-      float duraLoss =
-          FlyingSwordCalculator.calculateDurabilityLossWithContext(
-              (float) damage, sword.getSwordAttributes().duraLossRatio, false, ctx);
-      sword.damageDurability(duraLoss);
+      // 耐久损耗（可被钩子跳过）
+      if (!hitCtx.skipDurability) {
+        float duraLoss =
+            FlyingSwordCalculator.calculateDurabilityLossWithContext(
+                (float) damage, sword.getSwordAttributes().duraLossRatio, false, ctx);
+        sword.damageDurability(duraLoss);
+      }
 
-      // 经验获取
-      boolean isKill = !target.isAlive();
-      boolean isElite = false; // TODO: 判断精英怪
-      int expGain =
-          FlyingSwordCalculator.calculateExpGain(
-              damage,
-              isKill,
-              isElite,
-              1.0 // TODO: 经验倍率
-              );
-
+      // 经验获取（可被钩子跳过）
       int oldLevel = sword.getSwordLevel();
-      sword.addExperience(expGain);
-      int newLevel = sword.getSwordLevel();
+      int newLevel = oldLevel;
+      if (!hitCtx.skipExp) {
+        boolean isKill = !target.isAlive();
+        boolean isElite = false; // TODO: 判断精英怪
+        int expGain =
+            FlyingSwordCalculator.calculateExpGain(
+                damage,
+                isKill,
+                isElite,
+                1.0 // TODO: 经验倍率
+                );
+
+        sword.addExperience(expGain);
+        newLevel = sword.getSwordLevel();
+
+        // 击杀提示
+        if (isKill) {
+          ChestCavity.LOGGER.info(
+              "[FlyingSword] Killed {}! Gained {} exp", target.getName().getString(), expGain);
+        }
+      }
 
       // 升级特效
       if (newLevel > oldLevel && sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnLevelUpEffect(serverLevel, sword, newLevel);
-      }
-
-      // 击杀提示
-      if (isKill) {
-        ChestCavity.LOGGER.info(
-            "[FlyingSword] Killed {}! Gained {} exp", target.getName().getString(), expGain);
       }
     } else {
       // 调试信息
