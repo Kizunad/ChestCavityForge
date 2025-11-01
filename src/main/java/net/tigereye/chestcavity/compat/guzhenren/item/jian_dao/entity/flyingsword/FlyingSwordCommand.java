@@ -421,13 +421,15 @@ public final class FlyingSwordCommand {
 
       double damage =
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
-              .FlyingSwordCalculator.calculateDamage(
+              .FlyingSwordCalculator.calculateDamageWithContext(
                   attrs.damageBase,
                   speed,
                   net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
                       .FlyingSwordTuning.V_REF,
                   attrs.velDmgCoef,
-                  levelScale);
+                  levelScale,
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+                      .calculator.context.CalcContexts.from(sword));
 
       debug.append(String.format("\n[Sword #%d]", i + 1));
       debug.append(String.format("\n  Mode: %s", sword.getAIMode().getDisplayName()));

@@ -2,6 +2,9 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning.FlyingSwordTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator.context.CalcContext;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator.context.CalcOutputs;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator.hooks.FlyingSwordCalcRegistry;
 
 /**
  * 飞剑核心计算器（纯函数，无副作用）
@@ -80,6 +83,21 @@ public final class FlyingSwordCalculator {
   }
 
   /**
+   * 维持消耗（带上下文钩子）
+   */
+  public static double calculateUpkeepWithContext(
+      double baseRate,
+      AIMode mode,
+      boolean sprinting,
+      boolean breaking,
+      double speedPercent,
+      CalcContext ctx) {
+    double base = calculateUpkeep(baseRate, mode, sprinting, breaking, speedPercent);
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    return Math.max(0.0, base * out.upkeepMult);
+  }
+
+  /**
    * 经验计算
    *
    * @param damageDealt 造成的伤害
@@ -124,6 +142,63 @@ public final class FlyingSwordCalculator {
     float loss = damage * (float) lossRatio;
     if (breaking) loss *= (float) FlyingSwordTuning.DURA_BREAK_MULT;
     return Math.max(0, loss);
+  }
+
+  /**
+   * 耐久损耗（带上下文钩子）
+   */
+  public static float calculateDurabilityLossWithContext(
+      float damage, double lossRatio, boolean breaking, CalcContext ctx) {
+    float base = calculateDurabilityLoss(damage, lossRatio, breaking);
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    double v = Math.max(0.0, base * out.durabilityLossMult);
+    return (float) v;
+  }
+
+  /**
+   * 伤害（带上下文钩子）
+   */
+  public static double calculateDamageWithContext(
+      double baseDamage,
+      double velocity,
+      double vRef,
+      double velDmgCoef,
+      double levelScale,
+      CalcContext ctx) {
+    double base = calculateDamage(baseDamage, velocity, vRef, velDmgCoef, levelScale);
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    return Math.max(0.0, base * out.damageMult);
+  }
+
+  /**
+   * 计算攻击冷却（ticks）。钩子可直接覆盖或按倍数修改。
+   */
+  public static int calculateAttackCooldownTicks(CalcContext ctx, int baseTicks) {
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    int result = out.attackCooldownTicks >= 0 ? out.attackCooldownTicks : baseTicks;
+    // 防止过小/过大
+    return clamp(result, 1, 200);
+  }
+
+  /**
+   * 有效最大/基础速度（应用钩子系数）。
+   */
+  public static double effectiveSpeedMax(double baseMax, CalcContext ctx) {
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    return Math.max(0.0, baseMax * out.speedMaxMult);
+  }
+
+  public static double effectiveSpeedBase(double baseBase, CalcContext ctx) {
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    return Math.max(0.0, baseBase * out.speedBaseMult);
+  }
+
+  /**
+   * 有效加速度（应用钩子系数）。
+   */
+  public static double effectiveAccel(double baseAccel, CalcContext ctx) {
+    CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
+    return Math.max(0.0, baseAccel * out.accelMult);
   }
 
   /**

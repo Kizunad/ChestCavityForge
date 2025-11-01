@@ -142,7 +142,12 @@ public final class FlyingSwordController {
           net.minecraft.network.chat.Component.literal("[飞剑] 召回失败 - 存储已满 (最多10个)"));
     }
 
-    // TODO: 播放召回特效
+    // 召回特效
+    if (sword.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx.FlyingSwordFX
+          .spawnRecallEffect(serverLevel, sword);
+    }
+
     sword.discard();
   }
 

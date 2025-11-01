@@ -268,8 +268,8 @@ public class FlyingSwordEntity extends PathfinderMob {
   }
 
   private void tickClient() {
-    // 客户端逻辑：轨迹特效、渲染相关
-    // 将在后续FX系统中实现
+    // 客户端逻辑：主要在服务端生成粒子，客户端自动同步
+    // 客户端特定的渲染逻辑在Renderer中处理
   }
 
   private void tickServer() {
@@ -288,7 +288,8 @@ public class FlyingSwordEntity extends PathfinderMob {
     upkeepTicks++;
     if (upkeepTicks >= FlyingSwordTuning.UPKEEP_CHECK_INTERVAL) {
       upkeepTicks = 0;
-      if (!checkUpkeep()) {
+      if (!net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops
+          .UpkeepOps.consumeIntervalUpkeep(this, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL)) {
         // 维持不足，召回
         recallToOwner();
         return;
@@ -297,34 +298,13 @@ public class FlyingSwordEntity extends PathfinderMob {
 
     // AI行为逻辑
     tickAI();
+
+    // 破块逻辑（速度分段 + 镐子可破范围）
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.BlockBreakOps
+        .tickBlockBreak(this);
   }
 
-  private boolean checkUpkeep() {
-    Player owner = getOwner();
-    if (owner == null) return false;
-
-    // 计算维持消耗
-    double speedPercent = getCurrentSpeed() / attributes.speedMax;
-    double upkeepRate = FlyingSwordCalculator.calculateUpkeep(
-        attributes.upkeepRate,
-        getAIMode(),
-        owner.isSprinting(),
-        false, // TODO: 破块状态
-        speedPercent
-    );
-
-    // 转换为每秒消耗 -> 每interval消耗
-    double upkeepCost = upkeepRate * (FlyingSwordTuning.UPKEEP_CHECK_INTERVAL / 20.0);
-
-    // 尝试消耗真元
-    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
-        GuzhenrenResourceBridge.open(owner);
-    if (handleOpt.isEmpty()) {
-      return false;
-    }
-
-    return handleOpt.get().consumeScaledZhenyuan(upkeepCost).isPresent();
-  }
+  // 维持消耗逻辑已迁移到 ops.UpkeepOps
 
   private void tickAI() {
     Player owner = getOwner();
@@ -335,240 +315,133 @@ public class FlyingSwordEntity extends PathfinderMob {
     AIMode mode = getAIMode();
 
     switch (mode) {
-      case ORBIT -> tickOrbitMode(owner);
-      case GUARD -> tickGuardMode(owner);
-      case HUNT -> tickHuntMode(owner);
+      case ORBIT ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+              .OrbitBehavior.tick(this, owner);
+      case GUARD -> {
+        var nearest =
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+                .TargetFinder.findNearestHostile(
+                    this, owner.position(),
+                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai
+                        .behavior.GuardBehavior.getSearchRange());
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+            .GuardBehavior.tick(this, owner, nearest);
+      }
+      case HUNT -> {
+        var nearest =
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+                .TargetFinder.findNearestHostile(
+                    this, this.position(),
+                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai
+                        .behavior.HuntBehavior.getSearchRange());
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+            .HuntBehavior.tick(this, owner, nearest);
+      }
     }
 
-    // 检测碰撞攻击
-    tickCollisionAttack();
+    // 检测碰撞攻击（集中在战斗模块）
+    this.attackCooldown =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.combat
+            .FlyingSwordCombat.tickCollisionAttack(this, this.attackCooldown);
 
     // 更新当前速度
     setCurrentSpeed((float) this.getDeltaMovement().length());
+
+    // 粒子特效（每2 tick生成一次，减少性能消耗）
+    if (this.tickCount % 2 == 0 && this.level() instanceof ServerLevel serverLevel) {
+      spawnFlightParticles(serverLevel, mode);
+    }
+  }
+
+  /**
+   * 生成飞行粒子特效
+   */
+  private void spawnFlightParticles(ServerLevel level, AIMode mode) {
+    double speed = this.getDeltaMovement().length();
+
+    // 根据AI模式显示不同的粒子
+    switch (mode) {
+      case ORBIT ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx
+              .FlyingSwordFX.spawnOrbitTrail(level, this);
+      case GUARD ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx
+              .FlyingSwordFX.spawnGuardTrail(level, this);
+      case HUNT ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx
+              .FlyingSwordFX.spawnHuntTrail(level, this);
+    }
+
+    // 高速飞行时的额外特效
+    if (speed > attributes.speedMax * 0.8) {
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx.FlyingSwordFX
+          .spawnSpeedBoostEffect(level, this);
+    }
   }
 
   /**
    * 环绕模式：绕着主人旋转
    */
-  private void tickOrbitMode(Player owner) {
-    Vec3 ownerPos = owner.getEyePosition();
-    Vec3 currentPos = this.position();
-    Vec3 toOwner = ownerPos.subtract(currentPos);
-    double distance = toOwner.length();
-
-    // 目标距离：3格
-    double targetDistance = 3.0;
-    double distanceTolerance = 0.5;
-
-    Vec3 desiredVelocity;
-
-    if (distance > targetDistance + distanceTolerance) {
-      // 太远，向主人移动
-      Vec3 direction = toOwner.normalize();
-      desiredVelocity = direction.scale(attributes.speedBase);
-    } else if (distance < targetDistance - distanceTolerance) {
-      // 太近，远离主人
-      Vec3 direction = toOwner.normalize().scale(-1);
-      desiredVelocity = direction.scale(attributes.speedBase);
-    } else {
-      // 距离合适，绕圈飞行
-      // 使用垂直于toOwner的切线方向
-      Vec3 tangent = new Vec3(-toOwner.z, 0, toOwner.x).normalize();
-      // 添加轻微的向内偏移以维持轨道
-      Vec3 radial = toOwner.normalize().scale(-0.1);
-      desiredVelocity = tangent.add(radial).normalize().scale(attributes.speedBase * 0.8);
-    }
-
-    // 应用转向
-    applySteeringVelocity(desiredVelocity);
-  }
+  // 旧的环绕/防守/出击行为已迁移到 ai.behavior 包
 
   /**
    * 防守模式：跟随主人并攻击附近的敌对实体
    */
-  private void tickGuardMode(Player owner) {
-    // 搜索附近的敌对实体
-    LivingEntity target = findNearestHostile(owner.position(), 12.0);
-
-    if (target != null) {
-      // 调试：显示找到目标
-      if (this.tickCount % 20 == 0) {
-        net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-            "[FlyingSword] GUARD mode: Found target {}, distance: {}",
-            target.getName().getString(),
-            String.format("%.2f", this.distanceTo(target)));
-      }
-
-      setTargetEntity(target);
-      // 追击目标
-      Vec3 targetPos = target.getEyePosition();
-      Vec3 direction = targetPos.subtract(this.position()).normalize();
-      Vec3 desiredVelocity = direction.scale(attributes.speedMax * 0.9);
-      applySteeringVelocity(desiredVelocity);
-    } else {
-      setTargetEntity(null);
-      // 跟随主人
-      Vec3 ownerPos = owner.getEyePosition();
-      Vec3 toOwner = ownerPos.subtract(this.position());
-      double distance = toOwner.length();
-
-      if (distance > 2.0) {
-        // 向主人移动
-        Vec3 desiredVelocity = toOwner.normalize().scale(attributes.speedBase * 1.2);
-        applySteeringVelocity(desiredVelocity);
-      } else {
-        // 在主人附近缓慢环绕
-        Vec3 tangent = new Vec3(-toOwner.z, 0, toOwner.x).normalize();
-        Vec3 desiredVelocity = tangent.scale(attributes.speedBase * 0.4);
-        applySteeringVelocity(desiredVelocity);
-      }
-    }
-  }
+  
 
   /**
    * 出击模式：主动搜索并攻击敌对实体
    */
-  private void tickHuntMode(Player owner) {
-    LivingEntity currentTarget = getTargetEntity();
-
-    // 检查当前目标是否有效
-    if (currentTarget != null && currentTarget.isAlive() && this.distanceTo(currentTarget) < 32.0) {
-      // 调试：显示追击
-      if (this.tickCount % 20 == 0) {
-        net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-            "[FlyingSword] HUNT mode: Chasing target {}, distance: {}",
-            currentTarget.getName().getString(),
-            String.format("%.2f", this.distanceTo(currentTarget)));
-      }
-
-      // 继续追击当前目标
-      Vec3 targetPos = currentTarget.getEyePosition();
-      Vec3 direction = targetPos.subtract(this.position()).normalize();
-      Vec3 desiredVelocity = direction.scale(attributes.speedMax);
-      applySteeringVelocity(desiredVelocity);
-    } else {
-      // 搜索新目标
-      LivingEntity newTarget = findNearestHostile(this.position(), 24.0);
-
-      if (newTarget != null) {
-        // 调试：显示找到新目标
-        net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-            "[FlyingSword] HUNT mode: Found NEW target {}, distance: {}",
-            newTarget.getName().getString(),
-            String.format("%.2f", this.distanceTo(newTarget)));
-
-        setTargetEntity(newTarget);
-        Vec3 targetPos = newTarget.getEyePosition();
-        Vec3 direction = targetPos.subtract(this.position()).normalize();
-        Vec3 desiredVelocity = direction.scale(attributes.speedMax);
-        applySteeringVelocity(desiredVelocity);
-      } else {
-        // 没有目标，回到主人身边
-        setTargetEntity(null);
-        Vec3 ownerPos = owner.getEyePosition();
-        Vec3 toOwner = ownerPos.subtract(this.position());
-        double distance = toOwner.length();
-
-        if (distance > 4.0) {
-          Vec3 desiredVelocity = toOwner.normalize().scale(attributes.speedBase);
-          applySteeringVelocity(desiredVelocity);
-        } else {
-          // 在主人附近缓慢巡逻
-          Vec3 tangent = new Vec3(-toOwner.z, 0, toOwner.x).normalize();
-          Vec3 desiredVelocity = tangent.scale(attributes.speedBase * 0.5);
-          applySteeringVelocity(desiredVelocity);
-        }
-      }
-    }
-  }
+  
 
   /**
    * 搜索最近的敌对实体
    */
   @Nullable
-  private LivingEntity findNearestHostile(Vec3 center, double range) {
-    if (!(this.level() instanceof ServerLevel server)) {
-      return null;
-    }
-
-    Player owner = getOwner();
-    if (owner == null) {
-      return null;
-    }
-
-    net.minecraft.world.phys.AABB searchBox =
-        new net.minecraft.world.phys.AABB(center, center).inflate(range);
-
-    LivingEntity nearest = null;
-    double minDistSq = range * range;
-
-    for (net.minecraft.world.entity.Entity entity : server.getEntities(null, searchBox)) {
-      if (!(entity instanceof LivingEntity living)) {
-        continue;
-      }
-
-      // 排除主人、其他玩家、自己
-      if (living == owner || living instanceof Player || living == this) {
-        continue;
-      }
-
-      // 排除已死亡的实体
-      if (!living.isAlive()) {
-        continue;
-      }
-
-      boolean isHostile = false;
-
-      // 检查是否敌对
-      if (living instanceof Mob mob) {
-        // 正在攻击主人的怪物 - 最高优先级
-        if (mob.getTarget() == owner) {
-          isHostile = true;
-        }
-        // 或者是怪物类别的Mob
-        else if (mob.getType().getCategory() == net.minecraft.world.entity.MobCategory.MONSTER) {
-          isHostile = true;
-        }
-      }
-      // 非Mob但是怪物类别的生物（如末影龙、凋灵）
-      else if (living.getType().getCategory() == net.minecraft.world.entity.MobCategory.MONSTER) {
-        isHostile = true;
-      }
-
-      if (isHostile) {
-        double distSq = living.distanceToSqr(center);
-        if (distSq < minDistSq) {
-          minDistSq = distSq;
-          nearest = living;
-        }
-      }
-    }
-
-    return nearest;
-  }
+  // 目标搜索已迁移到 TargetFinder
 
   /**
    * 应用转向行为
    */
-  private void applySteeringVelocity(Vec3 desiredVelocity) {
+  public void applySteeringVelocity(Vec3 desiredVelocity) {
     Vec3 currentVelocity = this.getDeltaMovement();
 
-    // 计算转向力
-    Vec3 steering = desiredVelocity.subtract(currentVelocity);
+    // 依据上下文调整目标速度与最大速度（挂接道痕等因素）
+    var ctx =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+            .context.CalcContexts.from(this);
+    double effectiveBase =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+            .FlyingSwordCalculator.effectiveSpeedBase(this.attributes.speedBase, ctx);
+    double effectiveMax =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+            .FlyingSwordCalculator.effectiveSpeedMax(this.attributes.speedMax, ctx);
+    double effectiveAccel =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+            .FlyingSwordCalculator.effectiveAccel(this.attributes.accel, ctx);
 
-    // 限制转向速率
+    // 将期望速度按 base 比例缩放（行为层仍以 base 构建）
+    double baseScale = this.attributes.speedBase > 1.0e-8 ? (effectiveBase / this.attributes.speedBase) : 1.0;
+    Vec3 desired = desiredVelocity.scale(baseScale);
+
+    // 计算转向力
+    Vec3 steering = desired.subtract(currentVelocity);
+
+    // 限制转向/加速度（每 tick 最大速度变化）
+    double limit = Math.max(1.0e-6, Math.min(attributes.turnRate, effectiveAccel));
     double steeringMag = steering.length();
-    if (steeringMag > attributes.turnRate) {
-      steering = steering.normalize().scale(attributes.turnRate);
+    if (steeringMag > limit) {
+      steering = steering.normalize().scale(limit);
     }
 
     // 应用转向
     Vec3 newVelocity = currentVelocity.add(steering);
 
-    // 限制速度
+    // 限制速度（使用有效最大速度）
     double speed = newVelocity.length();
-    if (speed > attributes.speedMax) {
-      newVelocity = newVelocity.normalize().scale(attributes.speedMax);
+    if (speed > effectiveMax && speed > 1.0e-8) {
+      newVelocity = newVelocity.normalize().scale(effectiveMax);
     }
 
     this.setDeltaMovement(newVelocity);
@@ -577,48 +450,7 @@ public class FlyingSwordEntity extends PathfinderMob {
   /**
    * 检测碰撞攻击
    */
-  private void tickCollisionAttack() {
-    if (!(this.level() instanceof ServerLevel server)) {
-      return;
-    }
-
-    // 检查攻击冷却
-    if (attackCooldown > 0) {
-      return;
-    }
-
-    LivingEntity target = getTargetEntity();
-
-    // 调试：显示目标状态
-    if (this.tickCount % 20 == 0) { // 每秒显示一次
-      net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-          "[FlyingSword] Tick collision check: target={}, cooldown={}",
-          target != null ? target.getName().getString() : "NULL",
-          attackCooldown);
-    }
-
-    if (target == null || !target.isAlive()) {
-      return;
-    }
-
-    // 检测碰撞 - 使用更宽松的范围
-    double distance = this.distanceTo(target);
-    double attackRange = 1.5; // 增加攻击范围
-
-    // 调试信息
-    if (distance <= attackRange) {
-      net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-          "[FlyingSword] Collision detected! Distance: {}, attempting attack...",
-          String.format("%.2f", distance));
-      boolean success = attackTarget(target);
-      if (!success) {
-        net.tigereye.chestcavity.ChestCavity.LOGGER.warn(
-            "[FlyingSword] Attack returned false! Target: {}, Health: {}",
-            target.getName().getString(),
-            String.format("%.1f", target.getHealth()));
-      }
-    }
-  }
+  // 碰撞攻击已集中到 FlyingSwordCombat
 
   // ========== 交互逻辑 ==========
   @Override
@@ -748,105 +580,7 @@ public class FlyingSwordEntity extends PathfinderMob {
   /**
    * 对目标造成速度²伤害
    */
-  public boolean attackTarget(LivingEntity target) {
-    if (this.level().isClientSide || target == null || !target.isAlive()) {
-      return false;
-    }
-
-    Player owner = getOwner();
-    if (owner == null) {
-      return false;
-    }
-
-    // 计算伤害
-    Vec3 velocity = this.getDeltaMovement();
-    double speed = velocity.length();
-    int level = getSwordLevel();
-    double levelScale = FlyingSwordCalculator.calculateLevelScale(
-        level,
-        FlyingSwordTuning.DAMAGE_PER_LEVEL
-    );
-
-    double damage = FlyingSwordCalculator.calculateDamage(
-        attributes.damageBase,
-        speed,
-        FlyingSwordTuning.V_REF,
-        attributes.velDmgCoef,
-        levelScale
-    );
-
-    // 调试信息（总是输出到日志）
-    net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-        "[FlyingSword] Attack START: target={}, speed={}, damage={}, baseDmg={}, vRef={}, velCoef={}, levelScale={}",
-        target.getName().getString(),
-        String.format("%.3f", speed),
-        String.format("%.2f", damage),
-        attributes.damageBase,
-        FlyingSwordTuning.V_REF,
-        attributes.velDmgCoef,
-        String.format("%.2f", levelScale));
-
-    // 检查目标状态
-    net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-        "[FlyingSword] Target status: invulnerableTime={}, health={}/{}, isInvulnerableTo(playerAttack)={}",
-        target.invulnerableTime,
-        String.format("%.1f", target.getHealth()),
-        String.format("%.1f", target.getMaxHealth()),
-        target.isInvulnerableTo(this.damageSources().playerAttack(owner)));
-
-    // 造成伤害
-    DamageSource damageSource = this.damageSources().playerAttack(owner);
-    boolean success = target.hurt(damageSource, (float) damage);
-
-    net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-        "[FlyingSword] Attack result: success={}, targetHealthAfter={}",
-        success,
-        String.format("%.1f", target.getHealth()));
-
-    // 设置攻击冷却 (10 ticks = 0.5秒)
-    attackCooldown = 10;
-
-    if (success) {
-      // 调试信息
-      net.tigereye.chestcavity.ChestCavity.LOGGER.debug(
-          "[FlyingSword] Hit success! Target health: {}/{}",
-          String.format("%.1f", target.getHealth()),
-          String.format("%.1f", target.getMaxHealth()));
-
-      // 耐久损耗
-      float duraLoss = FlyingSwordCalculator.calculateDurabilityLoss(
-          (float) damage,
-          attributes.duraLossRatio,
-          false
-      );
-      damageDurability(duraLoss);
-
-      // 经验获取
-      boolean isKill = !target.isAlive();
-      boolean isElite = false; // TODO: 判断精英怪
-      int expGain = FlyingSwordCalculator.calculateExpGain(
-          damage,
-          isKill,
-          isElite,
-          1.0 // TODO: 经验倍率
-      );
-      addExperience(expGain);
-
-      // 击杀提示
-      if (isKill) {
-        net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-            "[FlyingSword] Killed {}! Gained {} exp",
-            target.getName().getString(),
-            expGain);
-      }
-    } else {
-      // 调试信息
-      net.tigereye.chestcavity.ChestCavity.LOGGER.debug(
-          "[FlyingSword] Hit failed! Target may be invulnerable or damage was 0");
-    }
-
-    return success;
-  }
+  // 攻击逻辑已统一集中到 combat.FlyingSwordCombat
 
   // ========== 工厂方法 ==========
   /**

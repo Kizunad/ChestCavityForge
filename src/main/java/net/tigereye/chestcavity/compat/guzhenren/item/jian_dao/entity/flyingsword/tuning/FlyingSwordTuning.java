@@ -1,171 +1,89 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning;
 
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
-
 /**
- * 飞剑基础参数配置
- * 所有数值都通过BehaviorConfigAccess读取，支持服主覆写
+ * 飞剑参数聚合（兼容旧引用）。
+ *
+ * <p>新项目请直接引用细分类：
+ * - FlyingSwordCoreTuning
+ * - FlyingSwordExperienceTuning
+ * - FlyingSwordInheritTuning
+ * - FlyingSwordAITuning
  */
 public final class FlyingSwordTuning {
   private FlyingSwordTuning() {}
 
-  // ========== 基础属性 ==========
-  /** 基础速度（方块/tick） */
-  public static final double SPEED_BASE =
-      config("SPEED_BASE", 0.18);
+  // 基础/核心
+  public static final double SPEED_BASE = FlyingSwordCoreTuning.SPEED_BASE;
+  public static final double SPEED_MAX = FlyingSwordCoreTuning.SPEED_MAX;
+  public static final double ACCEL = FlyingSwordCoreTuning.ACCEL;
+  public static final double TURN_RATE = FlyingSwordCoreTuning.TURN_RATE;
+  public static final double DAMAGE_BASE = FlyingSwordCoreTuning.DAMAGE_BASE;
+  public static final double VEL_DMG_COEF = FlyingSwordCoreTuning.VEL_DMG_COEF;
+  public static final double V_REF = FlyingSwordCoreTuning.V_REF;
+  public static final double MAX_DURABILITY = FlyingSwordCoreTuning.MAX_DURABILITY;
+  public static final double DURA_LOSS_RATIO = FlyingSwordCoreTuning.DURA_LOSS_RATIO;
+  public static final double DURA_BREAK_MULT = FlyingSwordCoreTuning.DURA_BREAK_MULT;
+  public static final double UPKEEP_BASE_RATE = FlyingSwordCoreTuning.UPKEEP_BASE_RATE;
+  public static final double UPKEEP_ORBIT_MULT = FlyingSwordCoreTuning.UPKEEP_ORBIT_MULT;
+  public static final double UPKEEP_GUARD_MULT = FlyingSwordCoreTuning.UPKEEP_GUARD_MULT;
+  public static final double UPKEEP_HUNT_MULT = FlyingSwordCoreTuning.UPKEEP_HUNT_MULT;
+  public static final double UPKEEP_SPRINT_MULT = FlyingSwordCoreTuning.UPKEEP_SPRINT_MULT;
+  public static final double UPKEEP_BREAK_MULT = FlyingSwordCoreTuning.UPKEEP_BREAK_MULT;
+  public static final double UPKEEP_SPEED_SCALE = FlyingSwordCoreTuning.UPKEEP_SPEED_SCALE;
+  public static final int UPKEEP_CHECK_INTERVAL = FlyingSwordCoreTuning.UPKEEP_CHECK_INTERVAL;
+  public static final boolean ENABLE_BLOCK_BREAK = FlyingSwordCoreTuning.ENABLE_BLOCK_BREAK;
+  public static final double BLOCK_BREAK_EFF_BASE = FlyingSwordCoreTuning.BLOCK_BREAK_EFF_BASE;
 
-  /** 最大速度（方块/tick） */
-  public static final double SPEED_MAX =
-      config("SPEED_MAX", 0.42);
+  // 经验/成长
+  public static final double EXP_PER_DAMAGE = FlyingSwordExperienceTuning.EXP_PER_DAMAGE;
+  public static final int EXP_KILL_MULT = FlyingSwordExperienceTuning.EXP_KILL_MULT;
+  public static final int EXP_ELITE_MULT = FlyingSwordExperienceTuning.EXP_ELITE_MULT;
+  public static final double EXP_BASE = FlyingSwordExperienceTuning.EXP_BASE;
+  public static final double EXP_ALPHA = FlyingSwordExperienceTuning.EXP_ALPHA;
+  public static final int MAX_LEVEL = FlyingSwordExperienceTuning.MAX_LEVEL;
+  public static final double DAMAGE_PER_LEVEL = FlyingSwordExperienceTuning.DAMAGE_PER_LEVEL;
 
-  /** 加速度 */
-  public static final double ACCEL =
-      config("ACCEL", 0.015);
-
-  /** 转向速率 */
-  public static final double TURN_RATE =
-      config("TURN_RATE", 0.14);
-
-  // ========== 伤害属性 ==========
-  /** 基础伤害 */
-  public static final double DAMAGE_BASE =
-      config("DAMAGE_BASE", 4.0);
-
-  /** 速度²伤害系数 */
-  public static final double VEL_DMG_COEF =
-      config("VEL_DMG_COEF", 1.0);
-
-  /** 参考速度（用于速度²计算） */
-  public static final double V_REF =
-      config("V_REF", 0.35);
-
-  // ========== 耐久属性 ==========
-  /** 最大耐久 */
-  public static final double MAX_DURABILITY =
-      config("MAX_DURABILITY", 1000.0);
-
-  /** 耐久损耗比例 */
-  public static final double DURA_LOSS_RATIO =
-      config("DURA_LOSS_RATIO", 0.1);
-
-  /** 破块时耐久损耗倍率 */
-  public static final double DURA_BREAK_MULT =
-      config("DURA_BREAK_MULT", 2.0);
-
-  // ========== 维持消耗 ==========
-  /** 基础维持消耗率 */
-  public static final double UPKEEP_BASE_RATE =
-      config("UPKEEP_BASE_RATE", 1.0);
-
-  /** 环绕模式消耗倍率 */
-  public static final double UPKEEP_ORBIT_MULT =
-      config("UPKEEP_ORBIT_MULT", 0.6);
-
-  /** 防守模式消耗倍率 */
-  public static final double UPKEEP_GUARD_MULT =
-      config("UPKEEP_GUARD_MULT", 1.0);
-
-  /** 出击模式消耗倍率 */
-  public static final double UPKEEP_HUNT_MULT =
-      config("UPKEEP_HUNT_MULT", 1.4);
-
-  /** 冲刺时消耗倍率 */
-  public static final double UPKEEP_SPRINT_MULT =
-      config("UPKEEP_SPRINT_MULT", 1.5);
-
-  /** 破块时消耗倍率 */
-  public static final double UPKEEP_BREAK_MULT =
-      config("UPKEEP_BREAK_MULT", 2.0);
-
-  /** 速度影响维持的缩放系数 */
-  public static final double UPKEEP_SPEED_SCALE =
-      config("UPKEEP_SPEED_SCALE", 0.5);
-
-  /** 维持检查间隔（tick） */
-  public static final int UPKEEP_CHECK_INTERVAL =
-      configInt("UPKEEP_CHECK_INTERVAL", 20);
-
-  // ========== 经验成长 ==========
-  /** 每点伤害获得的经验 */
-  public static final double EXP_PER_DAMAGE =
-      config("EXP_PER_DAMAGE", 2.0);
-
-  /** 击杀经验倍率 */
-  public static final int EXP_KILL_MULT =
-      configInt("EXP_KILL_MULT", 5);
-
-  /** 精英经验倍率 */
-  public static final int EXP_ELITE_MULT =
-      configInt("EXP_ELITE_MULT", 2);
-
-  /** 经验曲线基数 */
-  public static final double EXP_BASE =
-      config("EXP_BASE", 40.0);
-
-  /** 经验曲线指数 */
-  public static final double EXP_ALPHA =
-      config("EXP_ALPHA", 1.5);
-
-  /** 最大等级 */
-  public static final int MAX_LEVEL =
-      configInt("MAX_LEVEL", 30);
-
-  /** 每级伤害成长 */
-  public static final double DAMAGE_PER_LEVEL =
-      config("DAMAGE_PER_LEVEL", 0.6);
-
-  // ========== 释放继承 ==========
-  /** 继承伤害下限 */
-  public static final double INHERIT_DMG_MIN =
-      config("INHERIT_DMG_MIN", -2.0);
-
-  /** 继承伤害上限 */
-  public static final double INHERIT_DMG_MAX =
-      config("INHERIT_DMG_MAX", 10.0);
-
-  /** 继承速度下限 */
-  public static final double INHERIT_SPEED_MIN =
-      config("INHERIT_SPEED_MIN", -0.1);
-
-  /** 继承速度上限 */
-  public static final double INHERIT_SPEED_MAX =
-      config("INHERIT_SPEED_MAX", 0.3);
-
-  /** 锋利附魔每级增加的伤害 */
+  // 释放继承
+  public static final double INHERIT_DMG_MIN = FlyingSwordInheritTuning.INHERIT_DMG_MIN;
+  public static final double INHERIT_DMG_MAX = FlyingSwordInheritTuning.INHERIT_DMG_MAX;
+  public static final double INHERIT_SPEED_MIN = FlyingSwordInheritTuning.INHERIT_SPEED_MIN;
+  public static final double INHERIT_SPEED_MAX = FlyingSwordInheritTuning.INHERIT_SPEED_MAX;
   public static final double INHERIT_SHARPNESS_DMG =
-      config("INHERIT_SHARPNESS_DMG", 0.5);
-
-  /** 锋利附魔每级增加的速度²系数 */
+      FlyingSwordInheritTuning.INHERIT_SHARPNESS_DMG;
   public static final double INHERIT_SHARPNESS_VEL =
-      config("INHERIT_SHARPNESS_VEL", 0.03);
-
-  /** 攻击伤害转换系数 */
+      FlyingSwordInheritTuning.INHERIT_SHARPNESS_VEL;
   public static final double INHERIT_ATTACK_DAMAGE_COEF =
-      config("INHERIT_ATTACK_DAMAGE_COEF", 0.5);
-
-  /** 攻击速度转换系数 */
+      FlyingSwordInheritTuning.INHERIT_ATTACK_DAMAGE_COEF;
   public static final double INHERIT_ATTACK_SPEED_COEF =
-      config("INHERIT_ATTACK_SPEED_COEF", 0.05);
+      FlyingSwordInheritTuning.INHERIT_ATTACK_SPEED_COEF;
 
-  // ========== 破块系统 ==========
-  /** 是否启用破块 */
-  public static final boolean ENABLE_BLOCK_BREAK =
-      configBool("ENABLE_BLOCK_BREAK", true);
+  // AI 行为
+  public static final double ORBIT_TARGET_DISTANCE = FlyingSwordAITuning.ORBIT_TARGET_DISTANCE;
+  public static final double ORBIT_DISTANCE_TOLERANCE =
+      FlyingSwordAITuning.ORBIT_DISTANCE_TOLERANCE;
+  public static final double GUARD_SEARCH_RANGE = FlyingSwordAITuning.GUARD_SEARCH_RANGE;
+  public static final double GUARD_FOLLOW_DISTANCE = FlyingSwordAITuning.GUARD_FOLLOW_DISTANCE;
+  public static final double HUNT_SEARCH_RANGE = FlyingSwordAITuning.HUNT_SEARCH_RANGE;
+  public static final double HUNT_TARGET_VALID_RANGE =
+      FlyingSwordAITuning.HUNT_TARGET_VALID_RANGE;
+  public static final double HUNT_RETURN_DISTANCE = FlyingSwordAITuning.HUNT_RETURN_DISTANCE;
 
-  /** 破块效率基数 */
-  public static final double BLOCK_BREAK_EFF_BASE =
-      config("BLOCK_BREAK_EFF_BASE", 0.75);
-
-  // ========== 辅助方法 ==========
-  private static double config(String key, double defaultValue) {
-    return BehaviorConfigAccess.getFloat(FlyingSwordTuning.class, key, (float) defaultValue);
-  }
-
-  private static int configInt(String key, int defaultValue) {
-    return BehaviorConfigAccess.getInt(FlyingSwordTuning.class, key, defaultValue);
-  }
-
-  private static boolean configBool(String key, boolean defaultValue) {
-    return BehaviorConfigAccess.getBoolean(FlyingSwordTuning.class, key, defaultValue);
-  }
+  public static final double ORBIT_TANGENT_SPEED_FACTOR =
+      FlyingSwordAITuning.ORBIT_TANGENT_SPEED_FACTOR;
+  public static final double ORBIT_RADIAL_PULL_IN = FlyingSwordAITuning.ORBIT_RADIAL_PULL_IN;
+  public static final double ORBIT_APPROACH_SPEED_FACTOR =
+    FlyingSwordAITuning.ORBIT_APPROACH_SPEED_FACTOR;
+  public static final double ORBIT_RETREAT_SPEED_FACTOR =
+    FlyingSwordAITuning.ORBIT_RETREAT_SPEED_FACTOR;
+  public static final double GUARD_CHASE_MAX_FACTOR =
+      FlyingSwordAITuning.GUARD_CHASE_MAX_FACTOR;
+  public static final double GUARD_FOLLOW_APPROACH_FACTOR =
+      FlyingSwordAITuning.GUARD_FOLLOW_APPROACH_FACTOR;
+  public static final double GUARD_IDLE_TANGENT_FACTOR =
+      FlyingSwordAITuning.GUARD_IDLE_TANGENT_FACTOR;
+  public static final double HUNT_CHASE_MAX_FACTOR = FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR;
+  public static final double HUNT_RETURN_APPROACH_FACTOR =
+      FlyingSwordAITuning.HUNT_RETURN_APPROACH_FACTOR;
+  public static final double HUNT_IDLE_TANGENT_FACTOR =
+      FlyingSwordAITuning.HUNT_IDLE_TANGENT_FACTOR;
 }
