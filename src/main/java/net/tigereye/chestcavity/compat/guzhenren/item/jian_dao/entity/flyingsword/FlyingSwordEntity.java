@@ -413,9 +413,10 @@ public class FlyingSwordEntity extends PathfinderMob {
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
               .OrbitBehavior.tick(this, owner);
       case GUARD -> {
+        // Guard模式优先拦截敌方飞剑
         var nearest =
             net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
-                .TargetFinder.findNearestHostile(
+                .TargetFinder.findNearestHostileForGuard(
                     this, owner.position(),
                     net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai
                         .behavior.GuardBehavior.getSearchRange());

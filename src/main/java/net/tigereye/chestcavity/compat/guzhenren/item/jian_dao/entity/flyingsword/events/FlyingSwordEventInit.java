@@ -30,6 +30,11 @@ public final class FlyingSwordEventInit {
     // 注册默认钩子
     FlyingSwordEventRegistry.register(new DefaultEventHooks());
 
+    // 注册飞剑碰撞反推钩子
+    FlyingSwordEventRegistry.register(
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.hooks
+            .SwordClashHook());
+
     initialized = true;
     ChestCavity.LOGGER.info(
         "[FlyingSwordEvent] Event system initialized with {} hooks",
