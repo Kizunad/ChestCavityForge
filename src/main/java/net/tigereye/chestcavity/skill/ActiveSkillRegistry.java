@@ -993,6 +993,20 @@ public final class ActiveSkillRegistry {
                 net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior
                     .JianXinGuOrganBehavior.MEDITATION_COOLDOWN_T)));
 
+    // 剑域蛊：一念开阖（调域）
+    register(
+        "guzhenren:jian_yu_gu_adjust",
+        "guzhenren:jian_yu_gu_adjust",
+        "guzhenren:jianyugu",
+        tags("领域", "调节", "剑道"),
+        "开启6秒调域窗口，消耗 60真元+6念头；窗口结束进入持续时间内按半径扣费；期间正面锥额外 -10% 实伤。",
+        "compat/guzhenren/item/jian_dao/behavior/jianyu/JianYuGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYuGuOrganBehavior
+                  .INSTANCE);
+        });
+
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
     register(
         "guzhenren:synergy/she_sheng_qu_yi",

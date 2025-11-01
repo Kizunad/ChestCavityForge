@@ -130,6 +130,8 @@ public class JianXinDomain extends AbstractDomain {
       syncToClients(level);
       lastSyncTick = currentTick;
     }
+
+    // 域控系数广播改为通用系统（SwordDomainOps）统一处理，避免与具体领域耦合。
   }
 
   @Override

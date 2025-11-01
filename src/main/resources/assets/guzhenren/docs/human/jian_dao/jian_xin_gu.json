@@ -1,0 +1,21 @@
+{
+  "id": "guzhenren:jian_xin_gu",
+  "title": "剑心蛊",
+  "summary": "体质核心器官。心定冥想驱动剑域，定心返本保证抗打断。",
+  "details": [
+    "剑道道痕：100",
+    "移动速度：+1",
+    "防御：-32",
+    "心定冥想：生成剑域、冥想期间移动速度衰减 90%",
+    "定心返本：受控累积定心值，满值清负面并 2 秒无视打断",
+    "剑域：友方每秒恢复精力 +1，敌方移速/攻速压制，可反制域内剑道引导",
+    "可调参数：radiusScale / effectScale (0,10000]，冥想减速 jianxin_velocity_decreasement"
+  ],
+  "tags": [
+    "剑心蛊",
+    "guzhenren:jian_xin_gu",
+    "sword_domain"
+  ],
+  "icon": "guzhenren:jian_xin_gu"
+}
+

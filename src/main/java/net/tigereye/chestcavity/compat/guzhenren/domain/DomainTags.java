@@ -49,6 +49,17 @@ public final class DomainTags {
   public static final String TAG_JIANXIN_VELOCITY_DECREASEMENT =
       "jianxin_velocity_decreasement";
 
+  // ===== 剑域“域控系数”广播（存放于领域所有者的 NBT） =====
+  public static final String TAG_SD_R = "sword_domain_R";
+  public static final String TAG_SD_S = "sword_domain_s";
+  public static final String TAG_SD_P_OUT = "sword_domain_p_out";
+  public static final String TAG_SD_P_IN = "sword_domain_p_in";
+  public static final String TAG_SD_P_MOVE = "sword_domain_p_move";
+  public static final String TAG_SD_ENTITY_ENABLED = "sword_domain_entity_enabled";
+  public static final String TAG_SD_E = "sword_domain_E";
+  public static final String TAG_SD_P_OUT_ENTITY = "sword_domain_p_out_entity";
+  public static final String TAG_SD_TIMELEFT_TICKS = "sword_domain_timeleft_ticks";
+
   private DomainTags() {}
 
   /**
@@ -348,5 +359,81 @@ public final class DomainTags {
 
   public static boolean hasJianxinVelocityDecreasement(Entity entity) {
     return getJianxinVelocityDecreasement(entity) > 0.0;
+  }
+
+  // ===== 域控系数（所有者）读写 =====
+
+  public static void setSwordDomainControl(
+      Entity owner,
+      double R,
+      double s,
+      double pOut,
+      double pIn,
+      double pMove,
+      boolean entityEnabled,
+      double E,
+      double pOutEntity,
+      int timeLeftTicks) {
+    CompoundTag nbt = getDomainNBT(owner, true);
+    nbt.putDouble(TAG_SD_R, R);
+    nbt.putDouble(TAG_SD_S, s);
+    nbt.putDouble(TAG_SD_P_OUT, pOut);
+    nbt.putDouble(TAG_SD_P_IN, pIn);
+    nbt.putDouble(TAG_SD_P_MOVE, pMove);
+    nbt.putBoolean(TAG_SD_ENTITY_ENABLED, entityEnabled);
+    nbt.putDouble(TAG_SD_E, E);
+    nbt.putDouble(TAG_SD_P_OUT_ENTITY, pOutEntity);
+    nbt.putInt(TAG_SD_TIMELEFT_TICKS, Math.max(0, timeLeftTicks));
+  }
+
+  public static void clearSwordDomainControl(Entity owner) {
+    CompoundTag nbt = getDomainNBT(owner, false);
+    if (nbt == null) return;
+    nbt.remove(TAG_SD_R);
+    nbt.remove(TAG_SD_S);
+    nbt.remove(TAG_SD_P_OUT);
+    nbt.remove(TAG_SD_P_IN);
+    nbt.remove(TAG_SD_P_MOVE);
+    nbt.remove(TAG_SD_ENTITY_ENABLED);
+    nbt.remove(TAG_SD_E);
+    nbt.remove(TAG_SD_P_OUT_ENTITY);
+    nbt.remove(TAG_SD_TIMELEFT_TICKS);
+  }
+
+  public static double getSwordDomainR(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_R);
+  }
+
+  public static double getSwordDomainS(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_S);
+  }
+
+  public static double getSwordDomainPout(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_P_OUT);
+  }
+
+  public static double getSwordDomainPin(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_P_IN);
+  }
+
+  public static double getSwordDomainPmove(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_P_MOVE);
+  }
+
+  public static boolean isSwordDomainEntityEnabled(Entity owner) {
+    CompoundTag nbt = getDomainNBT(owner, false);
+    return nbt != null && nbt.getBoolean(TAG_SD_ENTITY_ENABLED);
+  }
+
+  public static double getSwordDomainE(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_E);
+  }
+
+  public static double getSwordDomainPoutEntity(Entity owner) {
+    return getDoubleTag(owner, TAG_SD_P_OUT_ENTITY);
+  }
+
+  public static int getSwordDomainTimeLeftTicks(Entity owner) {
+    return getIntTag(owner, TAG_SD_TIMELEFT_TICKS);
   }
 }

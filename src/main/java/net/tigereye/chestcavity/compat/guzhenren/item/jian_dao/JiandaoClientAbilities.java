@@ -20,5 +20,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianXin)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(jianXin);
     }
+
+    // 剑域蛊（调域 TUI）
+    var jianYu = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_yu_gu_adjust");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianYu)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianYu);
+    }
   }
 }

@@ -29,7 +29,10 @@ import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
  *
  * <p>按约定：该器官的运行时状态不走 LinkageChannel，全部存储到 OrganState NBT 下的 "JianXinGu" 根键。
  */
-public enum JianXinGuOrganBehavior implements OrganSlowTickListener, OrganIncomingDamageListener {
+public enum JianXinGuOrganBehavior
+    implements OrganSlowTickListener,
+        net.tigereye.chestcavity.listeners.OrganOnHitListener,
+        OrganIncomingDamageListener {
   INSTANCE;
 
   public static final String MOD_ID = "guzhenren";
@@ -185,7 +188,33 @@ public enum JianXinGuOrganBehavior implements OrganSlowTickListener, OrganIncomi
     exitMeditation(player, state);
     state.setInt(K_FREEZE_TICKS, FREEZE_ON_BREAK_T);
     DomainTags.setJiandaoFrozen(player, FREEZE_ON_BREAK_T);
-    return dmg;
+    // 冥想被打断也要继续应用域内防御倍率
+    double pIn = net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.getSwordDomainPin(player);
+    return (float) (dmg * (pIn > 0.0 ? pIn : 1.0));
+  }
+
+  // -------- 事件：命中（近战/直接来源） --------
+  @Override
+  public float onHit(
+      DamageSource source,
+      LivingEntity attacker,
+      LivingEntity target,
+      ChestCavityInstance chestCavity,
+      ItemStack organ,
+      float damage) {
+    if (!(attacker instanceof ServerPlayer player) || attacker.level().isClientSide()) {
+      return damage;
+    }
+    // 仅对“自身·近战/直接来源”加成（飞剑/投掷物另走实体路径）
+    if (source == null || source.getEntity() != attacker) {
+      return damage;
+    }
+    double pOut =
+        net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.getSwordDomainPout(player);
+    if (!(pOut > 0.0)) {
+      return damage;
+    }
+    return (float) (damage * pOut);
   }
 
   // -------- 内部方法 --------

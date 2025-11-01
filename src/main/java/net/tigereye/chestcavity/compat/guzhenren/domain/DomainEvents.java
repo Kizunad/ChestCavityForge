@@ -21,6 +21,9 @@ public final class DomainEvents {
         // 确保“冥想减速”与属性保持一致
         net.tigereye.chestcavity.compat.guzhenren.domain.DomainMovementOps
             .tickEnsureMeditationSlow(player);
+        // 计算并广播通用“剑域”系数（独立于具体领域）
+        net.tigereye.chestcavity.compat.guzhenren.domain.SwordDomainOps.tickPlayer(
+            player, level.getGameTime());
       }
     }
   }
