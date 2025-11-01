@@ -111,6 +111,22 @@ public final class CCAttachments {
                       .serialize(new FlyingSwordSelectionSerializer())
                       .build());
 
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state
+              .SwordDomainConfigAttachment>>
+      SWORD_DOMAIN_CONFIG =
+          ATTACHMENT_TYPES.register(
+              "sword_domain_config",
+              () ->
+                  AttachmentType.builder(
+                          () ->
+                              new net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state
+                                  .SwordDomainConfigAttachment())
+                      .serialize(
+                          new net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state
+                              .SwordDomainConfigAttachment.Serializer())
+                      .build());
+
   private CCAttachments() {}
 
   private static ChestCavityInstance createInstance(IAttachmentHolder holder) {
@@ -248,6 +264,19 @@ public final class CCAttachments {
               .FlyingSwordSelection>
       getExistingFlyingSwordSelection(Player player) {
     return player.getExistingData(FLYING_SWORD_SELECTION.get());
+  }
+
+  public static net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state
+          .SwordDomainConfigAttachment
+      getSwordDomainConfig(Player player) {
+    return player.getData(SWORD_DOMAIN_CONFIG.get());
+  }
+
+  public static Optional<
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state
+              .SwordDomainConfigAttachment>
+      getExistingSwordDomainConfig(Player player) {
+    return player.getExistingData(SWORD_DOMAIN_CONFIG.get());
   }
 
   private static class ChestCavitySerializer

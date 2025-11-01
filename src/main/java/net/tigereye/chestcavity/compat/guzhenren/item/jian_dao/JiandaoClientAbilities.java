@@ -14,5 +14,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(abilityId)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(abilityId);
     }
+
+    // 心定冥想（剑心蛊）
+    var jianXin = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_xin_mingxiang");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianXin)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianXin);
+    }
   }
 }

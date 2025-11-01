@@ -975,6 +975,24 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.BingJiGuActive.INSTANCE);
         });
 
+    // 剑心蛊：心定冥想（体质核心）
+    register(
+        "guzhenren:jian_xin_mingxiang",
+        "guzhenren:jian_xin_mingxiang",
+        "guzhenren:jian_xin_gu",
+        tags("体质", "冥想", "领域"),
+        "心定冥想：进入静心并展开剑心域，冥想期间每秒恢复少量资源与剑势。再次施放可提前结束。",
+        "compat/guzhenren/item/jian_dao/behavior/JianXinGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianXinGuOrganBehavior
+                  .INSTANCE);
+        },
+        CooldownHint.useOrgan(
+            "冥想就绪", formatCooldownSeconds(
+                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior
+                    .JianXinGuOrganBehavior.MEDITATION_COOLDOWN_T)));
+
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
     register(
         "guzhenren:synergy/she_sheng_qu_yi",

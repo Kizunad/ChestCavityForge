@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -21,6 +22,9 @@ import org.jetbrains.annotations.Nullable;
 /** 运行时工具：基于标签识别古真人物品所属的“流派”标识。 */
 public final class GuzhenrenFlowTooltipResolver {
   private static final Map<String, TagKey<Item>> FLOW_TAGS = GZRItemTags.FLOW_TAGS;
+  /** 归一“剑道”顶层标签：用于统一判定是否属于剑道相关物品/技能。 */
+  private static final TagKey<Item> JIANDAO_TAG =
+      TagKey.create(Registries.ITEM, ResourceLocation.parse("guzhenren:jiandao"));
 
   private GuzhenrenFlowTooltipResolver() {}
 
@@ -126,5 +130,40 @@ public final class GuzhenrenFlowTooltipResolver {
   private static FlowInfo emptyFlow(ItemStack stack) {
     ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
     return new FlowInfo(itemId, ImmutableList.of());
+  }
+
+  // ======== 剑道（Jiandao）检测辅助 ========
+
+  /**
+   * 判定物品是否属于“剑道”逻辑。
+   *
+   * <p>优先依据顶层标签 guzhenren:jiandao；若缺失则回退到流派关键字匹配（"jiandao"/"jian_dao"/"剑道"）。
+   */
+  public static boolean isJiandaoItem(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
+    if (stack.is(JIANDAO_TAG)) {
+      return true;
+    }
+    FlowInfo info = inspect(stack);
+    if (!info.hasFlow()) {
+      return false;
+    }
+    for (String f : info.flows()) {
+      String n = normalizeFlowKeyword(f);
+      if (n.contains("jiandao") || n.contains("jian_dao") || n.contains("剑道")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** 检查玩家当前是否在使用“剑道”物品。 */
+  public static boolean isUsingJiandao(Player player) {
+    if (player == null || !player.isUsingItem()) {
+      return false;
+    }
+    return isJiandaoItem(player.getUseItem());
   }
 }

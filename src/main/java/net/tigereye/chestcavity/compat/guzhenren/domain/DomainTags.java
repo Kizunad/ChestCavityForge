@@ -42,6 +42,13 @@ public final class DomainTags {
   /** 标签：无视打断（定心或杀招赋予） */
   public static final String TAG_UNBREAKABLE_FOCUS = "unbreakable_focus";
 
+  /** 标签：剑道冻结剩余ticks（>0 表示处于冻结期） */
+  public static final String TAG_JIANGDAO_FREEZE_TICKS = "jiandao_frozen_ticks";
+
+  /** 标签：剑域·移动速度衰减（0表示关闭，(0,1] 表示倍率 1-衰减。例如0.9 => 90% 衰减） */
+  public static final String TAG_JIANXIN_VELOCITY_DECREASEMENT =
+      "jianxin_velocity_decreasement";
+
   private DomainTags() {}
 
   /**
@@ -111,6 +118,21 @@ public final class DomainTags {
       return null;
     }
     return nbt.getString(tag);
+  }
+
+  /** 获取双精度类型的标签值，不存在返回0.0。 */
+  public static double getDoubleTag(Entity entity, String tag) {
+    CompoundTag nbt = getDomainNBT(entity, false);
+    if (nbt == null) {
+      return 0.0;
+    }
+    return nbt.getDouble(tag);
+  }
+
+  /** 设置双精度类型的标签值。 */
+  public static void setDoubleTag(Entity entity, String tag, double value) {
+    CompoundTag nbt = getDomainNBT(entity, true);
+    nbt.putDouble(tag, value);
   }
 
   /**
@@ -278,5 +300,53 @@ public final class DomainTags {
     } else {
       setIntTag(entity, TAG_UNBREAKABLE_FOCUS + "_duration", duration);
     }
+  }
+
+  /** 设置“剑道冻结”剩余时长（tick）。 */
+  public static void setJiandaoFrozen(Entity entity, int ticks) {
+    int clamped = Math.max(0, ticks);
+    if (clamped > 0) {
+      setIntTag(entity, TAG_JIANGDAO_FREEZE_TICKS, clamped);
+    } else {
+      removeTag(entity, TAG_JIANGDAO_FREEZE_TICKS);
+    }
+  }
+
+  /** 是否处于“剑道冻结”状态。 */
+  public static boolean isJiandaoFrozen(Entity entity) {
+    return getIntTag(entity, TAG_JIANGDAO_FREEZE_TICKS) > 0;
+  }
+
+  /** 每tick衰减“剑道冻结”时长。 */
+  public static void tickJiandaoFrozen(Entity entity) {
+    int cur = getIntTag(entity, TAG_JIANGDAO_FREEZE_TICKS);
+    if (cur <= 0) {
+      return;
+    }
+    cur -= 1;
+    if (cur <= 0) {
+      removeTag(entity, TAG_JIANGDAO_FREEZE_TICKS);
+    } else {
+      setIntTag(entity, TAG_JIANGDAO_FREEZE_TICKS, cur);
+    }
+  }
+
+  // ===== 剑域移动减速（玩家开启冥想时设置，结束时清除） =====
+
+  public static void setJianxinVelocityDecreasement(Entity entity, double value) {
+    double v = Math.max(0.0, Math.min(10000.0, value));
+    if (v <= 0.0) {
+      removeTag(entity, TAG_JIANXIN_VELOCITY_DECREASEMENT);
+    } else {
+      setDoubleTag(entity, TAG_JIANXIN_VELOCITY_DECREASEMENT, v);
+    }
+  }
+
+  public static double getJianxinVelocityDecreasement(Entity entity) {
+    return getDoubleTag(entity, TAG_JIANXIN_VELOCITY_DECREASEMENT);
+  }
+
+  public static boolean hasJianxinVelocityDecreasement(Entity entity) {
+    return getJianxinVelocityDecreasement(entity) > 0.0;
   }
 }

@@ -92,6 +92,13 @@ public class JianXinDomain extends AbstractDomain {
 
   @Override
   public double getRadius() {
+    var owner = getOwner();
+    if (owner instanceof net.minecraft.world.entity.player.Player player) {
+      double scale =
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state.DomainConfigOps
+              .radiusScale(player);
+      return JianXinDomainTuning.BASE_RADIUS * Math.max(1.0e-6, scale);
+    }
     return JianXinDomainTuning.BASE_RADIUS;
   }
 
@@ -107,6 +114,9 @@ public class JianXinDomain extends AbstractDomain {
 
     // 调用父类tick（应用效果到范围内实体）
     super.tick(level);
+
+    // 同步领域标签（进入/离开）
+    net.tigereye.chestcavity.compat.guzhenren.domain.DomainHelper.syncDomainTags(this);
 
     // 粒子特效
     long currentTick = level.getGameTime();
@@ -139,13 +149,21 @@ public class JianXinDomain extends AbstractDomain {
    */
   private void applyFriendlyEffects(ServerLevel level, LivingEntity entity) {
     double enhancedMult = enhanced ? JianXinDomainTuning.ENHANCED_REGEN_MULT : 1.0;
-
-    // 资源恢复（这里用生命值代替，实际应该恢复真元/精力等资源）
-    // TODO: 集成资源系统后替换为真元/精力恢复
-    if (entity.getHealth() < entity.getMaxHealth()) {
-      double regenAmount = JianXinDomainTuning.FRIENDLY_REGEN_PER_TICK * enhancedMult;
-      entity.heal((float) regenAmount);
+    double effectScale = 1.0;
+    var own = getOwner();
+    if (own instanceof net.minecraft.world.entity.player.Player p) {
+      effectScale =
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state.DomainConfigOps
+              .effectScale(p);
     }
+
+    // 资源恢复（精力）：每tick = 1.0 / 20 * 乘积缩放
+    double regenAmount =
+        (1.0 / 20.0)
+            * enhancedMult
+            * effectScale;
+    net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
+        .tryAdjustJingli(entity, regenAmount, true);
 
     // 剑势恢复（通过LinkageChannel实现）
     // TODO: 实现剑势层数恢复逻辑
@@ -159,6 +177,13 @@ public class JianXinDomain extends AbstractDomain {
    */
   private void applyEnemyEffects(ServerLevel level, LivingEntity entity) {
     double enhancedMult = enhanced ? JianXinDomainTuning.ENHANCED_DEBUFF_MULT : 1.0;
+    double effectScale = 1.0;
+    var own = getOwner();
+    if (own instanceof net.minecraft.world.entity.player.Player p) {
+      effectScale =
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state.DomainConfigOps
+              .effectScale(p);
+    }
 
     // 计算效果强度缩放
     double intensityScale =
@@ -169,8 +194,8 @@ public class JianXinDomain extends AbstractDomain {
     double attackSlowFactor = JianXinDomainTuning.ENEMY_ATTACK_SLOW_FACTOR * enhancedMult;
 
     // 应用强度缩放
-    slowFactor *= (1.0 + intensityScale);
-    attackSlowFactor *= (1.0 + intensityScale);
+    slowFactor *= (1.0 + intensityScale) * effectScale;
+    attackSlowFactor *= (1.0 + intensityScale) * effectScale;
 
     // 应用缓慢效果（移动速度）
     int slowAmplifier = Math.min(4, (int) (slowFactor * 10)); // 转换为药水等级
@@ -209,13 +234,23 @@ public class JianXinDomain extends AbstractDomain {
    * @param enemy 敌方玩家
    */
   private void checkSwordCounterAttack(ServerLevel level, Player enemy) {
-    // 检查敌方是否正在使用剑道物品
-    // TODO: 检查 useItem && item.hasTag("guzhenren:jiandao")
+    // 检查敌方是否正在使用“剑道”物品（tag: guzhenren:jiandao）
+    if (!net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver
+        .isUsingJiandao(enemy)) {
+      return;
+    }
 
-    // 获取敌方实力
-    // TODO: 从玩家数据获取剑道道痕和流派经验
-    int enemyDaohen = 0; // 占位符
-    int enemySchoolExp = 0; // 占位符
+    // 获取敌方实力（道痕 + 流派经验）
+    double enemyDaohen =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
+            .openHandle(enemy)
+            .map(h -> h.read("daohen_jiandao").orElse(0.0))
+            .orElse(0.0);
+    double enemySchoolExp =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
+            .openHandle(enemy)
+            .map(h -> h.read("liupai_jiandao").orElse(0.0))
+            .orElse(0.0);
 
     // 计算实力对比
     double ownerPower =
@@ -230,8 +265,8 @@ public class JianXinDomain extends AbstractDomain {
           JianXinDomainTuning.SWORD_COUNTER_BASE_DAMAGE
               + (float) (powerDiff * JianXinDomainTuning.POWER_DIFF_DAMAGE_COEF);
 
-      // 触发剑气反噬
-      // TODO: 取消useItem
+      // 触发剑气反噬：取消当前引导
+      enemy.stopUsingItem();
       enemy.hurt(level.damageSources().magic(), damage);
 
       // 反噬特效
@@ -304,6 +339,18 @@ public class JianXinDomain extends AbstractDomain {
     // 销毁特效
     LivingEntity owner = getOwner();
     if (owner != null && owner.level() instanceof ServerLevel serverLevel) {
+      // 标签清理：将附近实体上属于本领域主人的剑域标签移除
+      var cleanupBounds = getBounds().inflate(8.0);
+      var maybeTagged =
+          serverLevel.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, cleanupBounds);
+      for (var e : maybeTagged) {
+        java.util.UUID tagOwner =
+            net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.getSwordDomainOwner(e);
+        if (tagOwner != null && tagOwner.equals(getOwnerUUID())) {
+          net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.markLeaveSwordDomain(e);
+        }
+      }
+
       JianXinDomainFX.spawnDestructionEffect(serverLevel, getCenter(), getRadius());
 
       // 通知客户端移除（使用通用系统）
@@ -349,7 +396,7 @@ public class JianXinDomain extends AbstractDomain {
   @Override
   public ResourceLocation getTexturePath() {
     return ResourceLocation.fromNamespaceAndPath(
-        "guzhenren", "textures/domain/jianxinyu_transparent_soft_preview.png");
+        "guzhenren", "textures/domain/jianxinyu_transparent_hardcut.png");
   }
 
   @Override

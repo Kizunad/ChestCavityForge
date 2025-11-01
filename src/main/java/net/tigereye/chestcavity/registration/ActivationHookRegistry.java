@@ -146,6 +146,15 @@ public final class ActivationHookRegistry {
         (player, skillId, cc, entry, result) ->
             SkillEffectBus.post(player, skillId, cc, null, mapComboResult(result)));
 
+    // 剑道技能冻结期拦截（技能ID以 jiandao/ 或 jian_ 开头的均视为剑道）
+    SkillActivationHooks.registerActivePreHandler(
+        "^guzhenren:(jiandao/.*|jian_.*)$",
+        ActivationHookRegistry::jiandaoFreezeActivePre);
+
+    SkillActivationHooks.registerComboPreHandler(
+        "^guzhenren:(jiandao/.*|jian_.*)$",
+        ActivationHookRegistry::jiandaoFreezeComboPre);
+
     SkillActivationHooks.registerActivePostHandler(
         "^guzhenren:.*$", GuzhenrenFlowActivationHooks::handleSkillPostActivation);
   }
@@ -160,5 +169,35 @@ public final class ActivationHookRegistry {
       case FAILED -> ActiveSkillRegistry.TriggerResult.ABILITY_NOT_REGISTERED;
       case BLOCKED_BY_HANDLER -> ActiveSkillRegistry.TriggerResult.BLOCKED_BY_HANDLER;
     };
+  }
+
+  // =====================
+  // Internal handlers
+  // =====================
+
+  private static SkillActivationHooks.ActivePreHookDecision jiandaoFreezeActivePre(
+      ServerPlayer player,
+      ResourceLocation skillId,
+      ChestCavityInstance cc,
+      ActiveSkillRegistry.ActiveSkillEntry entry) {
+    if (player != null
+        && net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.isJiandaoFrozen(player)) {
+      return SkillActivationHooks.ActivePreHookDecision.cancel(
+          ActiveSkillRegistry.TriggerResult.BLOCKED_BY_HANDLER);
+    }
+    return SkillActivationHooks.ActivePreHookDecision.continueChain();
+  }
+
+  private static SkillActivationHooks.ComboPreHookDecision jiandaoFreezeComboPre(
+      ServerPlayer player,
+      ResourceLocation skillId,
+      ChestCavityInstance cc,
+      net.tigereye.chestcavity.skill.ComboSkillRegistry.ComboSkillEntry entry) {
+    if (player != null
+        && net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.isJiandaoFrozen(player)) {
+      return SkillActivationHooks.ComboPreHookDecision.cancel(
+          net.tigereye.chestcavity.skill.ComboSkillRegistry.TriggerResult.BLOCKED_BY_HANDLER);
+    }
+    return SkillActivationHooks.ComboPreHookDecision.continueChain();
   }
 }

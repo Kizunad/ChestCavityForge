@@ -154,8 +154,10 @@ public final class DomainRenderer {
     float scale = (float) domain.radius;
     poseStack.scale(scale, scale, scale);
 
-    // 渲染纹理
-    RenderType renderType = RenderType.entityTranslucent(domain.texturePath);
+    // 渲染纹理（尝试去除棋盘格背景）
+    ResourceLocation resolved =
+        TransparentTextureResolver.getOrProcess(domain.texturePath);
+    RenderType renderType = RenderType.entityTranslucent(resolved);
     VertexConsumer consumer = buffer.getBuffer(renderType);
     Matrix4f matrix = poseStack.last().pose();
 

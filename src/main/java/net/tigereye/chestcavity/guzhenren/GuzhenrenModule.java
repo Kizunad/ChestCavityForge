@@ -124,16 +124,23 @@ public final class GuzhenrenModule {
       modBus.addListener(JiandaoClientRenderers::onRegisterRenderers);
       modBus.addListener(GuangDaoClientRenderers::onRegisterRenderers);
       modBus.addListener(GuDaoClientRenderLayers::onAddLayers);
+      // 注意：渲染事件(RenderLevelStageEvent)是 FORGE 总线事件，不应注册到 modBus
     }
   }
 
   private static void installForgeListeners(IEventBus forgeBus) {
     forgeBus.addListener(JianYingGuEvents::onServerTick);
+    // 领域系统 tick（统一调度）
+    forgeBus.addListener(
+        net.tigereye.chestcavity.compat.guzhenren.domain.DomainEvents::onServerTick);
     forgeBus.addListener(GuzhenrenResourceEvents::onPlayerLoggedIn);
     forgeBus.addListener(GuzhenrenResourceEvents::onPlayerRespawn);
     forgeBus.addListener(GuzhenrenResourceEvents::onPlayerClone);
     forgeBus.addListener(GuzhenrenResourceEvents::onPlayerChangedDimension);
     if (FMLEnvironment.dist.isClient()) {
+      // 通用领域 PNG 渲染（AFTER_PARTICLES 阶段）
+      forgeBus.addListener(
+          net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer::render);
       forgeBus.addListener(
           (ClientTickEvent.Post event) -> PlayerSkinSyncClient.onClientTick(event));
     }

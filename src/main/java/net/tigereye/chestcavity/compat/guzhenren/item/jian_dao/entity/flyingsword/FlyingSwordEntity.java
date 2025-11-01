@@ -526,6 +526,16 @@ public class FlyingSwordEntity extends PathfinderMob {
         net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
             .FlyingSwordCalculator.effectiveAccel(this.attributes.accel, ctx);
 
+    // 领域/控制类速度缩放（例如：剑心域对敌方飞剑的抑制）
+    double domainScale =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops
+            .SwordSpeedModifiers.computeDomainSpeedScale(this);
+    if (domainScale != 1.0) {
+      effectiveMax *= domainScale;
+      // 同步缩放期望基速，保持行为层一致性
+      effectiveBase *= domainScale;
+    }
+
     // 将期望速度按 base 比例缩放（行为层仍以 base 构建）
     double baseScale = this.attributes.speedBase > 1.0e-8 ? (effectiveBase / this.attributes.speedBase) : 1.0;
     Vec3 desired = desiredVelocity.scale(baseScale);

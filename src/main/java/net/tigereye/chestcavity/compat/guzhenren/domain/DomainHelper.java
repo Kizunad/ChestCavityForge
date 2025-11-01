@@ -118,8 +118,20 @@ public final class DomainHelper {
    * @return 领域等级（5-6）
    */
   private static int calculateJianXinLevel(int jiandaoDaohen, int schoolExperience) {
-    double totalPower = jiandaoDaohen * 0.5 + schoolExperience * 0.5;
-    return totalPower > 100 ? 6 : 5;
+    double totalPower =
+        jiandaoDaohen
+                * net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
+                    .JianXinDomainTuning.DAOHEN_WEIGHT
+            + schoolExperience
+                * net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
+                    .JianXinDomainTuning.SCHOOL_EXP_WEIGHT;
+    return totalPower
+            > net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
+                .JianXinDomainTuning.LEVEL_THRESHOLD
+        ? net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
+            .JianXinDomainTuning.MAX_LEVEL
+        : net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
+            .JianXinDomainTuning.MIN_LEVEL;
   }
 
   /**
@@ -182,7 +194,38 @@ public final class DomainHelper {
    * @param domain 领域
    */
   public static void syncDomainTags(Domain domain) {
-    // TODO: 实现标签同步逻辑
-    // 对范围内的实体添加标签，范围外的移除标签
+    if (domain == null || !domain.isValid()) {
+      return;
+    }
+    var owner = domain.getOwner();
+    if (!(owner != null && owner.level() instanceof net.minecraft.server.level.ServerLevel level)) {
+      return;
+    }
+
+    // 收集边界内外的实体，并同步 in/out 标签
+    var bounds = domain.getBounds().inflate(1.0); // 略微放大，减少抖动
+    java.util.List<net.minecraft.world.entity.LivingEntity> nearby =
+        level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, bounds);
+
+    java.util.Set<java.util.UUID> seen = new java.util.HashSet<>();
+    for (var e : nearby) {
+      if (!domain.isInDomain(e)) continue;
+      DomainTags.markEnterSwordDomain(e, domain.getDomainId(), domain.getOwnerUUID(), domain.getLevel());
+      seen.add(e.getUUID());
+    }
+
+    // 对同世界内的带有本领域 owner 的实体，若不在范围则移除标签
+    // 仅检查视距内的实体避免 O(N) 全表扫描
+    var looseBounds = bounds.inflate(8.0);
+    java.util.List<net.minecraft.world.entity.LivingEntity> maybeTagged =
+        level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, looseBounds);
+    for (var e : maybeTagged) {
+      java.util.UUID tagOwner = DomainTags.getSwordDomainOwner(e);
+      if (tagOwner == null) continue;
+      if (!tagOwner.equals(domain.getOwnerUUID())) continue;
+      if (!domain.isInDomain(e)) {
+        DomainTags.markLeaveSwordDomain(e);
+      }
+    }
   }
 }
