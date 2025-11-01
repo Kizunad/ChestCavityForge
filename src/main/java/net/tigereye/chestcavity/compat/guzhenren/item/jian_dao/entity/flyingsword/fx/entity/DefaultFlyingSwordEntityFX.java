@@ -168,4 +168,15 @@ public class DefaultFlyingSwordEntityFX implements IFlyingSwordEntityFX {
     Vec3 pos = sword.position();
     level.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
   }
+
+  @Override
+  public void spawnRecallTrail(ServerLevel level, FlyingSwordEntity sword) {
+    Vec3 pos = sword.position();
+    // 附魔符文粒子 - 象征飞剑返回主人
+    level.sendParticles(ParticleTypes.ENCHANT, pos.x, pos.y, pos.z, 3, 0.1, 0.1, 0.1, 0.02);
+    // 白色暴击星星
+    if (level.random.nextFloat() < 0.5f) {
+      level.sendParticles(ParticleTypes.CRIT, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
+    }
+  }
 }

@@ -267,4 +267,21 @@ public class RenShouZangShengFlyingSwordEntityFX implements IFlyingSwordEntityFX
     // 暗色灵魂守护
     level.sendParticles(ParticleTypes.SOUL, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
   }
+
+  @Override
+  public void spawnRecallTrail(ServerLevel level, FlyingSwordEntity sword) {
+    Vec3 pos = sword.position();
+    // 暗色灵魂轨迹 - 魔道飞剑返回
+    level.sendParticles(ParticleTypes.SOUL, pos.x, pos.y, pos.z, 2, 0.08, 0.08, 0.08, 0.01);
+    // 深红孢子
+    if (level.random.nextFloat() < 0.4f) {
+      level.sendParticles(
+          ParticleTypes.CRIMSON_SPORE, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
+    }
+    // 诡异孢子（暗色）
+    if (level.random.nextFloat() < 0.2f) {
+      level.sendParticles(
+          ParticleTypes.WARPED_SPORE, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
+    }
+  }
 }

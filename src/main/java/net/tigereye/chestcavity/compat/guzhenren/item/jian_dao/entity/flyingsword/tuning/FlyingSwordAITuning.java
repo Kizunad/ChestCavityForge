@@ -9,7 +9,7 @@ public final class FlyingSwordAITuning {
   private FlyingSwordAITuning() {}
 
   // 距离/范围
-  public static final double ORBIT_TARGET_DISTANCE = config("ORBIT_TARGET_DISTANCE", 3.0);
+  public static final double ORBIT_TARGET_DISTANCE = config("ORBIT_TARGET_DISTANCE", 5.0);
   public static final double ORBIT_DISTANCE_TOLERANCE = config("ORBIT_DISTANCE_TOLERANCE", 0.5);
   public static final double GUARD_SEARCH_RANGE = config("GUARD_SEARCH_RANGE", 12.0);
   public static final double GUARD_FOLLOW_DISTANCE = config("GUARD_FOLLOW_DISTANCE", 2.0);

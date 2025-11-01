@@ -35,6 +35,10 @@ public class FlyingSwordAttributes {
   public boolean enableSweep;
   public double sweepPercent;
 
+  // ========== 战斗附加 ==========
+  // 每次命中额外施加的“真伤”数值（简化实现，当前以 magic 伤害类型结算）
+  public double trueDamagePerHit;
+
   /**
    * 创建默认属性（从Tuning读取）
    */
@@ -59,6 +63,8 @@ public class FlyingSwordAttributes {
     attrs.hasGlowLayer = false;
     attrs.enableSweep = false;
     attrs.sweepPercent = 0.0;
+
+    attrs.trueDamagePerHit = 0.0;
 
     return attrs;
   }
@@ -129,6 +135,7 @@ public class FlyingSwordAttributes {
     tag.putBoolean("hasGlowLayer", hasGlowLayer);
     tag.putBoolean("enableSweep", enableSweep);
     tag.putDouble("sweepPercent", sweepPercent);
+    tag.putDouble("trueDamagePerHit", trueDamagePerHit);
   }
 
   /**
@@ -155,6 +162,8 @@ public class FlyingSwordAttributes {
     attrs.hasGlowLayer = tag.getBoolean("hasGlowLayer");
     attrs.enableSweep = tag.getBoolean("enableSweep");
     attrs.sweepPercent = tag.getDouble("sweepPercent");
+
+    attrs.trueDamagePerHit = tag.contains("trueDamagePerHit") ? tag.getDouble("trueDamagePerHit") : 0.0;
 
     return attrs;
   }

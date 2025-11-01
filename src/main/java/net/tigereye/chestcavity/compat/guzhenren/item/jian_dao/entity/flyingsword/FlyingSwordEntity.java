@@ -435,6 +435,9 @@ public class FlyingSwordEntity extends PathfinderMob {
       case HOVER ->
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
               .HoverBehavior.tick(this, owner);
+      case RECALL ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+              .RecallBehavior.tick(this, owner);
     }
 
     // 检测碰撞攻击（集中在战斗模块）
@@ -468,10 +471,14 @@ public class FlyingSwordEntity extends PathfinderMob {
       case HUNT ->
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx
               .FlyingSwordFX.spawnHuntTrail(level, this);
+      case RECALL ->
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx
+              .FlyingSwordFX.spawnRecallTrail(level, this);
     }
 
-    // 高速飞行时的额外特效
-    if (speed > attributes.speedMax * 0.8) {
+    // 高速飞行时的额外特效（SONIC_BOOM 音爆圆环）
+    // 只在速度大于1时播放，避免低速时过于杂乱
+    if (speed > 1.0) {
       net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx.FlyingSwordFX
           .spawnSpeedBoostEffect(level, this);
     }

@@ -78,4 +78,12 @@ public interface IFlyingSwordEntityFX {
    * @param sword 飞剑实体
    */
   void spawnGuardTrail(ServerLevel level, FlyingSwordEntity sword);
+
+  /**
+   * 召回模式的轨迹粒子
+   *
+   * @param level 服务端世界
+   * @param sword 飞剑实体
+   */
+  void spawnRecallTrail(ServerLevel level, FlyingSwordEntity sword);
 }

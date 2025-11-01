@@ -36,7 +36,7 @@ public final class FlyingSwordBlockBreakTuning {
   public static final double BREAK_DECEL_PER_BLOCK = config("BREAK_DECEL_PER_BLOCK", 0.2);
 
   /** 命中盒周围扫描半径（方块），用于邻域破坏 */
-  public static final double BREAK_SCAN_RADIUS = config("BREAK_SCAN_RADIUS", 2.0);
+  public static final double BREAK_SCAN_RADIUS = config("BREAK_SCAN_RADIUS", 0.8);
 
   private static double config(String key, double def) {
     return BehaviorConfigAccess.getFloat(FlyingSwordBlockBreakTuning.class, key, (float) def);

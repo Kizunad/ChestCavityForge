@@ -58,7 +58,9 @@ public final class FlyingSwordTUI {
             .append(space())
             .append(btn("[出击]", "/flyingsword mode hunt", "令所有飞剑[出击]"))
             .append(space())
-            .append(btn("[管理]", "/flyingsword list", "列出在场飞剑详情"));
+            .append(btn("[管理]", "/flyingsword list", "列出在场飞剑详情"))
+            .append(space())
+            .append(btn("[修复]", "/flyingsword repair_selected", "消耗主手物品对选中飞剑修复/赋能"));
     player.sendSystemMessage(actions);
     player.sendSystemMessage(hr());
 
@@ -111,6 +113,8 @@ public final class FlyingSwordTUI {
           .append(dim(String.format(Locale.ROOT, "耐久: %.0f/%.0f  ", s.getDurability(), s.getSwordAttributes().maxDurability)))
           .append(dim(String.format(Locale.ROOT, "距离: %.1fm  ", s.distanceTo(player))))
           .append(btn("[选中]", "/flyingsword select index " + (i + 1), "设为指定飞剑"))
+          .append(space())
+          .append(btn("[修复]", "/flyingsword repair_index " + (i + 1), "消耗主手物品修复/赋能此飞剑"))
           .append(space())
           .append(btn("[召回]", "/flyingsword recall_index " + (i + 1), "召回该飞剑"))
           .append(space())
@@ -222,6 +226,7 @@ public final class FlyingSwordTUI {
     static final int MODE_GUARD = 0xFFAA00;
     static final int MODE_ORBIT = 0x55AAFF;
     static final int MODE_HOVER = 0x55FFFF;
+    static final int MODE_RECALL = 0xAA55FF; // 紫色 - 召回模式
   }
 
   private static Component dim(String text) {
@@ -243,12 +248,14 @@ public final class FlyingSwordTUI {
       case GUARD -> "[守护]";
       case ORBIT -> "[环绕]";
       case HOVER -> "[悬浮]";
+      case RECALL -> "[召回]";
     };
     int color = switch (mode) {
       case HUNT -> Theme.MODE_HUNT;
       case GUARD -> Theme.MODE_GUARD;
       case ORBIT -> Theme.MODE_ORBIT;
       case HOVER -> Theme.MODE_HOVER;
+      case RECALL -> Theme.MODE_RECALL;
     };
     return Component.literal(label).withStyle(Style.EMPTY.withColor(color));
   }

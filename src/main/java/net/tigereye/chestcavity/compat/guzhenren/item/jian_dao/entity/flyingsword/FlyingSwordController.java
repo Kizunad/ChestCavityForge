@@ -86,6 +86,8 @@ public final class FlyingSwordController {
   /**
    * 循环切换AI模式
    *
+   * <p>注意：RECALL 模式不在循环中，因为它是通过召回功能专门触发的。
+   *
    * @param sword 飞剑实体
    * @return 新的AI模式
    */
@@ -100,6 +102,7 @@ public final class FlyingSwordController {
       case GUARD -> AIMode.HUNT;
       case HUNT -> AIMode.HOVER;
       case HOVER -> AIMode.ORBIT;
+      case RECALL -> AIMode.ORBIT; // RECALL 被打断时回到 ORBIT
     };
 
     sword.setAIMode(next);
@@ -108,6 +111,9 @@ public final class FlyingSwordController {
 
   /**
    * 召回单个飞剑
+   *
+   * <p>首次调用时，将飞剑设置为召回模式，开始弧形返回动画。
+   * 飞剑到达主人后，RecallBehavior 会再次调用此方法完成实际召回。
    *
    * @param sword 飞剑实体
    */
@@ -121,6 +127,22 @@ public final class FlyingSwordController {
       sword.discard();
       return;
     }
+
+    // 如果尚未进入召回模式，先设置为召回模式开始动画
+    if (sword.getAIMode() != AIMode.RECALL) {
+      sword.setAIMode(AIMode.RECALL);
+      // 播放召回特效（起始特效）
+      if (sword.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx.FlyingSwordFX
+            .spawnRecallEffect(serverLevel, sword);
+      }
+      // 音效：召回
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
+          .playRecall(sword);
+      return;
+    }
+
+    // 已在召回模式，表示已到达主人，执行实际召回逻辑
 
     // 保存飞剑状态到玩家数据
     boolean success =
@@ -171,15 +193,7 @@ public final class FlyingSwordController {
       if (despawnCtx.preventDespawn) {
         return;
       }
-
-      // 召回特效（已在DefaultEventHooks中处理，这里保留兼容）
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.fx.FlyingSwordFX
-          .spawnRecallEffect(serverLevel, sword);
     }
-
-    // 音效：召回
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops.SoundOps
-        .playRecall(sword);
 
     sword.discard();
   }

@@ -14,7 +14,10 @@ public enum AIMode {
   HUNT("hunt", "出击"),
 
   /** 悬浮模式：靠近主人并在近身处悬停 */
-  HOVER("hover", "悬浮");
+  HOVER("hover", "悬浮"),
+
+  /** 召回模式：弧形轨迹返回主人 */
+  RECALL("recall", "召回");
 
   private final String id;
   private final String displayName;

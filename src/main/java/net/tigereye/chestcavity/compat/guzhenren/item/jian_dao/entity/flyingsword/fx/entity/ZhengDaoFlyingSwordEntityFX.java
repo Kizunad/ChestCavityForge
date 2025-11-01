@@ -226,4 +226,21 @@ public class ZhengDaoFlyingSwordEntityFX implements IFlyingSwordEntityFX {
     level.sendParticles(
         ParticleTypes.SOUL_FIRE_FLAME, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
   }
+
+  @Override
+  public void spawnRecallTrail(ServerLevel level, FlyingSwordEntity sword) {
+    Vec3 pos = sword.position();
+    // 青色光芒轨迹 - 正道飞剑返回
+    level.sendParticles(
+        ParticleTypes.SOUL_FIRE_FLAME, pos.x, pos.y, pos.z, 2, 0.08, 0.08, 0.08, 0.01);
+    // 发光鱿鱼墨水（青色）
+    if (level.random.nextFloat() < 0.3f) {
+      level.sendParticles(
+          ParticleTypes.GLOW_SQUID_INK, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
+    }
+    // 末地烛光（白色光芒）
+    if (level.random.nextFloat() < 0.2f) {
+      level.sendParticles(ParticleTypes.END_ROD, pos.x, pos.y, pos.z, 1, 0.0, 0.0, 0.0, 0.0);
+    }
+  }
 }

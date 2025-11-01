@@ -162,6 +162,14 @@ public final class FlyingSwordCommand {
                                   return builder.buildFuture();
                                 })
                             .executes(FlyingSwordCommand::setModeSelected)))
+            // /flyingsword repair_selected
+            .then(Commands.literal("repair_selected").executes(FlyingSwordCommand::repairSelected))
+            // /flyingsword repair_index <index>
+            .then(
+                Commands.literal("repair_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::repairByIndex)))
             // /flyingsword storage
             .then(Commands.literal("storage").executes(FlyingSwordCommand::checkStorage))
             // /flyingsword debug
@@ -667,6 +675,24 @@ public final class FlyingSwordCommand {
             .FlyingSwordTUI
         .openMain(player);
     return 1;
+  }
+
+  // ===== 修复/赋能 =====
+  private static int repairSelected(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    boolean ok = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops
+        .RepairOps.repairSelected(player.serverLevel(), player);
+    return ok ? 1 : 0;
+  }
+
+  private static int repairByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    boolean ok = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops
+        .RepairOps.repairByIndex(player.serverLevel(), player, index);
+    return ok ? 1 : 0;
   }
 
   private static int openUIActive(CommandContext<CommandSourceStack> ctx)

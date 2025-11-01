@@ -126,7 +126,17 @@ public final class FlyingSwordFX {
   }
 
   /**
-   * 生成飞剑召唤时的“剑阵”粒子：玩家脚下三环圆阵并带有花纹。
+   * 召回模式的轨迹粒子
+   *
+   * @param level 服务端世界
+   * @param sword 飞剑实体
+   */
+  public static void spawnRecallTrail(ServerLevel level, FlyingSwordEntity sword) {
+    getEntityFX(sword.getSwordType()).spawnRecallTrail(level, sword);
+  }
+
+  /**
+   * 生成飞剑召唤时的"剑阵"粒子：玩家脚下三环圆阵并带有花纹。
    *
    * <p>为降低开销，采用稀疏采样：每环48点，8条放射纹路，每条8点。
    * 不同类型飞剑在粒子选择上略有差异。

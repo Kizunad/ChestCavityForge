@@ -232,6 +232,14 @@ public final class FlyingSwordCombat {
         }
       }
 
+      // 命中后追加真伤（若配置 > 0）
+      double extraTrue = sword.getSwordAttributes().trueDamagePerHit;
+      if (extraTrue > 0.0) {
+        try {
+          target.hurt(sword.damageSources().magic(), (float) extraTrue);
+        } catch (Throwable ignored) {}
+      }
+
       // 升级特效
       if (newLevel > oldLevel && sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnLevelUpEffect(serverLevel, sword, newLevel);
