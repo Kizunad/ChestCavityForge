@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordStorage;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning.FlyingSwordModelTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util.ItemDurabilityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util.ItemIdentityUtil;
 
 /**
@@ -60,6 +61,15 @@ public final class FlyingSwordTUIOps {
       Item item = BuiltInRegistries.ITEM.get(id);
       stack = new ItemStack(item == null ? Items.IRON_SWORD : item);
     }
+
+    // 将飞剑耐久比例映射到物品耐久（仅对可损耗物生效）
+    try {
+      if (rec.attributes != null) {
+        double max = Math.max(1.0, rec.attributes.maxDurability);
+        double percent = rec.durability / max; // 1=满耐久
+        ItemDurabilityUtil.applyPercentToStack(stack, percent);
+      }
+    } catch (Throwable ignored) {}
 
     // 写入稳定UUID
     UUID uuid;

@@ -161,6 +161,14 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       net.minecraft.resources.ResourceLocation displayId = null;
       java.util.Optional<java.util.UUID> displayUuid = java.util.Optional.empty();
       if (display != null && !display.isEmpty()) {
+        // 先按飞剑耐久比例“映射”为物品耐久（仅对可损耗物生效）
+        try {
+          double max = Math.max(1.0, entity.getSwordAttributes().maxDurability);
+          double percent = entity.getDurability() / max; // 1=满耐久，0=无耐久
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util
+              .ItemDurabilityUtil.applyPercentToStack(display, percent);
+        } catch (Throwable ignored) {}
+
         // 保存完整 ItemStack NBT（含附魔/组件），并保留 itemId 作为回退
         try {
           net.minecraft.nbt.Tag raw = display.save(entity.registryAccess());
