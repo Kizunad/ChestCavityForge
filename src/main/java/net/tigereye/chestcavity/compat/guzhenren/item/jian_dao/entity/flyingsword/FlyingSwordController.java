@@ -114,6 +114,34 @@ public final class FlyingSwordController {
     if (sword == null || sword.isRemoved()) {
       return;
     }
+
+    Player owner = sword.getOwner();
+    if (owner == null || sword.level().isClientSide) {
+      sword.discard();
+      return;
+    }
+
+    // 保存飞剑状态到玩家数据
+    boolean success =
+        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(owner)
+            .recallSword(sword);
+
+    if (success) {
+      // 发送成功消息
+      owner.sendSystemMessage(
+          net.minecraft.network.chat.Component.literal(
+              String.format(
+                  "[飞剑] 召回成功 - 等级%d (经验: %d, 耐久: %.1f/%.1f)",
+                  sword.getSwordLevel(),
+                  sword.getExperience(),
+                  sword.getDurability(),
+                  sword.getSwordAttributes().maxDurability)));
+    } else {
+      // 存储已满
+      owner.sendSystemMessage(
+          net.minecraft.network.chat.Component.literal("[飞剑] 召回失败 - 存储已满 (最多10个)"));
+    }
+
     // TODO: 播放召回特效
     sword.discard();
   }

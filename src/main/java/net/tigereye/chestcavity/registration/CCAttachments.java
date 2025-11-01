@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactor
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.state.WuxingGuiBianAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordStorage;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
@@ -89,6 +90,15 @@ public final class CCAttachments {
                       .serialize(new WuxingGuiBianAttachment.Serializer())
                       .build());
 
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<FlyingSwordStorage>>
+      FLYING_SWORD_STORAGE =
+          ATTACHMENT_TYPES.register(
+              "flying_sword_storage",
+              () ->
+                  AttachmentType.builder(CCAttachments::createFlyingSwordStorage)
+                      .serialize(new FlyingSwordStorageSerializer())
+                      .build());
+
   private CCAttachments() {}
 
   private static ChestCavityInstance createInstance(IAttachmentHolder holder) {
@@ -156,6 +166,14 @@ public final class CCAttachments {
     return new WuxingGuiBianAttachment();
   }
 
+  private static FlyingSwordStorage createFlyingSwordStorage(IAttachmentHolder holder) {
+    if (!(holder instanceof Player)) {
+      throw new IllegalStateException(
+          "FlyingSwordStorage attachment can only be applied to players");
+    }
+    return new FlyingSwordStorage();
+  }
+
   public static SoulContainer getSoulContainer(Player player) {
     return player.getData(SOUL_CONTAINER.get());
   }
@@ -186,6 +204,14 @@ public final class CCAttachments {
 
   public static Optional<WuxingGuiBianAttachment> getExistingWuxingGuiBian(Player player) {
     return player.getExistingData(WUXING_GUI_BIAN.get());
+  }
+
+  public static FlyingSwordStorage getFlyingSwordStorage(Player player) {
+    return player.getData(FLYING_SWORD_STORAGE.get());
+  }
+
+  public static Optional<FlyingSwordStorage> getExistingFlyingSwordStorage(Player player) {
+    return player.getExistingData(FLYING_SWORD_STORAGE.get());
   }
 
   private static class ChestCavitySerializer
@@ -262,6 +288,24 @@ public final class CCAttachments {
     public CompoundTag write(
         SoulBeastState attachment, net.minecraft.core.HolderLookup.Provider provider) {
       return attachment.save();
+    }
+  }
+
+  private static class FlyingSwordStorageSerializer
+      implements IAttachmentSerializer<CompoundTag, FlyingSwordStorage> {
+    @Override
+    public FlyingSwordStorage read(
+        IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
+      FlyingSwordStorage storage = new FlyingSwordStorage();
+      if (!tag.isEmpty()) {
+        storage.deserializeNBT(provider, tag);
+      }
+      return storage;
+    }
+
+    @Override
+    public CompoundTag write(FlyingSwordStorage attachment, HolderLookup.Provider provider) {
+      return attachment.serializeNBT(provider);
     }
   }
 }

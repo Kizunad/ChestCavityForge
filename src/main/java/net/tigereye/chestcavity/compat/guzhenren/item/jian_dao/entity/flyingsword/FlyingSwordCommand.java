@@ -58,6 +58,8 @@ public final class FlyingSwordCommand {
                     .then(Commands.literal("spawn").executes(FlyingSwordCommand::testSpawn)))
             // /flyingsword recall
             .then(Commands.literal("recall").executes(FlyingSwordCommand::recallAll))
+            // /flyingsword restore
+            .then(Commands.literal("restore").executes(FlyingSwordCommand::restoreAll))
             // /flyingsword mode <orbit|guard|hunt>
             .then(
                 Commands.literal("mode")
@@ -76,7 +78,11 @@ public final class FlyingSwordCommand {
             // /flyingsword list
             .then(Commands.literal("list").executes(FlyingSwordCommand::listSwords))
             // /flyingsword clear
-            .then(Commands.literal("clear").executes(FlyingSwordCommand::clearTargets)));
+            .then(Commands.literal("clear").executes(FlyingSwordCommand::clearTargets))
+            // /flyingsword storage
+            .then(Commands.literal("storage").executes(FlyingSwordCommand::checkStorage))
+            // /flyingsword debug
+            .then(Commands.literal("debug").executes(FlyingSwordCommand::debugInfo)));
   }
 
   // ========== 命令实现 ==========
@@ -188,6 +194,24 @@ public final class FlyingSwordCommand {
             () ->
                 Component.literal(
                     String.format(Locale.ROOT, "[flyingsword] Recalled %d sword(s)", finalCount)),
+            true);
+
+    return count;
+  }
+
+  private static int restoreAll(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+
+    int count = FlyingSwordSpawner.restoreAll(level, player);
+
+    final int finalCount = count;
+    ctx.getSource()
+        .sendSuccess(
+            () ->
+                Component.literal(
+                    String.format(Locale.ROOT, "[flyingsword] Restored %d sword(s)", finalCount)),
             true);
 
     return count;
@@ -330,5 +354,117 @@ public final class FlyingSwordCommand {
             true);
 
     return count;
+  }
+
+  private static int checkStorage(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordStorage
+        storage =
+            net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+
+    int count = storage.getCount();
+    java.util.List<
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+                .FlyingSwordStorage.RecalledSword>
+        swords = storage.getRecalledSwords();
+
+    StringBuilder message = new StringBuilder();
+    message.append(
+        String.format(Locale.ROOT, "[flyingsword] Storage: %d recalled sword(s)\n", count));
+
+    for (int i = 0; i < swords.size(); i++) {
+      var sword = swords.get(i);
+      message.append(String.format("\n  #%d: ", i + 1));
+      message.append(String.format("Level %d", sword.level));
+      message.append(String.format(" | Exp: %d", sword.experience));
+      message.append(String.format(" | Durability: %.1f/%.1f", sword.durability, sword.attributes.maxDurability));
+    }
+
+    final String msg = message.toString();
+    ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
+
+    return count;
+  }
+
+  private static int debugInfo(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+
+    List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
+
+    if (swords.isEmpty()) {
+      ctx.getSource()
+          .sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
+      return 0;
+    }
+
+    StringBuilder debug = new StringBuilder();
+    debug.append(
+        String.format(Locale.ROOT, "[flyingsword] Debug Info (%d swords):\n", swords.size()));
+
+    for (int i = 0; i < swords.size(); i++) {
+      FlyingSwordEntity sword = swords.get(i);
+      var attrs = sword.getSwordAttributes();
+      net.minecraft.world.phys.Vec3 velocity = sword.getDeltaMovement();
+      double speed = velocity.length();
+
+      // 计算当前伤害
+      double levelScale =
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+              .FlyingSwordCalculator.calculateLevelScale(
+                  sword.getSwordLevel(),
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+                      .FlyingSwordTuning.DAMAGE_PER_LEVEL);
+
+      double damage =
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
+              .FlyingSwordCalculator.calculateDamage(
+                  attrs.damageBase,
+                  speed,
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+                      .FlyingSwordTuning.V_REF,
+                  attrs.velDmgCoef,
+                  levelScale);
+
+      debug.append(String.format("\n[Sword #%d]", i + 1));
+      debug.append(String.format("\n  Mode: %s", sword.getAIMode().getDisplayName()));
+      debug.append(
+          String.format(
+              "\n  Target: %s",
+              sword.getTargetEntity() != null
+                  ? sword.getTargetEntity().getName().getString()
+                  : "None"));
+      debug.append(String.format("\n  Speed: %.3f (%.1f%%)", speed, (speed / attrs.speedMax) * 100));
+      debug.append(String.format("\n  Damage Calc:"));
+      debug.append(String.format("\n    Base Damage: %.1f", attrs.damageBase));
+      debug.append(
+          String.format(
+              "\n    Speed Factor: (%.3f / %.2f)² × %.2f = %.3f",
+              speed,
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+                  .FlyingSwordTuning.V_REF,
+              attrs.velDmgCoef,
+              Math.pow(
+                      speed
+                          / net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity
+                              .flyingsword.tuning.FlyingSwordTuning.V_REF,
+                      2.0)
+                  * attrs.velDmgCoef));
+      debug.append(String.format("\n    Level Scale: %.2f", levelScale));
+      debug.append(String.format("\n    Final Damage: %.2f", damage));
+      debug.append(
+          String.format(
+              "\n  Position: (%.1f, %.1f, %.1f)",
+              sword.getX(), sword.getY(), sword.getZ()));
+      debug.append(String.format("\n  Distance to Player: %.1fm", sword.distanceTo(player)));
+    }
+
+    final String debugStr = debug.toString();
+    ctx.getSource().sendSuccess(() -> Component.literal(debugStr), false);
+
+    return swords.size();
   }
 }

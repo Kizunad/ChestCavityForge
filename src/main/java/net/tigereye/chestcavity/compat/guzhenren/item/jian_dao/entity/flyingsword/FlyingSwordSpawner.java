@@ -241,4 +241,94 @@ public final class FlyingSwordSpawner {
         .map(handle -> handle.consumeScaledZhenyuan(baseCost).isPresent())
         .orElse(false);
   }
+
+  /**
+   * 从存储中恢复单个飞剑
+   *
+   * @param level 服务端世界
+   * @param owner 主人
+   * @param recalled 召回的飞剑数据
+   * @return 恢复的飞剑实体，失败返回null
+   */
+  @Nullable
+  public static FlyingSwordEntity restore(
+      ServerLevel level, Player owner, FlyingSwordStorage.RecalledSword recalled) {
+
+    // 在主人前方1.5格生成
+    Vec3 lookVec = owner.getLookAngle();
+    Vec3 spawnPos = owner.getEyePosition().add(lookVec.scale(1.5));
+
+    // 创建飞剑实体（不使用释放继承修正）
+    FlyingSwordEntity sword =
+        FlyingSwordEntity.create(
+            level, owner, spawnPos, FlyingSwordAttributes.AttributeModifiers.empty());
+
+    if (sword == null) {
+      return null;
+    }
+
+    // 恢复保存的状态
+    sword.setSwordAttributes(recalled.attributes);
+    sword.setSwordLevel(recalled.level);
+    sword.setExperience(recalled.experience);
+    sword.setDurability(recalled.durability);
+
+    // 设置初始速度
+    Vec3 initialVelocity = lookVec.normalize().scale(sword.getSwordAttributes().speedBase);
+    sword.setDeltaMovement(initialVelocity);
+
+    // 添加到世界
+    if (!level.addFreshEntity(sword)) {
+      return null;
+    }
+
+    return sword;
+  }
+
+  /**
+   * 从存储中恢复所有飞剑
+   *
+   * @param level 服务端世界
+   * @param owner 主人
+   * @return 成功恢复的飞剑数量
+   */
+  public static int restoreAll(ServerLevel level, Player owner) {
+    FlyingSwordStorage storage =
+        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(owner);
+
+    int storageCount = storage.getCount();
+    if (storageCount == 0) {
+      owner.sendSystemMessage(
+          net.minecraft.network.chat.Component.literal("[飞剑] 存储中没有召回的飞剑"));
+      return 0;
+    }
+
+    java.util.List<FlyingSwordStorage.RecalledSword> recalledSwords =
+        storage.getRecalledSwords();
+
+    int successCount = 0;
+    for (FlyingSwordStorage.RecalledSword recalled : recalledSwords) {
+      FlyingSwordEntity sword = restore(level, owner, recalled);
+      if (sword != null) {
+        successCount++;
+        owner.sendSystemMessage(
+            net.minecraft.network.chat.Component.literal(
+                String.format(
+                    "[飞剑] 恢复成功 - 等级%d (经验: %d, 耐久: %.1f/%.1f)",
+                    recalled.level,
+                    recalled.experience,
+                    recalled.durability,
+                    recalled.attributes.maxDurability)));
+      }
+    }
+
+    // 清空存储
+    storage.clear();
+
+    owner.sendSystemMessage(
+        net.minecraft.network.chat.Component.literal(
+            String.format("[飞剑] 共恢复 %d/%d 个飞剑", successCount, storageCount)));
+
+    return successCount;
+  }
 }
