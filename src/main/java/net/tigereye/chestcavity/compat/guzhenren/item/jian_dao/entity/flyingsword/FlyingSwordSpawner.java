@@ -48,7 +48,7 @@ public final class FlyingSwordSpawner {
   @Nullable
   public static FlyingSwordEntity spawn(
       ServerLevel level,
-      Player owner,
+      net.minecraft.world.entity.LivingEntity owner,
       Vec3 spawnPos,
       @Nullable Vec3 direction,
       @Nullable ItemStack sourceStack) {
@@ -69,7 +69,7 @@ public final class FlyingSwordSpawner {
   @Nullable
   public static FlyingSwordEntity spawn(
       ServerLevel level,
-      Player owner,
+      net.minecraft.world.entity.LivingEntity owner,
       Vec3 spawnPos,
       @Nullable Vec3 direction,
       @Nullable ItemStack sourceStack,

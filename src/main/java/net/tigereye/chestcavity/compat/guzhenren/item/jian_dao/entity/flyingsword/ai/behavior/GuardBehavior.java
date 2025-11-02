@@ -16,7 +16,7 @@ public class GuardBehavior {
    * 执行防守行为
    */
   public static void tick(
-      FlyingSwordEntity sword, Player owner, @Nullable LivingEntity nearestHostile) {
+      FlyingSwordEntity sword, LivingEntity owner, @Nullable LivingEntity nearestHostile) {
     if (nearestHostile != null) {
       // 调试：显示找到目标
       if (sword.tickCount % 20 == 0) {

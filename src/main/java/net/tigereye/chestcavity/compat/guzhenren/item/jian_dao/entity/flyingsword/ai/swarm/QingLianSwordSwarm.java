@@ -26,7 +26,7 @@ public class QingLianSwordSwarm {
   private final UUID swarmId;
 
   /** 剑群主人 */
-  private final Player owner;
+  private final LivingEntity owner;
 
   /** 剑群成员列表（按生成顺序） */
   private final List<FlyingSwordEntity> swords;
@@ -73,7 +73,7 @@ public class QingLianSwordSwarm {
   // IDLE 最大移动速度（绝对值，避免高属性时过快）
   private static final double IDLE_MAX_SPEED = 0.10;
 
-  public QingLianSwordSwarm(UUID swarmId, Player owner) {
+  public QingLianSwordSwarm(UUID swarmId, LivingEntity owner) {
     this.swarmId = swarmId;
     this.owner = owner;
     this.swords = new ArrayList<>();
@@ -571,7 +571,7 @@ public class QingLianSwordSwarm {
     return swarmId;
   }
 
-  public Player getOwner() {
+  public LivingEntity getOwner() {
     return owner;
   }
 
@@ -586,5 +586,23 @@ public class QingLianSwordSwarm {
   @Nullable
   public LivingEntity getSwarmTarget() {
     return swarmTarget;
+  }
+
+  /**
+   * 外部指令：将集群切换为攻击指定目标。
+   *
+   * <p>会立即设置内部目标并切到攻击模式，同时同步每把飞剑的个体目标，
+   * 以便碰撞攻击逻辑立刻生效。
+   */
+  public boolean commandAttack(@Nullable LivingEntity target) {
+    if (target == null || !target.isAlive()) {
+      return false;
+    }
+    this.swarmTarget = target;
+    for (FlyingSwordEntity s : swords) {
+      s.setTargetEntity(target);
+    }
+    switchMode(SwarmBehaviorMode.SPIRAL_ATTACK);
+    return true;
   }
 }

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops;
 
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
@@ -45,7 +46,7 @@ public final class UpkeepOps {
    * @return 成功消耗返回 true；无法打开资源或不足则返回 false。
    */
   public static boolean consumeIntervalUpkeep(FlyingSwordEntity sword, int intervalTicks) {
-    Player owner = sword.getOwner();
+    LivingEntity owner = sword.getOwner();
     if (owner == null) {
       return false;
     }
@@ -58,10 +59,13 @@ public final class UpkeepOps {
             .FlyingSwordCalculator.effectiveSpeedMax(attrs.speedMax, ctx);
     double speedPercent = effectiveMax > 0 ? speed / effectiveMax : 0.0;
 
+    // 检查主人是否在疾跑（仅玩家有此概念）
+    boolean sprinting = (owner instanceof Player player) && player.isSprinting();
+
     double perSecond =
         net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
             .FlyingSwordCalculator.calculateUpkeepWithContext(
-                attrs.upkeepRate, sword.getAIMode(), owner.isSprinting(), false, speedPercent, ctx);
+                attrs.upkeepRate, sword.getAIMode(), sprinting, false, speedPercent, ctx);
     double cost = perSecond * (intervalTicks / 20.0);
 
     // 使用 ResourceOps 统一消耗逻辑（支持玩家和非玩家）

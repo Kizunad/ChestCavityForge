@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context;
 
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
 
@@ -11,7 +11,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public class TickContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
-  public final Player owner;
+  public final LivingEntity owner;
   public final AIMode currentMode;
   public final int tickCount;
 
@@ -27,7 +27,7 @@ public class TickContext {
   public TickContext(
       FlyingSwordEntity sword,
       ServerLevel level,
-      Player owner,
+      LivingEntity owner,
       AIMode currentMode,
       int tickCount) {
     this.sword = sword;

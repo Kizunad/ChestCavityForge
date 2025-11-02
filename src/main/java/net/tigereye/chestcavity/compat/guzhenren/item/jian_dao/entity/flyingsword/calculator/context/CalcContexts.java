@@ -22,7 +22,7 @@ public final class CalcContexts {
     ctx.swordLevel = sword.getSwordLevel();
     ctx.worldTime = sword.level().getGameTime();
 
-    @Nullable Player owner = sword.getOwner();
+    @Nullable net.minecraft.world.entity.LivingEntity owner = sword.getOwner();
     if (owner != null) {
       ctx.ownerSprinting = owner.isSprinting();
       double hp = Math.max(0.0, owner.getHealth());

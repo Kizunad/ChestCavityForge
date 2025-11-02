@@ -28,7 +28,7 @@ public final class SwordSpeedModifiers {
     if (sword == null || sword.level().isClientSide()) {
       return 1.0;
     }
-    Player swordOwner = sword.getOwner();
+    net.minecraft.world.entity.LivingEntity swordOwner = sword.getOwner();
     if (swordOwner == null) {
       return 1.0;
     }

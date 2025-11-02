@@ -35,7 +35,7 @@ public final class TargetFinder {
       return null;
     }
 
-    Player owner = sword.getOwner();
+    LivingEntity owner = sword.getOwner();
     if (owner == null) {
       return null;
     }
@@ -57,7 +57,7 @@ public final class TargetFinder {
       }
 
       // 检查是否是敌方飞剑（不同主人）
-      Player enemyOwner = enemySword.getOwner();
+      LivingEntity enemyOwner = enemySword.getOwner();
       if (enemyOwner == null || enemyOwner.getUUID().equals(owner.getUUID())) {
         continue;
       }
@@ -98,7 +98,7 @@ public final class TargetFinder {
       return null;
     }
 
-    Player owner = sword.getOwner();
+    LivingEntity owner = sword.getOwner();
     if (owner == null) {
       return null;
     }

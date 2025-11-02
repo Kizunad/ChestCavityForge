@@ -16,7 +16,7 @@ public class HuntBehavior {
    * 执行出击行为
    */
   public static void tick(
-      FlyingSwordEntity sword, Player owner, @Nullable LivingEntity nearestHostile) {
+      FlyingSwordEntity sword, LivingEntity owner, @Nullable LivingEntity nearestHostile) {
     LivingEntity currentTarget = sword.getTargetEntity();
 
     // 检查当前目标是否有效

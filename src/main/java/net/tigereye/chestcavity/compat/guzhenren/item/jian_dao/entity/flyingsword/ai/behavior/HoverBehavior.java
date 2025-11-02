@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior;
 
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning.FlyingSwordAITuning;
@@ -9,7 +9,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public final class HoverBehavior {
   private HoverBehavior() {}
 
-  public static void tick(FlyingSwordEntity sword, Player owner) {
+  public static void tick(FlyingSwordEntity sword, LivingEntity owner) {
     if (sword == null || owner == null) return;
     Vec3 toOwner = owner.position().subtract(sword.position());
     double dist = toOwner.length();

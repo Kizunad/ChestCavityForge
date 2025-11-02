@@ -59,7 +59,7 @@ public class QingLianDomain extends AbstractDomain {
   /**
    * 构造青莲剑域
    *
-   * @param owner 主人（必须是玩家）
+   * @param owner 主人
    * @param center 中心位置
    * @param radiusScale 半径缩放系数（基于域控系数）
    */
@@ -68,14 +68,10 @@ public class QingLianDomain extends AbstractDomain {
     this.ownerRef = new WeakReference<>(owner);
     this.radiusScale = Math.max(0.5, Math.min(2.0, radiusScale)); // 限制在0.5-2.0
 
-    // 初始化集群管理器（青莲蛊只能由玩家激活）
-    if (owner instanceof net.minecraft.world.entity.player.Player player) {
-      this.swarmManager =
-          new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.swarm
-              .QingLianSwordSwarm(getDomainId(), player);
-    } else {
-      throw new IllegalArgumentException("QingLianDomain owner must be a Player");
-    }
+    // 初始化集群管理器
+    this.swarmManager =
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.swarm
+            .QingLianSwordSwarm(getDomainId(), owner);
   }
 
   @Override

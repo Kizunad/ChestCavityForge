@@ -102,8 +102,8 @@ public final class FlyingSwordTuning {
     HEALTH
   }
 
-  /** 非玩家维持消耗模式（默认：血量消耗） */
-  public static final NonPlayerUpkeepMode NON_PLAYER_UPKEEP_MODE = NonPlayerUpkeepMode.HEALTH;
+  /** 非玩家维持消耗模式（默认：不消耗） */
+  public static final NonPlayerUpkeepMode NON_PLAYER_UPKEEP_MODE = NonPlayerUpkeepMode.NONE;
 
   /** 非玩家默认剑道流派经验（用于耐久减免计算） */
   public static final double NON_PLAYER_DEFAULT_SWORD_PATH_EXP = 10001.0;

@@ -12,7 +12,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public class HitEntityContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
-  public final Player owner;
+  public final LivingEntity owner;
   public final LivingEntity target;
   public final DamageSource damageSource;
 
@@ -34,7 +34,7 @@ public class HitEntityContext {
   public HitEntityContext(
       FlyingSwordEntity sword,
       ServerLevel level,
-      Player owner,
+      LivingEntity owner,
       LivingEntity target,
       DamageSource damageSource,
       double speed,

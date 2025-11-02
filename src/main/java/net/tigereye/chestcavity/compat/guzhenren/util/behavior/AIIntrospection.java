@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 
 /**
@@ -54,6 +55,77 @@ public final class AIIntrospection {
 
   private static Mob asMob(LivingEntity e) {
     return (e instanceof Mob m) ? m : null;
+  }
+
+  // =====================
+  // Attack/Target 识别
+  // =====================
+
+  /** 获取正在运行的“攻击类”Goal（Melee/Ranged/Crossbow...）的类名。 */
+  public static List<String> getRunningAttackGoalNames(LivingEntity entity) {
+    Mob mob = asMob(entity);
+    if (mob == null) return Collections.emptyList();
+    return readRunningWrappedGoals(mob.goalSelector).stream()
+        .map(WrappedGoal::getGoal)
+        .filter(Objects::nonNull)
+        .map(g -> g.getClass().getName())
+        .filter(AIIntrospection::isAttackGoalClassName)
+        .collect(Collectors.toList());
+  }
+
+  /** 获取正在运行的“攻击类”Goal 的原始对象列表（可用于进一步反射/字段探查）。 */
+  public static List<Goal> getRunningAttackGoals(LivingEntity entity) {
+    Mob mob = asMob(entity);
+    if (mob == null) return Collections.emptyList();
+    return readRunningWrappedGoals(mob.goalSelector).stream()
+        .map(WrappedGoal::getGoal)
+        .filter(Objects::nonNull)
+        .filter(g -> isAttackGoalClassName(g.getClass().getName()))
+        .collect(Collectors.toList());
+  }
+
+  /** 获取可用（已添加）但不一定在运行的“攻击类”Goal 的类名。 */
+  public static List<String> getAvailableAttackGoalNames(LivingEntity entity) {
+    Mob mob = asMob(entity);
+    if (mob == null) return Collections.emptyList();
+    return findWrappedGoalsSet(mob.goalSelector).stream()
+        .map(WrappedGoal::getGoal)
+        .filter(Objects::nonNull)
+        .map(g -> g.getClass().getName())
+        .filter(AIIntrospection::isAttackGoalClassName)
+        .collect(Collectors.toList());
+  }
+
+  /** 获取正在运行的“选敌/仇恨”类 TargetGoal 的类名。 */
+  public static List<String> getRunningTargetingGoalNames(LivingEntity entity) {
+    Mob mob = asMob(entity);
+    if (mob == null) return Collections.emptyList();
+    return readRunningWrappedGoals(mob.targetSelector).stream()
+        .map(WrappedGoal::getGoal)
+        .filter(Objects::nonNull)
+        .map(g -> g.getClass().getName())
+        .filter(AIIntrospection::isTargetingGoalClassName)
+        .collect(Collectors.toList());
+  }
+
+  private static boolean isAttackGoalClassName(String fqcn) {
+    if (fqcn == null) return false;
+    // 直接匹配常见攻击 Goal 的类名片段（兼容不同映射与模组的命名惯例）
+    String s = fqcn;
+    return s.endsWith("MeleeAttackGoal")
+        || s.endsWith("RangedBowAttackGoal")
+        || s.endsWith("RangedCrossbowAttackGoal")
+        || s.endsWith("CrossbowAttackGoal")
+        || s.endsWith("RangedAttackGoal")
+        || s.contains("AttackGoal");
+  }
+
+  private static boolean isTargetingGoalClassName(String fqcn) {
+    if (fqcn == null) return false;
+    String s = fqcn;
+    return s.endsWith("NearestAttackableTargetGoal")
+        || s.endsWith("HurtByTargetGoal")
+        || s.contains("TargetGoal");
   }
 
   // 兼容不同映射/版本：反射读取 GoalSelector 中的 WrappedGoal 集合，并筛选 isRunning()

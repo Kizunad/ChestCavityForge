@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
@@ -13,7 +13,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public class SpawnContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
-  public final Player owner;
+  public final LivingEntity owner;
   public final Vec3 spawnPos;
   @Nullable public final ItemStack sourceStack;
 
@@ -23,7 +23,7 @@ public class SpawnContext {
   public SpawnContext(
       FlyingSwordEntity sword,
       ServerLevel level,
-      Player owner,
+      LivingEntity owner,
       Vec3 spawnPos,
       @Nullable ItemStack sourceStack) {
     this.sword = sword;

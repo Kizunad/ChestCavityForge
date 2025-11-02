@@ -109,7 +109,7 @@ public final class FlyingSwordCombat {
       return false;
     }
 
-    Player owner = sword.getOwner();
+    LivingEntity owner = sword.getOwner();
     if (owner == null) {
       return false;
     }
@@ -143,14 +143,20 @@ public final class FlyingSwordCombat {
         String.format("%.2f", levelScale));
 
     // 检查目标状态
+    // 创建伤害源（如果owner是Player则使用playerAttack，否则使用mobAttack）
+    DamageSource damageSource;
+    if (owner instanceof Player player) {
+      damageSource = sword.damageSources().playerAttack(player);
+    } else {
+      damageSource = sword.damageSources().mobAttack(owner);
+    }
+
     ChestCavity.LOGGER.info(
-        "[FlyingSword] Target status: invulnerableTime={}, health={}/{}, isInvulnerableTo(playerAttack)={}",
+        "[FlyingSword] Target status: invulnerableTime={}, health={}/{}, isInvulnerableTo={}",
         target.invulnerableTime,
         String.format("%.1f", target.getHealth()),
         String.format("%.1f", target.getMaxHealth()),
-        target.isInvulnerableTo(sword.damageSources().playerAttack(owner)));
-
-    DamageSource damageSource = sword.damageSources().playerAttack(owner);
+        target.isInvulnerableTo(damageSource));
 
     // 触发onHitEntity事件钩子
     net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context

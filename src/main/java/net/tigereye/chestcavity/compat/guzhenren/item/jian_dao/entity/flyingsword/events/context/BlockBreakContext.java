@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 
@@ -12,7 +12,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public class BlockBreakContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
-  public final Player owner;
+  public final LivingEntity owner;
   public final BlockPos pos;
   public final BlockState state;
   public final float hardness;
@@ -35,7 +35,7 @@ public class BlockBreakContext {
   public BlockBreakContext(
       FlyingSwordEntity sword,
       ServerLevel level,
-      Player owner,
+      LivingEntity owner,
       BlockPos pos,
       BlockState state,
       float hardness,

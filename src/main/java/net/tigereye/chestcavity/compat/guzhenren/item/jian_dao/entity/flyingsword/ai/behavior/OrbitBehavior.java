@@ -1,6 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior;
 
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning.FlyingSwordAITuning;
@@ -13,7 +13,7 @@ public class OrbitBehavior {
   /**
    * 执行环绕行为
    */
-  public static void tick(FlyingSwordEntity sword, Player owner) {
+  public static void tick(FlyingSwordEntity sword, LivingEntity owner) {
     Vec3 ownerPos = owner.getEyePosition();
     Vec3 currentPos = sword.position();
     Vec3 toOwner = ownerPos.subtract(currentPos);

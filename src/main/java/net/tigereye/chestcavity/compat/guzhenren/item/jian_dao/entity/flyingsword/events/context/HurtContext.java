@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 
 /**
@@ -11,7 +11,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 public class HurtContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
-  public final Player owner;
+  public final LivingEntity owner;
   public final DamageSource source;
 
   /** 原始伤害（可修改） */
@@ -30,7 +30,7 @@ public class HurtContext {
   public int weakenedDuration = 60;
 
   public HurtContext(
-      FlyingSwordEntity sword, ServerLevel level, Player owner, DamageSource source, float damage) {
+      FlyingSwordEntity sword, ServerLevel level, LivingEntity owner, DamageSource source, float damage) {
     this.sword = sword;
     this.level = level;
     this.owner = owner;

@@ -83,7 +83,7 @@ public class FlyingSwordEntity extends PathfinderMob {
 
   // ========== 缓存字段 ==========
   @Nullable
-  private Player cachedOwner;
+  private LivingEntity cachedOwner;
 
   @Nullable
   private LivingEntity cachedTarget;
@@ -141,13 +141,13 @@ public class FlyingSwordEntity extends PathfinderMob {
   }
 
   // ========== Owner 管理 ==========
-  public void setOwner(@Nullable Player owner) {
+  public void setOwner(@Nullable LivingEntity owner) {
     this.cachedOwner = owner;
     this.entityData.set(OWNER, owner == null ? Optional.empty() : Optional.of(owner.getUUID()));
   }
 
   @Nullable
-  public Player getOwner() {
+  public LivingEntity getOwner() {
     if (cachedOwner != null && !cachedOwner.isRemoved()) {
       return cachedOwner;
     }
@@ -158,16 +158,29 @@ public class FlyingSwordEntity extends PathfinderMob {
     if (ownerId.isEmpty()) {
       return null;
     }
-    Player owner = server.getPlayerByUUID(ownerId.get());
-    if (owner != null) {
-      cachedOwner = owner;
+    // 先尝试查询玩家（性能优化）
+    Player player = server.getPlayerByUUID(ownerId.get());
+    if (player != null) {
+      cachedOwner = player;
+      return player;
     }
-    return owner;
+    // 再查询普通实体
+    net.minecraft.world.entity.Entity entity = server.getEntity(ownerId.get());
+    if (entity instanceof LivingEntity living) {
+      cachedOwner = living;
+      return living;
+    }
+    return null;
   }
 
   public boolean isOwnedBy(Player player) {
     Optional<UUID> id = this.entityData.get(OWNER);
     return id.isPresent() && id.get().equals(player.getUUID());
+  }
+
+  public boolean isOwnedBy(LivingEntity entity) {
+    Optional<UUID> id = this.entityData.get(OWNER);
+    return id.isPresent() && id.get().equals(entity.getUUID());
   }
 
   // ========== AI Mode 管理 ==========
@@ -465,7 +478,7 @@ public class FlyingSwordEntity extends PathfinderMob {
   }
 
   private void tickServer() {
-    Player owner = getOwner();
+    LivingEntity owner = getOwner();
     if (owner == null || !owner.isAlive()) {
       this.discard();
       return;
@@ -517,7 +530,7 @@ public class FlyingSwordEntity extends PathfinderMob {
   // 维持消耗逻辑已迁移到 ops.UpkeepOps
 
   private void tickAI() {
-    Player owner = getOwner();
+    LivingEntity owner = getOwner();
     if (owner == null) {
       return;
     }
@@ -755,7 +768,7 @@ public class FlyingSwordEntity extends PathfinderMob {
       return false;
     }
 
-    Player owner = getOwner();
+    LivingEntity owner = getOwner();
     if (owner == null) {
       // 无主人：按基础规则消耗耐久，并与生命同步
       float duraLoss =
@@ -961,7 +974,7 @@ public class FlyingSwordEntity extends PathfinderMob {
    */
   public static FlyingSwordEntity create(
       ServerLevel level,
-      Player owner,
+      LivingEntity owner,
       Vec3 spawnPos,
       @Nullable FlyingSwordAttributes.AttributeModifiers modifiers) {
     return create(
@@ -984,7 +997,7 @@ public class FlyingSwordEntity extends PathfinderMob {
    */
   public static FlyingSwordEntity create(
       ServerLevel level,
-      Player owner,
+      LivingEntity owner,
       Vec3 spawnPos,
       @Nullable FlyingSwordAttributes.AttributeModifiers modifiers,
       EntityType<FlyingSwordEntity> entityType) {

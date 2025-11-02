@@ -33,6 +33,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.YunJianQingLianGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+// 非玩家自动化逻辑暂不启用；如需后续支持再引入对应工具类
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
@@ -87,7 +88,11 @@ public enum YunJianQingLianGuOrganBehavior
    * @param cc 胸腔实例
    */
   private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-    if (!(entity instanceof ServerPlayer player) || entity.level().isClientSide()) {
+    if (entity.level().isClientSide()) {
+      return;
+    }
+
+    if (!(entity.level() instanceof ServerLevel level)) {
       return;
     }
 
@@ -97,24 +102,23 @@ public enum YunJianQingLianGuOrganBehavior
     }
 
     OrganState state = OrganState.of(organ, STATE_ROOT);
-    ServerLevel level = player.serverLevel();
     long now = level.getGameTime();
 
     boolean active = state.getBoolean(K_ACTIVE, false);
 
     if (active) {
       // 关闭技能
-      deactivateAbility(player, state, level, cc, organ);
+      deactivateAbility(entity, state, level, cc, organ);
     } else {
       // 开启技能
-      activateAbilityImpl(player, state, level, now, cc, organ);
+      activateAbilityImpl(entity, state, level, now, cc, organ);
     }
   }
 
   /**
    * 开启蕴剑化莲
    *
-   * @param player 玩家
+   * @param entity 实体
    * @param state 器官状态
    * @param level 世界
    * @param now 当前时间
@@ -122,7 +126,7 @@ public enum YunJianQingLianGuOrganBehavior
    * @param organ 器官物品
    */
   private static void activateAbilityImpl(
-      ServerPlayer player,
+      LivingEntity entity,
       OrganState state,
       ServerLevel level,
       long now,
@@ -130,7 +134,7 @@ public enum YunJianQingLianGuOrganBehavior
       ItemStack organ) {
 
     // 1. 读取域控系数（剑域蛊增幅）
-    double pOut = DomainTags.getDoubleTag(player, DomainTags.TAG_SD_P_OUT);
+    double pOut = DomainTags.getDoubleTag(entity, DomainTags.TAG_SD_P_OUT);
     if (pOut < 1.0) {
       pOut = YunJianQingLianGuTuning.DEFAULT_P_OUT; // 默认值
     }
@@ -140,9 +144,9 @@ public enum YunJianQingLianGuOrganBehavior
     double orbitRadius = YunJianQingLianGuCalc.calculateOrbitRadius(swordCount);
 
     // 3. 先创建青莲剑域（飞剑需要注册到集群管理器）
-    Vec3 playerPos = player.position();
+    Vec3 entityPos = entity.position();
     double domainRadiusScale = YunJianQingLianGuCalc.calculateDomainRadiusScale(pOut);
-    QingLianDomain domain = new QingLianDomain(player, playerPos, domainRadiusScale);
+    QingLianDomain domain = new QingLianDomain(entity, entityPos, domainRadiusScale);
     DomainManager.getInstance().registerDomain(domain);
 
     // 4. 生成环绕飞剑（莲瓣形态），并注册到集群管理器
@@ -155,7 +159,7 @@ public enum YunJianQingLianGuOrganBehavior
               Math.cos(angle) * orbitRadius,
               1.5, // 悬浮高度
               Math.sin(angle) * orbitRadius);
-      Vec3 spawnPos = playerPos.add(offset);
+      Vec3 spawnPos = entityPos.add(offset);
       Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle)); // 朝外
 
       // 创建飞剑（青莲蛊生成的飞剑使用钻石剑模型）
@@ -173,7 +177,7 @@ public enum YunJianQingLianGuOrganBehavior
           net.minecraft.network.chat.Component.literal("青莲剑"));
 
       FlyingSwordEntity sword =
-          FlyingSwordSpawner.spawn(level, player, spawnPos, direction, swordItem);
+          FlyingSwordSpawner.spawn(level, entity, spawnPos, direction, swordItem);
 
       if (sword != null) {
         // 显式设置显示物品为钻石剑（确保渲染正确）
@@ -207,32 +211,34 @@ public enum YunJianQingLianGuOrganBehavior
     state.setLong(K_DOMAIN_ID_LEAST, domainId.getLeastSignificantBits());
 
     // 领域创建特效
-    QingLianDomainFX.spawnCreationEffect(level, playerPos, domain.getRadius());
+    QingLianDomainFX.spawnCreationEffect(level, entityPos, domain.getRadius());
 
     // 6. 设置 unbreakable_focus（剑心蛊联动）
-    DomainTags.addTag(player, DomainTags.TAG_UNBREAKABLE_FOCUS);
+    DomainTags.addTag(entity, DomainTags.TAG_UNBREAKABLE_FOCUS);
 
     // 7. 标记激活
     state.setBoolean(K_ACTIVE, true);
     state.setLong(K_LAST_DRAIN, now);
 
-    // 提示
-    player.displayClientMessage(Component.literal("§a§l蕴剑青莲·开"), true);
-    player.displayClientMessage(
-        Component.literal("§7" + swordCount + "片莲瓣环护，无敌焦点已开启"), false);
+    // 提示（仅对玩家）
+    if (entity instanceof ServerPlayer player) {
+      player.displayClientMessage(Component.literal("§a§l蕴剑青莲·开"), true);
+      player.displayClientMessage(
+          Component.literal("§7" + swordCount + "片莲瓣环护，无敌焦点已开启"), false);
+    }
   }
 
   /**
    * 关闭蕴剑化莲
    *
-   * @param player 玩家
+   * @param entity 实体
    * @param state 器官状态
    * @param level 世界
    * @param cc 胸腔实例
    * @param organ 器官物品
    */
   private static void deactivateAbility(
-      ServerPlayer player,
+      LivingEntity entity,
       OrganState state,
       ServerLevel level,
       ChestCavityInstance cc,
@@ -244,8 +250,8 @@ public enum YunJianQingLianGuOrganBehavior
     for (int i = 0; i < swordList.size(); i++) {
       CompoundTag tag = swordList.getCompound(i);
       UUID uuid = tag.getUUID("UUID");
-      Entity entity = level.getEntity(uuid);
-      if (entity instanceof FlyingSwordEntity sword) {
+      Entity swordEntity = level.getEntity(uuid);
+      if (swordEntity instanceof FlyingSwordEntity sword) {
         sword.discard();
         removed++;
       }
@@ -260,7 +266,7 @@ public enum YunJianQingLianGuOrganBehavior
     }
 
     // 3. 移除 unbreakable_focus
-    DomainTags.removeTag(player, DomainTags.TAG_UNBREAKABLE_FOCUS);
+    DomainTags.removeTag(entity, DomainTags.TAG_UNBREAKABLE_FOCUS);
 
     // 4. 清空状态
     state.setBoolean(K_ACTIVE, false);
@@ -268,10 +274,12 @@ public enum YunJianQingLianGuOrganBehavior
     state.setLong(K_DOMAIN_ID_MOST, 0L);
     state.setLong(K_DOMAIN_ID_LEAST, 0L);
 
-    // 提示
-    player.displayClientMessage(Component.literal("§c§l蕴剑青莲·收"), true);
-    if (removed > 0) {
-      player.displayClientMessage(Component.literal("§7" + removed + "片莲瓣已归鞘"), false);
+    // 提示（仅对玩家）
+    if (entity instanceof ServerPlayer player) {
+      player.displayClientMessage(Component.literal("§c§l蕴剑青莲·收"), true);
+      if (removed > 0) {
+        player.displayClientMessage(Component.literal("§7" + removed + "片莲瓣已归鞘"), false);
+      }
     }
   }
 
@@ -279,24 +287,29 @@ public enum YunJianQingLianGuOrganBehavior
 
   @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-    if (!(entity instanceof ServerPlayer player)) {
-      return;
+    if (entity instanceof ServerPlayer player) {
+      // 玩家逻辑：主动技能持续消耗
+      OrganState state = OrganState.of(organ, STATE_ROOT);
+      ServerLevel level = player.serverLevel();
+      long now = level.getGameTime();
+
+      boolean active = state.getBoolean(K_ACTIVE, false);
+
+      if (active) {
+        // 持续消耗（每秒）
+        processActiveDrain(player, state, level, now, cc, organ);
+      }
+
+      // 被动恢复（总是生效）
+      processPassiveRegen(player);
+    } else if (entity instanceof net.minecraft.world.entity.Mob mob) {
+      // 非玩家逻辑：AI Goal 变更自动化
+      if (mob.level() instanceof ServerLevel serverLevel) {
+        handleNonPlayerAutomation(mob, serverLevel, cc, organ);
+      }
     }
-
-    OrganState state = OrganState.of(organ, STATE_ROOT);
-    ServerLevel level = player.serverLevel();
-    long now = level.getGameTime();
-
-    boolean active = state.getBoolean(K_ACTIVE, false);
-
-    if (active) {
-      // 持续消耗（每秒）
-      processActiveDrain(player, state, level, now, cc, organ);
-    }
-
-    // 被动恢复（总是生效）
-    processPassiveRegen(player);
   }
+
 
   /**
    * 处理主动技能持续消耗
@@ -364,6 +377,116 @@ public enum YunJianQingLianGuOrganBehavior
     // 生命恢复（每秒0.1 → 每tick 0.005）
     float healthRegen = YunJianQingLianGuTuning.HEALTH_REGEN_PER_SEC / 20.0f;
     player.heal(healthRegen);
+  }
+
+  // ========== 非玩家自动化逻辑 ==========
+
+  /** 器官状态字段：上次检测到的攻击Goal列表 */
+  private static final String K_LAST_ATTACK_GOALS = "LastAttackGoals";
+  /** 器官状态字段：脱战时间戳（worldTime） */
+  private static final String K_DISENGAGED_AT = "DisengagedAt";
+  /** 延迟关闭时间（ticks）：脱战5秒后 */
+  private static final int DISENGAGE_DELAY_TICKS = 100;
+
+  /**
+   * 处理非玩家的自动化逻辑（Goal 变更检测 + 自动激活青莲剑群）
+   *
+   * @param mob 非玩家生物
+   * @param level 服务端世界
+   * @param cc 胸腔实例
+   * @param organ 器官物品
+   */
+  private static void handleNonPlayerAutomation(
+      net.minecraft.world.entity.Mob mob,
+      ServerLevel level,
+      ChestCavityInstance cc,
+      ItemStack organ) {
+
+    OrganState state = OrganState.of(organ, STATE_ROOT);
+    long now = level.getGameTime();
+    boolean active = state.getBoolean(K_ACTIVE, false);
+
+    // 1. 读取当前运行的攻击Goal
+    java.util.List<String> currentAttackGoals =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.AIIntrospection
+            .getRunningAttackGoalNames(mob);
+
+    // 2. 读取上次记录的Goal快照
+    ListTag lastGoalsTag = state.getList(K_LAST_ATTACK_GOALS, Tag.TAG_STRING);
+    java.util.List<String> lastGoals = new java.util.ArrayList<>();
+    for (int i = 0; i < lastGoalsTag.size(); i++) {
+      lastGoals.add(lastGoalsTag.getString(i));
+    }
+
+    // 3. 检测Goal变更
+    boolean goalChanged = !currentAttackGoals.equals(lastGoals);
+    boolean isAttacking = !currentAttackGoals.isEmpty();
+
+    // 4. 状态机逻辑
+    if (!active && isAttacking && goalChanged) {
+      // ========== 进入战斗 → 激活青莲剑群 ==========
+      boolean success =
+          net.tigereye.chestcavity.compat.guzhenren.util.behavior.ActiveSkillOps.activateFor(
+              mob, ABILITY_ID);
+
+      if (success) {
+        // 获取目标并让飞剑群攻击
+        LivingEntity target = mob.getTarget();
+        if (target != null) {
+          // 获取青莲剑域
+          long most = state.getLong(K_DOMAIN_ID_MOST, 0L);
+          long least = state.getLong(K_DOMAIN_ID_LEAST, 0L);
+          if (most != 0L || least != 0L) {
+            UUID domainId = new UUID(most, least);
+            var domain = DomainManager.getInstance().getDomain(domainId);
+            if (domain instanceof QingLianDomain qingLianDomain) {
+              // 指令飞剑群攻击目标
+              qingLianDomain.getSwarmManager().commandAttack(target);
+            }
+          }
+        }
+
+        // 清除脱战时间戳
+        state.setLong(K_DISENGAGED_AT, 0L);
+      }
+    } else if (active && isAttacking) {
+      // ========== 持续战斗 → 更新目标 ==========
+      LivingEntity target = mob.getTarget();
+      if (target != null) {
+        long most = state.getLong(K_DOMAIN_ID_MOST, 0L);
+        long least = state.getLong(K_DOMAIN_ID_LEAST, 0L);
+        if (most != 0L || least != 0L) {
+          UUID domainId = new UUID(most, least);
+          var domain = DomainManager.getInstance().getDomain(domainId);
+          if (domain instanceof QingLianDomain qingLianDomain) {
+            qingLianDomain.getSwarmManager().commandAttack(target);
+          }
+        }
+      }
+
+      // 清除脱战时间戳（重新进入战斗）
+      state.setLong(K_DISENGAGED_AT, 0L);
+    } else if (active && !isAttacking) {
+      // ========== 脱战 → 记录时间戳或延迟关闭 ==========
+      long disengagedAt = state.getLong(K_DISENGAGED_AT, 0L);
+
+      if (disengagedAt == 0L) {
+        // 首次脱战，记录时间戳
+        state.setLong(K_DISENGAGED_AT, now);
+      } else if (now - disengagedAt >= DISENGAGE_DELAY_TICKS) {
+        // 脱战超过5秒 → 自动关闭
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ActiveSkillOps.activateFor(
+            mob, ABILITY_ID); // 切换关闭
+        state.setLong(K_DISENGAGED_AT, 0L);
+      }
+    }
+
+    // 5. 保存当前Goal快照到器官状态
+    ListTag newGoalsTag = new ListTag();
+    for (String goalName : currentAttackGoals) {
+      newGoalsTag.add(net.minecraft.nbt.StringTag.valueOf(goalName));
+    }
+    state.setList(K_LAST_ATTACK_GOALS, newGoalsTag);
   }
 
   // ========== 被动技能：青莲护体（致命一击格挡） ==========

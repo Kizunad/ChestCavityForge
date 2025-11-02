@@ -128,7 +128,7 @@ public final class FlyingSwordController {
       return;
     }
 
-    Player owner = sword.getOwner();
+    net.minecraft.world.entity.LivingEntity owner = sword.getOwner();
     if (owner == null || sword.level().isClientSide) {
       sword.discard();
       return;
@@ -150,14 +150,21 @@ public final class FlyingSwordController {
 
     // 已在召回模式，表示已到达主人，执行实际召回逻辑
 
+    // 检查owner是否为Player（只有玩家才能存储飞剑）
+    if (!(owner instanceof Player player)) {
+      // 非玩家owner，直接消散飞剑
+      sword.discard();
+      return;
+    }
+
     // 保存飞剑状态到玩家数据
     boolean success =
-        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(owner)
+        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player)
             .recallSword(sword);
 
     if (success) {
       // 发送成功消息
-      owner.sendSystemMessage(
+      player.sendSystemMessage(
           net.minecraft.network.chat.Component.literal(
               String.format(
                   "[飞剑] 召回成功 - 等级%d (经验: %d, 耐久: %.1f/%.1f)",
@@ -167,7 +174,7 @@ public final class FlyingSwordController {
                   sword.getSwordAttributes().maxDurability)));
     } else {
       // 存储已满
-      owner.sendSystemMessage(
+      player.sendSystemMessage(
           net.minecraft.network.chat.Component.literal("[飞剑] 召回失败 - 存储已满 (最多10个)"));
     }
 
@@ -188,7 +195,7 @@ public final class FlyingSwordController {
               .context.DespawnContext(
               sword,
               serverLevel,
-              owner,
+              player,
               net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
                   .context.DespawnContext.Reason.RECALLED,
               targetStack);
