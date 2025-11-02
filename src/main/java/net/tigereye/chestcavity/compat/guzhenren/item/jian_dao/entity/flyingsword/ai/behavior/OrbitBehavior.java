@@ -56,6 +56,13 @@ public class OrbitBehavior {
     // 应用分离力，避免飞剑重叠
     desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
 
+    // 绝对速度上限（避免高属性场景下过快）
+    double max = FlyingSwordAITuning.ORBIT_ABS_MAX_SPEED;
+    double len = desiredVelocity.length();
+    if (len > max && len > 1.0e-6) {
+      desiredVelocity = desiredVelocity.normalize().scale(max);
+    }
+
     // 应用转向
     sword.applySteeringVelocity(desiredVelocity);
   }

@@ -23,6 +23,8 @@ public final class FlyingSwordAITuning {
   public static final double ORBIT_RADIAL_PULL_IN = config("ORBIT_RADIAL_PULL_IN", 0.1);
   public static final double ORBIT_APPROACH_SPEED_FACTOR = config("ORBIT_APPROACH_SPEED_FACTOR", 1.0);
   public static final double ORBIT_RETREAT_SPEED_FACTOR = config("ORBIT_RETREAT_SPEED_FACTOR", 1.0);
+  // 绝对速度上限（用于避免高属性情况下环绕过快）
+  public static final double ORBIT_ABS_MAX_SPEED = config("ORBIT_ABS_MAX_SPEED", 0.10);
 
   public static final double GUARD_CHASE_MAX_FACTOR = config("GUARD_CHASE_MAX_FACTOR", 0.9);
   public static final double GUARD_FOLLOW_APPROACH_FACTOR = config("GUARD_FOLLOW_APPROACH_FACTOR", 1.2);

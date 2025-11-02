@@ -29,14 +29,21 @@ public final class CalcContexts {
       double maxHp = Math.max(1.0, owner.getMaxHealth());
       ctx.ownerHpPercent = hp / maxHp;
 
-      // 读取剑道道痕、剑道流派经验（存在则写入）
-      net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
-          .open(owner)
-          .ifPresent(
-              handle -> {
-                handle.read("daohen_jiandao").ifPresent(value -> ctx.ownerJianDaoScar = value);
-                handle.read("liupai_jiandao").ifPresent(value -> ctx.ownerSwordPathExp = value);
-              });
+      // 玩家：读取剑道道痕、剑道流派经验
+      if (owner instanceof Player) {
+        net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
+            .open(owner)
+            .ifPresent(
+                handle -> {
+                  handle.read("daohen_jiandao").ifPresent(value -> ctx.ownerJianDaoScar = value);
+                  handle.read("liupai_jiandao").ifPresent(value -> ctx.ownerSwordPathExp = value);
+                });
+      } else {
+        // 非玩家：设置默认流派经验（提供耐久减免），道痕保持 0（无加成）
+        ctx.ownerSwordPathExp =
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+                .FlyingSwordTuning.NON_PLAYER_DEFAULT_SWORD_PATH_EXP;
+      }
     }
     // 其他如 ownerJianDaoScar、ownerSwordPathExp 等，由外部钩子补全
 

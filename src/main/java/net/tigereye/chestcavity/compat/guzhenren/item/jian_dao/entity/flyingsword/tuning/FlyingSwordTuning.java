@@ -92,4 +92,19 @@ public final class FlyingSwordTuning {
       FlyingSwordAITuning.HUNT_RETURN_APPROACH_FACTOR;
   public static final double HUNT_IDLE_TANGENT_FACTOR =
       FlyingSwordAITuning.HUNT_IDLE_TANGENT_FACTOR;
+
+  // 非玩家配置
+  /** 非玩家维持消耗模式 */
+  public enum NonPlayerUpkeepMode {
+    /** 不消耗任何资源 */
+    NONE,
+    /** 消耗血量代替真元 */
+    HEALTH
+  }
+
+  /** 非玩家维持消耗模式（默认：血量消耗） */
+  public static final NonPlayerUpkeepMode NON_PLAYER_UPKEEP_MODE = NonPlayerUpkeepMode.HEALTH;
+
+  /** 非玩家默认剑道流派经验（用于耐久减免计算） */
+  public static final double NON_PLAYER_DEFAULT_SWORD_PATH_EXP = 10001.0;
 }

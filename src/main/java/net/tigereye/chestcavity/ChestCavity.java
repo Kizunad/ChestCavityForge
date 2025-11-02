@@ -120,6 +120,8 @@ public class ChestCavity {
     if (FMLEnvironment.dist.isClient()) {
       bus.addListener(this::registerClientReloadListeners);
       bus.addListener(ChestCavityClientRenderers::onRegisterRenderers);
+      // 注册菜单界面（避免使用已弃用的注解总线参数）
+      bus.addListener(net.tigereye.chestcavity.client.event.ChestCavityClientEvents::registerMenuScreens);
     }
 
     AutoConfig.register(CCConfig.class, GsonConfigSerializer::new);

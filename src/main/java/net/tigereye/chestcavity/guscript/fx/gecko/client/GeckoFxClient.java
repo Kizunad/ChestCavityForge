@@ -252,11 +252,13 @@ public final class GeckoFxClient {
 
     private static final class FxModel extends GeoModel<FxAnimatable> {
       @Override
+      @SuppressWarnings("removal")
       public ResourceLocation getModelResource(FxAnimatable animatable) {
         return animatable.definition().model();
       }
 
       @Override
+      @SuppressWarnings("removal")
       public ResourceLocation getTextureResource(FxAnimatable animatable) {
         return animatable.definition().texture();
       }

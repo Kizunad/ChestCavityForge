@@ -7,6 +7,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior.SeparationBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning.QingLianSwarmTuning;
 
 /**
  * 青莲剑群集群AI管理器
@@ -69,6 +70,8 @@ public class QingLianSwordSwarm {
   // 目标选择的滞后与范围（避免边界抖动）
   private static final double ACQUIRE_RANGE = 32.0; // 新目标获取半径
   private static final double RETAIN_RANGE = 38.0;  // 保持锁定的半径（>获取半径，形成滞后）
+  // IDLE 最大移动速度（绝对值，避免高属性时过快）
+  private static final double IDLE_MAX_SPEED = 0.10;
 
   public QingLianSwordSwarm(UUID swarmId, Player owner) {
     this.swarmId = swarmId;
@@ -149,7 +152,7 @@ public class QingLianSwordSwarm {
     // 如果当前目标仍然有效且在范围内，保持锁定
     if (swarmTarget != null
         && swarmTarget.isAlive()
-        && owner.distanceTo(swarmTarget) < RETAIN_RANGE) {
+        && owner.distanceTo(swarmTarget) < QingLianSwarmTuning.SWARM_TARGET_RETAIN_RANGE) {
       return;
     }
 
@@ -165,7 +168,8 @@ public class QingLianSwordSwarm {
     // 使用 TargetFinder 搜索敌对目标（优先敌方飞剑），限定获取半径
     LivingEntity newTarget =
         net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
-            .TargetFinder.findNearestHostileForGuard(representativeSword, searchCenter, ACQUIRE_RANGE);
+            .TargetFinder.findNearestHostileForGuard(
+                representativeSword, searchCenter, QingLianSwarmTuning.SWARM_TARGET_ACQUIRE_RANGE);
     boolean targetChanged = (newTarget != swarmTarget);
     swarmTarget = newTarget;
 
@@ -231,13 +235,13 @@ public class QingLianSwordSwarm {
     if (swarmCenter == Vec3.ZERO) {
       swarmCenter = anchor;
     } else {
-      double alpha = 0.35;
+      double alpha = QingLianSwarmTuning.SWARM_CENTER_FOLLOW_SMOOTH;
       swarmCenter = swarmCenter.add(anchor.subtract(swarmCenter).scale(alpha));
     }
 
     int swordCount = swords.size();
     double formationRadius = computeFormationRadius(swordCount);
-    double globalRotation = swarmTick * 0.003;
+    double globalRotation = swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_IDLE_SPEED;
 
     // 槽位稳定排序
     List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
@@ -253,7 +257,7 @@ public class QingLianSwordSwarm {
       int layer = idx % 3;
       double radiusMult = 0.9 + (layer - 1) * 0.1;
       double currentRadius = formationRadius * Math.max(0.8, radiusMult);
-      double heightOffset = (layer - 1) * 0.75;
+      double heightOffset = (layer - 1) * QingLianSwarmTuning.SWARM_FORMATION_LAYER_HEIGHT;
       Vec3 slot =
           swarmCenter.add(
               Math.cos(baseAngle) * currentRadius,
@@ -266,7 +270,12 @@ public class QingLianSwordSwarm {
       sword.setTargetEntity(null);
 
       Vec3 desiredVelocity =
-          arrive(sword, slot, sword.getSwordAttributes().speedBase, 2.5, 0.15);
+          arrive(
+              sword,
+              slot,
+              QingLianSwarmTuning.SWARM_IDLE_MAX_SPEED,
+              QingLianSwarmTuning.SWARM_FORMATION_ARRIVE_RADIUS,
+              QingLianSwarmTuning.SWARM_FORMATION_STOP_RADIUS);
       sword.applySteeringVelocity(desiredVelocity);
     }
   }
@@ -288,31 +297,40 @@ public class QingLianSwordSwarm {
       return;
     }
 
-    // 中心围绕目标旋转
+    // 中心围绕目标"上方"旋转，保持与目标直线距离≈10格（远程消耗站位）
+    final double STANDOFF_DIST = QingLianSwarmTuning.SWARM_STANDOFF_DISTANCE;   // 直线距离目标
+    final double HEIGHT_OFFSET = QingLianSwarmTuning.SWARM_HEIGHT_OFFSET;       // 垂直抬升
+
     Vec3 targetAnchor = swarmTarget.position().add(0, swarmTarget.getBbHeight() * 0.5, 0);
     int swordCount = swords.size();
     double formationRadius = computeFormationRadius(swordCount);
-    double orbitRadius = formationRadius + 1.2;
-    centerOrbitAngle += 0.02;
+
+    // 计算水平半径，使中心到目标距离约为 STANDOFF_DIST
+    double horiz = Math.sqrt(Math.max(0.0, STANDOFF_DIST * STANDOFF_DIST - HEIGHT_OFFSET * HEIGHT_OFFSET));
+    double orbitRadius = Math.max(1.0, horiz);
+    centerOrbitAngle += QingLianSwarmTuning.SWARM_CENTER_ORBIT_SPEED;
     Vec3 desiredCenter =
         targetAnchor.add(
-            Math.cos(centerOrbitAngle) * orbitRadius, 0.0, Math.sin(centerOrbitAngle) * orbitRadius);
+            Math.cos(centerOrbitAngle) * orbitRadius, HEIGHT_OFFSET, Math.sin(centerOrbitAngle) * orbitRadius);
     if (swarmCenter == Vec3.ZERO) swarmCenter = desiredCenter;
     double cAlpha = 0.25;
     swarmCenter = swarmCenter.add(desiredCenter.subtract(swarmCenter).scale(cAlpha));
 
     // 槽位与排序
-    double globalRotation = swarmTick * 0.004;
+    double globalRotation = swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_ATTACK_SPEED;
     List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
     ordered.sort(Comparator.comparing(FlyingSwordEntity::getUUID));
 
     // 调度：周期性派出一把剑离队
-    int dispatchInterval = 8;
+    // 离队频率：0.1s ≈ 2 tick（20 TPS）
+    int dispatchInterval = QingLianSwarmTuning.SWARM_DISPATCH_INTERVAL_TICKS;
     if (swarmTick % dispatchInterval == 0) {
       for (FlyingSwordEntity s : ordered) {
         SwordAgent a = agents.get(s.getUUID());
         if (a == null) continue;
-        if (a.phase == AgentPhase.FORMATION && (swarmTick - a.lastLaunchTick) >= 15) {
+        // 保证单体之间最小触发间隔≈0.1s，避免同一把剑被过度调度
+        if (a.phase == AgentPhase.FORMATION
+            && (swarmTick - a.lastLaunchTick) >= QingLianSwarmTuning.SWARM_MIN_LAUNCH_INTERVAL_TICKS) {
           a.phase = AgentPhase.DEPART;
           a.phaseTick = 0;
           a.lastLaunchTick = swarmTick;
@@ -331,7 +349,7 @@ public class QingLianSwordSwarm {
       agent.cachedSlotAngle = baseAngle;
       int layer = idx % 3;
       double layerRadius = formationRadius * (0.9 + (layer - 1) * 0.1);
-      double heightOffset = (layer - 1) * 0.7;
+      double heightOffset = (layer - 1) * QingLianSwarmTuning.SWARM_FORMATION_LAYER_HEIGHT;
       Vec3 slot =
           swarmCenter.add(
               Math.cos(baseAngle) * Math.max(0.8, layerRadius),
@@ -347,14 +365,24 @@ public class QingLianSwordSwarm {
         }
         case DEPART -> {
           Vec3 radial = new Vec3(Math.cos(baseAngle), 0, Math.sin(baseAngle));
-          double departDist = Math.max(2.5, formationRadius + 1.5);
+          double departDist =
+              Math.max(
+                  QingLianSwarmTuning.SWARM_DEPART_MIN_DIST,
+                  formationRadius + QingLianSwarmTuning.SWARM_DEPART_EXTRA_DIST);
           Vec3 departPoint = swarmCenter.add(radial.scale(departDist)).add(0, heightOffset, 0);
-          Vec3 v = arrive(sword, departPoint, sword.getSwordAttributes().speedMax, 2.0, 0.15);
+          Vec3 v =
+              arrive(
+                  sword,
+                  departPoint,
+                  sword.getSwordAttributes().speedMax,
+                  QingLianSwarmTuning.SWARM_DEPART_ARRIVE_RADIUS,
+                  QingLianSwarmTuning.SWARM_DEPART_STOP_RADIUS);
           sword.applySteeringVelocity(v);
 
           agent.phaseTick++;
           double dist = sword.position().distanceTo(departPoint);
-          if (dist < 0.25 || agent.phaseTick > 20) {
+          if (dist < QingLianSwarmTuning.SWARM_DEPART_REACH_EPS
+              || agent.phaseTick > QingLianSwarmTuning.SWARM_DEPART_TIMEOUT_TICKS) {
             agent.phase = AgentPhase.ATTACK;
             agent.phaseTick = 0;
             sword.setTargetEntity(swarmTarget);
@@ -362,22 +390,37 @@ public class QingLianSwordSwarm {
         }
         case ATTACK -> {
           Vec3 aim = targetAnchor;
-          Vec3 v = arrive(sword, aim, sword.getSwordAttributes().speedMax, 2.0, 0.25);
+          Vec3 v =
+              arrive(
+                  sword,
+                  aim,
+                  sword.getSwordAttributes().speedMax,
+                  QingLianSwarmTuning.SWARM_ATTACK_ARRIVE_RADIUS,
+                  QingLianSwarmTuning.SWARM_ATTACK_STOP_RADIUS);
           sword.applySteeringVelocity(v);
 
           agent.phaseTick++;
           double d = sword.distanceTo(swarmTarget);
-          if (d < 1.6 || agent.phaseTick > 40 || !swarmTarget.isAlive()) {
+          if (d < QingLianSwarmTuning.SWARM_ATTACK_HIT_RANGE
+              || agent.phaseTick > QingLianSwarmTuning.SWARM_ATTACK_TIMEOUT_TICKS
+              || !swarmTarget.isAlive()) {
             agent.phase = AgentPhase.RETURN;
             agent.phaseTick = 0;
             sword.setTargetEntity(null);
           }
         }
         case RETURN -> {
-          Vec3 v = arrive(sword, slot, sword.getSwordAttributes().speedMax * 0.9, 2.5, 0.15);
+          Vec3 v =
+              arrive(
+                  sword,
+                  slot,
+                  sword.getSwordAttributes().speedMax * 0.9,
+                  QingLianSwarmTuning.SWARM_RETURN_ARRIVE_RADIUS,
+                  QingLianSwarmTuning.SWARM_RETURN_STOP_RADIUS);
           sword.applySteeringVelocity(v);
           agent.phaseTick++;
-          if (sword.position().distanceTo(slot) < 0.2 || agent.phaseTick > 60) {
+          if (sword.position().distanceTo(slot) < QingLianSwarmTuning.SWARM_RETURN_REACH_EPS
+              || agent.phaseTick > QingLianSwarmTuning.SWARM_RETURN_TIMEOUT_TICKS) {
             agent.phase = AgentPhase.FORMATION;
             agent.phaseTick = 0;
           }
@@ -515,9 +558,10 @@ public class QingLianSwordSwarm {
     }
 
     double t = dist >= arriveRadius ? 1.0 : Math.max(0.0, (dist - stopRadius) / Math.max(1e-6, (arriveRadius - stopRadius)));
-    // 在 base 与 max 之间插值，近处更慢，远处更快
-    double base = sword.getSwordAttributes().speedBase;
+    // 在 base 与 max 之间插值，近处更慢，远处更快；并对 base 与结果施加不超过 maxSpeed 的硬上限
+    double base = Math.min(sword.getSwordAttributes().speedBase, maxSpeed);
     double desiredSpeed = base + (maxSpeed - base) * t;
+    desiredSpeed = Math.min(desiredSpeed, maxSpeed);
     return toTarget.normalize().scale(desiredSpeed);
   }
 

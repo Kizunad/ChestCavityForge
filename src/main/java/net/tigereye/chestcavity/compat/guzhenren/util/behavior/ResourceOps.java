@@ -511,4 +511,41 @@ public final class ResourceOps {
   private static void sendFailure(ServerPlayer player, String message) {
     player.displayClientMessage(Component.literal(message), true);
   }
+
+  /**
+   * 飞剑维持消耗（支持玩家和非玩家）。
+   *
+   * <p>玩家：消耗缩放真元
+   * <p>非玩家：根据配置模式决定是否消耗血量或不消耗
+   *
+   * @param owner 飞剑主人
+   * @param zhenyuanCost 真元消耗量（基础值）
+   * @param mode 非玩家消耗模式
+   * @return 是否成功消耗（或成功跳过消耗）
+   */
+  public static boolean consumeFlyingSwordUpkeep(
+      LivingEntity owner,
+      double zhenyuanCost,
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+          .FlyingSwordTuning.NonPlayerUpkeepMode mode) {
+    if (owner == null) {
+      return false;
+    }
+
+    // 玩家：消耗缩放真元
+    if (owner instanceof Player) {
+      return tryConsumeScaledZhenyuan(owner, zhenyuanCost).isPresent();
+    }
+
+    // 非玩家：根据配置模式
+    return switch (mode) {
+      case NONE -> true; // 不消耗，直接成功
+      case HEALTH -> {
+        // 消耗血量代替真元
+        GuzhenrenResourceCostHelper.ConsumptionResult result =
+            consumeWithFallback(owner, zhenyuanCost, 0.0);
+        yield result.succeeded();
+      }
+    };
+  }
 }
