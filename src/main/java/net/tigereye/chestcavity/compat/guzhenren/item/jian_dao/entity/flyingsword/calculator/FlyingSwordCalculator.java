@@ -70,6 +70,7 @@ public final class FlyingSwordCalculator {
           case HUNT -> FlyingSwordTuning.UPKEEP_HUNT_MULT;
           case HOVER -> FlyingSwordTuning.UPKEEP_ORBIT_MULT; // 悬浮近似环绕消耗
           case RECALL -> FlyingSwordTuning.UPKEEP_ORBIT_MULT; // 召回模式消耗同环绕
+          case SWARM -> FlyingSwordTuning.UPKEEP_GUARD_MULT; // 集群模式消耗同守护
         };
 
     // 状态倍率

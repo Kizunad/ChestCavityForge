@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.passive;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -8,7 +8,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.calc.JianXinGuPassiveCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianXinGuPassiveCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianXinGuStateOps;
 
 /**
  * “定心返本”触发事件（控制类效果添加）。
@@ -33,4 +34,3 @@ public final class JianXinGuPassiveEvents {
     st.ifPresent(state -> JianXinGuPassiveCalc.onControlEffect(player, state));
   }
 }
-

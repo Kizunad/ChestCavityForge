@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.fx;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceLocation;
@@ -19,4 +19,3 @@ public final class JianXinGuFx {
     ActiveSkillRegistry.scheduleReadyToast(player, abilityId, readyAtTick, nowTick);
   }
 }
-

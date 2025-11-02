@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 /** Declarative registry for sword-path organs. */
@@ -22,10 +22,10 @@ public final class JiandaoOrganRegistry {
           OrganIntegrationSpec.builder(
                   net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_xin_gu"))
               .addSlowTickListener(
-                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                       .JianXinGuOrganBehavior.INSTANCE)
               .addIncomingDamageListener(
-                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                       .JianXinGuOrganBehavior.INSTANCE)
               .build());
 

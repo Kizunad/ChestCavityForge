@@ -38,6 +38,10 @@ public class HuntBehavior {
           direction.scale(
               sword.getSwordAttributes().speedMax
                   * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
+
+      // 应用分离力，避免飞剑重叠
+      desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
+
       sword.applySteeringVelocity(desiredVelocity);
     } else if (nearestHostile != null) {
       // 找到新目标
@@ -55,6 +59,10 @@ public class HuntBehavior {
           direction.scale(
               sword.getSwordAttributes().speedMax
                   * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
+
+      // 应用分离力，避免飞剑重叠
+      desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
+
       sword.applySteeringVelocity(desiredVelocity);
     } else {
       // 没有目标，回到主人身边
@@ -69,6 +77,10 @@ public class HuntBehavior {
                 .scale(
                     sword.getSwordAttributes().speedBase
                         * FlyingSwordAITuning.HUNT_RETURN_APPROACH_FACTOR);
+
+        // 应用分离力，避免飞剑重叠
+        desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
+
         sword.applySteeringVelocity(desiredVelocity);
       } else {
         // 在主人附近缓慢巡逻
@@ -77,6 +89,10 @@ public class HuntBehavior {
             tangent.scale(
                 sword.getSwordAttributes().speedBase
                     * FlyingSwordAITuning.HUNT_IDLE_TANGENT_FACTOR);
+
+        // 应用分离力，避免飞剑重叠
+        desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
+
         sword.applySteeringVelocity(desiredVelocity);
       }
     }

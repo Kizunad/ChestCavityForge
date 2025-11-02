@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.calc;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator;
 
 import java.util.Objects;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -10,8 +10,8 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.tigereye.chestcavity.compat.guzhenren.domain.DomainHelper;
 import net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.JianXinGuStateOps;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning.JianXinGuPassiveTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianXinGuStateOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianXinGuPassiveTuning;
 
 /**
  * “定心返本”状态机的纯逻辑运算。

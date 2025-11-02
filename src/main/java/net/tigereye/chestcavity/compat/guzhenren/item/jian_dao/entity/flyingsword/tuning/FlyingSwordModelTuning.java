@@ -19,6 +19,15 @@ public final class FlyingSwordModelTuning {
   /** 是否在实体上显示绑定物品的名称（悬浮名称牌）。 */
   public static final boolean SHOW_ITEM_NAME = configBool("SHOW_ITEM_NAME", true);
 
+  /**
+   * 模型固有“刀面倾斜”纠正角（单位：度）。
+   *
+   * 对许多物品模型（如原版铁剑），其本体沿 X 轴为“前向”，但刀面会相对该轴有一个固定的倾斜。
+   * 将该值作为绕本地 X 轴的预旋转，可把刀面调正，使“剑头”沿路径且不再呈现“/”的倾斜。
+   */
+  public static final float BLADE_ROLL_DEGREES =
+      BehaviorConfigAccess.getFloat(FlyingSwordModelTuning.class, "BLADE_ROLL_DEGREES", -45.0f);
+
   public static ResourceLocation defaultItemId() {
     try {
       return ResourceLocation.parse(DEFAULT_ITEM_ID);

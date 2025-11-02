@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ;
 
 import java.util.Optional;
 import net.minecraft.server.level.ServerLevel;

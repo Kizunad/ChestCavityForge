@@ -28,7 +28,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYingGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
@@ -778,7 +778,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:jian_ying_gu",
         tags("输出", "召唤"),
         "支付真元与精力召唤剑影分身协同作战，随器官数量扩充",
-        "compat/guzhenren/item/jian_dao/behavior/JianYingGuOrganBehavior.java:61",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianYingGuOrganBehavior.java:61",
         () -> {
           ensureClassLoaded(JianYingGuOrganBehavior.INSTANCE);
         },
@@ -982,15 +982,15 @@ public final class ActiveSkillRegistry {
         "guzhenren:jian_xin_gu",
         tags("体质", "冥想", "领域"),
         "心定冥想：进入静心并展开剑心域，冥想期间每秒恢复少量资源与剑势。再次施放可提前结束。",
-        "compat/guzhenren/item/jian_dao/behavior/JianXinGuOrganBehavior.java",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianXinGuOrganBehavior.java",
         () -> {
           ensureClassLoaded(
-              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianXinGuOrganBehavior
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianXinGuOrganBehavior
                   .INSTANCE);
         },
         CooldownHint.useOrgan(
             "冥想就绪", formatCooldownSeconds(
-                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior
+                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                     .JianXinGuOrganBehavior.MEDITATION_COOLDOWN_T)));
 
     // 剑域蛊：一念开阖（调域）
@@ -1000,12 +1000,27 @@ public final class ActiveSkillRegistry {
         "guzhenren:jianyugu",
         tags("领域", "调节", "剑道"),
         "开启6秒调域窗口，消耗 60真元+6念头；窗口结束进入持续时间内按半径扣费；期间正面锥额外 -10% 实伤。",
-        "compat/guzhenren/item/jian_dao/behavior/jianyu/JianYuGuOrganBehavior.java",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianYuGuOrganBehavior.java",
         () -> {
           ensureClassLoaded(
-              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.JianYuGuOrganBehavior
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYuGuOrganBehavior
                   .INSTANCE);
         });
+
+    // 蕴剑青莲蛊：蕴剑化莲（五转核心）
+    register(
+        "guzhenren:yun_jian_qing_lian_activate",
+        "guzhenren:yun_jian_qing_lian_activate",
+        "guzhenren:yun_jian_qing_lian",
+        tags("剑道", "领域", "飞剑", "五转"),
+        "蕴剑化莲：生成8片莲瓣飞剑环护+展开青莲剑域+无敌焦点，受剑域蛊增幅（2-32片），持续消耗真元/精力/念头",
+        "compat/guzhenren/item/jian_dao/behavior/organ/YunJianQingLianGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .YunJianQingLianGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("青莲蛊就绪", null));
 
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
     register(

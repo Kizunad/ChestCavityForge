@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning;
 
 /**
  * 剑心蛊（体质）行为侧调参项。

@@ -77,6 +77,10 @@ public class FlyingSwordEntity extends PathfinderMob {
   private static final EntityDataAccessor<String> SWORD_TYPE =
       SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.STRING);
 
+  // 是否可被召回（默认true，主动技能生成的飞剑设为false）
+  private static final EntityDataAccessor<Boolean> IS_RECALLABLE =
+      SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.BOOLEAN);
+
   // ========== 缓存字段 ==========
   @Nullable
   private Player cachedOwner;
@@ -91,6 +95,10 @@ public class FlyingSwordEntity extends PathfinderMob {
   private int age = 0;
 
   private int attackCooldown = 0; // 攻击冷却（tick）
+
+  // 平滑朝向向量（用于渲染，避免抖动）
+  private Vec3 smoothedLookAngle = Vec3.ZERO;
+  private Vec3 lastVelocity = Vec3.ZERO;
 
   // ========== 构造函数 ==========
   public FlyingSwordEntity(EntityType<? extends PathfinderMob> type, Level level) {
@@ -124,6 +132,7 @@ public class FlyingSwordEntity extends PathfinderMob {
     builder.define(MODEL_KEY, "");
     builder.define(SOUND_PROFILE, "");
     builder.define(SWORD_TYPE, FlyingSwordType.DEFAULT.getRegistryName());
+    builder.define(IS_RECALLABLE, true); // 默认可被召回
   }
 
   @Override
@@ -330,17 +339,124 @@ public class FlyingSwordEntity extends PathfinderMob {
     this.entityData.set(SWORD_TYPE, type.getRegistryName());
   }
 
+  /**
+   * 获取飞剑是否可被召回
+   *
+   * @return 是否可被召回
+   */
+  public boolean isRecallable() {
+    return this.entityData.get(IS_RECALLABLE);
+  }
+
+  /**
+   * 设置飞剑是否可被召回
+   *
+   * <p>主动技能生成的飞剑应设为false，避免被召回指令影响
+   *
+   * @param recallable 是否可被召回
+   */
+  public void setRecallable(boolean recallable) {
+    this.entityData.set(IS_RECALLABLE, recallable);
+  }
+
   // ========== Tick 逻辑 ==========
   @Override
   public void tick() {
     super.tick();
     age++;
 
+    // 更新平滑朝向（客户端和服务端都需要）
+    updateSmoothedLookAngle();
+
     if (this.level().isClientSide) {
       tickClient();
     } else {
       tickServer();
     }
+  }
+
+  /**
+   * 更新平滑朝向向量，避免渲染时抖动
+   */
+  private void updateSmoothedLookAngle() {
+    Vec3 currentVelocity = this.getDeltaMovement();
+
+    // 如果速度太小，保持上次的朝向
+    if (currentVelocity.lengthSqr() < 1.0e-4) {
+      if (smoothedLookAngle.lengthSqr() < 1.0e-4) {
+        smoothedLookAngle = this.getLookAngle();
+      }
+      return;
+    }
+
+    Vec3 targetLook = currentVelocity.normalize();
+
+    // 如果是第一次，直接使用目标朝向
+    if (smoothedLookAngle.lengthSqr() < 1.0e-4) {
+      smoothedLookAngle = targetLook;
+      lastVelocity = currentVelocity;
+      return;
+    }
+
+    // 平滑插值系数（0.3 = 30%当前帧，70%上一帧）
+    double smoothFactor = 0.3;
+
+    // Slerp（球面线性插值）用于平滑旋转
+    smoothedLookAngle = slerpVec3(smoothedLookAngle, targetLook, smoothFactor);
+    lastVelocity = currentVelocity;
+  }
+
+  /**
+   * 球面线性插值（Slerp）
+   *
+   * @param from 起始向量（必须归一化）
+   * @param to 目标向量（必须归一化）
+   * @param t 插值系数 [0, 1]
+   * @return 插值后的归一化向量
+   */
+  private Vec3 slerpVec3(Vec3 from, Vec3 to, double t) {
+    // 计算夹角余弦值
+    double dot = from.dot(to);
+
+    // 向量几乎相同，直接返回目标
+    if (dot > 0.9995) {
+      return to;
+    }
+
+    // 限制点积范围，避免数值误差
+    dot = Math.max(-1.0, Math.min(1.0, dot));
+
+    // 计算夹角
+    double theta = Math.acos(dot);
+    double sinTheta = Math.sin(theta);
+
+    // 避免除以零
+    if (Math.abs(sinTheta) < 1.0e-6) {
+      // 线性插值作为fallback
+      return from.scale(1.0 - t).add(to.scale(t)).normalize();
+    }
+
+    // Slerp公式
+    double ratioA = Math.sin((1.0 - t) * theta) / sinTheta;
+    double ratioB = Math.sin(t * theta) / sinTheta;
+
+    return from.scale(ratioA).add(to.scale(ratioB)).normalize();
+  }
+
+  /**
+   * 获取平滑后的朝向向量（用于渲染）
+   *
+   * @return 平滑后的归一化朝向向量
+   */
+  public Vec3 getSmoothedLookAngle() {
+    if (smoothedLookAngle.lengthSqr() < 1.0e-4) {
+      Vec3 velocity = this.getDeltaMovement();
+      if (velocity.lengthSqr() > 1.0e-4) {
+        return velocity.normalize();
+      }
+      return this.getLookAngle();
+    }
+    return smoothedLookAngle;
   }
 
   private void tickClient() {
@@ -439,6 +555,11 @@ public class FlyingSwordEntity extends PathfinderMob {
       case RECALL ->
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
               .RecallBehavior.tick(this, owner);
+      case SWARM -> {
+        // 集群模式：由集群管理器（QingLianSwordSwarm）统一调度
+        // 飞剑不自行决策，仅执行集群管理器下发的指令
+        // 速度已在集群管理器的tick中通过applySteeringVelocity设置
+      }
     }
 
     // 检测碰撞攻击（集中在战斗模块）
@@ -771,6 +892,11 @@ public class FlyingSwordEntity extends PathfinderMob {
     this.age = tag.getInt("Age");
     this.upkeepTicks = tag.getInt("UpkeepTicks");
 
+    // 可召回标记
+    if (tag.contains("IsRecallable")) {
+      this.entityData.set(IS_RECALLABLE, tag.getBoolean("IsRecallable"));
+    }
+
     // 同步生命-耐久
     syncHealthWithDurability();
   }
@@ -818,6 +944,9 @@ public class FlyingSwordEntity extends PathfinderMob {
 
     // 飞剑类型
     tag.putString("SwordType", getSwordType().getRegistryName());
+
+    // 可召回标记
+    tag.putBoolean("IsRecallable", isRecallable());
   }
 
   // ========== 攻击逻辑 ==========

@@ -103,6 +103,7 @@ public final class FlyingSwordController {
       case HUNT -> AIMode.HOVER;
       case HOVER -> AIMode.ORBIT;
       case RECALL -> AIMode.ORBIT; // RECALL 被打断时回到 ORBIT
+      case SWARM -> AIMode.SWARM; // SWARM 模式不可切换（青莲蛊专用集群模式）
     };
 
     sword.setAIMode(next);
@@ -119,6 +120,11 @@ public final class FlyingSwordController {
    */
   public static void recall(FlyingSwordEntity sword) {
     if (sword == null || sword.isRemoved()) {
+      return;
+    }
+
+    // 检查飞剑是否可被召回（主动技能生成的飞剑不可召回）
+    if (!sword.isRecallable()) {
       return;
     }
 

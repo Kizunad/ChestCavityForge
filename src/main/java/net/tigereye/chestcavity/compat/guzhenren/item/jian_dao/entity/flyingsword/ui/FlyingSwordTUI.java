@@ -249,6 +249,7 @@ public final class FlyingSwordTUI {
       case ORBIT -> "[环绕]";
       case HOVER -> "[悬浮]";
       case RECALL -> "[召回]";
+      case SWARM -> "[集群]";
     };
     int color = switch (mode) {
       case HUNT -> Theme.MODE_HUNT;
@@ -256,6 +257,7 @@ public final class FlyingSwordTUI {
       case ORBIT -> Theme.MODE_ORBIT;
       case HOVER -> Theme.MODE_HOVER;
       case RECALL -> Theme.MODE_RECALL;
+      case SWARM -> Theme.MODE_GUARD; // 使用守护模式的颜色
     };
     return Component.literal(label).withStyle(Style.EMPTY.withColor(color));
   }

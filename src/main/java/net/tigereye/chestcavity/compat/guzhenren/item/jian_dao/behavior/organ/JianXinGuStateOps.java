@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ;
 
 import java.util.Optional;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,7 +33,7 @@ public final class JianXinGuStateOps {
           net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem());
       if (id != null
           && id.equals(
-              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                   .JianXinGuOrganBehavior.ORGAN_ID)) {
         return Optional.of(OrganState.of(s, STATE_ROOT));
       }
@@ -49,4 +49,3 @@ public final class JianXinGuStateOps {
     return Optional.empty();
   }
 }
-

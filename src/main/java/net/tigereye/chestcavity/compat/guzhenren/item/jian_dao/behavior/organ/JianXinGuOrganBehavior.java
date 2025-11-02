@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ;
 
 import java.util.Optional;
 import net.minecraft.server.level.ServerLevel;
@@ -56,16 +56,16 @@ public enum JianXinGuOrganBehavior
 
   // 调参：迁移至 Tuning
   public static final int MEDITATION_COOLDOWN_T =
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
           .JianXinGuTuning.MEDITATION_COOLDOWN_T;
   private static final int FREEZE_ON_BREAK_T =
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
           .JianXinGuTuning.FREEZE_ON_BREAK_T;
   private static final double REGEN_JINGLI_PER_SEC =
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
           .JianXinGuTuning.REGEN_JINGLI_PER_SEC;
   private static final int MAX_MOMENTUM =
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
           .JianXinGuTuning.MAX_MOMENTUM;
 
   static {
@@ -94,7 +94,7 @@ public enum JianXinGuOrganBehavior
 
     if (now < readyAt) {
       // 冷却中：直接提示
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.fx
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx
           .JianXinGuFx.scheduleCooldownToast(player, ABILITY_ID, readyAt, now);
       return;
     }
@@ -102,13 +102,13 @@ public enum JianXinGuOrganBehavior
     // 进入冥想：立即开始冷却（按规格：进入即开始 CD）
     state.setBoolean(K_MEDITATING, true);
     state.setLong(K_READY_AT, now + MEDITATION_COOLDOWN_T);
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.fx
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx
         .JianXinGuFx.scheduleCooldownToast(
             player, ABILITY_ID, now + MEDITATION_COOLDOWN_T, now);
 
     // 应用冥想期移动减速（玩家侧属性 + NBT 存储）
     double dec =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.tuning
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
             .JianXinGuTuning.JIAN_XIN_DOMAIN_VELOCITY_DECREASEMENT;
     net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags
         .setJianxinVelocityDecreasement(player, dec);
@@ -117,7 +117,7 @@ public enum JianXinGuOrganBehavior
 
     // 计算域等级与创建/刷新剑心域
     int domainLevel =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.calc
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator
             .JianXinGuCalc.computeDomainLevel(player);
     state.setInt(K_DOMAIN_LEVEL, domainLevel);
     spawnOrRefreshDomain(player, domainLevel);
@@ -139,7 +139,7 @@ public enum JianXinGuOrganBehavior
     }
 
     // 定心值自然衰减（1秒内未再受控）
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.calc
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator
         .JianXinGuPassiveCalc.decayFocusIfIdle(player, state);
 
     boolean meditating = state.getBoolean(K_MEDITATING, false);
@@ -163,7 +163,7 @@ public enum JianXinGuOrganBehavior
     int level =
         state.getInt(
             K_DOMAIN_LEVEL,
-            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.calc
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator
                 .JianXinGuCalc.computeDomainLevel(player));
     spawnOrRefreshDomain(player, level);
   }

@@ -17,7 +17,10 @@ public enum AIMode {
   HOVER("hover", "悬浮"),
 
   /** 召回模式：弧形轨迹返回主人 */
-  RECALL("recall", "召回");
+  RECALL("recall", "召回"),
+
+  /** 集群模式：由集群管理器统一调度（青莲剑群专用） */
+  SWARM("swarm", "集群");
 
   private final String id;
   private final String displayName;

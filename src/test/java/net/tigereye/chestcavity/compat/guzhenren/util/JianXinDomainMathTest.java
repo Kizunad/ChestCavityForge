@@ -29,32 +29,33 @@ public class JianXinDomainMathTest {
     assertEquals(1.0, s1, EPS);
     assertEquals(5.0, pOut1, 1e-2);
     assertTrue(pIn1 <= 0.40 + 1e-6); // 实伤系数≈0.40
-    assertEquals(0.0, e1, EPS); // s-0.2→负，clamp为0
-    assertEquals(1.0, pOutEnt1, EPS); // 实体禁用→=1
+    assertEquals(0.8, e1, 1e-6); // s-0.2=0.8；实体是否启用由上层逻辑决定
+    assertEquals(1.8, pOutEnt1, 1e-6); // 受上限1.8钳制
 
     // R=2.0
     double s2 = JianXinDomainMath.computeS(2.0, Rmax);
     double pOut2 = JianXinDomainMath.computePout(s2);
     double e2 = JianXinDomainMath.computeEntityGate(s2);
     double pOutEnt2 = JianXinDomainMath.computePoutEntity(pOut2, e2);
-    assertTrue(pOut2 > 4.0 && pOut2 < 4.2);
+    assertEquals(1.0, s2, 1e-6);
+    assertEquals(5.0, pOut2, 1e-2);
     assertEquals(Math.min(1.8, 1.0 + (pOut2 - 1.0) * e2), pOutEnt2, 1e-6);
     assertTrue(pOutEnt2 <= 1.8 + 1e-6);
 
     // R=4.0
     double s4 = JianXinDomainMath.computeS(4.0, Rmax);
     double pOut4 = JianXinDomainMath.computePout(s4);
-    assertTrue(pOut4 > 2.7 && pOut4 < 3.0);
+    assertTrue(pOut4 > 3.5 && pOut4 < 3.8);
 
     // R=7.0
     double s7 = JianXinDomainMath.computeS(7.0, Rmax);
     double pOut7 = JianXinDomainMath.computePout(s7);
-    assertTrue(pOut7 > 1.3 && pOut7 < 1.6);
+    assertTrue(pOut7 > 1.7 && pOut7 < 1.9);
 
     // R=10.0（接近下限）
     double s10 = JianXinDomainMath.computeS(10.0, Rmax);
     double pOut10 = JianXinDomainMath.computePout(s10);
-    assertTrue(pOut10 >= 0.1 && pOut10 < 0.7);
+    assertTrue(pOut10 >= 0.3 && pOut10 <= 0.5);
   }
 
   @Test
@@ -84,4 +85,3 @@ public class JianXinDomainMathTest {
     assertEquals(2.0 * 1.15, capped, 1e-6);
   }
 }
-

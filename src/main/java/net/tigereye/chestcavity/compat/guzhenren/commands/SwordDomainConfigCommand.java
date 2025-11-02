@@ -147,15 +147,21 @@ public final class SwordDomainConfigCommand {
     return 1;
   }
 
-  // 预设映射：min=0.2；10..90线性映射到[0.28,0.92]；max=1.0
+  // 预设映射：
+  // - min  → 0.2（确保 BASE_RADIUS=5 时最小≈1格半径）
+  // - 10..90 → 按百分比映射到 (0,10] 的 10%..90%：即 1.0..9.0 倍
+  // - max  → 10.0（最大支持10倍半径）
   private static double mapPreset(String label) {
     String v = label.toLowerCase();
     if (v.equals("min")) return 0.2; // BASE(5)*0.2=1格
-    if (v.equals("max")) return 1.0;
+    if (v.equals("max")) return 10.0; // 最大10倍半径
     try {
       int n = Integer.parseInt(v);
       if (n >= 0 && n <= 100) {
-        return 0.2 + 0.8 * (n / 100.0);
+        // 百分比到[1.0,9.0]的线性映射（相对“max=10.0”）
+        if (n == 0) return 0.2; // 防御性：0 视作最小
+        if (n == 100) return 10.0; // 100 视作最大
+        return 10.0 * (n / 100.0);
       }
     } catch (NumberFormatException ignore) {
     }

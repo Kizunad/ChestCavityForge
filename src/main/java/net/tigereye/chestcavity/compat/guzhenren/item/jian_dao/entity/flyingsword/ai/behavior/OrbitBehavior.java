@@ -53,6 +53,9 @@ public class OrbitBehavior {
                       * FlyingSwordAITuning.ORBIT_TANGENT_SPEED_FACTOR);
     }
 
+    // 应用分离力，避免飞剑重叠
+    desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
+
     // 应用转向
     sword.applySteeringVelocity(desiredVelocity);
   }

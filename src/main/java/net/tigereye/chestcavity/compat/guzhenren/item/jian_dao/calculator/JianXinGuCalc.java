@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.jianxin.calc;
+package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator;
 
 import java.util.Optional;
 import java.util.OptionalDouble;

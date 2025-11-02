@@ -105,4 +105,33 @@ public final class JianXinDomainTuning {
 
   /** 强化状态粒子密度倍数 */
   public static final double ENHANCED_PARTICLE_MULT = 2.0;
+
+  // ========== 剑域呼吸系统（Domain Breathing） ==========
+
+  /** 呼吸频率 - 正常状态（弧度/tick） - 慢呼吸，约63秒周期 */
+  public static final double BREATHING_FREQUENCY_NORMAL = 0.05;
+
+  /** 呼吸频率 - 资源告急状态（弧度/tick） - 快呼吸，约21秒周期 */
+  public static final double BREATHING_FREQUENCY_PANIC = 0.15;
+
+  /** 呼吸亮度 - 最小值（0.8 = 80%亮度） */
+  public static final double BREATHING_INTENSITY_MIN = 0.8;
+
+  /** 呼吸亮度 - 最大值（1.0 = 100%亮度） */
+  public static final double BREATHING_INTENSITY_MAX = 1.0;
+
+  /** 呼吸亮度 - 正常状态范围（资源充足时最小亮度偏移） */
+  public static final double BREATHING_INTENSITY_RANGE_NORMAL = 0.1; // 0.8+0.1=0.9
+
+  /** 呼吸半径缩放 - 正常状态振幅（±1%） */
+  public static final double BREATHING_SCALE_AMPLITUDE_NORMAL = 0.01;
+
+  /** 呼吸半径缩放 - 资源告急状态振幅（±3%） */
+  public static final double BREATHING_SCALE_AMPLITUDE_PANIC = 0.03;
+
+  /** 呼吸粒子速度（方块/tick） - 吸气/呼气的径向速度 */
+  public static final double BREATHING_PARTICLE_SPEED = 0.01;
+
+  /** 资源告急阈值（低于此比例触发心跳特效） */
+  public static final double BREATHING_PANIC_THRESHOLD = 0.3; // 30%
 }
