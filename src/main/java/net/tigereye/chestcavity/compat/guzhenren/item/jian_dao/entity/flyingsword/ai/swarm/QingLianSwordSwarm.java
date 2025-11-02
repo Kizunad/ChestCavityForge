@@ -42,6 +42,34 @@ public class QingLianSwordSwarm {
   /** 攻击轮次（用于轮流攻击） */
   private int attackWave;
 
+  // —— 集群中心（鸟群式控制） ——
+  private Vec3 swarmCenter = Vec3.ZERO; // 平滑后的中心
+  private double centerOrbitAngle = 0.0; // 攻击模式：中心绕目标旋转角
+
+  // —— 个体代理（每把剑的独立状态机） ——
+  private enum AgentPhase { FORMATION, DEPART, ATTACK, RETURN }
+
+  private static final class SwordAgent {
+    final UUID id;
+    final FlyingSwordEntity sword;
+    AgentPhase phase = AgentPhase.FORMATION;
+    int phaseTick = 0;
+    long lastLaunchTick = -1000L;
+    // 运行态缓存：最近一次"离队"的参照角度，提升观感
+    double cachedSlotAngle = 0.0;
+
+    SwordAgent(FlyingSwordEntity sword) {
+      this.id = sword.getUUID();
+      this.sword = sword;
+    }
+  }
+
+  private final Map<UUID, SwordAgent> agents = new HashMap<>();
+
+  // 目标选择的滞后与范围（避免边界抖动）
+  private static final double ACQUIRE_RANGE = 32.0; // 新目标获取半径
+  private static final double RETAIN_RANGE = 38.0;  // 保持锁定的半径（>获取半径，形成滞后）
+
   public QingLianSwordSwarm(UUID swarmId, Player owner) {
     this.swarmId = swarmId;
     this.owner = owner;
@@ -57,12 +85,15 @@ public class QingLianSwordSwarm {
   public void addSword(FlyingSwordEntity sword) {
     if (!swords.contains(sword)) {
       swords.add(sword);
+      // 注册个体代理
+      agents.put(sword.getUUID(), new SwordAgent(sword));
     }
   }
 
   /** 移除飞剑（剑被召回或销毁时） */
   public void removeSword(FlyingSwordEntity sword) {
     swords.remove(sword);
+    agents.remove(sword.getUUID());
   }
 
   /** 获取剑群大小 */
@@ -72,7 +103,13 @@ public class QingLianSwordSwarm {
 
   /** 清理已销毁的剑 */
   private void cleanupDeadSwords() {
-    swords.removeIf(sword -> !sword.isAlive() || sword.isRemoved());
+    swords.removeIf(sword -> {
+      boolean removed = !sword.isAlive() || sword.isRemoved();
+      if (removed) {
+        agents.remove(sword.getUUID());
+      }
+      return removed;
+    });
   }
 
   // ==================== 集群AI主循环 ====================
@@ -112,7 +149,7 @@ public class QingLianSwordSwarm {
     // 如果当前目标仍然有效且在范围内，保持锁定
     if (swarmTarget != null
         && swarmTarget.isAlive()
-        && owner.distanceTo(swarmTarget) < 32.0) {
+        && owner.distanceTo(swarmTarget) < RETAIN_RANGE) {
       return;
     }
 
@@ -125,10 +162,25 @@ public class QingLianSwordSwarm {
     FlyingSwordEntity representativeSword = swords.get(0);
     Vec3 searchCenter = owner.position();
 
-    // 使用 TargetFinder 搜索敌对目标（优先敌方飞剑）
-    swarmTarget =
+    // 使用 TargetFinder 搜索敌对目标（优先敌方飞剑），限定获取半径
+    LivingEntity newTarget =
         net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
-            .TargetFinder.findNearestHostileForGuard(representativeSword, searchCenter, 32.0);
+            .TargetFinder.findNearestHostileForGuard(representativeSword, searchCenter, ACQUIRE_RANGE);
+    boolean targetChanged = (newTarget != swarmTarget);
+    swarmTarget = newTarget;
+
+    // 将目标同步到每把飞剑（碰撞攻击依赖飞剑自身target）
+    if (targetChanged) {
+      if (swarmTarget != null) {
+        for (FlyingSwordEntity s : swords) {
+          s.setTargetEntity(swarmTarget);
+        }
+      } else {
+        for (FlyingSwordEntity s : swords) {
+          s.setTargetEntity(null);
+        }
+      }
+    }
 
     // 目标改变时，切换行为模式
     if (swarmTarget != null && currentMode == SwarmBehaviorMode.LOTUS_GUARD) {
@@ -147,6 +199,17 @@ public class QingLianSwordSwarm {
       attackWave = 0; // 重置攻击波次
       net.tigereye.chestcavity.ChestCavity.LOGGER.info(
           "[QingLianSwarm] Mode switched to: {}", newMode);
+      // 模式切换时，复位个体代理
+      if (newMode == SwarmBehaviorMode.LOTUS_GUARD) {
+        for (SwordAgent a : agents.values()) {
+          a.phase = AgentPhase.FORMATION;
+          a.phaseTick = 0;
+        }
+        // 清空中心绕转角，避免突兀跳变
+        centerOrbitAngle = 0.0;
+        // 清空个体目标
+        for (FlyingSwordEntity s : swords) s.setTargetEntity(null);
+      }
     }
   }
 
@@ -163,54 +226,47 @@ public class QingLianSwordSwarm {
    * </ul>
    */
   private void tickLotusGuard() {
-    Vec3 ownerPos = owner.position().add(0, 1.5, 0); // 玩家腰部高度
+    // 中心锚定主人，平滑跟随
+    Vec3 anchor = owner.position().add(0, 1.5, 0);
+    if (swarmCenter == Vec3.ZERO) {
+      swarmCenter = anchor;
+    } else {
+      double alpha = 0.35;
+      swarmCenter = swarmCenter.add(anchor.subtract(swarmCenter).scale(alpha));
+    }
+
     int swordCount = swords.size();
+    double formationRadius = computeFormationRadius(swordCount);
+    double globalRotation = swarmTick * 0.003;
 
-    // 根据剑数量动态调整半径（剑越多，半径越小）
-    double baseRadius = 3.0 - (swordCount / 32.0) * 1.5; // 3.0格 -> 1.5格
+    // 槽位稳定排序
+    List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
+    ordered.sort(Comparator.comparing(FlyingSwordEntity::getUUID));
 
-    // 极慢旋转（每秒约5度，减少抖动）
-    double rotationSpeed = 0.003; // 弧度/tick (原来0.01，现在1/3速度)
-    double globalRotation = swarmTick * rotationSpeed;
+    for (int idx = 0; idx < ordered.size(); idx++) {
+      FlyingSwordEntity sword = ordered.get(idx);
+      SwordAgent agent = agents.get(sword.getUUID());
+      if (agent == null) continue;
 
-    for (int i = 0; i < swords.size(); i++) {
-      FlyingSwordEntity sword = swords.get(i);
+      double baseAngle = (2.0 * Math.PI / Math.max(1, swordCount)) * idx + globalRotation;
+      agent.cachedSlotAngle = baseAngle;
+      int layer = idx % 3;
+      double radiusMult = 0.9 + (layer - 1) * 0.1;
+      double currentRadius = formationRadius * Math.max(0.8, radiusMult);
+      double heightOffset = (layer - 1) * 0.75;
+      Vec3 slot =
+          swarmCenter.add(
+              Math.cos(baseAngle) * currentRadius,
+              heightOffset,
+              Math.sin(baseAngle) * currentRadius);
 
-      // 计算剑在阵型中的位置
-      double angle = (2.0 * Math.PI / swordCount) * i + globalRotation;
-
-      // 3层莲花：内层(80%)、中层(100%)、外层(120%)
-      int layer = i % 3;
-      double radiusMult = 0.8 + layer * 0.2;
-      double currentRadius = baseRadius * radiusMult;
-
-      // 高度差：形成立体莲花（底层、中层、顶层）
-      double heightOffset = (layer - 1) * 0.8; // -0.8, 0, +0.8
-
-      // 计算目标位置
-      double offsetX = Math.cos(angle) * currentRadius;
-      double offsetZ = Math.sin(angle) * currentRadius;
-      Vec3 targetPos = ownerPos.add(offsetX, heightOffset, offsetZ);
-
-      // 计算速度向量（带平滑追踪）
-      Vec3 toTarget = targetPos.subtract(sword.position());
-      double distance = toTarget.length();
-
-      // 平滑速度计算：距离越近速度越小，避免震荡
-      // 使用平方根函数而非线性，让减速更平滑
-      double speedFactor = Math.min(Math.sqrt(distance) * 0.2, 0.6); // 限制最大速度为0.6
-
-      // 距离很近时停止移动，避免微小抖动
-      if (distance < 0.15) {
-        speedFactor = 0;
-      }
+      // IDLE：全部编队，清空目标
+      agent.phase = AgentPhase.FORMATION;
+      agent.phaseTick = Math.max(0, agent.phaseTick - 1);
+      sword.setTargetEntity(null);
 
       Vec3 desiredVelocity =
-          toTarget.normalize().scale(sword.getSwordAttributes().speedBase * speedFactor);
-
-      // 应用分离力，避免剑重叠（但不要在莲花阵中应用分离力，会破坏阵型）
-      // desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
+          arrive(sword, slot, sword.getSwordAttributes().speedBase, 2.5, 0.15);
       sword.applySteeringVelocity(desiredVelocity);
     }
   }
@@ -227,73 +283,115 @@ public class QingLianSwordSwarm {
    */
   private void tickSpiralAttack() {
     if (swarmTarget == null || !swarmTarget.isAlive()) {
-      // 没有目标，回到护卫模式
       switchMode(SwarmBehaviorMode.LOTUS_GUARD);
       tickLotusGuard();
       return;
     }
 
-    Vec3 targetPos = swarmTarget.position().add(0, swarmTarget.getBbHeight() / 2, 0);
-    Vec3 ownerPos = owner.position().add(0, 1.5, 0);
+    // 中心围绕目标旋转
+    Vec3 targetAnchor = swarmTarget.position().add(0, swarmTarget.getBbHeight() * 0.5, 0);
+    int swordCount = swords.size();
+    double formationRadius = computeFormationRadius(swordCount);
+    double orbitRadius = formationRadius + 1.2;
+    centerOrbitAngle += 0.02;
+    Vec3 desiredCenter =
+        targetAnchor.add(
+            Math.cos(centerOrbitAngle) * orbitRadius, 0.0, Math.sin(centerOrbitAngle) * orbitRadius);
+    if (swarmCenter == Vec3.ZERO) swarmCenter = desiredCenter;
+    double cAlpha = 0.25;
+    swarmCenter = swarmCenter.add(desiredCenter.subtract(swarmCenter).scale(cAlpha));
 
-    // 每15 ticks派出一波剑（减少频率，更有序）
-    int waveCycle = 15;
-    int swordsPerWave = Math.max(1, swords.size() / 6); // 6波攻击（更少波次）
+    // 槽位与排序
+    double globalRotation = swarmTick * 0.004;
+    List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
+    ordered.sort(Comparator.comparing(FlyingSwordEntity::getUUID));
 
-    for (int i = 0; i < swords.size(); i++) {
-      FlyingSwordEntity sword = swords.get(i);
-
-      // 计算这把剑属于哪一波
-      int swordWave = i / swordsPerWave;
-      int wavePhase = (swarmTick / waveCycle) % (swords.size() / swordsPerWave + 1);
-
-      if (swordWave == wavePhase) {
-        // 这把剑处于攻击波次
-        Vec3 toTarget = targetPos.subtract(sword.position());
-        double distance = toTarget.length();
-
-        // 减小螺旋半径和速度，更平滑
-        double spiralRadius = 0.5; // 原来0.8，现在更小
-        double spiralSpeed = 0.15; // 原来0.3，现在慢一半
-        double spiralAngle = swarmTick * spiralSpeed + i * 0.5;
-
-        Vec3 forward = toTarget.normalize();
-        Vec3 right = new Vec3(-forward.z, 0, forward.x).normalize();
-        Vec3 up = forward.cross(right).normalize();
-
-        Vec3 spiralOffset =
-            right.scale(Math.cos(spiralAngle) * spiralRadius)
-                .add(up.scale(Math.sin(spiralAngle) * spiralRadius));
-
-        // 降低最大速度，更平滑
-        Vec3 desiredVelocity =
-            forward
-                .scale(sword.getSwordAttributes().speedMax * 1.0) // 原来1.5，现在1.0
-                .add(spiralOffset.scale(0.3)); // 原来0.5，现在0.3
-
-        sword.applySteeringVelocity(desiredVelocity);
-      } else {
-        // 其他剑保持护卫位置
-        double angle = (2.0 * Math.PI / swords.size()) * i;
-        double radius = 2.5;
-        Vec3 guardPos =
-            ownerPos.add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-
-        Vec3 toGuard = guardPos.subtract(sword.position());
-        double distance = toGuard.length();
-
-        // 平滑追踪护卫位置
-        double speedFactor = Math.min(Math.sqrt(distance) * 0.25, 0.5);
-        if (distance < 0.15) {
-          speedFactor = 0;
+    // 调度：周期性派出一把剑离队
+    int dispatchInterval = 8;
+    if (swarmTick % dispatchInterval == 0) {
+      for (FlyingSwordEntity s : ordered) {
+        SwordAgent a = agents.get(s.getUUID());
+        if (a == null) continue;
+        if (a.phase == AgentPhase.FORMATION && (swarmTick - a.lastLaunchTick) >= 15) {
+          a.phase = AgentPhase.DEPART;
+          a.phaseTick = 0;
+          a.lastLaunchTick = swarmTick;
+          s.setTargetEntity(swarmTarget);
+          break;
         }
-
-        Vec3 desiredVelocity =
-            toGuard.normalize().scale(sword.getSwordAttributes().speedBase * speedFactor);
-
-        sword.applySteeringVelocity(desiredVelocity);
       }
     }
+
+    for (int idx = 0; idx < ordered.size(); idx++) {
+      FlyingSwordEntity sword = ordered.get(idx);
+      SwordAgent agent = agents.get(sword.getUUID());
+      if (agent == null) continue;
+
+      double baseAngle = (2.0 * Math.PI / Math.max(1, swordCount)) * idx + globalRotation;
+      agent.cachedSlotAngle = baseAngle;
+      int layer = idx % 3;
+      double layerRadius = formationRadius * (0.9 + (layer - 1) * 0.1);
+      double heightOffset = (layer - 1) * 0.7;
+      Vec3 slot =
+          swarmCenter.add(
+              Math.cos(baseAngle) * Math.max(0.8, layerRadius),
+              heightOffset,
+              Math.sin(baseAngle) * Math.max(0.8, layerRadius));
+
+      switch (agent.phase) {
+        case FORMATION -> {
+          sword.setTargetEntity(null);
+          Vec3 v = arrive(sword, slot, sword.getSwordAttributes().speedBase, 2.5, 0.15);
+          sword.applySteeringVelocity(v);
+          agent.phaseTick = Math.max(0, agent.phaseTick - 1);
+        }
+        case DEPART -> {
+          Vec3 radial = new Vec3(Math.cos(baseAngle), 0, Math.sin(baseAngle));
+          double departDist = Math.max(2.5, formationRadius + 1.5);
+          Vec3 departPoint = swarmCenter.add(radial.scale(departDist)).add(0, heightOffset, 0);
+          Vec3 v = arrive(sword, departPoint, sword.getSwordAttributes().speedMax, 2.0, 0.15);
+          sword.applySteeringVelocity(v);
+
+          agent.phaseTick++;
+          double dist = sword.position().distanceTo(departPoint);
+          if (dist < 0.25 || agent.phaseTick > 20) {
+            agent.phase = AgentPhase.ATTACK;
+            agent.phaseTick = 0;
+            sword.setTargetEntity(swarmTarget);
+          }
+        }
+        case ATTACK -> {
+          Vec3 aim = targetAnchor;
+          Vec3 v = arrive(sword, aim, sword.getSwordAttributes().speedMax, 2.0, 0.25);
+          sword.applySteeringVelocity(v);
+
+          agent.phaseTick++;
+          double d = sword.distanceTo(swarmTarget);
+          if (d < 1.6 || agent.phaseTick > 40 || !swarmTarget.isAlive()) {
+            agent.phase = AgentPhase.RETURN;
+            agent.phaseTick = 0;
+            sword.setTargetEntity(null);
+          }
+        }
+        case RETURN -> {
+          Vec3 v = arrive(sword, slot, sword.getSwordAttributes().speedMax * 0.9, 2.5, 0.15);
+          sword.applySteeringVelocity(v);
+          agent.phaseTick++;
+          if (sword.position().distanceTo(slot) < 0.2 || agent.phaseTick > 60) {
+            agent.phase = AgentPhase.FORMATION;
+            agent.phaseTick = 0;
+          }
+        }
+      }
+    }
+  }
+
+  // 依据队伍规模计算编队半径
+  private double computeFormationRadius(int count) {
+    if (count <= 0) return 2.0;
+    // 2把≈3.0格，线性压缩到32把≈1.6格
+    double t = Math.min(1.0, count / 32.0);
+    return 3.0 - 1.4 * t;
   }
 
   /**
@@ -326,11 +424,10 @@ public class QingLianSwordSwarm {
       boolean isAttacking = (i % 2) == currentWave;
 
       if (isAttacking) {
-        // 攻击组：直接追击目标
-        Vec3 toTarget = targetPos.subtract(sword.position());
+        // 攻击组：基于 arrive 的追击（平滑逼近）
         Vec3 desiredVelocity =
-            toTarget.normalize().scale(sword.getSwordAttributes().speedMax * 1.2);
-
+            arrive(sword, targetPos, /*maxSpeed*/ sword.getSwordAttributes().speedMax,
+                /*arriveRadius*/ 2.0, /*stopRadius*/ 0.15);
         sword.applySteeringVelocity(desiredVelocity);
       } else {
         // 防守组：环绕主人
@@ -339,10 +436,9 @@ public class QingLianSwordSwarm {
         Vec3 guardPos =
             ownerPos.add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
 
-        Vec3 toGuard = guardPos.subtract(sword.position());
         Vec3 desiredVelocity =
-            toGuard.normalize().scale(sword.getSwordAttributes().speedBase * 0.8);
-
+            arrive(sword, guardPos, /*maxSpeed*/ sword.getSwordAttributes().speedBase,
+                /*arriveRadius*/ 2.5, /*stopRadius*/ 0.15);
         desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
         sword.applySteeringVelocity(desiredVelocity);
       }
@@ -385,24 +481,44 @@ public class QingLianSwordSwarm {
       Vec3 direction = new Vec3(x, y, z);
 
       if (phase < 40) {
-        // 聚集阶段：从各个方向飞向目标
-        Vec3 toTarget = targetPos.subtract(sword.position());
+        // 聚集阶段：基于 arrive 逼近
         Vec3 desiredVelocity =
-            toTarget.normalize().scale(sword.getSwordAttributes().speedMax * 1.5);
-
+            arrive(sword, targetPos, /*maxSpeed*/ sword.getSwordAttributes().speedMax,
+                /*arriveRadius*/ 2.0, /*stopRadius*/ 0.15);
         sword.applySteeringVelocity(desiredVelocity);
       } else {
         // 散开阶段：沿球面方向散开
         double scatterRadius = 4.0;
         Vec3 scatterPos = targetPos.add(direction.scale(scatterRadius));
-        Vec3 toScatter = scatterPos.subtract(sword.position());
-
         Vec3 desiredVelocity =
-            toScatter.normalize().scale(sword.getSwordAttributes().speedMax * 1.0);
-
+            arrive(sword, scatterPos, /*maxSpeed*/ sword.getSwordAttributes().speedMax,
+                /*arriveRadius*/ 3.0, /*stopRadius*/ 0.15);
         sword.applySteeringVelocity(desiredVelocity);
       }
     }
+  }
+
+  // ==================== 简化的平滑“到达/减速” ====================
+  /**
+   * 统一的到达/减速速度计算：
+   * - 距离小于 stopRadius 则停下（去抖动）
+   * - 距离在 [stopRadius, arriveRadius] 内按比例减速
+   * - 距离大于 arriveRadius 以 maxSpeed 追击
+   */
+  private Vec3 arrive(
+      FlyingSwordEntity sword, Vec3 targetPos, double maxSpeed, double arriveRadius,
+      double stopRadius) {
+    Vec3 toTarget = targetPos.subtract(sword.position());
+    double dist = toTarget.length();
+    if (dist < stopRadius) {
+      return Vec3.ZERO;
+    }
+
+    double t = dist >= arriveRadius ? 1.0 : Math.max(0.0, (dist - stopRadius) / Math.max(1e-6, (arriveRadius - stopRadius)));
+    // 在 base 与 max 之间插值，近处更慢，远处更快
+    double base = sword.getSwordAttributes().speedBase;
+    double desiredSpeed = base + (maxSpeed - base) * t;
+    return toTarget.normalize().scale(desiredSpeed);
   }
 
   // ==================== Getters ====================
