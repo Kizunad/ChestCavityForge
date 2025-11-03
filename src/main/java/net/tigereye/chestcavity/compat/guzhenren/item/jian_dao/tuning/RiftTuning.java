@@ -50,5 +50,41 @@ public final class RiftTuning {
   // ====== 吸纳微型裂隙 ======
   public static final int ABSORB_ADD_SECONDS = 15;
   public static final double ABSORB_DAMAGE_BOOST = 0.20; // +20%，上限1.0
+
+  // ====== 特效与音效 ======
+  /** 是否启用所有特效（包括粒子和音效） */
+  public static final boolean FX_ENABLED = true;
+
+  /** 是否启用粒子特效 */
+  public static final boolean PARTICLE_ENABLED = true;
+
+  /** 是否启用音效 */
+  public static final boolean SOUND_ENABLED = true;
+
+  // 粒子数量配置
+  public static final int SPAWN_PARTICLE_COUNT = 20;
+  public static final int DAMAGE_PARTICLE_COUNT = 8;
+  public static final int ABSORB_PARTICLE_COUNT = 15;
+  public static final int RESONANCE_PARTICLE_COUNT = 12;
+  public static final int WAVE_PARTICLE_COUNT = 30;
+  public static final int DESPAWN_PARTICLE_COUNT = 10;
+
+  // 音效音量配置
+  public static final float VOL_SPAWN = 0.6f;
+  public static final float VOL_DAMAGE = 0.4f;
+  public static final float VOL_ABSORB = 0.7f;
+  public static final float VOL_RESONANCE = 0.8f;
+  public static final float VOL_WAVE = 0.5f;
+  public static final float VOL_DESPAWN = 0.3f;
+
+  // 音效音调配置
+  public static final float PITCH_BASE = 1.0f;
+  public static final float PITCH_VAR = 0.1f;
+
+  // 粒子颜色配置 (RGB 0-1)
+  public static final float[] COLOR_PRIMARY = {0.6f, 0.2f, 0.8f}; // 深紫色
+  public static final float[] COLOR_SECONDARY = {0.2f, 0.8f, 0.9f}; // 青色
+  public static final float[] COLOR_WAVE = {0.4f, 0.7f, 1.0f}; // 亮蓝色
+  public static final float[] COLOR_ABSORB = {1.0f, 0.9f, 0.3f}; // 金色
 }
 

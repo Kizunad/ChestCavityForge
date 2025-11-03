@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.RiftFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning;
 
 /**
@@ -256,6 +257,9 @@ public final class RiftManager {
     // 传播到共鸣链中的其他裂隙
     List<RiftEntity> chain = getResonanceChain(rift);
     for (RiftEntity nextRift : chain) {
+      // 波动特效：显示能量从当前裂隙传播到下一个裂隙
+      RiftFx.waveFx(level, rift.position(), nextRift.position());
+
       // 延迟传播（模拟波动传播效果）
       level
           .getServer()

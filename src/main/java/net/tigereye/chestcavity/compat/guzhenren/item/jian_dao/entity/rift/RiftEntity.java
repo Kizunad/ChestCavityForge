@@ -17,6 +17,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.RiftFx;
 
 /**
  * 裂隙实体（Rift Entity）
@@ -125,7 +126,16 @@ public class RiftEntity extends Entity {
 
     // 服务端逻辑
     ServerLevel serverLevel = (ServerLevel) level();
+
+    // 首次tick播放生成特效
+    if (age == 0) {
+      RiftFx.spawnFx(serverLevel, position(), getRiftType() == RiftType.MAJOR);
+    }
+
     age++;
+
+    // 环境粒子（定期播放）
+    RiftFx.ambientFx(this);
 
     // 检查是否超时
     int remaining = getRemainingTicks();
@@ -143,12 +153,15 @@ public class RiftEntity extends Entity {
 
   @Override
   public void remove(RemovalReason reason) {
-    super.remove(reason);
-    if (!level().isClientSide && level() instanceof ServerLevel) {
+    // 播放消失特效
+    if (!level().isClientSide && level() instanceof ServerLevel serverLevel) {
+      RiftFx.despawnFx(serverLevel, position(), getRiftType() == RiftType.MAJOR);
+
       net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftManager
           .getInstance()
           .unregisterRift(this);
     }
+    super.remove(reason);
   }
 
   /**
@@ -251,6 +264,9 @@ public class RiftEntity extends Entity {
       }
 
       target.hurt(damageSource, finalDamage);
+
+      // 伤害特效（每次命中播放）
+      RiftFx.damageFx(level, target.position());
     }
 
     lastDamageTick = age;
@@ -322,22 +338,13 @@ public class RiftEntity extends Entity {
                         .ABSORB_DAMAGE_BOOST);
     setDamageMultiplier(boosted);
 
+    // 吸收特效
+    if (level() instanceof ServerLevel serverLevel) {
+      RiftFx.absorbFx(serverLevel, position(), minorRift.position());
+    }
+
     // 移除微型裂隙
     minorRift.discard();
-
-    // 粒子效果
-    if (level() instanceof ServerLevel serverLevel) {
-      serverLevel.sendParticles(
-          ParticleTypes.ENCHANT,
-          minorRift.getX(),
-          minorRift.getY() + 0.5,
-          minorRift.getZ(),
-          20,
-          0.3,
-          0.3,
-          0.3,
-          0.05);
-    }
   }
 
   /**
@@ -349,18 +356,9 @@ public class RiftEntity extends Entity {
     // 共鸣后，衰减速率加倍
     resonanceDecayMultiplier *= 2;
 
-    // 粒子效果
+    // 共鸣特效
     if (level() instanceof ServerLevel serverLevel) {
-      serverLevel.sendParticles(
-          ParticleTypes.SONIC_BOOM,
-          getX(),
-          getY() + getRiftType().displayHeight / 2,
-          getZ(),
-          1,
-          0,
-          0,
-          0,
-          0);
+      RiftFx.resonanceFx(serverLevel, position());
     }
   }
 

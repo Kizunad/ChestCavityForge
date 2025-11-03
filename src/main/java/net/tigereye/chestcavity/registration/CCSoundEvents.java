@@ -75,4 +75,35 @@ public final class CCSoundEvents {
           () ->
               SoundEvent.createVariableRangeEvent(
                   ChestCavity.id("custom.flyingsword.out_of_energy")));
+
+  // ===== Rift (裂隙) =====
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_SPAWN =
+      SOUND_EVENTS.register(
+          "custom.rift.spawn",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.rift.spawn")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_DAMAGE =
+      SOUND_EVENTS.register(
+          "custom.rift.damage",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.rift.damage")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_ABSORB =
+      SOUND_EVENTS.register(
+          "custom.rift.absorb",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.rift.absorb")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_RESONANCE =
+      SOUND_EVENTS.register(
+          "custom.rift.resonance",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.rift.resonance")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_WAVE =
+      SOUND_EVENTS.register(
+          "custom.rift.wave",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.rift.wave")));
+
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_DESPAWN =
+      SOUND_EVENTS.register(
+          "custom.rift.despawn",
+          () -> SoundEvent.createVariableRangeEvent(ChestCavity.id("custom.rift.despawn")));
 }
