@@ -53,8 +53,13 @@ public class QingLianDomain extends AbstractDomain {
   /** 上次同步到客户端的tick */
   private long lastSyncTick = 0;
 
+  /** 上次同步领域标签的tick（限频以降低开销） */
+  private long lastTagSyncTick = 0;
+
   /** 同步间隔（tick） */
   private static final int SYNC_INTERVAL = 20; // 每秒同步一次
+  /** 标签同步间隔（tick） */
+  private static final int TAG_SYNC_INTERVAL = 20; // 每秒执行一次标签进入/离开判定
 
   /**
    * 构造青莲剑域
@@ -94,14 +99,17 @@ public class QingLianDomain extends AbstractDomain {
     // 调用父类tick（应用效果到范围内实体）
     super.tick(level);
 
-    // 同步领域标签（进入/离开）
-    DomainHelper.syncDomainTags(this);
+    // 同步领域标签（进入/离开）- 限频以降低大范围 AABB 扫描开销
+    long currentTick = level.getGameTime();
+    if (currentTick - lastTagSyncTick >= TAG_SYNC_INTERVAL) {
+      DomainHelper.syncDomainTags(this);
+      lastTagSyncTick = currentTick;
+    }
 
     // 集群AI管理器tick
     swarmManager.tick();
 
     // 粒子特效
-    long currentTick = level.getGameTime();
     if (currentTick != lastParticleTick) {
       QingLianDomainFX.tickDomainEffects(level, this, currentTick);
       lastParticleTick = currentTick;

@@ -4,6 +4,7 @@ import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.YunJianQingLianGuOrganBehavior;
 
 /** Declarative registry for sword-path organs. */
 public final class JiandaoOrganRegistry {
@@ -17,6 +18,11 @@ public final class JiandaoOrganRegistry {
           OrganIntegrationSpec.builder(JIAN_YING_GU_ID)
               .addOnHitListener(JianYingGuOrganBehavior.INSTANCE)
               .ensureAttached(JianYingGuOrganBehavior.INSTANCE::ensureAttached)
+              .build(),
+          // 蕴剑青莲蛊：慢tick + 受击护体（玩家路径生效，非玩家仅慢tick自动化）
+          OrganIntegrationSpec.builder(YunJianQingLianGuOrganBehavior.ORGAN_ID)
+              .addSlowTickListener(YunJianQingLianGuOrganBehavior.INSTANCE)
+              .addIncomingDamageListener(YunJianQingLianGuOrganBehavior.INSTANCE)
               .build(),
           // 剑心蛊（体质）集成：慢tick + 受击打断
           OrganIntegrationSpec.builder(

@@ -6,6 +6,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior.SeparationBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning.QingLianSwarmTuning;
 
@@ -212,7 +213,13 @@ public class QingLianSwordSwarm {
         // 清空中心绕转角，避免突兀跳变
         centerOrbitAngle = 0.0;
         // 清空个体目标
-        for (FlyingSwordEntity s : swords) s.setTargetEntity(null);
+        for (FlyingSwordEntity s : swords) {
+          s.setTargetEntity(null);
+          // 回到护卫时统一切回 SWARM，由集群接管
+          if (s.getAIMode() != AIMode.SWARM) {
+            s.setAIMode(AIMode.SWARM);
+          }
+        }
       }
     }
   }
@@ -241,7 +248,8 @@ public class QingLianSwordSwarm {
 
     int swordCount = swords.size();
     double formationRadius = computeFormationRadius(swordCount);
-    double globalRotation = swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_IDLE_SPEED;
+    // 需求：去除编队槽位自转，保持相对位置稳定
+    double globalRotation = 0.0; // swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_IDLE_SPEED;
 
     // 槽位稳定排序
     List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
@@ -252,7 +260,8 @@ public class QingLianSwordSwarm {
       SwordAgent agent = agents.get(sword.getUUID());
       if (agent == null) continue;
 
-      double baseAngle = (2.0 * Math.PI / Math.max(1, swordCount)) * idx + globalRotation;
+      // 去除槽位自转：不叠加 globalRotation
+      double baseAngle = (2.0 * Math.PI / Math.max(1, swordCount)) * idx;
       agent.cachedSlotAngle = baseAngle;
       int layer = idx % 3;
       double radiusMult = 0.9 + (layer - 1) * 0.1;
@@ -297,27 +306,21 @@ public class QingLianSwordSwarm {
       return;
     }
 
-    // 中心围绕目标"上方"旋转，保持与目标直线距离≈10格（远程消耗站位）
-    final double STANDOFF_DIST = QingLianSwarmTuning.SWARM_STANDOFF_DISTANCE;   // 直线距离目标
-    final double HEIGHT_OFFSET = QingLianSwarmTuning.SWARM_HEIGHT_OFFSET;       // 垂直抬升
-
-    Vec3 targetAnchor = swarmTarget.position().add(0, swarmTarget.getBbHeight() * 0.5, 0);
+    // 中心固定在目标上空10格（按配置），去除中心绕行
+    final double HEIGHT_OFFSET = QingLianSwarmTuning.SWARM_HEIGHT_OFFSET; // 默认=10.0
+    Vec3 targetAnchor = swarmTarget.position();
     int swordCount = swords.size();
     double formationRadius = computeFormationRadius(swordCount);
 
-    // 计算水平半径，使中心到目标距离约为 STANDOFF_DIST
-    double horiz = Math.sqrt(Math.max(0.0, STANDOFF_DIST * STANDOFF_DIST - HEIGHT_OFFSET * HEIGHT_OFFSET));
-    double orbitRadius = Math.max(1.0, horiz);
-    centerOrbitAngle += QingLianSwarmTuning.SWARM_CENTER_ORBIT_SPEED;
-    Vec3 desiredCenter =
-        targetAnchor.add(
-            Math.cos(centerOrbitAngle) * orbitRadius, HEIGHT_OFFSET, Math.sin(centerOrbitAngle) * orbitRadius);
+    // 直接锚定到目标上方 HEIGHT_OFFSET，高度 = 目标Y + HEIGHT_OFFSET
+    Vec3 desiredCenter = targetAnchor.add(0, HEIGHT_OFFSET, 0);
     if (swarmCenter == Vec3.ZERO) swarmCenter = desiredCenter;
-    double cAlpha = 0.25;
+    double cAlpha = 0.25; // 轻微平滑，避免突变
     swarmCenter = swarmCenter.add(desiredCenter.subtract(swarmCenter).scale(cAlpha));
 
     // 槽位与排序
-    double globalRotation = swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_ATTACK_SPEED;
+    // 去除攻击阶段槽位自转
+    double globalRotation = 0.0; // swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_ATTACK_SPEED;
     List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
     ordered.sort(Comparator.comparing(FlyingSwordEntity::getUUID));
 
@@ -345,7 +348,8 @@ public class QingLianSwordSwarm {
       SwordAgent agent = agents.get(sword.getUUID());
       if (agent == null) continue;
 
-      double baseAngle = (2.0 * Math.PI / Math.max(1, swordCount)) * idx + globalRotation;
+      // 去除槽位自转：不叠加 globalRotation
+      double baseAngle = (2.0 * Math.PI / Math.max(1, swordCount)) * idx;
       agent.cachedSlotAngle = baseAngle;
       int layer = idx % 3;
       double layerRadius = formationRadius * (0.9 + (layer - 1) * 0.1);
@@ -361,6 +365,18 @@ public class QingLianSwordSwarm {
           sword.setTargetEntity(null);
           Vec3 v = arrive(sword, slot, sword.getSwordAttributes().speedBase, 2.5, 0.15);
           sword.applySteeringVelocity(v);
+          // 固定朝向：让每把剑“看向”当前目标（若存在）
+          if (swarmTarget != null && swarmTarget.isAlive()) {
+            Vec3 lookDir = swarmTarget.position().add(0, swarmTarget.getBbHeight() * 0.5, 0)
+                .subtract(sword.position());
+            if (lookDir.lengthSqr() > 1.0e-6) {
+              double yaw = Math.toDegrees(Math.atan2(lookDir.x, lookDir.z));
+              double horiz = Math.sqrt(lookDir.x * lookDir.x + lookDir.z * lookDir.z);
+              double pitch = Math.toDegrees(Math.atan2(-lookDir.y, horiz));
+              sword.setYRot((float) yaw);
+              sword.setXRot((float) pitch);
+            }
+          }
           agent.phaseTick = Math.max(0, agent.phaseTick - 1);
         }
         case DEPART -> {
@@ -385,28 +401,29 @@ public class QingLianSwordSwarm {
               || agent.phaseTick > QingLianSwarmTuning.SWARM_DEPART_TIMEOUT_TICKS) {
             agent.phase = AgentPhase.ATTACK;
             agent.phaseTick = 0;
+            // 离队进入自主AI：切到 HUNT，并指向当前集群目标
             sword.setTargetEntity(swarmTarget);
+            sword.setAIMode(AIMode.HUNT);
           }
         }
         case ATTACK -> {
-          Vec3 aim = targetAnchor;
-          Vec3 v =
-              arrive(
-                  sword,
-                  aim,
-                  sword.getSwordAttributes().speedMax,
-                  QingLianSwarmTuning.SWARM_ATTACK_ARRIVE_RADIUS,
-                  QingLianSwarmTuning.SWARM_ATTACK_STOP_RADIUS);
-          sword.applySteeringVelocity(v);
+          // 由单剑AI（HUNT）驱动，集群仅监控时机
+          if (sword.getAIMode() != AIMode.HUNT) {
+            sword.setAIMode(AIMode.HUNT);
+            sword.setTargetEntity(swarmTarget);
+          }
 
           agent.phaseTick++;
-          double d = sword.distanceTo(swarmTarget);
+          double d = swarmTarget != null ? sword.distanceTo(swarmTarget) : Double.MAX_VALUE;
+          // 去除“攻击超时回归”：仅命中或目标失效时进入归队
           if (d < QingLianSwarmTuning.SWARM_ATTACK_HIT_RANGE
-              || agent.phaseTick > QingLianSwarmTuning.SWARM_ATTACK_TIMEOUT_TICKS
+              || swarmTarget == null
               || !swarmTarget.isAlive()) {
             agent.phase = AgentPhase.RETURN;
             agent.phaseTick = 0;
+            // 收队：切回 SWARM，清空目标，交回集群控制
             sword.setTargetEntity(null);
+            sword.setAIMode(AIMode.SWARM);
           }
         }
         case RETURN -> {

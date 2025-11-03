@@ -420,10 +420,11 @@ public enum YunJianQingLianGuOrganBehavior
 
     // 3. 检测Goal变更
     boolean goalChanged = !currentAttackGoals.equals(lastGoals);
-    boolean isAttacking = !currentAttackGoals.isEmpty();
+    boolean hasTarget = mob.getTarget() != null && mob.getTarget().isAlive() && !mob.getTarget().isAlliedTo(mob);
+    boolean isAttacking = !currentAttackGoals.isEmpty() || hasTarget;
 
     // 4. 状态机逻辑
-    if (!active && isAttacking && goalChanged) {
+    if (!active && isAttacking && (goalChanged || hasTarget)) {
       // ========== 进入战斗 → 激活青莲剑群 ==========
       boolean success =
           net.tigereye.chestcavity.compat.guzhenren.util.behavior.ActiveSkillOps.activateFor(
@@ -611,7 +612,12 @@ public enum YunJianQingLianGuOrganBehavior
       }
 
       ResourceLocation id = BuiltInRegistries.ITEM.getKey(s.getItem());
-      if (id != null && id.equals(ORGAN_ID)) {
+      if (id == null) {
+        continue;
+      }
+      // 兼容部分物品命名差异：同时接受 yun_jian_qing_lian 与 yun_jian_qing_lian_gu
+      if (id.equals(ORGAN_ID)
+          || id.equals(ResourceLocation.parse("guzhenren:yun_jian_qing_lian_gu"))) {
         return s;
       }
     }

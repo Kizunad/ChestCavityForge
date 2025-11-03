@@ -73,7 +73,8 @@ public final class QingLianSwarmTuning {
   /**
    * 攻击时“中心点”的垂直抬升高度（方块）。
    */
-  public static final double SWARM_HEIGHT_OFFSET = cfg("SWARM_HEIGHT_OFFSET", 4.0);
+  // 需求：在目标上空10格编队，因此默认抬升高度改为10格
+  public static final double SWARM_HEIGHT_OFFSET = cfg("SWARM_HEIGHT_OFFSET", 10.0);
   /**
    * 中心点绕目标的角速度（弧度/刻）。值越大中心转得越快。
    */
@@ -87,7 +88,7 @@ public final class QingLianSwarmTuning {
   /**
    * 派发离队的时间间隔（tick）。2=0.1s（20TPS）。每次只派出一把剑。
    */
-  public static final int SWARM_DISPATCH_INTERVAL_TICKS = (int) cfg("SWARM_DISPATCH_INTERVAL_TICKS", 2.0); // 0.1s
+  public static final int SWARM_DISPATCH_INTERVAL_TICKS = (int) cfg("SWARM_DISPATCH_INTERVAL_TICKS", 1.0); // 0.1s
   /**
    * 同一把剑两次离队之间的最小间隔（tick）。避免单体被高频调度。
    */
@@ -135,7 +136,7 @@ public final class QingLianSwarmTuning {
   /**
    * 攻击阶段的超时时间（tick）。达到后即转入归队。
    */
-  public static final int SWARM_ATTACK_TIMEOUT_TICKS = (int) cfg("SWARM_ATTACK_TIMEOUT_TICKS", 40.0);
+  public static final int SWARM_ATTACK_TIMEOUT_TICKS = (int) cfg("SWARM_ATTACK_TIMEOUT_TICKS", 100.0);
 
   // RETURN
   /**
@@ -153,7 +154,7 @@ public final class QingLianSwarmTuning {
   /**
    * 归队阶段的超时时间（tick）。达到后强制视为已回队，避免卡滞。
    */
-  public static final int SWARM_RETURN_TIMEOUT_TICKS = (int) cfg("SWARM_RETURN_TIMEOUT_TICKS", 60.0);
+  public static final int SWARM_RETURN_TIMEOUT_TICKS = (int) cfg("SWARM_RETURN_TIMEOUT_TICKS", 200.0);
 
   // —— 轮流防御 ——
   /**
