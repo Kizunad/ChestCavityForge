@@ -1,0 +1,13 @@
+{
+  "key": "qinglian",
+  "enabled": false,
+  "renderer": "item",
+  "align": "target",
+  "pre_roll": -45.0,
+  "yaw_offset": -90.0,
+  "pitch_offset": 0.0,
+  "scale": 1.0,
+  "glint": "inherit",
+  "match_model_keys": ["qinglian"]
+}
+

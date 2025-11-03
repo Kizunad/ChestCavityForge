@@ -1,0 +1,10 @@
+{
+  "key": "qinglian",
+  "renderer": "item",
+  "align": "target",
+  "pre_roll": -45.0,
+  "yaw_offset": 0,
+  "pitch_offset": 0.0,
+  "scale": 0.5,
+  "display_item": "minecraft:diamond_sword"
+}

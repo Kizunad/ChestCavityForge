@@ -14,6 +14,7 @@ public final class FlyingSwordModelTuning {
       configStr("DEFAULT_ITEM_ID", "minecraft:iron_sword");
 
   /** 是否启用 Geckolib 渲染管线（占位） */
+  // 默认关闭 Geckolib 覆盖渲染（功能保留，可在行为配置中开启）
   public static final boolean ENABLE_GECKOLIB = configBool("ENABLE_GECKOLIB", false);
 
   /** 是否在实体上显示绑定物品的名称（悬浮名称牌）。 */

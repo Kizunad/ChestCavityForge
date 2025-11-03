@@ -7,6 +7,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
@@ -121,6 +122,22 @@ public final class TargetFinder {
       // 排除已死亡的实体
       if (!living.isAlive()) {
         continue;
+      }
+
+      // 排除“同主人”的友方实体：
+      // - 友方飞剑（与当前飞剑同主人）
+      if (living instanceof FlyingSwordEntity otherSword) {
+        LivingEntity otherOwner = otherSword.getOwner();
+        if (otherOwner != null && otherOwner.getUUID().equals(owner.getUUID())) {
+          continue;
+        }
+      }
+      // - 可拥有者实体（驯服生物/召唤物等）与当前飞剑主人相同
+      if (living instanceof OwnableEntity ownable) {
+        java.util.UUID ownerId = ownable.getOwnerUUID();
+        if (ownerId != null && ownerId.equals(owner.getUUID())) {
+          continue;
+        }
       }
 
       boolean isHostile = false;

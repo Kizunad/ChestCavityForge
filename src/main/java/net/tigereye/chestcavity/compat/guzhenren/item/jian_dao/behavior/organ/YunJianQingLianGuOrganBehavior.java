@@ -183,6 +183,9 @@ public enum YunJianQingLianGuOrganBehavior
         // 显式设置显示物品为钻石剑（确保渲染正确）
         sword.setDisplayItemStack(swordItem.copy());
 
+        // 标记模型键：用于客户端覆盖渲染（例如使用Blockbench模型）
+        sword.setModelKey("qinglian");
+
         // 设置集群AI模式（由青莲剑域的集群管理器统一调度）
         sword.setAIMode(AIMode.SWARM);
 
