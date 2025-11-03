@@ -4,6 +4,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.SingleSwordProjectileRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.SwordShadowCloneRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.client.FlyingSwordRenderer;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.client.RiftRenderer;
 import net.tigereye.chestcavity.registration.CCEntities;
 
 /** Registers client-only renderers related to the sword shadow organ set. */
@@ -22,5 +23,7 @@ public final class JiandaoClientRenderers {
         CCEntities.FLYING_SWORD_ZHENG_DAO.get(), FlyingSwordRenderer::new);
     event.registerEntityRenderer(
         CCEntities.FLYING_SWORD_REN_SHOU_ZANG_SHENG.get(), FlyingSwordRenderer::new);
+    // 裂剑蛊：裂隙渲染器
+    event.registerEntityRenderer(CCEntities.RIFT.get(), RiftRenderer::new);
   }
 }

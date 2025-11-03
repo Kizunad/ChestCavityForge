@@ -176,7 +176,13 @@ public class ChestCavity {
 
   }
 
-  public void setup(FMLCommonSetupEvent event) {}
+  public void setup(FMLCommonSetupEvent event) {
+    // 初始化裂剑蛊系统（飞剑事件钩子、剑气技能注册）
+    if (ModList.get().isLoaded("guzhenren")) {
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftSystemInitializer
+          .initialize();
+    }
+  }
 
   public void doClientStuff(FMLClientSetupEvent event) {
     FxClientHooks.init();

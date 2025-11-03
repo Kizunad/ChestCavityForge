@@ -266,6 +266,10 @@ public final class DomainManager {
     for (UUID id : toRemove) {
       unregisterDomain(id);
     }
+
+    // 裂剑蛊：更新裂隙与剑域的协同状态（每tick）
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftDomainSynergy
+        .tickDomainSynergy(level);
   }
 
   /**

@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGua
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
@@ -783,6 +784,20 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(JianYingGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:lie_jian_gu_activate",
+        "guzhenren:lie_jian_gu_activate",
+        "guzhenren:liejiangu",
+        tags("剑道", "领域", "控制", "输出"),
+        "裂刃空隙：放置大型裂隙造成持续伤害与衰减，可被剑气共鸣触发连锁反应，冷却8秒",
+        "compat/guzhenren/item/jian_dao/behavior/organ/LieJianGuOrganBehavior.java:71",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .LieJianGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("裂刃就绪", null));
 
     register(
         "guzhenren:yuan_lao_gu_5_attack",

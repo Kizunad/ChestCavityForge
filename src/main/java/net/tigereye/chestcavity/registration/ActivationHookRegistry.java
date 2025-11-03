@@ -74,6 +74,11 @@ public final class ActivationHookRegistry {
             new net.tigereye.chestcavity.compat.guzhenren.item.bing_xue_dao.behavior.ComputedBingXueDaohenEffect()
         ));
 
+    // 技能效果: 裂剑蛊主动技能需在激活前快照剑道字段（道痕/流派经验），用于持续/倍率/冷却计算
+    SkillEffectBus.register(
+        "^guzhenren:lie_jian_gu_activate$",
+        new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
+
     // 技能效果: 饵祭召鲨需要先快照关键 Guzhenren 资源字段
     SkillEffectBus.register(
         "^guzhenren:yu_shi_summon_combo$",
@@ -157,6 +162,11 @@ public final class ActivationHookRegistry {
 
     SkillActivationHooks.registerActivePostHandler(
         "^guzhenren:.*$", GuzhenrenFlowActivationHooks::handleSkillPostActivation);
+
+    // 裂剑蛊：剑气技能触发裂隙共鸣
+    SkillActivationHooks.registerActivePostHandler(
+        "^guzhenren:(jiandao/.*|jian_.*|.*_slash|.*_wave|flying_sword_.*)$",
+        ActivationHookRegistry::riftResonancePostActivation);
   }
 
   private static ActiveSkillRegistry.TriggerResult mapComboResult(
@@ -199,5 +209,30 @@ public final class ActivationHookRegistry {
           net.tigereye.chestcavity.skill.ComboSkillRegistry.TriggerResult.BLOCKED_BY_HANDLER);
     }
     return SkillActivationHooks.ComboPreHookDecision.continueChain();
+  }
+
+  /**
+   * 裂剑蛊：剑气技能释放后触发裂隙共鸣
+   */
+  private static void riftResonancePostActivation(
+      ServerPlayer player,
+      ResourceLocation skillId,
+      ChestCavityInstance cc,
+      ActiveSkillRegistry.ActiveSkillEntry entry,
+      ActiveSkillRegistry.TriggerResult result) {
+
+    // 只在技能成功时触发
+    if (result != ActiveSkillRegistry.TriggerResult.SUCCESS) {
+      return;
+    }
+
+    // 使用玩家当前位置 + 视线方向作为施法位置
+    net.minecraft.world.phys.Vec3 eyePos = player.getEyePosition();
+    net.minecraft.world.phys.Vec3 lookVec = player.getLookAngle();
+    net.minecraft.world.phys.Vec3 castPos = eyePos.add(lookVec.scale(3.0)); // 前方3格
+
+    // 触发裂隙共鸣
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftResonanceListener
+        .onSwordQiSkillCast(player, skillId, castPos);
   }
 }

@@ -1,0 +1,9 @@
+{
+  "itemID": "guzhenren:yun_jian_qing_lian",
+  "organScores": [
+    { "id": "guzhenren:daohen_jiandao", "value": "200.0" },
+    { "id": "chestcavity:speed", "value": "1.0" },
+    { "id": "chestcavity:defense", "value": "-32.0" }
+  ]
+}
+

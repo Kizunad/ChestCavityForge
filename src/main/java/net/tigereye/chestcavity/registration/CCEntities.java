@@ -159,7 +159,7 @@ public final class CCEntities {
                       .updateInterval(1)
                       .build(ChestCavity.MODID + ":flying_sword_zheng_dao"));
 
-  // 与 FLYING_SWORD 逻辑相同的“人兽葬生”飞剑（拼音），用于数据驱动的特殊初始器官
+  // 与 FLYING_SWORD 逻辑相同的"人兽葬生"飞剑（拼音），用于数据驱动的特殊初始器官
   public static final DeferredHolder<EntityType<?>, EntityType<FlyingSwordEntity>>
       FLYING_SWORD_REN_SHOU_ZANG_SHENG =
           ENTITY_TYPES.register(
@@ -171,4 +171,25 @@ public final class CCEntities {
                       .clientTrackingRange(64)
                       .updateInterval(1)
                       .build(ChestCavity.MODID + ":flying_sword_ren_shou_zang_sheng"));
+
+  // 裂剑蛊：裂隙实体
+  public static final DeferredHolder<
+          EntityType<?>,
+          EntityType<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftEntity>>
+      RIFT =
+          ENTITY_TYPES.register(
+              "rift",
+              () ->
+                  EntityType.Builder
+                      .<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift
+                              .RiftEntity>of(
+                          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift
+                              .RiftEntity::new,
+                          MobCategory.MISC)
+                      .sized(2.5f, 1.6f) // 主裂隙尺寸（最大）
+                      .clientTrackingRange(64)
+                      .updateInterval(20) // 每秒同步
+                      .noSave() // 不保存到区块（临时实体）
+                      .fireImmune()
+                      .build(ChestCavity.MODID + ":rift"));
 }

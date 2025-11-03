@@ -26,5 +26,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianYu)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(jianYu);
     }
+
+    // 裂剑蛊：裂刃空隙（仅以字面ID注册，避免类提前加载）
+    var lieJian = net.minecraft.resources.ResourceLocation.parse("guzhenren:lie_jian_gu_activate");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(lieJian)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(lieJian);
+    }
   }
 }
