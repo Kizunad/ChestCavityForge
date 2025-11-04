@@ -51,6 +51,11 @@ public final class RiftTuning {
   public static final int ABSORB_ADD_SECONDS = 15;
   public static final double ABSORB_DAMAGE_BOOST = 0.20; // +20%，上限1.0
 
+  // ====== 血量设置 ======
+  public static final int BASE_HEALTH = 20;
+  /** 每 10000 剑道道痕增加的最大生命值。*/
+  public static final int HEALTH_PER_10K = 10;
+
   // ====== 特效与音效 ======
   /** 是否启用所有特效（包括粒子和音效） */
   public static final boolean FX_ENABLED = true;
@@ -87,4 +92,3 @@ public final class RiftTuning {
   public static final float[] COLOR_WAVE = {0.4f, 0.7f, 1.0f}; // 亮蓝色
   public static final float[] COLOR_ABSORB = {1.0f, 0.9f, 0.3f}; // 金色
 }
-

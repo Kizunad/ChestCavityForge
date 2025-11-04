@@ -299,6 +299,11 @@ public final class RiftManager {
     // 道痕增幅取裂隙所有者
     double daoHen = 0.0;
     LivingEntity owner = rift.getOwner();
+    LivingEntity master = null;
+    if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+        .FlyingSwordEntity sword) {
+      master = sword.getOwner();
+    }
     if (owner != null) {
       daoHen =
           net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
@@ -322,8 +327,14 @@ public final class RiftManager {
     // 注：owner 已在上方获取
 
     for (LivingEntity target : targets) {
-      // 跳过所有者和触发者
+      // 跳过所有者、触发者及友军（包含释放者以及其Owner的友军）
       if (target == owner || target == instigator) {
+        continue;
+      }
+      if (owner != null && target.isAlliedTo(owner)) {
+        continue;
+      }
+      if (master != null && (target == master || target.isAlliedTo(master))) {
         continue;
       }
 

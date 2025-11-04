@@ -2,7 +2,7 @@
   "id": "guzhenren:jian_dao_first_combo",
   "title": "[剑道 杀招]飞剑召令",
   "summary": "消耗四器官与上限资源，召唤承继主手属性的正道飞剑。",
-  "icon": "guzhenren:jian_qi_gu",
+  "icon": "guzhenren:jianqigu",
   "iconTexture": "guzhenren:textures/skill/flying_sword_summon_zheng_dao.png",
   "details": [
     "[前置] 需装备：智颅蛊、御军蛊、一希望蛊、剑气蛊（各1件）",

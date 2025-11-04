@@ -10,6 +10,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.SwordCommandCenter;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**
@@ -50,6 +51,81 @@ public final class FlyingSwordEventHandler {
             () -> {
               checkAndNotifyRecalledSwords(player);
             });
+  }
+
+  /**
+   * 玩家退出时：将在场且可召回的飞剑保存到存储，防止“退出前正在返回途中”导致丢失。
+   */
+  @SubscribeEvent
+  public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+    if (!(event.getEntity() instanceof ServerPlayer player)) {
+      return;
+    }
+
+    ServerLevel level = player.serverLevel();
+
+    var swords = FlyingSwordController.getPlayerSwords(level, player);
+    if (swords.isEmpty()) {
+      return;
+    }
+
+    var storage = CCAttachments.getFlyingSwordStorage(player);
+    int stored = 0;
+
+    for (var sword : swords) {
+      // 仅处理允许召回的飞剑；主动技能生成的临时飞剑跳过（与在线时一致的逻辑）
+      if (!sword.isRecallable()) {
+        // 仍通知钩子“主人离线”并移除
+        if (level != null) {
+          var ctx =
+              new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                  .context.DespawnContext(
+                  sword,
+                  level,
+                  player,
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                      .context.DespawnContext.Reason.OWNER_GONE,
+                  null);
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+              .FlyingSwordEventRegistry.fireDespawnOrRecall(ctx);
+        }
+        sword.discard();
+        continue;
+      }
+
+      // 写入存储并触发钩子（OWNER_GONE）。这里不走动画，直接落盘保证可靠性。
+      boolean ok = storage.recallSword(sword);
+      if (ok) {
+        stored++;
+      }
+
+      if (level != null) {
+        var ctx =
+            new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                .context.DespawnContext(
+                sword,
+                level,
+                player,
+                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+                    .context.DespawnContext.Reason.OWNER_GONE,
+                new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD));
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events
+            .FlyingSwordEventRegistry.fireDespawnOrRecall(ctx);
+      }
+
+      sword.discard();
+    }
+
+    if (stored > 0) {
+      // 显式触发写回，确保在随后的玩家保存流程中带上最新数据
+      player.setData(CCAttachments.FLYING_SWORD_STORAGE.get(), storage);
+      ChestCavity.LOGGER.info(
+          "[FlyingSword] Stored {} sword(s) for player {} on logout",
+          stored,
+          player.getGameProfile().getName());
+    }
+
+    SwordCommandCenter.clear(player);
   }
 
   /**

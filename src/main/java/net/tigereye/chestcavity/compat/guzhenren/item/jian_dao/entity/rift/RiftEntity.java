@@ -14,6 +14,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -33,7 +34,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.RiftFx;
  *   <li>支持剑域加成</li>
  * </ul>
  */
-public class RiftEntity extends Entity {
+public class RiftEntity extends Entity implements OwnableEntity {
 
   // ========== SynchedEntityData ==========
   private static final EntityDataAccessor<Integer> RIFT_TYPE =
@@ -46,6 +47,12 @@ public class RiftEntity extends Entity {
       SynchedEntityData.defineId(RiftEntity.class, EntityDataSerializers.FLOAT);
 
   private static final EntityDataAccessor<Integer> REMAINING_TICKS =
+      SynchedEntityData.defineId(RiftEntity.class, EntityDataSerializers.INT);
+
+  private static final EntityDataAccessor<Integer> MAX_HEALTH =
+      SynchedEntityData.defineId(RiftEntity.class, EntityDataSerializers.INT);
+
+  private static final EntityDataAccessor<Integer> HEALTH =
       SynchedEntityData.defineId(RiftEntity.class, EntityDataSerializers.INT);
 
   // ========== 字段 ==========
@@ -97,6 +104,25 @@ public class RiftEntity extends Entity {
     int totalDuration = type.baseDuration + extraDuration;
     rift.setRemainingTicks(totalDuration);
 
+    // 设置生命值（基础20，随剑道道痕线性提升）
+    int baseHp = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning.BASE_HEALTH;
+    int maxHp = baseHp;
+    if (owner != null) {
+      double daoHen =
+          net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
+              .openHandle(owner)
+              .map(
+                  h ->
+                      net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps.get(
+                          h, "daohen_jiandao"))
+              .orElse(0.0);
+      int per10k =
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning.HEALTH_PER_10K;
+      maxHp = baseHp + (int) Math.round((daoHen / 10000.0) * per10k);
+    }
+    rift.setMaxHealth(maxHp);
+    rift.setHealth(maxHp);
+
     // 计划第一次衰减时间（仅主裂隙需要衰减）
     if (type == RiftType.MAJOR && type.decayInterval > 0) {
       rift.nextDecayGameTick = level.getGameTime() + type.decayInterval;
@@ -112,6 +138,8 @@ public class RiftEntity extends Entity {
     builder.define(OWNER_UUID, Optional.empty());
     builder.define(DAMAGE_MULTIPLIER, 1.0f);
     builder.define(REMAINING_TICKS, 0);
+    builder.define(MAX_HEALTH, 20);
+    builder.define(HEALTH, 20);
   }
 
   @Override
@@ -149,6 +177,62 @@ public class RiftEntity extends Entity {
     if (age % 20 == 0) {
       onSlowTick(serverLevel);
     }
+  }
+
+  @Override
+  public boolean isPickable() {
+    return true;
+  }
+
+  @Override
+  public boolean hurt(DamageSource source, float amount) {
+    if (level().isClientSide) return false;
+    if (amount <= 0) return false;
+    int hp = getHealth();
+    if (hp <= 0) return false;
+    int newHp = Math.max(0, hp - Math.round(amount));
+    setHealth(newHp);
+    if (newHp <= 0) {
+      discard();
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isAlliedTo(Entity entity) {
+    if (entity == this) {
+      return true;
+    }
+    LivingEntity owner = getOwner();
+    if (owner != null) {
+      if (entity == owner) {
+        return true;
+      }
+      if (entity instanceof LivingEntity living && living.isAlliedTo(owner)) {
+        return true;
+      }
+      // 若释放者本身有主人（如飞剑→玩家），同样视作友军
+      if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity
+          .flyingsword.FlyingSwordEntity sword) {
+        LivingEntity master = sword.getOwner();
+        if (master != null) {
+          if (entity == master) {
+            return true;
+          }
+          if (entity instanceof LivingEntity living2 && living2.isAlliedTo(master)) {
+            return true;
+          }
+        }
+      }
+    }
+    // 与同主的裂隙视作同盟
+    if (entity instanceof RiftEntity other) {
+      LivingEntity otherOwner = other.getOwner();
+      if (owner != null && otherOwner != null && owner == otherOwner) {
+        return true;
+      }
+    }
+    return super.isAlliedTo(entity);
   }
 
   @Override
@@ -421,6 +505,13 @@ public class RiftEntity extends Entity {
     return null;
   }
 
+  @Nullable
+  @Override
+  public java.util.UUID getOwnerUUID() {
+    java.util.Optional<java.util.UUID> uuid = entityData.get(OWNER_UUID);
+    return uuid.orElse(null);
+  }
+
   public void setOwner(@Nullable LivingEntity owner) {
     if (owner != null) {
       entityData.set(OWNER_UUID, Optional.of(owner.getUUID()));
@@ -479,6 +570,12 @@ public class RiftEntity extends Entity {
     if (tag.contains("NextDecayAt")) {
       nextDecayGameTick = tag.getLong("NextDecayAt");
     }
+    if (tag.contains("MaxHealth")) {
+      setMaxHealth(tag.getInt("MaxHealth"));
+    }
+    if (tag.contains("Health")) {
+      setHealth(tag.getInt("Health"));
+    }
   }
 
   @Override
@@ -496,5 +593,24 @@ public class RiftEntity extends Entity {
     tag.putInt("DecayCount", decayCount);
     tag.putInt("ResonanceDecayMultiplier", resonanceDecayMultiplier);
     tag.putLong("NextDecayAt", nextDecayGameTick);
+    tag.putInt("MaxHealth", getMaxHealth());
+    tag.putInt("Health", getHealth());
+  }
+
+  public int getMaxHealth() {
+    return entityData.get(MAX_HEALTH);
+  }
+
+  public void setMaxHealth(int value) {
+    entityData.set(MAX_HEALTH, Math.max(1, value));
+  }
+
+  public int getHealth() {
+    return entityData.get(HEALTH);
+  }
+
+  public void setHealth(int value) {
+    int clamped = Math.max(0, Math.min(value, getMaxHealth()));
+    entityData.set(HEALTH, clamped);
   }
 }

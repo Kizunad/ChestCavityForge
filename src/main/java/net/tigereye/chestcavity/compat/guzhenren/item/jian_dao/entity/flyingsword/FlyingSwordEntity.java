@@ -10,6 +10,7 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -17,6 +18,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -41,7 +43,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
  *   <li>释放继承（从剑物品继承属性）</li>
  * </ul>
  */
-public class FlyingSwordEntity extends PathfinderMob {
+public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
   // ========== SynchedEntityData ==========
   private static final EntityDataAccessor<Optional<UUID>> OWNER =
@@ -146,6 +148,7 @@ public class FlyingSwordEntity extends PathfinderMob {
     this.entityData.set(OWNER, owner == null ? Optional.empty() : Optional.of(owner.getUUID()));
   }
 
+  @Override
   @Nullable
   public LivingEntity getOwner() {
     if (cachedOwner != null && !cachedOwner.isRemoved()) {
@@ -171,6 +174,13 @@ public class FlyingSwordEntity extends PathfinderMob {
       return living;
     }
     return null;
+  }
+
+  @Override
+  @Nullable
+  public java.util.UUID getOwnerUUID() {
+    Optional<java.util.UUID> id = this.entityData.get(OWNER);
+    return id.orElse(null);
   }
 
   public boolean isOwnedBy(Player player) {
@@ -537,20 +547,63 @@ public class FlyingSwordEntity extends PathfinderMob {
 
     AIMode mode = getAIMode();
 
-    switch (mode) {
+    boolean commandHandled = false;
+    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.AIContext
+        commandCtx = null;
+    if (owner instanceof ServerPlayer player && this.level() instanceof ServerLevel server) {
+      commandCtx =
+          new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent
+              .AIContext(this, owner, server, server.getGameTime());
+      java.util.Optional<
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent
+                  .IntentResult>
+          directive =
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command
+                  .SwordCommandCenter.buildIntent(commandCtx);
+      if (directive.isPresent()) {
+        var res = directive.get();
+        res.getTargetEntity().ifPresent(this::setTargetEntity);
+        var trajectory =
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
+                .Trajectories.resolver(res.getTrajectoryType());
+        Vec3 desired = trajectory.computeDesiredVelocity(commandCtx, res);
+        this.applySteeringVelocity(desired);
+        commandHandled = true;
+      }
+    }
+
+    if (!commandHandled) {
+      switch (mode) {
       case ORBIT ->
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
               .OrbitBehavior.tick(this, owner);
       case GUARD -> {
-        // Guard模式优先拦截敌方飞剑
-        var nearest =
-            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
-                .TargetFinder.findNearestHostileForGuard(
-                    this, owner.position(),
-                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai
-                        .behavior.GuardBehavior.getSearchRange());
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
-            .GuardBehavior.tick(this, owner, nearest);
+        // 新：Intent+Trajectory 流程（失败则回退到旧行为实现）
+        if (!(this.level() instanceof ServerLevel server)) break;
+        var ctx = new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.AIContext(
+            this, owner, server, server.getGameTime());
+        var intents = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.planner
+            .IntentPlanner.intentsFor(net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode.GUARD);
+        var best = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.planner
+            .IntentPlanner.pickBest(ctx, intents);
+        if (best.isPresent()) {
+          var res = best.get();
+          res.getTargetEntity().ifPresent(this::setTargetEntity);
+          var traj = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
+              .Trajectories.resolver(res.getTrajectoryType());
+          var desired = traj.computeDesiredVelocity(ctx, res);
+          this.applySteeringVelocity(desired);
+        } else {
+          // 回退到旧实现
+          var nearest =
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+                  .TargetFinder.findNearestHostileForGuard(
+                      this, owner.position(),
+                      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai
+                          .behavior.GuardBehavior.getSearchRange());
+          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
+              .GuardBehavior.tick(this, owner, nearest);
+        }
       }
       case HUNT -> {
         var nearest =
@@ -565,13 +618,36 @@ public class FlyingSwordEntity extends PathfinderMob {
       case HOVER ->
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
               .HoverBehavior.tick(this, owner);
-      case RECALL ->
+      case RECALL -> {
+        if (!(this.level() instanceof ServerLevel server)) break;
+        var ctx = new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.AIContext(
+            this, owner, server, server.getGameTime());
+        java.util.List<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.Intent> intents =
+            java.util.List.of(
+                new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.types.RecallIntent());
+        var best = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent.planner
+            .IntentPlanner.pickBest(ctx, intents);
+        if (best.isPresent()) {
+          var res = best.get();
+          var traj = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
+              .Trajectories.resolver(res.getTrajectoryType());
+          var desired = traj.computeDesiredVelocity(ctx, res);
+          this.applySteeringVelocity(desired);
+          // 抵达后执行实际召回
+          if (this.distanceTo(owner) < 1.0) {
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordController.recall(this);
+          }
+        } else {
+          // 回退：旧召回实现
           net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.behavior
               .RecallBehavior.tick(this, owner);
+        }
+      }
       case SWARM -> {
         // 集群模式：由集群管理器（QingLianSwordSwarm）统一调度
         // 飞剑不自行决策，仅执行集群管理器下发的指令
         // 速度已在集群管理器的tick中通过applySteeringVelocity设置
+      }
       }
     }
 

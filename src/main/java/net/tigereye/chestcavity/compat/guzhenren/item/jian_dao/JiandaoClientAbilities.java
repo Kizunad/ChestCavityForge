@@ -15,6 +15,17 @@ public final class JiandaoClientAbilities {
       CCKeybindings.ATTACK_ABILITY_LIST.add(abilityId);
     }
 
+    // 剑引蛊（占位主动技能）
+    var jianYin = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_yin_guidance");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianYin)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianYin);
+    }
+
+    var jianYinUi = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_yin_command_ui");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianYinUi)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianYinUi);
+    }
+
     // 心定冥想（剑心蛊）
     var jianXin = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_xin_mingxiang");
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianXin)) {

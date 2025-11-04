@@ -140,7 +140,13 @@ public class ChestOpener extends Item {
 
     // Check OwnableEntity (summonable entities like iron golems)
     if (target instanceof OwnableEntity ownable) {
-      return ownable.getOwner() == player;
+      // 优先用实体引用比较；若为空或在客户端侧失败，则回退到 UUID 比较
+      LivingEntity owner = ownable.getOwner();
+      if (owner != null) {
+        return owner.getUUID().equals(player.getUUID());
+      }
+      java.util.UUID id = ownable.getOwnerUUID();
+      return id != null && id.equals(player.getUUID());
     }
 
     // Check Guzhenren mod custom owner relationship
