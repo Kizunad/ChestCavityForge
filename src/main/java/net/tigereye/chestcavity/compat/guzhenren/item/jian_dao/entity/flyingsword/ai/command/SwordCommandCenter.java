@@ -494,59 +494,60 @@ public final class SwordCommandCenter {
   }
 
   private static boolean isCommandTarget(ServerPlayer player, LivingEntity target) {
+    // 基本检查：目标必须存活
     if (!target.isAlive()) {
       return false;
     }
+    // 排除玩家自己
     if (target == player) {
       return false;
     }
-    // 排除友方玩家（PvP 关闭时）
+
+    // 检查玩家：排除友方玩家，允许非友方玩家
     if (target instanceof ServerPlayer other) {
       return !player.isAlliedTo(other);
     }
-    // 排除自己的飞剑
+
+    // 检查飞剑：排除友方owner的飞剑
     if (target instanceof FlyingSwordEntity sword) {
       LivingEntity owner = sword.getOwner();
-      if (owner != null && Objects.equals(owner.getUUID(), player.getUUID())) {
-        return false;
+      if (owner == null) {
+        return true; // 无主飞剑，允许选中
       }
-      // 允许敌对飞剑
-      return true;
+      if (owner.getUUID().equals(player.getUUID())) {
+        return false; // 自己的飞剑，排除
+      }
+      if (owner instanceof ServerPlayer ownerPlayer) {
+        return !player.isAlliedTo(ownerPlayer); // 友方玩家的飞剑排除，非友方的允许
+      }
+      return true; // 其他owner的飞剑，允许
     }
-    // 排除自己的宠物/召唤物
+
+    // 检查可拥有实体（宠物、召唤物等）：排除友方owner的实体
     if (target instanceof OwnableEntity ownable) {
       UUID ownerId = ownable.getOwnerUUID();
-      if (ownerId != null && ownerId.equals(player.getUUID())) {
-        return false;
+      if (ownerId == null) {
+        return true; // 无主实体，允许选中
       }
-      // 允许其他玩家的宠物/召唤物
-      return true;
+      if (ownerId.equals(player.getUUID())) {
+        return false; // 自己的实体，排除
+      }
+      // 检查owner是否是友方玩家
+      if (target.level() instanceof ServerLevel level) {
+        Entity ownerEntity = level.getEntity(ownerId);
+        if (ownerEntity instanceof ServerPlayer ownerPlayer) {
+          return !player.isAlliedTo(ownerPlayer); // 友方玩家的实体排除，非友方的允许
+        }
+      }
+      return true; // 其他owner的实体，允许
     }
-    // 带有指挥目标标签或在标签中的实体优先允许
+
+    // 带有特殊标签的实体优先允许
     if (hasCommandOverride(target)) {
       return true;
     }
-    // 检查是否是怪物类型
-    if (target.getType().getCategory() == MobCategory.MONSTER) {
-      return true;
-    }
-    // 检查是否是正在攻击玩家的生物
-    if (target instanceof Mob mob) {
-      if (mob.getTarget() == player) {
-        return true;
-      }
-      // 允许有攻击目标的生物（可能是敌对的）
-      if (mob.getTarget() != null && mob.getTarget().isAlive()) {
-        return true;
-      }
-    }
-    // 对于其他生物实体，如果不是友好类别（如村民、动物），则允许
-    MobCategory category = target.getType().getCategory();
-    if (category == MobCategory.CREATURE || category == MobCategory.AMBIENT ||
-        category == MobCategory.WATER_CREATURE || category == MobCategory.WATER_AMBIENT) {
-      return false;
-    }
-    // 默认允许所有其他生物（包括其他模组的敌对生物）
+
+    // 默认允许所有其他生物实体（包括中立生物、村民、动物、怪物等）
     return true;
   }
 
