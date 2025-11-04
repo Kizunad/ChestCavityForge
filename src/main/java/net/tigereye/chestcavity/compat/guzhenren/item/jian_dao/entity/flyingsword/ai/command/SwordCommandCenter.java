@@ -500,30 +500,53 @@ public final class SwordCommandCenter {
     if (target == player) {
       return false;
     }
+    // 排除友方玩家（PvP 关闭时）
     if (target instanceof ServerPlayer other) {
-      return player.isAlliedTo(other);
+      return !player.isAlliedTo(other);
     }
+    // 排除自己的飞剑
     if (target instanceof FlyingSwordEntity sword) {
       LivingEntity owner = sword.getOwner();
       if (owner != null && Objects.equals(owner.getUUID(), player.getUUID())) {
         return false;
       }
+      // 允许敌对飞剑
+      return true;
     }
+    // 排除自己的宠物/召唤物
     if (target instanceof OwnableEntity ownable) {
       UUID ownerId = ownable.getOwnerUUID();
       if (ownerId != null && ownerId.equals(player.getUUID())) {
         return false;
       }
+      // 允许其他玩家的宠物/召唤物
+      return true;
     }
+    // 带有指挥目标标签或在标签中的实体优先允许
     if (hasCommandOverride(target)) {
       return true;
     }
+    // 检查是否是怪物类型
+    if (target.getType().getCategory() == MobCategory.MONSTER) {
+      return true;
+    }
+    // 检查是否是正在攻击玩家的生物
     if (target instanceof Mob mob) {
       if (mob.getTarget() == player) {
         return true;
       }
+      // 允许有攻击目标的生物（可能是敌对的）
+      if (mob.getTarget() != null && mob.getTarget().isAlive()) {
+        return true;
+      }
     }
-    // 允许所有通过前面过滤的生物实体
+    // 对于其他生物实体，如果不是友好类别（如村民、动物），则允许
+    MobCategory category = target.getType().getCategory();
+    if (category == MobCategory.CREATURE || category == MobCategory.AMBIENT ||
+        category == MobCategory.WATER_CREATURE || category == MobCategory.WATER_AMBIENT) {
+      return false;
+    }
+    // 默认允许所有其他生物（包括其他模组的敌对生物）
     return true;
   }
 
