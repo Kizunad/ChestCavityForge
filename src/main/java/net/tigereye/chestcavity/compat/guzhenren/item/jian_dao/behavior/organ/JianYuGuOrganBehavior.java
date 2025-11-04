@@ -53,6 +53,9 @@ public enum JianYuGuOrganBehavior implements OrganSlowTickListener, OrganIncomin
   private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
     if (!(entity instanceof ServerPlayer player) || entity.level().isClientSide()) return;
     ItemStack organ = findMatchingOrgan(cc);
+    if (organ.isEmpty()) {
+      return;
+    }
     OrganState st = OrganState.of(organ, STATE_ROOT);
     MultiCooldown cd = MultiCooldown.builder(st).withSync(cc, organ).build();
     long now = player.serverLevel().getGameTime();

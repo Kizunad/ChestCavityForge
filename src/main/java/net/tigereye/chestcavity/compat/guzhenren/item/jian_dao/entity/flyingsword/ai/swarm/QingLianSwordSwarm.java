@@ -32,6 +32,8 @@ public class QingLianSwordSwarm {
   /** 剑群成员列表（按生成顺序） */
   private final List<FlyingSwordEntity> swords;
 
+  private final int swarmGroupId;
+
   /** 当前集群行为模式 */
   private SwarmBehaviorMode currentMode;
 
@@ -81,6 +83,7 @@ public class QingLianSwordSwarm {
     this.currentMode = SwarmBehaviorMode.LOTUS_GUARD;
     this.swarmTick = 0;
     this.attackWave = 0;
+    this.swarmGroupId = FlyingSwordEntity.SWARM_GROUP_ID;
   }
 
   // ==================== 剑群成员管理 ====================
@@ -91,6 +94,7 @@ public class QingLianSwordSwarm {
       swords.add(sword);
       // 注册个体代理
       agents.put(sword.getUUID(), new SwordAgent(sword));
+      sword.setGroupId(swarmGroupId);
     }
   }
 
@@ -98,6 +102,7 @@ public class QingLianSwordSwarm {
   public void removeSword(FlyingSwordEntity sword) {
     swords.remove(sword);
     agents.remove(sword.getUUID());
+    sword.setGroupId(0);
   }
 
   /** 获取剑群大小 */

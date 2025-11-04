@@ -79,6 +79,9 @@ public enum JianXinGuOrganBehavior
       return;
     }
     ItemStack organ = findMatchingOrgan(cc);
+    if (organ.isEmpty()) {
+      return;
+    }
     OrganState state = OrganState.of(organ, STATE_ROOT);
     MultiCooldown cd = MultiCooldown.builder(state).withSync(cc, organ).build();
 
@@ -248,7 +251,7 @@ public enum JianXinGuOrganBehavior
     if (cc == null || cc.inventory == null) {
       return ItemStack.EMPTY;
     }
-    // 优先查找明确的剑心蛊物品
+    // 明确查找剑心蛊物品
     for (int i = 0, size = cc.inventory.getContainerSize(); i < size; i++) {
       ItemStack s = cc.inventory.getItem(i);
       if (s.isEmpty()) continue;
@@ -257,11 +260,6 @@ public enum JianXinGuOrganBehavior
       if (id != null && id.equals(ORGAN_ID)) {
         return s;
       }
-    }
-    // 回退：返回第一个非空栈，维持旧行为
-    for (int i = 0, size = cc.inventory.getContainerSize(); i < size; i++) {
-      ItemStack s = cc.inventory.getItem(i);
-      if (!s.isEmpty()) return s;
     }
     return ItemStack.EMPTY;
   }

@@ -11,7 +11,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.Comparator;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -70,16 +71,18 @@ public final class SwordCommandCenter {
   }
 
   public static void clearMarks(ServerPlayer player) {
-    session(player).ifPresent(CommandSession::clearMarks);
+    session(player).ifPresent(CommandSession::clearCurrentMarks);
   }
 
   public static boolean isSelectionActive(ServerPlayer player) {
-    return session(player).map(CommandSession::isSelectionActive).orElse(false);
+    return session(player)
+        .map(session -> session.selectionActive)
+        .orElse(false);
   }
 
   public static int startSelection(ServerPlayer player, long nowTick) {
     CommandSession session = sessionOrCreate(player);
-    session.resetForSelection(nowTick);
+    session.resetSelection(nowTick);
     int count =
         markTargetsAlongRay(
             player,
@@ -87,15 +90,16 @@ public final class SwordCommandCenter {
             JianYinGuTuning.COMMAND_SCAN_RADIUS,
             nowTick,
             session);
-    session.lastScanCount = count;
-    if (count == 0) {
-      session.selectionActive = false;
-    }
+    session.updateSelectionCount(count);
     return count;
   }
 
   public static void cancelSelection(ServerPlayer player) {
-    session(player).ifPresent(CommandSession::cancel);
+    session(player)
+        .ifPresent(
+            session -> {
+              session.clearSelection();
+            });
   }
 
   public static boolean setTactic(ServerPlayer player, CommandTactic tactic) {
@@ -132,16 +136,13 @@ public final class SwordCommandCenter {
       return false;
     }
     pruneMarks(player, session, nowTick);
-    if (session.marks.isEmpty()) {
+    if (!session.selectionActive || !session.hasSelectionMarks()) {
       return false;
     }
-    session.selectionActive = false;
-    session.executing = true;
-    session.executingUntil = nowTick + JianYinGuTuning.COMMAND_EXECUTE_DURATION_T;
-    // 执行期间保持标记有效
-    for (MarkedTarget mark : session.marks.values()) {
-      mark.extend(session.executingUntil);
-    }
+    GroupState state = session.currentState(true);
+    long executingUntil = nowTick + JianYinGuTuning.COMMAND_EXECUTE_DURATION_T;
+    state.replaceMarksFromSelection(session.selectionMarks().values(), executingUntil);
+    session.clearSelection();
     return true;
   }
 
@@ -151,17 +152,8 @@ public final class SwordCommandCenter {
       return;
     }
     pruneMarks(player, session, nowTick);
-    if (session.selectionActive && nowTick > session.selectionExpiresAt) {
-      session.selectionActive = false;
-    }
-    if (session.executing && nowTick > session.executingUntil) {
-      session.executing = false;
-    }
-    if (!session.selectionActive && !session.executing && session.marks.isEmpty()) {
-      // 完全重置时释放会话
-      if (session.isIdle()) {
-        SESSIONS.remove(player.getUUID());
-      }
+    if (session.isCompletelyIdle()) {
+      SESSIONS.remove(player.getUUID());
     }
   }
 
@@ -170,29 +162,32 @@ public final class SwordCommandCenter {
       return Optional.empty();
     }
     CommandSession session = session(player).orElse(null);
-    if (session == null || !session.executing) {
-      return Optional.empty();
-    }
-    if (session.groupId != 0 && ctx.sword().getGroupId() != session.groupId) {
+    if (session == null) {
       return Optional.empty();
     }
     pruneMarks(player, session, ctx.level().getGameTime());
-    if (session.marks.isEmpty()) {
+    GroupState state = resolveGroupStateForIntent(session, ctx.sword().getGroupId());
+    if (state == null || !state.executing || !state.hasMarks()) {
       return Optional.empty();
     }
 
     CommandTactic tactic = session.tactic;
-    List<LivingEntity> candidates = collectMarkedEntities(ctx.level(), session);
+    List<LivingEntity> candidates = collectMarkedEntities(ctx.level(), state);
     if (candidates.isEmpty()) {
       return Optional.empty();
     }
 
-    LivingEntity target = chooseTargetForTactic(tactic, ctx, candidates);
-    if (target == null) {
-      target = pickBestTarget(ctx.sword(), ctx.level(), session.marks.keySet());
+    LivingEntity target;
+    if (tactic == CommandTactic.FOCUS_FIRE) {
+      target = chooseTargetForTactic(tactic, ctx, candidates);
       if (target == null) {
-        return Optional.empty();
+        target = pickBestTarget(ctx.sword(), ctx.level(), state.marks.keySet());
       }
+    } else {
+      target = pickBestTarget(ctx.sword(), ctx.level(), state.marks.keySet());
+    }
+    if (target == null) {
+      return Optional.empty();
     }
 
     IntentResult.Builder builder =
@@ -205,32 +200,79 @@ public final class SwordCommandCenter {
   }
 
   public static void removeTarget(ServerPlayer player, UUID targetId) {
-    session(player).ifPresent(session -> session.marks.remove(targetId));
+    session(player)
+        .ifPresent(
+            session -> {
+              session.selectionMarks().remove(targetId);
+              for (GroupState state : session.groups.values()) {
+                state.marks.remove(targetId);
+              }
+            });
+  }
+
+  private static GroupState resolveGroupStateForIntent(CommandSession session, int swordGroupId) {
+    GroupState state = session.stateForGroup(swordGroupId, false);
+    if (state != null && state.executing && state.hasMarks()) {
+      return state;
+    }
+    if (swordGroupId != 0) {
+      GroupState fallback = session.stateForGroup(0, false);
+      if (fallback != null && fallback.executing && fallback.hasMarks()) {
+        return fallback;
+      }
+    }
+    return null;
   }
 
   private static void pruneMarks(ServerPlayer player, CommandSession session, long nowTick) {
     if (!(player.level() instanceof ServerLevel level)) {
       return;
     }
-    Iterator<Map.Entry<UUID, MarkedTarget>> it = session.marks.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry<UUID, MarkedTarget> entry = it.next();
-      MarkedTarget mark = entry.getValue();
-      if (nowTick > mark.expiresAt()) {
-        it.remove();
-        continue;
+    if (session.selectionActive) {
+      Iterator<Map.Entry<UUID, MarkedTarget>> selectionIt = session.selectionMarks().entrySet().iterator();
+      while (selectionIt.hasNext()) {
+        Map.Entry<UUID, MarkedTarget> entry = selectionIt.next();
+        MarkedTarget mark = entry.getValue();
+        if (nowTick > mark.expiresAt()) {
+          selectionIt.remove();
+          continue;
+        }
+        Entity entity = level.getEntity(entry.getKey());
+        if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
+          selectionIt.remove();
+        }
       }
-      Entity entity = level.getEntity(entry.getKey());
-      if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
-        it.remove();
+      if (session.selectionMarks().isEmpty()) {
+        session.clearSelection();
+      }
+    }
+    Iterator<Map.Entry<Integer, GroupState>> groupIt = session.groups.entrySet().iterator();
+    while (groupIt.hasNext()) {
+      Map.Entry<Integer, GroupState> groupEntry = groupIt.next();
+      GroupState state = groupEntry.getValue();
+      Iterator<Map.Entry<UUID, MarkedTarget>> it = state.marks.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<UUID, MarkedTarget> entry = it.next();
+        MarkedTarget mark = entry.getValue();
+        if (nowTick > mark.expiresAt()) {
+          it.remove();
+          continue;
+        }
+        Entity entity = level.getEntity(entry.getKey());
+        if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
+          it.remove();
+        }
+      }
+      state.concludeIfExpired(nowTick);
+      if (state.isIdle()) {
+        groupIt.remove();
       }
     }
   }
 
-  private static List<LivingEntity> collectMarkedEntities(
-      ServerLevel level, CommandSession session) {
+  private static List<LivingEntity> collectMarkedEntities(ServerLevel level, GroupState state) {
     List<LivingEntity> result = new ArrayList<>();
-    for (UUID id : session.marks.keySet()) {
+    for (UUID id : state.marks.keySet()) {
       Entity entity = level.getEntity(id);
       if (entity instanceof LivingEntity living && living.isAlive()) {
         result.add(living);
@@ -441,14 +483,13 @@ public final class SwordCommandCenter {
       }
       UUID id = target.getUUID();
       long expires = nowTick + JianYinGuTuning.COMMAND_MARK_DURATION_T;
-      session.marks.put(id, new MarkedTarget(id, expires));
+      session.selectionMarks().put(id, new MarkedTarget(id, expires));
       target.addEffect(
           new MobEffectInstance(
               MobEffects.GLOWING, JianYinGuTuning.COMMAND_MARK_DURATION_T, 0, false, false));
       marked.add(target);
     }
     session.selectionExpiresAt = nowTick + JianYinGuTuning.COMMAND_MARK_DURATION_T;
-    session.lastScanTick = nowTick;
     return marked.size();
   }
 
@@ -506,30 +547,34 @@ public final class SwordCommandCenter {
       return List.of("no-session");
     }
     List<String> lines = new ArrayList<>();
-    lines.add("selectionActive=" + session.selectionActive);
-    lines.add("executing=" + session.executing);
-    lines.add("groupId=" + session.groupId);
-    lines.add(
-        "marks="
-            + session.marks.values().stream()
-                .map(mark -> mark.id.toString().substring(0, 8))
-                .collect(Collectors.joining(",")));
+    lines.add("currentGroup=" + session.groupId);
     lines.add("tactic=" + session.tactic.id());
+    if (session.groups.isEmpty()) {
+      lines.add("groups=none");
+    } else {
+      for (Map.Entry<Integer, GroupState> entry : session.groups.entrySet()) {
+        GroupState state = entry.getValue();
+        lines.add(
+            String.format(
+                Locale.ROOT,
+                "g%d exec=%s marks=%d",
+                entry.getKey(),
+                state.executing,
+                state.marks.size()));
+      }
+    }
     return lines;
   }
 
   static final class CommandSession {
     private final UUID ownerId;
-    private final Map<UUID, MarkedTarget> marks = new LinkedHashMap<>();
-    boolean selectionActive;
-    boolean executing;
-    long selectionExpiresAt;
-    long executingUntil;
+    private final Map<Integer, GroupState> groups = new HashMap<>();
+    private final LinkedHashMap<UUID, MarkedTarget> selectionMarks = new LinkedHashMap<>();
     CommandTactic tactic;
     long lastTuiSentAt;
-    long lastScanTick;
-    int lastScanCount;
     int groupId;
+    boolean selectionActive;
+    long selectionExpiresAt;
 
     private CommandSession(UUID ownerId) {
       this.ownerId = ownerId;
@@ -539,62 +584,79 @@ public final class SwordCommandCenter {
       this.groupId = 0;
     }
 
-    boolean isSelectionActive() {
+    GroupState stateForGroup(int groupId) {
+      return groups.computeIfAbsent(groupId, id -> new GroupState());
+    }
+
+    GroupState stateForGroup(int groupId, boolean create) {
+      if (create) {
+        return stateForGroup(groupId);
+      }
+      return groups.get(groupId);
+    }
+
+    GroupState currentState() {
+      return stateForGroup(groupId);
+    }
+
+    GroupState currentState(boolean create) {
+      return stateForGroup(groupId, create);
+    }
+
+    void clearCurrentMarks() {
+      if (selectionActive) {
+        clearSelection();
+        return;
+      }
+      GroupState state = currentState(false);
+      if (state != null) {
+        state.clearMarks();
+        if (state.isIdle()) {
+          groups.remove(groupId);
+        }
+      }
+    }
+
+    boolean isCompletelyIdle() {
+      return !selectionActive && selectionMarks.isEmpty() && groups.values().stream().allMatch(GroupState::isIdle);
+    }
+
+    int markedCount(int groupId) {
+      if (selectionActive) {
+        return selectionMarks.size();
+      }
+      GroupState state = stateForGroup(groupId, false);
+      return state == null ? 0 : state.markCount();
+    }
+
+    boolean hasExecutingGroup(int groupId) {
+      GroupState state = stateForGroup(groupId, false);
+      return state != null && state.executing;
+    }
+
+    boolean hasSelectionActive() {
       return selectionActive;
     }
 
-    void resetForSelection(long nowTick) {
-      this.selectionActive = true;
-      this.executing = false;
-      this.executingUntil = 0L;
-      this.selectionExpiresAt = nowTick + JianYinGuTuning.COMMAND_MARK_DURATION_T;
-      this.marks.clear();
-    }
-
-    void clearMarks() {
-      this.marks.clear();
-    }
-
-    void cancel() {
-      this.selectionActive = false;
-      this.executing = false;
-      this.marks.clear();
-    }
-
-    boolean isIdle() {
-      return !selectionActive && !executing && marks.isEmpty();
-    }
-
-    int markedCount() {
-      return marks.size();
-    }
-
-    boolean executing() {
-      return executing;
-    }
-
-    boolean selectionActive() {
-      return selectionActive;
-    }
-
-    CommandTactic tactic() {
-      return tactic;
+    long executingUntil(int groupId) {
+      GroupState state = stateForGroup(groupId, false);
+      return state == null ? 0L : state.executingUntil;
     }
 
     long selectionExpiresAt() {
       return selectionExpiresAt;
     }
 
-    long executingUntil() {
-      return executingUntil;
+    void removeEmptyGroups() {
+      groups.entrySet().removeIf(entry -> entry.getValue().isIdle());
     }
 
-    long lastScanTick() {
-      return lastScanTick;
+    Set<Integer> activeGroups() {
+      return groups.keySet();
     }
 
-    int lastScanCount() {
-      return lastScanCount;
+    CommandTactic tactic() {
+      return tactic;
     }
 
     int groupId() {
@@ -603,6 +665,123 @@ public final class SwordCommandCenter {
 
     void setGroupId(int groupId) {
       this.groupId = Math.max(0, groupId);
+    }
+
+    List<GroupSummary> groupSummaries(long nowTick) {
+      List<GroupSummary> list = new ArrayList<>();
+      for (Map.Entry<Integer, GroupState> entry : groups.entrySet()) {
+        GroupState state = entry.getValue();
+        long execRemain =
+            state.executing ? Math.max(0L, state.executingUntil - nowTick) : 0L;
+        list.add(
+            new GroupSummary(
+                entry.getKey(), state.markCount(), state.executing, execRemain));
+      }
+      list.sort(Comparator.comparingInt(GroupSummary::groupId));
+      return list;
+    }
+
+    void resetSelection(long nowTick) {
+      selectionMarks.clear();
+      selectionActive = true;
+      selectionExpiresAt = nowTick + JianYinGuTuning.COMMAND_MARK_DURATION_T;
+    }
+
+    void updateSelectionCount(int count) {
+      if (count == 0) {
+        selectionActive = false;
+      }
+    }
+
+    void clearSelection() {
+      selectionMarks.clear();
+      selectionActive = false;
+      selectionExpiresAt = 0L;
+    }
+
+    LinkedHashMap<UUID, MarkedTarget> selectionMarks() {
+      return selectionMarks;
+    }
+
+    boolean hasSelectionMarks() {
+      return !selectionMarks.isEmpty();
+    }
+
+    static final class GroupSummary {
+      private final int groupId;
+      private final int marks;
+      private final boolean executing;
+      private final long executingRemainingTicks;
+
+      private GroupSummary(
+          int groupId,
+          int marks,
+          boolean executing,
+          long executingRemainingTicks) {
+        this.groupId = groupId;
+        this.marks = marks;
+        this.executing = executing;
+        this.executingRemainingTicks = executingRemainingTicks;
+      }
+
+      int groupId() {
+        return groupId;
+      }
+
+      int marks() {
+        return marks;
+      }
+
+      boolean executing() {
+        return executing;
+      }
+
+      double executingSeconds() {
+        return executingRemainingTicks / 20.0;
+      }
+
+      boolean hasActivity() {
+        return executing && marks > 0;
+      }
+    }
+  }
+
+  private static final class GroupState {
+    private final LinkedHashMap<UUID, MarkedTarget> marks = new LinkedHashMap<>();
+    private boolean executing;
+    private long executingUntil;
+
+    boolean isIdle() {
+      return !executing && marks.isEmpty();
+    }
+
+    void concludeIfExpired(long nowTick) {
+      if (executing && nowTick > executingUntil) {
+        executing = false;
+      }
+    }
+
+    boolean hasMarks() {
+      return !marks.isEmpty();
+    }
+
+    int markCount() {
+      return marks.size();
+    }
+
+    void replaceMarksFromSelection(Collection<MarkedTarget> selection, long executingUntil) {
+      marks.clear();
+      for (MarkedTarget source : selection) {
+        marks.put(source.id, new MarkedTarget(source.id, executingUntil));
+      }
+      this.executing = true;
+      this.executingUntil = executingUntil;
+    }
+
+    void clearMarks() {
+      marks.clear();
+      executing = false;
+      executingUntil = 0L;
     }
   }
 

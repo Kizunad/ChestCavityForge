@@ -23,6 +23,7 @@ import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.SwordCommandCenter;
 
 /**
  * 目标搜索工具
@@ -530,6 +531,9 @@ public final class TargetFinder {
   }
 
   private static boolean isHostileForOwner(LivingEntity living, LivingEntity owner) {
+    if (SwordCommandCenter.hasCommandOverride(living)) {
+      return true;
+    }
     if (living instanceof Mob mob) {
       if (mob.getTarget() == owner) {
         return true;

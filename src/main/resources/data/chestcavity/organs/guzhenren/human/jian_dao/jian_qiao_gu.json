@@ -1,0 +1,7 @@
+{
+  "itemID": "guzhenren:jian_qiao_gu",
+  "organScores": [
+    { "id": "guzhenren:daohen_jiandao", "value": "120.0" },
+    { "id": "chestcavity:nerves", "value": "1.0" }
+  ]
+}

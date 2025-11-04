@@ -2,13 +2,18 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /**
  * 飞剑控制接口（Flying Sword Controller）
@@ -151,16 +156,20 @@ public final class FlyingSwordController {
     // 已在召回模式，表示已到达主人，执行实际召回逻辑
 
     // 检查owner是否为Player（只有玩家才能存储飞剑）
-    if (!(owner instanceof Player player)) {
+    if (!(owner instanceof ServerPlayer player)) {
       // 非玩家owner，直接消散飞剑
       sword.discard();
       return;
     }
 
     // 保存飞剑状态到玩家数据
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+    int capacity = JianQiaoGuOrganBehavior.computeStorageCapacity(player, cc);
+    JianQiaoGuOrganBehavior.handleRecallRepair(player, cc, sword);
     boolean success =
         net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player)
-            .recallSword(sword);
+            .recallSword(sword, capacity);
 
     if (success) {
       // 发送成功消息
@@ -175,7 +184,8 @@ public final class FlyingSwordController {
     } else {
       // 存储已满
       player.sendSystemMessage(
-          net.minecraft.network.chat.Component.literal("[飞剑] 召回失败 - 存储已满 (最多10个)"));
+          net.minecraft.network.chat.Component.literal(
+              String.format(Locale.ROOT, "[飞剑] 召回失败 - 存储已满 (最多%d个)", Math.max(0, capacity))));
     }
 
     // 触发onDespawnOrRecall事件钩子（在discard之前）
@@ -332,6 +342,32 @@ public final class FlyingSwordController {
       sword.setTargetEntity(null);
     }
     return swords.size();
+  }
+
+  public static void setGroup(FlyingSwordEntity sword, int groupId) {
+    if (sword == null) {
+      return;
+    }
+    sword.setGroupId(Math.max(0, groupId));
+  }
+
+  public static int setAllGroup(ServerLevel level, Player owner, int groupId) {
+    List<FlyingSwordEntity> swords = getPlayerSwords(level, owner);
+    int normalized = Math.max(0, groupId);
+    for (FlyingSwordEntity sword : swords) {
+      sword.setGroupId(normalized);
+    }
+    return swords.size();
+  }
+
+  public static boolean setGroupByIndex(ServerLevel level, Player owner, int index1, int groupId) {
+    List<FlyingSwordEntity> swords = getPlayerSwords(level, owner);
+    if (index1 < 1 || index1 > swords.size()) {
+      return false;
+    }
+    FlyingSwordEntity sword = swords.get(index1 - 1);
+    sword.setGroupId(Math.max(0, groupId));
+    return true;
   }
 
   /** 召回在场飞剑（按列表索引，1-based）。返回是否成功。 */

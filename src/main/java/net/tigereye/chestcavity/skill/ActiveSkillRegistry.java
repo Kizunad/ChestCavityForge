@@ -31,6 +31,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuaShiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.li_dao.behavior.HuangLuoTianNiuGuOrganBehavior;
@@ -791,7 +792,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:jian_yin_guidance",
         "guzhenren:jianyingu",
         tags("控制", "辅助"),
-        "感应剑阵脉络并引导飞剑方向，暂为占位，实现尚待补全。",
+        "引导飞剑方向",
         "compat/guzhenren/item/jian_dao/behavior/organ/JianYinGuOrganBehavior.java",
         () -> {
           ensureClassLoaded(JianYinGuOrganBehavior.INSTANCE);
@@ -809,6 +810,16 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(JianYinGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("指挥界面", null));
+
+    register(
+        "guzhenren:shou_jian_ling",
+        "guzhenren:shou_jian_ling",
+        "guzhenren:jian_qiao_gu",
+        tags("控制", "飞剑"),
+        "收剑令：尝试夺取范围内敌方飞剑并收纳于剑鞘，成功触发自动修复，冷却20分钟",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianQiaoGuOrganBehavior.java",
+        () -> ensureClassLoaded(JianQiaoGuOrganBehavior.INSTANCE),
+        CooldownHint.useOrgan("剑鞘冷却", "20 分钟"));
 
     register(
         "guzhenren:lie_jian_gu_activate",

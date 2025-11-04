@@ -46,6 +46,8 @@ public class DespawnContext {
   public enum Reason {
     /** 玩家主动召回 */
     RECALLED,
+    /** 被收剑令等效果夺取 */
+    CAPTURED,
     /** 耐久耗尽 */
     DURABILITY_DEPLETED,
     /** 维持不足 */

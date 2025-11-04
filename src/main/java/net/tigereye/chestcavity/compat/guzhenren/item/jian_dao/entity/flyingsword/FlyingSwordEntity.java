@@ -52,6 +52,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   private static final EntityDataAccessor<Integer> AI_MODE =
       SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.INT);
 
+  private static final EntityDataAccessor<Integer> GROUP_ID =
+      SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.INT);
+
   private static final EntityDataAccessor<Optional<UUID>> TARGET =
       SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.OPTIONAL_UUID);
 
@@ -102,6 +105,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   private Vec3 smoothedLookAngle = Vec3.ZERO;
   private Vec3 lastVelocity = Vec3.ZERO;
 
+  public static final int SWARM_GROUP_ID = 900;
+
   // ========== 构造函数 ==========
   public FlyingSwordEntity(EntityType<? extends PathfinderMob> type, Level level) {
     super(type, level);
@@ -135,6 +140,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     builder.define(SOUND_PROFILE, "");
     builder.define(SWORD_TYPE, FlyingSwordType.DEFAULT.getRegistryName());
     builder.define(IS_RECALLABLE, true); // 默认可被召回
+    builder.define(GROUP_ID, 0);
   }
 
   @Override
@@ -360,6 +366,14 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   public void setSwordType(FlyingSwordType type) {
     if (type == null) type = FlyingSwordType.DEFAULT;
     this.entityData.set(SWORD_TYPE, type.getRegistryName());
+  }
+
+  public int getGroupId() {
+    return this.entityData.get(GROUP_ID);
+  }
+
+  public void setGroupId(int groupId) {
+    this.entityData.set(GROUP_ID, Math.max(0, groupId));
   }
 
   /**
@@ -986,6 +1000,10 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       this.entityData.set(IS_RECALLABLE, tag.getBoolean("IsRecallable"));
     }
 
+    if (tag.contains("GroupId")) {
+      setGroupId(tag.getInt("GroupId"));
+    }
+
     // 同步生命-耐久
     syncHealthWithDurability();
   }
@@ -1036,6 +1054,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
     // 可召回标记
     tag.putBoolean("IsRecallable", isRecallable());
+
+    tag.putInt("GroupId", getGroupId());
   }
 
   // ========== 攻击逻辑 ==========

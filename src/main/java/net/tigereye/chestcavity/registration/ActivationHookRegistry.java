@@ -79,6 +79,11 @@ public final class ActivationHookRegistry {
         "^guzhenren:lie_jian_gu_activate$",
         new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
 
+    SkillEffectBus.register(
+        "^guzhenren:shou_jian_ling$",
+        new ResourceFieldSnapshotEffect(
+            "shou_jian_ling:", List.of("daohen_jiandao", "liupai_jiandao")));
+
     // 技能效果: 饵祭召鲨需要先快照关键 Guzhenren 资源字段
     SkillEffectBus.register(
         "^guzhenren:yu_shi_summon_combo$",

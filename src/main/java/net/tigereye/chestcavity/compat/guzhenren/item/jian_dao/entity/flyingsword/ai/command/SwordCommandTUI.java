@@ -7,6 +7,7 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 
 /**
  * 剑引指挥棒的聊天式 TUI。
@@ -18,11 +19,12 @@ public final class SwordCommandTUI {
   static void open(ServerPlayer player, SwordCommandCenter.CommandSession session) {
     player.sendSystemMessage(banner(Component.translatable("text.guzhenren.jianyingu.command.title")));
 
-    int marked = session.markedCount();
+    int currentGroup = session.groupId();
+    int marked = session.markedCount(currentGroup);
     MutableComponent targetInfo =
         Component.translatable("text.guzhenren.jianyingu.command.targets", marked);
-    if (session.executing()) {
-      long remaining = Math.max(0, session.executingUntil() - player.level().getGameTime());
+    if (session.hasExecutingGroup(currentGroup)) {
+      long remaining = Math.max(0, session.executingUntil(currentGroup) - player.level().getGameTime());
       double seconds = remaining / 20.0;
       targetInfo =
           targetInfo.append(space())
@@ -31,7 +33,7 @@ public final class SwordCommandTUI {
                       Component.translatable(
                           "text.guzhenren.jianyingu.command.state.executing",
                           String.format(Locale.ROOT, "%.1f", seconds))));
-    } else if (session.selectionActive()) {
+    } else if (session.hasSelectionActive()) {
       long remaining = Math.max(0, session.selectionExpiresAt() - player.level().getGameTime());
       double seconds = remaining / 20.0;
       targetInfo =
@@ -48,12 +50,57 @@ public final class SwordCommandTUI {
     }
     player.sendSystemMessage(targetInfo);
 
+    long now = player.level().getGameTime();
+    var otherGroups = session.groupSummaries(now);
+    MutableComponent otherLine = null;
+    boolean hasOther = false;
+    for (SwordCommandCenter.CommandSession.GroupSummary summary : otherGroups) {
+      if (summary.groupId() == currentGroup) {
+        continue;
+      }
+      if (!summary.hasActivity()) {
+        continue;
+      }
+      if (!hasOther) {
+        otherLine =
+            dim(Component.translatable("text.guzhenren.jianyingu.command.group.overview"));
+        hasOther = true;
+      }
+      otherLine =
+          otherLine.append(space())
+              .append(otherGroupStatus(summary));
+    }
+    if (hasOther && otherLine != null) {
+      player.sendSystemMessage(otherLine);
+    }
+
     MutableComponent tacticLine =
         Component.translatable("text.guzhenren.jianyingu.command.tactic");
     for (CommandTactic tactic : CommandTactic.values()) {
       tacticLine = tacticLine.append(space()).append(tacticButton(tactic, session.tactic() == tactic));
     }
     player.sendSystemMessage(tacticLine);
+
+    MutableComponent groupLine =
+        Component.translatable("text.guzhenren.jianyingu.command.group")
+            .append(space())
+            .append(groupButton(0, currentGroup == 0, Component.translatable("text.guzhenren.jianyingu.command.group.all")));
+    groupLine =
+        groupLine
+            .append(space())
+            .append(groupButton(1, currentGroup == 1, Component.translatable("text.guzhenren.jianyingu.command.group.g1")))
+            .append(space())
+            .append(groupButton(2, currentGroup == 2, Component.translatable("text.guzhenren.jianyingu.command.group.g2")))
+            .append(space())
+            .append(groupButton(3, currentGroup == 3, Component.translatable("text.guzhenren.jianyingu.command.group.g3")));
+    groupLine =
+        groupLine.append(space())
+            .append(
+                groupButton(
+                    FlyingSwordEntity.SWARM_GROUP_ID,
+                    currentGroup == FlyingSwordEntity.SWARM_GROUP_ID,
+                    Component.translatable("text.guzhenren.jianyingu.command.group.swarm")));
+    player.sendSystemMessage(groupLine);
 
     MutableComponent actions =
         Component.translatable("text.guzhenren.jianyingu.command.actions")
@@ -121,6 +168,57 @@ public final class SwordCommandTUI {
 
   private static MutableComponent banner(Component text) {
     return text.copy().withStyle(Style.EMPTY.withColor(0x3FD5C3));
+  }
+
+  private static MutableComponent groupButton(int groupId, boolean selected, Component label) {
+    MutableComponent content = Component.literal("[").append(label).append(Component.literal("]"));
+    Style style =
+        (selected
+                ? Style.EMPTY.withColor(0xFFD54F).withBold(true)
+                : Style.EMPTY.withColor(0xA0A0A0))
+            .withClickEvent(
+                new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/jianyin command group " + groupId))
+            .withHoverEvent(
+                new HoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    Component.translatable(
+                        "text.guzhenren.jianyingu.command.group.button.hover", groupLabel(groupId))));
+    return content.withStyle(style);
+  }
+
+  private static Component groupLabel(int groupId) {
+    if (groupId == 0) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.all");
+    }
+    if (groupId == 1) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.g1");
+    }
+    if (groupId == 2) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.g2");
+    }
+    if (groupId == 3) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.g3");
+    }
+    if (groupId == FlyingSwordEntity.SWARM_GROUP_ID) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.swarm");
+    }
+    return Component.literal(String.format(Locale.ROOT, "#%d", groupId));
+  }
+
+  private static MutableComponent otherGroupStatus(SwordCommandCenter.CommandSession.GroupSummary summary) {
+    Component label = groupLabel(summary.groupId());
+    if (summary.executing()) {
+      String seconds = String.format(Locale.ROOT, "%.1f", summary.executingSeconds());
+      return dim(
+          Component.translatable(
+              "text.guzhenren.jianyingu.command.group.summary.executing",
+              label,
+              summary.marks(),
+              seconds));
+    }
+    return dim(
+        Component.translatable(
+            "text.guzhenren.jianyingu.command.group.summary.idle", label, summary.marks()));
   }
 
   private static MutableComponent hr() {

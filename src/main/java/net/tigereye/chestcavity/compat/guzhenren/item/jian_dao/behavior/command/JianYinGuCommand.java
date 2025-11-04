@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -52,6 +53,11 @@ public final class JianYinGuCommand {
                                           return builder.buildFuture();
                                         })
                                     .executes(JianYinGuCommand::setTactic)))
+                    .then(
+                        Commands.literal("group")
+                            .then(
+                                Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                                    .executes(JianYinGuCommand::setGroup)))
                     .then(Commands.literal("execute").executes(JianYinGuCommand::execute))
                     .then(Commands.literal("cancel").executes(JianYinGuCommand::cancel))
                     .then(Commands.literal("clear").executes(JianYinGuCommand::clear))));
@@ -112,6 +118,20 @@ public final class JianYinGuCommand {
     SwordCommandCenter.cancelSelection(player);
     player.sendSystemMessage(
         Component.translatable("message.guzhenren.jianyingu.command.cancelled"));
+    SwordCommandCenter.openTui(player);
+    return 1;
+  }
+
+  private static int setGroup(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    if (!ensureOrgan(player)) {
+      return 0;
+    }
+    int group = IntegerArgumentType.getInteger(ctx, "group");
+    SwordCommandCenter.setCommandGroup(player, group);
+    player.sendSystemMessage(
+        Component.translatable(
+            "message.guzhenren.jianyingu.command.group_set", Math.max(0, group)));
     SwordCommandCenter.openTui(player);
     return 1;
   }

@@ -10,8 +10,11 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.SwordCommandCenter;
 import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /**
  * 飞剑事件处理器
@@ -70,6 +73,9 @@ public final class FlyingSwordEventHandler {
     }
 
     var storage = CCAttachments.getFlyingSwordStorage(player);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(player).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+    int capacity = JianQiaoGuOrganBehavior.computeStorageCapacity(player, cc);
     int stored = 0;
 
     for (var sword : swords) {
@@ -94,7 +100,8 @@ public final class FlyingSwordEventHandler {
       }
 
       // 写入存储并触发钩子（OWNER_GONE）。这里不走动画，直接落盘保证可靠性。
-      boolean ok = storage.recallSword(sword);
+      JianQiaoGuOrganBehavior.handleRecallRepair(player, cc, sword);
+      boolean ok = storage.recallSword(sword, capacity);
       if (ok) {
         stored++;
       }

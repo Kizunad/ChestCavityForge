@@ -162,6 +162,23 @@ public final class FlyingSwordCommand {
                                   return builder.buildFuture();
                                 })
                             .executes(FlyingSwordCommand::setModeSelected)))
+            .then(
+                Commands.literal("group_selected")
+                    .then(
+                        Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                            .executes(FlyingSwordCommand::setGroupSelected)))
+            .then(
+                Commands.literal("group_index")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .then(
+                                Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                                    .executes(FlyingSwordCommand::setGroupByIndex))))
+            .then(
+                Commands.literal("group_all")
+                    .then(
+                        Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                            .executes(FlyingSwordCommand::setGroupAll)))
             // /flyingsword repair_selected
             .then(Commands.literal("repair_selected").executes(FlyingSwordCommand::repairSelected))
             // /flyingsword repair_index <index>
@@ -634,6 +651,62 @@ public final class FlyingSwordCommand {
                     String.format("[flyingsword] Selected sword set to mode: %s", mode.getDisplayName())),
             true);
     return 1;
+  }
+
+  private static int setGroupSelected(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    FlyingSwordEntity sword = FlyingSwordController.getSelectedSword(level, player);
+    if (sword == null) {
+      ctx.getSource().sendFailure(Component.literal("[flyingsword] No selected sword"));
+      return 0;
+    }
+    int group = IntegerArgumentType.getInteger(ctx, "group");
+    FlyingSwordController.setGroup(sword, group);
+    ctx.getSource()
+        .sendSuccess(
+            () ->
+                Component.literal(
+                    String.format(Locale.ROOT, "[flyingsword] Selected sword -> group %d", Math.max(0, group))),
+            true);
+    return 1;
+  }
+
+  private static int setGroupByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+    int group = IntegerArgumentType.getInteger(ctx, "group");
+    boolean ok = FlyingSwordController.setGroupByIndex(level, player, index, group);
+    if (!ok) {
+      ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to set group"));
+      return 0;
+    }
+    ctx.getSource()
+        .sendSuccess(
+            () ->
+                Component.literal(
+                    String.format(Locale.ROOT, "[flyingsword] Sword #%d -> group %d", index, Math.max(0, group))),
+            true);
+    return 1;
+  }
+
+  private static int setGroupAll(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int group = IntegerArgumentType.getInteger(ctx, "group");
+    int count = FlyingSwordController.setAllGroup(level, player, group);
+    ctx.getSource()
+        .sendSuccess(
+            () ->
+                Component.literal(
+                    String.format(
+                        Locale.ROOT, "[flyingsword] Set %d sword(s) -> group %d", count, Math.max(0, group))),
+            true);
+    return count;
   }
 
   private static int checkStorage(CommandContext<CommandSourceStack> ctx)

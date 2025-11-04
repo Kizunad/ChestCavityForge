@@ -134,7 +134,8 @@ public class DefaultEventHooks implements FlyingSwordEventHook {
     }
 
     // 消散特效
-    if (ctx.reason == DespawnContext.Reason.RECALLED) {
+    if (ctx.reason == DespawnContext.Reason.RECALLED
+        || ctx.reason == DespawnContext.Reason.CAPTURED) {
       FlyingSwordFX.spawnRecallEffect(ctx.level, ctx.sword);
     }
 

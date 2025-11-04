@@ -62,10 +62,10 @@ public final class JianYinGuTuning {
   public static final double COMMAND_SCAN_RADIUS = 2.5;
 
   /** 目标高亮与标记持续时间（tick）。 */
-  public static final int COMMAND_MARK_DURATION_T = 20 * 8; // 8s
+  public static final int COMMAND_MARK_DURATION_T = 20 * 12; // 12s
 
   /** 指挥执行持续时间（tick）。 */
-  public static final int COMMAND_EXECUTE_DURATION_T = 20 * 12; // 12s
+  public static final int COMMAND_EXECUTE_DURATION_T = 20 * 120; // 120s 2 mins
 
   /** 指挥提示冷却（避免频繁刷屏）。 */
   public static final int COMMAND_MESSAGE_COOLDOWN_T = 20 * 2;

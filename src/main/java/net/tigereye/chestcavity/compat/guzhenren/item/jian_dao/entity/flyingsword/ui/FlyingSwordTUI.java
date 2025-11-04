@@ -105,6 +105,7 @@ public final class FlyingSwordTUI {
 
     for (int i = start; i < end; i++) {
       FlyingSwordEntity s = swords.get(i);
+      int groupId = s.getGroupId();
       MutableComponent line = Component.empty()
           .append(dim(String.format(Locale.ROOT, "#%d ", i + 1)))
           .append(Component.literal(String.format(Locale.ROOT, "Lv.%d  ", s.getSwordLevel())))
@@ -112,6 +113,7 @@ public final class FlyingSwordTUI {
           .append(space())
           .append(dim(String.format(Locale.ROOT, "耐久: %.0f/%.0f  ", s.getDurability(), s.getSwordAttributes().maxDurability)))
           .append(dim(String.format(Locale.ROOT, "距离: %.1fm  ", s.distanceTo(player))))
+          .append(dim(Component.literal("组: ").append(groupName(groupId)).append(Component.literal("  "))))
           .append(btn("[选中]", "/flyingsword select index " + (i + 1), "设为指定飞剑"))
           .append(space())
           .append(btn("[修复]", "/flyingsword repair_index " + (i + 1), "消耗主手物品修复/赋能此飞剑"))
@@ -126,6 +128,25 @@ public final class FlyingSwordTUI {
           .append(space())
           .append(btn("[悬]", "/flyingsword mode_index " + (i + 1) + " hover", "设为悬浮"));
       player.sendSystemMessage(line);
+
+      if (groupId != FlyingSwordEntity.SWARM_GROUP_ID) {
+        MutableComponent groupLine = Component.literal("    ")
+            .append(dim(Component.translatable("text.guzhenren.jianyingu.sword.group", groupName(groupId))));
+        groupLine = groupLine
+            .append(space())
+            .append(groupButtonForSword(i + 1, 0, groupId == 0, "text.guzhenren.jianyingu.command.group.all"))
+            .append(space())
+            .append(groupButtonForSword(i + 1, 1, groupId == 1, "text.guzhenren.jianyingu.command.group.g1"))
+            .append(space())
+            .append(groupButtonForSword(i + 1, 2, groupId == 2, "text.guzhenren.jianyingu.command.group.g2"))
+            .append(space())
+            .append(groupButtonForSword(i + 1, 3, groupId == 3, "text.guzhenren.jianyingu.command.group.g3"));
+        player.sendSystemMessage(groupLine);
+      } else {
+        MutableComponent groupLine = Component.literal("    ")
+            .append(dim(Component.translatable("text.guzhenren.jianyingu.sword.group.locked", groupName(groupId))));
+        player.sendSystemMessage(groupLine);
+      }
     }
 
     // 分页与返回
@@ -233,6 +254,10 @@ public final class FlyingSwordTUI {
     return Component.literal(text).withStyle(Style.EMPTY.withColor(Theme.DIM));
   }
 
+  private static Component dim(Component component) {
+    return component.copy().withStyle(Style.EMPTY.withColor(Theme.DIM));
+  }
+
   private static Component hr() {
     return Component.literal("——————————————").withStyle(Style.EMPTY.withColor(Theme.DIM));
   }
@@ -271,5 +296,44 @@ public final class FlyingSwordTUI {
     c = c.append(Component.literal("距离   ").withStyle(Style.EMPTY.withColor(Theme.ACCENT)));
     c = c.append(Component.literal("操作").withStyle(Style.EMPTY.withColor(Theme.ACCENT)));
     return c;
+  }
+
+  private static Component groupName(int groupId) {
+    if (groupId == 0) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.all");
+    }
+    if (groupId == 1) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.g1");
+    }
+    if (groupId == 2) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.g2");
+    }
+    if (groupId == 3) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.g3");
+    }
+    if (groupId == FlyingSwordEntity.SWARM_GROUP_ID) {
+      return Component.translatable("text.guzhenren.jianyingu.command.group.swarm");
+    }
+    return Component.literal(String.format(Locale.ROOT, "#%d", groupId));
+  }
+
+  private static MutableComponent groupButtonForSword(
+      int index, int groupId, boolean selected, String nameKey) {
+    MutableComponent label =
+        Component.literal("[")
+            .append(Component.translatable(nameKey))
+            .append(Component.literal("]"));
+    Style style =
+        (selected ? Style.EMPTY.withColor(Theme.BUTTON).withBold(true) : Style.EMPTY.withColor(Theme.DIM))
+            .withClickEvent(
+                new ClickEvent(
+                    ClickEvent.Action.RUN_COMMAND,
+                    String.format(Locale.ROOT, "/flyingsword group_index %d %d", index, groupId)))
+            .withHoverEvent(
+                new HoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    Component.translatable(
+                        "text.guzhenren.jianyingu.sword.group.button.hover", groupName(groupId))));
+    return label.withStyle(style);
   }
 }

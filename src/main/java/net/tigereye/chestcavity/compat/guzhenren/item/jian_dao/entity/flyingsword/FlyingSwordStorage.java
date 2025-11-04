@@ -19,8 +19,8 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
   /** 召回的飞剑列表 */
   private final List<RecalledSword> recalledSwords = new ArrayList<>();
 
-  /** 最大存储数量 */
-  private static final int MAX_RECALLED = 10;
+  /** 默认最大存储数量（无额外加成时）。 */
+  private static final int DEFAULT_MAX_RECALLED = 10;
 
   /**
    * 召回飞剑并保存状态
@@ -29,7 +29,19 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
    * @return 是否成功召回
    */
   public boolean recallSword(FlyingSwordEntity sword) {
-    if (recalledSwords.size() >= MAX_RECALLED) {
+    return recallSword(sword, DEFAULT_MAX_RECALLED);
+  }
+
+  /**
+   * 召回飞剑并保存状态
+   *
+   * @param sword 要召回的飞剑
+   * @param maxCapacity 本次允许的最大容量（<=0 时退回默认值）
+   * @return 是否成功召回
+   */
+  public boolean recallSword(FlyingSwordEntity sword, int maxCapacity) {
+    int limit = maxCapacity <= 0 ? DEFAULT_MAX_RECALLED : maxCapacity;
+    if (recalledSwords.size() >= limit) {
       return false; // 存储已满
     }
 
