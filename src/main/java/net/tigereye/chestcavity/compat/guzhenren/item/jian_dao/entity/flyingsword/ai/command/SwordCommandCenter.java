@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -21,6 +22,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -35,11 +39,26 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYinGuT
 public final class SwordCommandCenter {
 
   private static final Map<UUID, CommandSession> SESSIONS = new HashMap<>();
+  private static final TagKey<EntityType<?>> COMMAND_TARGET_TAG =
+      TagKey.create(
+          Registries.ENTITY_TYPE,
+          ResourceLocation.fromNamespaceAndPath("chestcavity", "jianyin_command_targets"));
+  private static final String COMMAND_TARGET_SCOREBOARD_TAG = "cc_command_target";
 
   private SwordCommandCenter() {}
 
   public static Optional<CommandSession> session(ServerPlayer player) {
     return Optional.ofNullable(SESSIONS.get(player.getUUID()));
+  }
+
+  public static boolean hasCommandOverride(Entity entity) {
+    if (!(entity instanceof LivingEntity living)) {
+      return false;
+    }
+    if (living.getTags().contains(COMMAND_TARGET_SCOREBOARD_TAG)) {
+      return true;
+    }
+    return living.getType().is(COMMAND_TARGET_TAG);
   }
 
   public static CommandSession sessionOrCreate(ServerPlayer player) {
@@ -90,6 +109,15 @@ public final class SwordCommandCenter {
 
   public static Optional<CommandTactic> currentTactic(ServerPlayer player) {
     return session(player).map(session -> session.tactic);
+  }
+
+  public static int currentGroup(ServerPlayer player) {
+    return session(player).map(session -> session.groupId).orElse(0);
+  }
+
+  public static void setCommandGroup(ServerPlayer player, int groupId) {
+    CommandSession session = sessionOrCreate(player);
+    session.setGroupId(groupId);
   }
 
   public static void openTui(ServerPlayer player) {
@@ -143,6 +171,9 @@ public final class SwordCommandCenter {
     }
     CommandSession session = session(player).orElse(null);
     if (session == null || !session.executing) {
+      return Optional.empty();
+    }
+    if (session.groupId != 0 && ctx.sword().getGroupId() != session.groupId) {
       return Optional.empty();
     }
     pruneMarks(player, session, ctx.level().getGameTime());
@@ -443,13 +474,16 @@ public final class SwordCommandCenter {
         return false;
       }
     }
+    if (hasCommandOverride(target)) {
+      return true;
+    }
     if (target instanceof Mob mob) {
       if (mob.getTarget() == player) {
         return true;
       }
-      return mob.getType().getCategory() == MobCategory.MONSTER;
     }
-    return target.getType().getCategory() == MobCategory.MONSTER;
+    // 允许所有通过前面过滤的生物实体
+    return true;
   }
 
   private static Vec3 closestPointOnSegment(Vec3 point, Vec3 start, Vec3 end) {
@@ -474,6 +508,7 @@ public final class SwordCommandCenter {
     List<String> lines = new ArrayList<>();
     lines.add("selectionActive=" + session.selectionActive);
     lines.add("executing=" + session.executing);
+    lines.add("groupId=" + session.groupId);
     lines.add(
         "marks="
             + session.marks.values().stream()
@@ -494,12 +529,14 @@ public final class SwordCommandCenter {
     long lastTuiSentAt;
     long lastScanTick;
     int lastScanCount;
+    int groupId;
 
     private CommandSession(UUID ownerId) {
       this.ownerId = ownerId;
       this.tactic =
           CommandTactic.byId(JianYinGuTuning.COMMAND_DEFAULT_TACTIC)
               .orElse(CommandTactic.FOCUS_FIRE);
+      this.groupId = 0;
     }
 
     boolean isSelectionActive() {
@@ -558,6 +595,14 @@ public final class SwordCommandCenter {
 
     int lastScanCount() {
       return lastScanCount;
+    }
+
+    int groupId() {
+      return groupId;
+    }
+
+    void setGroupId(int groupId) {
+      this.groupId = Math.max(0, groupId);
     }
   }
 
