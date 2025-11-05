@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSw
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContext;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.cooldown.FlyingSwordCooldownOps;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordCombatTuning;
 
@@ -36,18 +37,21 @@ public final class FlyingSwordCombat {
   /**
    * 碰撞攻击检测
    *
+   * <p>Phase 4: 使用 FlyingSwordCooldownOps 管理攻击冷却
+   *
    * @param sword 飞剑实体
-   * @param attackCooldown 当前攻击冷却
-   * @return 新的攻击冷却值
    */
-  public static int tickCollisionAttack(FlyingSwordEntity sword, int attackCooldown) {
+  public static void tickCollisionAttack(FlyingSwordEntity sword) {
     if (!(sword.level() instanceof ServerLevel)) {
-      return attackCooldown;
+      return;
     }
+
+    // Phase 4: 冷却递减（由 MultiCooldown 管理）
+    int attackCooldown = FlyingSwordCooldownOps.tickDownAttackCooldown(sword);
 
     // 检查攻击冷却
     if (attackCooldown > 0) {
-      return attackCooldown - 1;
+      return;
     }
 
     LivingEntity target = sword.getTargetEntity();
@@ -61,7 +65,7 @@ public final class FlyingSwordCombat {
     }
 
     if (target == null || !target.isAlive()) {
-      return 0;
+      return;
     }
 
     // 检测碰撞
@@ -83,18 +87,16 @@ public final class FlyingSwordCombat {
             "[FlyingSword] Attack returned false! Target: {}, Health: {}",
             target.getName().getString(),
             String.format("%.1f", target.getHealth()));
-        return 0;
+        return;
       }
 
-      // 攻击成功，设置冷却（可被上下文钩子/经验等影响）
+      // Phase 4: 攻击成功，设置冷却到 MultiCooldown
       CalcContext ctx = CalcContexts.from(sword);
       int cd =
           FlyingSwordCalculator.calculateAttackCooldownTicks(
               ctx, FlyingSwordCombatTuning.ATTACK_COOLDOWN_TICKS);
-      return cd;
+      FlyingSwordCooldownOps.setAttackCooldown(sword, cd);
     }
-
-    return 0;
   }
 
   /**

@@ -106,16 +106,54 @@ public final class UpkeepSystem {
       boolean success = UpkeepOps.consumeFixedUpkeep(sword, upkeepCtx.finalCost);
 
       if (!success) {
-        // Phase 2: 维持不足，播放音效
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-            .playOutOfEnergy(sword);
-
-        // Phase 2: 召回飞剑
-        FlyingSwordController.recall(sword);
+        // Phase 4: 根据配置的策略处理维持失败
+        handleUpkeepFailure(sword);
       }
     }
 
     return upkeepTicks;
+  }
+
+  /**
+   * Phase 4: 处理维持失败
+   *
+   * <p>根据 FlyingSwordTuning.UPKEEP_FAILURE_STRATEGY 配置的策略：
+   * <ul>
+   *   <li>RECALL: 召回飞剑到物品栏（默认）</li>
+   *   <li>STALL: 停滞不动，速度设为 0</li>
+   *   <li>SLOW: 减速移动，速度降低到配置的倍率</li>
+   * </ul>
+   *
+   * @param sword 飞剑实体
+   */
+  private static void handleUpkeepFailure(FlyingSwordEntity sword) {
+    // Phase 4: 播放音效（所有策略通用）
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
+        .playOutOfEnergy(sword);
+
+    // Phase 4: 根据策略执行不同处理
+    switch (FlyingSwordTuning.UPKEEP_FAILURE_STRATEGY) {
+      case RECALL -> {
+        // Phase 2/4: 召回飞剑（默认策略，兼容旧版行为）
+        FlyingSwordController.recall(sword);
+      }
+      case STALL -> {
+        // Phase 4: 停滞策略 - 冻结移动速度
+        sword.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+
+        // Phase 4: 定期播放音效提示（避免刷屏）
+        if (sword.tickCount % FlyingSwordTuning.UPKEEP_FAILURE_SOUND_INTERVAL == 0) {
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
+              .playOutOfEnergy(sword);
+        }
+      }
+      case SLOW -> {
+        // Phase 4: 减速策略 - 速度降低到配置的倍率
+        var currentVel = sword.getDeltaMovement();
+        var slowedVel = currentVel.scale(FlyingSwordTuning.UPKEEP_FAILURE_SLOW_FACTOR);
+        sword.setDeltaMovement(slowedVel);
+      }
+    }
   }
 
   /**
@@ -156,40 +194,4 @@ public final class UpkeepSystem {
         ticks);
   }
 
-  // ========== Phase 3 扩展预留接口 ==========
-
-  /**
-   * Phase 3 预留: OnUpkeepCheck 事件钩子
-   *
-   * <p>在维持消耗前触发，允许外部模块修改消耗量或跳过消耗
-   *
-   * <p>当前 Phase 2 暂不实现，保持与原逻辑一致
-   */
-  // public static void fireUpkeepCheckEvent(FlyingSwordEntity sword, int intervalTicks) {
-  //   // Phase 3: 触发 OnUpkeepCheck 事件
-  //   // 允许扩展模块：
-  //   // - 修改消耗量 (如减免、加成)
-  //   // - 跳过消耗 (如领域内免费维持)
-  //   // - 提前召回 (如特殊状态)
-  // }
-
-  /**
-   * Phase 3 预留: 维持失败策略可配置
-   *
-   * <p>当前 Phase 2 硬编码为"召回"，Phase 4 将支持多种策略：
-   * <ul>
-   *   <li>RECALL: 召回到物品栏 (当前默认)</li>
-   *   <li>DISCARD: 直接消散</li>
-   *   <li>HOVER: 切换到悬停模式</li>
-   *   <li>CUSTOM: 由扩展模块处理</li>
-   * </ul>
-   *
-   * <p>Phase 4 实现时将从配置读取策略
-   */
-  // public enum UpkeepFailureStrategy {
-  //   RECALL,
-  //   DISCARD,
-  //   HOVER,
-  //   CUSTOM
-  // }
 }

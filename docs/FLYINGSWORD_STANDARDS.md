@@ -22,8 +22,51 @@ compat/guzhenren/flyingsword/
 - 默认钩子实现不得假设其他钩子存在；失败需捕获异常、降噪。
 
 ## 4. 资源与冷却
-- 维持消耗只在 UpkeepSystem 中调用 `ResourceOps`，并触发 `OnUpkeepCheck`。
-- 冷却统一 `MultiCooldown`；实体内字段仅镜像。
+
+### Phase 4: 冷却管理规范
+
+**统一冷却存储**：
+- 所有飞剑冷却统一存储在 owner 的 `MultiCooldown` 附件中
+- 使用 `FlyingSwordCooldownOps` 操作冷却，屏蔽附件获取细节
+- Key 命名规范：`cc:flying_sword/<sword_uuid>/<domain>`
+  - 攻击冷却：`cc:flying_sword/<sword_uuid>/attack`
+  - 破块冷却：`cc:flying_sword/<sword_uuid>/block_break`
+  - 能力冷却：`cc:flying_sword/<sword_uuid>/ability`
+
+**禁止事项**：
+- ❌ 不得在实体类中维护新的"裸"整型冷却字段（如 `attackCooldown2` 等）
+- ❌ 不得绕过 `FlyingSwordCooldownOps` 直接操作 `MultiCooldown`
+- ❌ 不得在冷却路径中引入阻塞 I/O 或昂贵的日志输出
+
+**使用示例**：
+```java
+// 获取攻击冷却
+int cooldown = FlyingSwordCooldownOps.getAttackCooldown(sword);
+
+// 设置攻击冷却
+FlyingSwordCooldownOps.setAttackCooldown(sword, 10);
+
+// 检查是否就绪
+if (FlyingSwordCooldownOps.isAttackReady(sword)) {
+  // 执行攻击
+}
+
+// 每 tick 递减
+FlyingSwordCooldownOps.tickDownAttackCooldown(sword);
+```
+
+### 资源消耗规范
+
+**统一入口**：
+- 维持消耗只在 `UpkeepSystem` 中调用 `ResourceOps`，并触发 `OnUpkeepCheck`
+- 禁止绕过 `ResourceOps` 直接消耗/恢复主人资源
+
+**维持失败策略**（Phase 4）：
+- `RECALL`: 召回到物品栏（默认，兼容旧版）
+- `STALL`: 停滞不动，速度冻结为 0
+- `SLOW`: 减速移动，速度降低为配置的倍率
+
+配置位置：`FlyingSwordTuning.UPKEEP_FAILURE_STRATEGY`
 
 ## 5. Git 提交规范
 - 类型建议：feat / fix / refactor / docs / test / chore

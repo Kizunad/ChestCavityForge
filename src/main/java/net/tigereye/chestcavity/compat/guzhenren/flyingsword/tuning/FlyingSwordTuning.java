@@ -108,6 +108,39 @@ public final class FlyingSwordTuning {
   /** 非玩家默认剑道流派经验（用于耐久减免计算） */
   public static final double NON_PLAYER_DEFAULT_SWORD_PATH_EXP = 10001.0;
 
+  // ==================== Phase 4: 维持失败策略 ====================
+
+  /**
+   * 维持消耗失败策略
+   *
+   * <p>Phase 4: 当维持消耗失败（真元不足）时，系统的处理策略：
+   * <ul>
+   *   <li>RECALL: 召回飞剑到物品栏（默认，兼容旧版行为）</li>
+   *   <li>STALL: 停滞不动，保持姿态但冻结移动</li>
+   *   <li>SLOW: 减速移动，速度降低为原来的 SLOW_FACTOR 倍</li>
+   * </ul>
+   *
+   * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.UpkeepSystem
+   */
+  public enum UpkeepFailureStrategy {
+    /** 召回到物品栏（默认） */
+    RECALL,
+    /** 停滞不动 */
+    STALL,
+    /** 减速移动 */
+    SLOW
+  }
+
+  /** 维持失败策略（默认：召回） */
+  public static final UpkeepFailureStrategy UPKEEP_FAILURE_STRATEGY =
+      UpkeepFailureStrategy.RECALL;
+
+  /** SLOW 策略的速度倍率（0.0 到 1.0） */
+  public static final double UPKEEP_FAILURE_SLOW_FACTOR = 0.3;
+
+  /** STALL 策略下播放音效的间隔（tick） */
+  public static final int UPKEEP_FAILURE_SOUND_INTERVAL = 40;
+
   // ==================== 功能开关 ====================
   // Phase 0: 添加功能开关，为后续裁剪做准备
 

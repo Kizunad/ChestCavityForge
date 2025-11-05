@@ -35,29 +35,30 @@ public final class CombatSystem {
   }
 
   /**
-   * Phase 2: 战斗系统 Tick 入口
+   * Phase 2/4: 战斗系统 Tick 入口
    *
    * <p>执行碰撞检测、伤害计算、经验获取、耐久消耗
    *
+   * <p>Phase 4: 攻击冷却由 MultiCooldown 管理，不再需要返回值
+   *
    * @param sword 飞剑实体
-   * @param attackCooldown 当前攻击冷却 (ticks)
-   * @return 新的攻击冷却值 (ticks)
    */
-  public static int tick(FlyingSwordEntity sword, int attackCooldown) {
+  public static void tick(FlyingSwordEntity sword) {
     if (sword == null || sword.level() == null) {
-      return attackCooldown;
+      return;
     }
 
-    // Phase 2: 委托给现有战斗模块处理
+    // Phase 4: 委托给 FlyingSwordCombat 处理
+    // 冷却管理已迁移到 FlyingSwordCooldownOps (MultiCooldown)
     // FlyingSwordCombat 已实现完整的战斗逻辑，包括：
-    // - 冷却递减
+    // - 冷却递减（MultiCooldown）
     // - 碰撞检测
     // - 伤害计算 (速度² 公式)
-    // - 事件触发 (OnHitEntity)
+    // - 事件触发 (OnHitEntity, PostHit)
     // - 经验获取
     // - 耐久消耗
     // - 粒子/音效
-    return FlyingSwordCombat.tickCollisionAttack(sword, attackCooldown);
+    FlyingSwordCombat.tickCollisionAttack(sword);
   }
 
   /**

@@ -100,7 +100,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
   private int age = 0;
 
-  private int attackCooldown = 0; // 攻击冷却（tick）
+  // Phase 4: attackCooldown 已迁移到 MultiCooldown (owner 附件)
+  // 使用 FlyingSwordCooldownOps.getAttackCooldown(sword) 获取
+  // private int attackCooldown = 0; // 已废弃
 
   // 平滑朝向向量（用于渲染，避免抖动）
   private Vec3 smoothedLookAngle = Vec3.ZERO;
@@ -635,9 +637,10 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
           .MovementSystem.tick(this, owner, getAIMode());
     }
 
-    // Phase 2: 战斗系统 (CombatSystem) - 集中管理碰撞检测与伤害
-    this.attackCooldown = net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-        .CombatSystem.tick(this, this.attackCooldown);
+    // Phase 2/4: 战斗系统 (CombatSystem) - 集中管理碰撞检测与伤害
+    // Phase 4: 攻击冷却由 MultiCooldown 管理
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+        .CombatSystem.tick(this);
 
     // 破块逻辑（速度分段 + 镐子可破范围，可被钩子跳过）
     if (!tickCtx.skipBlockBreak) {
