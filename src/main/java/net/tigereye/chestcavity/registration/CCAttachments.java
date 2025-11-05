@@ -127,6 +127,20 @@ public final class CCAttachments {
                               .SwordDomainConfigAttachment.Serializer())
                       .build());
 
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
+              .FlyingSwordCooldownAttachment>>
+      FLYING_SWORD_COOLDOWN =
+          ATTACHMENT_TYPES.register(
+              "flying_sword_cooldown",
+              () ->
+                  AttachmentType.builder(
+                          () ->
+                              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
+                                  .FlyingSwordCooldownAttachment())
+                      .serialize(new FlyingSwordCooldownSerializer())
+                      .build());
+
   private CCAttachments() {}
 
   private static ChestCavityInstance createInstance(IAttachmentHolder holder) {
@@ -397,6 +411,35 @@ public final class CCAttachments {
     public CompoundTag write(
         net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
                 .FlyingSwordSelection
+            attachment,
+        HolderLookup.Provider provider) {
+      return attachment.serializeNBT(provider);
+    }
+  }
+
+  private static class FlyingSwordCooldownSerializer
+      implements IAttachmentSerializer<
+          CompoundTag,
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
+              .FlyingSwordCooldownAttachment> {
+    @Override
+    public net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
+            .FlyingSwordCooldownAttachment
+        read(
+            IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
+      var att =
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
+              .FlyingSwordCooldownAttachment();
+      if (!tag.isEmpty()) {
+        att.deserializeNBT(provider, tag);
+      }
+      return att;
+    }
+
+    @Override
+    public CompoundTag write(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
+                .FlyingSwordCooldownAttachment
             attachment,
         HolderLookup.Provider provider) {
       return attachment.serializeNBT(provider);

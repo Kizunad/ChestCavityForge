@@ -100,15 +100,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
   private int age = 0;
 
-  // Phase 4: 冷却迁移兼容镜像（临时保留）
-  // 说明：P4 计划将冷却统一到 owner 附件（MultiCooldown）。为降低实现复杂度并保持行为一致，
-  // 先保留实体级倒计时字段作为兼容镜像，由 FlyingSwordCooldownOps 统一读写，后续可无缝替换为附件存储。
-  private int attackCooldown = 0;
-
-  /** 仅供 FlyingSwordCooldownOps 访问（P4 兼容镜像）。 */
-  public int __getAttackCooldownMirror() { return attackCooldown; }
-  /** 仅供 FlyingSwordCooldownOps 访问（P4 兼容镜像）。 */
-  public void __setAttackCooldownMirror(int ticks) { this.attackCooldown = Math.max(0, ticks); }
+  // Phase 4：冷却统一到 owner 附件（FlyingSwordCooldownAttachment），此处不再维护镜像字段。
 
   // 平滑朝向向量（用于渲染，避免抖动）
   private Vec3 smoothedLookAngle = Vec3.ZERO;
