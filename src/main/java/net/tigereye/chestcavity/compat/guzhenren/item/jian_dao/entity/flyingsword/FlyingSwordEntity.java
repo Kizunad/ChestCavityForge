@@ -7,22 +7,23 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
@@ -104,6 +105,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   // 平滑朝向向量（用于渲染，避免抖动）
   private Vec3 smoothedLookAngle = Vec3.ZERO;
   private Vec3 lastVelocity = Vec3.ZERO;
+  @Nullable private Vec3 antipodalSlerpBasis = null;
 
   public static final int SWARM_GROUP_ID = 900;
 
@@ -435,11 +437,12 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       return;
     }
 
-    // 平滑插值系数（0.3 = 30%当前帧，70%上一帧）
     double smoothFactor = 0.3;
 
-    // Slerp（球面线性插值）用于平滑旋转
-    smoothedLookAngle = slerpVec3(smoothedLookAngle, targetLook, smoothFactor);
+    smoothedLookAngle = slerpRobust(smoothedLookAngle, targetLook, smoothFactor);
+    if (!isFinite(smoothedLookAngle) || smoothedLookAngle.lengthSqr() < 1.0e-12) {
+      smoothedLookAngle = targetLook;
+    }
     lastVelocity = currentVelocity;
   }
 
@@ -451,32 +454,58 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
    * @param t 插值系数 [0, 1]
    * @return 插值后的归一化向量
    */
-  private Vec3 slerpVec3(Vec3 from, Vec3 to, double t) {
-    // 计算夹角余弦值
-    double dot = from.dot(to);
+  private static boolean isFinite(Vec3 vec) {
+    return Double.isFinite(vec.x) && Double.isFinite(vec.y) && Double.isFinite(vec.z);
+  }
 
-    // 向量几乎相同，直接返回目标
+  private static Vec3 perpendicularUnit(Vec3 v) {
+    Vec3 axis;
+    double ax = Math.abs(v.x);
+    double ay = Math.abs(v.y);
+    double az = Math.abs(v.z);
+    if (ax <= ay && ax <= az) {
+      axis = new Vec3(1.0, 0.0, 0.0);
+    } else if (ay <= az) {
+      axis = new Vec3(0.0, 1.0, 0.0);
+    } else {
+      axis = new Vec3(0.0, 0.0, 1.0);
+    }
+    Vec3 perp = v.cross(axis);
+    double len = perp.length();
+    if (len < 1.0e-12) {
+      axis = axis.x == 0.0 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
+      perp = v.cross(axis);
+      len = perp.length();
+    }
+    return perp.scale(1.0 / Math.max(len, 1.0e-12));
+  }
+
+  private Vec3 slerpRobust(Vec3 fromRaw, Vec3 toRaw, double t) {
+    Vec3 from = fromRaw.normalize();
+    Vec3 to = toRaw.normalize();
+    double dot = Mth.clamp(from.dot(to), -1.0, 1.0);
+
     if (dot > 0.9995) {
-      return to;
+      Vec3 blended = from.scale(1.0 - t).add(to.scale(t));
+      return blended.normalize();
     }
 
-    // 限制点积范围，避免数值误差
-    dot = Math.max(-1.0, Math.min(1.0, dot));
+    if (dot < -0.9995) {
+      Vec3 basis = this.antipodalSlerpBasis;
+      if (basis == null || basis.lengthSqr() < 1.0e-12 || Math.abs(from.dot(basis)) > 0.999) {
+        basis = perpendicularUnit(from);
+      }
+      double angle = Math.PI * t;
+      Vec3 rotated = from.scale(Math.cos(angle)).add(basis.scale(Math.sin(angle)));
+      this.antipodalSlerpBasis = basis;
+      return rotated.normalize();
+    }
 
-    // 计算夹角
+    this.antipodalSlerpBasis = null;
     double theta = Math.acos(dot);
     double sinTheta = Math.sin(theta);
-
-    // 避免除以零
-    if (Math.abs(sinTheta) < 1.0e-6) {
-      // 线性插值作为fallback
-      return from.scale(1.0 - t).add(to.scale(t)).normalize();
-    }
-
-    // Slerp公式
     double ratioA = Math.sin((1.0 - t) * theta) / sinTheta;
     double ratioB = Math.sin(t * theta) / sinTheta;
-
     return from.scale(ratioA).add(to.scale(ratioB)).normalize();
   }
 
