@@ -5,7 +5,7 @@
 
 ## 当前实现状态（核对）
 - 冷却统一入口：已提供 `FlyingSwordCooldownOps` 统一 API，并接入 `CombatSystem → FlyingSwordCombat` 攻击冷却链路。
-- 实现策略：为降低复杂度，当前使用“实体级兼容镜像字段”保存冷却（`FlyingSwordEntity.attackCooldown`），统一通过 API 访问；后续可无缝替换为 owner 附件（MultiCooldown）。
+- 存储实现：已切换为 owner 附件 `FLYING_SWORD_COOLDOWN`（基于 Attachment 序列化），Key = `cc:flying_sword/<uuid>/<domain>`。
 - Upkeep 覆盖：`UpkeepSystem` 已支持 `UpkeepCheck.finalCost` 覆盖并提供 `skipConsumption` 跳过，调用 `consumeFixedUpkeep(finalCost)`。
 
 ## 实施日期
