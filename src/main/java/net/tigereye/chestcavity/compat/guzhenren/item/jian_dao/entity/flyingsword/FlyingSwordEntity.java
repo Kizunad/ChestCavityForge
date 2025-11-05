@@ -491,9 +491,24 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
 
     if (dot < -0.9995) {
+      // 对径点情况：选择旋转轴
       Vec3 basis = this.antipodalSlerpBasis;
       if (basis == null || basis.lengthSqr() < 1.0e-12 || Math.abs(from.dot(basis)) > 0.999) {
-        basis = perpendicularUnit(from);
+        // 优先使用水平旋转（绕Y轴）：如果from接近水平，使用Y轴作为旋转轴
+        // 这样可以避免环绕轨迹中剑头突然朝天
+        double horizontalLengthSq = from.x * from.x + from.z * from.z;
+        if (horizontalLengthSq > 0.5) {
+          // from主要是水平的，使用Y轴作为旋转轴
+          basis = new Vec3(0, 1, 0);
+          // 确保basis与from垂直（Gram-Schmidt正交化）
+          double dotY = from.dot(basis);
+          if (Math.abs(dotY) > 0.1) {
+            basis = basis.subtract(from.scale(dotY)).normalize();
+          }
+        } else {
+          // from主要是垂直的，使用perpendicularUnit选择水平轴
+          basis = perpendicularUnit(from);
+        }
       }
       double angle = Math.PI * t;
       Vec3 rotated = from.scale(Math.cos(angle)).add(basis.scale(Math.sin(angle)));
