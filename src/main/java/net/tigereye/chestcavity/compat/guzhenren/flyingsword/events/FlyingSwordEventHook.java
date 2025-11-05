@@ -84,4 +84,86 @@ public interface FlyingSwordEventHook {
    * @param ctx 消散上下文
    */
   default void onDespawnOrRecall(DespawnContext ctx) {}
+
+  // ========== Phase 3: 事件模型扩展 ==========
+
+  /**
+   * AI模式切换时触发
+   *
+   * <p>Phase 3: 在飞剑的AI模式发生变化时调用。
+   * <p>可用于触发模式特定的初始化、粒子效果、或阻止非法模式切换。
+   *
+   * @param ctx 模式切换上下文
+   */
+  default void onModeChange(ModeChangeContext ctx) {}
+
+  /**
+   * 目标锁定时触发
+   *
+   * <p>Phase 3: 当飞剑获取新目标时调用（GUARD自动搜索、HUNT指定目标等）。
+   * <p>可用于记录目标历史、触发锁定音效、或阻止锁定特定目标。
+   *
+   * @param ctx 目标锁定上下文
+   */
+  default void onTargetAcquired(TargetAcquiredContext ctx) {}
+
+  /**
+   * 目标丢失时触发
+   *
+   * <p>Phase 3: 当飞剑失去当前目标时调用（目标死亡、超出范围、模式切换等）。
+   * <p>可用于触发搜索新目标、清理状态、或自动切换AI模式。
+   *
+   * @param ctx 目标丢失上下文
+   */
+  default void onTargetLost(TargetLostContext ctx) {}
+
+  /**
+   * 维持消耗检查时触发
+   *
+   * <p>Phase 3: 在每次维持消耗检查时调用（间隔由FlyingSwordTuning配置）。
+   * <p>可用于修改消耗量、记录消耗历史、或跳过本次消耗。
+   *
+   * @param ctx 维持消耗检查上下文
+   */
+  default void onUpkeepCheck(UpkeepCheckContext ctx) {}
+
+  /**
+   * 命中后触发（伤害已造成）
+   *
+   * <p>Phase 3: 在飞剑成功造成伤害后调用（在HitEntity之后）。
+   * <p>只读上下文，用于触发附加效果（吸血、经验获取、连击效果等）。
+   *
+   * @param ctx 命中后上下文
+   */
+  default void onPostHit(PostHitContext ctx) {}
+
+  /**
+   * 破块尝试时触发（破块之前）
+   *
+   * <p>Phase 3: 在飞剑尝试破坏方块之前调用。
+   * <p>可用于权限检查、特殊方块逻辑、或修改破块行为。
+   *
+   * @param ctx 破块尝试上下文
+   */
+  default void onBlockBreakAttempt(BlockBreakAttemptContext ctx) {}
+
+  /**
+   * 经验获取时触发
+   *
+   * <p>Phase 3: 当飞剑获得经验时调用（击杀、破块、手动注入等）。
+   * <p>可用于修改经验获取量、记录经验来源、或触发特效。
+   *
+   * @param ctx 经验获取上下文
+   */
+  default void onExperienceGain(ExperienceGainContext ctx) {}
+
+  /**
+   * 等级提升时触发
+   *
+   * <p>Phase 3: 当飞剑等级提升时调用（经验值突破阈值）。
+   * <p>可用于触发升级效果、解锁新技能、或向玩家发送通知。
+   *
+   * @param ctx 等级提升上下文
+   */
+  default void onLevelUp(LevelUpContext ctx) {}
 }

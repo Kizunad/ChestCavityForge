@@ -246,6 +246,13 @@ public final class FlyingSwordCombat {
         } catch (Throwable ignored) {}
       }
 
+      // Phase 3: 触发 PostHit 事件（伤害已造成，只读上下文）
+      boolean wasKilled = !target.isAlive();
+      var postHitCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+          .PostHitContext(sword, target, (float) damage, wasKilled);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+          .FlyingSwordEventRegistry.firePostHit(postHitCtx);
+
       // 升级特效
       if (newLevel > oldLevel && sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnLevelUpEffect(serverLevel, sword, newLevel);

@@ -115,6 +115,18 @@ public final class BlockBreakOps {
           // 排除不可破坏
           if (isUnbreakable(level, pos, state)) continue;
 
+          // Phase 3: 触发 BlockBreakAttempt 事件（破块之前）
+          boolean canBreak = canMine(state, toolTier);
+          var attemptCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+              .context.BlockBreakAttemptContext(sword, pos, state, canBreak);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+              .FlyingSwordEventRegistry.fireBlockBreakAttempt(attemptCtx);
+
+          // Phase 3: 检查是否被事件取消
+          if (attemptCtx.cancelled || !attemptCtx.canBreak) {
+            continue; // 跳过该方块
+          }
+
           // 破坏
           if (level.destroyBlock(pos, true, sword)) {
             broken++;
