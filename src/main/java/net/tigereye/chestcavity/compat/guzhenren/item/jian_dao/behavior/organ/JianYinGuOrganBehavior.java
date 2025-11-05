@@ -120,17 +120,21 @@ public enum JianYinGuOrganBehavior
 
     long now = player.level().getGameTime();
 
+    long readyAt = ready.getReadyTick();
+    if (readyAt > now) {
+      JianYinGuFx.scheduleCooldownToast(player, JianYinGuTuning.ABILITY_ID, readyAt, now);
+      return;
+    }
+
     if (SwordCommandCenter.isSelectionActive(player)) {
       SwordCommandCenter.cancelSelection(player);
       player.sendSystemMessage(
           Component.translatable("message.guzhenren.jianyingu.scan.cancel"));
       JianYinGuFx.playCancelFx(player);
-      return;
-    }
-
-    long readyAt = ready.getReadyTick();
-    if (readyAt > now) {
-      JianYinGuFx.scheduleCooldownToast(player, JianYinGuTuning.ABILITY_ID, readyAt, now);
+      // 取消选择时也设置短冷却，防止无限快速激活
+      long cancelCooldown = now + (JianYinGuTuning.ACTIVE_COOLDOWN_T / 6); // 2秒冷却
+      ready.setReadyAt(cancelCooldown);
+      NetworkUtil.sendOrganSlotUpdate(cc, organ);
       return;
     }
 

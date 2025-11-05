@@ -494,36 +494,60 @@ public final class SwordCommandCenter {
   }
 
   private static boolean isCommandTarget(ServerPlayer player, LivingEntity target) {
+    // 基本检查：目标必须存活
     if (!target.isAlive()) {
       return false;
     }
+    // 排除玩家自己
     if (target == player) {
       return false;
     }
+
+    // 检查玩家：排除友方玩家，允许非友方玩家
     if (target instanceof ServerPlayer other) {
-      return player.isAlliedTo(other);
+      return !player.isAlliedTo(other);
     }
+
+    // 检查飞剑：排除友方owner的飞剑
     if (target instanceof FlyingSwordEntity sword) {
       LivingEntity owner = sword.getOwner();
-      if (owner != null && Objects.equals(owner.getUUID(), player.getUUID())) {
-        return false;
+      if (owner == null) {
+        return true; // 无主飞剑，允许选中
       }
+      if (owner.getUUID().equals(player.getUUID())) {
+        return false; // 自己的飞剑，排除
+      }
+      if (owner instanceof ServerPlayer ownerPlayer) {
+        return !player.isAlliedTo(ownerPlayer); // 友方玩家的飞剑排除，非友方的允许
+      }
+      return true; // 其他owner的飞剑，允许
     }
+
+    // 检查可拥有实体（宠物、召唤物等）：排除友方owner的实体
     if (target instanceof OwnableEntity ownable) {
       UUID ownerId = ownable.getOwnerUUID();
-      if (ownerId != null && ownerId.equals(player.getUUID())) {
-        return false;
+      if (ownerId == null) {
+        return true; // 无主实体，允许选中
       }
+      if (ownerId.equals(player.getUUID())) {
+        return false; // 自己的实体，排除
+      }
+      // 检查owner是否是友方玩家
+      if (target.level() instanceof ServerLevel level) {
+        Entity ownerEntity = level.getEntity(ownerId);
+        if (ownerEntity instanceof ServerPlayer ownerPlayer) {
+          return !player.isAlliedTo(ownerPlayer); // 友方玩家的实体排除，非友方的允许
+        }
+      }
+      return true; // 其他owner的实体，允许
     }
+
+    // 带有特殊标签的实体优先允许
     if (hasCommandOverride(target)) {
       return true;
     }
-    if (target instanceof Mob mob) {
-      if (mob.getTarget() == player) {
-        return true;
-      }
-    }
-    // 允许所有通过前面过滤的生物实体
+
+    // 默认允许所有其他生物实体（包括中立生物、村民、动物、怪物等）
     return true;
   }
 
