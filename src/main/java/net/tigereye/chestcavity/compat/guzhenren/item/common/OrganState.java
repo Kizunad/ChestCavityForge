@@ -244,4 +244,50 @@ public final class OrganState {
       return !Objects.equals(previous, current);
     }
   }
+
+  /**
+   * Checks if the organ's state contains the given key.
+   *
+   * @param key The key to check for.
+   * @return {@code true} if the key exists, {@code false} otherwise.
+   */
+  public boolean contains(String key) {
+    if (!isUsable()) {
+      return false;
+    }
+    CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+    if (data == null) {
+      return false;
+    }
+    CompoundTag root = data.copyTag();
+    if (!root.contains(rootKey, Tag.TAG_COMPOUND)) {
+      return false;
+    }
+    CompoundTag state = root.getCompound(rootKey);
+    return state.contains(key);
+  }
+
+  /**
+   * Removes the given key from the organ's state.
+   *
+   * @param key The key to remove.
+   */
+  public void remove(String key) {
+    if (!isUsable()) {
+      return;
+    }
+    NBTWriter.updateCustomData(
+        stack,
+        tag -> {
+          if (tag.contains(rootKey, Tag.TAG_COMPOUND)) {
+            CompoundTag state = tag.getCompound(rootKey);
+            state.remove(key);
+            if (state.isEmpty()) {
+              tag.remove(rootKey);
+            } else {
+              tag.put(rootKey, state);
+            }
+          }
+        });
+  }
 }
