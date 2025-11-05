@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift;
+package net.tigereye.chestcavity.compat.guzhenren.rift;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,8 +8,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.RiftFx;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning;
 
 /**
  * 裂隙管理器
@@ -266,8 +264,7 @@ public final class RiftManager {
           .tell(
               new net.minecraft.server.TickTask(
                   level.getServer().getTickCount()
-                      + net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
-                          .RiftTuning.RESONANCE_PROPAGATION_DELAY_TICKS,
+                      + RiftTuning.RESONANCE_PROPAGATION_DELAY_TICKS,
                   () -> propagateResonance(nextRift, instigator, level, propagated)));
     }
   }
@@ -315,8 +312,7 @@ public final class RiftManager {
               .orElse(0.0);
     }
     double per10k =
-        (rift.getRiftType() == net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift
-                .RiftType.MAJOR)
+        (rift.getRiftType() == RiftType.MAJOR)
             ? RiftTuning.DAMAGE_PER_10K_MAJOR
             : RiftTuning.DAMAGE_PER_10K_MINOR;
     double daoHenScale = 1.0 + (daoHen / 10000.0) * per10k;

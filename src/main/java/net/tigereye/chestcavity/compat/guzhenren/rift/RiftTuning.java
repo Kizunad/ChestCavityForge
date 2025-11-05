@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning;
+package net.tigereye.chestcavity.compat.guzhenren.rift;
 
 /**
  * 裂隙系统参数（可调）。

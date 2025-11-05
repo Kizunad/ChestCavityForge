@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.client;
+package net.tigereye.chestcavity.compat.guzhenren.rift.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -9,10 +9,10 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.compat.guzhenren.rift.RiftEntity;
+import net.tigereye.chestcavity.compat.guzhenren.rift.RiftType;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 

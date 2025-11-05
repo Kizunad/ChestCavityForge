@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift;
+package net.tigereye.chestcavity.compat.guzhenren.rift;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +18,6 @@ import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.RiftFx;
 
 /**
  * 裂隙实体（Rift Entity）
@@ -105,7 +104,7 @@ public class RiftEntity extends Entity implements OwnableEntity {
     rift.setRemainingTicks(totalDuration);
 
     // 设置生命值（基础20，随剑道道痕线性提升）
-    int baseHp = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning.BASE_HEALTH;
+    int baseHp = RiftTuning.BASE_HEALTH;
     int maxHp = baseHp;
     if (owner != null) {
       double daoHen =
@@ -116,8 +115,7 @@ public class RiftEntity extends Entity implements OwnableEntity {
                       net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps.get(
                           h, "daohen_jiandao"))
               .orElse(0.0);
-      int per10k =
-          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning.HEALTH_PER_10K;
+      int per10k = RiftTuning.HEALTH_PER_10K;
       maxHp = baseHp + (int) Math.round((daoHen / 10000.0) * per10k);
     }
     rift.setMaxHealth(maxHp);
@@ -241,9 +239,7 @@ public class RiftEntity extends Entity implements OwnableEntity {
     if (!level().isClientSide && level() instanceof ServerLevel serverLevel) {
       RiftFx.despawnFx(serverLevel, position(), getRiftType() == RiftType.MAJOR);
 
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftManager
-          .getInstance()
-          .unregisterRift(this);
+      RiftManager.getInstance().unregisterRift(this);
     }
     super.remove(reason);
   }
@@ -311,10 +307,8 @@ public class RiftEntity extends Entity implements OwnableEntity {
     }
     double per10k =
         (type == RiftType.MAJOR)
-            ? net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning
-                .DAMAGE_PER_10K_MAJOR
-            : net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning
-                .DAMAGE_PER_10K_MINOR;
+            ? RiftTuning.DAMAGE_PER_10K_MAJOR
+            : RiftTuning.DAMAGE_PER_10K_MINOR;
     double daoHenScale = 1.0 + (daoHen / 10000.0) * per10k;
 
     for (LivingEntity target : targets) {
@@ -326,16 +320,11 @@ public class RiftEntity extends Entity implements OwnableEntity {
       // 计算基础伤害（TODO: 根据实际设计调整）
       float baseDamage =
           (type == RiftType.MAJOR)
-              ? net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning
-                  .MAJOR_PIERCE_BASE_DAMAGE
-              : net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning
-                  .MINOR_PIERCE_BASE_DAMAGE;
+              ? RiftTuning.MAJOR_PIERCE_BASE_DAMAGE
+              : RiftTuning.MINOR_PIERCE_BASE_DAMAGE;
 
       // 多裂隙共鸣链增益（每个+10%）
-      double chainBonus =
-          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftManager
-              .getInstance()
-              .getResonanceChainBonus(this);
+      double chainBonus = RiftManager.getInstance().getResonanceChainBonus(this);
 
       float finalDamage = (float) (baseDamage * damageMultiplier * chainBonus * daoHenScale);
 
@@ -405,11 +394,7 @@ public class RiftEntity extends Entity implements OwnableEntity {
 
     // 效果1：延长若干秒
     int remaining = getRemainingTicks();
-    setRemainingTicks(
-        remaining
-            + net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning
-                .ABSORB_ADD_SECONDS
-                * 20);
+    setRemainingTicks(remaining + RiftTuning.ABSORB_ADD_SECONDS * 20);
 
     // 效果2：伤害倍率上调（上限1.0）
     float current = getDamageMultiplier();
@@ -417,9 +402,7 @@ public class RiftEntity extends Entity implements OwnableEntity {
         (float)
             Math.min(
                 1.0,
-                current
-                    + net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning
-                        .ABSORB_DAMAGE_BOOST);
+                current + RiftTuning.ABSORB_DAMAGE_BOOST);
     setDamageMultiplier(boosted);
 
     // 吸收特效

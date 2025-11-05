@@ -237,7 +237,7 @@ public final class ActivationHookRegistry {
     net.minecraft.world.phys.Vec3 castPos = eyePos.add(lookVec.scale(3.0)); // 前方3格
 
     // 触发裂隙共鸣
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftResonanceListener
+    net.tigereye.chestcavity.compat.guzhenren.rift.RiftResonanceListener
         .onSwordQiSkillCast(player, skillId, castPos);
   }
 }

@@ -175,16 +175,14 @@ public final class CCEntities {
   // 裂剑蛊：裂隙实体
   public static final DeferredHolder<
           EntityType<?>,
-          EntityType<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftEntity>>
+          EntityType<net.tigereye.chestcavity.compat.guzhenren.rift.RiftEntity>>
       RIFT =
           ENTITY_TYPES.register(
               "rift",
               () ->
                   EntityType.Builder
-                      .<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift
-                              .RiftEntity>of(
-                          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift
-                              .RiftEntity::new,
+                      .<net.tigereye.chestcavity.compat.guzhenren.rift.RiftEntity>of(
+                          net.tigereye.chestcavity.compat.guzhenren.rift.RiftEntity::new,
                           MobCategory.MISC)
                       .sized(2.5f, 1.6f) // 主裂隙尺寸（最大）
                       .clientTrackingRange(64)

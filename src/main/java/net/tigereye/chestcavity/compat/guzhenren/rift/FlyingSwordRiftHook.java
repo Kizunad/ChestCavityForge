@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift;
+package net.tigereye.chestcavity.compat.guzhenren.rift;
 
 import java.util.HashMap;
 import java.util.List;

@@ -150,8 +150,8 @@ public enum YunJianQingLianGuOrganBehavior
     DomainManager.getInstance().registerDomain(domain);
 
     // 裂剑蛊：剑域激活时，排列附近裂隙成环状剑阵
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftDomainSynergy
-        .onDomainActivated(entity, level);
+    net.tigereye.chestcavity.compat.guzhenren.rift.RiftDomainSynergy.onDomainActivated(
+        entity, level);
 
     // 4. 生成环绕飞剑（莲瓣形态），并注册到集群管理器
     ListTag swordList = new ListTag();

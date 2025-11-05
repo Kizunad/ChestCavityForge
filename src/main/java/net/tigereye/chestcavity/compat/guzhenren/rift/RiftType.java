@@ -1,6 +1,5 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift;
+package net.tigereye.chestcavity.compat.guzhenren.rift;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning;
 
 /**
  * 裂隙类型

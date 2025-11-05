@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx;
+package net.tigereye.chestcavity.compat.guzhenren.rift;
 
 import java.util.concurrent.ThreadLocalRandom;
 import net.minecraft.core.particles.DustColorTransitionOptions;
@@ -7,8 +7,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.RiftTuning;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
 import org.joml.Vector3f;
 
@@ -367,7 +365,7 @@ public final class RiftFx {
     if (!(rift.level() instanceof ServerLevel level)) return;
 
     Vec3 pos = rift.position();
-    boolean isMajor = rift.getRiftType() == net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftType.MAJOR;
+    boolean isMajor = rift.getRiftType() == RiftType.MAJOR;
 
     // 每5tick播放一次粒子
     if (rift.tickCount % 5 != 0) return;
