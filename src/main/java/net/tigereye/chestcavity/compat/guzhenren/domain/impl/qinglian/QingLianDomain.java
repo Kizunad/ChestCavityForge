@@ -106,8 +106,10 @@ public class QingLianDomain extends AbstractDomain {
       lastTagSyncTick = currentTick;
     }
 
-    // 集群AI管理器tick
-    swarmManager.tick();
+    // Phase 1: 集群AI管理器tick（功能开关控制）
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+      swarmManager.tick();
+    }
 
     // 粒子特效
     if (currentTick != lastParticleTick) {

@@ -190,8 +190,16 @@ public enum YunJianQingLianGuOrganBehavior
         // 标记模型键：用于客户端覆盖渲染（例如使用Blockbench模型）
         sword.setModelKey("qinglian");
 
-        // 设置集群AI模式（由青莲剑域的集群管理器统一调度）
-        sword.setAIMode(AIMode.SWARM);
+        // Phase 1: 设置集群AI模式（功能开关控制）
+        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+          // 集群模式：由青莲剑域的集群管理器统一调度
+          sword.setAIMode(AIMode.SWARM);
+          domain.getSwarmManager().addSword(sword);
+        } else {
+          // 降级路径：单飞环绕模式
+          sword.setAIMode(AIMode.ORBIT);
+          sword.setOwner(entity);
+        }
 
         // 设置为不可召回（主动技能生成的飞剑）
         sword.setRecallable(false);
@@ -199,9 +207,6 @@ public enum YunJianQingLianGuOrganBehavior
         // 应用域控系数增幅（伤害）
         double damageMult = YunJianQingLianGuCalc.calculateSwordDamageMult(pOut);
         // 飞剑伤害会自动应用pOut系数（通过域控标签）
-
-        // 注册到青莲剑群集群管理器
-        domain.getSwarmManager().addSword(sword);
 
         // 存储UUID
         CompoundTag swordTag = new CompoundTag();
@@ -448,8 +453,23 @@ public enum YunJianQingLianGuOrganBehavior
             UUID domainId = new UUID(most, least);
             var domain = DomainManager.getInstance().getDomain(domainId);
             if (domain instanceof QingLianDomain qingLianDomain) {
-              // 指令飞剑群攻击目标
-              qingLianDomain.getSwarmManager().commandAttack(target);
+              // Phase 1: 指令飞剑群攻击目标（功能开关控制）
+              if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+                qingLianDomain.getSwarmManager().commandAttack(target);
+              } else {
+                // 降级路径：单个飞剑追击目标
+                ListTag swordList = state.getList(K_SWORDS);
+                for (Tag swordTag : swordList) {
+                  if (swordTag instanceof CompoundTag ct) {
+                    UUID swordId = ct.getUUID("UUID");
+                    Entity e = level.getEntity(swordId);
+                    if (e instanceof net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity sword) {
+                      sword.setAIMode(AIMode.HUNT);
+                      sword.setTarget(target);
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -467,7 +487,23 @@ public enum YunJianQingLianGuOrganBehavior
           UUID domainId = new UUID(most, least);
           var domain = DomainManager.getInstance().getDomain(domainId);
           if (domain instanceof QingLianDomain qingLianDomain) {
-            qingLianDomain.getSwarmManager().commandAttack(target);
+            // Phase 1: 更新飞剑群目标（功能开关控制）
+            if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+              qingLianDomain.getSwarmManager().commandAttack(target);
+            } else {
+              // 降级路径：单个飞剑追击目标
+              ListTag swordList = state.getList(K_SWORDS);
+              for (Tag swordTag : swordList) {
+                if (swordTag instanceof CompoundTag ct) {
+                  UUID swordId = ct.getUUID("UUID");
+                  Entity e = level.getEntity(swordId);
+                  if (e instanceof net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity sword) {
+                    sword.setAIMode(AIMode.HUNT);
+                    sword.setTarget(target);
+                  }
+                }
+              }
+            }
           }
         }
       }

@@ -17,7 +17,7 @@ public final class Trajectories {
   private static final TrajectoryMeta DEFAULT_META = TrajectoryMeta.builder().build();
 
   static {
-    // 基础可用实现
+    // === Phase 1: 核心轨迹（始终启用） ===
     register(
         TrajectoryType.Orbit,
         new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.OrbitTrajectory(),
@@ -29,64 +29,68 @@ public final class Trajectories {
         TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
         new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.templates.PredictiveLineTemplate());
     register(
-        TrajectoryType.Boomerang,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.BoomerangTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.templates.BoomerangTemplate());
-    register(
-        TrajectoryType.Corkscrew,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.CorkscrewTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.templates.CorkscrewTemplate());
-    register(
-        TrajectoryType.BezierS,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.BezierSTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
-    register(
-        TrajectoryType.Serpentine,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.SerpentineTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
-    register(
         TrajectoryType.CurvedIntercept,
         new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.CurvedInterceptTrajectory(),
         TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
         new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.templates.CurvedInterceptTemplate());
-    register(
-        TrajectoryType.VortexOrbit,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.VortexOrbitTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
-    register(
-        TrajectoryType.Sawtooth,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.SawtoothTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
-    register(
-        TrajectoryType.PetalScan,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.PetalScanTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
-    register(
-        TrajectoryType.WallGlide,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.WallGlideTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
-    register(
-        TrajectoryType.ShadowStep,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.ShadowStepTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).separation(false).build());
-    register(
-        TrajectoryType.DomainEdgePatrol,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.DomainEdgePatrolTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
-    register(
-        TrajectoryType.Ricochet,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.RicochetTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
-    register(
-        TrajectoryType.HelixPair,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.HelixPairTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
-    register(
-        TrajectoryType.PierceGate,
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.PierceGateTrajectory(),
-        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+
+    // === Phase 1: 高级轨迹（功能开关控制） ===
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_ADVANCED_TRAJECTORIES) {
+      register(
+          TrajectoryType.Boomerang,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.BoomerangTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.templates.BoomerangTemplate());
+      register(
+          TrajectoryType.Corkscrew,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.CorkscrewTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.templates.CorkscrewTemplate());
+      register(
+          TrajectoryType.BezierS,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.BezierSTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+      register(
+          TrajectoryType.Serpentine,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.SerpentineTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+      register(
+          TrajectoryType.VortexOrbit,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.VortexOrbitTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+      register(
+          TrajectoryType.Sawtooth,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.SawtoothTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+      register(
+          TrajectoryType.PetalScan,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.PetalScanTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+      register(
+          TrajectoryType.WallGlide,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.WallGlideTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+      register(
+          TrajectoryType.ShadowStep,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.ShadowStepTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).separation(false).build());
+      register(
+          TrajectoryType.DomainEdgePatrol,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.DomainEdgePatrolTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+      register(
+          TrajectoryType.Ricochet,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.RicochetTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+      register(
+          TrajectoryType.HelixPair,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.HelixPairTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+      register(
+          TrajectoryType.PierceGate,
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.impl.PierceGateTrajectory(),
+          TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+    }
   }
 
   private Trajectories() {}

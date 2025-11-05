@@ -36,6 +36,11 @@ public final class JianYinGuCommand {
 
   @SubscribeEvent
   public static void onRegisterCommands(RegisterCommandsEvent event) {
+    // Phase 1: TUI 功能开关守卫
+    if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_TUI) {
+      return;
+    }
+
     CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
     dispatcher.register(
         Commands.literal("jianyin")
