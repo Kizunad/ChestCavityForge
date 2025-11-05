@@ -171,4 +171,103 @@ public final class FlyingSwordEventRegistry {
       }
     }
   }
+
+  // ========== Phase 3: 事件模型扩展 ==========
+
+  public static void fireModeChange(ModeChangeContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onModeChange(ctx);
+        if (ctx.cancelled) break;
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onModeChange hook: {}", hook.getClass().getName(), e);
+      }
+    }
+  }
+
+  public static void fireTargetAcquired(TargetAcquiredContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onTargetAcquired(ctx);
+        if (ctx.cancelled) break;
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onTargetAcquired hook: {}", hook.getClass().getName(), e);
+      }
+    }
+  }
+
+  public static void fireTargetLost(TargetLostContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onTargetLost(ctx);
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onTargetLost hook: {}", hook.getClass().getName(), e);
+      }
+    }
+  }
+
+  public static void fireUpkeepCheck(UpkeepCheckContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onUpkeepCheck(ctx);
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onUpkeepCheck hook: {}", hook.getClass().getName(), e);
+      }
+    }
+  }
+
+  public static void firePostHit(PostHitContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onPostHit(ctx);
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onPostHit hook: {}", hook.getClass().getName(), e);
+      }
+    }
+  }
+
+  public static void fireBlockBreakAttempt(BlockBreakAttemptContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onBlockBreakAttempt(ctx);
+        if (ctx.cancelled) break;
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onBlockBreakAttempt hook: {}",
+            hook.getClass().getName(),
+            e);
+      }
+    }
+  }
+
+  public static void fireExperienceGain(ExperienceGainContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onExperienceGain(ctx);
+        if (ctx.cancelled) break;
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onExperienceGain hook: {}",
+            hook.getClass().getName(),
+            e);
+      }
+    }
+  }
+
+  public static void fireLevelUp(LevelUpContext ctx) {
+    for (FlyingSwordEventHook hook : getHooks()) {
+      try {
+        hook.onLevelUp(ctx);
+        if (ctx.cancelled) break;
+      } catch (Exception e) {
+        ChestCavity.LOGGER.error(
+            "[FlyingSwordEvent] Error in onLevelUp hook: {}", hook.getClass().getName(), e);
+      }
+    }
+  }
 }

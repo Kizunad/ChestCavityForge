@@ -71,7 +71,37 @@ public final class UpkeepSystem {
     if (upkeepTicks >= FlyingSwordTuning.UPKEEP_CHECK_INTERVAL) {
       upkeepTicks = 0; // 重置计数器
 
-      // Phase 2: 尝试消耗维持资源
+      // Phase 3: 触发 UpkeepCheck 事件
+      var attrs = sword.getSwordAttributes();
+      double speed = sword.getDeltaMovement().length();
+      var ctx = net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts.from(sword);
+      double effectiveMax = net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+          .effectiveSpeedMax(attrs.speedMax, ctx);
+      double speedPercent = effectiveMax > 0 ? speed / effectiveMax : 0.0;
+
+      boolean sprinting = (owner instanceof net.minecraft.world.entity.player.Player player)
+          && player.isSprinting();
+
+      double baseCost = UpkeepOps.computeIntervalUpkeepCost(
+          attrs.upkeepRate,
+          sword.getAIMode(),
+          sprinting,
+          false,
+          speedPercent,
+          FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
+
+      var upkeepCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.UpkeepCheckContext(
+          sword, baseCost, speedPercent, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
+
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+          .fireUpkeepCheck(upkeepCtx);
+
+      // Phase 3: 检查是否跳过本次消耗
+      if (upkeepCtx.skipConsumption) {
+        return upkeepTicks; // 跳过消耗，继续运行
+      }
+
+      // Phase 2: 尝试消耗维持资源（使用事件可能修改的消耗量）
       boolean success = UpkeepOps.consumeIntervalUpkeep(
           sword, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
 
