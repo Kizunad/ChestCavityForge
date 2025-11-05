@@ -13,6 +13,15 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswor
  */
 public final class CurvedInterceptTemplate implements SteeringTemplate {
 
+  private static final double CURVE_ALPHA_MIN = 0.0;
+  private static final double CURVE_ALPHA_MAX = 0.35;
+  private static final double CURVE_ALPHA_GAIN = 0.9;
+  private static final double SPEED_ALPHA_MIN = 0.6;
+  private static final double SPEED_ALPHA_MAX = 1.0;
+  private static final double ANGLE_GATE = Math.toRadians(20.0);
+  private static final double SWEEP_FREQUENCY = 0.4;
+  private static final double SWEEP_MAGNETUDE = 1.0;
+
   @Override
   public SteeringCommand compute(
       AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
@@ -28,10 +37,14 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
 
     double distance = toIntercept.length();
     double curvature = computeCurvature(distance, intent);
-    Vec3 desiredDir = composeDesiredDirection(blended, lateral, ctx.sword().tickCount, curvature, forward);
+    double speedRatio = computeSpeedRatio(ctx, snapshot);
+    double steeringAngle =
+        computeSteeringAngle(ctx, forward, blended, curvature, speedRatio);
+    Vec3 desiredDir =
+        composeDesiredDirection(blended, lateral, steeringAngle, forward);
 
     double speedScale = computeSpeedScale(intent, snapshot);
-    TurnParams p = computeDynamicTurnParams(ctx, snapshot, intent, curvature);
+    TurnParams p = computeDynamicTurnParams(speedRatio, curvature, intent);
 
     return SteeringCommand.of(desiredDir, speedScale)
         .withDesiredMaxFactor(Math.min(1.25, 0.95 + curvature * 0.5))
@@ -95,10 +108,17 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
   }
 
   private static Vec3 composeDesiredDirection(
-      Vec3 blended, Vec3 lateral, int tickCount, double curvature, Vec3 fallback) {
-    double sweep = Math.sin(tickCount * 0.4) * curvature;
-    Vec3 dir = blended.add(lateral.scale(sweep));
-    return dir.lengthSqr() < 1.0e-6 ? fallback : dir;
+      Vec3 base, Vec3 lateral, double angle, Vec3 fallback) {
+    if (Math.abs(angle) < 1.0e-6) {
+      return base;
+    }
+    double cos = Math.cos(angle);
+    double sin = Math.sin(angle);
+    Vec3 rotated = base.scale(cos).add(lateral.scale(sin));
+    if (rotated.lengthSqr() < 1.0e-6) {
+      return fallback;
+    }
+    return rotated.normalize();
   }
 
   private static double computeSpeedScale(IntentResult intent, KinematicsSnapshot snapshot) {
@@ -109,11 +129,47 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
     return Math.max(0.1, speedScaleParam) * baseToMaxRatio;
   }
 
-  private static TurnParams computeDynamicTurnParams(
-      AIContext ctx, KinematicsSnapshot snapshot, IntentResult intent, double curvature) {
+  private static double computeSpeedRatio(AIContext ctx, KinematicsSnapshot snapshot) {
     double maxSpeed = Math.max(1.0e-6, snapshot.scaledMaxSpeed());
     double curSpeed = ctx.sword().getDeltaMovement().length();
-    double sr = Math.max(0.0, Math.min(1.0, curSpeed / maxSpeed));
+    return Math.max(0.0, Math.min(1.0, curSpeed / maxSpeed));
+  }
+
+  private static double computeSteeringAngle(
+      AIContext ctx, Vec3 forward, Vec3 blended, double curvature, double speedRatio) {
+    double baseAlpha = clamp(CURVE_ALPHA_MIN, CURVE_ALPHA_MAX, curvature * CURVE_ALPHA_GAIN);
+    double speedFactor = lerp(SPEED_ALPHA_MIN, SPEED_ALPHA_MAX, speedRatio);
+
+    Vec3 currentVel = ctx.sword().getDeltaMovement();
+    double alignmentGate = 1.0;
+    if (currentVel.lengthSqr() > 1.0e-6) {
+      Vec3 currentDir = KinematicsOps.normaliseSafe(currentVel);
+      double dot = Math.max(-1.0, Math.min(1.0, currentDir.dot(forward)));
+      double angleErr = Math.acos(dot);
+      alignmentGate = angleErr >= ANGLE_GATE ? 0.0 : 1.0 - (angleErr / ANGLE_GATE);
+    }
+
+    if (alignmentGate <= 0.0 || baseAlpha <= 1.0e-6) {
+      return 0.0;
+    }
+
+    double phase = computePhase(ctx);
+    double signedAlpha = baseAlpha * speedFactor * alignmentGate * phase * SWEEP_MAGNETUDE;
+    return clamp(-CURVE_ALPHA_MAX, CURVE_ALPHA_MAX, signedAlpha);
+  }
+
+  private static double computePhase(AIContext ctx) {
+    long seed = ctx.sword().getUUID().getLeastSignificantBits() & 0xFFFFL;
+    double phaseOffset = (seed / 65535.0) * Math.PI * 2.0;
+    return Math.sin(ctx.sword().tickCount * SWEEP_FREQUENCY + phaseOffset);
+  }
+
+  private static double lerp(double a, double b, double t) {
+    return a + (b - a) * Math.max(0.0, Math.min(1.0, t));
+  }
+
+  private static TurnParams computeDynamicTurnParams(
+      double speedRatio, double curvature, IntentResult intent) {
     double turnMin = 0.22;
     double turnMax = 0.48;
     double turnBase = 0.24;
@@ -134,11 +190,18 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
     double accelSpeedGain = 0.15;
 
     double turnPerTick =
-        clamp(turnMin, turnMax, turnBase + turnSpeedGain * sr + turnCurvatureGain * curvature);
+        clamp(
+            turnMin,
+            turnMax,
+            turnBase + turnSpeedGain * speedRatio + turnCurvatureGain * curvature);
     double headingKp =
-        clamp(kpMin, kpMax, kpBase + kpSpeedGain * sr + kpCurvatureGain * curvature);
-    double minFloor = clamp(floorMin, floorMax, floorBase + floorSpeedGain * sr);
-    double accelMul = clamp(accelMin, accelMax, accelBase + accelSpeedGain * (1.0 - sr));
+        clamp(
+            kpMin,
+            kpMax,
+            kpBase + kpSpeedGain * speedRatio + kpCurvatureGain * curvature);
+    double minFloor = clamp(floorMin, floorMax, floorBase + floorSpeedGain * speedRatio);
+    double accelMul =
+        clamp(accelMin, accelMax, accelBase + accelSpeedGain * (1.0 - speedRatio));
     turnPerTick = getOrDefault(intent, "turn_pt", turnPerTick);
     headingKp = getOrDefault(intent, "heading_kp", headingKp);
     minFloor = getOrDefault(intent, "turn_floor", minFloor);

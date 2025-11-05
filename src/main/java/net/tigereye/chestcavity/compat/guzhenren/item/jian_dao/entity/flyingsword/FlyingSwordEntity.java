@@ -425,7 +425,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       }
       return;
     }
-
+    //当环绕轨迹切换东西方向时，目标速度向量会在一帧内接近 180° 翻转
     Vec3 targetLook = currentVelocity.normalize();
 
     // 如果是第一次，直接使用目标朝向
