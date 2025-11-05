@@ -3,7 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.SingleSwordProjectileRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.SwordShadowCloneRenderer;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.client.FlyingSwordRenderer;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.FlyingSwordRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.rift.client.RiftRenderer;
 import net.tigereye.chestcavity.registration.CCEntities;
 

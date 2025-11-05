@@ -25,7 +25,7 @@ public record FlyingSwordWithdrawPayload(int index1) implements CustomPacketPayl
     context.enqueueWork(
         () -> {
           if (context.player() instanceof net.minecraft.server.level.ServerPlayer sp) {
-            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ui
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
                     .FlyingSwordTUIOps
                 .withdrawDisplayItem(sp.serverLevel(), sp, payload.index1);
           }

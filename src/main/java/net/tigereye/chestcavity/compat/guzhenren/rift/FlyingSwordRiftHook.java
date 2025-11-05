@@ -11,8 +11,8 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.FlyingSwordEventHook;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context.HitEntityContext;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventHook;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.HitEntityContext;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /**
@@ -86,7 +86,7 @@ public class FlyingSwordRiftHook implements FlyingSwordEventHook {
 
   @Override
   public void onTick(
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.context
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
               .TickContext ctx) {
     // 仅服务端执行
     if (ctx.level.isClientSide) return;

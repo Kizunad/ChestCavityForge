@@ -222,11 +222,11 @@ public class ChestCavity {
     event.registerReloadListener(new FxDefinitionLoader());
     // 新：飞剑视觉Profile（数据驱动渲染配置）
     event.registerReloadListener(
-        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.client
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.client
             .profile.SwordVisualProfileLoader());
     // 客户端：飞剑模型覆盖定义（Gecko/Item 渲染覆盖）
     event.registerReloadListener(
-        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.client
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.client
             .override.SwordModelOverrideLoader());
   }
 

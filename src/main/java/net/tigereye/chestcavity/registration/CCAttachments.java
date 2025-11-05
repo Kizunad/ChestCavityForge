@@ -17,7 +17,7 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactor
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.state.WuxingGuiBianAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordStorage;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
@@ -100,7 +100,7 @@ public final class CCAttachments {
                       .build());
 
   public static final DeferredHolder<AttachmentType<?>, AttachmentType<
-          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
               .FlyingSwordSelection>>
       FLYING_SWORD_SELECTION =
           ATTACHMENT_TYPES.register(
@@ -202,14 +202,14 @@ public final class CCAttachments {
     return new FlyingSwordStorage();
   }
 
-  private static net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+  private static net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
           .FlyingSwordSelection
       createFlyingSwordSelection(IAttachmentHolder holder) {
     if (!(holder instanceof Player)) {
       throw new IllegalStateException(
           "FlyingSwordSelection attachment can only be applied to players");
     }
-    return new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+    return new net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
         .FlyingSwordSelection();
   }
 
@@ -253,14 +253,14 @@ public final class CCAttachments {
     return player.getExistingData(FLYING_SWORD_STORAGE.get());
   }
 
-  public static net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+  public static net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
           .FlyingSwordSelection
       getFlyingSwordSelection(Player player) {
     return player.getData(FLYING_SWORD_SELECTION.get());
   }
 
   public static Optional<
-          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
               .FlyingSwordSelection>
       getExistingFlyingSwordSelection(Player player) {
     return player.getExistingData(FLYING_SWORD_SELECTION.get());
@@ -377,15 +377,15 @@ public final class CCAttachments {
   private static class FlyingSwordSelectionSerializer
       implements IAttachmentSerializer<
           CompoundTag,
-          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
               .FlyingSwordSelection> {
     @Override
-    public net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+    public net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
             .FlyingSwordSelection
         read(
             IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
       var sel =
-          new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
               .FlyingSwordSelection();
       if (!tag.isEmpty()) {
         sel.deserializeNBT(provider, tag);
@@ -395,7 +395,7 @@ public final class CCAttachments {
 
     @Override
     public CompoundTag write(
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.state
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
                 .FlyingSwordSelection
             attachment,
         HolderLookup.Provider provider) {

@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.rift;
 
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.events.FlyingSwordEventRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry;
 
 /**
  * 裂剑蛊系统初始化器

@@ -43,7 +43,7 @@ public class QingLianDomain extends AbstractDomain {
   private final double radiusScale;
 
   /** 青莲剑群集群管理器 */
-  private final net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.swarm
+  private final net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm
           .QingLianSwordSwarm
       swarmManager;
 
@@ -75,7 +75,7 @@ public class QingLianDomain extends AbstractDomain {
 
     // 初始化集群管理器
     this.swarmManager =
-        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.swarm
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm
             .QingLianSwordSwarm(getDomainId(), owner);
   }
 
@@ -253,7 +253,7 @@ public class QingLianDomain extends AbstractDomain {
    *
    * @return 集群管理器
    */
-  public net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.swarm
+  public net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm
           .QingLianSwordSwarm
       getSwarmManager() {
     return swarmManager;

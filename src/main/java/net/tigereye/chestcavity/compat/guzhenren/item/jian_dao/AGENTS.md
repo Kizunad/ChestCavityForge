@@ -15,7 +15,7 @@
   - 例如：`tuning/JianXinGuTuning.java`、`tuning/JianXinGuPassiveTuning.java`、`tuning/JianYuGuTuning.java`
 - fx：轻量表现/提示（UI toast、粒子/音效入口；默认克制）。
   - 例如：`fx/JianXinGuFx.java`
-- 其他子域：`client/`、`entity/`、`events/`、`tuning/`（飞剑等子模块自成体系时再分层）。
+- 其他子域：`client/`、`entity/`、`events/`、`tuning/`（跨实体子模块若独立，如“飞剑”，请迁移至 `compat/guzhenren/flyingsword/` 并在该模块内分层）。
 
 ## 注册与引用规范（必须）
 - 器官行为类用 enum 单例；在 static 块中通过 `OrganActivationListeners.register(ABILITY_ID, <Behavior>::activateAbility)` 注册主动技。

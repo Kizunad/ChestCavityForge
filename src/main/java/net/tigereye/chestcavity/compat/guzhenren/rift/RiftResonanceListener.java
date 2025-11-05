@@ -94,7 +94,7 @@ public final class RiftResonanceListener {
    * @param hitPos 命中位置
    */
   public static void onFlyingSwordHit(
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity sword,
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity sword,
       Vec3 hitPos) {
 
     if (sword.level().isClientSide || !(sword.level() instanceof ServerLevel level)) {

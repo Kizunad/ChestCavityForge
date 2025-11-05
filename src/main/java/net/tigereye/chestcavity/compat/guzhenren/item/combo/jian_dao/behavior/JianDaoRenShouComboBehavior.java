@@ -148,7 +148,7 @@ public final class JianDaoRenShouComboBehavior {
   private static void summon(ServerLevel level, ServerPlayer player, float drained) {
     // 继承：按主手物品
     ItemStack source = player.getMainHandItem();
-    var cfg = new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util
+    var cfg = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
         .ItemAffinityUtil.Config();
     cfg.attackDamageCoef = JianDaoRenShouComboTuning.AFFINITY_ATTACK_DAMAGE_COEF;
     cfg.attackSpeedAbsCoef = JianDaoRenShouComboTuning.AFFINITY_ATTACK_SPEED_ABS_COEF;
@@ -164,15 +164,15 @@ public final class JianDaoRenShouComboBehavior {
     cfg.armorDuraLossMultPerPoint = JianDaoRenShouComboTuning.AFFINITY_ARMOR_DURA_LOSS_MULT_PER_POINT;
 
     var result =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
             .ItemAffinityUtil.evaluate(level, source, cfg);
 
-    var sword = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+    var sword = net.tigereye.chestcavity.compat.guzhenren.flyingsword
         .FlyingSwordSpawner.spawnFromOwnerWithModifiersAndSpec(
             level,
             player,
             source,
-            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword
                 .FlyingSwordType.REN_SHOU_ZANG_SHENG,
             result.modifiers,
             result.initSpec);

@@ -6,8 +6,8 @@ import java.util.WeakHashMap;
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.goal.ForceHuntTargetGoal;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.goal.ForceHuntTargetGoal;
 
 /**
  * 飞剑 Goal 管理工具：按需挂载/复用强制追击目标的 Goal，并提供便捷方法。

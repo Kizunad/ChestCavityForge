@@ -17,10 +17,10 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.CommandTactic;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.SwordCommandCenter;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.CommandTactic;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
 /**
  * 剑引蛊专用命令：负责聊天 TUI 的回调。

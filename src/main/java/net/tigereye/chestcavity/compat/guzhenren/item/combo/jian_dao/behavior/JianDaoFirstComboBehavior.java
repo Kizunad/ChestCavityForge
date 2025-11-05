@@ -72,7 +72,7 @@ public final class JianDaoFirstComboBehavior {
     ItemStack source = player.getMainHandItem();
 
     // 构建系数配置（数值留在 Combo Tuning）
-    var cfg = new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util
+    var cfg = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
         .ItemAffinityUtil.Config();
     cfg.attackDamageCoef = JianDaoComboTuning.AFFINITY_ATTACK_DAMAGE_COEF;
     cfg.attackSpeedAbsCoef = JianDaoComboTuning.AFFINITY_ATTACK_SPEED_ABS_COEF;
@@ -88,17 +88,17 @@ public final class JianDaoFirstComboBehavior {
     cfg.armorDuraLossMultPerPoint = JianDaoComboTuning.AFFINITY_ARMOR_DURA_LOSS_MULT_PER_POINT;
 
     var result =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
             .ItemAffinityUtil.evaluate(
                 (net.minecraft.server.level.ServerLevel) player.level(), source, cfg);
 
-    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity sword =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity sword =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword
             .FlyingSwordSpawner.spawnFromOwnerWithModifiersAndSpec(
                 (net.minecraft.server.level.ServerLevel) player.level(),
                 player,
                 source,
-                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+                net.tigereye.chestcavity.compat.guzhenren.flyingsword
                     .FlyingSwordType.ZHENG_DAO,
                 result.modifiers,
                 result.initSpec);

@@ -210,8 +210,8 @@ public class RiftEntity extends Entity implements OwnableEntity {
         return true;
       }
       // 若释放者本身有主人（如飞剑→玩家），同样视作友军
-      if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity
-          .flyingsword.FlyingSwordEntity sword) {
+      if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity
+          sword) {
         LivingEntity master = sword.getOwner();
         if (master != null) {
           if (entity == master) {

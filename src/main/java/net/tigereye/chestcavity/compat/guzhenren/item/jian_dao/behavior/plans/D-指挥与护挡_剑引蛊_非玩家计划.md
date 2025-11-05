@@ -25,7 +25,7 @@
 —
 
 ## 改动位点
-- `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/jian_dao/entity/flyingsword/FlyingSwordController.java`（新增非玩家映射）
+- `src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/FlyingSwordController.java`（新增非玩家映射）
 - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/jian_dao/behavior/organ/JianYinGuOrganBehavior.java:140, 220`（行为改造）
 - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/jian_dao/behavior/organ/JianYinGuOrganBehavior.java`（增加 Mob 自动化分支）
 
@@ -36,4 +36,3 @@
 - 护挡概率与效果等同玩家；
 - 无 UI 和聊天提示；
 - 无异常日志与性能问题。
-

@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.registration.CCEntities;
 
 /**

@@ -27,10 +27,10 @@ import net.tigereye.chestcavity.compat.guzhenren.domain.impl.qinglian.QingLianDo
 import net.tigereye.chestcavity.compat.guzhenren.domain.impl.qinglian.fx.QingLianDomainFX;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.YunJianQingLianGuCalc;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordSpawner;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordType;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordSpawner;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordType;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.YunJianQingLianGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 // 非玩家自动化逻辑暂不启用；如需后续支持再引入对应工具类

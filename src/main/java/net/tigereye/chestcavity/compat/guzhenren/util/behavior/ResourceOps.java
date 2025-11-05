@@ -526,7 +526,7 @@ public final class ResourceOps {
   public static boolean consumeFlyingSwordUpkeep(
       LivingEntity owner,
       double zhenyuanCost,
-      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.tuning
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
           .FlyingSwordTuning.NonPlayerUpkeepMode mode) {
     if (owner == null) {
       return false;

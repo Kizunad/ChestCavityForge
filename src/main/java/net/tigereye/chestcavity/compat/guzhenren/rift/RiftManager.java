@@ -297,7 +297,7 @@ public final class RiftManager {
     double daoHen = 0.0;
     LivingEntity owner = rift.getOwner();
     LivingEntity master = null;
-    if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword
+    if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.flyingsword
         .FlyingSwordEntity sword) {
       master = sword.getOwner();
     }
