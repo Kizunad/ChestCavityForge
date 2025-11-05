@@ -125,13 +125,47 @@ public final class SwordCommandCenter {
   }
 
   public static void openTui(ServerPlayer player) {
-    // Phase 1: TUI 功能开关守卫
-    if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_TUI) {
-      return;
-    }
     CommandSession session = sessionOrCreate(player);
-    SwordCommandTUI.open(player, session);
+    // Phase 5: TUI 降级 - 关闭时提供最小反馈
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_TUI) {
+      SwordCommandTUI.open(player, session);
+    } else {
+      sendMinimalFeedback(player, session);
+    }
     session.lastTuiSentAt = player.level().getGameTime();
+  }
+
+  /**
+   * Phase 5: 最小反馈模式 - 当 TUI 关闭时使用
+   *
+   * <p>输出简化的文本消息，保留核心信息：
+   * <ul>
+   *   <li>当前标记数量</li>
+   *   <li>当前战术</li>
+   *   <li>当前分组</li>
+   * </ul>
+   */
+  private static void sendMinimalFeedback(ServerPlayer player, CommandSession session) {
+    int marked = session.markedCount(session.groupId());
+    String tacticName = session.tactic().displayName().getString();
+    int groupId = session.groupId();
+    String groupName =
+        switch (groupId) {
+          case 0 -> "全部";
+          case 1 -> "G1";
+          case 2 -> "G2";
+          case 3 -> "G3";
+          default -> groupId == FlyingSwordEntity.SWARM_GROUP_ID ? "剑群" : "#" + groupId;
+        };
+
+    player.sendSystemMessage(
+        net.minecraft.network.chat.Component.literal(
+            String.format(
+                java.util.Locale.ROOT,
+                "[飞剑指挥] 标记: %d | 战术: %s | 分组: %s",
+                marked,
+                tacticName,
+                groupName)));
   }
 
   public static boolean execute(ServerPlayer player, long nowTick) {

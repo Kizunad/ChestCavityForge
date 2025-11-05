@@ -58,8 +58,14 @@ public class FlyingSwordRenderer extends EntityRenderer<FlyingSwordEntity> {
       MultiBufferSource buffer,
       int packedLight) {
 
-    SwordModelOverrideDef def = SwordModelOverrideRegistry.getForSword(entity).orElse(null);
-    SwordVisualProfile prof = SwordVisualProfileRegistry.getForSword(entity).orElse(null);
+    // Phase 5: 仅在开关启用时查询 Gecko/Override/Profile（避免空查询开销）
+    SwordModelOverrideDef def = null;
+    SwordVisualProfile prof = null;
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+        .ENABLE_GEO_OVERRIDE_PROFILE) {
+      def = SwordModelOverrideRegistry.getForSword(entity).orElse(null);
+      prof = SwordVisualProfileRegistry.getForSword(entity).orElse(null);
+    }
     boolean useGecko =
         def != null
             && def.renderer == SwordModelOverrideDef.RendererKind.GECKO

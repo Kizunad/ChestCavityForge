@@ -28,18 +28,18 @@
   - `docs/stages/PHASE_2.md`（✅ 已创建）
   - `docs/stages/PHASE_3.md`（✅ 已创建）
   - `docs/stages/PHASE_4.md`（✅ 已创建）
-  - `docs/stages/PHASE_5.md`（✅ 已创建）
+  - `docs/stages/PHASE_5.md`（✅ 已完成详细规划并实施）
   - `docs/stages/PHASE_6.md`（✅ 已创建）
   - `docs/stages/PHASE_7.md`（✅ 已创建）
 - 测试用例文档：`docs/FLYINGSWORD_TEST_CASES.md`（待产）
 
 ## 4. 阶段规划（Stage Plans 摘要）
-- Phase 0｜接线与开关：事件初始化接线；添加开关（高级轨迹/扩展意图/Swarm/TUI/Gecko）。
-- Phase 1｜裁剪：精简轨迹/意图；停用旧 Goal；TUI/Gecko/Swarm 默认关闭并可配置。
-- Phase 2｜分层重构：建立 core+systems，削薄实体；迁移 movement/combat/upkeep。
-- Phase 3｜事件扩展：ModeChange/TargetAcquired/Lost/UpkeepCheck/PostHit/BlockBreakAttempt 等。
-- Phase 4｜冷却与资源：统一 MultiCooldown/ResourceOps，失败策略可配。
-- Phase 5｜客户端与网络：渲染降噪；网络仅必要同步。
+- Phase 0｜接线与开关：事件初始化接线；添加开关（高级轨迹/扩展意图/Swarm/TUI/Gecko）。✅
+- Phase 1｜裁剪：精简轨迹/意图；停用旧 Goal；TUI/Gecko/Swarm 默认关闭并可配置。✅
+- Phase 2｜分层重构：建立 core+systems，削薄实体；迁移 movement/combat/upkeep。✅
+- Phase 3｜事件扩展：ModeChange/TargetAcquired/Lost/UpkeepCheck/PostHit/BlockBreakAttempt 等。✅
+- Phase 4｜冷却与资源：统一 MultiCooldown/ResourceOps，失败策略可配。✅
+- Phase 5｜客户端与网络：渲染降噪；网络仅必要同步。✅
 - Phase 6｜文档与测试：补文档与 JUnit5；门槛覆盖率≥70%。
 - Phase 7｜最终清理：删除未引用实现，评审与发布。
 
