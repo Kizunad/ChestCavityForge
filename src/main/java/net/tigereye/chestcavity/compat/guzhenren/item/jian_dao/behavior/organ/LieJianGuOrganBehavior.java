@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ;
 
+import java.util.List;
 import java.util.OptionalDouble;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -15,10 +16,17 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftE
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftManager;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.rift.RiftType;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import java.util.Set;
+import java.util.stream.Collectors;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.world.entity.Mob;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AIIntrospection;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ActiveSkillOps;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
@@ -51,6 +59,11 @@ public enum LieJianGuOrganBehavior implements OrganSlowTickListener, OrganOnHitL
   private static final String STATE_ROOT = "LieJian";
   private static final String ACTIVE_READY_KEY = "ActiveReadyAt"; // long - 技能就绪时间戳
   private static final String K_LAST_PASSIVE_RIFT = "LastPassiveRiftAt"; // long - 上次被动生成裂隙的时间
+  private static final String K_LAST_ATTACK_GOALS = "LastAttackGoals"; // ListTag(StringTag)
+  private static final String K_DISENGAGED_AT = "DisengagedAt"; // long - 脱战时间戳
+
+  /** 脱战后延迟停止（tick） */
+  private static final int DISENGAGE_DELAY_TICKS = 100; // 5秒
 
   /** 技能基础冷却（tick） */
   private static final int ABILITY_COOLDOWN = 8 * 20; // 8秒（基础）
@@ -233,8 +246,48 @@ public enum LieJianGuOrganBehavior implements OrganSlowTickListener, OrganOnHitL
   // ========== 慢速Tick ==========
   @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-    // 裂剑蛊当前无持续消耗逻辑
-    // 未来可在此处添加维持消耗或状态检查
+    // 玩家分支：无逻辑
+    if (entity instanceof ServerPlayer) {
+      return;
+    }
+    // 非 Mob 或客户端：无逻辑
+    if (!(entity instanceof Mob mob) || entity.level().isClientSide) {
+      return;
+    }
+
+    OrganState state = OrganState.of(organ, STATE_ROOT);
+    long now = mob.level().getGameTime();
+    MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
+
+    // 1. 战斗状态判定
+    List<String> currentGoals = AIIntrospection.getRunningAttackGoalNames(mob);
+    boolean inCombat = !currentGoals.isEmpty() && mob.getTarget() != null;
+
+    ListTag lastGoalsList = state.getList(K_LAST_ATTACK_GOALS, 8);
+    List<String> lastGoals = lastGoalsList.stream().map(tag -> tag.getAsString()).collect(Collectors.toList());
+    boolean wasInCombat = !lastGoals.isEmpty();
+
+    // 2. 状态变化处理
+    if (inCombat && !wasInCombat) {
+      // 进入战斗：清除脱战计时
+      state.remove(K_DISENGAGED_AT);
+    } else if (!inCombat && wasInCombat) {
+      // 脱离战斗：记录脱战时间
+      state.setLong(K_DISENGAGED_AT, now);
+    }
+
+    // 3. 施放逻辑
+    long disengagedAt = state.getLong(K_DISENGAGED_AT, 0);
+    if (inCombat || (disengagedAt > 0 && (now - disengagedAt) < DISENGAGE_DELAY_TICKS)) {
+      if (cooldown.entry(ACTIVE_READY_KEY).isReady(now)) {
+        ActiveSkillOps.activateFor(mob, ABILITY_ID);
+      }
+    }
+
+    // 4. 更新状态快照
+    ListTag goalTags = new ListTag();
+    currentGoals.forEach(g -> goalTags.add(StringTag.valueOf(g)));
+    state.setList(K_LAST_ATTACK_GOALS, goalTags);
   }
 
   // ========== 被动效果：剑击生成微型裂隙 ==========
