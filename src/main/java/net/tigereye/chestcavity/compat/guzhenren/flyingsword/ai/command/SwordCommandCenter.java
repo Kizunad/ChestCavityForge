@@ -125,6 +125,10 @@ public final class SwordCommandCenter {
   }
 
   public static void openTui(ServerPlayer player) {
+    // Phase 1: TUI 功能开关守卫
+    if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_TUI) {
+      return;
+    }
     CommandSession session = sessionOrCreate(player);
     SwordCommandTUI.open(player, session);
     session.lastTuiSentAt = player.level().getGameTime();
@@ -158,6 +162,10 @@ public final class SwordCommandCenter {
   }
 
   public static Optional<IntentResult> buildIntent(AIContext ctx) {
+    // Phase 1: TUI 功能开关守卫
+    if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_TUI) {
+      return Optional.empty();
+    }
     if (!(ctx.owner() instanceof ServerPlayer player)) {
       return Optional.empty();
     }
