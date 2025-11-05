@@ -11,7 +11,7 @@
 - 事件系统框架已就绪（FlyingSwordEventRegistry）
 - 默认钩子已定义（DefaultEventHooks、SwordClashHook）
 
-### ❌ 待完成
+### ✅ 已完成
 - FlyingSwordEventInit.init() **未在模组初始化流程中调用**
 - FlyingSwordTuning 中**缺少功能开关**定义
 - 客户端资源加载器（SwordVisualProfileLoader、SwordModelOverrideLoader）**未受开关控制**
