@@ -162,6 +162,9 @@ public class ChestCavity {
       ReactionEngine.bootstrap();
       // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。
       NoDropEvents.init();
+
+      // 初始化飞剑事件系统（Phase 0：构造函数内接线，避免与文档背离）
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventInit.init();
     }
 
     // CCCommands.register();
@@ -177,11 +180,6 @@ public class ChestCavity {
   }
 
   public void setup(FMLCommonSetupEvent event) {
-    // 初始化飞剑事件系统（Phase 0）
-    if (ModList.get().isLoaded("guzhenren")) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventInit.init();
-    }
-
     // 初始化裂剑蛊系统（飞剑事件钩子、剑气技能注册）
     if (ModList.get().isLoaded("guzhenren")) {
       net.tigereye.chestcavity.compat.guzhenren.rift.RiftSystemInitializer.initialize();
