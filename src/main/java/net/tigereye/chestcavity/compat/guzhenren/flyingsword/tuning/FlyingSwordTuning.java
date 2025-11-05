@@ -107,4 +107,22 @@ public final class FlyingSwordTuning {
 
   /** 非玩家默认剑道流派经验（用于耐久减免计算） */
   public static final double NON_PLAYER_DEFAULT_SWORD_PATH_EXP = 10001.0;
+
+  // ==================== 功能开关 ====================
+  // Phase 0: 添加功能开关，为后续裁剪做准备
+
+  /** 启用高级轨迹（保留：Orbit, PredictiveLine, CurvedIntercept） */
+  public static final boolean ENABLE_ADVANCED_TRAJECTORIES = false;
+
+  /** 启用额外意图（每个模式最多保留 2 条基础意图） */
+  public static final boolean ENABLE_EXTRA_INTENTS = false;
+
+  /** 启用青莲剑群系统（QingLianSwordSwarm） */
+  public static final boolean ENABLE_SWARM = false;
+
+  /** 启用剑引蛊 TUI（SwordCommandTUI） */
+  public static final boolean ENABLE_TUI = false;
+
+  /** 启用 Gecko 模型覆盖与视觉档案 */
+  public static final boolean ENABLE_GEO_OVERRIDE_PROFILE = false;
 }

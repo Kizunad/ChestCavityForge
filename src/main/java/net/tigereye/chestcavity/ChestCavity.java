@@ -177,6 +177,11 @@ public class ChestCavity {
   }
 
   public void setup(FMLCommonSetupEvent event) {
+    // 初始化飞剑事件系统（Phase 0）
+    if (ModList.get().isLoaded("guzhenren")) {
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventInit.init();
+    }
+
     // 初始化裂剑蛊系统（飞剑事件钩子、剑气技能注册）
     if (ModList.get().isLoaded("guzhenren")) {
       net.tigereye.chestcavity.compat.guzhenren.rift.RiftSystemInitializer.initialize();
@@ -220,14 +225,19 @@ public class ChestCavity {
     event.registerReloadListener(new GuScriptRuleLoader());
     event.registerReloadListener(new GeckoFxDefinitionLoader());
     event.registerReloadListener(new FxDefinitionLoader());
-    // 新：飞剑视觉Profile（数据驱动渲染配置）
-    event.registerReloadListener(
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.client
-            .profile.SwordVisualProfileLoader());
-    // 客户端：飞剑模型覆盖定义（Gecko/Item 渲染覆盖）
-    event.registerReloadListener(
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.client
-            .override.SwordModelOverrideLoader());
+
+    // Gecko 模型与视觉档案系统（受功能开关控制 - Phase 0）
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+        .ENABLE_GEO_OVERRIDE_PROFILE) {
+      // 飞剑视觉Profile（数据驱动渲染配置）
+      event.registerReloadListener(
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.client
+              .profile.SwordVisualProfileLoader());
+      // 飞剑模型覆盖定义（Gecko/Item 渲染覆盖）
+      event.registerReloadListener(
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.client
+              .override.SwordModelOverrideLoader());
+    }
   }
 
   public static boolean isDebugMode() {
