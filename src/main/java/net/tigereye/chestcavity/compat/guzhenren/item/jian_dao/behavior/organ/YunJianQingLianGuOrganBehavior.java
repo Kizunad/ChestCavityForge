@@ -458,7 +458,7 @@ public enum YunJianQingLianGuOrganBehavior
                 qingLianDomain.getSwarmManager().commandAttack(target);
               } else {
                 // 降级路径：单个飞剑追击目标
-                ListTag swordList = state.getList(K_SWORDS);
+                ListTag swordList = state.getList(K_SWORDS, Tag.TAG_COMPOUND);
                 for (Tag swordTag : swordList) {
                   if (swordTag instanceof CompoundTag ct) {
                     UUID swordId = ct.getUUID("UUID");
@@ -492,7 +492,7 @@ public enum YunJianQingLianGuOrganBehavior
               qingLianDomain.getSwarmManager().commandAttack(target);
             } else {
               // 降级路径：单个飞剑追击目标
-              ListTag swordList = state.getList(K_SWORDS);
+              ListTag swordList = state.getList(K_SWORDS, Tag.TAG_COMPOUND);
               for (Tag swordTag : swordList) {
                 if (swordTag instanceof CompoundTag ct) {
                   UUID swordId = ct.getUUID("UUID");
