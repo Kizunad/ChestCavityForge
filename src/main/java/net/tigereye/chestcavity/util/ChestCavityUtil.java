@@ -788,7 +788,8 @@ public class ChestCavityUtil {
       ChestCavityInstance cc, DamageSource source, LivingEntity target, float damage) {
     if (cc.opened) {
       // this is for individual organs
-      for (OrganOnHitContext e : cc.onHitListeners) {
+      // Use a snapshot to avoid ConcurrentModificationException when listeners mutate the list
+      for (OrganOnHitContext e : List.copyOf(cc.onHitListeners)) {
         damage = e.listener.onHit(source, cc.owner, target, cc, e.organ, damage);
       }
       // this is for organ scores
@@ -800,7 +801,8 @@ public class ChestCavityUtil {
 
   public static float onIncomingDamage(ChestCavityInstance cc, DamageSource source, float damage) {
     if (cc.opened) {
-      for (OrganIncomingDamageContext ctx : cc.onDamageListeners) {
+      // Snapshot to prevent concurrent modification if callbacks add/remove listeners
+      for (OrganIncomingDamageContext ctx : List.copyOf(cc.onDamageListeners)) {
         damage = ctx.listener.onIncomingDamage(source, cc.owner, cc, ctx.organ, damage);
       }
       organUpdate(cc);
@@ -816,12 +818,12 @@ public class ChestCavityUtil {
       OrganTickCallback.organTick(cc.owner, cc);
       // Dispatch per-tick callbacks for organs that react while the owner is burning
       if (cc.owner.isOnFire() && !cc.onFireListeners.isEmpty()) {
-        for (OrganOnFireContext ctx : cc.onFireListeners) {
+        for (OrganOnFireContext ctx : List.copyOf(cc.onFireListeners)) {
           ctx.listener.onFireTick(cc.owner, cc, ctx.organ);
         }
       }
       if (cc.owner.onGround() && !cc.onGroundListeners.isEmpty()) {
-        for (OrganOnGroundContext ctx : cc.onGroundListeners) {
+        for (OrganOnGroundContext ctx : List.copyOf(cc.onGroundListeners)) {
           ctx.listener.onGroundTick(cc.owner, cc, ctx.organ);
         }
       }
@@ -837,7 +839,7 @@ public class ChestCavityUtil {
       // Apply generic healing contributions once per tick (server-side)
       if (!cc.owner.level().isClientSide() && !cc.onHealListeners.isEmpty()) {
         float totalHeal = 0f;
-        for (OrganHealContext ctx : cc.onHealListeners) {
+        for (OrganHealContext ctx : List.copyOf(cc.onHealListeners)) {
           totalHeal += Math.max(0f, ctx.listener.getHealingPerTick(cc.owner, cc, ctx.organ));
         }
         if (totalHeal > 0f && cc.owner.getHealth() < cc.owner.getMaxHealth()) {

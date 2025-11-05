@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.Ji
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.CommandTactic;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.command.SwordCommandCenter;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 
 /**
  * 剑引蛊专用命令：负责聊天 TUI 的回调。
@@ -56,7 +57,10 @@ public final class JianYinGuCommand {
                     .then(
                         Commands.literal("group")
                             .then(
-                                Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                                Commands.argument(
+                                        "group",
+                                        // 支持特殊的青莲集群组ID（SWARM_GROUP_ID=900）
+                                        IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
                                     .executes(JianYinGuCommand::setGroup)))
                     .then(Commands.literal("execute").executes(JianYinGuCommand::execute))
                     .then(Commands.literal("cancel").executes(JianYinGuCommand::cancel))

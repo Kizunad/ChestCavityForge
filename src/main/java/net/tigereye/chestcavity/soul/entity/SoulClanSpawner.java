@@ -65,6 +65,10 @@ public final class SoulClanSpawner {
       // 仅在服务端运行，客户端 world tick 不执行任何逻辑。
       return;
     }
+    // 维度限制：不在地狱与末地刷新。
+    if (serverLevel.dimension() == Level.NETHER || serverLevel.dimension() == Level.END) {
+      return;
+    }
     if (!serverLevel
         .getGameRules()
         .getBoolean(net.tigereye.chestcavity.config.CCGameRules.SPAWN_FUN_ENTITIES)) {

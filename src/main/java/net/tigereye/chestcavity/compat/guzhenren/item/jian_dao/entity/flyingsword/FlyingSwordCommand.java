@@ -19,6 +19,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.AIMode;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordEntity;
 
 /**
  * 飞剑命令系统
@@ -165,19 +166,26 @@ public final class FlyingSwordCommand {
             .then(
                 Commands.literal("group_selected")
                     .then(
-                        Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                        Commands.argument(
+                                "group",
+                                // 接受普通组(0..3)以及青莲集群特殊组ID
+                                IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
                             .executes(FlyingSwordCommand::setGroupSelected)))
             .then(
                 Commands.literal("group_index")
                     .then(
                         Commands.argument("index", IntegerArgumentType.integer(1, 999))
                             .then(
-                                Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                                Commands.argument(
+                                        "group",
+                                        IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
                                     .executes(FlyingSwordCommand::setGroupByIndex))))
             .then(
                 Commands.literal("group_all")
                     .then(
-                        Commands.argument("group", IntegerArgumentType.integer(0, 99))
+                        Commands.argument(
+                                "group",
+                                IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
                             .executes(FlyingSwordCommand::setGroupAll)))
             // /flyingsword repair_selected
             .then(Commands.literal("repair_selected").executes(FlyingSwordCommand::repairSelected))
