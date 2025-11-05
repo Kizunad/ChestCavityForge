@@ -11,10 +11,10 @@
 - 事件系统框架已就绪（FlyingSwordEventRegistry）
 - 默认钩子已定义（DefaultEventHooks、SwordClashHook）
 
-### ✅ 已完成
-- FlyingSwordEventInit.init() **未在模组初始化流程中调用**
-- FlyingSwordTuning 中**缺少功能开关**定义
-- 客户端资源加载器（SwordVisualProfileLoader、SwordModelOverrideLoader）**未受开关控制**
+### ✅ 已完成（问题项已修正）
+- FlyingSwordEventInit.init() 已在模组构造函数内的 `guzhenren` 分支调用（避免与文档先例不一致）
+- FlyingSwordTuning 中已添加功能开关（ENABLE_ADVANCED_TRAJECTORIES/EXTRA_INTENTS/SWARM/TUI/GEO_OVERRIDE_PROFILE）
+- 客户端资源加载器（SwordVisualProfileLoader、SwordModelOverrideLoader）已受 `ENABLE_GEO_OVERRIDE_PROFILE` 控制
 
 ## 任务清单
 
@@ -190,4 +190,3 @@ Phase 0 完成后，为 Phase 1 做好准备：
 - ✅ 功能开关已定义
 - ✅ 事件系统已初始化
 - ➡️ Phase 1 可以开始使用开关来裁剪轨迹和意图
-

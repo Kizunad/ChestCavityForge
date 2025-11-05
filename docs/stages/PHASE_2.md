@@ -3,6 +3,19 @@
 ## 阶段目标
 - 建立 systems 目录；迁移 movement/combat/upkeep；削薄实体逻辑。
 
+## 当前实现状态
+
+### ✅ 已完成
+- 新增目录与文档：`compat/guzhenren/flyingsword/systems/`，包含 `README.md`
+- MovementSystem：集中 AI→轨迹→速度应用（见 `MovementSystem.tick()`）
+- CombatSystem：集中碰撞与伤害，委托 `FlyingSwordCombat`（见 `CombatSystem.tick()`）
+- UpkeepSystem：集中维持消耗与召回（见 `UpkeepSystem.tick()`）
+- 实体整合：`FlyingSwordEntity.tickServer()` 已委托至上述系统，保持事件与破块逻辑不变
+
+### 📌 待后续（Phase 3/4）
+- DefenseSystem（受击管线）迁移；新增 PostHit/UpkeepCheck/BlockBreakAttempt 等事件
+- 冷却统一至 MultiCooldown（Phase 4）
+
 ## 任务列表
 - ✅ 建立 `systems/` 目录与 README（职责与顺序）
 - ✅ MovementSystem：应用 SteeringTemplate → setDeltaMovement
@@ -142,4 +155,3 @@ public static double calculateCurrentDamage(FlyingSwordEntity sword)
 public static int tick(FlyingSwordEntity sword, int upkeepTicks)
 public static double calculateUpkeepCost(FlyingSwordEntity sword, int ticks)
 ```
-
