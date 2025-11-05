@@ -3,6 +3,11 @@
 ## 阶段目标
 - 冷却集中 `MultiCooldown`；资源消耗统一 `ResourceOps`；失败策略可配。
 
+## 当前实现状态（核对）
+- 冷却统一入口：已提供 `FlyingSwordCooldownOps` 统一 API，并接入 `CombatSystem → FlyingSwordCombat` 攻击冷却链路。
+- 实现策略：为降低复杂度，当前使用“实体级兼容镜像字段”保存冷却（`FlyingSwordEntity.attackCooldown`），统一通过 API 访问；后续可无缝替换为 owner 附件（MultiCooldown）。
+- Upkeep 覆盖：`UpkeepSystem` 已支持 `UpkeepCheck.finalCost` 覆盖并提供 `skipConsumption` 跳过，调用 `consumeFixedUpkeep(finalCost)`。
+
 ## 实施日期
 2025-11-05
 
@@ -321,4 +326,3 @@ Phase 4 完成后，Phase 5 将专注于：
 - 文档与迁移说明
   - 更新 `FLYINGSWORD_STANDARDS.md` 冷却与资源章节，规定统一入口
   - 在 `PHASE_4.md` 保留“不能做/要做”对照作为上线前检查清单
-
