@@ -572,164 +572,40 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
         .FlyingSwordEventRegistry.fireTick(tickCtx);
 
-    // 攻击冷却递减
-    if (attackCooldown > 0) {
-      attackCooldown--;
-    }
-
-    // 维持消耗检查（可被钩子跳过）
+    // Phase 2: 维持系统 (UpkeepSystem) - 集中管理资源消耗
     if (!tickCtx.skipUpkeep) {
-      upkeepTicks++;
-    }
-    if (!tickCtx.skipUpkeep && upkeepTicks >= FlyingSwordTuning.UPKEEP_CHECK_INTERVAL) {
-      upkeepTicks = 0;
-      if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.resource
-          .UpkeepOps.consumeIntervalUpkeep(this, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL)) {
-        // 音效：真元不足
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-            .playOutOfEnergy(this);
-        // 维持不足，召回
-        recallToOwner();
+      upkeepTicks = net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+          .UpkeepSystem.tick(this, upkeepTicks);
+      // 若维持不足，UpkeepSystem 会召回飞剑，此时实体已被移除
+      if (this.isRemoved()) {
         return;
       }
     }
 
-    // AI行为逻辑（可被钩子跳过）
+    // Phase 2: 运动系统 (MovementSystem) - 集中管理 AI 行为与速度计算
     if (!tickCtx.skipAI) {
-      tickAI();
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+          .MovementSystem.tick(this, owner, getAIMode());
     }
+
+    // Phase 2: 战斗系统 (CombatSystem) - 集中管理碰撞检测与伤害
+    this.attackCooldown = net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+        .CombatSystem.tick(this, this.attackCooldown);
 
     // 破块逻辑（速度分段 + 镐子可破范围，可被钩子跳过）
     if (!tickCtx.skipBlockBreak) {
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.BlockBreakOps
           .tickBlockBreak(this);
     }
-  }
-
-  // 维持消耗逻辑由 integration.resource.UpkeepOps 处理
-
-  private void tickAI() {
-    LivingEntity owner = getOwner();
-    if (owner == null) {
-      return;
-    }
-
-    AIMode mode = getAIMode();
-
-    boolean commandHandled = false;
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext
-        commandCtx = null;
-    if (owner instanceof ServerPlayer player && this.level() instanceof ServerLevel server) {
-      commandCtx =
-          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent
-              .AIContext(this, owner, server, server.getGameTime());
-      java.util.Optional<
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent
-                  .IntentResult>
-          directive =
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command
-                  .SwordCommandCenter.buildIntent(commandCtx);
-      if (directive.isPresent()) {
-        var res = directive.get();
-        res.getTargetEntity().ifPresent(this::setTargetEntity);
-        var template =
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory
-                .Trajectories.template(res.getTrajectoryType());
-        applySteeringTemplate(template, commandCtx, res);
-        commandHandled = true;
-      }
-    }
-
-    if (!commandHandled) {
-      switch (mode) {
-      case ORBIT ->
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-              .OrbitBehavior.tick(this, owner);
-      case GUARD -> {
-        // 新：Intent+Trajectory 流程（失败则回退到旧行为实现）
-        if (!(this.level() instanceof ServerLevel server)) break;
-        var ctx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext(
-            this, owner, server, server.getGameTime());
-        var intents = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.planner
-            .IntentPlanner.intentsFor(net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode.GUARD);
-        var best = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.planner
-            .IntentPlanner.pickBest(ctx, intents);
-        if (best.isPresent()) {
-          var res = best.get();
-          res.getTargetEntity().ifPresent(this::setTargetEntity);
-          var template = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory
-              .Trajectories.template(res.getTrajectoryType());
-          applySteeringTemplate(template, ctx, res);
-        } else {
-          // 回退到旧实现
-          var nearest =
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-                  .TargetFinder.findNearestHostileForGuard(
-                      this, owner.position(),
-                      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai
-                          .behavior.GuardBehavior.getSearchRange());
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-              .GuardBehavior.tick(this, owner, nearest);
-        }
-      }
-      case HUNT -> {
-        var nearest =
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-                .TargetFinder.findNearestHostile(
-                    this, this.position(),
-                    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai
-                        .behavior.HuntBehavior.getSearchRange());
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-            .HuntBehavior.tick(this, owner, nearest);
-      }
-      case HOVER ->
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-              .HoverBehavior.tick(this, owner);
-      case RECALL -> {
-        if (!(this.level() instanceof ServerLevel server)) break;
-        var ctx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext(
-            this, owner, server, server.getGameTime());
-        java.util.List<net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.Intent> intents =
-            java.util.List.of(
-                new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.RecallIntent());
-        var best = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.planner
-            .IntentPlanner.pickBest(ctx, intents);
-        if (best.isPresent()) {
-          var res = best.get();
-          var template = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory
-              .Trajectories.template(res.getTrajectoryType());
-          applySteeringTemplate(template, ctx, res);
-          // 抵达后执行实际召回
-          if (this.distanceTo(owner) < 1.0) {
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController.recall(this);
-          }
-        } else {
-          // 回退：旧召回实现
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-              .RecallBehavior.tick(this, owner);
-        }
-      }
-      case SWARM -> {
-        // 集群模式：由集群管理器（QingLianSwordSwarm）统一调度
-        // 飞剑不自行决策，仅执行集群管理器下发的指令
-        // 速度已在集群管理器的tick中通过applySteeringVelocity设置
-      }
-      }
-    }
-
-    // 检测碰撞攻击（集中在战斗模块）
-    this.attackCooldown =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.combat
-            .FlyingSwordCombat.tickCollisionAttack(this, this.attackCooldown);
-
-    // 更新当前速度
-    setCurrentSpeed((float) this.getDeltaMovement().length());
 
     // 粒子特效（每2 tick生成一次，减少性能消耗）
-    if (this.tickCount % 2 == 0 && this.level() instanceof ServerLevel serverLevel) {
-      spawnFlightParticles(serverLevel, mode);
+    if (this.tickCount % 2 == 0 && this.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+      spawnFlightParticles(serverLevel, getAIMode());
     }
   }
+
+  // Phase 2: 维持/运动/战斗逻辑已迁移到 systems/ 目录
+  // 原 tickAI() 方法已被 MovementSystem.tick() 替代
 
   /**
    * 生成飞行粒子特效
@@ -783,21 +659,23 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   // 目标搜索已迁移到 TargetFinder
 
   /**
-   * 应用转向行为
+   * Phase 2: 应用转向行为 (委托给 MovementSystem)
+   *
+   * <p>保留此方法以兼容外部模块调用 (如 Swarm 集群管理器)
    */
   public void applySteeringVelocity(Vec3 desiredVelocity) {
-    var snapshot =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-            .KinematicsSnapshot.capture(this);
-    var command =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-            .LegacySteeringAdapter.fromDesiredVelocity(desiredVelocity, snapshot);
-    Vec3 newVelocity =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-            .SteeringOps.computeNewVelocity(this, command, snapshot);
-    this.setDeltaMovement(newVelocity);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+        .MovementSystem.applySteeringVelocity(this, desiredVelocity);
   }
 
+  /**
+   * Phase 2: 应用转向模板 (内部方法，已由 MovementSystem 使用)
+   *
+   * <p>保留此方法以供 MovementSystem 调用，避免破坏封装
+   *
+   * @deprecated Phase 2: 考虑在后续阶段移除或私有化
+   */
+  @Deprecated
   private void applySteeringTemplate(
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
               .SteeringTemplate template,
