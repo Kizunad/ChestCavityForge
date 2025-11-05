@@ -228,7 +228,24 @@ public final class FlyingSwordCombat {
                 1.0 // TODO: 经验倍率
                 );
 
-        sword.addExperience(expGain);
+        // Phase 3: 触发经验获取事件（可修改或取消）
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+            .ExperienceGainContext.GainSource source =
+            (target instanceof net.minecraft.world.entity.player.Player)
+                ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                    .ExperienceGainContext.GainSource.KILL_PLAYER
+                : (isKill
+                    ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                        .ExperienceGainContext.GainSource.KILL_MOB
+                    : net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                        .ExperienceGainContext.GainSource.OTHER);
+        var expCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+            .ExperienceGainContext(sword, Math.max(0, (int) Math.round(expGain)), source);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+            .FlyingSwordEventRegistry.fireExperienceGain(expCtx);
+        if (!expCtx.cancelled && expCtx.finalExpAmount > 0) {
+          sword.addExperience(expCtx.finalExpAmount);
+        }
         newLevel = sword.getSwordLevel();
 
         // 击杀提示
@@ -253,7 +270,13 @@ public final class FlyingSwordCombat {
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
           .FlyingSwordEventRegistry.firePostHit(postHitCtx);
 
-      // 升级特效
+      // Phase 3: 触发升级事件与特效
+      if (newLevel > oldLevel) {
+        var lvlCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+            .LevelUpContext(sword, oldLevel, newLevel);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+            .FlyingSwordEventRegistry.fireLevelUp(lvlCtx);
+      }
       if (newLevel > oldLevel && sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnLevelUpEffect(serverLevel, sword, newLevel);
       }

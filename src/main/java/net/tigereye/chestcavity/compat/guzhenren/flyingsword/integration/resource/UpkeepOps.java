@@ -72,4 +72,22 @@ public final class UpkeepOps {
     return ResourceOps.consumeFlyingSwordUpkeep(
         owner, cost, FlyingSwordTuning.NON_PLAYER_UPKEEP_MODE);
   }
+
+  /**
+   * 直接按给定成本消耗一次维持费用（不重新计算）。
+   *
+   * <p>用于事件调整后（UpkeepCheck.finalCost）的快捷消费路径，减少重复计算与分支复杂度。
+   *
+   * @param sword  飞剑实体（用于获取主人）
+   * @param cost   最终消耗量（已包含倍率与区间）
+   * @return 成功消耗返回 true；失败返回 false。
+   */
+  public static boolean consumeFixedUpkeep(FlyingSwordEntity sword, double cost) {
+    LivingEntity owner = sword.getOwner();
+    if (owner == null) {
+      return false;
+    }
+    return ResourceOps.consumeFlyingSwordUpkeep(
+        owner, Math.max(0.0, cost), FlyingSwordTuning.NON_PLAYER_UPKEEP_MODE);
+  }
 }

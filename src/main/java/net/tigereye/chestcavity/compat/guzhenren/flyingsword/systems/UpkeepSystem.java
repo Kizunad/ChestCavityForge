@@ -90,8 +90,9 @@ public final class UpkeepSystem {
           speedPercent,
           FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
 
+      // Phase 3：事件上下文（finalCost 默认等于 baseCost，为简化不额外乘速度倍率）
       var upkeepCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.UpkeepCheckContext(
-          sword, baseCost, speedPercent, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
+          sword, baseCost, /*speedMultiplier*/ 1.0, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
 
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
           .fireUpkeepCheck(upkeepCtx);
@@ -101,9 +102,8 @@ public final class UpkeepSystem {
         return upkeepTicks; // 跳过消耗，继续运行
       }
 
-      // Phase 2: 尝试消耗维持资源（使用事件可能修改的消耗量）
-      boolean success = UpkeepOps.consumeIntervalUpkeep(
-          sword, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
+      // Phase 2/3: 尝试消耗维持资源（优先使用事件调整后的 finalCost）
+      boolean success = UpkeepOps.consumeFixedUpkeep(sword, upkeepCtx.finalCost);
 
       if (!success) {
         // Phase 2: 维持不足，播放音效

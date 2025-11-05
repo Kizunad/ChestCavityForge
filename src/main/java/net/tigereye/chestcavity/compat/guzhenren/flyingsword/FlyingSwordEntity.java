@@ -207,6 +207,21 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   public void setAIMode(AIMode mode) {
+    if (mode == null) return;
+    AIMode old = getAIMode();
+    if (old == mode) {
+      return;
+    }
+    // Phase 3: 触发模式切换事件（可取消）
+    try {
+      var ctx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+          .ModeChangeContext(this, old, mode, /*trigger*/ null);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+          .FlyingSwordEventRegistry.fireModeChange(ctx);
+      if (ctx.cancelled) {
+        return;
+      }
+    } catch (Throwable ignored) {}
     this.entityData.set(AI_MODE, mode.ordinal());
   }
 
@@ -231,6 +246,38 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   public void setTargetEntity(@Nullable LivingEntity target) {
+    LivingEntity old = this.getTargetEntity();
+    // 若新目标与旧目标不同，按顺序触发丢失/获取事件
+    if (old != target) {
+      if (old != null) {
+        try {
+          var lostCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+              .TargetLostContext(
+              this,
+              old,
+              target == null
+                  ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                      .TargetLostContext.LostReason.MANUAL_CANCEL
+                  : net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                      .TargetLostContext.LostReason.OTHER);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+              .FlyingSwordEventRegistry.fireTargetLost(lostCtx);
+        } catch (Throwable ignored) {}
+      }
+
+      if (target != null) {
+        try {
+          var acqCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+              .TargetAcquiredContext(this, target, getAIMode());
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
+              .FlyingSwordEventRegistry.fireTargetAcquired(acqCtx);
+          if (acqCtx.cancelled) {
+            return; // 取消锁定
+          }
+        } catch (Throwable ignored) {}
+      }
+    }
+
     this.cachedTarget = target;
     this.entityData.set(TARGET, target == null ? Optional.empty() : Optional.of(target.getUUID()));
   }

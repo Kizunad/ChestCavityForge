@@ -149,14 +149,14 @@
 ```
 1. Tick 事件 (Phase 0-2)
 2. UpkeepCheck 事件 (Phase 3) → 维持系统
-3. ModeChange 事件 (Phase 3, 待实现) → 运动系统
-4. TargetAcquired/TargetLost 事件 (Phase 3, 待实现) → 运动系统
+3. ModeChange 事件 (Phase 3, 已接线) → 运动系统
+4. TargetAcquired/TargetLost 事件 (Phase 3, 已接线) → 运动系统
 5. BlockBreakAttempt 事件 (Phase 3) → 破块系统
 6. BlockBreak 事件 (Phase 0-2) → 破块系统
 7. HitEntity 事件 (Phase 0-2) → 战斗系统
 8. PostHit 事件 (Phase 3) → 战斗系统
-9. ExperienceGain 事件 (Phase 3, 待实现) → 经验系统
-10. LevelUp 事件 (Phase 3, 待实现) → 经验系统
+9. ExperienceGain 事件 (Phase 3, 已接线) → 经验系统
+10. LevelUp 事件 (Phase 3, 已接线) → 经验系统
 ```
 
 ### 扩展性示例
@@ -195,88 +195,12 @@ public class ExpBoostHook implements FlyingSwordEventHook {
 }
 ```
 
-## 待完成任务
+## 待完成任务（精简版）
 
-### ⏳ ModeChange 和 Target 事件集成
-
-这些事件需要在 `FlyingSwordEntity` 类中触发（不在系统层），因为模式和目标的变更是实体状态的直接修改：
-
-**位置**: `FlyingSwordEntity.java`
-
-**待添加触发点**：
-1. `setAIMode(AIMode newMode)` 方法中触发 `ModeChange` 事件
-2. `setTarget(LivingEntity target)` 方法中触发 `TargetAcquired` 或 `TargetLost` 事件
-
-**实现建议**：
-```java
-// 在 setAIMode 中
-public void setAIMode(AIMode newMode) {
-  AIMode oldMode = this.getAIMode();
-  if (oldMode != newMode) {
-    var ctx = new ModeChangeContext(this, oldMode, newMode, null);
-    FlyingSwordEventRegistry.fireModeChange(ctx);
-    if (!ctx.cancelled) {
-      // 实际切换模式
-      this.entityData.set(AI_MODE, newMode);
-    }
-  }
-}
-
-// 在 setTarget 中
-public void setTarget(LivingEntity newTarget) {
-  LivingEntity oldTarget = this.getTarget();
-  if (oldTarget != newTarget) {
-    if (oldTarget != null) {
-      var lostCtx = new TargetLostContext(this, oldTarget, LostReason.OTHER);
-      FlyingSwordEventRegistry.fireTargetLost(lostCtx);
-    }
-    if (newTarget != null) {
-      var acquiredCtx = new TargetAcquiredContext(this, newTarget, getAIMode());
-      FlyingSwordEventRegistry.fireTargetAcquired(acquiredCtx);
-      if (!acquiredCtx.cancelled) {
-        this.entityData.set(TARGET, newTarget.getId());
-      }
-    } else {
-      this.entityData.set(TARGET, -1);
-    }
-  }
-}
-```
-
-### ⏳ Experience 和 LevelUp 事件集成
-
-**位置**: `FlyingSwordEntity.java` 或专门的经验系统
-
-**待添加触发点**：
-1. `addExperience(int amount)` 方法中触发 `ExperienceGain` 事件
-2. 经验达到阈值时触发 `LevelUp` 事件
-
-**实现建议**：
-```java
-public void addExperience(int amount, GainSource source) {
-  var ctx = new ExperienceGainContext(this, amount, source);
-  FlyingSwordEventRegistry.fireExperienceGain(ctx);
-
-  if (!ctx.cancelled) {
-    int oldLevel = getSwordLevel();
-    int oldExp = getSwordExp();
-    int newExp = oldExp + ctx.finalExpAmount;
-
-    // 检查升级
-    int newLevel = calculateLevel(newExp);
-    if (newLevel > oldLevel) {
-      var levelCtx = new LevelUpContext(this, oldLevel, newLevel);
-      FlyingSwordEventRegistry.fireLevelUp(levelCtx);
-      if (!levelCtx.cancelled) {
-        setSwordLevel(newLevel);
-        setSwordExp(newExp);
-      }
-    } else {
-      setSwordExp(newExp);
-    }
-  }
-}
-```
+- TargetLost 原因细分：
+  - 在 MovementSystem/TargetFinder 自动清除目标时，根据具体场景发出 LOST(DEAD/OUT_OF_RANGE/INVALID)
+- 观测与诊断：
+  - 为事件链增加可选的 DEBUG 指标（触发次数/短路次数），默认关闭
 
 ## 依赖关系
 - ✅ 依赖 Phase 2 的系统抽取
@@ -303,12 +227,12 @@ public void addExperience(int amount, GainSource source) {
 - [x] PostHit 事件在伤害造成后触发
 - [x] BlockBreakAttempt 事件在破块前触发
 
-**⏳ 待验证**：
-- [ ] ModeChange 事件在模式切换时触发（待实现）
-- [ ] TargetAcquired 事件在锁定目标时触发（待实现）
-- [ ] TargetLost 事件在失去目标时触发（待实现）
-- [ ] ExperienceGain 事件在获得经验时触发（待实现）
-- [ ] LevelUp 事件在升级时触发（待实现）
+**✅ 已验证（代码接线）**：
+- [x] ModeChange 事件在模式切换时触发
+- [x] TargetAcquired 事件在锁定目标时触发
+- [x] TargetLost 事件在失去目标时触发（后续细分原因）
+- [x] ExperienceGain 事件在获得经验时触发
+- [x] LevelUp 事件在升级时触发
 
 **短路语义测试**：
 - [ ] 注册测试钩子，验证可取消事件能正确短路
