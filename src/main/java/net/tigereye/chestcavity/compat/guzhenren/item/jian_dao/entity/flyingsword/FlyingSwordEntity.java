@@ -491,22 +491,33 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
 
     if (dot < -0.9995) {
-      // 对径点情况：选择旋转轴
+      // 对径点情况（180度翻转）：选择旋转轴
       Vec3 basis = this.antipodalSlerpBasis;
       if (basis == null || basis.lengthSqr() < 1.0e-12 || Math.abs(from.dot(basis)) > 0.999) {
-        // 优先使用水平旋转（绕Y轴）：如果from接近水平，使用Y轴作为旋转轴
-        // 这样可以避免环绕轨迹中剑头突然朝天
-        double horizontalLengthSq = from.x * from.x + from.z * from.z;
-        if (horizontalLengthSq > 0.5) {
-          // from主要是水平的，使用Y轴作为旋转轴
+        // 关键修复：检测旋转是否主要在水平面进行
+        // 通过检查from和to的水平分量来判断
+        double fromHorizontalSq = from.x * from.x + from.z * from.z;
+        double toHorizontalSq = to.x * to.x + to.z * to.z;
+
+        // 如果from和to都有显著的水平分量（>0.3），说明是水平面的旋转
+        // 典型场景：环绕轨迹从东切换到西（即使有垂直分离力）
+        if (fromHorizontalSq > 0.3 && toHorizontalSq > 0.3) {
+          // 使用Y轴作为旋转轴，保持旋转在水平面
           basis = new Vec3(0, 1, 0);
-          // 确保basis与from垂直（Gram-Schmidt正交化）
+          // Gram-Schmidt正交化：确保basis垂直于from
           double dotY = from.dot(basis);
-          if (Math.abs(dotY) > 0.1) {
-            basis = basis.subtract(from.scale(dotY)).normalize();
+          if (Math.abs(dotY) > 0.01) {
+            basis = basis.subtract(from.scale(dotY));
+            double len = basis.length();
+            if (len > 0.01) {
+              basis = basis.scale(1.0 / len);
+            } else {
+              // 如果from几乎垂直，使用水平方向作为basis
+              basis = new Vec3(1, 0, 0);
+            }
           }
         } else {
-          // from主要是垂直的，使用perpendicularUnit选择水平轴
+          // from或to主要是垂直的，使用perpendicularUnit选择合适的轴
           basis = perpendicularUnit(from);
         }
       }
