@@ -35,10 +35,7 @@ public class GuardBehavior {
               sword.getSwordAttributes().speedMax
                   * FlyingSwordAITuning.GUARD_CHASE_MAX_FACTOR);
 
-      // 应用分离力，避免飞剑重叠
-      desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
-      sword.applySteeringVelocity(desiredVelocity);
+      BehaviorSteering.commit(sword, desiredVelocity, true);
     } else {
       sword.setTargetEntity(null);
       // 跟随主人
@@ -55,10 +52,7 @@ public class GuardBehavior {
                     sword.getSwordAttributes().speedBase
                         * FlyingSwordAITuning.GUARD_FOLLOW_APPROACH_FACTOR);
 
-        // 应用分离力，避免飞剑重叠
-        desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
-        sword.applySteeringVelocity(desiredVelocity);
+        BehaviorSteering.commit(sword, desiredVelocity, true);
       } else {
         // 在主人附近缓慢环绕
         Vec3 tangent = new Vec3(-toOwner.z, 0, toOwner.x).normalize();
@@ -67,10 +61,7 @@ public class GuardBehavior {
                 sword.getSwordAttributes().speedBase
                     * FlyingSwordAITuning.GUARD_IDLE_TANGENT_FACTOR);
 
-        // 应用分离力，避免飞剑重叠
-        desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
-        sword.applySteeringVelocity(desiredVelocity);
+        BehaviorSteering.commit(sword, desiredVelocity, true);
       }
     }
   }

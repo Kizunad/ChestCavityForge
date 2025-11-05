@@ -577,11 +577,10 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       if (directive.isPresent()) {
         var res = directive.get();
         res.getTargetEntity().ifPresent(this::setTargetEntity);
-        var trajectory =
+        var template =
             net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
-                .Trajectories.resolver(res.getTrajectoryType());
-        Vec3 desired = trajectory.computeDesiredVelocity(commandCtx, res);
-        this.applySteeringVelocity(desired);
+                .Trajectories.template(res.getTrajectoryType());
+        applySteeringTemplate(template, commandCtx, res);
         commandHandled = true;
       }
     }
@@ -603,10 +602,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
         if (best.isPresent()) {
           var res = best.get();
           res.getTargetEntity().ifPresent(this::setTargetEntity);
-          var traj = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
-              .Trajectories.resolver(res.getTrajectoryType());
-          var desired = traj.computeDesiredVelocity(ctx, res);
-          this.applySteeringVelocity(desired);
+          var template = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
+              .Trajectories.template(res.getTrajectoryType());
+          applySteeringTemplate(template, ctx, res);
         } else {
           // 回退到旧实现
           var nearest =
@@ -643,10 +641,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
             .IntentPlanner.pickBest(ctx, intents);
         if (best.isPresent()) {
           var res = best.get();
-          var traj = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
-              .Trajectories.resolver(res.getTrajectoryType());
-          var desired = traj.computeDesiredVelocity(ctx, res);
-          this.applySteeringVelocity(desired);
+          var template = net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory
+              .Trajectories.template(res.getTrajectoryType());
+          applySteeringTemplate(template, ctx, res);
           // 抵达后执行实际召回
           if (this.distanceTo(owner) < 1.0) {
             net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordController.recall(this);
@@ -734,55 +731,32 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
    * 应用转向行为
    */
   public void applySteeringVelocity(Vec3 desiredVelocity) {
-    Vec3 currentVelocity = this.getDeltaMovement();
+    var snapshot =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering
+            .KinematicsSnapshot.capture(this);
+    var command =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering
+            .LegacySteeringAdapter.fromDesiredVelocity(desiredVelocity, snapshot);
+    Vec3 newVelocity =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering
+            .SteeringOps.computeNewVelocity(this, command, snapshot);
+    this.setDeltaMovement(newVelocity);
+  }
 
-    // 依据上下文调整目标速度与最大速度（挂接道痕等因素）
-    var ctx =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
-            .context.CalcContexts.from(this);
-    double effectiveBase =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
-            .FlyingSwordCalculator.effectiveSpeedBase(this.attributes.speedBase, ctx);
-    double effectiveMax =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
-            .FlyingSwordCalculator.effectiveSpeedMax(this.attributes.speedMax, ctx);
-    double effectiveAccel =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.calculator
-            .FlyingSwordCalculator.effectiveAccel(this.attributes.accel, ctx);
-
-    // 领域/控制类速度缩放（例如：剑心域对敌方飞剑的抑制）
-    double domainScale =
-        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ops
-            .SwordSpeedModifiers.computeDomainSpeedScale(this);
-    if (domainScale != 1.0) {
-      effectiveMax *= domainScale;
-      // 同步缩放期望基速，保持行为层一致性
-      effectiveBase *= domainScale;
-    }
-
-    // 将期望速度按 base 比例缩放（行为层仍以 base 构建）
-    double baseScale = this.attributes.speedBase > 1.0e-8 ? (effectiveBase / this.attributes.speedBase) : 1.0;
-    Vec3 desired = desiredVelocity.scale(baseScale);
-
-    // 计算转向力
-    Vec3 steering = desired.subtract(currentVelocity);
-
-    // 限制转向/加速度（每 tick 最大速度变化）
-    double limit = Math.max(1.0e-6, Math.min(attributes.turnRate, effectiveAccel));
-    double steeringMag = steering.length();
-    if (steeringMag > limit) {
-      steering = steering.normalize().scale(limit);
-    }
-
-    // 应用转向
-    Vec3 newVelocity = currentVelocity.add(steering);
-
-    // 限制速度（使用有效最大速度）
-    double speed = newVelocity.length();
-    if (speed > effectiveMax && speed > 1.0e-8) {
-      newVelocity = newVelocity.normalize().scale(effectiveMax);
-    }
-
+  private void applySteeringTemplate(
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering
+              .SteeringTemplate template,
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent
+              .AIContext ctx,
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.intent
+              .IntentResult intent) {
+    var snapshot =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering
+            .KinematicsSnapshot.capture(this);
+    var command = template.compute(ctx, intent, snapshot);
+    Vec3 newVelocity =
+        net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering
+            .SteeringOps.computeNewVelocity(this, command, snapshot);
     this.setDeltaMovement(newVelocity);
   }
 

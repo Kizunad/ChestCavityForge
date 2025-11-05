@@ -2,37 +2,120 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 
 import java.util.EnumMap;
 import java.util.Map;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering.SteeringTemplate;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.steering.SteeringTemplate.SpeedUnit;
 
 /**
  * 轨迹注册与解析器。
  */
 public final class Trajectories {
   private static final Map<TrajectoryType, Trajectory> REGISTRY = new EnumMap<>(TrajectoryType.class);
+  private static final Map<TrajectoryType, TrajectoryMeta> META =
+      new EnumMap<>(TrajectoryType.class);
+  private static final Map<TrajectoryType, SteeringTemplate> TEMPLATE =
+      new EnumMap<>(TrajectoryType.class);
+  private static final TrajectoryMeta DEFAULT_META = TrajectoryMeta.builder().build();
 
   static {
     // 基础可用实现
-    REGISTRY.put(TrajectoryType.Orbit, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.OrbitTrajectory());
-    REGISTRY.put(TrajectoryType.PredictiveLine, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.PredictiveLineTrajectory());
-    REGISTRY.put(TrajectoryType.Boomerang, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.BoomerangTrajectory());
-    REGISTRY.put(TrajectoryType.Corkscrew, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.CorkscrewTrajectory());
-    REGISTRY.put(TrajectoryType.BezierS, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.BezierSTrajectory());
-    REGISTRY.put(TrajectoryType.Serpentine, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.SerpentineTrajectory());
-    REGISTRY.put(TrajectoryType.CurvedIntercept, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.CurvedInterceptTrajectory());
-    REGISTRY.put(TrajectoryType.VortexOrbit, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.VortexOrbitTrajectory());
-    REGISTRY.put(TrajectoryType.Sawtooth, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.SawtoothTrajectory());
-    REGISTRY.put(TrajectoryType.PetalScan, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.PetalScanTrajectory());
-    REGISTRY.put(TrajectoryType.WallGlide, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.WallGlideTrajectory());
-    REGISTRY.put(TrajectoryType.ShadowStep, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.ShadowStepTrajectory());
-    REGISTRY.put(TrajectoryType.DomainEdgePatrol, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.DomainEdgePatrolTrajectory());
-    REGISTRY.put(TrajectoryType.Ricochet, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.RicochetTrajectory());
-    REGISTRY.put(TrajectoryType.HelixPair, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.HelixPairTrajectory());
-    REGISTRY.put(TrajectoryType.PierceGate, new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.PierceGateTrajectory());
+    register(
+        TrajectoryType.Orbit,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.OrbitTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build(),
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.templates.OrbitTemplate());
+    register(
+        TrajectoryType.PredictiveLine,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.PredictiveLineTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.templates.PredictiveLineTemplate());
+    register(
+        TrajectoryType.Boomerang,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.BoomerangTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.templates.BoomerangTemplate());
+    register(
+        TrajectoryType.Corkscrew,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.CorkscrewTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.templates.CorkscrewTemplate());
+    register(
+        TrajectoryType.BezierS,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.BezierSTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+    register(
+        TrajectoryType.Serpentine,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.SerpentineTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+    register(
+        TrajectoryType.CurvedIntercept,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.CurvedInterceptTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build(),
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.templates.CurvedInterceptTemplate());
+    register(
+        TrajectoryType.VortexOrbit,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.VortexOrbitTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+    register(
+        TrajectoryType.Sawtooth,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.SawtoothTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+    register(
+        TrajectoryType.PetalScan,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.PetalScanTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+    register(
+        TrajectoryType.WallGlide,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.WallGlideTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+    register(
+        TrajectoryType.ShadowStep,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.ShadowStepTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).separation(false).build());
+    register(
+        TrajectoryType.DomainEdgePatrol,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.DomainEdgePatrolTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+    register(
+        TrajectoryType.Ricochet,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.RicochetTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.BASE).build());
+    register(
+        TrajectoryType.HelixPair,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.HelixPairTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
+    register(
+        TrajectoryType.PierceGate,
+        new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.ai.trajectory.impl.PierceGateTrajectory(),
+        TrajectoryMeta.builder().speedUnit(SpeedUnit.MAX).build());
   }
 
   private Trajectories() {}
 
   public static Trajectory resolver(TrajectoryType type) {
     return REGISTRY.getOrDefault(type, Trajectories::zeroVelocity);
+  }
+
+  public static SteeringTemplate template(TrajectoryType type) {
+    SteeringTemplate direct = TEMPLATE.get(type);
+    if (direct != null) {
+      return direct;
+    }
+    Trajectory trajectory = resolver(type);
+    TrajectoryMeta meta = META.getOrDefault(type, DEFAULT_META);
+    return new TrajectorySteeringAdapter(trajectory, meta);
+  }
+
+  private static void register(
+      TrajectoryType type, Trajectory trajectory, TrajectoryMeta meta, SteeringTemplate template) {
+    REGISTRY.put(type, trajectory);
+    META.put(type, meta);
+    if (template != null) {
+      TEMPLATE.put(type, template);
+    }
+  }
+
+  private static void register(TrajectoryType type, Trajectory trajectory, TrajectoryMeta meta) {
+    register(type, trajectory, meta, null);
   }
 
   private static net.minecraft.world.phys.Vec3 zeroVelocity(

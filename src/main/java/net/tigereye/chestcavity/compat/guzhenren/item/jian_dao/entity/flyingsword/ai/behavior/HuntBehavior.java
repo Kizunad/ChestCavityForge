@@ -39,10 +39,7 @@ public class HuntBehavior {
               sword.getSwordAttributes().speedMax
                   * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
 
-      // 应用分离力，避免飞剑重叠
-      desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
-      sword.applySteeringVelocity(desiredVelocity);
+      BehaviorSteering.commit(sword, desiredVelocity, true);
     } else if (nearestHostile != null) {
       // 找到新目标
       net.tigereye.chestcavity.ChestCavity.LOGGER.info(
@@ -63,7 +60,7 @@ public class HuntBehavior {
       // 应用分离力，避免飞剑重叠
       desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
 
-      sword.applySteeringVelocity(desiredVelocity);
+      BehaviorSteering.commit(sword, desiredVelocity, true);
     } else {
       // 没有目标，回到主人身边
       sword.setTargetEntity(null);
@@ -78,10 +75,7 @@ public class HuntBehavior {
                     sword.getSwordAttributes().speedBase
                         * FlyingSwordAITuning.HUNT_RETURN_APPROACH_FACTOR);
 
-        // 应用分离力，避免飞剑重叠
-        desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
-        sword.applySteeringVelocity(desiredVelocity);
+        BehaviorSteering.commit(sword, desiredVelocity, true);
       } else {
         // 在主人附近缓慢巡逻
         Vec3 tangent = new Vec3(-toOwner.z, 0, toOwner.x).normalize();
@@ -90,10 +84,7 @@ public class HuntBehavior {
                 sword.getSwordAttributes().speedBase
                     * FlyingSwordAITuning.HUNT_IDLE_TANGENT_FACTOR);
 
-        // 应用分离力，避免飞剑重叠
-        desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
-
-        sword.applySteeringVelocity(desiredVelocity);
+        BehaviorSteering.commit(sword, desiredVelocity, true);
       }
     }
   }

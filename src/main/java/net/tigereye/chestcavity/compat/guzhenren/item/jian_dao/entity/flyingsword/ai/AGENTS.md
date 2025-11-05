@@ -6,9 +6,13 @@
   - 基础意图：`Guard`（护主）、`Assassin`（猎首）、`Duel`（缠斗）、`Breaker`（断阵）、`Patrol`（巡域）、`Recall`（收锋）。
   - 战术意图：`Intercept`、`Kiting`、`Shepherd`、`Decoy`、`Sweep`、`Suppress`、`Hold`、`FocusFire`、`Pivot`、`SweepSearch`。
   - 规划入口：`intent/planner/IntentPlanner.java` 会根据 `AIMode` 汇集候选意图并筛选最高优先级。
-- `trajectory/`：路径规划器，接收 `IntentResult` 并返回“期望速度”，交由实体的转向系统执行。
+- `trajectory/`：路径规划器，接收 `IntentResult` 并返回“期望速度”，再交由转向系统执行。
   - 已实现轨迹：`Orbit`、`PredictiveLine`、`BezierS`、`Corkscrew`、`Boomerang`、`Serpentine`、`CurvedIntercept`、`VortexOrbit`、`Sawtooth`、`PetalScan`、`WallGlide`、`ShadowStep`、`DomainEdgePatrol`、`Ricochet`、`HelixPair`、`PierceGate`。
-  - 注册表：`trajectory/Trajectories.java` 统一管理所有轨迹解析器。
+  - 新增 `trajectory/templates/`：逐步迁移到 `SteeringTemplate`，统一速度单位与提前量（现已完成 Orbit / PredictiveLine）。
+  - 注册表：`trajectory/Trajectories.java` 同时维护旧 `Trajectory` 与新模板元数据，可为任意轨迹建立模板化出口。
+- `steering/`：全新的运动层（`SteeringTemplate`、`SteeringCommand`、`SteeringOps`、`KinematicsSnapshot`）。
+  - 轨迹或行为只需产出命令；实际加速度/角速度限制、领域缩放、分离力合成由 `SteeringOps` 统一处理。
+- `ai/behavior/BehaviorSteering.java`：旧行为（Guard/Hunt 等）统一入口，避免重复的“算完向量直接写速度”散落在各处。
 - `behavior/TargetFinder.java`：集中封装敌对目标与场景信息的检索逻辑（召唤物识别、集群中心、拦截预测等），供各意图复用。
 
 ## 指挥棒（JianYinGu Command Baton）
@@ -27,4 +31,4 @@
   或 TUI 切换目标组；`/flyingsword group_*` 指令与 TUI 行为栏可为飞剑分配分组，青莲剑群固定为“青莲”组。
   扫描时生成全局“待分派”标记，可在执行前自由切换目标分组；按下执行后将标记赋给当前分组并与其他已执行分组并行运行。当前分组的清除仅清空未执行的待分派列表，不影响其他分组的执行指令。
 
-> 温馨提示：Intent 只做判定逻辑，所有位移/速度修改必须通过 Trajectory → `FlyingSwordEntity.applySteeringVelocity(...)` 流程完成，保持 AI 结果可被轨迹“风格化”。
+> 温馨提示：Intent 仍只做判定，但位移/速度必须通过 `SteeringTemplate -> SteeringCommand -> SteeringOps` 流程（旧逻辑可走 `BehaviorSteering`/`LegacySteeringAdapter` 过渡）。这样可以统一速度单位、提前量与加速度限制，避免轨迹之间互相“抢控制”。

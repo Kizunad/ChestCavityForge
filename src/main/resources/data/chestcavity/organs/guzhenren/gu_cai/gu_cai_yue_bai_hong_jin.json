@@ -8,6 +8,10 @@
     {
       "id": "chestcavity:health",
       "value": "186.946"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "-2"
     }
   ]
 }
