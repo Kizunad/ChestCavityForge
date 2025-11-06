@@ -407,9 +407,12 @@ public final class ShockfieldManager {
     return allowed;
   }
 
-  /** 注册到统一 Server Tick 引擎。 */
+  /** 注册到统一 Server Tick 引擎，并初始化特效服务。 */
   public static void bootstrap() {
     TickEngineHub.register(TickEngineHub.PRIORITY_DOT + 10, ShockfieldManager::onServerTick);
+
+    // 注册特效服务
+    ShockfieldFx.set(new net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxImpl());
   }
 
   private static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
