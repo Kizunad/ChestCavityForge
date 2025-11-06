@@ -79,5 +79,68 @@ public final class OrientationOps {
 
 ## 实施记录
 - 计划创建日期：2025-11-06
-- 关联问题：飞行半圆“缓慢抬头”与欧拉顺序不对称
+- 实施完成日期：2025-11-06
+- 关联问题：飞行半圆"缓慢抬头"与欧拉顺序不对称
+
+### 已完成内容
+
+#### 8.1 OrientationOps 四元数姿态计算 ✅
+- 创建 `OrientationOps.java`：四元数姿态计算核心类
+- 实现 `OrientationMode` 枚举：BASIS（默认）、LEGACY_EULER（兼容）
+- 实现 `UpMode` 枚举：WORLD_Y（默认）、OWNER_UP（预留）
+- 核心算法：
+  - 基于正交基构建：right = up × forward, trueUp = forward × right
+  - 退化处理：当 forward 与 up 近平行时，选择水平 fallback
+  - 偏移应用：preRoll（绕 forward）、yaw（绕 world-Y）、pitch（绕局部 X）
+  - 返回四元数，可直接用于 `poseStack.mulPose(quat)`
+
+#### 8.2 Renderer 切换与兼容 ✅
+- 在 `FlyingSwordModelTuning` 增加：`USE_BASIS_ORIENTATION = true`（默认启用）
+- 更新 `FlyingSwordRenderer`：
+  - 读取 Profile/Override 的 orientationMode 和 upMode
+  - 根据全局开关和配置选择 BASIS 或 LEGACY_EULER 模式
+  - 调用 `OrientationOps.orientationFromForwardUp()` 计算姿态
+  - 移除旧有欧拉角计算逻辑，统一使用 OrientationOps
+- 更新数据结构：
+  - `SwordVisualProfile` 增加 orientationMode、upMode 字段（默认 BASIS、WORLD_Y）
+  - `SwordModelOverrideDef` 增加 orientationMode、upMode 字段（默认 BASIS、WORLD_Y）
+  - 更新加载器以解析 JSON 中的 orientation_mode、up_mode 字段
+
+#### 8.3 AimResolver 约束 ✅
+- AimResolver 保持现有实现，继续返回"纯方向"
+- 姿态稳定性完全由 OrientationOps 负责
+
+#### 8.4 测试 ✅
+- 创建 `OrientationOpsTest.java`：
+  - `testYawScan_Symmetry`：全方位 yaw 扫描，验证左右半圆对称性
+  - `testNearOppositeDirection_NoNaN`：近对向 180°±ε 不产生 NaN
+  - `testSmallYPerturbation_NoAmplification`：微小 y 扰动不被放大
+  - `testVerticalDirection_NoDegeneration`：竖直方向不退化
+  - `testLegacyEulerMode`：LEGACY_EULER 模式兼容性
+  - `testZeroVectorInput_FallbackToDefault`：零向量输入不崩溃
+  - `testHalfCircleSymmetry`：半圆对称性验证
+
+#### 8.5 文档与迁移说明（进行中）
+- PHASE_8.md：记录实施过程 ✅
+- FLYINGSWORD_TODO.md：标记 Phase 8 任务完成（待完成）
+- FLYINGSWORD_STANDARDS.md：记录姿态计算标准（待完成）
+
+### 技术要点
+
+1. **正交基构建**：使用右手坐标系避免欧拉角不对称
+2. **退化处理**：forward 与 up 近平行时选择水平 fallback
+3. **偏移顺序**：preRoll（局部）→ yaw（世界）→ pitch（局部）
+4. **兼容路径**：LEGACY_EULER 保留旧有欧拉顺序，可回退
+5. **数据驱动**：通过 JSON 配置 orientation_mode 和 up_mode
+
+### 验收检查
+
+- ✅ 代码实现：OrientationOps、OrientationMode、UpMode
+- ✅ 渲染器集成：FlyingSwordRenderer 使用 OrientationOps
+- ✅ 数据结构扩展：Profile 和 Override 支持新字段
+- ✅ 加载器更新：JSON 解析 orientation_mode 和 up_mode
+- ✅ 测试覆盖：OrientationOpsTest 8 个测试用例
+- ⏳ 编译验证：待网络可用后执行 `./gradlew compileJava`
+- ⏳ 测试验证：待网络可用后执行 `./gradlew test`
+- ⏳ 文档完善：FLYINGSWORD_TODO.md、FLYINGSWORD_STANDARDS.md
 

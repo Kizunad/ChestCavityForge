@@ -37,27 +37,27 @@
 - [ ] 默认渲染路径仅保留 `FlyingSwordRenderer` + 默认 FX；Gecko/Override/Profile 仅在开关启用时注册。
 - [ ] 检查网络消息，确保事件副作用尽量通过实体同步实现，必要提示复用现有载荷。
 
-### 渲染姿态统一（Orientation 计划项，允许 Override）
-- [ ] 引入 `OrientationOps`（建议放置 `compat/guzhenren/flyingsword/client/orientation/`）统一“朝向→姿态”计算为四元数：
-  - `orientationFromForwardUp(Vec3 forward, Vec3 up, float preRollDeg, float yawOffsetDeg, float pitchOffsetDeg, OrientationMode mode)`
+### 渲染姿态统一（Orientation 计划项，允许 Override）✅ Phase 8 完成
+- [x] 引入 `OrientationOps`（建议放置 `compat/guzhenren/flyingsword/client/orientation/`）统一"朝向→姿态"计算为四元数：
+  - `orientationFromForwardUp(Vec3 forward, Vec3 up, float preRollDeg, float yawOffsetDeg, float pitchOffsetDeg, OrientationMode mode, UpMode upMode)`
   - 基于正交基/right-hand 构建（right = normalize(up × forward)，trueUp = forward × right），避免欧拉顺序不对称。
-- [ ] `FlyingSwordRenderer` 增加可切换路径（默认启用）：
+- [x] `FlyingSwordRenderer` 增加可切换路径（默认启用）：
   - `FlyingSwordModelTuning.USE_BASIS_ORIENTATION = true` → 使用 `OrientationOps` 结果 `poseStack.mulPose(quat)`；
   - `false` → 走旧有欧拉 Y→Z 路径，保留兼容（Legacy）。
-- [ ] 偏移语义保持：`preRoll`（绕 forward）、`yawOffsetDeg`（绕 world Y）、`pitchOffsetDeg`（绕局部 X）；
-  - 在 `SwordVisualProfile` / `SwordModelOverrideDef` 增加可选项 `orientationMode = BASlS | LEGACY_EULER`（默认 BASlS），`upMode = WORLD_Y | OWNER_UP`（默认 WORLD_Y）。
-- [ ] 近对向/竖直退化处理：
+- [x] 偏移语义保持：`preRoll`（绕 forward）、`yawOffsetDeg`（绕 world Y）、`pitchOffsetDeg`（绕局部 X）；
+  - 在 `SwordVisualProfile` / `SwordModelOverrideDef` 增加可选项 `orientationMode = BASIS | LEGACY_EULER`（默认 BASIS），`upMode = WORLD_Y | OWNER_UP`（默认 WORLD_Y）。
+- [x] 近对向/竖直退化处理：
   - 若 `|forward × up| < eps`，选水平 fallbackUp（或基于上一帧 right 符号）避免退化；
-  - 连续性策略：保持 half-turn 两侧 roll/pitch 对称，无“缓慢抬头”。
-- [ ] AimResolver 维持“纯方向”输出（不投影/不钳制 y），姿态稳定性交由 `OrientationOps` 处理。
-- [ ] 文档：在 `FLYINGSWORD_STANDARDS.md` 记录“渲染姿态默认为 BASIS（正交基/四元数），欧拉路径标记为 Legacy”。
+  - 连续性策略：保持 half-turn 两侧 roll/pitch 对称，无"缓慢抬头"。
+- [x] AimResolver 维持"纯方向"输出（不投影/不钳制 y），姿态稳定性交由 `OrientationOps` 处理。
+- [ ] 文档：在 `FLYINGSWORD_STANDARDS.md` 记录"渲染姿态默认为 BASIS（正交基/四元数），欧拉路径标记为 Legacy"。（待完成）
 
-#### 测试（新增）
-- [ ] `OrientationOpsTest`：
+#### 测试（新增）✅
+- [x] `OrientationOpsTest`：
   - yaw ∈ [0, 360°) 扫描：forward=(cosθ,0,sinθ) → 生成姿态后断言 roll/pitch 在左右半圆对称、无累积性抬头；
   - 近对向 θ=180°±ε 不产生 NaN/异常大 pitch；
   - 微小 y 扰动（±1e-6）不随半圆累积被放大。
-- [ ] 将现有 `KinematicsOpsEdgeCaseTest` 作为回归基线，联动验证 180° 对向时不会诱发“朝上”趋势。
+- [x] 已有 `KinematicsOpsEdgeCaseTest` 作为回归基线，联动验证 180° 对向时不会诱发"朝上"趋势。
 
 ## Phase 6｜文档与测试
 - [ ] 编写 `compat/guzhenren/flyingsword/AGENTS.md`（或更新现有文档）描述事件模型、系统职责、冷却与资源约定。

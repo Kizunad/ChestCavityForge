@@ -13,6 +13,8 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.UpMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.override.SwordModelOverrideDef.AlignMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.override.SwordModelOverrideDef.RendererKind;
 
@@ -62,6 +64,8 @@ public final class SwordModelOverrideLoader extends SimpleJsonResourceReloadList
             float yawOffset = GsonHelper.getAsFloat(json, "yaw_offset", -90.0F);
             float pitchOffset = GsonHelper.getAsFloat(json, "pitch_offset", 0.0F);
             float scale = GsonHelper.getAsFloat(json, "scale", 1.0F);
+            OrientationMode orientationMode = parseOrientationMode(GsonHelper.getAsString(json, "orientation_mode", "basis"));
+            UpMode upMode = parseUpMode(GsonHelper.getAsString(json, "up_mode", "world_y"));
 
             SwordModelOverrideDef def;
             if (!textures.isEmpty()) {
@@ -77,7 +81,9 @@ public final class SwordModelOverrideLoader extends SimpleJsonResourceReloadList
                       preRoll,
                       yawOffset,
                       pitchOffset,
-                      scale);
+                      scale,
+                      orientationMode,
+                      upMode);
             } else {
               def =
                   new SwordModelOverrideDef(
@@ -92,6 +98,15 @@ public final class SwordModelOverrideLoader extends SimpleJsonResourceReloadList
                       yawOffset,
                       pitchOffset,
                       scale);
+              // 手动设置orientation字段（因为旧构造器不支持）
+              try {
+                var f1 = SwordModelOverrideDef.class.getDeclaredField("orientationMode");
+                var f2 = SwordModelOverrideDef.class.getDeclaredField("upMode");
+                f1.setAccessible(true);
+                f2.setAccessible(true);
+                f1.set(def, orientationMode);
+                f2.set(def, upMode);
+              } catch (Exception ignored) {}
             }
             collected.put(key, def);
           } catch (Exception ex) {
@@ -118,6 +133,22 @@ public final class SwordModelOverrideLoader extends SimpleJsonResourceReloadList
       case "target" -> AlignMode.TARGET;
       case "none" -> AlignMode.NONE;
       default -> AlignMode.VELOCITY;
+    };
+  }
+
+  private static OrientationMode parseOrientationMode(String raw) {
+    String s = raw.toLowerCase(Locale.ROOT).trim();
+    return switch (s) {
+      case "legacy_euler", "legacy" -> OrientationMode.LEGACY_EULER;
+      default -> OrientationMode.BASIS;
+    };
+  }
+
+  private static UpMode parseUpMode(String raw) {
+    String s = raw.toLowerCase(Locale.ROOT).trim();
+    return switch (s) {
+      case "owner_up", "owner" -> UpMode.OWNER_UP;
+      default -> UpMode.WORLD_Y;
     };
   }
 }

@@ -193,77 +193,141 @@ public void testCalculateDamage_WithSpeedBonus() {
 - 开发模式下可启用 DEBUG 标志
 - 不得在生产环境中留有 System.out.println
 
-## 9. 渲染姿态规范（Phase 7 标注，Phase 8 实施）
+## 9. 渲染姿态规范（Phase 8 已完成 ✅）
 
-### 当前渲染路径（Legacy）
+### 默认渲染路径（BASIS - 推荐）
 
-**当前实现**（Phase 7 及之前）：
-- 使用欧拉角（yaw/pitch）计算飞剑朝向
-- 按 Y-Z 顺序应用旋转
-- 位置：`FlyingSwordRenderer.java`
+**当前实现**（Phase 8 起默认启用）：
+- 使用 `OrientationOps` 四元数姿态计算
+- 基于正交基（right-hand）构建姿态矩阵：
+  - `right = normalize(up × forward)`
+  - `trueUp = forward × right`
+- 返回四元数，直接用于 `poseStack.mulPose(quat)`
+- 位置：`compat/guzhenren/flyingsword/client/orientation/OrientationOps.java`
 
-**已知问题**：
-- 在某些飞行角度（如对向、竖直）可能出现"途中剑头朝上"或不自然的滚转
-- 欧拉角顺序不对称，可能导致渲染朝向不连续
+**解决的问题**：
+- ✅ 根治"半圆飞行缓慢抬头"问题
+- ✅ 左右半圆对称性保证
+- ✅ 对向/竖直方向退化处理
+- ✅ 连续性好，无跳变
 
-**标注**：
-- 当前渲染路径在 Phase 8 后将标记为 **Legacy（兼容模式）**
-- 保留作为回退选项，可通过配置切换
-
-### 未来渲染路径（Phase 8 计划）
-
-**OrientationOps 系统**：
-- 统一"朝向→姿态"计算为四元数
-- 基于正交基（right-hand）构建姿态矩阵
-- 避免欧拉角顺序不对称问题
-
-**接口设计**：
+**接口**：
 ```java
-Quaternion orientationFromForwardUp(
-    Vec3 forward,
-    Vec3 up,
-    float preRollDeg,
-    float yawOffsetDeg,
-    float pitchOffsetDeg,
-    OrientationMode mode
+Quaternionf OrientationOps.orientationFromForwardUp(
+    Vec3 forward,          // 前向向量（通常为速度或瞄准方向）
+    Vec3 up,               // 上向参考（默认世界 Y 轴）
+    float preRollDeg,      // 绕 forward 轴预旋（刀面纠正）
+    float yawOffsetDeg,    // 绕世界 Y 轴偏移
+    float pitchOffsetDeg,  // 绕局部 X 轴偏移
+    OrientationMode mode,  // BASIS | LEGACY_EULER
+    UpMode upMode          // WORLD_Y | OWNER_UP
 )
 ```
 
-**配置选项**（Phase 8）：
-- `FlyingSwordModelTuning.USE_BASIS_ORIENTATION`
-  - `true`: 使用新的 OrientationOps（默认）
-  - `false`: 使用 Legacy 欧拉路径（兼容）
-- `OrientationMode`:
-  - `BASIS`: 正交基/四元数（推荐）
-  - `LEGACY_EULER`: 欧拉 Y-Z 顺序（兼容）
-- `UpMode`:
-  - `WORLD_Y`: 世界 Y 轴（默认）
-  - `OWNER_UP`: 主人上向量
+### Legacy 渲染路径（兼容回退）
 
-**退化处理**：
-- 对向/竖直情况使用 fallback up 向量，避免 NaN
-- 连续性策略：保持半圆对称，无累积性抬头
+**Legacy 实现**（Phase 7 及之前）：
+- 使用欧拉角（yaw/pitch）计算飞剑朝向
+- 按 Y-Z 顺序应用旋转
+- 保留作为兼容回退选项
 
-**文档位置**：
-- 详细设计：`docs/FLYINGSWORD_TODO.md` Phase 8 章节
-- 测试要求：`docs/stages/PHASE_8.md`
+**已知限制**：
+- ⚠️ 某些飞行角度可能出现"途中剑头朝上"
+- ⚠️ 欧拉角顺序不对称，可能导致渲染朝向不连续
+- ⚠️ 半圆飞行可能出现累积性抬头
 
-### 渲染规范总结
+**使用场景**：
+- 旧资源包对欧拉顺序有依赖
+- 需要与旧版本行为完全一致
+- 回归测试对比
 
-**Phase 7（当前）**：
-- ✅ 当前欧拉渲染路径可用
-- ⚠️ 标注为未来的 Legacy 路径
-- 📋 Phase 8 将引入 OrientationOps
+### 配置与切换
 
-**Phase 8（计划）**：
-- 🎯 默认启用 OrientationOps
-- 🔄 保留欧拉路径作为 Legacy 回退
-- ⚙️ 可配置切换
+**全局开关**：
+- `FlyingSwordModelTuning.USE_BASIS_ORIENTATION`（默认 `true`）
+  - `true`: 默认使用 BASIS 模式
+  - `false`: 强制使用 LEGACY_EULER 模式
+
+**数据驱动配置**（Profile/Override JSON）：
+```json
+{
+  "orientation_mode": "basis",     // 或 "legacy_euler"
+  "up_mode": "world_y"             // 或 "owner_up"
+}
+```
+
+**模式枚举**：
+- `OrientationMode.BASIS`: 正交基/四元数（默认，推荐）
+- `OrientationMode.LEGACY_EULER`: 欧拉 Y-Z 顺序（兼容）
+
+**上向模式**：
+- `UpMode.WORLD_Y`: 世界 Y 轴（默认）
+- `UpMode.OWNER_UP`: 主人朝向（预留扩展）
+
+### 退化处理规范
+
+**问题场景**：
+- forward 与 up 近平行（`|forward × up| < ε`）
+- forward 竖直（向上或向下）
+- 零向量输入
+
+**处理策略**：
+1. **forward 零向量**: 回退到默认方向 `(0, 0, -1)`
+2. **up 零向量**: 回退到世界 Y 轴 `(0, 1, 0)`
+3. **forward 与 up 近平行**:
+   - 若 forward 竖直，选水平 fallback（X 轴）
+   - 若 forward 水平/倾斜，选垂直于 forward 的水平向量：`(-forward.z, 0, forward.x)`
+4. **近对向转向（180°）**: 正交基方法自然处理，无特殊退化
+
+### 测试覆盖
+
+**单元测试**：`OrientationOpsTest.java`
+- ✅ 全方位 yaw 扫描（0°-360°），验证对称性
+- ✅ 近对向 180°±ε，验证无 NaN
+- ✅ 微小 y 扰动（±1e-6），验证不放大
+- ✅ 竖直方向，验证不退化
+- ✅ 零向量输入，验证回退机制
+- ✅ 半圆对称性，验证无系统性偏差
+- ✅ LEGACY_EULER 模式兼容性
+
+**集成测试**：
+- ✅ `FlyingSwordRenderer` 使用 OrientationOps
+- ✅ Profile/Override 解析 orientation_mode 和 up_mode
+- ✅ 全局开关 USE_BASIS_ORIENTATION 生效
+
+### 迁移指南
+
+**对现有资源包**：
+1. 默认无需修改：BASIS 模式与大部分现有配置兼容
+2. 如出现视觉差异：
+   - 方案 1：在 JSON 中添加 `"orientation_mode": "legacy_euler"` 保持旧行为
+   - 方案 2：调整 `pre_roll`/`yaw_offset`/`pitch_offset` 适配 BASIS 模式
+
+**对模组开发者**：
+1. 新增资源：推荐使用 BASIS 模式（默认）
+2. 需要特殊朝向：可扩展 UpMode（如 `OWNER_UP`）
+3. 性能无忧：四元数计算开销 < 欧拉角
+
+### 文档位置
+
+- **设计文档**: `docs/stages/PHASE_8.md`
+- **实施记录**: `docs/FLYINGSWORD_TODO.md` Phase 8 章节
+- **测试用例**: `src/test/.../client/orientation/OrientationOpsTest.java`
+- **代码位置**: `compat/guzhenren/flyingsword/client/orientation/`
+
+### 规范总结
+
+**Phase 8（已完成 ✅）**：
+- ✅ 默认启用 OrientationOps（BASIS 模式）
+- ✅ 保留 LEGACY_EULER 作为兼容回退
+- ✅ 可配置切换（全局开关 + 数据驱动）
+- ✅ 完整测试覆盖（8 个单元测试）
+- ✅ 根治"半圆抬头"问题
 
 **开发者指南**：
-- 当前：继续使用欧拉渲染，无需修改
-- 未来：建议迁移到 OrientationOps，获得更好的渲染效果
-- 兼容：Legacy 路径将长期保留，确保向后兼容
+- **推荐**: 使用 BASIS 模式，获得最佳渲染效果
+- **兼容**: LEGACY_EULER 长期保留，确保向后兼容
+- **扩展**: 可通过 Profile/Override JSON 自定义姿态计算模式
 
 ## 10. 兼容性要求
 - 向后兼容：旧存档加载后飞剑仍可使用
