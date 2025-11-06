@@ -25,7 +25,11 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.gecko.SwordM
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.gecko.SwordModelObjectRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.gecko.SwordGeoProfileObject;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.gecko.SwordGeoProfileObjectRenderer;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationOps;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.UpMode;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import org.joml.Quaternionf;
 
 /**
  * 飞剑渲染器（Flying Sword Renderer）
@@ -92,26 +96,30 @@ public class FlyingSwordRenderer extends EntityRenderer<FlyingSwordEntity> {
       look = entity.getSmoothedLookAngle();
     }
 
-    // 先做一次"本体刀面"纠正：绕本地 X 轴（模型前向）预旋
-    // 这样可避免出现刀面以“/”倾斜显示的情况
+    // Phase 8: 使用 OrientationOps 统一姿态计算
     float preRoll = prof != null ? prof.preRollDeg : (def != null ? def.preRollDeg : FlyingSwordModelTuning.BLADE_ROLL_DEGREES);
-    poseStack.mulPose(Axis.XP.rotationDegrees(preRoll));
-
-    // 计算 yaw / pitch，使“前进方向”对齐速度方向
-    // yaw: 水平角（绕 Y 轴）、pitch: 俯仰角
-    float yaw = (float) Math.toDegrees(Math.atan2(look.x, look.z));
-    double horizontalLength = Math.sqrt(look.x * look.x + look.z * look.z);
-    float pitch = (float) Math.toDegrees(Math.atan2(-look.y, horizontalLength));
-
-    // 说明：Item 模型（如剑）其“长度轴”通常沿 X 轴定义；
-    // 参照箭矢/三叉戟的朝向做法：
-    //   - 先绕 Y 轴旋转 (yaw - 90°)，把模型 X 轴映射到世界前进方向（-Z）
-    //   - 再绕 Z 轴旋转 pitch，完成俯仰对齐
-    // 这样可确保“剑尖”（模型 X 轴正向）永远指向运动路径
     float yawOffset = (prof != null ? prof.yawOffsetDeg - 90.0f : -90.0f + (def != null ? def.yawOffsetDeg : 0.0f));
     float pitchOffset = (prof != null ? prof.pitchOffsetDeg : (def != null ? def.pitchOffsetDeg : 0.0f));
-    poseStack.mulPose(Axis.YP.rotationDegrees(yaw + yawOffset));
-    poseStack.mulPose(Axis.ZP.rotationDegrees(pitch + pitchOffset));
+
+    // 确定姿态计算模式
+    OrientationMode orientationMode;
+    if (FlyingSwordModelTuning.USE_BASIS_ORIENTATION) {
+      // 优先使用 Profile/Override 指定的模式，否则使用全局默认
+      orientationMode = prof != null ? prof.orientationMode : (def != null ? def.orientationMode : OrientationMode.BASIS);
+    } else {
+      // 全局禁用 BASIS，强制使用 LEGACY_EULER
+      orientationMode = OrientationMode.LEGACY_EULER;
+    }
+
+    UpMode upMode = prof != null ? prof.upMode : (def != null ? def.upMode : UpMode.WORLD_Y);
+
+    // 计算姿态四元数
+    Vec3 up = new Vec3(0, 1, 0); // 默认世界 Y 轴
+    Quaternionf orientation = OrientationOps.orientationFromForwardUp(
+        look, up, preRoll, yawOffset, pitchOffset, orientationMode, upMode);
+
+    // 应用姿态
+    poseStack.mulPose(orientation);
 
     // 取消自旋效果，保持剑头朝向路线
     // float spinAngle = (entity.tickCount + partialTicks) * 20.0f;

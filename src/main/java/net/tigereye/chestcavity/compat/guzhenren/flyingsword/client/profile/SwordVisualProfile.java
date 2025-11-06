@@ -3,6 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.profile;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.UpMode;
 
 /** 数据驱动的飞剑视觉配置（新一代 Profile）。 */
 public final class SwordVisualProfile {
@@ -24,6 +26,10 @@ public final class SwordVisualProfile {
   public final float pitchOffsetDeg;
   public final float scale;
 
+  // Phase 8: 姿态计算模式
+  public final OrientationMode orientationMode;
+  public final UpMode upMode;
+
   // 附魔荧光策略
   public final GlintMode glint;
 
@@ -42,6 +48,8 @@ public final class SwordVisualProfile {
       float yawOffsetDeg,
       float pitchOffsetDeg,
       float scale,
+      OrientationMode orientationMode,
+      UpMode upMode,
       GlintMode glint,
       List<String> matchModelKeys) {
     this.key = key;
@@ -55,6 +63,8 @@ public final class SwordVisualProfile {
     this.yawOffsetDeg = yawOffsetDeg;
     this.pitchOffsetDeg = pitchOffsetDeg;
     this.scale = scale;
+    this.orientationMode = orientationMode != null ? orientationMode : OrientationMode.BASIS;
+    this.upMode = upMode != null ? upMode : UpMode.WORLD_Y;
     this.glint = glint;
     this.matchModelKeys = matchModelKeys == null ? List.of() : Collections.unmodifiableList(matchModelKeys);
   }
@@ -73,6 +83,8 @@ public final class SwordVisualProfile {
         -90.0f,
         0.0f,
         1.0f,
+        OrientationMode.BASIS,
+        UpMode.WORLD_Y,
         GlintMode.INHERIT,
         List.of(key));
   }

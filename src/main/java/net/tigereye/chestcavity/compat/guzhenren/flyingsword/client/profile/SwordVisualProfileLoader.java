@@ -14,6 +14,8 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.UpMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.profile.SwordVisualProfile.AlignMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.profile.SwordVisualProfile.GlintMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.profile.SwordVisualProfile.RendererKind;
@@ -54,6 +56,8 @@ public final class SwordVisualProfileLoader extends SimpleJsonResourceReloadList
             float yawOff = GsonHelper.getAsFloat(json, "yaw_offset", -90.0f);
             float pitchOff = GsonHelper.getAsFloat(json, "pitch_offset", 0.0f);
             float scale = GsonHelper.getAsFloat(json, "scale", 1.0f);
+            OrientationMode orientationMode = parseOrientationMode(GsonHelper.getAsString(json, "orientation_mode", "basis"));
+            UpMode upMode = parseUpMode(GsonHelper.getAsString(json, "up_mode", "world_y"));
             GlintMode glint = parseGlint(GsonHelper.getAsString(json, "glint", "inherit"));
             List<String> matchKeys = new ArrayList<>();
             if (json.has("match_model_keys") && json.get("match_model_keys").isJsonArray()) {
@@ -72,6 +76,8 @@ public final class SwordVisualProfileLoader extends SimpleJsonResourceReloadList
                     yawOff,
                     pitchOff,
                     scale,
+                    orientationMode,
+                    upMode,
                     glint,
                     matchKeys.isEmpty() ? List.of(key) : matchKeys);
             collected.put(key, p);
@@ -107,6 +113,22 @@ public final class SwordVisualProfileLoader extends SimpleJsonResourceReloadList
       case "force_on" -> GlintMode.FORCE_ON;
       case "force_off" -> GlintMode.FORCE_OFF;
       default -> GlintMode.INHERIT;
+    };
+  }
+
+  private static OrientationMode parseOrientationMode(String s) {
+    s = s.toLowerCase();
+    return switch (s) {
+      case "legacy_euler", "legacy" -> OrientationMode.LEGACY_EULER;
+      default -> OrientationMode.BASIS;
+    };
+  }
+
+  private static UpMode parseUpMode(String s) {
+    s = s.toLowerCase();
+    return switch (s) {
+      case "owner_up", "owner" -> UpMode.OWNER_UP;
+      default -> UpMode.WORLD_Y;
     };
   }
 }

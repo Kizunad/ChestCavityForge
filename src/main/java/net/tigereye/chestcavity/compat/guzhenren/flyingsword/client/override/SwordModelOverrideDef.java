@@ -3,6 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.override;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.UpMode;
 
 /**
  * 模型覆盖定义（从资源JSON加载），用于在不改代码的情况下为不同飞剑提供专用模型/朝向参数。
@@ -28,6 +30,10 @@ public final class SwordModelOverrideDef {
   public final float pitchOffsetDeg; // 额外Pitch偏移（度）
   public final float scale; // 统一缩放
 
+  // Phase 8: 姿态计算模式
+  public final OrientationMode orientationMode;
+  public final UpMode upMode;
+
   public SwordModelOverrideDef(
       String key,
       RendererKind renderer,
@@ -51,6 +57,8 @@ public final class SwordModelOverrideDef {
     this.scale = scale;
     this.displayItem = null;
     this.textures = List.of();
+    this.orientationMode = OrientationMode.BASIS;
+    this.upMode = UpMode.WORLD_Y;
   }
 
   public SwordModelOverrideDef(
@@ -77,6 +85,8 @@ public final class SwordModelOverrideDef {
     this.pitchOffsetDeg = pitchOffsetDeg;
     this.scale = scale;
     this.textures = List.of();
+    this.orientationMode = OrientationMode.BASIS;
+    this.upMode = UpMode.WORLD_Y;
   }
 
   public SwordModelOverrideDef(
@@ -91,6 +101,23 @@ public final class SwordModelOverrideDef {
       float yawOffsetDeg,
       float pitchOffsetDeg,
       float scale) {
+    this(key, renderer, model, textures, animation, displayItem, alignMode, preRollDeg, yawOffsetDeg, pitchOffsetDeg, scale, OrientationMode.BASIS, UpMode.WORLD_Y);
+  }
+
+  public SwordModelOverrideDef(
+      String key,
+      RendererKind renderer,
+      ResourceLocation model,
+      List<ResourceLocation> textures,
+      ResourceLocation animation,
+      ResourceLocation displayItem,
+      AlignMode alignMode,
+      float preRollDeg,
+      float yawOffsetDeg,
+      float pitchOffsetDeg,
+      float scale,
+      OrientationMode orientationMode,
+      UpMode upMode) {
     this.key = key;
     this.renderer = renderer;
     this.model = model;
@@ -103,5 +130,7 @@ public final class SwordModelOverrideDef {
     this.pitchOffsetDeg = pitchOffsetDeg;
     this.scale = scale;
     this.textures = textures == null ? List.of() : Collections.unmodifiableList(textures);
+    this.orientationMode = orientationMode != null ? orientationMode : OrientationMode.BASIS;
+    this.upMode = upMode != null ? upMode : UpMode.WORLD_Y;
   }
 }
