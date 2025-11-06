@@ -39,12 +39,15 @@
 
 **输入**:
 - FlyingSwordEntity: 飞剑实体
-- 当前攻击冷却 ticks
 
 **输出**:
 - 对目标造成伤害
-- 返回新的攻击冷却值
 - 触发粒子/音效
+
+**冷却管理（Phase 4 以后）**:
+- 攻击冷却统一由主人附件 `MultiCooldown` 管理，Key 规范为 `cc:flying_sword/<uuid>/attack`；
+- 通过 `FlyingSwordCooldownOps` 读写与递减冷却；
+- `CombatSystem.tick(...)` 不再接收/返回冷却值。
 
 **替代模块**:
 - 原 `FlyingSwordCombat.tickCollisionAttack()` 逻辑整合到此处
@@ -95,7 +98,7 @@ if (!tickCtx.skipAI) {
 }
 
 // 4. 战斗系统 (CombatSystem)
-attackCooldown = CombatSystem.tick(this, attackCooldown);
+CombatSystem.tick(this); // 冷却递减与设置由 FlyingSwordCooldownOps + MultiCooldown 处理
 
 // 5. 破块逻辑 (BlockBreakOps, 保持独立)
 if (!tickCtx.skipBlockBreak) {
