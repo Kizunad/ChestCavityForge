@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordAttributes;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordStorage;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordAttributes;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage;
 import org.junit.jupiter.api.Test;
 
 /**

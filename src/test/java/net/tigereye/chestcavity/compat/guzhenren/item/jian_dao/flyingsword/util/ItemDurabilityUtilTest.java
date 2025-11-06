@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.flyingsword.util
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.util.ItemDurabilityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemDurabilityUtil;
 import org.junit.jupiter.api.Test;
 
 public class ItemDurabilityUtilTest {
@@ -44,4 +44,3 @@ public class ItemDurabilityUtilTest {
     }
   }
 }
-

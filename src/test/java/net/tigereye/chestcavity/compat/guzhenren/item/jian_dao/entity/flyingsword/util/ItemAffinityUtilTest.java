@@ -3,7 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingswo
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.flyingsword.FlyingSwordAttributes;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemAffinityUtil;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordAttributes;
 
 class ItemAffinityUtilTest {
 
@@ -57,4 +58,3 @@ class ItemAffinityUtilTest {
     assertEquals(0.45, mod.sweepPercent, 1e-6);
   }
 }
-
