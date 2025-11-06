@@ -41,9 +41,9 @@
 - Phase 3｜事件扩展：ModeChange/TargetAcquired/Lost/UpkeepCheck/PostHit/BlockBreakAttempt 等。✅
 - Phase 4｜冷却与资源：统一 MultiCooldown/ResourceOps，失败策略可配。✅
 - Phase 5｜客户端与网络：渲染降噪；网络仅必要同步。✅
-- Phase 6｜文档与测试：补文档与 JUnit5；门槛覆盖率≥70%。
-- Phase 7｜最终清理：删除未引用实现，评审与发布。
-- Phase 8｜姿态统一：OrientationOps 上线，根治“半圆抬头”，保留 Legacy 回退。
+- Phase 6｜文档与测试：补文档与 JUnit5；门槛覆盖率≥70%。✅
+- Phase 7｜最终清理：删除未引用实现，评审与发布。✅
+- Phase 8｜姿态统一：OrientationOps 上线，根治"半圆抬头"，保留 Legacy 回退。📋
 
 ## 5. 依赖关系
 - Phase 1 依赖 Phase 0。

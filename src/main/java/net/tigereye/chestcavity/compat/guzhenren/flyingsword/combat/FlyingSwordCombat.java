@@ -58,7 +58,7 @@ public final class FlyingSwordCombat {
 
     // 调试：显示目标状态（默认静音，可在配置开启）
     if (FlyingSwordCombatTuning.COMBAT_DEBUG_LOGS && sword.tickCount % 20 == 0) {
-      ChestCavity.LOGGER.info(
+      ChestCavity.LOGGER.debug(
           "[FlyingSword] Tick collision check: target={}, cooldown={}",
           target != null ? target.getName().getString() : "NULL",
           attackCooldown);
@@ -76,7 +76,7 @@ public final class FlyingSwordCombat {
       // 音效：挥砍
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
           .playSwing(sword);
-      ChestCavity.LOGGER.info(
+      ChestCavity.LOGGER.debug(
           "[FlyingSword] Collision detected! Distance: {}, attempting attack...",
           String.format("%.2f", distance));
 
@@ -133,8 +133,8 @@ public final class FlyingSwordCombat {
             levelScale,
             ctx);
 
-    // 调试信息（总是输出到日志）
-    ChestCavity.LOGGER.info(
+    // 调试信息
+    ChestCavity.LOGGER.debug(
         "[FlyingSword] Attack START: target={}, speed={}, damage={}, baseDmg={}, vRef={}, velCoef={}, levelScale={}",
         target.getName().getString(),
         String.format("%.3f", speed),
@@ -153,7 +153,7 @@ public final class FlyingSwordCombat {
       damageSource = sword.damageSources().mobAttack(owner);
     }
 
-    ChestCavity.LOGGER.info(
+    ChestCavity.LOGGER.debug(
         "[FlyingSword] Target status: invulnerableTime={}, health={}/{}, isInvulnerableTo={}",
         target.invulnerableTime,
         String.format("%.1f", target.getHealth()),
@@ -187,7 +187,7 @@ public final class FlyingSwordCombat {
     // 造成伤害
     boolean success = target.hurt(damageSource, (float) damage);
 
-    ChestCavity.LOGGER.info(
+    ChestCavity.LOGGER.debug(
         "[FlyingSword] Attack result: success={}, targetHealthAfter={}",
         success,
         String.format("%.1f", target.getHealth()));
@@ -221,13 +221,15 @@ public final class FlyingSwordCombat {
       int newLevel = oldLevel;
       if (!hitCtx.skipExp) {
         boolean isKill = !target.isAlive();
-        boolean isElite = false; // TODO: 判断精英怪
+        // 精英判断：可在 Phase 8+ 或通过事件钩子扩展
+        boolean isElite = false;
+        // 经验倍率：可通过事件钩子修改 ExperienceGainContext.finalExpAmount
         int expGain =
             FlyingSwordCalculator.calculateExpGain(
                 damage,
                 isKill,
                 isElite,
-                1.0 // TODO: 经验倍率
+                1.0
                 );
 
         // Phase 3: 触发经验获取事件（可修改或取消）
