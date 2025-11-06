@@ -160,6 +160,8 @@ public class ChestCavity {
           .registerBingXueDaoPassives();
       GuzhenrenModule.bootstrap(bus, NeoForge.EVENT_BUS);
       ReactionEngine.bootstrap();
+      // 剑荡蛊 Shockfield 统一服务器 Tick 驱动
+      net.tigereye.chestcavity.compat.guzhenren.shockfield.runtime.ShockfieldManager.bootstrap();
       // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。
       NoDropEvents.init();
 

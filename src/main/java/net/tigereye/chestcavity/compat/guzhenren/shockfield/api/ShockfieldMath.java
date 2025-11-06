@@ -167,4 +167,12 @@ public final class ShockfieldMath {
   public static double computeRadius(double ageSeconds) {
     return RADIAL_SPEED * ageSeconds;
   }
+
+  /**
+   * 计算在给定剑道道痕下的DPS软封顶。
+   * cap = DPS_CAP_BASE * (1 + JD/500)
+   */
+  public static double dpsCap(double jianDaoDaohen) {
+    return DPS_CAP_BASE * (1.0 + jianDaoDaohen / 500.0);
+  }
 }

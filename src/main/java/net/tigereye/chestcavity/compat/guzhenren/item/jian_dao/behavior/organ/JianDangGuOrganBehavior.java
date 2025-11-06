@@ -39,6 +39,7 @@ public final class JianDangGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
   private static final String MOD_ID = "guzhenren";
   public static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "jiandanggu");
+  private static final String STATE_ROOT = "JianDangGu";
 
   private JianDangGuOrganBehavior() {}
 
@@ -60,12 +61,28 @@ public final class JianDangGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
       return damage;
     }
 
+    // 资源门槛：4转4阶段（Burst门槛）
+    try {
+      var handleOpt = net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.open(player);
+      if (handleOpt.isEmpty()) {
+        return damage;
+      }
+      var h = handleOpt.get();
+      int zhuanshu = (int) Math.floor(h.read("zhuanshu").orElse(0.0));
+      int jieduan = (int) Math.floor(h.read("jieduan").orElse(0.0));
+      if (zhuanshu < 4 || jieduan < 4) {
+        return damage; // 未达门槛，静默跳过
+      }
+    } catch (Throwable ignored) {}
+
     // 创建 Shockfield 波源
     Vec3 hitPosition = target.position();
     long currentTick = attacker.level().getGameTime();
     double amplitude = ShockfieldMath.A0_PLAYER;
 
-    ShockfieldManager.getInstance().create(attacker, hitPosition, amplitude, currentTick);
+    ShockfieldManager
+        .getInstance()
+        .create(attacker, hitPosition, amplitude, currentTick, target.getUUID(), cc, organ, STATE_ROOT);
 
     return damage;
   }
@@ -96,10 +113,7 @@ public final class JianDangGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
       }
     }
 
-    // 全局Tick更新（由一个玩家驱动即可，避免重复）
-    if (player.tickCount % 20 == 0) { // 每秒执行一次
-      ShockfieldManager.getInstance().tickAll(serverLevel, now);
-    }
+    // 驱动已改为统一 ServerTick 引擎，这里不再触发 tickAll
   }
 
   // ==================== 辅助方法 ====================
@@ -112,8 +126,11 @@ public final class JianDangGuOrganBehavior extends AbstractGuzhenrenOrganBehavio
    * @return 消耗结果
    */
   private OptionalDouble tryConsumeNiantou(Player player, double amount) {
-    return GuzhenrenResourceBridge.open(player)
-        .flatMap(handle -> handle.adjustNiantou(-amount, true));
+    var handleOpt = GuzhenrenResourceBridge.open(player);
+    if (handleOpt.isEmpty()) {
+      return OptionalDouble.empty();
+    }
+    return handleOpt.get().adjustNiantou(-amount, true);
   }
 
   /**
