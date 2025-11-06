@@ -197,11 +197,35 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (!matchesOrgan(organ, ORGAN_ID)) {
       return damage;
     }
+    // 若伤害来自DoT（环境/持续伤害类），不进行 OnHit 附加逻辑
+    if (isDotLike(source, target)) {
+      return damage;
+    }
 
     OrganState state = organState(organ, STATE_ROOT);
     long now = attacker.level().getGameTime();
-    applyDragonFlame(player, cc, organ, state, target, 1, now, true);
+    // 若目标已带有龙焰印记，则不再叠加（OnHit只负责首次附加）
+    if (!ReactionTagOps.has(target, ReactionTagKeys.DRAGON_FLAME_MARK)) {
+      applyDragonFlame(player, cc, organ, state, target, 1, now, true);
+    }
     return damage;
+  }
+
+  /** 近似判定当前伤害是否属于DoT类来源。 */
+  private static boolean isDotLike(DamageSource source, LivingEntity victim) {
+    if (source == null) {
+      return false;
+    }
+    if (victim != null) {
+      if (victim.isOnFire()) {
+        return true;
+      }
+      if (victim.hasEffect(MobEffects.WITHER) || victim.hasEffect(MobEffects.POISON)) {
+        return true;
+      }
+    }
+    // 兜底：无施害者/无直接施害者的 generic 环境伤害，视作DoT
+    return source.getEntity() == null && source.getDirectEntity() == null;
   }
 
   @Override
