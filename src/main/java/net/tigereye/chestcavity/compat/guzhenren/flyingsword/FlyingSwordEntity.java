@@ -119,6 +119,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     this.attributes = FlyingSwordAttributes.createDefault();
   }
 
+  // ========== 骑乘常量 ==========
+  private static final int MAX_RIDERS = 2; // 最多两人，类似船
+
   // ========== 属性配置 ==========
   public static AttributeSupplier.Builder createAttributes() {
     return Mob.createMobAttributes()
@@ -150,6 +153,121 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   @Override
   protected void registerGoals() {
     // AI Goals 将在后续AI系统中实现
+  }
+
+  // ========== 骑乘支持 ==========
+  @Override
+  public boolean isPickable() {
+    // 允许选取与交互，以支持骑乘
+    return true;
+  }
+
+  @Override
+  public boolean canAddPassenger(net.minecraft.world.entity.Entity passenger) {
+    // 限制为最多两名乘客；仅允许生物实体骑乘
+    if (!(passenger instanceof LivingEntity)) return false;
+    return this.getPassengers().size() < MAX_RIDERS;
+  }
+
+  @Override
+  public boolean shouldRiderSit() {
+    // 站立式骑乘：让乘客保持站立姿态，而不是坐姿
+    return false;
+  }
+
+  @Override
+  protected void positionRider(net.minecraft.world.entity.Entity passenger, MoveFunction move) {
+    // 基于当前朝向与两名乘客的座位索引，放置乘客位置（站立）
+    if (!this.hasPassenger(passenger)) {
+      return;
+    }
+
+    int index = this.getPassengers().indexOf(passenger);
+    // 基础高度：略高于飞剑实体中心，避免脚底与飞剑碰撞
+    double baseY = this.getY() + this.getBbHeight() * 0.5D + 0.05D;
+
+    // 本地坐标（前后/左右/上下），单位为米
+    double forwardOffset;
+    double lateralOffset;
+    double verticalOffset;
+
+    if (index <= 0) {
+      // 驾驶位（默认第一位），略居前方
+      forwardOffset = 0.15D;
+      lateralOffset = 0.0D;
+      verticalOffset = 0.25D;
+    } else {
+      // 第二位，略靠后且略低，避免模型交叠
+      forwardOffset = -0.15D;
+      lateralOffset = 0.0D;
+      verticalOffset = 0.20D;
+    }
+
+    // 将本地前后偏移沿实体朝向转换到世界坐标
+    float yawRad = (float) Math.toRadians(this.getYRot());
+    double sin = Math.sin(yawRad);
+    double cos = Math.cos(yawRad);
+
+    double dx = (forwardOffset * (-sin)) + (lateralOffset * cos);
+    double dz = (forwardOffset * (cos)) + (lateralOffset * sin);
+
+    double x = this.getX() + dx;
+    double y = baseY + verticalOffset;
+    double z = this.getZ() + dz;
+
+    // 使乘客方向与飞剑一致
+    passenger.setYRot(this.getYRot());
+    passenger.setXRot(this.getXRot());
+    passenger.yRotO = this.yRotO;
+    passenger.xRotO = this.xRotO;
+
+    // 放置乘客
+    move.accept(passenger, x, y, z);
+
+    // 避免乘客积累坠落伤害
+    if (passenger instanceof LivingEntity living) {
+      living.resetFallDistance();
+    }
+  }
+
+  @Override
+  public LivingEntity getControllingPassenger() {
+    // 仅当“乘客中包含主人本人”时，视主人为驾驶者（客户端/服务端均可依赖 OWNER 数据）
+    if (this.getPassengers().isEmpty()) return null;
+    for (net.minecraft.world.entity.Entity e : this.getPassengers()) {
+      if (e instanceof LivingEntity le && this.isOwnedBy(le)) {
+        return le;
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public boolean isControlledByLocalInstance() {
+    // 恢复父类判定：
+    // - 服务器：始终返回 true，确保 AI 有效
+    // - 客户端：仅本地玩家返回 true（用于本地预测）
+    return super.isControlledByLocalInstance();
+  }
+
+  private boolean hasOwnerController() {
+    return net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+        .RiderControlSystem.hasOwnerController(this);
+  }
+
+  @Override
+  public void travel(Vec3 travelVector) {
+    // 仅在服务端读取驾驶者输入并驱动 MovementSystem；客户端保持默认
+    if (!this.level().isClientSide && this.hasOwnerController()) {
+      LivingEntity controller = this.getControllingPassenger();
+      if (controller instanceof Player player) {
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+            .RiderControlSystem.apply(this, player);
+        super.travel(Vec3.ZERO);
+        return;
+      }
+    }
+    super.travel(travelVector);
   }
 
   // ========== Owner 管理 ==========
@@ -632,7 +750,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
 
     // Phase 2: 运动系统 (MovementSystem) - 集中管理 AI 行为与速度计算
-    if (!tickCtx.skipAI) {
+    // 若由主人驾驶，则跳过AI驱动，改由 travel() 中的驾驶者输入决定
+    boolean riderControlled = this.hasOwnerController() && this.getControllingPassenger() != null;
+    if (!tickCtx.skipAI && !riderControlled) {
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
           .MovementSystem.tick(this, owner, getAIMode());
     }
@@ -775,13 +895,24 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       return interactCtx.customResult;
     }
 
-    // 右键召回（仅主人）
-    if (isOwner) {
-      recallToOwner();
-      return InteractionResult.SUCCESS;
+    // 新交互规则（翻转）：
+    // - 非潜行右键：上剑（所有人），避免“潜行上去马上因按着下马键而下马”的问题
+    // - 潜行右键：仅主人召回；非主人不做处理
+
+    if (player.isShiftKeyDown()) {
+      if (isOwner) {
+        recallToOwner();
+        return InteractionResult.SUCCESS;
+      }
+      return InteractionResult.PASS;
     }
 
-    return InteractionResult.PASS;
+    // 非潜行：尝试上剑
+    if (this.getPassengers().size() < MAX_RIDERS && !player.isPassenger()) {
+      player.startRiding(this, true);
+      return InteractionResult.SUCCESS;
+    }
+    return InteractionResult.CONSUME;
   }
 
   private void recallToOwner() {
