@@ -7,6 +7,49 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemp
 
 /**
  * 轨迹注册与解析器。
+ *
+ * <p><b>Phase 7: 软删除标记（Soft Deletion Marks）</b>
+ *
+ * <p>本类使用功能开关实现"软删除"机制，将轨迹分为两类：
+ * <ul>
+ *   <li><b>核心轨迹</b>（始终注册）：
+ *       <ul>
+ *         <li>{@link TrajectoryType#Orbit} - 环绕轨迹</li>
+ *         <li>{@link TrajectoryType#PredictiveLine} - 预测直线</li>
+ *         <li>{@link TrajectoryType#CurvedIntercept} - 曲线拦截</li>
+ *       </ul>
+ *   </li>
+ *   <li><b>高级轨迹</b>（仅当 {@code ENABLE_ADVANCED_TRAJECTORIES=true} 时注册）：
+ *       <ul>
+ *         <li>{@link TrajectoryType#Boomerang} - 回旋镖</li>
+ *         <li>{@link TrajectoryType#Corkscrew} - 螺旋钻</li>
+ *         <li>{@link TrajectoryType#BezierS} - 贝塞尔S曲线</li>
+ *         <li>{@link TrajectoryType#Serpentine} - 蛇形</li>
+ *         <li>{@link TrajectoryType#VortexOrbit} - 旋涡环绕</li>
+ *         <li>{@link TrajectoryType#Sawtooth} - 锯齿</li>
+ *         <li>{@link TrajectoryType#PetalScan} - 花瓣扫描</li>
+ *         <li>{@link TrajectoryType#WallGlide} - 贴墙滑行</li>
+ *         <li>{@link TrajectoryType#ShadowStep} - 影步</li>
+ *         <li>{@link TrajectoryType#DomainEdgePatrol} - 领域边缘巡逻</li>
+ *         <li>{@link TrajectoryType#Ricochet} - 弹射</li>
+ *         <li>{@link TrajectoryType#HelixPair} - 双螺旋</li>
+ *         <li>{@link TrajectoryType#PierceGate} - 穿刺门</li>
+ *       </ul>
+ *   </li>
+ * </ul>
+ *
+ * <p><b>软删除策略：</b>
+ * <ul>
+ *   <li>默认配置（{@code ENABLE_ADVANCED_TRAJECTORIES=false}）下，高级轨迹不会被注册，
+ *       实现零性能开销</li>
+ *   <li>高级轨迹实现类保留在代码库中，不硬删除，保持可选功能的完整性</li>
+ *   <li>用户可通过修改 {@link net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES}
+ *       开关启用高级轨迹</li>
+ *   <li>详见：{@code docs/stages/PHASE_7.md} §7.3.1</li>
+ * </ul>
+ *
+ * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES
+ * @see TrajectoryType
  */
 public final class Trajectories {
   private static final Map<TrajectoryType, Trajectory> REGISTRY = new EnumMap<>(TrajectoryType.class);

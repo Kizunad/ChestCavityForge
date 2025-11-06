@@ -5,7 +5,17 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentResult;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Trajectory;
 
-/** 蛇形抖动：保持拉距同时横向摆动。 */
+/**
+ * 蛇形抖动：保持拉距同时横向摆动。
+ *
+ * <p><b>Phase 7: 软删除标记（Soft Deletion Mark）</b> - 高级轨迹
+ *
+ * <p>本轨迹仅在 {@code ENABLE_ADVANCED_TRAJECTORIES=true} 时注册启用。
+ * 默认配置下不会被加载，实现零性能开销。
+ *
+ * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES
+ * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Trajectories
+ */
 public final class SerpentineTrajectory implements Trajectory {
   @Override
   public Vec3 computeDesiredVelocity(AIContext ctx, IntentResult intent) {
