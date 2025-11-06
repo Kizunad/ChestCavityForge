@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.passive
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianLiaoGuCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianLiaoGuFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianLiaoGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
@@ -26,6 +27,8 @@ public final class JianLiaoGuHeartbeat {
     if (heal > 0f && player.getHealth() < player.getMaxHealth()) {
       float amount = heal;
       ChestCavityUtil.runWithOrganHeal(() -> player.heal(amount));
+      // 心跳治疗特效
+      JianLiaoGuFx.playHeartbeat(player, amount);
     }
 
     heartbeatEntry.setReadyAt(now + Math.max(20L, JianLiaoGuTuning.HEARTBEAT_PERIOD_T));

@@ -9,6 +9,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordControll
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianLiaoGuCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianLiaoGuFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianLiaoGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 
@@ -50,19 +51,33 @@ public final class JianLiaoGuSwordRepair {
           if (cost > 0.0) {
             donor.setDurability((float) Math.max(0.0, donor.getDurability() - cost));
             pool += JianLiaoGuCalc.donorNetFromCost(cost);
+            // 捐献特效：健康飞剑贡献能量
+            JianLiaoGuFx.playSwordDonate(donor, cost);
           }
         }
 
         if (pool > 0.0) {
           low.sort(Comparator.comparingDouble(FlyingSwordEntity::getDurability));
           double share = pool / low.size();
+          boolean anyRepaired = false;
           for (FlyingSwordEntity target : low) {
             double cap = JianLiaoGuCalc.repairCapPerTarget(target);
             double add = Math.min(share, cap);
             if (add > 0.0) {
               double max = Math.max(1.0, target.getSwordAttributes().maxDurability);
               target.setDurability((float) Math.min(max, target.getDurability() + add));
+              anyRepaired = true;
+              // 能量传导特效：从捐献者到接收者（选择一个代表性的捐献者）
+              if (!donors.isEmpty()) {
+                JianLiaoGuFx.playSwordTransfer(donors.get(0), target);
+              }
+              // 接收修复特效：低耐久飞剑恢复
+              JianLiaoGuFx.playSwordReceive(target, add);
             }
+          }
+          // 修复完成音效
+          if (anyRepaired) {
+            JianLiaoGuFx.playSwordRepairComplete(level, player);
           }
         }
       }
