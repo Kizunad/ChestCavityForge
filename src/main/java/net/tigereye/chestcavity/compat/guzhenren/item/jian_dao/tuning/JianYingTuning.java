@@ -58,4 +58,8 @@ public final class JianYingTuning {
   public static final double AFTERIMAGE_RADIUS = 3.0;
   public static final int SWORD_SCAR_DURATION_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "SWORD_SCAR_DURATION_TICKS", 120);
+
+  // OnHit 冷却（秒伤限制）：默认 5 秒
+  public static final int ON_HIT_COOLDOWN_TICKS =
+      BehaviorConfigAccess.getInt(JianYingTuning.class, "ON_HIT_COOLDOWN_TICKS", 100);
 }

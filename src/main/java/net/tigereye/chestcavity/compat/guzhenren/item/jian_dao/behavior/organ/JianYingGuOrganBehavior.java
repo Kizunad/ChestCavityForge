@@ -77,6 +77,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
   private static final double PASSIVE_TRIGGER_CHANCE = 0.10;
   private static final String STATE_ROOT = "JianYingGu";
   private static final String ACTIVE_READY_KEY = "ActiveReadyAt";
+  private static final String ON_HIT_READY_KEY = "OnHitReadyAt";
 
   private static final double AFTERIMAGE_CHANCE = 0.1;
   private static final double AFTERIMAGE_RADIUS = 3.0;
@@ -126,19 +127,38 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     double efficiency =
         1.0 + LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE).get();
 
-    double passiveDamage = triggerSwordShadow(player, target, efficiency);
-    if (passiveDamage > 0.0) {
-      applyTrueDamage(
-          player,
-          target,
-          (float) passiveDamage,
-          SKILL_PASSIVE_ID,
-          java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
+    // OnHit 触发冷却：5 秒最多触发一次（MultiCooldown 存储于器官状态）
+    ItemStack stateStack = organ == null || organ.isEmpty() ? findOrgan(cc) : organ;
+    MultiCooldown cooldown =
+        MultiCooldown.builder(OrganState.of(stateStack, STATE_ROOT)).withSync(cc, stateStack).build();
+    MultiCooldown.Entry onHitCd = cooldown.entry(ON_HIT_READY_KEY);
+    long nowTick = attacker.level().getGameTime();
+
+    boolean triggeredAny = false;
+    if (onHitCd.isReady(nowTick)) {
+      double passiveDamage = triggerSwordShadow(player, target, efficiency);
+      if (passiveDamage > 0.0) {
+        triggeredAny = true;
+        applyTrueDamage(
+            player,
+            target,
+            (float) passiveDamage,
+            SKILL_PASSIVE_ID,
+            java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
+      }
+
+      // 残影仅在冷却就绪时允许尝试
+      if (trySpawnAfterimage(player, target, source)) {
+        triggeredAny = true;
+      }
+
+      if (triggeredAny) {
+        onHitCd.setReadyAt(nowTick + net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYingTuning.ON_HIT_COOLDOWN_TICKS);
+      }
     }
 
+    // 分身 AI 指令不受 OnHit 冷却限制，保持响应性
     commandClones(player, target);
-
-    trySpawnAfterimage(player, target, source);
 
     return damage;
   }
@@ -224,19 +244,20 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
     return true;
   }
 
-  private static void trySpawnAfterimage(Player player, LivingEntity target, DamageSource source) {
+  private static boolean trySpawnAfterimage(
+      Player player, LivingEntity target, DamageSource source) {
     if (player == null || target == null) {
-      return;
+      return false;
     }
     if (!isCritical(player, source)) {
-      return;
+      return false;
     }
     if (player.getRandom().nextDouble() >= AFTERIMAGE_CHANCE) {
-      return;
+      return false;
     }
     Level level = player.level();
     if (level.isClientSide()) {
-      return;
+      return false;
     }
     Vec3 origin = target.position();
     PlayerSkinUtil.SkinSnapshot tinted =
@@ -261,6 +282,7 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
             level.dimension(),
             level.getGameTime() + JianYingTuning.AFTERIMAGE_DELAY_TICKS,
             origin));
+    return true;
   }
 
   private static double triggerSwordShadow(Player player, LivingEntity target, double efficiency) {

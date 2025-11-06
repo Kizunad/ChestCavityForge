@@ -719,8 +719,16 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   private void tickClient() {
-    // 客户端逻辑：主要在服务端生成粒子，客户端自动同步
-    // 客户端特定的渲染逻辑在Renderer中处理
+    // 客户端逻辑：
+    // - 如果本地玩家作为主人驾驶者，执行本地控制（Boat式），并由网络同步到服务端
+    if (this.isControlledByLocalInstance()) {
+      net.minecraft.world.entity.Entity ctrl = this.getControllingPassenger();
+      if (ctrl instanceof Player player && this.isOwnedBy(player)) {
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+            .RiderControlSystem.applyClient(this, player);
+      }
+    }
+    // 其他客户端特定的渲染逻辑在Renderer中处理
   }
 
   private void tickServer() {
