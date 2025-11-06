@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordControll
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianLiaoGuCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianLiaoGuFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianLiaoGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
@@ -51,6 +52,9 @@ public final class JianLiaoGuActive {
       return false;
     }
 
+    // 激活特效：生命消耗
+    JianLiaoGuFx.playActiveActivate(player, hpSpend);
+
     double repaired = 0.0;
     for (FlyingSwordEntity sword : swords) {
       double add = JianLiaoGuCalc.activeRepairAmount(sword, hpSpend, maxHp, swordScar);
@@ -62,6 +66,10 @@ public final class JianLiaoGuActive {
       sword.setDurability((float) Math.min(max, before + add));
       if (sword.getDurability() > before) {
         repaired += sword.getDurability() - before;
+        // 能量传导特效：玩家 → 飞剑
+        JianLiaoGuFx.playActiveTransfer(player, sword);
+        // 修复特效：飞剑恢复
+        JianLiaoGuFx.playActiveRepair(sword, add);
       }
     }
 
@@ -71,6 +79,10 @@ public final class JianLiaoGuActive {
 
     player.setHealth(Math.max(1.0f, currentHp - hpSpend));
     readyEntry.setReadyAt(now + JianLiaoGuCalc.activeCooldownTicks(swordScar));
+
+    // 完成音效
+    JianLiaoGuFx.playActiveComplete(player, repaired);
+
     return true;
   }
 }
