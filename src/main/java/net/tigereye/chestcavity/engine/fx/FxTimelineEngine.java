@@ -62,12 +62,14 @@ public final class FxTimelineEngine implements ServerTickEngine {
    * 取消一个 Track（手动停止）。
    *
    * @param trackId Track ID
+   * @param level 服务器世界（用于触发 onStop 回调）
    * @return 是否成功取消
    */
-  public boolean cancel(String trackId) {
+  public boolean cancel(String trackId, ServerLevel level) {
     TrackContext ctx = activeTracks.remove(trackId);
     if (ctx != null) {
       LOGGER.debug("[FxEngine] Cancelled track: {}", trackId);
+      safeOnStop(ctx.track, level, StopReason.CANCELLED);
       return true;
     }
     return false;

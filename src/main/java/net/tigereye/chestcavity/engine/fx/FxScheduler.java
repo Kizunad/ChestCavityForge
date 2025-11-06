@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.engine.fx;
 
+import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +11,7 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *   <li>schedule(track) - 提交一个 FX Track
- *   <li>cancel(trackId) - 取消一个 Track
+ *   <li>cancel(trackId, level) - 取消一个 Track（触发 onStop 回调）
  *   <li>find(trackId) - 查找活跃的 Track
  * </ul>
  *
@@ -54,14 +55,15 @@ public final class FxScheduler {
    * 取消一个 Track（手动停止）。
    *
    * @param trackId Track ID
+   * @param level 服务器世界（用于触发 onStop 回调）
    * @return 是否成功取消
    */
-  public boolean cancel(String trackId) {
+  public boolean cancel(String trackId, ServerLevel level) {
     if (trackId == null || trackId.isEmpty()) {
       return false;
     }
 
-    boolean cancelled = engine.cancel(trackId);
+    boolean cancelled = engine.cancel(trackId, level);
     if (cancelled) {
       LOGGER.debug("[FxScheduler] Cancelled track: {}", trackId);
     }
