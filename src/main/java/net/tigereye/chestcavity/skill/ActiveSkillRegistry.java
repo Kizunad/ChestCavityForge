@@ -28,6 +28,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
@@ -810,6 +811,16 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(JianYinGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("指挥界面", null));
+
+    register(
+        "guzhenren:jian_xue_hu_ji",
+        "guzhenren:jian_xue_hu_ji",
+        "guzhenren:jian_liao_gu",
+        tags("治疗", "支援", "飞剑"),
+        "剑血互济：牺牲自身生命为在场飞剑补充耐久，剑道道痕越深修复越强且冷却越短",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianLiaoGuOrganBehavior.java",
+        () -> ensureClassLoaded(JianLiaoGuOrganBehavior.INSTANCE),
+        CooldownHint.useOrgan("剑血互济就绪", null));
 
     register(
         "guzhenren:shou_jian_ling",

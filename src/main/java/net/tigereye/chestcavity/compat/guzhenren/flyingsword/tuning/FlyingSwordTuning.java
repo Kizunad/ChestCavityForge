@@ -145,7 +145,7 @@ public final class FlyingSwordTuning {
   // Phase 0: 添加功能开关，为后续裁剪做准备
 
   /** 启用高级轨迹（保留：Orbit, PredictiveLine, CurvedIntercept） */
-  public static final boolean ENABLE_ADVANCED_TRAJECTORIES = false;
+  public static final boolean ENABLE_ADVANCED_TRAJECTORIES = true;
 
   /** 启用额外意图（每个模式最多保留 2 条基础意图） */
   public static final boolean ENABLE_EXTRA_INTENTS = false;
@@ -154,7 +154,7 @@ public final class FlyingSwordTuning {
   public static final boolean ENABLE_SWARM = false;
 
   /** 启用剑引蛊 TUI（SwordCommandTUI） */
-  public static final boolean ENABLE_TUI = false;
+  public static final boolean ENABLE_TUI = true;
 
   /** 启用 Gecko 模型覆盖与视觉档案 */
   public static final boolean ENABLE_GEO_OVERRIDE_PROFILE = false;

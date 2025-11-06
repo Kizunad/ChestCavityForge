@@ -93,13 +93,15 @@ public final class SwordCommandTUI {
             .append(groupButton(2, currentGroup == 2, Component.translatable("text.guzhenren.jianyingu.command.group.g2")))
             .append(space())
             .append(groupButton(3, currentGroup == 3, Component.translatable("text.guzhenren.jianyingu.command.group.g3")));
-    groupLine =
-        groupLine.append(space())
-            .append(
-                groupButton(
-                    FlyingSwordEntity.SWARM_GROUP_ID,
-                    currentGroup == FlyingSwordEntity.SWARM_GROUP_ID,
-                    Component.translatable("text.guzhenren.jianyingu.command.group.swarm")));
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+      groupLine =
+          groupLine.append(space())
+              .append(
+                  groupButton(
+                      FlyingSwordEntity.SWARM_GROUP_ID,
+                      currentGroup == FlyingSwordEntity.SWARM_GROUP_ID,
+                      Component.translatable("text.guzhenren.jianyingu.command.group.swarm")));
+    }
     player.sendSystemMessage(groupLine);
 
     MutableComponent actions =

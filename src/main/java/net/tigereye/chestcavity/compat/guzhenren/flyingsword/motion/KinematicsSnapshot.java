@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordCoreTuning;
 
 /**
  * 每 tick 由实体生成的运动学快照，缓存常用计算结果，避免重复计算。
@@ -68,6 +69,10 @@ public record KinematicsSnapshot(
    * 返回领域缩放后的最大转向速度（仍为角度/ tick）。
    */
   public double scaledTurnRate() {
-    return turnRate * Math.max(0.1, domainScale);
+    double base = turnRate * Math.max(0.1, domainScale);
+    double maxSpeed = Math.max(1.0e-6, effectiveMax);
+    double speedRatio = Math.min(1.0, currentVelocity.length() / maxSpeed);
+    double speedScale = 1.0 + FlyingSwordCoreTuning.TURN_RATE_SPEED_SCALE * speedRatio;
+    return base * speedScale;
   }
 }

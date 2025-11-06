@@ -48,5 +48,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(lieJian)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(lieJian);
     }
+
+    // 剑疗蛊：剑血互济
+    var jianLiao = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_xue_hu_ji");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianLiao)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianLiao);
+    }
   }
 }

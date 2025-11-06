@@ -6,6 +6,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.Ji
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.YunJianQingLianGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYinGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -38,6 +39,10 @@ public final class JiandaoOrganRegistry {
           OrganIntegrationSpec.builder(YunJianQingLianGuOrganBehavior.ORGAN_ID)
               .addSlowTickListener(YunJianQingLianGuOrganBehavior.INSTANCE)
               .addIncomingDamageListener(YunJianQingLianGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑疗蛊：慢tick心跳治疗 + 飞剑互补修复；主动技：剑血互济
+          OrganIntegrationSpec.builder(JianLiaoGuOrganBehavior.ORGAN_ID)
+              .addSlowTickListener(JianLiaoGuOrganBehavior.INSTANCE)
               .build(),
           // 剑心蛊（体质）集成：慢tick + 受击打断
           OrganIntegrationSpec.builder(

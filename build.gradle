@@ -7,6 +7,7 @@ plugins {
     id 'com.gradleup.shadow' version '9.2.2'
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
+    id 'jacoco'
 }
 
 
@@ -234,6 +235,27 @@ test {
     useJUnitPlatform()
     classpath += sourceSets.main.runtimeClasspath
 }
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+tasks.named('jacocoTestReport', JacocoReport).configure {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    classDirectories.setFrom(fileTree(dir: 'build/classes/java/main'))
+    sourceDirectories.setFrom(files('src/main/java'))
+    executionData.setFrom(fileTree(dir: 'build', includes: [
+            'jacoco/test.exec',
+            'jacoco/test/*.exec',
+            'jacoco/*.exec'
+    ]))
+}
+
+tasks.named('check').configure { dependsOn tasks.named('jacocoTestReport') }
 
 processResources {
     def replaceProperties = [
