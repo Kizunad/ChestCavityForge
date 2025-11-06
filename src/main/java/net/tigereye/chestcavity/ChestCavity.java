@@ -162,6 +162,8 @@ public class ChestCavity {
       ReactionEngine.bootstrap();
       // 剑荡蛊 Shockfield 统一服务器 Tick 驱动
       net.tigereye.chestcavity.compat.guzhenren.shockfield.runtime.ShockfieldManager.bootstrap();
+      // FxEngine 时间线系统（Stage 1：引擎骨架）
+      net.tigereye.chestcavity.engine.fx.FxEngine.bootstrap();
       // 提前注册古真人召唤相关的无掉落事件，避免召唤物产生战利品。
       NoDropEvents.init();
 
