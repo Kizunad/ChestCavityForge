@@ -20,6 +20,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter;
 
 /**
  * 飞剑命令系统
@@ -382,6 +383,7 @@ public final class FlyingSwordCommand {
                         modeName)),
             true);
 
+    SwordCommandCenter.clear(player);
     return count;
   }
 
@@ -526,6 +528,7 @@ public final class FlyingSwordCommand {
                           "[flyingsword] Sword #%d set to mode: %s",
                           index, mode.getDisplayName())),
               true);
+      SwordCommandCenter.clear(player);
       return 1;
     }
     ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to set mode"));
@@ -658,6 +661,7 @@ public final class FlyingSwordCommand {
                 Component.literal(
                     String.format("[flyingsword] Selected sword set to mode: %s", mode.getDisplayName())),
             true);
+    SwordCommandCenter.clear(player);
     return 1;
   }
 
@@ -678,6 +682,7 @@ public final class FlyingSwordCommand {
                 Component.literal(
                     String.format(Locale.ROOT, "[flyingsword] Selected sword -> group %d", Math.max(0, group))),
             true);
+    SwordCommandCenter.clear(player);
     return 1;
   }
 
@@ -698,6 +703,7 @@ public final class FlyingSwordCommand {
                 Component.literal(
                     String.format(Locale.ROOT, "[flyingsword] Sword #%d -> group %d", index, Math.max(0, group))),
             true);
+    SwordCommandCenter.clear(player);
     return 1;
   }
 
@@ -714,6 +720,7 @@ public final class FlyingSwordCommand {
                     String.format(
                         Locale.ROOT, "[flyingsword] Set %d sword(s) -> group %d", count, Math.max(0, group))),
             true);
+    SwordCommandCenter.clear(player);
     return count;
   }
 
