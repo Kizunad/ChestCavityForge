@@ -31,6 +31,7 @@
   - `docs/stages/PHASE_5.md`（✅ 已完成详细规划并实施）
   - `docs/stages/PHASE_6.md`（✅ 已创建）
   - `docs/stages/PHASE_7.md`（✅ 已创建）
+  - `docs/stages/PHASE_8.md`（✅ 已创建）
 - 测试用例文档：`docs/FLYINGSWORD_TEST_CASES.md`（待产）
 
 ## 4. 阶段规划（Stage Plans 摘要）
@@ -42,6 +43,7 @@
 - Phase 5｜客户端与网络：渲染降噪；网络仅必要同步。✅
 - Phase 6｜文档与测试：补文档与 JUnit5；门槛覆盖率≥70%。
 - Phase 7｜最终清理：删除未引用实现，评审与发布。
+- Phase 8｜姿态统一：OrientationOps 上线，根治“半圆抬头”，保留 Legacy 回退。
 
 ## 5. 依赖关系
 - Phase 1 依赖 Phase 0。
@@ -66,4 +68,3 @@
 ---
 
 > 注：阶段任务细节、任务清单与依赖，请参考 `docs/FLYINGSWORD_REFACTOR_PLAN.md` 与 `docs/FLYINGSWORD_TODO.md`，并在 `docs/stages/` 下逐步产出具体阶段文档。
-

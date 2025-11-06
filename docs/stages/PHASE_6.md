@@ -10,12 +10,15 @@
   - ✅ `FlyingSwordStorageTest.java` - NBT序列化测试
   - ✅ `ItemAffinityUtilTest.java` - 物品亲和度计算
   - ✅ `ItemDurabilityUtilTest.java` - 耐久工具
-  - ✅ `KinematicsOpsTest.java` - 运动学计算
-- 需要补充的测试：
-  - ⚠️ `FlyingSwordCalculatorTest.java` - 核心计算器（伤害、维持、经验、耐久）
-  - ⚠️ `UpkeepOpsTest.java` - 资源消耗逻辑
-  - ⚠️ `SteeringOpsTest.java` - 转向操作
-  - ⚠️ `CombatSystemTest.java` - 战斗系统集成测试
+  - ✅ `KinematicsOpsTest.java` - 运动学基础
+  - ✅ `FlyingSwordCalculatorTest.java` - 核心计算器（伤害、维持、经验、耐久）
+  - ✅ `UpkeepOpsTest.java` - 维持消耗逻辑
+  - ✅ 新增 `KinematicsOpsEdgeCaseTest.java` - 对向转向/退化零向量/NaN 防御（复现“途中剑头朝上”相关边界）
+  - ✅ 新增 `KinematicsSnapshotMathTest.java` - 领域/加速度/上限缩放与 baseScale
+  - ✅ 新增 `SteeringCommandTest.java` - 命令链式配置的纯逻辑校验
+- 仍需补充（保持规划）：
+  - ⚠️ `SteeringOpsTest.java` - 转向操作（需将 computeNewVelocity 的 MC 依赖进一步抽象）
+  - ⚠️ `CombatSystemTest.java` - 战斗系统集成测试（MC 实体依赖，低优先）
 
 ## 实施日期
 2025-11-06
@@ -85,6 +88,8 @@
 
 **预期代码量**: ~150 行
 
+> 注：当前已通过 `KinematicsOpsEdgeCaseTest` 与 `SteeringCommandTest` 覆盖关键边界与命令链路，`SteeringOpsTest` 仍保留为规划任务，建议在后续将 `computeNewVelocity` 中的 AIMode/实体依赖剥离为可注入参数后补测。
+
 #### 6.1.4 CombatSystemTest（战斗系统集成测试）
 **位置**: `src/test/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/systems/CombatSystemTest.java`
 
@@ -102,6 +107,18 @@
 **说明**: 由于需要 Minecraft 环境（Entity、Level等），这部分测试可能需要模拟或集成测试环境，优先级较低
 
 **预期代码量**: ~150 行（如果环境允许）
+
+---
+
+## 渲染接口统一（计划项）
+
+为修复“途中剑头朝上”类渲染朝向问题并支持扩展，补充计划（不在本阶段实现，仅登记）：
+
+- 统一 Render Item 接口（以 FlyingSwordRenderer 为入口），抽象“方向/对齐/滚转”计算接口；
+- 提供可 Override 的渲染钩子（视觉档/模型覆盖优先于默认渲染）；
+- 在 Renderer 内部减少重复计算，严格区分“速度对齐/目标对齐/持有者对齐”。
+
+上述计划已归档至 `docs/stages/PHASE_8.md`，作为后续重点阶段推进；不影响当前测试范围。
 
 ### 6.2 系统文档补充
 
@@ -442,4 +459,3 @@ Phase 6 完成后，Phase 7 将专注于：
 - ⚠️ 如果测试发现问题，立即修复
 - ⚠️ 如果覆盖率不足，补充测试
 - ⚠️ 如果手动测试失败，回溯问题根源
-
