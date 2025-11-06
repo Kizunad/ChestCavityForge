@@ -254,7 +254,7 @@ public final class FlyingSwordCombat {
 
         // 击杀提示
         if (isKill) {
-          ChestCavity.LOGGER.info(
+          ChestCavity.LOGGER.debug(
               "[FlyingSword] Killed {}! Gained {} exp", target.getName().getString(), expGain);
         }
       }

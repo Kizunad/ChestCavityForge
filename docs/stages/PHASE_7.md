@@ -27,6 +27,19 @@
 - [ ] 保留关键操作的 INFO 日志（召唤、召回、模式切换等）
 - [ ] 错误和警告日志保持不变
 
+嵌入指引（命令与定位）
+- 搜索飞剑模块中的 INFO 日志：
+  - `rg -n "LOGGER.info\(|System\.out\.println\(" src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword`
+  - 重点文件（建议降级为 DEBUG，关键里程碑除外）：
+    - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/combat/FlyingSwordCombat.java:64`
+    - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/combat/FlyingSwordCombat.java:114`
+    - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/combat/FlyingSwordCombat.java:141`
+    - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/combat/FlyingSwordCombat.java:206`
+- 规则建议：
+  - DEBUG：命中调试、数值打印、周期性状态；
+  - INFO：召唤/召回、升级成功、重要模式切换；
+  - WARN/ERROR：异常与失败分支。
+
 #### 7.1.3 清理 TODO/FIXME 注释
 **位置**:
 - `src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/combat/FlyingSwordCombat.java`
@@ -61,6 +74,34 @@
 - [ ] 确保未使用的轨迹被功能开关控制
 - [ ] 考虑移除完全未引用的轨迹
 
+候选删除清单（默认关闭 ENABLE_ADVANCED_TRAJECTORIES=false）
+- 保留（始终注册）
+  - `Orbit`：src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/trajectory/impl/OrbitTrajectory.java
+  - `PredictiveLine`：src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/trajectory/impl/PredictiveLineTrajectory.java
+  - `CurvedIntercept`：src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/trajectory/impl/CurvedInterceptTrajectory.java
+- 候选删除（默认不注册）
+  - `Boomerang`：ai/trajectory/impl/BoomerangTrajectory.java
+  - `Corkscrew`：ai/trajectory/impl/CorkscrewTrajectory.java
+  - `BezierS`：ai/trajectory/impl/BezierSTrajectory.java
+  - `Serpentine`：ai/trajectory/impl/SerpentineTrajectory.java
+  - `VortexOrbit`：ai/trajectory/impl/VortexOrbitTrajectory.java
+  - `Sawtooth`：ai/trajectory/impl/SawtoothTrajectory.java
+  - `PetalScan`：ai/trajectory/impl/PetalScanTrajectory.java
+  - `WallGlide`：ai/trajectory/impl/WallGlideTrajectory.java
+  - `ShadowStep`：ai/trajectory/impl/ShadowStepTrajectory.java
+  - `DomainEdgePatrol`：ai/trajectory/impl/DomainEdgePatrolTrajectory.java
+  - `Ricochet`：ai/trajectory/impl/RicochetTrajectory.java
+  - `HelixPair`：ai/trajectory/impl/HelixPairTrajectory.java
+  - `PierceGate`：ai/trajectory/impl/PierceGateTrajectory.java
+注册守卫：`Trajectories.java:38`（受 `ENABLE_ADVANCED_TRAJECTORIES` 控制）
+
+嵌入指引（命令与定位）
+- 列出轨迹与注册：
+  - `rg -n "class .*Trajectory|register\(TrajectoryType" src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/trajectory`
+  - 对照 `Trajectories.java` 与 `FlyingSwordTuning.ENABLE_ADVANCED_TRAJECTORIES` 的实际使用
+- 未引用判定：
+  - `rg -n "new \w+Trajectory\(|TrajectoryType\.\w+" src/main/java | rg -v "Trajectories\.java"`
+
 #### 7.3.2 清点未引用的意图资源
 **位置**: `ai/intent/`
 - [ ] 列出所有意图实现
@@ -68,11 +109,79 @@
 - [ ] 确保未使用的意图被功能开关控制
 - [ ] 考虑移除完全未引用的意图
 
+候选删除清单（默认关闭 ENABLE_EXTRA_INTENTS=false）
+- 保留（默认启用）
+  - ORBIT：`HoldIntent`、`PatrolIntent`
+  - GUARD：`GuardIntent`、`InterceptIntent`
+  - HUNT：`AssassinIntent`、`DuelIntent`
+  - RECALL：`RecallIntent`
+- 候选删除（默认不启用）
+  - `SweepSearchIntent`、`DecoyIntent`、`KitingIntent`、`FocusFireIntent`、`BreakerIntent`、`SuppressIntent`、`ShepherdIntent`、`SweepIntent`、`PivotIntent`
+规划守卫：`IntentPlanner.java:31,40,50`（受 `ENABLE_EXTRA_INTENTS` 控制）
+
+嵌入指引（命令与定位）
+- 列出意图类与规划：
+  - `rg -n "class .*Intent\b|new .*Intent\(" src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai`
+  - 对照 `intent/planner/IntentPlanner.java` 与 `FlyingSwordTuning.ENABLE_EXTRA_INTENTS`
+- 未引用判定：
+  - `rg -n "new .*Intent\(" src/main/java | rg -v "IntentPlanner\.java"`
+
 #### 7.3.3 清点未引用的模型覆盖资源
 **位置**: `client/` 和资源文件
 - [ ] 检查 Gecko 模型资源
 - [ ] 检查视觉档案资源
 - [ ] 确保默认配置下无冗余加载
+
+清单与保留原则（ENABLE_GEO_OVERRIDE_PROFILE=false，默认不加载）
+- Loader/Registry（保留，后续会使用到 Gecko）
+  - 覆盖：`client/override/SwordModelOverrideRegistry.java`、`client/override/SwordModelOverrideLoader.java`
+  - 视觉档：`client/profile/SwordVisualProfileRegistry.java`、`client/profile/SwordVisualProfileLoader.java`
+- 资源（示例，默认不加载）
+  - `assets/guzhenren/sword_models/qinglian.json`
+  - `assets/guzhenren/sword_visuals/qinglian.json`（`enabled=false`）
+- 客户端注册守卫：`ChestCavity.java:229`（受 `ENABLE_GEO_OVERRIDE_PROFILE` 控制）
+- 结论：Gecko/覆盖/视觉档需保留（会使用到）；仅确保默认配置下不加载、无性能负担。
+
+软删除建议（不破坏可选功能）
+- 仅保留注册守卫与开关，默认构建不注册/不加载；
+- 删除候选：限于“默认关闭且确认未来不再支持”的轨迹/意图；Gecko 相关一律保留；
+- 删除前在 `CHANGELOG.md` 与 `docs/FLYINGSWORD_MIGRATION.md` 标注兼容性说明与过渡期。
+
+资源逐项摘要（扫描结果，用于二次确认）
+- `src/main/resources/assets/guzhenren/sword_models/qinglian.json`
+  - key: `qinglian`
+  - renderer: `item`
+  - enabled: N/A（覆盖定义无 enabled 字段，由开关控制 Loader 注册）
+  - align: `target`
+  - pre_roll: `-45.0`
+  - yaw_offset: `0`
+  - pitch_offset: `0.0`
+  - scale: `0.5`
+  - display_item: `minecraft:diamond_sword`
+  - model: null / textures: null / animation: null
+
+- `src/main/resources/assets/guzhenren/sword_visuals/qinglian.json`
+  - key: `qinglian`
+  - enabled: `false`（默认不启用）
+  - renderer: `item`
+  - align: `target`
+  - pre_roll: `-45.0`
+  - yaw_offset: `-90.0`
+  - pitch_offset: `0.0`
+  - scale: `1.0`
+  - glint: `inherit`
+  - model: null / textures: [] / animation: null
+  - match_model_keys: `["qinglian"]`
+
+备注：由于 `ENABLE_GEO_OVERRIDE_PROFILE=false`，上述资源在默认构建中不会被加载；确认保留 Gecko/覆盖/视觉档为可选功能（将来会用到）。
+
+嵌入指引（命令与定位）
+- 仅在开关启用时应加载：
+  - 检查 `ChestCavity.java` 的 `ENABLE_GEO_OVERRIDE_PROFILE` 守卫是否完整
+  - `rg -n "SwordModelOverrideLoader|SwordVisualProfileLoader" src/main/java`
+- 资源清单交叉：
+  - `rg -n "profile|override|gecko" src/main/resources | rg -i "json|geo"`
+  - 对照注册器：`client/override/*Registry`、`client/profile/*Registry`
 
 ### 7.4 API/文档标注
 
@@ -86,6 +195,11 @@
 - [ ] 添加开关配置说明（如 `USE_BASIS_ORIENTATION`）
 - [ ] 文档化回退选项和兼容性说明
 
+嵌入指引（文档与代码注释）
+- 渲染器注释：在 `client/FlyingSwordRenderer.java` 贴注释“欧拉 Y→Z 为 Legacy 路径”；
+- 标注开关：在 `FlyingSwordModelTuning`（或 `FlyingSwordTuning`）新增/说明 `USE_BASIS_ORIENTATION`（默认 true，P8 落地）；
+- 标注 Profile 字段：在 `SwordModelOverrideLoader`/`SwordVisualProfileLoader` 文档说明 `orientationMode/upMode`（P8）。
+
 #### 7.4.2 同步 CHANGELOG、版本号与迁移说明
 **位置**:
 - `CHANGELOG.md` (如果存在)
@@ -95,6 +209,17 @@
 - [ ] 创建或更新 CHANGELOG，记录 Phase 0-7 的所有变更
 - [ ] 更新版本号（建议：1.0.0-RC1）
 - [ ] 编写迁移说明文档，指导用户升级
+
+嵌入指引（文件与步骤）
+- 版本号位置：`gradle.properties` 的 `mod_version=2.16.4`（示例），建议临时设为 `-RC1`；
+- 新增文档：`docs/FLYINGSWORD_MIGRATION.md`，包含：
+  - 冷却统一到 MultiCooldown 的迁移说明；
+  - Upkeep 失败策略与默认行为；
+  - 客户端降噪与开关；
+  - 渲染 Legacy 回退开关；
+- CHANGELOG 模板：
+  - `## [2.17.0-RC1] - 2025-11-06`（示例）
+  - Added/Changed/Fixed/Removed 小节简述改动。
 
 ### 7.5 构建与候选
 
@@ -300,4 +425,3 @@
 ---
 
 **Phase 7 核心任务：最终清理与发布 - 进行中 🚧**
-
