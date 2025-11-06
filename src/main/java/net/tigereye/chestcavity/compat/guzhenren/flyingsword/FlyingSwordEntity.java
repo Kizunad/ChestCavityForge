@@ -114,6 +114,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     super(type, level);
     this.setNoGravity(true);
     this.noCulling = true;
+    // 避免因远离玩家而被原版自动清除（vanilla checkDespawn），飞剑应作为持久实体存在
+    this.setPersistenceRequired();
     this.attributes = FlyingSwordAttributes.createDefault();
   }
 
