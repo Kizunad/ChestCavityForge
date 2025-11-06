@@ -193,8 +193,81 @@ public void testCalculateDamage_WithSpeedBonus() {
 - 开发模式下可启用 DEBUG 标志
 - 不得在生产环境中留有 System.out.println
 
-## 9. 兼容性要求
+## 9. 渲染姿态规范（Phase 7 标注，Phase 8 实施）
+
+### 当前渲染路径（Legacy）
+
+**当前实现**（Phase 7 及之前）：
+- 使用欧拉角（yaw/pitch）计算飞剑朝向
+- 按 Y-Z 顺序应用旋转
+- 位置：`FlyingSwordRenderer.java`
+
+**已知问题**：
+- 在某些飞行角度（如对向、竖直）可能出现"途中剑头朝上"或不自然的滚转
+- 欧拉角顺序不对称，可能导致渲染朝向不连续
+
+**标注**：
+- 当前渲染路径在 Phase 8 后将标记为 **Legacy（兼容模式）**
+- 保留作为回退选项，可通过配置切换
+
+### 未来渲染路径（Phase 8 计划）
+
+**OrientationOps 系统**：
+- 统一"朝向→姿态"计算为四元数
+- 基于正交基（right-hand）构建姿态矩阵
+- 避免欧拉角顺序不对称问题
+
+**接口设计**：
+```java
+Quaternion orientationFromForwardUp(
+    Vec3 forward,
+    Vec3 up,
+    float preRollDeg,
+    float yawOffsetDeg,
+    float pitchOffsetDeg,
+    OrientationMode mode
+)
+```
+
+**配置选项**（Phase 8）：
+- `FlyingSwordModelTuning.USE_BASIS_ORIENTATION`
+  - `true`: 使用新的 OrientationOps（默认）
+  - `false`: 使用 Legacy 欧拉路径（兼容）
+- `OrientationMode`:
+  - `BASIS`: 正交基/四元数（推荐）
+  - `LEGACY_EULER`: 欧拉 Y-Z 顺序（兼容）
+- `UpMode`:
+  - `WORLD_Y`: 世界 Y 轴（默认）
+  - `OWNER_UP`: 主人上向量
+
+**退化处理**：
+- 对向/竖直情况使用 fallback up 向量，避免 NaN
+- 连续性策略：保持半圆对称，无累积性抬头
+
+**文档位置**：
+- 详细设计：`docs/FLYINGSWORD_TODO.md` Phase 8 章节
+- 测试要求：`docs/stages/PHASE_8.md`
+
+### 渲染规范总结
+
+**Phase 7（当前）**：
+- ✅ 当前欧拉渲染路径可用
+- ⚠️ 标注为未来的 Legacy 路径
+- 📋 Phase 8 将引入 OrientationOps
+
+**Phase 8（计划）**：
+- 🎯 默认启用 OrientationOps
+- 🔄 保留欧拉路径作为 Legacy 回退
+- ⚙️ 可配置切换
+
+**开发者指南**：
+- 当前：继续使用欧拉渲染，无需修改
+- 未来：建议迁移到 OrientationOps，获得更好的渲染效果
+- 兼容：Legacy 路径将长期保留，确保向后兼容
+
+## 10. 兼容性要求
 - 向后兼容：旧存档加载后飞剑仍可使用
 - 事件系统：外部模组可注册钩子扩展功能
 - 配置文件：提供 TOML/JSON 配置文件支持（可选）
+- 渲染兼容：Phase 8 后保留 Legacy 欧拉渲染路径，可配置回退
 
