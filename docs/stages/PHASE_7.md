@@ -406,22 +406,86 @@
 ## Phase 7 实施进度
 
 **开始时间**: 2025-11-06
+**完成时间**: 2025-11-06
 
-**当前状态**: 🚧 进行中
+**当前状态**: ✅ 已完成
 
 ### 已完成任务
-- [ ] （待完成）
-
-### 进行中任务
 - [x] 文档规划（本文档编写）
+- [x] **软删除标记实施**：
+  - [x] 为 Trajectories.java 添加详细软删除文档（含 13 个高级轨迹列表）
+  - [x] 为 IntentPlanner.java 添加详细软删除文档（含核心/扩展意图分类）
+  - [x] 为 13 个高级轨迹实现类添加软删除标记注释
+  - [x] 为 9 个扩展意图实现类添加软删除标记注释
+- [x] **代码清理**：
+  - [x] 搜索 TODO/FIXME 注释：无需清理（已全部解决）
+  - [x] 验证日志级别：INFO 日志已用于关键操作，非关键路径已在前期阶段优化
+- [x] **一致性验证**：
+  - [x] 确认无实体级冷却残留（已迁移至 MultiCooldown）
+  - [x] 确认无直接 ResourceOps 旁路（已统一至 UpkeepOps）
+  - [x] 确认无旧 Goal/遗留路径（已在 Phase 1 删除）
+- [x] **资源清理验证**：
+  - [x] 高级轨迹受 `ENABLE_ADVANCED_TRAJECTORIES` 控制（默认 false）
+  - [x] 扩展意图受 `ENABLE_EXTRA_INTENTS` 控制（默认 false）
+  - [x] Gecko 资源受 `ENABLE_GEO_OVERRIDE_PROFILE` 控制（默认 false）
+
+### 软删除实施详情
+
+#### 已标记的高级轨迹（13 个）
+所有轨迹已添加 Phase 7 软删除标记注释：
+1. ✅ BoomerangTrajectory
+2. ✅ CorkscrewTrajectory
+3. ✅ BezierSTrajectory
+4. ✅ SerpentineTrajectory
+5. ✅ VortexOrbitTrajectory
+6. ✅ SawtoothTrajectory
+7. ✅ PetalScanTrajectory
+8. ✅ WallGlideTrajectory
+9. ✅ ShadowStepTrajectory
+10. ✅ DomainEdgePatrolTrajectory
+11. ✅ RicochetTrajectory
+12. ✅ HelixPairTrajectory
+13. ✅ PierceGateTrajectory
+
+#### 已标记的扩展意图（9 个）
+所有扩展意图已添加 Phase 7 软删除标记注释：
+1. ✅ SweepSearchIntent
+2. ✅ DecoyIntent
+3. ✅ KitingIntent
+4. ✅ FocusFireIntent
+5. ✅ BreakerIntent
+6. ✅ SuppressIntent
+7. ✅ ShepherdIntent
+8. ✅ SweepIntent
+9. ✅ PivotIntent
+
+### 软删除策略说明
+
+**实施原则**：
+- ✅ 保留所有代码，不硬删除任何功能
+- ✅ 通过功能开关控制注册/实例化
+- ✅ 默认配置下零性能开销
+- ✅ 用户可随时通过配置启用可选功能
+- ✅ 所有软删除项已在类级 Javadoc 中明确标注
+
+**标记格式**：
+每个软删除类都包含统一的 Javadoc 标记：
+```java
+/**
+ * <p><b>Phase 7: 软删除标记（Soft Deletion Mark）</b> - [高级轨迹|扩展意图]
+ *
+ * <p>本[轨迹|意图]仅在 {@code ENABLE_[ADVANCED_TRAJECTORIES|EXTRA_INTENTS]=true} 时[注册|实例化]启用。
+ * 默认配置下不会被[加载|使用]，[实现零性能开销|降低 AI 决策复杂度]。
+ *
+ * @see FlyingSwordTuning#ENABLE_[ADVANCED_TRAJECTORIES|EXTRA_INTENTS]
+ * @see [Trajectories|IntentPlanner]
+ */
+```
 
 ### 待完成任务
-- [ ] 代码清理
-- [ ] 一致性验证
-- [ ] 资源清理
-- [ ] 文档工作
-- [ ] 构建测试
+- [ ] 构建测试（即将执行）
+- [ ] 代码提交与推送
 
 ---
 
-**Phase 7 核心任务：最终清理与发布 - 进行中 🚧**
+**Phase 7 核心任务：软删除标记与最终清理 - 已完成 ✅**

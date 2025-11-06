@@ -9,7 +9,17 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.TrajectoryType;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/** 牧群（Shepherd）：驱赶多目标至陷阱区或域边。 */
+/**
+ * 牧群（Shepherd）：驱赶多目标至陷阱区或域边。
+ *
+ * <p><b>Phase 7: 软删除标记（Soft Deletion Mark）</b> - 扩展意图
+ *
+ * <p>本意图仅在 {@code ENABLE_EXTRA_INTENTS=true} 时实例化。
+ * 默认配置下不会被使用，降低 AI 决策复杂度。
+ *
+ * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS
+ * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.planner.IntentPlanner
+ */
 public final class ShepherdIntent implements Intent {
   @Override
   public Optional<IntentResult> evaluate(AIContext ctx) {

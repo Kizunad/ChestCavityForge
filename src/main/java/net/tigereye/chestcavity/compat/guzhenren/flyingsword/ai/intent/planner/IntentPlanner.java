@@ -11,6 +11,43 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 
 /**
  * Intent 规划器：收集候选 Intent，选择最高优先级。
+ *
+ * <p><b>Phase 7: 软删除标记（Soft Deletion Marks）</b>
+ *
+ * <p>本类使用功能开关实现"软删除"机制，将意图分为两类：
+ * <ul>
+ *   <li><b>核心意图</b>（始终启用，每个模式 ≤2 个）：
+ *       <ul>
+ *         <li>ORBIT 模式：{@code HoldIntent}、{@code PatrolIntent}</li>
+ *         <li>GUARD 模式：{@code GuardIntent}、{@code InterceptIntent}</li>
+ *         <li>HUNT 模式：{@code AssassinIntent}、{@code DuelIntent}</li>
+ *         <li>HOVER 模式：{@code HoldIntent}、{@code PatrolIntent}</li>
+ *         <li>RECALL 模式：{@code RecallIntent}</li>
+ *       </ul>
+ *   </li>
+ *   <li><b>扩展意图</b>（仅当 {@code ENABLE_EXTRA_INTENTS=true} 时启用）：
+ *       <ul>
+ *         <li>ORBIT 模式：{@code SweepSearchIntent}</li>
+ *         <li>GUARD 模式：{@code DecoyIntent}、{@code KitingIntent}</li>
+ *         <li>HUNT 模式：{@code FocusFireIntent}、{@code BreakerIntent}、{@code SuppressIntent}、
+ *             {@code ShepherdIntent}、{@code SweepIntent}、{@code KitingIntent}、{@code DecoyIntent}、
+ *             {@code PivotIntent}、{@code SweepSearchIntent}</li>
+ *       </ul>
+ *   </li>
+ * </ul>
+ *
+ * <p><b>软删除策略：</b>
+ * <ul>
+ *   <li>默认配置（{@code ENABLE_EXTRA_INTENTS=false}）下，扩展意图不会被实例化，
+ *       降低 AI 决策复杂度</li>
+ *   <li>扩展意图实现类保留在代码库中，不硬删除，保持可选功能的完整性</li>
+ *   <li>用户可通过修改 {@link net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS}
+ *       开关启用扩展意图</li>
+ *   <li>详见：{@code docs/stages/PHASE_7.md} §7.3.2</li>
+ * </ul>
+ *
+ * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS
+ * @see AIMode
  */
 public final class IntentPlanner {
 
@@ -18,7 +55,13 @@ public final class IntentPlanner {
 
   /**
    * 基于 AIMode 选择候选 Intent 列表。
-   * Phase 1: 精简为核心意图（≤2/模式），额外意图受功能开关控制。
+   *
+   * <p>Phase 1: 精简为核心意图（≤2/模式），额外意图受功能开关控制。
+   *
+   * <p>Phase 7: 核心意图保留最小集合，扩展意图通过 {@code ENABLE_EXTRA_INTENTS} 开关控制。
+   *
+   * @param mode AI 模式
+   * @return 候选意图列表（按优先级评估）
    */
   public static List<Intent> intentsFor(AIMode mode) {
     List<Intent> list = new ArrayList<>();
