@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianDangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.YunJianQingLianGuOrganBehavior;
@@ -53,6 +54,11 @@ public final class JiandaoOrganRegistry {
               .addIncomingDamageListener(
                   net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                       .JianXinGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑荡蛊：OnHit触发波源 + 慢tick维持态消耗
+          OrganIntegrationSpec.builder(JianDangGuOrganBehavior.ORGAN_ID)
+              .addOnHitListener(JianDangGuOrganBehavior.INSTANCE)
+              .addSlowTickListener(JianDangGuOrganBehavior.INSTANCE)
               .build());
 
   private JiandaoOrganRegistry() {}
