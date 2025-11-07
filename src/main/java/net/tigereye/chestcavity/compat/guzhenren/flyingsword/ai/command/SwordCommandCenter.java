@@ -642,6 +642,10 @@ public final class SwordCommandCenter {
     boolean selectionActive;
     long selectionExpiresAt;
 
+    // TUI会话管理字段
+    String tuiSessionId;
+    long tuiSessionExpiresAt;
+
     private CommandSession(UUID ownerId) {
       this.ownerId = ownerId;
       this.tactic =
@@ -771,6 +775,31 @@ public final class SwordCommandCenter {
 
     boolean hasSelectionMarks() {
       return !selectionMarks.isEmpty();
+    }
+
+    // TUI会话管理方法
+    String tuiSessionId() {
+      return tuiSessionId;
+    }
+
+    void setTuiSessionId(String sid) {
+      this.tuiSessionId = sid;
+    }
+
+    long tuiSessionExpiresAt() {
+      return tuiSessionExpiresAt;
+    }
+
+    void setTuiSessionExpiresAt(long expiresAt) {
+      this.tuiSessionExpiresAt = expiresAt;
+    }
+
+    long lastTuiSentAt() {
+      return lastTuiSentAt;
+    }
+
+    void setLastTuiSentAt(long sentAt) {
+      this.lastTuiSentAt = sentAt;
     }
 
     static final class GroupSummary {
