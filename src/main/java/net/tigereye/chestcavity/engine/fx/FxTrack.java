@@ -50,7 +50,9 @@ public interface FxTrack {
   /**
    * Track 停止回调（TTL 到期或手动停止时调用一次）。
    *
-   * @param level 服务器世界
+   * <p>注意：在某些非 tick 上下文中（如 Track 替换、ID 冲突），level 参数可能为 null。实现时需要处理这种情况。
+   *
+   * @param level 服务器世界（可能为 null）
    * @param reason 停止原因
    */
   void onStop(ServerLevel level, StopReason reason);

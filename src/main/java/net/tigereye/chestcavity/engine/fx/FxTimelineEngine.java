@@ -214,7 +214,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
    * 内部注销方法：移除 Track 并清理索引。
    *
    * @param trackId Track ID
-   * @param level 服务器世界（可为 null）
+   * @param level 服务器世界（可为 null，在非 tick 上下文中可能为 null）
    * @param reason 停止原因
    * @return 是否成功注销
    */
@@ -243,10 +243,9 @@ public final class FxTimelineEngine implements ServerTickEngine {
       mergeKeyIndex.remove(ctx.spec.getMergeKey());
     }
 
-    // 触发 onStop 回调
-    if (level != null) {
-      safeOnStop(track, level, reason);
-    }
+    // 触发 onStop 回调（即使 level 为 null 也要调用）
+    // Track 实现需要处理 level 为 null 的情况（在替换/冲突场景下）
+    safeOnStop(track, level, reason);
 
     LOGGER.debug("[FxEngine] Unregistered track: {} (reason: {})", trackId, reason);
     return true;
@@ -311,13 +310,14 @@ public final class FxTimelineEngine implements ServerTickEngine {
       try {
         processTrack(defaultLevel, trackId, ctx, track, toRemove);
       } catch (Throwable t) {
+        // 外层异常捕获：processTrack 本身抛出的异常（理论上不应发生）
         LOGGER.error("[FxEngine] Unexpected error processing track {}", trackId, t);
-        toRemove.add(trackId);
-        safeOnStop(track, defaultLevel, StopReason.EXCEPTION);
+        // 直接调用 unregisterInternal，避免重复调用 onStop
+        unregisterInternal(trackId, defaultLevel, StopReason.EXCEPTION);
       }
     }
 
-    // 移除已停止的 Track
+    // 移除已停止的 Track（TTL 到期）
     for (String id : toRemove) {
       unregisterInternal(id, defaultLevel, StopReason.TTL_EXPIRED);
     }
@@ -352,9 +352,11 @@ public final class FxTimelineEngine implements ServerTickEngine {
       ctx.elapsedTicks++;
 
     } catch (Throwable t) {
+      // 回调异常：不要在这里调用 onStop，避免重复调用
+      // 外层会通过 unregisterInternal 统一处理
       LOGGER.error("[FxEngine] Error processing track {}", trackId, t);
-      toRemove.add(trackId);
-      safeOnStop(track, level, StopReason.EXCEPTION);
+      // 直接调用 unregisterInternal，确保只调用一次 onStop
+      unregisterInternal(trackId, level, StopReason.EXCEPTION);
     }
   }
 
