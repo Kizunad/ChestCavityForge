@@ -79,6 +79,11 @@ public final class ActivationHookRegistry {
         "^guzhenren:lie_jian_gu_activate$",
         new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
 
+    // 技能效果: 剑影蛊主动技能需在激活前快照剑道字段（道痕/流派经验），用于效率/冷却计算
+    SkillEffectBus.register(
+        "^guzhenren:jian_ying_fenshen$",
+        new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
+
     SkillEffectBus.register(
         "^guzhenren:shou_jian_ling$",
         new ResourceFieldSnapshotEffect(
