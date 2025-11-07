@@ -50,8 +50,23 @@ public final class TUICommandGuard {
       return ValidationResult.failure(createExpiredMessage());
     }
 
-    // 校验sid是否有效
-    if (!TUISessionManager.isValidSession(player, providedSid, nowTick)) {
+    // 检查是否有活跃会话
+    var sessionOpt =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter
+            .session(player);
+
+    if (sessionOpt.isEmpty()) {
+      // 无会话记录时，允许通过（避免误判为过期）
+      // 这种情况通常发生在会话刚被清除或玩家刚登录时
+      return ValidationResult.success();
+    }
+
+    // 有会话时，校验sid是否匹配且未过期
+    var session = sessionOpt.get();
+    String currentSid = session.tuiSessionId();
+    long expiresAt = session.tuiSessionExpiresAt();
+
+    if (!providedSid.equals(currentSid) || nowTick >= expiresAt) {
       return ValidationResult.failure(createExpiredMessage());
     }
 
