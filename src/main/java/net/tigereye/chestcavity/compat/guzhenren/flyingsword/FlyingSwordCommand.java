@@ -7,6 +7,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.Optional;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -197,6 +199,92 @@ public final class FlyingSwordCommand {
                             .executes(FlyingSwordCommand::repairByIndex)))
             // /flyingsword storage
             .then(Commands.literal("storage").executes(FlyingSwordCommand::checkStorage))
+            // /flyingsword recall_id <uuid> [sid]
+            .then(
+                Commands.literal("recall_id")
+                    .then(
+                        Commands.argument("uuid", StringArgumentType.word())
+                            .executes(FlyingSwordCommand::recallById)
+                            .then(
+                                Commands.argument("sid", StringArgumentType.word())
+                                    .executes(FlyingSwordCommand::recallByIdWithSid))))
+            // /flyingsword mode_id <uuid> <mode> [sid]
+            .then(
+                Commands.literal("mode_id")
+                    .then(
+                        Commands.argument("uuid", StringArgumentType.word())
+                            .then(
+                                Commands.argument("mode", StringArgumentType.word())
+                                    .suggests(
+                                        (ctx, builder) -> {
+                                          builder.suggest("orbit");
+                                          builder.suggest("guard");
+                                          builder.suggest("hunt");
+                                          builder.suggest("hover");
+                                          return builder.buildFuture();
+                                        })
+                                    .executes(FlyingSwordCommand::setModeById)
+                                    .then(
+                                        Commands.argument("sid", StringArgumentType.word())
+                                            .executes(FlyingSwordCommand::setModeByIdWithSid)))))
+            // /flyingsword repair_id <uuid> [sid]
+            .then(
+                Commands.literal("repair_id")
+                    .then(
+                        Commands.argument("uuid", StringArgumentType.word())
+                            .executes(FlyingSwordCommand::repairById)
+                            .then(
+                                Commands.argument("sid", StringArgumentType.word())
+                                    .executes(FlyingSwordCommand::repairByIdWithSid))))
+            // /flyingsword select_id <uuid> [sid]
+            .then(
+                Commands.literal("select_id")
+                    .then(
+                        Commands.argument("uuid", StringArgumentType.word())
+                            .executes(FlyingSwordCommand::selectById)
+                            .then(
+                                Commands.argument("sid", StringArgumentType.word())
+                                    .executes(FlyingSwordCommand::selectByIdWithSid))))
+            // /flyingsword group_id <uuid> <group> [sid]
+            .then(
+                Commands.literal("group_id")
+                    .then(
+                        Commands.argument("uuid", StringArgumentType.word())
+                            .then(
+                                Commands.argument(
+                                        "group",
+                                        IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
+                                    .executes(FlyingSwordCommand::setGroupById)
+                                    .then(
+                                        Commands.argument("sid", StringArgumentType.word())
+                                            .executes(FlyingSwordCommand::setGroupByIdWithSid)))))
+            // /flyingsword restore_item <itemUuid> [sid]
+            .then(
+                Commands.literal("restore_item")
+                    .then(
+                        Commands.argument("itemUuid", StringArgumentType.word())
+                            .executes(FlyingSwordCommand::restoreByItemUuid)
+                            .then(
+                                Commands.argument("sid", StringArgumentType.word())
+                                    .executes(FlyingSwordCommand::restoreByItemUuidWithSid))))
+            // /flyingsword withdraw_item <itemUuid> [sid]
+            .then(
+                Commands.literal("withdraw_item")
+                    .then(
+                        Commands.argument("itemUuid", StringArgumentType.word())
+                            .executes(FlyingSwordCommand::withdrawByItemUuid)
+                            .then(
+                                Commands.argument("sid", StringArgumentType.word())
+                                    .executes(FlyingSwordCommand::withdrawByItemUuidWithSid))))
+            // /flyingsword deposit_item <itemUuid> [sid]
+            .then(
+                Commands.literal("deposit_item")
+                    .then(
+                        Commands.argument("itemUuid", StringArgumentType.word())
+                            .executes(FlyingSwordCommand::depositByItemUuid)
+                            .then(
+                                Commands.argument("sid", StringArgumentType.word())
+                                    .executes(FlyingSwordCommand::depositByItemUuidWithSid))))
             // /flyingsword debug
             .then(Commands.literal("debug").executes(FlyingSwordCommand::debugInfo)));
   }
@@ -821,6 +909,483 @@ public final class FlyingSwordCommand {
         .depositMainHand(player.serverLevel(), player, index);
     return 1;
   }
+
+  // ========== UUID-based commands (with optional sid validation) ==========
+
+  /**
+   * Helper method to validate session and return error message if invalid.
+   *
+   * @return Optional containing error component if validation fails, empty if valid
+   */
+  private static Optional<Component> validateSessionIfPresent(
+      ServerPlayer player, String sid, long nowTick) {
+    if (sid == null || sid.isEmpty()) {
+      return Optional.empty(); // No sid provided, skip validation
+    }
+
+    var validation =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .TUICommandGuard.validateSession(player, sid, nowTick);
+
+    if (!validation.isValid()) {
+      return Optional.of(validation.errorMessage());
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * Helper method to find flying sword by UUID.
+   */
+  private static Optional<FlyingSwordEntity> findSwordByUuid(
+      ServerLevel level, ServerPlayer player, String uuidStr) {
+    UUID uuid;
+    try {
+      uuid = UUID.fromString(uuidStr);
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
+
+    List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
+    return swords.stream().filter(s -> s.getUUID().equals(uuid)).findFirst();
+  }
+
+  // recall_id <uuid>
+  private static int recallById(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return recallByIdImpl(ctx, null);
+  }
+
+  // recall_id <uuid> <sid>
+  private static int recallByIdWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return recallByIdImpl(ctx, sid);
+  }
+
+  private static int recallByIdImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "uuid");
+    Optional<FlyingSwordEntity> swordOpt = findSwordByUuid(level, player, uuidStr);
+
+    if (swordOpt.isEmpty()) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("飞剑"));
+      return 0;
+    }
+
+    FlyingSwordEntity sword = swordOpt.get();
+    boolean ok = FlyingSwordController.recallSword(level, player, sword);
+
+    if (ok) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createSuccessMessage("已召回飞剑"));
+      return 1;
+    }
+
+    player.sendSystemMessage(Component.literal("[flyingsword] 召回失败"));
+    return 0;
+  }
+
+  // mode_id <uuid> <mode>
+  private static int setModeById(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return setModeByIdImpl(ctx, null);
+  }
+
+  // mode_id <uuid> <mode> <sid>
+  private static int setModeByIdWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return setModeByIdImpl(ctx, sid);
+  }
+
+  private static int setModeByIdImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "uuid");
+    String modeStr = StringArgumentType.getString(ctx, "mode").toLowerCase(Locale.ROOT);
+
+    Optional<FlyingSwordEntity> swordOpt = findSwordByUuid(level, player, uuidStr);
+
+    if (swordOpt.isEmpty()) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("飞剑"));
+      return 0;
+    }
+
+    AIMode mode;
+    try {
+      mode = AIMode.fromId(modeStr);
+    } catch (Exception e) {
+      player.sendSystemMessage(
+          Component.literal(
+              String.format(
+                  "[flyingsword] 无效模式: %s (可用: orbit, guard, hunt, hover)", modeStr)));
+      return 0;
+    }
+
+    FlyingSwordEntity sword = swordOpt.get();
+    sword.setAIMode(mode);
+
+    player.sendSystemMessage(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .TUICommandGuard.createSuccessMessage("已设置模式为: " + mode.getDisplayName()));
+
+    return 1;
+  }
+
+  // repair_id <uuid>
+  private static int repairById(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return repairByIdImpl(ctx, null);
+  }
+
+  // repair_id <uuid> <sid>
+  private static int repairByIdWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return repairByIdImpl(ctx, sid);
+  }
+
+  private static int repairByIdImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "uuid");
+    Optional<FlyingSwordEntity> swordOpt = findSwordByUuid(level, player, uuidStr);
+
+    if (swordOpt.isEmpty()) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("飞剑"));
+      return 0;
+    }
+
+    FlyingSwordEntity sword = swordOpt.get();
+    boolean ok =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword
+            .FlyingSwordRepairHandler.tryRepairOrEmpower(player, sword);
+
+    if (ok) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createSuccessMessage("修复/赋能成功"));
+      return 1;
+    }
+
+    player.sendSystemMessage(Component.literal("[flyingsword] 修复失败（检查主手物品）"));
+    return 0;
+  }
+
+  // select_id <uuid>
+  private static int selectById(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return selectByIdImpl(ctx, null);
+  }
+
+  // select_id <uuid> <sid>
+  private static int selectByIdWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return selectByIdImpl(ctx, sid);
+  }
+
+  private static int selectByIdImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "uuid");
+    Optional<FlyingSwordEntity> swordOpt = findSwordByUuid(level, player, uuidStr);
+
+    if (swordOpt.isEmpty()) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("飞剑"));
+      return 0;
+    }
+
+    FlyingSwordEntity sword = swordOpt.get();
+    FlyingSwordController.setSelectedSword(player, sword);
+
+    player.sendSystemMessage(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .TUICommandGuard.createSuccessMessage("已选中飞剑"));
+
+    return 1;
+  }
+
+  // group_id <uuid> <group>
+  private static int setGroupById(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return setGroupByIdImpl(ctx, null);
+  }
+
+  // group_id <uuid> <group> <sid>
+  private static int setGroupByIdWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return setGroupByIdImpl(ctx, sid);
+  }
+
+  private static int setGroupByIdImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "uuid");
+    int groupId = IntegerArgumentType.getInteger(ctx, "group");
+
+    Optional<FlyingSwordEntity> swordOpt = findSwordByUuid(level, player, uuidStr);
+
+    if (swordOpt.isEmpty()) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("飞剑"));
+      return 0;
+    }
+
+    FlyingSwordEntity sword = swordOpt.get();
+    sword.setGroupId(groupId);
+
+    player.sendSystemMessage(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .TUICommandGuard.createSuccessMessage("已设置分组: " + groupId));
+
+    return 1;
+  }
+
+  // ========== ItemUUID-based storage commands ==========
+
+  /**
+   * Helper method to find storage item by UUID.
+   */
+  private static Optional<FlyingSwordStorage.RecalledSword> findStorageItemByUuid(
+      ServerPlayer player, String uuidStr) {
+    UUID uuid;
+    try {
+      uuid = UUID.fromString(uuidStr);
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
+
+    var storage =
+        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+    var list = storage.getRecalledSwords();
+
+    return list.stream().filter(s -> uuid.equals(s.displayItemUUID)).findFirst();
+  }
+
+  /**
+   * Helper method to find storage item index by UUID.
+   */
+  private static int findStorageIndexByUuid(ServerPlayer player, String uuidStr) {
+    UUID uuid;
+    try {
+      uuid = UUID.fromString(uuidStr);
+    } catch (IllegalArgumentException e) {
+      return -1;
+    }
+
+    var storage =
+        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+    var list = storage.getRecalledSwords();
+
+    for (int i = 0; i < list.size(); i++) {
+      if (uuid.equals(list.get(i).displayItemUUID)) {
+        return i + 1; // Return 1-based index for compatibility
+      }
+    }
+
+    return -1;
+  }
+
+  // restore_item <itemUuid>
+  private static int restoreByItemUuid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return restoreByItemUuidImpl(ctx, null);
+  }
+
+  // restore_item <itemUuid> <sid>
+  private static int restoreByItemUuidWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return restoreByItemUuidImpl(ctx, sid);
+  }
+
+  private static int restoreByItemUuidImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "itemUuid");
+    int index = findStorageIndexByUuid(player, uuidStr);
+
+    if (index < 0) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("存储物品"));
+      return 0;
+    }
+
+    boolean ok = FlyingSwordSpawner.restoreOne(level, player, index);
+
+    if (ok) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createSuccessMessage("已召唤飞剑"));
+      return 1;
+    }
+
+    player.sendSystemMessage(Component.literal("[flyingsword] 召唤失败"));
+    return 0;
+  }
+
+  // withdraw_item <itemUuid>
+  private static int withdrawByItemUuid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return withdrawByItemUuidImpl(ctx, null);
+  }
+
+  // withdraw_item <itemUuid> <sid>
+  private static int withdrawByItemUuidWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return withdrawByItemUuidImpl(ctx, sid);
+  }
+
+  private static int withdrawByItemUuidImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "itemUuid");
+    int index = findStorageIndexByUuid(player, uuidStr);
+
+    if (index < 0) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("存储物品"));
+      return 0;
+    }
+
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .FlyingSwordTUIOps
+        .withdrawDisplayItem(level, player, index);
+
+    return 1;
+  }
+
+  // deposit_item <itemUuid>
+  private static int depositByItemUuid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    return depositByItemUuidImpl(ctx, null);
+  }
+
+  // deposit_item <itemUuid> <sid>
+  private static int depositByItemUuidWithSid(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    String sid = StringArgumentType.getString(ctx, "sid");
+    return depositByItemUuidImpl(ctx, sid);
+  }
+
+  private static int depositByItemUuidImpl(CommandContext<CommandSourceStack> ctx, String sid)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    long nowTick = level.getGameTime();
+
+    // Validate session if sid is provided
+    Optional<Component> validationError = validateSessionIfPresent(player, sid, nowTick);
+    if (validationError.isPresent()) {
+      player.sendSystemMessage(validationError.get());
+      return 0;
+    }
+
+    String uuidStr = StringArgumentType.getString(ctx, "itemUuid");
+    int index = findStorageIndexByUuid(player, uuidStr);
+
+    if (index < 0) {
+      player.sendSystemMessage(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .TUICommandGuard.createNotFoundMessage("存储物品"));
+      return 0;
+    }
+
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .FlyingSwordTUIOps
+        .depositMainHand(level, player, index);
+
+    return 1;
+  }
+
+  // ========== Debug Info ==========
 
   private static int debugInfo(CommandContext<CommandSourceStack> ctx)
       throws CommandSyntaxException {
