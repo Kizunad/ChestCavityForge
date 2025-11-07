@@ -38,6 +38,15 @@ public final class RiftManager {
   /** 按世界分组的裂隙（用于加速查询） */
   private final Map<ServerLevel, Set<UUID>> riftsByLevel = new ConcurrentHashMap<>();
 
+  /** 伤害限频器：目标UUID -> 上次命中时间(gameTime) */
+  private final Map<UUID, Long> damageRateLimiter = new ConcurrentHashMap<>();
+
+  /** 限频器的清理计数器（每N次写入尝试清理） */
+  private int rateLimiterWriteCount = 0;
+
+  /** 限频器清理间隔（次数） */
+  private static final int RATE_LIMITER_CLEAN_INTERVAL = 100;
+
   private RiftManager() {}
 
   public static RiftManager getInstance() {
@@ -334,6 +343,11 @@ public final class RiftManager {
         continue;
       }
 
+      // 限频门：检查是否允许对此目标造成伤害
+      if (!tryPassDamageGate(target, level.getGameTime())) {
+        continue;
+      }
+
       // 造成伤害
       var damageSource =
           owner != null
@@ -351,6 +365,66 @@ public final class RiftManager {
   }
 
   /**
+   * 尝试通过伤害限频门
+   *
+   * <p>用于裂隙伤害限频。同一目标在窗口期内只允许一次伤害通过。
+   *
+   * @param target 目标实体
+   * @param now 当前世界时间 (gameTime)
+   * @return true 允许伤害；false 拒绝伤害
+   */
+  public boolean tryPassDamageGate(LivingEntity target, long now) {
+    if (!RiftTuning.RATE_LIMIT_ENABLED) {
+      return true;
+    }
+
+    UUID id = target.getUUID();
+    Long last = damageRateLimiter.get(id);
+
+    if (last != null && (now - last) < RiftTuning.RATE_LIMIT_WINDOW_TICKS) {
+      // 限频：拒绝本次
+      ChestCavity.LOGGER.debug(
+          "[RiftManager] Rate limit blocked damage to {} (last hit {} ticks ago)",
+          target.getName().getString(),
+          (now - last));
+      return false;
+    }
+
+    // 通过：记录本次命中
+    damageRateLimiter.put(id, now);
+    ChestCavity.LOGGER.debug(
+        "[RiftManager] Rate limit passed damage to {} at tick {}",
+        target.getName().getString(),
+        now);
+
+    // 惰性清理
+    rateLimiterWriteCount++;
+    if (rateLimiterWriteCount >= RATE_LIMITER_CLEAN_INTERVAL) {
+      rateLimiterWriteCount = 0;
+      cleanupRateLimiter(now);
+    }
+
+    return true;
+  }
+
+  /**
+   * 清理限频表中的过期条目
+   *
+   * @param now 当前世界时间
+   */
+  private void cleanupRateLimiter(long now) {
+    int beforeSize = damageRateLimiter.size();
+    damageRateLimiter.entrySet()
+        .removeIf(entry -> (now - entry.getValue()) > RiftTuning.RATE_LIMIT_MAX_KEEP_TICKS);
+    int afterSize = damageRateLimiter.size();
+
+    if (beforeSize > afterSize) {
+      ChestCavity.LOGGER.debug(
+          "[RiftManager] Cleaned up rate limiter: {} -> {} entries", beforeSize, afterSize);
+    }
+  }
+
+  /**
    * 清理世界中的所有裂隙（世界卸载时调用）
    *
    * @param level 世界
@@ -364,6 +438,9 @@ public final class RiftManager {
       ChestCavity.LOGGER.info(
           "[RiftManager] Cleared {} rifts from level {}", levelRifts.size(), level.dimension());
     }
+
+    // 同时清理限频表（可选，因为UUID全局唯一，跨维度也可复用）
+    // 为简化起见，此处不主动清理，依靠惰性清理机制
   }
 
   /**

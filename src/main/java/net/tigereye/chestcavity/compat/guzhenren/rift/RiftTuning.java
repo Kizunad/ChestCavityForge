@@ -91,4 +91,29 @@ public final class RiftTuning {
   public static final float[] COLOR_SECONDARY = {0.2f, 0.8f, 0.9f}; // 青色
   public static final float[] COLOR_WAVE = {0.4f, 0.7f, 1.0f}; // 亮蓝色
   public static final float[] COLOR_ABSORB = {1.0f, 0.9f, 0.3f}; // 金色
+
+  // ====== 伤害限频配置 ======
+  /**
+   * 是否启用裂隙伤害限频机制。
+   *
+   * <p>启用后，同一目标在窗口期内只结算一次裂隙/共鸣伤害，
+   * 减少受伤冷却刷新频度，改善近战手感。
+   */
+  public static final boolean RATE_LIMIT_ENABLED = true;
+
+  /**
+   * 伤害限频窗口（tick）。
+   *
+   * <p>同一目标在此窗口内只结算一次裂隙伤害。
+   * 默认 10 tick (0.5秒)。
+   */
+  public static final int RATE_LIMIT_WINDOW_TICKS = 10;
+
+  /**
+   * 限频表条目的最大保留时间（tick）。
+   *
+   * <p>超过此时间未更新的条目会被惰性清理。
+   * 默认 1200 tick (60秒)。
+   */
+  public static final int RATE_LIMIT_MAX_KEEP_TICKS = 20 * 60;
 }

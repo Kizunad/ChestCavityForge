@@ -317,6 +317,11 @@ public class RiftEntity extends Entity implements OwnableEntity {
         continue;
       }
 
+      // 限频门：检查是否允许对此目标造成伤害
+      if (!RiftManager.getInstance().tryPassDamageGate(target, level.getGameTime())) {
+        continue;
+      }
+
       // 计算基础伤害（TODO: 根据实际设计调整）
       float baseDamage =
           (type == RiftType.MAJOR)
