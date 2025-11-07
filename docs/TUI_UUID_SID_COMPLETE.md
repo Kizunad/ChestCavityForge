@@ -219,13 +219,23 @@ f067a11 - feat(flyingsword): 实现优美的TUI系统重构
 - TUI按钮全部切换
 ```
 
-### Commit 3: 代码质量打磨（当前）
+### Commit 3: 代码质量打磨
 ```
 805464c - refactor(flyingsword): 打磨TUI代码命名和清理遗留方法
 - 修复ValidationResult命名冲突（isValid组件 + success()/failure()工厂方法）
 - 移除错误的createGroupButtons包装方法
 - 清理遗留的index版本方法
 - 代码命名一致性优化
+```
+
+### Commit 4: 接口可见性优化（当前）
+```
+cc87248 - refactor(flyingsword): 接口可见性优化与方法调用修正
+- CommandSession的TUI访问器改为public（跨包访问）
+- currentSid()使用filter+map（避免map内返回null）
+- 修正不存在的recallSword → recall(sword)
+- 修正不存在的FlyingSwordRepairHandler → RepairOps.repairByEntity
+- 新增RepairOps.repairByEntity()方法
 ```
 
 ---
@@ -382,7 +392,37 @@ validateSessionIfPresent() // 统一校验
 
 ---
 
+## 🔧 接口可见性优化（2025-11-07最终更新）
+
+根据代码审查进一步反馈，完成了以下接口和可见性优化：
+
+### 1. 会话访问器公开化
+**问题**: `CommandSession`的TUI访问器是package-private，而`TUISessionManager`在不同包（ui vs ai/command）
+**解决**: 将以下方法改为public：
+- `tuiSessionId()` / `setTuiSessionId(String)`
+- `tuiSessionExpiresAt()` / `setTuiSessionExpiresAt(long)`
+- `lastTuiSentAt()` / `setLastTuiSentAt(long)`
+
+### 2. Optional最佳实践
+**问题**: `currentSid()` 在map内返回null，违反Optional惯例
+**解决**: 改为 `filter(session -> session.tuiSessionExpiresAt() > nowTick).map(session -> session.tuiSessionId())`
+
+### 3. 修正不存在的方法调用
+**问题1**: `FlyingSwordController.recallSword(level, player, sword)` 不存在
+**解决**: 改为 `FlyingSwordController.recall(sword)`
+
+**问题2**: `FlyingSwordRepairHandler.tryRepairOrEmpower(player, sword)` 类不存在
+**解决**: 新增 `RepairOps.repairByEntity(level, player, sword)` 并使用它
+
+### 代码质量提升
+- ✅ 消除所有编译错误
+- ✅ 符合Java跨包访问规范
+- ✅ 遵循Optional最佳实践
+- ✅ 接口命名一致性
+
+---
+
 **维护**: ChestCavityForge 开发团队
 **实现**: Claude (Sonnet 4.5)
-**最后更新**: 2025-11-07（代码打磨完成）
-**状态**: ✅ **生产就绪 + 代码质量优化**
+**最后更新**: 2025-11-07（接口优化完成）
+**状态**: ✅ **生产就绪 + 接口优化完成**
