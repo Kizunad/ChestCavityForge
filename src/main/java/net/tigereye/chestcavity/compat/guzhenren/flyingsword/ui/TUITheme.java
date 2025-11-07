@@ -18,6 +18,96 @@ public final class TUITheme {
 
   private TUITheme() {}
 
+  // ==================== 框宽管理 ====================
+
+  /** 当前页面的框宽（可视字符单位）。 */
+  private static int currentFrameWidth = 50;
+
+  /**
+   * 开始新的框架，设置本页统一框宽。
+   *
+   * @param width 框架宽度（可视字符单位）
+   */
+  public static void beginFrame(int width) {
+    currentFrameWidth = Math.max(20, width); // 最小宽度 20
+  }
+
+  /**
+   * 获取当前框宽。
+   *
+   * @return 当前框宽
+   */
+  public static int getFrameWidth() {
+    return currentFrameWidth;
+  }
+
+  /**
+   * 估算文本的可视宽度（近似处理）。
+   * <ul>
+   *   <li>CJK 字符：2 宽</li>
+   *   <li>常用 emoji：2 宽</li>
+   *   <li>其他 ASCII：1 宽</li>
+   * </ul>
+   *
+   * @param text 文本
+   * @return 估算的可视宽度
+   */
+  public static int estimateVisualWidth(String text) {
+    if (text == null) return 0;
+    int width = 0;
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      int cp = text.codePointAt(i);
+
+      // 跳过高位代理对的第二个字符
+      if (Character.isHighSurrogate(c)) {
+        i++;
+      }
+
+      // CJK 统一表意文字
+      if ((cp >= 0x4E00 && cp <= 0x9FFF) ||   // CJK Unified Ideographs
+          (cp >= 0x3400 && cp <= 0x4DBF) ||   // CJK Extension A
+          (cp >= 0x20000 && cp <= 0x2A6DF) || // CJK Extension B
+          (cp >= 0x2A700 && cp <= 0x2B73F) || // CJK Extension C
+          (cp >= 0x2B740 && cp <= 0x2B81F) || // CJK Extension D
+          (cp >= 0x2B820 && cp <= 0x2CEAF) || // CJK Extension E
+          (cp >= 0xF900 && cp <= 0xFAFF) ||   // CJK Compatibility Ideographs
+          (cp >= 0x2F800 && cp <= 0x2FA1F)) { // CJK Compatibility Ideographs Supplement
+        width += 2;
+      }
+      // 全角标点和符号
+      else if ((cp >= 0x3000 && cp <= 0x303F) ||  // CJK Symbols and Punctuation
+               (cp >= 0xFF00 && cp <= 0xFFEF)) {  // Halfwidth and Fullwidth Forms
+        width += 2;
+      }
+      // 常用 emoji（简化判断）
+      else if (cp >= 0x1F300 && cp <= 0x1F9FF) { // Emoticons, Symbols, Pictographs
+        width += 2;
+      }
+      // 特殊 emoji 和符号（本项目常用）
+      else if ("✦⚔🛡🌀⏸🔁🌿🗡📦🔧👥🎯◀▶✓✗⏱⚠·".indexOf(cp) >= 0) {
+        width += 2;
+      }
+      // 其他字符按 1 宽
+      else {
+        width += 1;
+      }
+    }
+    return width;
+  }
+
+  /**
+   * 估算 Component 的可视宽度（仅纯文本，不考虑样式）。
+   *
+   * @param component 组件
+   * @return 估算的可视宽度
+   */
+  public static int estimateVisualWidth(Component component) {
+    if (component == null) return 0;
+    String text = component.getString();
+    return estimateVisualWidth(text);
+  }
+
   // ==================== 颜色主题 ====================
 
   public static final ChatFormatting ACCENT = ChatFormatting.GOLD; // 强调色
@@ -76,17 +166,30 @@ public final class TUITheme {
    */
   public static Component createTopBorder(String title) {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("╭ ")
+      // 计算标题部分宽度："╭ " + "✦ " + title + " ✦" + " ╮"
+      int titleVisualWidth = estimateVisualWidth(EMOJI_SPARK + " " + title + " " + EMOJI_SPARK);
+      int borderWidth = 4; // "╭ " 和 " ╮"
+      int totalUsed = borderWidth + titleVisualWidth;
+
+      // 填充横线使总宽度等于 currentFrameWidth
+      int fillNeeded = Math.max(0, currentFrameWidth - totalUsed);
+      String fill = "─".repeat(fillNeeded / 2);
+
+      return Component.literal("╭" + fill + " ")
           .withStyle(DIM)
           .append(Component.literal(EMOJI_SPARK + " ").withStyle(ACCENT))
           .append(Component.literal(title).withStyle(ChatFormatting.BOLD).withStyle(TEXT))
           .append(Component.literal(" " + EMOJI_SPARK).withStyle(ACCENT))
-          .append(Component.literal(" ╮").withStyle(DIM));
+          .append(Component.literal(" " + fill + "╮").withStyle(DIM));
     } else {
-      return Component.literal("===== ")
+      int titleWidth = title.length();
+      int fillNeeded = Math.max(5, (currentFrameWidth - titleWidth - 2) / 2);
+      String fill = "=".repeat(fillNeeded);
+
+      return Component.literal(fill + " ")
           .withStyle(DIM)
           .append(Component.literal(title).withStyle(ChatFormatting.BOLD).withStyle(TEXT))
-          .append(Component.literal(" =====").withStyle(DIM));
+          .append(Component.literal(" " + fill).withStyle(DIM));
     }
   }
 
@@ -97,9 +200,13 @@ public final class TUITheme {
    */
   public static Component createBottomBorder() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("╰────────────────────╯").withStyle(DIM);
+      // "╰" + 横线 + "╯"
+      int fillNeeded = Math.max(0, currentFrameWidth - 2);
+      String fill = "─".repeat(fillNeeded);
+      return Component.literal("╰" + fill + "╯").withStyle(DIM);
     } else {
-      return Component.literal("=====================").withStyle(DIM);
+      String fill = "=".repeat(Math.max(0, currentFrameWidth));
+      return Component.literal(fill).withStyle(DIM);
     }
   }
 
@@ -110,10 +217,68 @@ public final class TUITheme {
    */
   public static Component createDivider() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("├─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤").withStyle(DIM);
+      // "├" + 虚线 + "┤"
+      int fillNeeded = Math.max(0, currentFrameWidth - 2);
+      // 使用交替的 "─ " 模式创建虚线效果
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < fillNeeded; i++) {
+        sb.append(i % 2 == 0 ? "─" : " ");
+      }
+      return Component.literal("├" + sb + "┤").withStyle(DIM);
     } else {
-      return Component.literal("─────────────────────").withStyle(DIM);
+      String fill = "─".repeat(Math.max(0, currentFrameWidth));
+      return Component.literal(fill).withStyle(DIM);
     }
+  }
+
+  /**
+   * 包装内容行，添加左右边框实现闭合效果。
+   * <p>模式：左边框 + 内容 + 填充 + 右边框
+   *
+   * @param content 内容组件
+   * @return 包装后的组件
+   */
+  public static Component wrapContentLine(Component content) {
+    if (!FlyingSwordTuning.TUI_FANCY_EMOJI) {
+      // ASCII 模式不添加边框，直接返回内容
+      return content;
+    }
+
+    // 计算内容可视宽度
+    int contentWidth = estimateVisualWidth(content);
+    // 左边框 "│ " 宽 2，右边框 " │" 宽 2
+    int borderWidth = 4;
+    int usedWidth = contentWidth + borderWidth;
+
+    // 计算需要填充的宽度
+    int fillNeeded = Math.max(0, currentFrameWidth - usedWidth);
+    String fill = " ".repeat(fillNeeded);
+
+    return Component.literal("│ ")
+        .withStyle(DIM)
+        .append(content)
+        .append(Component.literal(fill + " │").withStyle(DIM));
+  }
+
+  /**
+   * 包装内容行（无样式版本，用于已经有左边框的内容）。
+   * <p>仅在右侧添加填充和右边框。
+   *
+   * @param content 已包含左边框的内容
+   * @return 包装后的组件
+   */
+  public static Component wrapContentLineRaw(Component content) {
+    if (!FlyingSwordTuning.TUI_FANCY_EMOJI) {
+      return content;
+    }
+
+    int contentWidth = estimateVisualWidth(content);
+    int fillNeeded = Math.max(0, currentFrameWidth - contentWidth - 2); // 减去右边框 " │"
+    String fill = " ".repeat(fillNeeded);
+
+    return Component.empty()
+        .append(content)
+        .append(Component.literal(fill + " │").withStyle(DIM));
   }
 
   /**
@@ -124,11 +289,11 @@ public final class TUITheme {
    * @return 格式化的节标题组件
    */
   public static Component createSectionTitle(String icon, String title) {
+    Component content;
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("│ ")
-          .withStyle(DIM)
-          .append(Component.literal(icon + " ").withStyle(ACCENT))
+      content = Component.literal(icon + " ").withStyle(ACCENT)
           .append(Component.literal(title).withStyle(TEXT));
+      return wrapContentLine(content);
     } else {
       return Component.literal("▸ ").withStyle(ACCENT)
           .append(Component.literal(title).withStyle(TEXT));
