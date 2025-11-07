@@ -777,28 +777,28 @@ public final class SwordCommandCenter {
       return !selectionMarks.isEmpty();
     }
 
-    // TUI会话管理方法
-    String tuiSessionId() {
+    // TUI会话管理方法（public以供ui包访问）
+    public String tuiSessionId() {
       return tuiSessionId;
     }
 
-    void setTuiSessionId(String sid) {
+    public void setTuiSessionId(String sid) {
       this.tuiSessionId = sid;
     }
 
-    long tuiSessionExpiresAt() {
+    public long tuiSessionExpiresAt() {
       return tuiSessionExpiresAt;
     }
 
-    void setTuiSessionExpiresAt(long expiresAt) {
+    public void setTuiSessionExpiresAt(long expiresAt) {
       this.tuiSessionExpiresAt = expiresAt;
     }
 
-    long lastTuiSentAt() {
+    public long lastTuiSentAt() {
       return lastTuiSentAt;
     }
 
-    void setLastTuiSentAt(long sentAt) {
+    public void setLastTuiSentAt(long sentAt) {
       this.lastTuiSentAt = sentAt;
     }
 

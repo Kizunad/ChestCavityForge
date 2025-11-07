@@ -47,12 +47,8 @@ public final class TUISessionManager {
    */
   public static String currentSid(ServerPlayer player, long nowTick) {
     return SwordCommandCenter.session(player)
-        .map(session -> {
-          if (session.tuiSessionExpiresAt() > nowTick && session.tuiSessionId() != null) {
-            return session.tuiSessionId();
-          }
-          return null;
-        })
+        .filter(session -> session.tuiSessionExpiresAt() > nowTick)
+        .map(session -> session.tuiSessionId())
         .orElse(null);
   }
 

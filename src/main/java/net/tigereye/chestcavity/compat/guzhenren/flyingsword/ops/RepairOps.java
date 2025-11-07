@@ -41,7 +41,7 @@ public final class RepairOps {
   }
 
   /**
-   * 处理“按在场序号修复”。
+   * 处理"按在场序号修复"。
    */
   public static boolean repairByIndex(ServerLevel level, ServerPlayer player, int index1) {
     var list = FlyingSwordController.getPlayerSwords(level, player);
@@ -50,6 +50,17 @@ public final class RepairOps {
       return false;
     }
     return applyRepair(level, player, list.get(index1 - 1));
+  }
+
+  /**
+   * 处理"修复指定飞剑实体"。
+   */
+  public static boolean repairByEntity(ServerLevel level, ServerPlayer player, FlyingSwordEntity sword) {
+    if (sword == null || sword.isRemoved()) {
+      player.sendSystemMessage(Component.literal("[飞剑] 飞剑不存在"));
+      return false;
+    }
+    return applyRepair(level, player, sword);
   }
 
   private static boolean applyRepair(ServerLevel level, ServerPlayer player, FlyingSwordEntity sword) {
