@@ -25,17 +25,13 @@ public final class TUICommandGuard {
   /**
    * 校验会话结果。
    */
-  public record ValidationResult(boolean valid, Component errorMessage) {
-    public static ValidationResult valid() {
+  public record ValidationResult(boolean isValid, Component errorMessage) {
+    public static ValidationResult success() {
       return new ValidationResult(true, null);
     }
 
-    public static ValidationResult invalid(Component errorMessage) {
+    public static ValidationResult failure(Component errorMessage) {
       return new ValidationResult(false, errorMessage);
-    }
-
-    public boolean isValid() {
-      return valid;
     }
   }
 
@@ -51,15 +47,15 @@ public final class TUICommandGuard {
       ServerPlayer player, String providedSid, long nowTick) {
     // 如果没有提供sid，生成过期提示
     if (providedSid == null || providedSid.isEmpty()) {
-      return ValidationResult.invalid(createExpiredMessage());
+      return ValidationResult.failure(createExpiredMessage());
     }
 
     // 校验sid是否有效
     if (!TUISessionManager.isValidSession(player, providedSid, nowTick)) {
-      return ValidationResult.invalid(createExpiredMessage());
+      return ValidationResult.failure(createExpiredMessage());
     }
 
-    return ValidationResult.valid();
+    return ValidationResult.success();
   }
 
   /**
