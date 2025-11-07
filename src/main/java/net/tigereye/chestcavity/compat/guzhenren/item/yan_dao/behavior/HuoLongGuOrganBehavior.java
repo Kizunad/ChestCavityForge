@@ -666,7 +666,7 @@ public final class HuoLongGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       ResourceHandle handle = handleOpt.get();
       double maxQiyun = handle.read("qiyun_shangxian").orElse(0.0D);
       if (maxQiyun > 0.0D) {
-        double rate = state.getBoolean(KEY_COUNTER_UNLOCKED, false) ? 0.0015D : 0.0010D;
+        double rate = state.getBoolean(KEY_COUNTER_UNLOCKED, false) ? 0.0000015D : 0.0000010D;
         double delta = maxQiyun * rate;
         handle.adjustDouble("qiyun", delta, true, "qiyun_shangxian");
       }
