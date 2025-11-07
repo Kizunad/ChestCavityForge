@@ -7,15 +7,16 @@ import org.slf4j.LoggerFactory;
 /**
  * FX 调度器门面：对外提供 FX Track 的调度接口。
  *
- * <p>Stage 1 最小实现：
+ * <p>Stage 2 完整实现：
  *
  * <ul>
- *   <li>schedule(track) - 提交一个 FX Track
+ *   <li>schedule(track) / schedule(spec) - 提交一个 FX Track
  *   <li>cancel(trackId, level) - 取消一个 Track（触发 onStop 回调）
  *   <li>find(trackId) - 查找活跃的 Track
+ *   <li>getStats() - 获取统计信息（活跃数、合并数、丢弃数等）
  * </ul>
  *
- * <p>后续阶段将添加预算控制、合并策略、配置读取等功能。
+ * <p>支持预算控制、合并策略、配置读取等高级功能。
  */
 public final class FxScheduler {
 
@@ -34,20 +35,47 @@ public final class FxScheduler {
   }
 
   /**
-   * 提交一个 FX Track 到时间线引擎。
+   * 提交一个 FX Track 到时间线引擎（基于 Spec）。
+   *
+   * @param spec FxTrackSpec 实例
+   * @return Track ID，如果被合并/丢弃则返回 null
+   */
+  public String schedule(FxTrackSpec spec) {
+    if (spec == null) {
+      throw new IllegalArgumentException("FxTrackSpec cannot be null");
+    }
+
+    FxTrack track = spec.toTrack();
+    String trackId = engine.register(track, spec);
+
+    if (trackId != null) {
+      LOGGER.debug("[FxScheduler] Scheduled track: {}", trackId);
+    } else {
+      LOGGER.debug("[FxScheduler] Track was merged/dropped: {}", spec.getId());
+    }
+
+    return trackId;
+  }
+
+  /**
+   * 提交一个 FX Track 到时间线引擎（直接使用 Track 实例）。
    *
    * @param track FX Track 实例
-   * @return Track ID
+   * @return Track ID，如果被丢弃则返回 null
    */
   public String schedule(FxTrack track) {
     if (track == null) {
       throw new IllegalArgumentException("FxTrack cannot be null");
     }
 
-    // Stage 1: 直接注册，无预算控制与合并
-    // TODO Stage 2: 添加预算检查、合并策略、配置读取
     String trackId = engine.register(track);
-    LOGGER.debug("[FxScheduler] Scheduled track: {}", trackId);
+
+    if (trackId != null) {
+      LOGGER.debug("[FxScheduler] Scheduled track: {}", trackId);
+    } else {
+      LOGGER.debug("[FxScheduler] Track was dropped: {}", track.getId());
+    }
+
     return trackId;
   }
 
@@ -86,5 +114,43 @@ public final class FxScheduler {
   /** 获取当前活跃 Track 数量。 */
   public int getActiveCount() {
     return engine.getActiveCount();
+  }
+
+  /** 获取统计信息。 */
+  public Stats getStats() {
+    return new Stats(
+        engine.getActiveCount(),
+        engine.getMergeCount(),
+        engine.getDropCount(),
+        engine.getReplaceCount());
+  }
+
+  /** FxScheduler 统计信息。 */
+  public static final class Stats {
+    public final int activeCount;
+    public final int mergeCount;
+    public final int dropCount;
+    public final int replaceCount;
+
+    Stats(int activeCount, int mergeCount, int dropCount, int replaceCount) {
+      this.activeCount = activeCount;
+      this.mergeCount = mergeCount;
+      this.dropCount = dropCount;
+      this.replaceCount = replaceCount;
+    }
+
+    @Override
+    public String toString() {
+      return "Stats{"
+          + "active="
+          + activeCount
+          + ", merge="
+          + mergeCount
+          + ", drop="
+          + dropCount
+          + ", replace="
+          + replaceCount
+          + '}';
+    }
   }
 }

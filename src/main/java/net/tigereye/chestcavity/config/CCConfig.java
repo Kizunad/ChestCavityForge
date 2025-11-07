@@ -468,4 +468,23 @@ public class CCConfig implements ConfigData {
     public double chainBlastDecay = 0.8D; // 每跳 80%
     public int chainBlastCooldownTicks = 80;
   }
+
+  @ConfigEntry.Category("fxengine")
+  @ConfigEntry.Gui.CollapsibleObject
+  public FxEngineConfigSection FX_ENGINE = new FxEngineConfigSection();
+
+  public static class FxEngineConfigSection {
+    @ConfigEntry.Gui.Tooltip public boolean enabled = false;
+
+    @ConfigEntry.Gui.Tooltip public boolean budgetEnabled = false;
+
+    @ConfigEntry.Gui.Tooltip public int perLevelCap = 256;
+
+    @ConfigEntry.Gui.Tooltip public int perOwnerCap = 16;
+
+    @ConfigEntry.Gui.Tooltip public int defaultTickInterval = 1;
+
+    @ConfigEntry.Gui.Tooltip
+    public String defaultMergeStrategy = "EXTEND_TTL"; // EXTEND_TTL | DROP | REPLACE
+  }
 }
