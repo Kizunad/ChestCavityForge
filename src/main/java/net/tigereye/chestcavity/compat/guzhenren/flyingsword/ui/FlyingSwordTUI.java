@@ -140,8 +140,9 @@ public final class FlyingSwordTUI {
 
       // 分组按钮行（如果不是剑群）
       int groupId = sword.getGroupId();
+      String uuid = sword.getUUID().toString();
       if (groupId != FlyingSwordEntity.SWARM_GROUP_ID) {
-        player.sendSystemMessage(createGroupButtons(i, groupId, sid));
+        player.sendSystemMessage(createGroupButtonsByUuid(uuid, groupId, sid));
       } else {
         player.sendSystemMessage(
             Component.literal("    ")
@@ -302,6 +303,7 @@ public final class FlyingSwordTUI {
   private static Component createSwordListItem(
       FlyingSwordEntity sword, int index, ServerPlayer player, String sid) {
     double durabilityRatio = sword.getDurability() / sword.getSwordAttributes().maxDurability;
+    String uuid = sword.getUUID().toString();
 
     MutableComponent line = Component.literal("│ ").withStyle(TUITheme.DIM)
         .append(Component.literal(String.format("#%-2d ", index + 1)).withStyle(TUITheme.LABEL))
@@ -323,35 +325,42 @@ public final class FlyingSwordTUI {
     line.append(TUITheme.createLabelValue("距", String.format("%.0fm", sword.distanceTo(player))));
 
     return line.append(Component.literal("  "))
-        .append(createButton("选", "/flyingsword select index " + (index + 1), "选中此飞剑"))
+        .append(createButton("选", "/flyingsword select_id " + uuid + " " + sid, "选中此飞剑"))
         .append(space())
-        .append(createButton("修", "/flyingsword repair_index " + (index + 1), "修复此飞剑"))
+        .append(createButton("修", "/flyingsword repair_id " + uuid + " " + sid, "修复此飞剑"))
         .append(space())
-        .append(createButton("回", "/flyingsword recall_index " + (index + 1), "召回此飞剑"))
+        .append(createButton("回", "/flyingsword recall_id " + uuid + " " + sid, "召回此飞剑"))
         .append(space())
-        .append(createModeButton("攻", index + 1, "hunt"))
+        .append(createModeButtonById("攻", uuid, "hunt", sid))
         .append(space())
-        .append(createModeButton("守", index + 1, "guard"))
+        .append(createModeButtonById("守", uuid, "guard", sid))
         .append(space())
-        .append(createModeButton("环", index + 1, "orbit"))
+        .append(createModeButtonById("环", uuid, "orbit", sid))
         .append(space())
-        .append(createModeButton("悬", index + 1, "hover"));
+        .append(createModeButtonById("悬", uuid, "hover", sid));
   }
 
   /**
    * 创建分组按钮行。
    */
   private static Component createGroupButtons(int index, int currentGroupId, String sid) {
+    return createGroupButtons(null, currentGroupId, sid); // Keep for compatibility, uuid will be fetched
+  }
+
+  /**
+   * 创建分组按钮行（基于UUID）。
+   */
+  private static Component createGroupButtonsByUuid(String uuid, int currentGroupId, String sid) {
     MutableComponent line = Component.literal("    ")
         .append(Component.literal("分组: ").withStyle(TUITheme.LABEL));
 
-    line.append(createGroupButton(index, 0, currentGroupId == 0, "全部"));
+    line.append(createGroupButtonById(uuid, 0, currentGroupId == 0, "全部", sid));
     line.append(space());
-    line.append(createGroupButton(index, 1, currentGroupId == 1, "G1"));
+    line.append(createGroupButtonById(uuid, 1, currentGroupId == 1, "G1", sid));
     line.append(space());
-    line.append(createGroupButton(index, 2, currentGroupId == 2, "G2"));
+    line.append(createGroupButtonById(uuid, 2, currentGroupId == 2, "G2", sid));
     line.append(space());
-    line.append(createGroupButton(index, 3, currentGroupId == 3, "G3"));
+    line.append(createGroupButtonById(uuid, 3, currentGroupId == 3, "G3", sid));
 
     return line;
   }
@@ -363,6 +372,7 @@ public final class FlyingSwordTUI {
       FlyingSwordStorage.RecalledSword recalled, int index, ServerPlayer player, String sid) {
     String name = FlyingSwordTUIOps.getStoredDisplayName(player.serverLevel(), recalled);
     double durabilityRatio = recalled.durability / recalled.attributes.maxDurability;
+    String itemUuid = recalled.displayItemUUID != null ? recalled.displayItemUUID.toString() : "";
 
     MutableComponent line = Component.literal("│ ").withStyle(TUITheme.DIM)
         .append(Component.literal(String.format("#%-2d ", index + 1)).withStyle(TUITheme.LABEL))
@@ -383,14 +393,14 @@ public final class FlyingSwordTUI {
 
     if (recalled.itemWithdrawn) {
       return line.append(Component.literal("  "))
-          .append(createButton("放回", "/flyingsword deposit_index " + (index + 1), "放回此物品"))
+          .append(createButton("放回", "/flyingsword deposit_item " + itemUuid + " " + sid, "放回此物品"))
           .append(space())
           .append(Component.literal("(已取出)").withStyle(TUITheme.WARNING));
     } else {
       return line.append(Component.literal("  "))
-          .append(createButton("召唤", "/flyingsword restore_index " + (index + 1), "召唤此飞剑"))
+          .append(createButton("召唤", "/flyingsword restore_item " + itemUuid + " " + sid, "召唤此飞剑"))
           .append(space())
-          .append(createButton("取出", "/flyingsword withdraw_index " + (index + 1), "取出物品本体"));
+          .append(createButton("取出", "/flyingsword withdraw_item " + itemUuid + " " + sid, "取出物品本体"));
     }
   }
 
@@ -454,7 +464,7 @@ public final class FlyingSwordTUI {
   }
 
   /**
-   * 创建模式切换按钮。
+   * 创建模式切换按钮（旧版，基于index）。
    */
   private static MutableComponent createModeButton(String label, int index, String mode) {
     String modeName = switch (mode) {
@@ -468,7 +478,21 @@ public final class FlyingSwordTUI {
   }
 
   /**
-   * 创建分组按钮。
+   * 创建模式切换按钮（新版，基于UUID）。
+   */
+  private static MutableComponent createModeButtonById(String label, String uuid, String mode, String sid) {
+    String modeName = switch (mode) {
+      case "hunt" -> "出击";
+      case "guard" -> "守护";
+      case "orbit" -> "环绕";
+      case "hover" -> "悬浮";
+      default -> mode;
+    };
+    return createButton(label, "/flyingsword mode_id " + uuid + " " + mode + " " + sid, "设为" + modeName);
+  }
+
+  /**
+   * 创建分组按钮（旧版，基于index）。
    */
   private static MutableComponent createGroupButton(
       int index, int groupId, boolean selected, String label) {
@@ -478,6 +502,20 @@ public final class FlyingSwordTUI {
           .withStyle(TUITheme.ACCENT);
     } else {
       return createButton(label, "/flyingsword group_index " + index + " " + groupId, "设为分组: " + label);
+    }
+  }
+
+  /**
+   * 创建分组按钮（新版，基于UUID）。
+   */
+  private static MutableComponent createGroupButtonById(
+      String uuid, int groupId, boolean selected, String label, String sid) {
+    if (selected) {
+      return Component.literal("[" + label + "]")
+          .withStyle(ChatFormatting.BOLD)
+          .withStyle(TUITheme.ACCENT);
+    } else {
+      return createButton(label, "/flyingsword group_id " + uuid + " " + groupId + " " + sid, "设为分组: " + label);
     }
   }
 
