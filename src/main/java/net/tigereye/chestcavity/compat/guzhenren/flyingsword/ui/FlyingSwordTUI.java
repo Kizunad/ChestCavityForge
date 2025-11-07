@@ -62,22 +62,23 @@ public final class FlyingSwordTUI {
     }
 
     Component sectionSelectedTitle = TUITheme.createSectionTitle(TUITheme.EMOJI_SWORD, "指定飞剑");
-    Component behaviorLine = createBehaviorBar();
+    java.util.List<Component> behaviorLines = createBehaviorLines();
     Component sectionAllTitle = TUITheme.createSectionTitle(TUITheme.EMOJI_GROUP, "全体指令");
-    Component allActionsLine = createAllActionsBar();
+    java.util.List<Component> allActionsLines = createAllActionsLines();
     Component sectionManageTitle = TUITheme.createSectionTitle(TUITheme.EMOJI_TACTIC, "管理操作");
-    Component manageLine = createMainNavigation();
+    java.util.List<Component> manageLines = createMainNavigationLines();
+
+    java.util.List<Component> samples = new java.util.ArrayList<>();
+    samples.add(selectedLine);
+    samples.add(sectionSelectedTitle);
+    samples.addAll(behaviorLines);
+    samples.add(sectionAllTitle);
+    samples.addAll(allActionsLines);
+    samples.add(sectionManageTitle);
+    samples.addAll(manageLines);
 
     int desiredWidth =
-        TUITheme.estimateFrameWidth(
-            64,
-            selectedLine,
-            sectionSelectedTitle,
-            behaviorLine,
-            sectionAllTitle,
-            allActionsLine,
-            sectionManageTitle,
-            manageLine);
+        TUITheme.estimateFrameWidth(64, samples.toArray(new Component[0]));
     TUITheme.beginFrame(desiredWidth);
 
     // 顶部边框
@@ -87,15 +88,21 @@ public final class FlyingSwordTUI {
     player.sendSystemMessage(TUITheme.createDivider());
 
     player.sendSystemMessage(TUITheme.wrapContentLine(sectionSelectedTitle));
-    player.sendSystemMessage(TUITheme.wrapContentLine(behaviorLine));
+    for (Component line : behaviorLines) {
+      player.sendSystemMessage(TUITheme.wrapContentLine(line));
+    }
     player.sendSystemMessage(TUITheme.createDivider());
 
     player.sendSystemMessage(TUITheme.wrapContentLine(sectionAllTitle));
-    player.sendSystemMessage(TUITheme.wrapContentLine(allActionsLine));
+    for (Component line : allActionsLines) {
+      player.sendSystemMessage(TUITheme.wrapContentLine(line));
+    }
     player.sendSystemMessage(TUITheme.createDivider());
 
     player.sendSystemMessage(TUITheme.wrapContentLine(sectionManageTitle));
-    player.sendSystemMessage(TUITheme.wrapContentLine(manageLine));
+    for (Component line : manageLines) {
+      player.sendSystemMessage(TUITheme.wrapContentLine(line));
+    }
 
     // 底部边框
     player.sendSystemMessage(TUITheme.createBottomBorder());
@@ -283,56 +290,68 @@ public final class FlyingSwordTUI {
   /**
    * 创建行为栏（对选中飞剑操作）。
    */
-  private static Component createBehaviorBar() {
-    MutableComponent bar = Component.literal("");
+  private static java.util.List<Component> createBehaviorLines() {
+    java.util.List<Component> lines = new java.util.ArrayList<>();
 
-    bar.append(createButton("出击", "/flyingsword mode_selected hunt", "设定选中飞剑为出击模式"));
-    bar.append(space());
-    bar.append(createButton("守护", "/flyingsword mode_selected guard", "设定选中飞剑为守护模式"));
-    bar.append(space());
-    bar.append(createButton("环绕", "/flyingsword mode_selected orbit", "设定选中飞剑为环绕模式"));
-    bar.append(space());
-    bar.append(createButton("悬浮", "/flyingsword mode_selected hover", "设定选中飞剑为悬浮模式"));
-    bar.append(space());
-    bar.append(createButton("修复", "/flyingsword repair_selected", "消耗主手物品修复选中飞剑"));
+    MutableComponent line1 = Component.literal("");
+    line1.append(createButton("出击", "/flyingsword mode_selected hunt", "设定选中飞剑为出击模式"));
+    line1.append(space());
+    line1.append(createButton("守护", "/flyingsword mode_selected guard", "设定选中飞剑为守护模式"));
+    line1.append(space());
+    line1.append(createButton("环绕", "/flyingsword mode_selected orbit", "设定选中飞剑为环绕模式"));
+    lines.add(line1);
 
-    return bar;
+    MutableComponent line2 = Component.literal("");
+    line2.append(createButton("悬浮", "/flyingsword mode_selected hover", "设定选中飞剑为悬浮模式"));
+    line2.append(space());
+    line2.append(createButton("修复", "/flyingsword repair_selected", "消耗主手物品修复选中飞剑"));
+    lines.add(line2);
+
+    return lines;
   }
 
   /**
    * 创建全体操作栏。
    */
-  private static Component createAllActionsBar() {
-    MutableComponent bar = Component.literal("");
+  private static java.util.List<Component> createAllActionsLines() {
+    java.util.List<Component> lines = new java.util.ArrayList<>();
 
-    bar.append(createButton("全体出击", "/flyingsword mode hunt", "令所有飞剑出击"));
-    bar.append(space());
-    bar.append(createButton("全体守护", "/flyingsword mode guard", "令所有飞剑守护"));
-    bar.append(space());
-    bar.append(createButton("全体环绕", "/flyingsword mode orbit", "令所有飞剑环绕"));
-    bar.append(space());
-    bar.append(createButton("全体悬浮", "/flyingsword mode hover", "令所有飞剑悬浮"));
-    bar.append(space());
-    bar.append(createButton("全体召回", "/flyingsword recall", "召回所有飞剑"));
+    MutableComponent line1 = Component.literal("");
+    line1.append(createButton("全体出击", "/flyingsword mode hunt", "令所有飞剑出击"));
+    line1.append(space());
+    line1.append(createButton("全体守护", "/flyingsword mode guard", "令所有飞剑守护"));
+    line1.append(space());
+    line1.append(createButton("全体环绕", "/flyingsword mode orbit", "令所有飞剑环绕"));
+    lines.add(line1);
 
-    return bar;
+    MutableComponent line2 = Component.literal("");
+    line2.append(createButton("全体悬浮", "/flyingsword mode hover", "令所有飞剑悬浮"));
+    line2.append(space());
+    line2.append(createButton("全体召回", "/flyingsword recall", "召回所有飞剑"));
+    lines.add(line2);
+
+    return lines;
   }
 
   /**
    * 创建主导航栏。
    */
-  private static Component createMainNavigation() {
-    MutableComponent nav = Component.literal("");
+  private static java.util.List<Component> createMainNavigationLines() {
+    java.util.List<Component> lines = new java.util.ArrayList<>();
 
-    nav.append(createButton("在场", "/flyingsword ui_active 1", "管理在场飞剑"));
-    nav.append(space());
-    nav.append(createButton("存储", "/flyingsword ui_storage 1", "管理存储中的飞剑"));
-    nav.append(space());
-    nav.append(createButton("列表", "/flyingsword list", "详细列出所有在场飞剑"));
-    nav.append(space());
-    nav.append(createButton("状态", "/flyingsword status", "查看飞剑系统状态"));
+    MutableComponent line1 = Component.literal("");
+    line1.append(createButton("在场", "/flyingsword ui_active 1", "管理在场飞剑"));
+    line1.append(space());
+    line1.append(createButton("存储", "/flyingsword ui_storage 1", "管理存储中的飞剑"));
+    lines.add(line1);
 
-    return nav;
+    MutableComponent line2 = Component.literal("");
+    line2.append(createButton("列表", "/flyingsword list", "详细列出所有在场飞剑"));
+    line2.append(space());
+    line2.append(createButton("状态", "/flyingsword status", "查看飞剑系统状态"));
+    lines.add(line2);
+
+    return lines;
   }
 
   /**

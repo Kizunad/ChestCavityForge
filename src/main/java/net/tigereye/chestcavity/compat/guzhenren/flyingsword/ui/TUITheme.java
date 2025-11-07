@@ -68,20 +68,23 @@ public final class TUITheme {
 
   // ==================== 布局参数 ====================
 
-  private static final int MIN_FANCY_FRAME_WIDTH = 34;
-  private static final int MIN_ASCII_FRAME_WIDTH = 28;
+  private static final int MIN_FANCY_FRAME_WIDTH = 20;
+  private static final int MIN_ASCII_FRAME_WIDTH = 20;
 
   private static int fancyFrameWidth = MIN_FANCY_FRAME_WIDTH;
   private static int asciiFrameWidth = MIN_ASCII_FRAME_WIDTH;
+  private static int borderWidth = FlyingSwordTuning.TUI_BORDER_WIDTH;
 
-  /** 设置当前界面的统一框宽度（可视字符单位）。 */
+  /** 设置当前界面的统一框宽度（可视字符单位），并刷新边框宽度。 */
   public static void beginFrame(int desiredWidth) {
-    fancyFrameWidth = Math.max(MIN_FANCY_FRAME_WIDTH, desiredWidth);
-    asciiFrameWidth = Math.max(MIN_ASCII_FRAME_WIDTH, desiredWidth);
+    int maxWidth = Math.max(MIN_FANCY_FRAME_WIDTH, FlyingSwordTuning.TUI_FRAME_MAX_WIDTH);
+    fancyFrameWidth = Math.min(maxWidth, Math.max(MIN_FANCY_FRAME_WIDTH, desiredWidth));
+    asciiFrameWidth = Math.min(maxWidth, Math.max(MIN_ASCII_FRAME_WIDTH, desiredWidth));
+    borderWidth = Math.max(16, FlyingSwordTuning.TUI_BORDER_WIDTH);
   }
 
-  private static int currentFrameWidth() {
-    return FlyingSwordTuning.TUI_FANCY_EMOJI ? fancyFrameWidth : asciiFrameWidth;
+  private static int currentBorderWidth() {
+    return borderWidth;
   }
 
   /**
@@ -125,8 +128,8 @@ public final class TUITheme {
    */
   public static Component createTopBorder(String title) {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      // 限制内部最大宽度为60
-      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
+      // 使用独立的边框宽度
+      int interior = Math.max(0, currentBorderWidth() - 2);
       String content = EMOJI_SPARK + " " + title + " " + EMOJI_SPARK;
       int contentWidth = visualLength(content);
       int padding = Math.max(0, interior - contentWidth);
@@ -146,8 +149,8 @@ public final class TUITheme {
       line.append(Component.literal("╮").withStyle(DIM));
       return line;
     } else {
-      // ASCII模式也限制宽度
-      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
+      // ASCII 模式同样与边框宽度对齐
+      int interior = Math.max(0, currentBorderWidth() - 2);
       String content = " " + title + " ";
       int contentWidth = visualLength(content);
       int padding = Math.max(0, interior - contentWidth);
@@ -174,12 +177,12 @@ public final class TUITheme {
    */
   public static Component createBottomBorder() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      // 限制内部最大宽度为60
-      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
+      // 与独立边框宽度一致
+      int interior = Math.max(0, currentBorderWidth() - 2);
       return Component.literal("╰" + repeat('─', interior) + "╯").withStyle(DIM);
     } else {
-      // ASCII模式也限制宽度
-      int width = Math.min(60, currentFrameWidth());
+      // ASCII 模式宽度 = 边框宽度
+      int width = currentBorderWidth();
       return Component.literal(repeat('=', width)).withStyle(DIM);
     }
   }
@@ -191,12 +194,12 @@ public final class TUITheme {
    */
   public static Component createDivider() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      // 计算适当的内部宽度，避免过长
-      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
+      // 使用边框宽度，确保左右边界对齐
+      int interior = Math.max(0, currentBorderWidth() - 2);
       return Component.literal("├" + repeat('─', interior) + "┤").withStyle(DIM);
     } else {
-      // ASCII模式也限制最大宽度
-      int width = Math.min(60, currentFrameWidth());
+      // ASCII 模式同样对齐边框宽度
+      int width = currentBorderWidth();
       return Component.literal(repeat('-', width)).withStyle(DIM);
     }
   }
@@ -214,15 +217,15 @@ public final class TUITheme {
       return content;
     }
 
-    int contentWidth = visualLength(content.getString());
-    int borderWidth = 4; // 左右边框
-    int fillNeeded = Math.max(0, currentFrameWidth() - contentWidth - borderWidth);
+    int innerWidth = Math.max(0, currentBorderWidth() - 1);
+
+    MutableComponent display = Component.empty().append(content);
+    int contentWidth = visualLength(display.getString());
+
+    int fillNeeded = Math.max(0, innerWidth - contentWidth);
     String fill = fillNeeded > 0 ? repeat(' ', fillNeeded) : "";
 
-    return Component.literal("│ ")
-        .withStyle(DIM)
-        .append(content)
-        .append(Component.literal(fill + " │").withStyle(DIM));
+    return display.append(Component.literal(fill).withStyle(DIM));
   }
 
   /**
@@ -378,25 +381,42 @@ public final class TUITheme {
     MutableComponent nav = Component.literal("");
 
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      nav.append(Component.literal("├─ ").withStyle(DIM));
+      // Fancy 模式：使导航条与边框宽度对齐（├──── content ────┤）
+      int interior = Math.max(0, currentBorderWidth() - 2);
+      String contentStr =
+          " " + EMOJI_ARROW_LEFT + " 第" + currentPage + "/" + totalPages + "页 " + EMOJI_ARROW_RIGHT
+              + " ";
+      int contentWidth = visualLength(contentStr);
+      int padding = Math.max(0, interior - contentWidth);
+      int left = padding / 2;
+      int right = padding - left;
 
-      if (hasPrev) {
-        nav.append(Component.literal(EMOJI_ARROW_LEFT + " ").withStyle(BUTTON));
-      } else {
-        nav.append(Component.literal(EMOJI_ARROW_LEFT + " ").withStyle(DIM));
+      nav.append(Component.literal("├").withStyle(DIM));
+      if (left > 0) {
+        nav.append(Component.literal(repeat('─', left)).withStyle(DIM));
       }
 
+      // 左空格
+      nav.append(Component.literal(" ").withStyle(DIM));
+      // 上一页箭头
+      nav.append(
+          Component.literal(EMOJI_ARROW_LEFT)
+              .withStyle(hasPrev ? BUTTON : DIM));
+      // 文本
       nav.append(
           Component.literal(" 第" + currentPage + "/" + totalPages + "页 ")
               .withStyle(LABEL));
+      // 下一页箭头
+      nav.append(
+          Component.literal(EMOJI_ARROW_RIGHT)
+              .withStyle(hasNext ? BUTTON : DIM));
+      // 右空格
+      nav.append(Component.literal(" ").withStyle(DIM));
 
-      if (hasNext) {
-        nav.append(Component.literal(" " + EMOJI_ARROW_RIGHT).withStyle(BUTTON));
-      } else {
-        nav.append(Component.literal(" " + EMOJI_ARROW_RIGHT).withStyle(DIM));
+      if (right > 0) {
+        nav.append(Component.literal(repeat('─', right)).withStyle(DIM));
       }
-
-      nav.append(Component.literal(" ─┤").withStyle(DIM));
+      nav.append(Component.literal("┤").withStyle(DIM));
     } else {
       if (hasPrev) {
         nav.append(Component.literal("< ").withStyle(BUTTON));
