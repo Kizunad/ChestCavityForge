@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.engine.fx;
 
+import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.engine.TickEngineHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,5 +59,37 @@ public final class FxEngine {
    */
   public static FxTimelineEngine engine() {
     return FxTimelineEngine.getInstance();
+  }
+
+  /**
+   * 获取当前 FxEngine 配置（从 CCConfig 读取）。
+   *
+   * @return FxEngineConfig 实例
+   */
+  public static FxEngineConfig getConfig() {
+    FxEngineConfig config = new FxEngineConfig();
+    try {
+      var ccConfig = ChestCavity.config.FX_ENGINE;
+      config.enabled = ccConfig.enabled;
+      config.budgetEnabled = ccConfig.budgetEnabled;
+      config.perLevelCap = ccConfig.perLevelCap;
+      config.perOwnerCap = ccConfig.perOwnerCap;
+      config.defaultTickInterval = ccConfig.defaultTickInterval;
+
+      // 解析 mergeStrategy 字符串
+      try {
+        config.defaultMergeStrategy = MergeStrategy.valueOf(ccConfig.defaultMergeStrategy);
+      } catch (Exception e) {
+        LOGGER.warn(
+            "[FxEngine] Invalid merge strategy '{}', using default EXTEND_TTL",
+            ccConfig.defaultMergeStrategy);
+        config.defaultMergeStrategy = MergeStrategy.EXTEND_TTL;
+      }
+
+      config.validate();
+    } catch (Exception e) {
+      LOGGER.error("[FxEngine] Failed to load config, using defaults", e);
+    }
+    return config;
   }
 }
