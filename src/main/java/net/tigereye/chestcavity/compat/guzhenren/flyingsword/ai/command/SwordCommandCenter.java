@@ -632,7 +632,7 @@ public final class SwordCommandCenter {
     return lines;
   }
 
-  static final class CommandSession {
+  public static final class CommandSession {
     private final UUID ownerId;
     private final Map<Integer, GroupState> groups = new HashMap<>();
     private final LinkedHashMap<UUID, MarkedTarget> selectionMarks = new LinkedHashMap<>();

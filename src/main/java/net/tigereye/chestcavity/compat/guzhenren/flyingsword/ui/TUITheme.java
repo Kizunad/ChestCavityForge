@@ -66,6 +66,14 @@ public final class TUITheme {
   public static final String EMOJI_GROUP = "👥"; // 分组
   public static final String EMOJI_TACTIC = "🎯"; // 战术
 
+  // ==================== 布局参数 ====================
+
+  private static final int MIN_FANCY_FRAME_WIDTH = 34; // 任意内容至少保持宽度
+  private static final int MIN_ASCII_FRAME_WIDTH = 28;
+
+  private static int lastFancyFrameWidth = MIN_FANCY_FRAME_WIDTH;
+  private static int lastAsciiFrameWidth = MIN_ASCII_FRAME_WIDTH;
+
   // ==================== 边框样式 ====================
 
   /**
@@ -76,17 +84,37 @@ public final class TUITheme {
    */
   public static Component createTopBorder(String title) {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("╭ ")
-          .withStyle(DIM)
-          .append(Component.literal(EMOJI_SPARK + " ").withStyle(ACCENT))
-          .append(Component.literal(title).withStyle(ChatFormatting.BOLD).withStyle(TEXT))
-          .append(Component.literal(" " + EMOJI_SPARK).withStyle(ACCENT))
-          .append(Component.literal(" ╮").withStyle(DIM));
+      String plain = EMOJI_SPARK + " " + title + " " + EMOJI_SPARK;
+      int contentLen = visualLength(plain);
+      int interior = Math.max(MIN_FANCY_FRAME_WIDTH, contentLen + 2);
+      lastFancyFrameWidth = interior;
+      int padding = Math.max(0, interior - contentLen);
+      int leftPad = padding / 2;
+      int rightPad = padding - leftPad;
+
+      MutableComponent line = Component.literal("╭").withStyle(DIM);
+      line.append(Component.literal(repeat('─', leftPad)).withStyle(DIM));
+      line.append(Component.literal(EMOJI_SPARK + " ").withStyle(ACCENT));
+      line.append(Component.literal(title).withStyle(ChatFormatting.BOLD).withStyle(TEXT));
+      line.append(Component.literal(" " + EMOJI_SPARK).withStyle(ACCENT));
+      line.append(Component.literal(repeat('─', rightPad)).withStyle(DIM));
+      line.append(Component.literal("╮").withStyle(DIM));
+      return line;
     } else {
-      return Component.literal("===== ")
-          .withStyle(DIM)
-          .append(Component.literal(title).withStyle(ChatFormatting.BOLD).withStyle(TEXT))
-          .append(Component.literal(" =====").withStyle(DIM));
+      String plain = " " + title + " ";
+      int contentLen = visualLength(plain);
+      int interior = Math.max(MIN_ASCII_FRAME_WIDTH, contentLen + 2);
+      lastAsciiFrameWidth = interior;
+      int padding = Math.max(0, interior - contentLen);
+      int leftPad = padding / 2;
+      int rightPad = padding - leftPad;
+
+      MutableComponent line = Component.literal("=").withStyle(DIM);
+      line.append(Component.literal(repeat('=', leftPad)).withStyle(DIM));
+      line.append(Component.literal(plain).withStyle(ChatFormatting.BOLD).withStyle(TEXT));
+      line.append(Component.literal(repeat('=', rightPad)).withStyle(DIM));
+      line.append(Component.literal("=").withStyle(DIM));
+      return line;
     }
   }
 
@@ -97,9 +125,12 @@ public final class TUITheme {
    */
   public static Component createBottomBorder() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("╰────────────────────╯").withStyle(DIM);
+      return Component.literal("╰")
+          .withStyle(DIM)
+          .append(Component.literal(repeat('─', lastFancyFrameWidth)).withStyle(DIM))
+          .append(Component.literal("╯").withStyle(DIM));
     } else {
-      return Component.literal("=====================").withStyle(DIM);
+      return Component.literal(repeat('=', lastAsciiFrameWidth + 2)).withStyle(DIM);
     }
   }
 
@@ -110,9 +141,12 @@ public final class TUITheme {
    */
   public static Component createDivider() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("├─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤").withStyle(DIM);
+      return Component.literal("├")
+          .withStyle(DIM)
+          .append(Component.literal(repeat('─', lastFancyFrameWidth)).withStyle(DIM))
+          .append(Component.literal("┤").withStyle(DIM));
     } else {
-      return Component.literal("─────────────────────").withStyle(DIM);
+      return Component.literal(repeat('-', lastAsciiFrameWidth + 2)).withStyle(DIM);
     }
   }
 
@@ -317,5 +351,19 @@ public final class TUITheme {
    */
   public static Component createSpacer() {
     return Component.literal(" " + EMOJI_SEPARATOR + " ").withStyle(DIM);
+  }
+
+  private static String repeat(char ch, int count) {
+    if (count <= 0) {
+      return "";
+    }
+    return String.valueOf(ch).repeat(count);
+  }
+
+  private static int visualLength(String text) {
+    if (text == null || text.isEmpty()) {
+      return 0;
+    }
+    return text.codePointCount(0, text.length());
   }
 }
