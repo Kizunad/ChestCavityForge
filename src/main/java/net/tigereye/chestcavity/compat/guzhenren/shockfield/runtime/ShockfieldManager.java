@@ -411,8 +411,11 @@ public final class ShockfieldManager {
   public static void bootstrap() {
     TickEngineHub.register(TickEngineHub.PRIORITY_DOT + 10, ShockfieldManager::onServerTick);
 
-    // 注册特效服务
-    ShockfieldFx.set(new net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxImpl());
+    // 注册 FxEngine 优化的 Shockfield FX 方案
+    net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxOptimized.registerFxSchemes();
+
+    // 注册特效服务（优化版：使用 FxRegistry + fallback）
+    ShockfieldFx.set(new net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxOptimized());
   }
 
   private static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
