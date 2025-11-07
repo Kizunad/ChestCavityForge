@@ -62,6 +62,15 @@ public final class FxEngine {
   }
 
   /**
+   * 获取 FxRegistry 单例（注册中心）。
+   *
+   * @return FxRegistry 实例
+   */
+  public static FxRegistry registry() {
+    return FxRegistry.getInstance();
+  }
+
+  /**
    * 获取当前 FxEngine 配置（从 CCConfig 读取）。
    *
    * @return FxEngineConfig 实例
