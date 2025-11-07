@@ -311,9 +311,15 @@ public class RiftEntity extends Entity implements OwnableEntity {
             : RiftTuning.DAMAGE_PER_10K_MINOR;
     double daoHenScale = 1.0 + (daoHen / 10000.0) * per10k;
 
+    long now = RiftManager.getInstance().currentRateLimitTimestamp(level);
     for (LivingEntity target : targets) {
       // 跳过所有者
       if (target == owner) {
+        continue;
+      }
+
+      // 限频门：检查是否允许对此目标造成伤害
+      if (!RiftManager.getInstance().tryPassDamageGate(target, now)) {
         continue;
       }
 
