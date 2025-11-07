@@ -41,6 +41,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.client.modernui.config.data.PlayerPreferenceClientState;
 import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient;
 import net.tigereye.chestcavity.client.modernui.config.docs.CategoryTranslations;
 import net.tigereye.chestcavity.client.modernui.config.docs.DocEntry;
@@ -48,6 +49,7 @@ import net.tigereye.chestcavity.client.modernui.config.docs.DocRegistry;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
+import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceUpdatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
@@ -56,6 +58,7 @@ import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarState;
 import net.tigereye.chestcavity.client.modernui.widget.SimpleSkillSlotView;
 import net.tigereye.chestcavity.client.ui.ModernUiClientState;
 import net.tigereye.chestcavity.config.CCConfig;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import net.tigereye.chestcavity.skill.ComboSkillRegistry;
 import net.tigereye.chestcavity.soul.ai.SoulAIOrders;
@@ -204,7 +207,10 @@ public class ChestCavityConfigFragment extends Fragment {
       var layout = baseLayout(context);
       addHeadline(layout, "Chest Cavity 设置总览", 18);
       addBody(
-          layout, "· 规划全局配置入口，未来将同步 ModMenu / NeoForge Config。\n" + "· 在此页面添加常用开关、QoL 选项与快速跳转。");
+          layout,
+          "· 规划全局配置入口，未来将同步 ModMenu / NeoForge Config。\n"
+              + "· 在此页面添加常用开关、QoL 选项与快速跳转。");
+      PlayerPreferenceClientState.requestSync();
 
       // 屏蔽 Reaction 调试/提示输出（实时）
       var row = new LinearLayout(context);
@@ -253,24 +259,16 @@ public class ChestCavityConfigFragment extends Fragment {
           rouLabel,
           new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
       var rouToggle = new CheckBox(context);
-      boolean rouInit = true;
-      try {
-        CCConfig cfg = ChestCavity.config;
-        if (cfg != null) {
-          rouInit = cfg.GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION;
-        }
-      } catch (Throwable ignored) {
-      }
+      boolean rouInit =
+          PlayerPreferenceClientState.get(
+              PlayerPreferenceOps.ROU_BAIGU_PASSIVE_RESTORATION,
+              PlayerPreferenceOps.defaultRouBaiguPassive());
       rouToggle.setChecked(rouInit);
       rouToggle.setOnCheckedChangeListener(
           (buttonView, isChecked) -> {
-            try {
-              var holder = AutoConfig.getConfigHolder(CCConfig.class);
-              CCConfig cfg = holder.getConfig();
-              cfg.GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION = isChecked;
-              holder.save();
-            } catch (Throwable ignored) {
-            }
+            PlayerPreferenceClientState.setLocal(
+                PlayerPreferenceOps.ROU_BAIGU_PASSIVE_RESTORATION, isChecked);
+            sendPreferenceUpdate(PlayerPreferenceOps.ROU_BAIGU_PASSIVE_RESTORATION, isChecked);
           });
       rouRow.addView(
           rouToggle,
@@ -292,24 +290,16 @@ public class ChestCavityConfigFragment extends Fragment {
           rouVacancyLabel,
           new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
       var rouVacancyToggle = new CheckBox(context);
-      boolean rouVacancyInit = false;
-      try {
-        CCConfig cfg = ChestCavity.config;
-        if (cfg != null) {
-          rouVacancyInit = cfg.GUZHENREN_ROU_BAIGU_REQUIRE_EMPTY_SLOT;
-        }
-      } catch (Throwable ignored) {
-      }
+      boolean rouVacancyInit =
+          PlayerPreferenceClientState.get(
+              PlayerPreferenceOps.ROU_BAIGU_REQUIRE_EMPTY_SLOT,
+              PlayerPreferenceOps.defaultRouBaiguRequireEmpty());
       rouVacancyToggle.setChecked(rouVacancyInit);
       rouVacancyToggle.setOnCheckedChangeListener(
           (buttonView, isChecked) -> {
-            try {
-              var holder = AutoConfig.getConfigHolder(CCConfig.class);
-              CCConfig cfg = holder.getConfig();
-              cfg.GUZHENREN_ROU_BAIGU_REQUIRE_EMPTY_SLOT = isChecked;
-              holder.save();
-            } catch (Throwable ignored) {
-            }
+            PlayerPreferenceClientState.setLocal(
+                PlayerPreferenceOps.ROU_BAIGU_REQUIRE_EMPTY_SLOT, isChecked);
+            sendPreferenceUpdate(PlayerPreferenceOps.ROU_BAIGU_REQUIRE_EMPTY_SLOT, isChecked);
           });
       rouVacancyRow.addView(
           rouVacancyToggle,
@@ -317,6 +307,37 @@ public class ChestCavityConfigFragment extends Fragment {
               ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       layout.addView(
           rouVacancyRow,
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+      var swordBlockRow = new LinearLayout(context);
+      swordBlockRow.setOrientation(LinearLayout.HORIZONTAL);
+      swordBlockRow.setGravity(Gravity.CENTER_VERTICAL);
+      var swordBlockLabel = new TextView(context);
+      swordBlockLabel.setText("飞剑：允许破坏方块");
+      swordBlockLabel.setTextSize(13);
+      swordBlockLabel.setTextColor(0xFFDEE5F4);
+      swordBlockRow.addView(
+          swordBlockLabel,
+          new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+      var swordBlockToggle = new CheckBox(context);
+      boolean swordBlockInit =
+          PlayerPreferenceClientState.get(
+              PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK,
+              PlayerPreferenceOps.defaultSwordSlashBlockBreak());
+      swordBlockToggle.setChecked(swordBlockInit);
+      swordBlockToggle.setOnCheckedChangeListener(
+          (buttonView, isChecked) -> {
+            PlayerPreferenceClientState.setLocal(
+                PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK, isChecked);
+            sendPreferenceUpdate(PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK, isChecked);
+          });
+      swordBlockRow.addView(
+          swordBlockToggle,
+          new LinearLayout.LayoutParams(
+              ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      layout.addView(
+          swordBlockRow,
           new LinearLayout.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       return layout;
@@ -2707,5 +2728,14 @@ public class ChestCavityConfigFragment extends Fragment {
     animateButton(view, 1f, 0.92f, 1f, 1f, 100);
     // Scale back up after delay
     view.postDelayed(() -> animateButton(view, 0.92f, 1f, 1f, 1f, 100), 100);
+  }
+
+  private void sendPreferenceUpdate(ResourceLocation key, boolean value) {
+    var mc = Minecraft.getInstance();
+    var connection = mc.getConnection();
+    if (connection == null) {
+      return;
+    }
+    mc.execute(() -> connection.send(new PlayerPreferenceUpdatePayload(key, value)));
   }
 }

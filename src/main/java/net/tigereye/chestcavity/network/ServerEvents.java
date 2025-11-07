@@ -13,8 +13,10 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceSyncPayload;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.skill.SkillHotbarServerData;
@@ -35,6 +37,10 @@ public final class ServerEvents {
     if (event.getEntity() instanceof ServerPlayer player) {
       grantFirstJoinChestOpener(player);
       SkillHotbarServerData.sendSnapshot(player);
+      PlayerPreferenceOps.ensureBootstrapped(player);
+      player.connection.send(
+          new PlayerPreferenceSyncPayload(
+              CCAttachments.getPlayerPreferences(player).export()));
       scheduleSync(player, true);
     }
   }

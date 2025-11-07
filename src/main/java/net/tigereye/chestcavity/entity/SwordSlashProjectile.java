@@ -40,6 +40,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.config.CCConfig;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 import net.tigereye.chestcavity.util.AnimationPathHelper;
 import net.tigereye.chestcavity.util.ProjectileParameterReceiver;
 import org.jetbrains.annotations.Nullable;
@@ -242,7 +243,23 @@ public class SwordSlashProjectile extends Entity implements ProjectileParameterR
       }
       return;
     }
-    boolean ownerIsPlayer = getOwner() instanceof Player;
+    Player ownerPlayer = getOwner() instanceof Player player ? player : null;
+    boolean ownerAllowsBreaking =
+        ownerPlayer == null
+            ? PlayerPreferenceOps.defaultSwordSlashBlockBreak()
+            : PlayerPreferenceOps.resolve(
+                ownerPlayer,
+                PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK,
+                PlayerPreferenceOps::defaultSwordSlashBlockBreak);
+    if (!ownerAllowsBreaking) {
+      if (isDebugLoggingEnabled()) {
+        logDebug(
+            "[SwordSlash] Block breaking disabled for player {}",
+            ownerPlayer == null ? "non_player" : ownerPlayer.getGameProfile().getName());
+      }
+      return;
+    }
+    boolean ownerIsPlayer = ownerPlayer != null;
     boolean mobGriefAllowed = mobGriefingEnabled(server);
     if (!mobGriefAllowed && !ownerIsPlayer) {
       if (isDebugLoggingEnabled()) {

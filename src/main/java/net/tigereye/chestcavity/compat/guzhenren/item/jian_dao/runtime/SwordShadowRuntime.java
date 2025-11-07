@@ -290,21 +290,24 @@ public final class SwordShadowRuntime {
       return;
     }
 
-    // 参数快照优先：在 ActivationHookRegistry 中已注册 jiandao:* 字段的快照
+    // 参数快照：在 ActivationHookRegistry 中已注册 jiandao:* 字段的快照（优先读取）
+    double daoHen = 0.0;
+    double liuPai = 0.0;
     if (player instanceof ServerPlayer sp) {
       double snapDaoHen =
           SkillEffectBus.consumeMetadata(sp, ABILITY_ID, "jiandao:daohen_jiandao", Double.NaN);
       double snapLiupai =
           SkillEffectBus.consumeMetadata(sp, ABILITY_ID, "jiandao:liupai_jiandao", Double.NaN);
-      // 当前数值未用于计算，仅完成“优先读取快照”的约定，便于后续数值迭代
-      if (Double.isFinite(snapDaoHen) || Double.isFinite(snapLiupai)) {
-        // no-op
-      }
+      if (Double.isFinite(snapDaoHen)) daoHen = Math.max(0.0, snapDaoHen);
+      if (Double.isFinite(snapLiupai)) liuPai = Math.max(0.0, snapLiupai);
     }
 
     PlayerSkinUtil.SkinSnapshot tint =
         PlayerSkinUtil.withTint(PlayerSkinUtil.capture(player), 0.05f, 0.05f, 0.1f, 0.55f);
+    // 计算伤害（基于家族增伤 + 道痕加成）
     float cloneDamage = JianYingCalculator.cloneDamage(efficiency);
+    double damageMult = computeCloneDamageMultiplier(daoHen);
+    cloneDamage = (float) (cloneDamage * damageMult);
     RandomSource random = player.getRandom();
     int spawned = 0;
     for (int i = 0; i < clones; i++) {
@@ -312,7 +315,10 @@ public final class SwordShadowRuntime {
       Vec3 spawnPos = player.position().add(offset);
       SwordShadowClone clone = SwordShadowClone.spawn(server, player, spawnPos, tint, cloneDamage);
       if (clone != null) {
-        clone.setLifetime(JianYingTuning.CLONE_DURATION_TICKS);
+        // 分身存在时间：基础时长 * (1 + 道痕/流派系数，加至上限)
+        double lifeMult = computeCloneLifetimeMultiplier(daoHen, liuPai);
+        int lifeTicks = (int) Math.round(JianYingTuning.CLONE_DURATION_TICKS * lifeMult);
+        clone.setLifetime(Math.max(1, lifeTicks));
         spawned++;
       }
     }
@@ -383,6 +389,133 @@ public final class SwordShadowRuntime {
   }
 
   /**
+   * 非玩家实体激活“剑影分身”。
+   *
+   * <p>可选提供资源所有者（ServerPlayer）以执行资源扣除与参数读取；否则跳过扣除、使用默认参数。
+   *
+   * @param owner 分身的实际所有者（非玩家亦可）
+   * @param resourceOwner 用于资源扣除/参数读取的玩家（可为 null）
+   * @param cc 可选胸腔实例（若为 null 将尝试从 owner 上获取）
+   * @param organCount 容量限制用的“器官数”（小于1将按1处理）
+   * @param consumeResources 是否从 resourceOwner 扣除资源
+   */
+  public static void activateCloneForEntity(
+      LivingEntity owner,
+      @Nullable ServerPlayer resourceOwner,
+      @Nullable ChestCavityInstance cc,
+      int organCount,
+      boolean consumeResources) {
+    if (owner == null) return;
+    Level level = owner.level();
+    if (level == null || level.isClientSide()) return;
+    if (!(level instanceof ServerLevel server)) return;
+
+    long now = server.getGameTime();
+    UUID gateId = resourceOwner != null ? resourceOwner.getUUID() : owner.getUUID();
+    ArrayDeque<Long> history =
+        COOLDOWN_HISTORY.computeIfAbsent(gateId, key -> new ArrayDeque<>());
+    boolean allowed =
+        windowAcceptAndRecord(history, now, Math.max(1, organCount), JianYingTuning.CLONE_COOLDOWN_TICKS);
+    if (!allowed) {
+      return;
+    }
+
+    if (cc == null) {
+      cc = ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+    }
+
+    double efficiency = 1.0;
+    if (cc != null) {
+      efficiency += LedgerOps.ensureChannel(cc, JIAN_DAO_INCREASE_EFFECT, NON_NEGATIVE).get();
+    }
+
+    double daoHen = 0.0;
+    double liuPai = 0.0;
+    if (resourceOwner != null) {
+      Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(resourceOwner);
+      if (handleOpt.isPresent()) {
+        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+        daoHen = Math.max(0.0, handle.read("daohen_jiandao").orElse(0.0));
+        liuPai = Math.max(0.0, handle.read("liupai_jiandao").orElse(0.0));
+
+        if (consumeResources) {
+          OptionalDouble jingliBeforeOpt = handle.getJingli();
+          if (jingliBeforeOpt.isEmpty()) return;
+          double jingliBefore = jingliBeforeOpt.getAsDouble();
+          if (jingliBefore < JianYingTuning.ACTIVE_JINGLI_COST) return;
+          OptionalDouble jingliAfterOpt = ResourceOps.tryAdjustJingli(handle, -JianYingTuning.ACTIVE_JINGLI_COST, true);
+          if (jingliAfterOpt.isEmpty()) return;
+          OptionalDouble zhenAfterOpt =
+              ResourceOps.tryConsumeTieredZhenyuan(
+                  handle,
+                  JianYingTuning.DESIGN_ZHUANSHU,
+                  JianYingTuning.DESIGN_JIEDUAN,
+                  JianYingTuning.ACTIVE_ZHENYUAN_TIER);
+          if (zhenAfterOpt.isEmpty()) {
+            ResourceOps.trySetJingli(handle, jingliBefore);
+            return;
+          }
+        }
+      } else if (consumeResources) {
+        return; // 要扣资源但无法打开桥接
+      }
+    } else if (consumeResources) {
+      return; // 要扣资源但没有资源所有者
+    }
+
+    RandomSource random = owner.getRandom();
+    int clones = 2 + random.nextInt(2);
+
+    float cloneDamage = JianYingCalculator.cloneDamage(efficiency);
+    cloneDamage = (float) (cloneDamage * computeCloneDamageMultiplier(daoHen));
+    int lifeTicks =
+        (int) Math.round(JianYingTuning.CLONE_DURATION_TICKS * computeCloneLifetimeMultiplier(daoHen, liuPai));
+    lifeTicks = Math.max(1, lifeTicks);
+
+    PlayerSkinUtil.SkinSnapshot tint = ShadowService.captureTint(owner, ShadowService.JIAN_DAO_CLONE);
+    int spawned = 0;
+    for (int i = 0; i < clones; i++) {
+      Vec3 offset = randomOffset(random);
+      Vec3 spawnPos = owner.position().add(offset);
+      SwordShadowClone clone =
+          SwordShadowClone.spawn(server, owner, spawnPos, tint, cloneDamage, owner.getYRot(), owner.getXRot());
+      if (clone != null) {
+        clone.setLifetime(lifeTicks);
+        spawned++;
+      }
+    }
+
+    server.playSound(
+        null,
+        owner.getX(),
+        owner.getY(),
+        owner.getZ(),
+        SoundEvents.ILLUSIONER_PREPARE_MIRROR,
+        SoundSource.PLAYERS,
+        0.8f,
+        0.6f);
+    server.sendParticles(ParticleTypes.PORTAL, owner.getX(), owner.getY(0.5), owner.getZ(), 20, 0.3, 0.5, 0.3, 0.15);
+  }
+
+  /**
+   * 便捷重载：非玩家释放（不扣资源），按给定器官数进行容量限制。
+   */
+  public static void activateCloneForEntity(LivingEntity owner, int organCount) {
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+    activateCloneForEntity(owner, null, cc, organCount, false);
+  }
+
+  /**
+   * 便捷重载：非玩家释放（不扣资源），容量=1。
+   */
+  public static void activateCloneForEntity(LivingEntity owner) {
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+    activateCloneForEntity(owner, null, cc, 1, false);
+  }
+
+  /**
    * 纯函数：滑动窗口限并发判定。按容量与冷却窗口裁剪历史，并在允许时记录本次时间戳。
    *
    * @param history 时间戳队列（升序，队首为最早一次）
@@ -427,6 +560,35 @@ public final class SwordShadowRuntime {
       history.pollFirst();
     }
     return true;
+  }
+
+  /**
+   * 纯函数：根据快照参数计算分身存在时间的倍乘（1.0 为基础）。
+   *
+   * <p>lifeMult = 1 + clamp(daoHen*K1 + liuPai*K2, 0, CAP)
+   */
+  public static double computeCloneLifetimeMultiplier(double daoHen, double liuPai) {
+    double bonus =
+        Math.max(0.0,
+            daoHen * JianYingTuning.CLONE_DURATION_DAOHEN_COEF
+                + liuPai * JianYingTuning.CLONE_DURATION_LIUPAI_COEF);
+    double capped =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.StandardScaling.INSTANCE
+            .clamp(bonus, 0.0, JianYingTuning.CLONE_DURATION_BONUS_CAP);
+    return 1.0 + capped;
+  }
+
+  /**
+   * 纯函数：根据快照参数计算分身伤害的倍乘（1.0 为基础）。
+   *
+   * <p>dmgMult = 1 + clamp(daoHen*K, 0, CAP)
+   */
+  public static double computeCloneDamageMultiplier(double daoHen) {
+    double bonus = Math.max(0.0, daoHen * JianYingTuning.CLONE_DAMAGE_DAOHEN_COEF);
+    double capped =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.StandardScaling.INSTANCE
+            .clamp(bonus, 0.0, JianYingTuning.CLONE_DAMAGE_BONUS_CAP);
+    return 1.0 + capped;
   }
 
   /**
@@ -486,6 +648,62 @@ public final class SwordShadowRuntime {
       scaled = Math.max(0.0, result.scaled());
     } catch (Throwable ignored) {}
     doApplyTrueDamage(player, target, (float) scaled);
+  }
+
+  /**
+   * 以物理（常规）伤害结算：遵循护甲/抗性与吸收，不做“准真实伤害”的生命/吸收回写。
+   *
+   * @param attacker 伤害发起者（用于构造 DamageSource），可为 null
+   * @param target 目标
+   * @param baseAmount 基础伤害
+   * @param skillId 技能ID，用于 DamageCalculator 缩放
+   * @param kinds 伤害类型集合（建议至少包含 MELEE）
+   */
+  public static void applyPhysicalDamage(
+      LivingEntity attacker, LivingEntity target, float baseAmount, ResourceLocation skillId, Set<DamageKind> kinds) {
+    if (target == null || baseAmount <= 0.0f) {
+      return;
+    }
+    double scaled = baseAmount;
+    try {
+      long castId = attacker == null ? (target.level() != null ? target.level().getGameTime() : 0L)
+          : attacker.level().getGameTime();
+      DamageResult result =
+          DamageCalculator.compute(
+              attacker == null ? target : attacker,
+              target,
+              baseAmount,
+              skillId == null ? SKILL_PASSIVE_ID : skillId,
+              castId,
+              kinds == null ? java.util.Set.of() : kinds);
+      scaled = Math.max(0.0, result.scaled());
+    } catch (Throwable ignored) {}
+
+    doApplyPhysicalDamage(attacker, target, (float) scaled);
+  }
+
+  private static void doApplyPhysicalDamage(LivingEntity attacker, LivingEntity target, float amount) {
+    if (amount <= 0.0f || target == null) return;
+    DamageSource source;
+    if (attacker instanceof ServerPlayer sp) {
+      source = target.damageSources().playerAttack(sp);
+    } else if (attacker != null) {
+      source = target.damageSources().mobAttack(attacker);
+    } else {
+      source = target.damageSources().generic();
+    }
+    target.hurt(source, amount);
+    // 标记剑痕（若攻击者为玩家且持有对应器官）
+    if (attacker instanceof Player p && !target.level().isClientSide()) {
+      ChestCavityEntity.of(p)
+          .map(ChestCavityEntity::getChestCavityInstance)
+          .ifPresent(
+              ccIgnored ->
+                  ReactionTagOps.add(
+                      target,
+                      ReactionTagKeys.SWORD_SCAR,
+                      JianYingTuning.SWORD_SCAR_DURATION_TICKS));
+    }
   }
 
   private static void doApplyTrueDamage(Player player, LivingEntity target, float amount) {

@@ -20,6 +20,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceSettings;
 import net.tigereye.chestcavity.soul.container.SoulContainer;
 
 public final class CCAttachments {
@@ -139,6 +140,15 @@ public final class CCAttachments {
                               new net.tigereye.chestcavity.compat.guzhenren.flyingsword.state
                                   .FlyingSwordCooldownAttachment())
                       .serialize(new FlyingSwordCooldownSerializer())
+                      .build());
+
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<PlayerPreferenceSettings>>
+      PLAYER_PREFERENCES =
+          ATTACHMENT_TYPES.register(
+              "player_preferences",
+              () ->
+                  AttachmentType.builder(PlayerPreferenceSettings::new)
+                      .serialize(new PlayerPreferenceSettings.Serializer())
                       .build());
 
   private CCAttachments() {}
@@ -291,6 +301,14 @@ public final class CCAttachments {
               .SwordDomainConfigAttachment>
       getExistingSwordDomainConfig(Player player) {
     return player.getExistingData(SWORD_DOMAIN_CONFIG.get());
+  }
+
+  public static PlayerPreferenceSettings getPlayerPreferences(Player player) {
+    return player.getData(PLAYER_PREFERENCES.get());
+  }
+
+  public static Optional<PlayerPreferenceSettings> getExistingPlayerPreferences(Player player) {
+    return player.getExistingData(PLAYER_PREFERENCES.get());
   }
 
   private static class ChestCavitySerializer

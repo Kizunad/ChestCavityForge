@@ -23,6 +23,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowEdgeAction;
 import net.tigereye.chestcavity.guscript.runtime.flow.SwordSlashConstants;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 
 /** 剑气（Slash）相关的方块破坏与伤害逻辑。 */
 final class SlashFlowActions {
@@ -214,7 +215,7 @@ final class SlashFlowActions {
 
   private static boolean slashBreakBlock(
       ServerLevel server, Player performer, BlockPos pos, double breakPower) {
-    if (!slashCanBreakBlocks()) {
+    if (!slashCanBreakBlocks(performer)) {
       return false;
     }
     if (!server.isLoaded(pos)) {
@@ -324,10 +325,19 @@ final class SlashFlowActions {
         || state.is(BlockTags.MINEABLE_WITH_PICKAXE);
   }
 
-  private static boolean slashCanBreakBlocks() {
-    return ChestCavity.config != null
-        && ChestCavity.config.SWORD_SLASH != null
-        && ChestCavity.config.SWORD_SLASH.enableBlockBreaking;
+  private static boolean slashCanBreakBlocks(Player performer) {
+    if (ChestCavity.config == null
+        || ChestCavity.config.SWORD_SLASH == null
+        || !ChestCavity.config.SWORD_SLASH.enableBlockBreaking) {
+      return false;
+    }
+    if (performer == null) {
+      return PlayerPreferenceOps.defaultSwordSlashBlockBreak();
+    }
+    return PlayerPreferenceOps.resolve(
+        performer,
+        PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK,
+        PlayerPreferenceOps::defaultSwordSlashBlockBreak);
   }
 
   private static double distanceToSegmentSquared(Vec3 point, Vec3 start, Vec3 end) {

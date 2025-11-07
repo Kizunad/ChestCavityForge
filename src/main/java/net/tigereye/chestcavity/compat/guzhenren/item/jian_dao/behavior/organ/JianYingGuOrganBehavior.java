@@ -85,12 +85,13 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       double passiveDamage = SwordShadowRuntime.attemptPassiveStrike(player, target, efficiency);
       if (passiveDamage > 0.0) {
         triggeredAny = true;
-        SwordShadowRuntime.applyTrueDamage(
+        // 改为物理伤害：遵循护甲/吸收
+        SwordShadowRuntime.applyPhysicalDamage(
             player,
             target,
             (float) passiveDamage,
             SKILL_PASSIVE_ID,
-            java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
+            java.util.Set.of(DamageKind.MELEE));
       }
 
       // 残影仅在冷却就绪时允许尝试

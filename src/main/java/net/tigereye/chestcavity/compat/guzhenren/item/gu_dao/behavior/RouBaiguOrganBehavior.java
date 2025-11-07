@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
@@ -34,7 +35,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAcc
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.config.CCConfig;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -491,7 +492,7 @@ public enum RouBaiguOrganBehavior
     if (player == null || cc == null || organ == null || organ.isEmpty()) {
       return;
     }
-    if (!isRestorationEnabled()) {
+    if (!isRestorationEnabled(player)) {
       return;
     }
 
@@ -511,7 +512,7 @@ public enum RouBaiguOrganBehavior
     String targetItemId = readTargetItemId(organ);
     int progress = Math.max(0, state.getInt(PROGRESS_KEY, 0));
 
-    if (requiresEmptySlot() && !hasEmptyChestSlot(cc)) {
+    if (requiresEmptySlot(player) && !hasEmptyChestSlot(cc)) {
       return;
     }
 
@@ -889,25 +890,24 @@ public enum RouBaiguOrganBehavior
     return context.getOrCreateChannel(id).addPolicy(NON_NEGATIVE).addPolicy(SOFT_CAP_POLICY);
   }
 
-  private static boolean isRestorationEnabled() {
-    try {
-      CCConfig config = ChestCavity.config;
-      if (config == null) {
-        return true;
-      }
-      return config.GUZHENREN_ROU_BAIGU_PASSIVE_RESTORATION;
-    } catch (Throwable ignored) {
-      return true;
+  private static boolean isRestorationEnabled(@Nullable Player player) {
+    if (player == null) {
+      return PlayerPreferenceOps.defaultRouBaiguPassive();
     }
+    return PlayerPreferenceOps.resolve(
+        player,
+        PlayerPreferenceOps.ROU_BAIGU_PASSIVE_RESTORATION,
+        PlayerPreferenceOps::defaultRouBaiguPassive);
   }
 
-  private static boolean requiresEmptySlot() {
-    try {
-      CCConfig config = ChestCavity.config;
-      return config != null && config.GUZHENREN_ROU_BAIGU_REQUIRE_EMPTY_SLOT;
-    } catch (Throwable ignored) {
-      return false;
+  private static boolean requiresEmptySlot(@Nullable Player player) {
+    if (player == null) {
+      return PlayerPreferenceOps.defaultRouBaiguRequireEmpty();
     }
+    return PlayerPreferenceOps.resolve(
+        player,
+        PlayerPreferenceOps.ROU_BAIGU_REQUIRE_EMPTY_SLOT,
+        PlayerPreferenceOps::defaultRouBaiguRequireEmpty);
   }
 
   private static boolean hasEmptyChestSlot(ChestCavityInstance cc) {

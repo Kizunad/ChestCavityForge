@@ -9,6 +9,9 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tigereye.chestcavity.chestcavities.organs.OrganData;
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager;
+import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceRequestPayload;
+import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceSyncPayload;
+import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceUpdatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
@@ -147,6 +150,14 @@ public final class NetworkHandler {
             .STREAM_CODEC,
         net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetFollowTeleportPayload
             ::handle);
+    registrar.playToServer(
+        PlayerPreferenceRequestPayload.TYPE,
+        PlayerPreferenceRequestPayload.STREAM_CODEC,
+        PlayerPreferenceRequestPayload::handle);
+    registrar.playToServer(
+        PlayerPreferenceUpdatePayload.TYPE,
+        PlayerPreferenceUpdatePayload.STREAM_CODEC,
+        PlayerPreferenceUpdatePayload::handle);
     registrar.playToClient(
         ChestCavityUpdatePayload.TYPE,
         ChestCavityUpdatePayload.STREAM_CODEC,
@@ -178,6 +189,10 @@ public final class NetworkHandler {
             .STREAM_CODEC,
         net.tigereye.chestcavity.client.modernui.config.network.SoulConfigFollowTeleportSyncPayload
             ::handle);
+    registrar.playToClient(
+        PlayerPreferenceSyncPayload.TYPE,
+        PlayerPreferenceSyncPayload.STREAM_CODEC,
+        PlayerPreferenceSyncPayload::handle);
     registrar.playToClient(
         TiePiProgressPayload.TYPE, TiePiProgressPayload.STREAM_CODEC, TiePiProgressPayload::handle);
     registrar.playToClient(

@@ -34,6 +34,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.SwordShadowRuntime;
 import net.tigereye.chestcavity.registration.CCEntities;
 import net.tigereye.chestcavity.registration.CCItems;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
@@ -86,6 +87,27 @@ public class SwordShadowClone extends PathfinderMob {
     return clone;
   }
 
+  /** 非玩家所有者版本（预留给将来允许非玩家释放的路径）。 */
+  public static SwordShadowClone spawn(
+      ServerLevel level,
+      LivingEntity owner,
+      Vec3 position,
+      PlayerSkinUtil.SkinSnapshot tint,
+      float damage,
+      float yaw,
+      float pitch) {
+    SwordShadowClone clone = CCEntities.SWORD_SHADOW_CLONE.get().create(level);
+    if (clone == null) {
+      return null;
+    }
+    clone.moveTo(position.x, position.y, position.z, yaw, pitch);
+    clone.setOwner(owner);
+    clone.setSkin(tint);
+    clone.damage = damage;
+    level.addFreshEntity(clone);
+    return clone;
+  }
+
   public void setLifetime(int ticks) {
     this.lifetime = Math.max(1, ticks);
   }
@@ -120,7 +142,7 @@ public class SwordShadowClone extends PathfinderMob {
       attackCooldown--;
     }
 
-    Player owner = getOwner();
+    LivingEntity owner = getOwnerEntity();
     if (owner == null || !owner.isAlive()) {
       disperse();
       return;
@@ -139,7 +161,7 @@ public class SwordShadowClone extends PathfinderMob {
     this.getNavigation().moveTo(target, 1.35);
   }
 
-  private void guardOwner(Player owner) {
+  private void guardOwner(LivingEntity owner) {
     if (this.distanceToSqr(owner) > 9.0) {
       this.getNavigation().moveTo(owner, 1.1);
     } else {
@@ -148,7 +170,7 @@ public class SwordShadowClone extends PathfinderMob {
   }
 
   @Nullable
-  private LivingEntity getTargetEntity(Player owner) {
+  private LivingEntity getTargetEntity(LivingEntity owner) {
     LivingEntity current = this.getTarget();
     if (isValidTarget(owner, current)) {
       return current;
@@ -173,7 +195,7 @@ public class SwordShadowClone extends PathfinderMob {
     return nearest;
   }
 
-  private void tryStrike(LivingEntity target, Player owner) {
+  private void tryStrike(LivingEntity target, LivingEntity owner) {
     if (attackCooldown > 0 || target == null) {
       return;
     }
@@ -183,7 +205,7 @@ public class SwordShadowClone extends PathfinderMob {
     performStrike(target, owner);
   }
 
-  private void performStrike(LivingEntity target, Player owner) {
+  private void performStrike(LivingEntity target, LivingEntity owner) {
     attackCooldown = ATTACK_COOLDOWN_TICKS;
     this.swing(InteractionHand.MAIN_HAND);
     if (this.level() instanceof ServerLevel serverLevel) {
@@ -198,19 +220,18 @@ public class SwordShadowClone extends PathfinderMob {
           1.0f + (this.getRandom().nextFloat() - 0.5f) * 0.25f);
     }
     if (skinTint != null) {
-      ItemStack display = resolveDisplayStack(owner);
+      ItemStack display = owner instanceof Player p ? resolveDisplayStack(p) : SingleSwordProjectile.defaultDisplayItem();
       Vec3 anchor = swordAnchor();
       Vec3 tip = swordTip(anchor);
-      SingleSwordProjectile.spawn(this.level(), owner, anchor, tip, skinTint, display);
+      SingleSwordProjectile.spawn(this.level(), this, anchor, tip, skinTint, display);
     }
-    JianYingGuOrganBehavior.applyTrueDamage(
-        owner,
+    SwordShadowRuntime.applyPhysicalDamage(
+        this,
         target,
         damage,
         JianYingGuOrganBehavior.ABILITY_ID,
         java.util.Set.of(
             net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.MELEE,
-            net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.TRUE_DAMAGE,
             net.tigereye.chestcavity.compat.common.skillcalc.DamageKind.ACTIVE_SKILL));
     target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20, 2, false, true, true));
   }
@@ -219,7 +240,7 @@ public class SwordShadowClone extends PathfinderMob {
     if (this.level().isClientSide || target == null) {
       return;
     }
-    Player owner = getOwner();
+    LivingEntity owner = getOwnerEntity();
     if (owner == null || !isValidTarget(owner, target)) {
       return;
     }
@@ -228,7 +249,7 @@ public class SwordShadowClone extends PathfinderMob {
     performStrike(target, owner);
   }
 
-  private boolean isValidTarget(Player owner, @Nullable LivingEntity target) {
+  private boolean isValidTarget(LivingEntity owner, @Nullable LivingEntity target) {
     return target != null && target.isAlive() && target != owner && !target.isAlliedTo(owner);
   }
 
@@ -283,6 +304,11 @@ public class SwordShadowClone extends PathfinderMob {
     this.entityData.set(OWNER, owner == null ? Optional.empty() : Optional.of(owner.getUUID()));
   }
 
+  /** 非玩家所有者支持。 */
+  public void setOwner(@Nullable LivingEntity owner) {
+    this.entityData.set(OWNER, owner == null ? Optional.empty() : Optional.of(owner.getUUID()));
+  }
+
   @Nullable
   public Player getOwner() {
     if (!(this.level() instanceof ServerLevel server)) {
@@ -290,6 +316,16 @@ public class SwordShadowClone extends PathfinderMob {
     }
     Optional<UUID> ownerId = this.entityData.get(OWNER);
     return ownerId.map(server::getPlayerByUUID).orElse(null);
+  }
+
+  /** 泛化的所有者解析（玩家或任意实体）。 */
+  @Nullable
+  public LivingEntity getOwnerEntity() {
+    if (!(this.level() instanceof ServerLevel server)) {
+      return null;
+    }
+    Optional<UUID> ownerId = this.entityData.get(OWNER);
+    return ownerId.map(server::getEntity).filter(e -> e instanceof LivingEntity).map(e -> (LivingEntity) e).orElse(null);
   }
 
   public boolean isOwnedBy(Player player) {
@@ -378,7 +414,7 @@ public class SwordShadowClone extends PathfinderMob {
       Optional<UUID> otherOwner = clone.entityData.get(OWNER);
       return myOwner.isPresent() && myOwner.equals(otherOwner);
     }
-    Player owner = getOwner();
+    LivingEntity owner = getOwnerEntity();
     if (owner != null) {
       if (entity == owner) {
         return true;

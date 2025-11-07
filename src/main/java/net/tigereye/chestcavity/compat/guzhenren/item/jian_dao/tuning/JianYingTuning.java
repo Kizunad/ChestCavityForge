@@ -52,6 +52,20 @@ public final class JianYingTuning {
   public static final int CLONE_COOLDOWN_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "CLONE_COOLDOWN_TICKS", 600);
 
+  // 分身：按快照（道痕/流派）动态调整
+  // - 存在时间：受道痕/流派共同影响
+  // - 伤害：受道痕影响
+  public static final float CLONE_DURATION_DAOHEN_COEF =
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DURATION_DAOHEN_COEF", 0.001f);
+  public static final float CLONE_DURATION_LIUPAI_COEF =
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DURATION_LIUPAI_COEF", 0.002f);
+  public static final float CLONE_DURATION_BONUS_CAP =
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DURATION_BONUS_CAP", 0.50f);
+  public static final float CLONE_DAMAGE_DAOHEN_COEF =
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DAMAGE_DAOHEN_COEF", 0.001f);
+  public static final float CLONE_DAMAGE_BONUS_CAP =
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DAMAGE_BONUS_CAP", 0.35f);
+
   // 残影/剑痕
   public static final int AFTERIMAGE_DELAY_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "AFTERIMAGE_DELAY_TICKS", 20);

@@ -108,12 +108,12 @@ public final class AfterimageScheduler {
 
     float damage = JianYingCalculator.afterimageDamage(efficiency);
     for (LivingEntity victim : victims) {
-      SwordShadowRuntime.applyTrueDamage(
+      SwordShadowRuntime.applyPhysicalDamage(
           player,
           victim,
           damage,
           SKILL_AFTERIMAGE_ID,
-          java.util.Set.of(DamageKind.MELEE, DamageKind.TRUE_DAMAGE));
+          java.util.Set.of(DamageKind.MELEE));
       level.sendParticles(
           ParticleTypes.SWEEP_ATTACK,
           victim.getX(),
