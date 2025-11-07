@@ -987,17 +987,12 @@ public final class FlyingSwordCommand {
     }
 
     FlyingSwordEntity sword = swordOpt.get();
-    boolean ok = FlyingSwordController.recallSword(level, player, sword);
+    FlyingSwordController.recall(sword);
 
-    if (ok) {
-      player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createSuccessMessage("已召回飞剑"));
-      return 1;
-    }
-
-    player.sendSystemMessage(Component.literal("[flyingsword] 召回失败"));
-    return 0;
+    player.sendSystemMessage(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .TUICommandGuard.createSuccessMessage("已召回飞剑"));
+    return 1;
   }
 
   // mode_id <uuid> <mode>
@@ -1097,8 +1092,8 @@ public final class FlyingSwordCommand {
 
     FlyingSwordEntity sword = swordOpt.get();
     boolean ok =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword
-            .FlyingSwordRepairHandler.tryRepairOrEmpower(player, sword);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops
+            .RepairOps.repairByEntity(level, player, sword);
 
     if (ok) {
       player.sendSystemMessage(
