@@ -341,13 +341,6 @@ public final class FlyingSwordTUI {
   }
 
   /**
-   * 创建分组按钮行。
-   */
-  private static Component createGroupButtons(int index, int currentGroupId, String sid) {
-    return createGroupButtons(null, currentGroupId, sid); // Keep for compatibility, uuid will be fetched
-  }
-
-  /**
    * 创建分组按钮行（基于UUID）。
    */
   private static Component createGroupButtonsByUuid(String uuid, int currentGroupId, String sid) {
@@ -464,21 +457,7 @@ public final class FlyingSwordTUI {
   }
 
   /**
-   * 创建模式切换按钮（旧版，基于index）。
-   */
-  private static MutableComponent createModeButton(String label, int index, String mode) {
-    String modeName = switch (mode) {
-      case "hunt" -> "出击";
-      case "guard" -> "守护";
-      case "orbit" -> "环绕";
-      case "hover" -> "悬浮";
-      default -> mode;
-    };
-    return createButton(label, "/flyingsword mode_index " + index + " " + mode, "设为" + modeName);
-  }
-
-  /**
-   * 创建模式切换按钮（新版，基于UUID）。
+   * 创建模式切换按钮（基于UUID）。
    */
   private static MutableComponent createModeButtonById(String label, String uuid, String mode, String sid) {
     String modeName = switch (mode) {
@@ -492,21 +471,7 @@ public final class FlyingSwordTUI {
   }
 
   /**
-   * 创建分组按钮（旧版，基于index）。
-   */
-  private static MutableComponent createGroupButton(
-      int index, int groupId, boolean selected, String label) {
-    if (selected) {
-      return Component.literal("[" + label + "]")
-          .withStyle(ChatFormatting.BOLD)
-          .withStyle(TUITheme.ACCENT);
-    } else {
-      return createButton(label, "/flyingsword group_index " + index + " " + groupId, "设为分组: " + label);
-    }
-  }
-
-  /**
-   * 创建分组按钮（新版，基于UUID）。
+   * 创建分组按钮（基于UUID）。
    */
   private static MutableComponent createGroupButtonById(
       String uuid, int groupId, boolean selected, String label, String sid) {
