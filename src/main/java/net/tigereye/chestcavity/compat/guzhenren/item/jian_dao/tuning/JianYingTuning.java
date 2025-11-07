@@ -26,9 +26,13 @@ public final class JianYingTuning {
   public static final double ACTIVE_JINGLI_COST =
       (double) BehaviorConfigAccess.getFloat(JianYingTuning.class, "ACTIVE_JINGLI_COST", 50.0f);
 
+  // 被动影袭触发几率
+  public static final double PASSIVE_TRIGGER_CHANCE =
+      (double) BehaviorConfigAccess.getFloat(JianYingTuning.class, "PASSIVE_TRIGGER_CHANCE", 0.20f);
+
   // 伤害与效率
   public static final float BASE_DAMAGE =
-      BehaviorConfigAccess.getFloat(JianYingTuning.class, "BASE_DAMAGE", 150.0f);
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "BASE_DAMAGE", 230.0f);
 
   // 被动影袭倍率衰减曲线
   public static final float PASSIVE_INITIAL_MULTIPLIER =
@@ -42,24 +46,27 @@ public final class JianYingTuning {
 
   // 分身伤害与冷却
   public static final float CLONE_DAMAGE_RATIO =
-      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DAMAGE_RATIO", 0.25f);
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "CLONE_DAMAGE_RATIO", 0.30f);
   public static final int CLONE_DURATION_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "CLONE_DURATION_TICKS", 100);
   public static final int CLONE_COOLDOWN_TICKS =
-      BehaviorConfigAccess.getInt(JianYingTuning.class, "CLONE_COOLDOWN_TICKS", 400);
+      BehaviorConfigAccess.getInt(JianYingTuning.class, "CLONE_COOLDOWN_TICKS", 600);
 
   // 残影/剑痕
   public static final int AFTERIMAGE_DELAY_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "AFTERIMAGE_DELAY_TICKS", 20);
   public static final int AFTERIMAGE_DURATION_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "AFTERIMAGE_DURATION_TICKS", 20);
-  public static final float AFTERIMAGE_DAMAGE_RATIO = 0.20f;
-  public static final double AFTERIMAGE_CHANCE = 0.10;
-  public static final double AFTERIMAGE_RADIUS = 3.0;
+  public static final float AFTERIMAGE_DAMAGE_RATIO =
+      BehaviorConfigAccess.getFloat(JianYingTuning.class, "AFTERIMAGE_DAMAGE_RATIO", 0.25f);
+  public static final double AFTERIMAGE_CHANCE =
+      (double) BehaviorConfigAccess.getFloat(JianYingTuning.class, "AFTERIMAGE_CHANCE", 0.20f);
+  public static final double AFTERIMAGE_RADIUS =
+      (double) BehaviorConfigAccess.getFloat(JianYingTuning.class, "AFTERIMAGE_RADIUS", 3.0f);
   public static final int SWORD_SCAR_DURATION_TICKS =
       BehaviorConfigAccess.getInt(JianYingTuning.class, "SWORD_SCAR_DURATION_TICKS", 120);
 
-  // OnHit 冷却（秒伤限制）：默认 5 秒
+  // OnHit 冷却（秒伤限制）：默认 8 秒
   public static final int ON_HIT_COOLDOWN_TICKS =
-      BehaviorConfigAccess.getInt(JianYingTuning.class, "ON_HIT_COOLDOWN_TICKS", 100);
+      BehaviorConfigAccess.getInt(JianYingTuning.class, "ON_HIT_COOLDOWN_TICKS", 160);
 }
