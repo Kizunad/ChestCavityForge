@@ -290,6 +290,28 @@ public final class FxTimelineEngine implements ServerTickEngine {
     return pauseCount;
   }
 
+  /**
+   * 关闭引擎：停止所有活跃 Track（服务器停服时调用）。
+   *
+   * @param level 服务器世界（用于触发 onStop 回调）
+   */
+  public void shutdown(ServerLevel level) {
+    if (activeTracks.isEmpty()) {
+      return;
+    }
+
+    LOGGER.info("[FxEngine] Shutting down, stopping {} active tracks", activeTracks.size());
+
+    // 复制 trackId 列表以避免并发修改
+    List<String> trackIds = new ArrayList<>(activeTracks.keySet());
+
+    for (String trackId : trackIds) {
+      unregisterInternal(trackId, level, StopReason.ENGINE_SHUTDOWN);
+    }
+
+    LOGGER.info("[FxEngine] Shutdown complete");
+  }
+
   @Override
   public void onServerTick(ServerTickEvent.Post event) {
     if (activeTracks.isEmpty()) {
@@ -350,6 +372,21 @@ public final class FxTimelineEngine implements ServerTickEngine {
           unregisterInternal(trackId, level, StopReason.OWNER_REMOVED);
           return;
         }
+
+        // Stage 4: 门控检查（区块加载、玩家半径）
+        if (!checkGating(owner, ctx.spec, level)) {
+          FxEngineConfig config = FxEngine.getConfig();
+          if (config.gatingPauseOnFail) {
+            // 暂停模式：跳过本次 tick，计数器递增
+            pauseCount++;
+            ctx.elapsedTicks++;
+            return;
+          } else {
+            // 停止模式：直接停止 Track
+            unregisterInternal(trackId, level, StopReason.GATING_FAILED);
+            return;
+          }
+        }
       }
 
       // 检查 TTL 是否到期
@@ -408,6 +445,45 @@ public final class FxTimelineEngine implements ServerTickEngine {
     if (config.debugEnabled) {
       LOGGER.debug(message, args);
     }
+  }
+
+  /**
+   * 门控检查：检查 Owner 实体是否满足门控条件（区块加载、玩家半径）。
+   *
+   * @param owner Owner 实体
+   * @param spec Track Spec（可为 null）
+   * @param level 服务器世界
+   * @return 如果满足门控条件则返回 true
+   */
+  private boolean checkGating(
+      net.minecraft.world.entity.Entity owner, FxTrackSpec spec, ServerLevel level) {
+    FxEngineConfig config = FxEngine.getConfig();
+
+    // 1. 区块加载检查（如果启用）
+    boolean checkChunkLoaded =
+        spec != null ? spec.isCheckChunkLoaded() : config.gatingCheckChunkLoaded;
+    if (checkChunkLoaded && !FxGatingUtils.isChunkLoaded(owner)) {
+      debugLog(config, "[FxEngine] Gating failed: chunk not loaded for owner {}", owner.getUUID());
+      return false;
+    }
+
+    // 2. 玩家半径检查（如果指定）
+    double playerRadius = spec != null ? spec.getPlayerRadius() : -1.0;
+    if (playerRadius < 0) {
+      // 使用全局配置
+      playerRadius = config.gatingDefaultPlayerRadius;
+    }
+
+    if (playerRadius > 0 && !FxGatingUtils.isWithinPlayerRadius(owner, playerRadius)) {
+      debugLog(
+          config,
+          "[FxEngine] Gating failed: no player within radius {} for owner {}",
+          playerRadius,
+          owner.getUUID());
+      return false;
+    }
+
+    return true;
   }
 
   /** Track 上下文：包装 Track 实例与运行时状态。 */

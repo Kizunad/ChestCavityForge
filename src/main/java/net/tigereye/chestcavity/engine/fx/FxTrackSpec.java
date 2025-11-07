@@ -19,6 +19,10 @@ public final class FxTrackSpec {
   private final String mergeKey;
   private final MergeStrategy mergeStrategy;
 
+  // Stage 4: 门控参数
+  private final double playerRadius; // 玩家半径阈值（<= 0 表示不检查）
+  private final boolean checkChunkLoaded; // 是否检查区块加载
+
   // 生命周期回调
   private final Consumer<ServerLevel> onStart;
   private final BiConsumer<ServerLevel, Integer> onTick;
@@ -31,6 +35,8 @@ public final class FxTrackSpec {
     this.ownerId = builder.ownerId;
     this.mergeKey = builder.mergeKey;
     this.mergeStrategy = builder.mergeStrategy;
+    this.playerRadius = builder.playerRadius;
+    this.checkChunkLoaded = builder.checkChunkLoaded;
     this.onStart = builder.onStart;
     this.onTick = builder.onTick;
     this.onStop = builder.onStop;
@@ -71,6 +77,14 @@ public final class FxTrackSpec {
     return mergeStrategy;
   }
 
+  public double getPlayerRadius() {
+    return playerRadius;
+  }
+
+  public boolean isCheckChunkLoaded() {
+    return checkChunkLoaded;
+  }
+
   Consumer<ServerLevel> getOnStart() {
     return onStart;
   }
@@ -91,6 +105,10 @@ public final class FxTrackSpec {
     private UUID ownerId = null;
     private String mergeKey = null;
     private MergeStrategy mergeStrategy = MergeStrategy.EXTEND_TTL;
+
+    // Stage 4: 门控参数（默认使用 FxEngineConfig 的全局设置）
+    private double playerRadius = -1.0; // -1 表示使用全局配置
+    private boolean checkChunkLoaded = false;
 
     private Consumer<ServerLevel> onStart = level -> {};
     private BiConsumer<ServerLevel, Integer> onTick = (level, elapsed) -> {};
@@ -125,6 +143,16 @@ public final class FxTrackSpec {
 
     public Builder mergeStrategy(MergeStrategy strategy) {
       this.mergeStrategy = strategy != null ? strategy : MergeStrategy.EXTEND_TTL;
+      return this;
+    }
+
+    public Builder playerRadius(double radius) {
+      this.playerRadius = radius;
+      return this;
+    }
+
+    public Builder checkChunkLoaded(boolean check) {
+      this.checkChunkLoaded = check;
       return this;
     }
 

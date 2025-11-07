@@ -28,6 +28,15 @@ public final class FxEngineConfig {
   /** Debug 日志开关（默认关闭）。 */
   public boolean debugEnabled = false;
 
+  /** 门控：区块加载检查开关（默认关闭）。 */
+  public boolean gatingCheckChunkLoaded = false;
+
+  /** 门控：默认玩家半径阈值（默认 0 = 不检查）。单位：方块。 */
+  public double gatingDefaultPlayerRadius = 0.0;
+
+  /** 门控失败时暂停而非停止（默认 false = 停止）。 */
+  public boolean gatingPauseOnFail = false;
+
   /** 创建默认配置（所有开关关闭）。 */
   public static FxEngineConfig createDefault() {
     return new FxEngineConfig();
@@ -66,6 +75,12 @@ public final class FxEngineConfig {
         + defaultTickInterval
         + ", debugEnabled="
         + debugEnabled
+        + ", gatingCheckChunkLoaded="
+        + gatingCheckChunkLoaded
+        + ", gatingDefaultPlayerRadius="
+        + gatingDefaultPlayerRadius
+        + ", gatingPauseOnFail="
+        + gatingPauseOnFail
         + '}';
   }
 }
