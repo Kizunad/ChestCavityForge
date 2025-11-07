@@ -17,5 +17,8 @@ public enum StopReason {
   ENGINE_SHUTDOWN,
 
   /** 门控条件不满足（Owner 死亡/区块未加载等）。 */
-  GATING_FAILED
+  GATING_FAILED,
+
+  /** Owner 实体已被移除或死亡。 */
+  OWNER_REMOVED
 }

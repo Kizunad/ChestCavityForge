@@ -39,6 +39,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
   private int mergeCount = 0;
   private int dropCount = 0;
   private int replaceCount = 0;
+  private int pauseCount = 0;
 
   private FxTimelineEngine() {}
 
@@ -66,7 +67,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
 
     // 如果引擎未启用，静默丢弃
     if (!config.enabled) {
-      LOGGER.debug("[FxEngine] Engine disabled, dropping track: {}", id);
+      debugLog(config, "[FxEngine] Engine disabled, dropping track: {}", id);
       dropCount++;
       return null;
     }
@@ -127,7 +128,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
       mergeKeyIndex.put(mergeKey, id);
     }
 
-    LOGGER.debug("[FxEngine] Registered track: {}", id);
+    debugLog(config, "[FxEngine] Registered track: {}", id);
     return id;
   }
 
@@ -164,7 +165,8 @@ public final class FxTimelineEngine implements ServerTickEngine {
         if (existing != null) {
           int additionalTicks = newTrack.getTtlTicks();
           existing.extendTtl(additionalTicks);
-          LOGGER.debug(
+          debugLog(
+              config,
               "[FxEngine] Extended TTL for track {} by {} ticks",
               existingTrackId,
               additionalTicks);
@@ -175,13 +177,13 @@ public final class FxTimelineEngine implements ServerTickEngine {
 
       case DROP:
         // 丢弃新的 Track 请求
-        LOGGER.debug("[FxEngine] Dropping new track due to merge policy: {}", newTrack.getId());
+        debugLog(config, "[FxEngine] Dropping new track due to merge policy: {}", newTrack.getId());
         dropCount++;
         return null;
 
       case REPLACE:
         // 替换现有 Track
-        LOGGER.debug("[FxEngine] Replacing existing track: {}", existingTrackId);
+        debugLog(config, "[FxEngine] Replacing existing track: {}", existingTrackId);
         unregisterInternal(existingTrackId, null, StopReason.CANCELLED);
         replaceCount++;
         // 继续注册新 Track（通过返回 null 让调用方重试）
@@ -247,7 +249,8 @@ public final class FxTimelineEngine implements ServerTickEngine {
     // Track 实现需要处理 level 为 null 的情况（在替换/冲突场景下）
     safeOnStop(track, level, reason);
 
-    LOGGER.debug("[FxEngine] Unregistered track: {} (reason: {})", trackId, reason);
+    FxEngineConfig config = FxEngine.getConfig();
+    debugLog(config, "[FxEngine] Unregistered track: {} (reason: {})", trackId, reason);
     return true;
   }
 
@@ -280,6 +283,11 @@ public final class FxTimelineEngine implements ServerTickEngine {
   /** 获取替换计数。 */
   public int getReplaceCount() {
     return replaceCount;
+  }
+
+  /** 获取暂停计数。 */
+  public int getPauseCount() {
+    return pauseCount;
   }
 
   @Override
@@ -333,6 +341,17 @@ public final class FxTimelineEngine implements ServerTickEngine {
         return;
       }
 
+      // 检查 Owner 是否仍然有效（如果 Track 有 Owner）
+      UUID ownerId = track.getOwnerId();
+      if (ownerId != null) {
+        var owner = level.getEntity(ownerId);
+        if (owner == null || !FxGatingUtils.isEntityValid(owner)) {
+          // Owner 已移除或死亡，停止 Track
+          unregisterInternal(trackId, level, StopReason.OWNER_REMOVED);
+          return;
+        }
+      }
+
       // 检查 TTL 是否到期
       if (ctx.elapsedTicks >= ctx.currentTtl) {
         toRemove.add(trackId);
@@ -381,6 +400,13 @@ public final class FxTimelineEngine implements ServerTickEngine {
       track.onStop(level, reason);
     } catch (Throwable t) {
       LOGGER.error("[FxEngine] onStop failed for track {}", track.getId(), t);
+    }
+  }
+
+  /** Debug 日志辅助方法：仅在 debugEnabled 时输出。 */
+  private void debugLog(FxEngineConfig config, String message, Object... args) {
+    if (config.debugEnabled) {
+      LOGGER.debug(message, args);
     }
   }
 

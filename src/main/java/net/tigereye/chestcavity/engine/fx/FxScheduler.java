@@ -122,7 +122,8 @@ public final class FxScheduler {
         engine.getActiveCount(),
         engine.getMergeCount(),
         engine.getDropCount(),
-        engine.getReplaceCount());
+        engine.getReplaceCount(),
+        engine.getPauseCount());
   }
 
   /** FxScheduler 统计信息。 */
@@ -131,12 +132,14 @@ public final class FxScheduler {
     public final int mergeCount;
     public final int dropCount;
     public final int replaceCount;
+    public final int pauseCount;
 
-    Stats(int activeCount, int mergeCount, int dropCount, int replaceCount) {
+    Stats(int activeCount, int mergeCount, int dropCount, int replaceCount, int pauseCount) {
       this.activeCount = activeCount;
       this.mergeCount = mergeCount;
       this.dropCount = dropCount;
       this.replaceCount = replaceCount;
+      this.pauseCount = pauseCount;
     }
 
     @Override
@@ -150,6 +153,8 @@ public final class FxScheduler {
           + dropCount
           + ", replace="
           + replaceCount
+          + ", pause="
+          + pauseCount
           + '}';
     }
   }
