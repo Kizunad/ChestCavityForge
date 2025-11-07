@@ -12,6 +12,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSw
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordBlockBreakTuning;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordCoreTuning;
+import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 
 /**
  * 破块逻辑（服务端）。
@@ -28,6 +29,24 @@ public final class BlockBreakOps {
         net.tigereye.chestcavity.ChestCavity.LOGGER.info(
             String.format(
                 "[FlyingSword] BlockBreak disabled by config (id=%d)", sword.getId()));
+      }
+      return;
+    }
+
+    // 玩家偏好：若有主人且关闭了破块，则直接跳过
+    var owner = sword.getOwner();
+    boolean allowByOwner =
+        owner instanceof net.minecraft.world.entity.player.Player player
+            ? PlayerPreferenceOps.resolve(
+                player,
+                PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK,
+                PlayerPreferenceOps::defaultSwordSlashBlockBreak)
+            : PlayerPreferenceOps.defaultSwordSlashBlockBreak();
+    if (!allowByOwner) {
+      if (FlyingSwordBlockBreakTuning.BREAK_DEBUG_LOGS && sword.tickCount % 20 == 0) {
+        net.tigereye.chestcavity.ChestCavity.LOGGER.info(
+            String.format(
+                "[FlyingSword] BlockBreak disabled by player preference (id=%d)", sword.getId()));
       }
       return;
     }
@@ -154,15 +173,15 @@ public final class BlockBreakOps {
             double decel = FlyingSwordBlockBreakTuning.BREAK_DECEL_PER_BLOCK;
 
             // 触发onBlockBreak事件钩子
-            var owner = sword.getOwner();
-            if (owner != null) {
+            var blockOwner = sword.getOwner();
+            if (blockOwner != null) {
               net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
                   .context.BlockBreakContext breakCtx =
                   new net.tigereye.chestcavity.compat.guzhenren.flyingsword
                       .events.context.BlockBreakContext(
                       sword,
                       level,
-                      owner,
+                      blockOwner,
                       pos,
                       state,
                       hardness,

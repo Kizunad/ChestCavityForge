@@ -431,33 +431,31 @@ public final class SwordShadowRuntime {
 
     double daoHen = 0.0;
     double liuPai = 0.0;
-    if (resourceOwner != null) {
-      Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(resourceOwner);
-      if (handleOpt.isPresent()) {
-        GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-        daoHen = Math.max(0.0, handle.read("daohen_jiandao").orElse(0.0));
-        liuPai = Math.max(0.0, handle.read("liupai_jiandao").orElse(0.0));
+    // 优先从 resourceOwner 读取；否则从 owner 读取（若存在附件）
+    LivingEntity snapshotEntity = resourceOwner != null ? resourceOwner : owner;
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(snapshotEntity);
+    if (handleOpt.isPresent()) {
+      GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+      daoHen = Math.max(0.0, handle.read("daohen_jiandao").orElse(0.0));
+      liuPai = Math.max(0.0, handle.read("liupai_jiandao").orElse(0.0));
 
-        if (consumeResources) {
-          OptionalDouble jingliBeforeOpt = handle.getJingli();
-          if (jingliBeforeOpt.isEmpty()) return;
-          double jingliBefore = jingliBeforeOpt.getAsDouble();
-          if (jingliBefore < JianYingTuning.ACTIVE_JINGLI_COST) return;
-          OptionalDouble jingliAfterOpt = ResourceOps.tryAdjustJingli(handle, -JianYingTuning.ACTIVE_JINGLI_COST, true);
-          if (jingliAfterOpt.isEmpty()) return;
-          OptionalDouble zhenAfterOpt =
-              ResourceOps.tryConsumeTieredZhenyuan(
-                  handle,
-                  JianYingTuning.DESIGN_ZHUANSHU,
-                  JianYingTuning.DESIGN_JIEDUAN,
-                  JianYingTuning.ACTIVE_ZHENYUAN_TIER);
-          if (zhenAfterOpt.isEmpty()) {
-            ResourceOps.trySetJingli(handle, jingliBefore);
-            return;
-          }
+      if (consumeResources && resourceOwner != null) {
+        OptionalDouble jingliBeforeOpt = handle.getJingli();
+        if (jingliBeforeOpt.isEmpty()) return;
+        double jingliBefore = jingliBeforeOpt.getAsDouble();
+        if (jingliBefore < JianYingTuning.ACTIVE_JINGLI_COST) return;
+        OptionalDouble jingliAfterOpt = ResourceOps.tryAdjustJingli(handle, -JianYingTuning.ACTIVE_JINGLI_COST, true);
+        if (jingliAfterOpt.isEmpty()) return;
+        OptionalDouble zhenAfterOpt =
+            ResourceOps.tryConsumeTieredZhenyuan(
+                handle,
+                JianYingTuning.DESIGN_ZHUANSHU,
+                JianYingTuning.DESIGN_JIEDUAN,
+                JianYingTuning.ACTIVE_ZHENYUAN_TIER);
+        if (zhenAfterOpt.isEmpty()) {
+          ResourceOps.trySetJingli(handle, jingliBefore);
+          return;
         }
-      } else if (consumeResources) {
-        return; // 要扣资源但无法打开桥接
       }
     } else if (consumeResources) {
       return; // 要扣资源但没有资源所有者
@@ -482,6 +480,97 @@ public final class SwordShadowRuntime {
       if (clone != null) {
         clone.setLifetime(lifeTicks);
         spawned++;
+      }
+    }
+
+    server.playSound(
+        null,
+        owner.getX(),
+        owner.getY(),
+        owner.getZ(),
+        SoundEvents.ILLUSIONER_PREPARE_MIRROR,
+        SoundSource.PLAYERS,
+        0.8f,
+        0.6f);
+    server.sendParticles(ParticleTypes.PORTAL, owner.getX(), owner.getY(0.5), owner.getZ(), 20, 0.3, 0.5, 0.3, 0.15);
+  }
+
+  /**
+   * 非玩家实体激活“剑影分身”，指定基础伤害（用于以“飞剑攻击力”为基准）。
+   */
+  public static void activateCloneForEntityWithBaseDamage(
+      LivingEntity owner,
+      @Nullable ServerPlayer resourceOwner,
+      @Nullable ChestCavityInstance cc,
+      int organCount,
+      boolean consumeResources,
+      double baseDamage) {
+    if (owner == null) return;
+    Level level = owner.level();
+    if (level == null || level.isClientSide()) return;
+    if (!(level instanceof ServerLevel server)) return;
+
+    long now = server.getGameTime();
+    UUID gateId = resourceOwner != null ? resourceOwner.getUUID() : owner.getUUID();
+    ArrayDeque<Long> history =
+        COOLDOWN_HISTORY.computeIfAbsent(gateId, key -> new ArrayDeque<>());
+    boolean allowed =
+        windowAcceptAndRecord(history, now, Math.max(1, organCount), JianYingTuning.CLONE_COOLDOWN_TICKS);
+    if (!allowed) {
+      return;
+    }
+
+    if (cc == null) {
+      cc = ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
+    }
+
+    // 读取快照（与 activateCloneForEntity 相同逻辑）
+    double daoHen = 0.0;
+    double liuPai = 0.0;
+    LivingEntity snapshotEntity = resourceOwner != null ? resourceOwner : owner;
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(snapshotEntity);
+    if (handleOpt.isPresent()) {
+      GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+      daoHen = Math.max(0.0, handle.read("daohen_jiandao").orElse(0.0));
+      liuPai = Math.max(0.0, handle.read("liupai_jiandao").orElse(0.0));
+      if (consumeResources && resourceOwner != null) {
+        OptionalDouble jingliBeforeOpt = handle.getJingli();
+        if (jingliBeforeOpt.isEmpty()) return;
+        double jingliBefore = jingliBeforeOpt.getAsDouble();
+        if (jingliBefore < JianYingTuning.ACTIVE_JINGLI_COST) return;
+        OptionalDouble jingliAfterOpt = ResourceOps.tryAdjustJingli(handle, -JianYingTuning.ACTIVE_JINGLI_COST, true);
+        if (jingliAfterOpt.isEmpty()) return;
+        OptionalDouble zhenAfterOpt =
+            ResourceOps.tryConsumeTieredZhenyuan(
+                handle,
+                JianYingTuning.DESIGN_ZHUANSHU,
+                JianYingTuning.DESIGN_JIEDUAN,
+                JianYingTuning.ACTIVE_ZHENYUAN_TIER);
+        if (zhenAfterOpt.isEmpty()) {
+          ResourceOps.trySetJingli(handle, jingliBefore);
+          return;
+        }
+      }
+    } else if (consumeResources) {
+      return;
+    }
+
+    RandomSource random = owner.getRandom();
+    int clones = 2 + random.nextInt(2);
+
+    float cloneDamage = (float) (Math.max(0.0, baseDamage) * computeCloneDamageMultiplier(daoHen));
+    int lifeTicks =
+        (int) Math.round(JianYingTuning.CLONE_DURATION_TICKS * computeCloneLifetimeMultiplier(daoHen, liuPai));
+    lifeTicks = Math.max(1, lifeTicks);
+
+    PlayerSkinUtil.SkinSnapshot tint = ShadowService.captureTint(owner, ShadowService.JIAN_DAO_CLONE);
+    for (int i = 0; i < clones; i++) {
+      Vec3 offset = randomOffset(random);
+      Vec3 spawnPos = owner.position().add(offset);
+      SwordShadowClone clone =
+          SwordShadowClone.spawn(server, owner, spawnPos, tint, cloneDamage, owner.getYRot(), owner.getXRot());
+      if (clone != null) {
+        clone.setLifetime(lifeTicks);
       }
     }
 

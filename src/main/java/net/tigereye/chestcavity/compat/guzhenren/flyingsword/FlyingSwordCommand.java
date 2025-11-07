@@ -46,17 +46,16 @@ public final class FlyingSwordCommand {
     CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
     dispatcher.register(
         Commands.literal("flyingsword")
-            .requires(src -> src.hasPermission(2))
             // /flyingsword spawn [count]
             .then(
-                Commands.literal("spawn")
+                Commands.literal("spawn").requires(src -> src.hasPermission(2))
                     .executes(FlyingSwordCommand::spawnOne)
                     .then(
                         Commands.argument("count", IntegerArgumentType.integer(1, 10))
                             .executes(FlyingSwordCommand::spawnMultiple)))
             // /flyingsword test spawn
             .then(
-                Commands.literal("test")
+                Commands.literal("test").requires(src -> src.hasPermission(2))
                     .then(Commands.literal("spawn").executes(FlyingSwordCommand::testSpawn)))
             // /flyingsword recall
             .then(Commands.literal("recall").executes(FlyingSwordCommand::recallAll))

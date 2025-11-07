@@ -137,6 +137,19 @@ final class BlockFlowActions {
     if (server == null) {
       return;
     }
+    // 玩家偏好：若执行者禁用破块，则仅允许非破坏性的替换/铺雪；否则直接返回
+    boolean allow =
+        performer == null
+            ? net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps
+                .defaultSwordSlashBlockBreak()
+            : net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps.resolve(
+                performer,
+                net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps.SWORD_SLASH_BLOCK_BREAK,
+                net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps
+                    ::defaultSwordSlashBlockBreak);
+    if (!allow && (dropBlocks || replacements.isEmpty()) && !placeSnowLayers) {
+      return;
+    }
     if (replacements.isEmpty() && !placeSnowLayers && !dropBlocks) {
       return;
     }
