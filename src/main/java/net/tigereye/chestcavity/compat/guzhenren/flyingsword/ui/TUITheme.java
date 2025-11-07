@@ -217,15 +217,21 @@ public final class TUITheme {
       return content;
     }
 
-    int innerWidth = Math.max(0, currentBorderWidth() - 1);
+    int innerWidth = Math.max(0, currentBorderWidth());
 
     MutableComponent display = Component.empty().append(content);
     int contentWidth = visualLength(display.getString());
 
     int fillNeeded = Math.max(0, innerWidth - contentWidth);
-    String fill = fillNeeded > 0 ? repeat(' ', fillNeeded) : "";
+    int leftPad = fillNeeded / 2;
+    int rightPad = fillNeeded - leftPad;
 
-    return display.append(Component.literal(fill).withStyle(DIM));
+    MutableComponent line = Component.literal(repeat(' ', leftPad));
+    line.append(display);
+    if (rightPad > 0) {
+      line.append(Component.literal(repeat(' ', rightPad)).withStyle(DIM));
+    }
+    return line;
   }
 
   /**

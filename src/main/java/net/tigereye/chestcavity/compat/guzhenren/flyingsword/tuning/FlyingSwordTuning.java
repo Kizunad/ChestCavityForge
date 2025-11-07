@@ -174,8 +174,8 @@ public final class FlyingSwordTuning {
   public static final boolean TUI_FANCY_EMOJI = true;
 
   /** 飞剑 TUI 最大宽度（字符）。适当增大可减少按钮被截断的情况。 */
-  public static final int TUI_FRAME_MAX_WIDTH = 34;
+  public static final int TUI_FRAME_MAX_WIDTH = 20;
 
   /** 飞剑 TUI 边框宽度（字符）。 */
-  public static final int TUI_BORDER_WIDTH = 34;
+  public static final int TUI_BORDER_WIDTH = 12;
 }
