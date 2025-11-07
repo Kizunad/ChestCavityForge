@@ -13,7 +13,8 @@ class KinematicsSnapshotMathTest {
   @Test
   void scaledValues_ShouldRespectDomainScale() {
     // currentVelocity 任意即可，测试缩放数学
-    Vec3 v = new Vec3(0.3, 0, 0.4);
+    // 为避免速度相关的转向加成干扰，仅测试领域缩放，将速度置零。
+    Vec3 v = Vec3.ZERO;
     KinematicsSnapshot snap = new KinematicsSnapshot(
         v, /*effectiveBase*/ 2.0, /*effectiveMax*/ 6.0, /*effectiveAccel*/ 1.2,
         /*turnRate*/ 0.4, /*domainScale*/ 0.5);
@@ -38,4 +39,3 @@ class KinematicsSnapshotMathTest {
     assertEquals(0.5, snap.baseScale(5.0), 1e-9);
   }
 }
-

@@ -27,6 +27,8 @@ public class FxEngineBudgetTest {
 
     // 清理统计计数（注意：这是全局单例，可能影响其他测试）
     // 在实际项目中，应该考虑使用依赖注入来避免单例问题
+    // 为确保各用例之间互不干扰，这里清空所有活跃 Track。
+    engine.shutdown(null);
   }
 
   @Test
@@ -73,7 +75,7 @@ public class FxEngineBudgetTest {
     }
 
     // 验证：前 (10 - initialActiveCount) 个应该成功，剩余的应该被丢弃
-    int expectedSuccessCount = Math.min(15, config.perLevelCap - initialActiveCount);
+    int expectedSuccessCount = Math.max(0, Math.min(15, config.perLevelCap - initialActiveCount));
     int expectedDropCount = 15 - expectedSuccessCount;
 
     assertTrue(

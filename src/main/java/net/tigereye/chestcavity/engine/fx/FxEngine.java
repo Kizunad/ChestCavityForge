@@ -21,6 +21,11 @@ public final class FxEngine {
 
   private static boolean bootstrapped = false;
 
+  // 运行时配置（全局单例）。
+  // 说明：测试会通过 FxEngine.getConfig() 拿到此对象并修改字段，
+  // 引擎内部每次读取配置都会返回同一实例，确保测试对配置的修改能生效。
+  private static volatile FxEngineConfig RUNTIME_CONFIG;
+
   private FxEngine() {}
 
   /**
@@ -76,6 +81,22 @@ public final class FxEngine {
    * @return FxEngineConfig 实例
    */
   public static FxEngineConfig getConfig() {
+    FxEngineConfig cfg = RUNTIME_CONFIG;
+    if (cfg != null) {
+      return cfg;
+    }
+
+    // 首次访问：从 CCConfig 加载到全局单例
+    RUNTIME_CONFIG = loadFromCCConfig();
+    return RUNTIME_CONFIG;
+  }
+
+  /** 重新从 CCConfig 加载配置（运行期或测试可调用）。 */
+  public static void reloadConfigFromCC() {
+    RUNTIME_CONFIG = loadFromCCConfig();
+  }
+
+  private static FxEngineConfig loadFromCCConfig() {
     FxEngineConfig config = new FxEngineConfig();
     try {
       var ccConfig = ChestCavity.config.FX_ENGINE;
@@ -85,7 +106,6 @@ public final class FxEngine {
       config.perOwnerCap = ccConfig.perOwnerCap;
       config.defaultTickInterval = ccConfig.defaultTickInterval;
 
-      // 解析 mergeStrategy 字符串
       try {
         config.defaultMergeStrategy = MergeStrategy.valueOf(ccConfig.defaultMergeStrategy);
       } catch (Exception e) {
