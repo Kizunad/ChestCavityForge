@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.shockfield.fx;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -30,6 +32,12 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ShockfieldFxOptimized.class);
 
+  /**
+   * 波场脉冲运行时参数表：按 mergeKey 存储最新半径/振幅，供 EXTEND_TTL 合并后的 Track
+   * 读取最新的 Shockfield 扩散数据。
+   */
+  private static final Map<String, PulseRuntimeState> PULSE_RUNTIME = new ConcurrentHashMap<>();
+
   /** 原版特效实现（用于底层粒子生成）。 */
   private final ShockfieldFxImpl fallback;
 
@@ -50,24 +58,41 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
           String waveId = context.getWaveId();
           double radius = context.getCustomParam("radius", 0.0);
           double amplitude = context.getCustomParam("amplitude", 1.0);
+          String mergeKey = "shockfield:pulse@" + waveId;
+
+          // 更新运行时参数：确保 EXTEND_TTL 合并后仍能读取最新半径/振幅。
+          PULSE_RUNTIME.compute(
+              mergeKey,
+              (key, existing) -> {
+                if (existing == null) {
+                  return new PulseRuntimeState(radius, amplitude);
+                }
+                existing.update(radius, amplitude);
+                return existing;
+              });
 
           return FxTrackSpec.builder("shockfield-pulse-" + waveId)
               .ttl(10) // 仅持续 0.5 秒（避免长时间占用）
               .tickInterval(10) // 每 10 tick（0.5 秒）生成一次粒子
               .owner(context.getOwnerId())
-              .mergeKey("shockfield:pulse@" + waveId) // 按波场合并
+              .mergeKey(mergeKey) // 按波场合并
               .mergeStrategy(MergeStrategy.EXTEND_TTL) // 延长 TTL（持续生成）
               .onTick(
                   (level, elapsed) -> {
                     Vec3 center = context.getPosition();
                     if (center == null) return;
 
+                    PulseRuntimeState runtimeState = PULSE_RUNTIME.get(mergeKey);
+                    double effectiveRadius = runtimeState != null ? runtimeState.radius : radius;
+                    double effectiveAmplitude =
+                        runtimeState != null ? runtimeState.amplitude : amplitude;
+
                     // 生成环形粒子（复用原版逻辑的简化版）
-                    int particleCount = Math.max(2, (int) (amplitude * 20.0));
+                    int particleCount = Math.max(2, (int) (effectiveAmplitude * 20.0));
                     for (int i = 0; i < particleCount; i++) {
                       double angle = (Math.PI * 2.0 * i) / particleCount;
-                      double x = center.x + Math.cos(angle) * radius;
-                      double z = center.z + Math.sin(angle) * radius;
+                      double x = center.x + Math.cos(angle) * effectiveRadius;
+                      double z = center.z + Math.sin(angle) * effectiveRadius;
                       double y = center.y + 0.1;
 
                       level.sendParticles(
@@ -77,6 +102,12 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
                         level.sendParticles(
                             ParticleTypes.SOUL, x, y, z, 1, 0.0, 0.05, 0.0, 0.01);
                       }
+                    }
+                  })
+              .onStop(
+                  (level, reason) -> {
+                    if (mergeKey != null) {
+                      PULSE_RUNTIME.remove(mergeKey);
                     }
                   })
               .build();
@@ -366,5 +397,21 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
             .build();
 
     FxEngine.registry().play("chestcavity:fx/shockfield/extinguish", context);
+  }
+
+  /** 波场脉冲运行时参数：存储最新的半径与振幅。 */
+  private static final class PulseRuntimeState {
+    volatile double radius;
+    volatile double amplitude;
+
+    PulseRuntimeState(double radius, double amplitude) {
+      this.radius = radius;
+      this.amplitude = amplitude;
+    }
+
+    void update(double radius, double amplitude) {
+      this.radius = radius;
+      this.amplitude = amplitude;
+    }
   }
 }
