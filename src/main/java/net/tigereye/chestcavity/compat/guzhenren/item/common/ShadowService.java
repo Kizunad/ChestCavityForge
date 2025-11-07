@@ -66,13 +66,27 @@ public final class ShadowService {
   public static final ReplicaStyle BAI_ZHU_CLONE =
       ReplicaStyle.tinted("bai_zhu_clone", false, 1.0f, 1.0f, 1.0f, 0.50f);
 
-  /** Captures a tinted skin snapshot according to the supplied style. */
+  /** Captures a tinted skin snapshot according to the supplied style (player owner). */
   public static PlayerSkinUtil.SkinSnapshot captureTint(Player player, ReplicaStyle style) {
     Objects.requireNonNull(player, "player");
     Objects.requireNonNull(style, "style");
     PlayerSkinUtil.SkinSnapshot base =
         style.captureBaseSkin ? PlayerSkinUtil.capture(player) : null;
     return PlayerSkinUtil.withTint(base, style.tintR, style.tintG, style.tintB, style.tintAlpha);
+  }
+
+  /**
+   * Captures a tinted skin snapshot for any living entity. For non-player entities where a
+   * Minecraft skin cannot be resolved, the snapshot falls back to the default Steve texture.
+   */
+  public static PlayerSkinUtil.SkinSnapshot captureTint(LivingEntity owner, ReplicaStyle style) {
+    Objects.requireNonNull(owner, "owner");
+    Objects.requireNonNull(style, "style");
+    if (owner instanceof Player player) {
+      return captureTint(player, style);
+    }
+    // Non-player: use tinted default skin as a generic shadow.
+    return PlayerSkinUtil.withTint(null, style.tintR, style.tintG, style.tintB, style.tintAlpha);
   }
 
   /** Resolves the item stack displayed by the replica when rendering sword trails. */
@@ -87,6 +101,14 @@ public final class ShadowService {
     }
     if (CCItems.GUZHENREN_XIE_NING_JIAN != Items.AIR) {
       return new ItemStack(CCItems.GUZHENREN_XIE_NING_JIAN);
+    }
+    return SingleSwordProjectile.defaultDisplayItem();
+  }
+
+  /** Non-player overload: fall back to the default display sword. */
+  public static ItemStack resolveDisplayStack(LivingEntity owner) {
+    if (owner instanceof Player player) {
+      return resolveDisplayStack(player);
     }
     return SingleSwordProjectile.defaultDisplayItem();
   }
