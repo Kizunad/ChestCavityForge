@@ -25,6 +25,9 @@ public final class FxEngineConfig {
   /** 默认 Tick 间隔（默认 1）。 */
   public int defaultTickInterval = 1;
 
+  /** Debug 日志开关（默认关闭）。 */
+  public boolean debugEnabled = false;
+
   /** 创建默认配置（所有开关关闭）。 */
   public static FxEngineConfig createDefault() {
     return new FxEngineConfig();
@@ -61,6 +64,8 @@ public final class FxEngineConfig {
         + defaultMergeStrategy
         + ", defaultTickInterval="
         + defaultTickInterval
+        + ", debugEnabled="
+        + debugEnabled
         + '}';
   }
 }
