@@ -58,6 +58,8 @@ public class SimpleFxTrack implements FxTrack {
 
   @Override
   public void onStop(ServerLevel level, StopReason reason) {
-    LOGGER.debug("[SimpleFxTrack] Stopped: {} (Reason: {})", id, reason);
+    // 注意：level 可能为 null（在替换/冲突场景下）
+    String levelName = level != null ? level.dimension().location().toString() : "null";
+    LOGGER.debug("[SimpleFxTrack] Stopped: {} (Reason: {}, Level: {})", id, reason, levelName);
   }
 }
