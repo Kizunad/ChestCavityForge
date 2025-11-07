@@ -158,4 +158,18 @@ public final class FlyingSwordTuning {
 
   /** 启用 Gecko 模型覆盖与视觉档案 */
   public static final boolean ENABLE_GEO_OVERRIDE_PROFILE = false;
+
+  // ==================== TUI 会话与限流配置 ====================
+
+  /** TUI 会话有效期（秒）- 旧消息按钮点击超时 */
+  public static final int TUI_SESSION_TTL_SECONDS = 60;
+
+  /** TUI 最小刷新间隔（毫秒）- 防止刷屏 */
+  public static final long TUI_MIN_REFRESH_MILLIS = 1000L;
+
+  /** TUI 每页显示条目数（飞剑/存储物品） */
+  public static final int TUI_PAGE_SIZE = 6;
+
+  /** 启用 TUI Fancy Emoji（边框、图标等）*/
+  public static final boolean TUI_FANCY_EMOJI = true;
 }
