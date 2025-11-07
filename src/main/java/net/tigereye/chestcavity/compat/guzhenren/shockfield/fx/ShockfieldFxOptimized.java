@@ -49,9 +49,8 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
   public static void registerFxSchemes() {
     FxRegistry registry = FxEngine.registry();
 
-    // ========== 1. 波场扩散特效（onWaveTick 优化） ==========
-    // 原版：每 tick 都调用，可能导致粒子过多
-    // 优化：通过 FxEngine 控制生成频率和总量
+    // ========== 1. 波场扩散特效（onWaveTick 优化 - 波荡效果） ==========
+    // 新版：真正的波荡效果 - 多层波纹从中心向外扩散，垂直波动
     registry.register(
         "chestcavity:fx/shockfield/wave_pulse",
         context -> {
@@ -73,7 +72,7 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
 
           return FxTrackSpec.builder("shockfield-pulse-" + waveId)
               .ttl(10) // 仅持续 0.5 秒（避免长时间占用）
-              .tickInterval(10) // 每 10 tick（0.5 秒）生成一次粒子
+              .tickInterval(2) // 每 2 tick 生成一次粒子（更频繁以形成连续波纹）
               .owner(context.getOwnerId())
               .mergeKey(mergeKey) // 按波场合并
               .mergeStrategy(MergeStrategy.EXTEND_TTL) // 延长 TTL（持续生成）
@@ -87,20 +86,109 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
                     double effectiveAmplitude =
                         runtimeState != null ? runtimeState.amplitude : amplitude;
 
-                    // 生成环形粒子（复用原版逻辑的简化版）
-                    int particleCount = Math.max(2, (int) (effectiveAmplitude * 20.0));
-                    for (int i = 0; i < particleCount; i++) {
-                      double angle = (Math.PI * 2.0 * i) / particleCount;
-                      double x = center.x + Math.cos(angle) * effectiveRadius;
-                      double z = center.z + Math.sin(angle) * effectiveRadius;
-                      double y = center.y + 0.1;
+                    // 波纹参数
+                    double time = elapsed * 0.1; // 时间因子（控制波动速度）
+                    int waveCount = 3; // 同时显示的波纹层数
+                    double waveSpacing = 0.8; // 波纹间距
 
-                      level.sendParticles(
-                          ParticleTypes.END_ROD, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+                    // 生成多层波纹
+                    for (int wave = 0; wave < waveCount; wave++) {
+                      double waveRadius =
+                          effectiveRadius - (wave * waveSpacing); // 从外向内的波纹
+                      if (waveRadius < 0.3) continue; // 跳过太小的半径
 
-                      if (i % 3 == 0) {
+                      // 每层波纹的粒子数量（根据半径和振幅调整）
+                      int particleCount = Math.max(16, (int) (waveRadius * 12.0));
+
+                      for (int i = 0; i < particleCount; i++) {
+                        double angle = (Math.PI * 2.0 * i) / particleCount;
+                        double x = center.x + Math.cos(angle) * waveRadius;
+                        double z = center.z + Math.sin(angle) * waveRadius;
+
+                        // 波动高度：使用正弦波模拟波荡效果
+                        // 相位 = 角度 + 时间 + 波纹层偏移
+                        double phase = angle * 2.0 + time * 3.0 + wave * 1.0;
+                        double waveHeight = Math.sin(phase) * effectiveAmplitude * 0.15;
+
+                        // 距离衰减：越远的波纹高度越小
+                        double distanceFactor =
+                            1.0 - (wave / (double) waveCount) * 0.5;
+                        double y = center.y + 0.1 + waveHeight * distanceFactor;
+
+                        // 主波纹粒子（明亮的核心）
                         level.sendParticles(
-                            ParticleTypes.SOUL, x, y, z, 1, 0.0, 0.05, 0.0, 0.01);
+                            ParticleTypes.END_ROD,
+                            x,
+                            y,
+                            z,
+                            1,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0);
+
+                        // 波峰强化：在波峰位置添加额外粒子
+                        if (waveHeight > effectiveAmplitude * 0.1) {
+                          level.sendParticles(
+                              ParticleTypes.ELECTRIC_SPARK,
+                              x,
+                              y + 0.1,
+                              z,
+                              1,
+                              0.0,
+                              0.02,
+                              0.0,
+                              0.01);
+                        }
+
+                        // 波谷装饰：在波谷添加灵魂粒子
+                        if (i % 4 == 0 && waveHeight < 0) {
+                          level.sendParticles(
+                              ParticleTypes.SOUL,
+                              x,
+                              y,
+                              z,
+                              1,
+                              0.0,
+                              0.03,
+                              0.0,
+                              0.005);
+                        }
+
+                        // 波纹边缘：添加扩散粒子
+                        if (wave == 0 && i % 3 == 0) {
+                          double spreadRadius = effectiveRadius + 0.2;
+                          double spreadX = center.x + Math.cos(angle) * spreadRadius;
+                          double spreadZ = center.z + Math.sin(angle) * spreadRadius;
+                          level.sendParticles(
+                              ParticleTypes.SOUL_FIRE_FLAME,
+                              spreadX,
+                              y,
+                              spreadZ,
+                              1,
+                              Math.cos(angle) * 0.05,
+                              0.0,
+                              Math.sin(angle) * 0.05,
+                              0.02);
+                        }
+                      }
+                    }
+
+                    // 中心脉冲：在波场中心添加向上的能量脉冲
+                    if (elapsed % 5 == 0) {
+                      for (int i = 0; i < 8; i++) {
+                        double angle = (Math.PI * 2.0 * i) / 8.0;
+                        double spiralRadius = 0.3 * Math.sin(time * 2.0);
+                        level.sendParticles(
+                            ParticleTypes.SOUL_FIRE_FLAME,
+                            center.x + Math.cos(angle) * spiralRadius,
+                            center.y + 0.1,
+                            center.z + Math.sin(angle) * spiralRadius,
+                            1,
+                            0.0,
+                            0.2 * effectiveAmplitude,
+                            0.0,
+                            0.03);
                       }
                     }
                   })

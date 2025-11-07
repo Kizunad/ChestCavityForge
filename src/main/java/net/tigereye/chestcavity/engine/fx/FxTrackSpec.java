@@ -23,6 +23,9 @@ public final class FxTrackSpec {
   private final double playerRadius; // 玩家半径阈值（<= 0 表示不检查）
   private final boolean checkChunkLoaded; // 是否检查区块加载
 
+  // Stage 4: Level 绑定
+  private final ServerLevel level; // 关联的 Level（null = 使用默认）
+
   // 生命周期回调
   private final Consumer<ServerLevel> onStart;
   private final BiConsumer<ServerLevel, Integer> onTick;
@@ -37,6 +40,7 @@ public final class FxTrackSpec {
     this.mergeStrategy = builder.mergeStrategy;
     this.playerRadius = builder.playerRadius;
     this.checkChunkLoaded = builder.checkChunkLoaded;
+    this.level = builder.level;
     this.onStart = builder.onStart;
     this.onTick = builder.onTick;
     this.onStop = builder.onStop;
@@ -85,6 +89,10 @@ public final class FxTrackSpec {
     return checkChunkLoaded;
   }
 
+  public ServerLevel getLevel() {
+    return level;
+  }
+
   Consumer<ServerLevel> getOnStart() {
     return onStart;
   }
@@ -109,6 +117,9 @@ public final class FxTrackSpec {
     // Stage 4: 门控参数（默认使用 FxEngineConfig 的全局设置）
     private double playerRadius = -1.0; // -1 表示使用全局配置
     private boolean checkChunkLoaded = false;
+
+    // Stage 4: Level 绑定
+    private ServerLevel level = null; // null 表示使用默认 Level
 
     private Consumer<ServerLevel> onStart = level -> {};
     private BiConsumer<ServerLevel, Integer> onTick = (level, elapsed) -> {};
@@ -153,6 +164,11 @@ public final class FxTrackSpec {
 
     public Builder checkChunkLoaded(boolean check) {
       this.checkChunkLoaded = check;
+      return this;
+    }
+
+    public Builder level(ServerLevel level) {
+      this.level = level;
       return this;
     }
 
@@ -202,6 +218,11 @@ public final class FxTrackSpec {
     @Override
     public UUID getOwnerId() {
       return spec.getOwnerId();
+    }
+
+    @Override
+    public ServerLevel getLevel() {
+      return spec.getLevel();
     }
 
     @Override

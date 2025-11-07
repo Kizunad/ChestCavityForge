@@ -323,8 +323,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
       return;
     }
 
-    // Stage 1: 使用主世界（overworld）作为默认 Level
-    // TODO Stage 3: 支持 Track 关联到特定 Level
+    // Stage 4: 支持 Track 关联到特定 Level
     ServerLevel defaultLevel = server.overworld();
     if (defaultLevel == null) {
       return;
@@ -337,19 +336,24 @@ public final class FxTimelineEngine implements ServerTickEngine {
       TrackContext ctx = entry.getValue();
       FxTrack track = ctx.track;
 
+      // 使用 Track 关联的 Level，如果没有则使用默认 Level
+      ServerLevel trackLevel = ctx.level != null ? ctx.level : defaultLevel;
+
       try {
-        processTrack(defaultLevel, trackId, ctx, track, toRemove);
+        processTrack(trackLevel, trackId, ctx, track, toRemove);
       } catch (Throwable t) {
         // 外层异常捕获：processTrack 本身抛出的异常（理论上不应发生）
         LOGGER.error("[FxEngine] Unexpected error processing track {}", trackId, t);
         // 直接调用 unregisterInternal，避免重复调用 onStop
-        unregisterInternal(trackId, defaultLevel, StopReason.EXCEPTION);
+        unregisterInternal(trackId, trackLevel, StopReason.EXCEPTION);
       }
     }
 
     // 移除已停止的 Track（TTL 到期）
     for (String id : toRemove) {
-      unregisterInternal(id, defaultLevel, StopReason.TTL_EXPIRED);
+      TrackContext ctx = activeTracks.get(id);
+      ServerLevel trackLevel = (ctx != null && ctx.level != null) ? ctx.level : defaultLevel;
+      unregisterInternal(id, trackLevel, StopReason.TTL_EXPIRED);
     }
   }
 
@@ -490,6 +494,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
   private static class TrackContext {
     final FxTrack track;
     final FxTrackSpec spec;
+    final ServerLevel level; // 关联的 Level（从 Track 获取，null 表示使用默认）
     boolean started = false;
     int elapsedTicks = 0;
     int currentTtl; // 当前 TTL（可被 extendTtl 修改）
@@ -497,6 +502,7 @@ public final class FxTimelineEngine implements ServerTickEngine {
     TrackContext(FxTrack track, FxTrackSpec spec) {
       this.track = track;
       this.spec = spec;
+      this.level = track.getLevel(); // 从 Track 获取 Level
       this.currentTtl = track.getTtlTicks();
     }
 
