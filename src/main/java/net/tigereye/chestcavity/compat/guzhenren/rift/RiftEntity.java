@@ -291,6 +291,10 @@ public class RiftEntity extends Entity implements OwnableEntity {
     List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box);
 
     LivingEntity owner = getOwner();
+    LivingEntity master = null;
+    if (owner instanceof net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity sword) {
+      master = sword.getOwner();
+    }
     float damageMultiplier = getDamageMultiplier();
 
     // 道痕增幅：按裂隙类型应用独立倍率（不随衰减重置）
@@ -311,35 +315,32 @@ public class RiftEntity extends Entity implements OwnableEntity {
             : RiftTuning.DAMAGE_PER_10K_MINOR;
     double daoHenScale = 1.0 + (daoHen / 10000.0) * per10k;
 
+    // 预计算不变项与伤害来源
+    float baseDamage =
+        (type == RiftType.MAJOR)
+            ? RiftTuning.MAJOR_PIERCE_BASE_DAMAGE
+            : RiftTuning.MINOR_PIERCE_BASE_DAMAGE;
+    double chainBonus = RiftManager.getInstance().getResonanceChainBonus(this);
+    float finalDamage = (float) (baseDamage * damageMultiplier * chainBonus * daoHenScale);
+    DamageSource damageSource =
+        owner != null ? level.damageSources().indirectMagic(this, owner) : level.damageSources().magic();
+
     long now = RiftManager.getInstance().currentRateLimitTimestamp(level);
     for (LivingEntity target : targets) {
-      // 跳过所有者
+      // 跳过所有者与友军（与共鸣波逻辑一致）
       if (target == owner) {
+        continue;
+      }
+      if (owner != null && target.isAlliedTo(owner)) {
+        continue;
+      }
+      if (master != null && (target == master || target.isAlliedTo(master))) {
         continue;
       }
 
       // 限频门：检查是否允许对此目标造成伤害
       if (!RiftManager.getInstance().tryPassDamageGate(target, now)) {
         continue;
-      }
-
-      // 计算基础伤害（TODO: 根据实际设计调整）
-      float baseDamage =
-          (type == RiftType.MAJOR)
-              ? RiftTuning.MAJOR_PIERCE_BASE_DAMAGE
-              : RiftTuning.MINOR_PIERCE_BASE_DAMAGE;
-
-      // 多裂隙共鸣链增益（每个+10%）
-      double chainBonus = RiftManager.getInstance().getResonanceChainBonus(this);
-
-      float finalDamage = (float) (baseDamage * damageMultiplier * chainBonus * daoHenScale);
-
-      // 造成伤害
-      DamageSource damageSource;
-      if (owner != null) {
-        damageSource = level.damageSources().indirectMagic(this, owner);
-      } else {
-        damageSource = level.damageSources().magic();
       }
 
       target.hurt(damageSource, finalDamage);

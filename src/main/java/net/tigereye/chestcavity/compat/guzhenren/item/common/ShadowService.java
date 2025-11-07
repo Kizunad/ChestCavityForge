@@ -25,6 +25,40 @@ public final class ShadowService {
   private static final double DEFAULT_COMMAND_RADIUS = 16.0;
   private static final double DEFAULT_COMMAND_VERTICAL_RANGE = 6.0;
 
+  // 轻量 SkinSnapshot 缓存（短 TTL），减少高频生成成本
+  private static final java.util.concurrent.ConcurrentHashMap<String, SkinCacheEntry> SKIN_CACHE =
+      new java.util.concurrent.ConcurrentHashMap<>();
+  private static final long SKIN_CACHE_TTL_MS = 3000; // 3 秒 TTL
+
+  private static final class SkinCacheEntry {
+    final net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil.SkinSnapshot snapshot;
+    final long expiryAtMs;
+
+    SkinCacheEntry(
+        net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil.SkinSnapshot snapshot,
+        long expiryAtMs) {
+      this.snapshot = snapshot;
+      this.expiryAtMs = expiryAtMs;
+    }
+  }
+
+  private static String skinCacheKey(java.util.UUID ownerId, ReplicaStyle style) {
+    // 包含样式ID与颜色通道，确保不同色值不会误用
+    return new StringBuilder(64)
+        .append(ownerId)
+        .append('|')
+        .append(style.id())
+        .append('|')
+        .append(style.tintR())
+        .append(',')
+        .append(style.tintG())
+        .append(',')
+        .append(style.tintB())
+        .append(',')
+        .append(style.tintAlpha())
+        .toString();
+  }
+
   private ShadowService() {}
 
   /**
@@ -42,6 +76,17 @@ public final class ShadowService {
 
     public ReplicaStyle {
       Objects.requireNonNull(id, "ReplicaStyle id");
+      // Clamp tint channels to [0,1] for robustness
+      tintR = clamp01(tintR);
+      tintG = clamp01(tintG);
+      tintB = clamp01(tintB);
+      tintAlpha = clamp01(tintAlpha);
+    }
+
+    private static float clamp01(float v) {
+      if (v < 0f) return 0f;
+      if (v > 1f) return 1f;
+      return v;
     }
 
     public static ReplicaStyle tinted(
@@ -58,11 +103,11 @@ public final class ShadowService {
   public static final ReplicaStyle JIAN_DAO_AFTERIMAGE =
       ReplicaStyle.tinted("jian_dao_afterimage", false, 0.10f, 0.05f, 0.20f, 0.45f);
 
-  /** Darker overlay suited for黑豕蛊 (captures base skin then desaturates heavily). */
+  /** Darker overlay suited for黑豕蛊（不捕获玩家皮肤，仅使用暗色谱覆盖）。 */
   public static final ReplicaStyle HEI_ZHU_CLONE =
       ReplicaStyle.tinted("hei_zhu_clone", false, 0.0f, 0.0f, 0.0f, 0.50f);
 
-  /** Brighter overlay suited for白豕蛊 (captures base skin with a light aura). */
+  /** Brighter overlay suited for白豕蛊（不捕获玩家皮肤，仅使用亮色谱覆盖）。 */
   public static final ReplicaStyle BAI_ZHU_CLONE =
       ReplicaStyle.tinted("bai_zhu_clone", false, 1.0f, 1.0f, 1.0f, 0.50f);
 
@@ -70,9 +115,20 @@ public final class ShadowService {
   public static PlayerSkinUtil.SkinSnapshot captureTint(Player player, ReplicaStyle style) {
     Objects.requireNonNull(player, "player");
     Objects.requireNonNull(style, "style");
+    // 缓存命中优先
+    String key = skinCacheKey(player.getUUID(), style);
+    long now = System.currentTimeMillis();
+    SkinCacheEntry cached = SKIN_CACHE.get(key);
+    if (cached != null && cached.expiryAtMs > now) {
+      return cached.snapshot;
+    }
+
     PlayerSkinUtil.SkinSnapshot base =
         style.captureBaseSkin ? PlayerSkinUtil.capture(player) : null;
-    return PlayerSkinUtil.withTint(base, style.tintR, style.tintG, style.tintB, style.tintAlpha);
+    PlayerSkinUtil.SkinSnapshot tinted =
+        PlayerSkinUtil.withTint(base, style.tintR, style.tintG, style.tintB, style.tintAlpha);
+    SKIN_CACHE.put(key, new SkinCacheEntry(tinted, now + SKIN_CACHE_TTL_MS));
+    return tinted;
   }
 
   /**
@@ -85,8 +141,17 @@ public final class ShadowService {
     if (owner instanceof Player player) {
       return captureTint(player, style);
     }
-    // Non-player: use tinted default skin as a generic shadow.
-    return PlayerSkinUtil.withTint(null, style.tintR, style.tintG, style.tintB, style.tintAlpha);
+    // Non-player: use tinted default skin as a generic shadow（同样走短TTL缓存）。
+    String key = skinCacheKey(owner.getUUID(), style);
+    long now = System.currentTimeMillis();
+    SkinCacheEntry cached = SKIN_CACHE.get(key);
+    if (cached != null && cached.expiryAtMs > now) {
+      return cached.snapshot;
+    }
+    PlayerSkinUtil.SkinSnapshot tinted =
+        PlayerSkinUtil.withTint(null, style.tintR, style.tintG, style.tintB, style.tintAlpha);
+    SKIN_CACHE.put(key, new SkinCacheEntry(tinted, now + SKIN_CACHE_TTL_MS));
+    return tinted;
   }
 
   /** Resolves the item stack displayed by the replica when rendering sword trails. */

@@ -47,6 +47,24 @@ public final class RiftManager {
   /** 限频器清理间隔（次数） */
   private static final int RATE_LIMITER_CLEAN_INTERVAL = 100;
 
+  // 限频聚合日志统计
+  private int rateLimiterPassCount = 0;
+  private int rateLimiterBlockCount = 0;
+  private int rateLimiterLogCounter = 0;
+
+  // 共鸣链加成小缓存：riftUUID -> {bonus, calcTick}
+  private static final class CachedBonus {
+    final double bonus;
+    final long tick;
+
+    CachedBonus(double bonus, long tick) {
+      this.bonus = bonus;
+      this.tick = tick;
+    }
+  }
+
+  private final Map<UUID, CachedBonus> resonanceBonusCache = new ConcurrentHashMap<>();
+
   private RiftManager() {}
 
   public static RiftManager getInstance() {
@@ -82,6 +100,9 @@ public final class RiftManager {
       ChestCavity.LOGGER.warn(
           "[RiftManager] Failed syncing chain duration on register for {}", id, e);
     }
+
+    // 失效自身缓存（以便快速收敛）
+    resonanceBonusCache.remove(id);
   }
 
   /**
@@ -105,6 +126,9 @@ public final class RiftManager {
     }
 
     ChestCavity.LOGGER.debug("[RiftManager] Unregistered rift {}", id);
+
+    // 清理缓存项
+    resonanceBonusCache.remove(id);
   }
 
   /**
@@ -181,8 +205,29 @@ public final class RiftManager {
    * @return 伤害加成倍率（1.0 = 无加成，1.3 = +30%）
    */
   public double getResonanceChainBonus(RiftEntity rift) {
+    if (rift == null || !(rift.level() instanceof ServerLevel level)) {
+      return 1.0;
+    }
+
+    if (RiftTuning.RESONANCE_BONUS_CACHE_ENABLED) {
+      UUID id = rift.getUUID();
+      CachedBonus cached = resonanceBonusCache.get(id);
+      if (cached != null) {
+        long now = currentRateLimitTimestamp(level);
+        if ((now - cached.tick) < RiftTuning.RESONANCE_BONUS_CACHE_TTL_TICKS) {
+          return cached.bonus;
+        }
+      }
+    }
+
+    // 计算并写入缓存
     List<RiftEntity> chain = getResonanceChain(rift);
-    return 1.0 + (chain.size() * RiftTuning.RESONANCE_CHAIN_BONUS_PER_NODE);
+    double bonus = 1.0 + (chain.size() * RiftTuning.RESONANCE_CHAIN_BONUS_PER_NODE);
+    if (RiftTuning.RESONANCE_BONUS_CACHE_ENABLED) {
+      long now = currentRateLimitTimestamp((ServerLevel) rift.level());
+      resonanceBonusCache.put(rift.getUUID(), new CachedBonus(bonus, now));
+    }
+    return bonus;
   }
 
   /**
@@ -375,28 +420,29 @@ public final class RiftManager {
    * @return true 允许伤害；false 拒绝伤害
    */
   public boolean tryPassDamageGate(LivingEntity target, long now) {
+    return tryPassDamageGate(target.getUUID(), now);
+  }
+
+  /**
+   * UUID 版本的限频门（便于纯逻辑单元测试）。
+   */
+  public boolean tryPassDamageGate(UUID targetId, long now) {
     if (!RiftTuning.RATE_LIMIT_ENABLED) {
       return true;
     }
 
-    UUID id = target.getUUID();
-    Long last = damageRateLimiter.get(id);
-
+    Long last = damageRateLimiter.get(targetId);
     if (last != null && (now - last) < RiftTuning.RATE_LIMIT_WINDOW_TICKS) {
       // 限频：拒绝本次
-      ChestCavity.LOGGER.debug(
-          "[RiftManager] Rate limit blocked damage to {} (last hit {} ticks ago)",
-          target.getName().getString(),
-          (now - last));
+      rateLimiterBlockCount++;
+      maybeLogRateLimitSummary();
       return false;
     }
 
     // 通过：记录本次命中
-    damageRateLimiter.put(id, now);
-    ChestCavity.LOGGER.debug(
-        "[RiftManager] Rate limit passed damage to {} at tick {}",
-        target.getName().getString(),
-        now);
+    damageRateLimiter.put(targetId, now);
+    rateLimiterPassCount++;
+    maybeLogRateLimitSummary();
 
     // 惰性清理
     rateLimiterWriteCount++;
@@ -406,6 +452,23 @@ public final class RiftManager {
     }
 
     return true;
+  }
+
+  private void maybeLogRateLimitSummary() {
+    if (!RiftTuning.RATE_LIMIT_DEBUG_LOG) {
+      return;
+    }
+    rateLimiterLogCounter++;
+    if (rateLimiterLogCounter >= RiftTuning.RATE_LIMIT_LOG_INTERVAL) {
+      ChestCavity.LOGGER.debug(
+          "[RiftManager] RateLimit summary: pass={}, block={}, interval={}",
+          rateLimiterPassCount,
+          rateLimiterBlockCount,
+          RiftTuning.RATE_LIMIT_LOG_INTERVAL);
+      rateLimiterPassCount = 0;
+      rateLimiterBlockCount = 0;
+      rateLimiterLogCounter = 0;
+    }
   }
 
   /**
@@ -435,6 +498,7 @@ public final class RiftManager {
     if (levelRifts != null) {
       for (UUID riftId : levelRifts) {
         rifts.remove(riftId);
+        resonanceBonusCache.remove(riftId);
       }
       ChestCavity.LOGGER.info(
           "[RiftManager] Cleared {} rifts from level {}", levelRifts.size(), level.dimension());

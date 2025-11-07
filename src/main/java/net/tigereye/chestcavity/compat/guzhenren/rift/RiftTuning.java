@@ -116,4 +116,16 @@ public final class RiftTuning {
    * 默认 1200 tick (60秒)。
    */
   public static final int RATE_LIMIT_MAX_KEEP_TICKS = 20 * 60;
+
+  /** 是否输出限频聚合日志（用于调试）。默认关闭。 */
+  public static final boolean RATE_LIMIT_DEBUG_LOG = false;
+
+  /** 限频聚合日志输出的间隔（按通过/拒绝总次数统计）。默认每 500 次输出一次汇总。 */
+  public static final int RATE_LIMIT_LOG_INTERVAL = 500;
+
+  // ====== 共鸣加成缓存 ======
+  /** 是否启用“共鸣链加成”小型缓存。 */
+  public static final boolean RESONANCE_BONUS_CACHE_ENABLED = true;
+  /** 共鸣加成缓存 TTL（tick）。默认 20 tick（1 秒）。 */
+  public static final int RESONANCE_BONUS_CACHE_TTL_TICKS = 20;
 }
