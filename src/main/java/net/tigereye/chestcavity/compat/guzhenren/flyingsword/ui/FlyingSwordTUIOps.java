@@ -36,6 +36,8 @@ public final class FlyingSwordTUIOps {
       return;
     }
     FlyingSwordStorage.RecalledSword rec = list.get(index1 - 1);
+
+    // 判定是否已取出
     if (rec.itemWithdrawn) {
       player.sendSystemMessage(
           net.minecraft.network.chat.Component.literal("[飞剑] 该飞剑本体已取出，无法重复取出"));
@@ -122,7 +124,7 @@ public final class FlyingSwordTUIOps {
     }
   }
 
-  /** 将主手物品放回存储（要求同一物理物品）。 */
+  /** 将主手物品放回存储。 */
   public static void depositMainHand(ServerLevel level, ServerPlayer player, int index1) {
     var storage = net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
     var list = storage.getRecalledSwords();
@@ -131,19 +133,17 @@ public final class FlyingSwordTUIOps {
       return;
     }
     FlyingSwordStorage.RecalledSword rec = list.get(index1 - 1);
+
+    // 判定是否已取出（只有取出状态才能放回）
+    if (!rec.itemWithdrawn) {
+      player.sendSystemMessage(
+          net.minecraft.network.chat.Component.literal("[飞剑] 该飞剑本体未取出，无需放回"));
+      return;
+    }
+
     ItemStack hand = player.getMainHandItem();
     if (hand.isEmpty()) {
       player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] 主手为空"));
-      return;
-    }
-    // 验证UUID
-    Optional<UUID> uuid = ItemIdentityUtil.getItemUUID(hand);
-    if (uuid.isEmpty() || rec.displayItemUUID == null || rec.displayItemUUID.isEmpty()) {
-      player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] 物品未绑定UUID"));
-      return;
-    }
-    if (!uuid.get().toString().equals(rec.displayItemUUID)) {
-      player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] UUID 不匹配，拒绝放回"));
       return;
     }
     // 更新存储快照
@@ -178,5 +178,21 @@ public final class FlyingSwordTUIOps {
       }
     } catch (Throwable ignored) {}
     return "飞剑";
+  }
+
+  /** 从存储中删除指定索引的飞剑（1基索引）。 */
+  public static void deleteStoredSword(ServerLevel level, ServerPlayer player, int index1) {
+    var storage = net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+    var list = storage.getRecalledSwords();
+    if (index1 < 1 || index1 > list.size()) {
+      player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] 索引无效"));
+      return;
+    }
+
+    // 直接删除，不做任何判定
+    storage.remove(index1 - 1);
+    player.sendSystemMessage(
+        net.minecraft.network.chat.Component.literal(
+            String.format(Locale.ROOT, "[飞剑] 已删除第 %d 个飞剑", index1)));
   }
 }

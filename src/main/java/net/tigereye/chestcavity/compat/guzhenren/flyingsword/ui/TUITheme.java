@@ -125,7 +125,8 @@ public final class TUITheme {
    */
   public static Component createTopBorder(String title) {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      int interior = Math.max(0, currentFrameWidth() - 2);
+      // 限制内部最大宽度为60
+      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
       String content = EMOJI_SPARK + " " + title + " " + EMOJI_SPARK;
       int contentWidth = visualLength(content);
       int padding = Math.max(0, interior - contentWidth);
@@ -145,7 +146,8 @@ public final class TUITheme {
       line.append(Component.literal("╮").withStyle(DIM));
       return line;
     } else {
-      int interior = Math.max(0, currentFrameWidth() - 2);
+      // ASCII模式也限制宽度
+      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
       String content = " " + title + " ";
       int contentWidth = visualLength(content);
       int padding = Math.max(0, interior - contentWidth);
@@ -172,10 +174,13 @@ public final class TUITheme {
    */
   public static Component createBottomBorder() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      int interior = Math.max(0, currentFrameWidth() - 2);
+      // 限制内部最大宽度为60
+      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
       return Component.literal("╰" + repeat('─', interior) + "╯").withStyle(DIM);
     } else {
-      return Component.literal(repeat('=', currentFrameWidth())).withStyle(DIM);
+      // ASCII模式也限制宽度
+      int width = Math.min(60, currentFrameWidth());
+      return Component.literal(repeat('=', width)).withStyle(DIM);
     }
   }
 
@@ -186,10 +191,13 @@ public final class TUITheme {
    */
   public static Component createDivider() {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      int interior = Math.max(0, currentFrameWidth() - 2);
+      // 计算适当的内部宽度，避免过长
+      int interior = Math.max(0, Math.min(60, currentFrameWidth() - 2));
       return Component.literal("├" + repeat('─', interior) + "┤").withStyle(DIM);
     } else {
-      return Component.literal(repeat('-', currentFrameWidth())).withStyle(DIM);
+      // ASCII模式也限制最大宽度
+      int width = Math.min(60, currentFrameWidth());
+      return Component.literal(repeat('-', width)).withStyle(DIM);
     }
   }
 

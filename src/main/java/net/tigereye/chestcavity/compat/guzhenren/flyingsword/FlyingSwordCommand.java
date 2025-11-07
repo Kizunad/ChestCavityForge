@@ -285,6 +285,12 @@ public final class FlyingSwordCommand {
                             .then(
                                 Commands.argument("sid", StringArgumentType.word())
                                     .executes(FlyingSwordCommand::depositByItemUuidWithSid))))
+            // /flyingsword delete_storage <index>
+            .then(
+                Commands.literal("delete_storage")
+                    .then(
+                        Commands.argument("index", IntegerArgumentType.integer(1, 999))
+                            .executes(FlyingSwordCommand::deleteStorageByIndex)))
             // /flyingsword debug
             .then(Commands.literal("debug").executes(FlyingSwordCommand::debugInfo)));
   }
@@ -1377,6 +1383,21 @@ public final class FlyingSwordCommand {
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
             .FlyingSwordTUIOps
         .depositMainHand(level, player, index);
+
+    return 1;
+  }
+
+  // ========== Storage deletion ==========
+
+  private static int deleteStorageByIndex(CommandContext<CommandSourceStack> ctx)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
+    ServerLevel level = player.serverLevel();
+    int index = IntegerArgumentType.getInteger(ctx, "index");
+
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .FlyingSwordTUIOps
+        .deleteStoredSword(level, player, index);
 
     return 1;
   }
