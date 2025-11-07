@@ -119,18 +119,18 @@ public final class TUISessionManager {
    */
   public static boolean isValidSession(ServerPlayer player, String providedSid, long nowTick) {
     if (providedSid == null || providedSid.isEmpty()) {
-      return false;
+      // 无 sid 时视为通过（不进行过期判断）
+      return true;
     }
 
     return SwordCommandCenter.session(player)
         .map(session -> {
           String currentSid = session.tuiSessionId();
           long expiresAt = session.tuiSessionExpiresAt();
-
-          // 检查会话是否匹配且未过期
-          return providedSid.equals(currentSid) && nowTick < expiresAt;
+          // 匹配且未过期（允许等于边界）
+          return providedSid.equals(currentSid) && nowTick <= expiresAt;
         })
-        .orElse(false);
+        .orElse(true); // 无会话记录时不判为过期，避免误杀
   }
 
   /**

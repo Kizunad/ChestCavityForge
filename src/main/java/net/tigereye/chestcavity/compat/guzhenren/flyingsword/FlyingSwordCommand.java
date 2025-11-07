@@ -920,15 +920,16 @@ public final class FlyingSwordCommand {
   private static Optional<Component> validateSessionIfPresent(
       ServerPlayer player, String sid, long nowTick) {
     if (sid == null || sid.isEmpty()) {
-      return Optional.empty(); // No sid provided, skip validation
+      return Optional.empty(); // 无sid：软模式，直接放行
     }
 
     var validation =
         net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
             .TUICommandGuard.validateSession(player, sid, nowTick);
 
-    if (!validation.isValid()) {
-      return Optional.of(validation.errorMessage());
+    // 软提示：如果判定为过期，仅发送提示消息，但不阻断命令继续执行
+    if (!validation.isValid() && validation.errorMessage() != null) {
+      player.sendSystemMessage(validation.errorMessage());
     }
 
     return Optional.empty();

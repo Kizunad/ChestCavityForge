@@ -45,9 +45,9 @@ public final class TUICommandGuard {
    */
   public static ValidationResult validateSession(
       ServerPlayer player, String providedSid, long nowTick) {
-    // 如果没有提供sid，生成过期提示
+    // 没有提供 sid 时，放行（不视为过期）
     if (providedSid == null || providedSid.isEmpty()) {
-      return ValidationResult.failure(createExpiredMessage());
+      return ValidationResult.success();
     }
 
     // 检查是否有活跃会话
@@ -66,7 +66,14 @@ public final class TUICommandGuard {
     String currentSid = session.tuiSessionId();
     long expiresAt = session.tuiSessionExpiresAt();
 
-    if (!providedSid.equals(currentSid) || nowTick >= expiresAt) {
+    // 软校验：若刚刚发送过 TUI（在宽限期内），即便sid不匹配也放行，避免“点击后立即过期”
+    final long GRACE_TICKS = 20; // 1秒
+    long lastSent = session.lastTuiSentAt();
+    boolean inGrace = (nowTick - lastSent) <= GRACE_TICKS;
+
+    // 允许等于过期点（<=），避免 tick 边界偶发误杀
+    boolean matchedAndFresh = providedSid.equals(currentSid) && nowTick <= expiresAt;
+    if (!matchedAndFresh && !inGrace) {
       return ValidationResult.failure(createExpiredMessage());
     }
 
