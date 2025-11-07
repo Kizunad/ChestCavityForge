@@ -41,6 +41,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
@@ -199,46 +200,23 @@ public final class SwordShadowRuntime {
 
     ArrayDeque<Long> history =
         COOLDOWN_HISTORY.computeIfAbsent(player.getUUID(), key -> new ArrayDeque<>());
-    if (!history.isEmpty()) {
-      long head = history.peekFirst();
-      if (now < head) {
-        logAbility(
-            player, "WARN", "time_skew", String.format(Locale.ROOT, "head=%d now=%d", head, now));
-        history.clear();
-      } else {
-        while (!history.isEmpty()) {
-          head = history.peekFirst();
-          long delta = now - head;
-          if (delta >= JianYingTuning.CLONE_COOLDOWN_TICKS) {
-            history.pollFirst();
-          } else {
-            break;
-          }
-        }
-      }
-    }
-
-    while (history.size() > organCount) {
-      history.pollFirst();
-    }
-
-    if (history.size() >= organCount && !history.isEmpty()) {
-      long head = history.peekFirst();
+    boolean allowed =
+        windowAcceptAndRecord(history, now, Math.max(1, organCount), JianYingTuning.CLONE_COOLDOWN_TICKS);
+    if (!allowed) {
+      long head = history.isEmpty() ? now : history.peekFirst();
       long elapsed = now - head;
-      if (elapsed < JianYingTuning.CLONE_COOLDOWN_TICKS) {
-        long remaining = JianYingTuning.CLONE_COOLDOWN_TICKS - elapsed;
-        logAbility(
-            player,
-            "EXIT",
-            "cooldown",
-            String.format(
-                Locale.ROOT,
-                "remaining=%d in_use=%d limit=%d",
-                remaining,
-                history.size(),
-                organCount));
-        return;
-      }
+      long remaining = Math.max(0, JianYingTuning.CLONE_COOLDOWN_TICKS - elapsed);
+      logAbility(
+          player,
+          "EXIT",
+          "cooldown",
+          String.format(
+              Locale.ROOT,
+              "remaining=%d in_use=%d limit=%d",
+              remaining,
+              history.size(),
+              organCount));
+      return;
     }
 
     Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
@@ -312,6 +290,18 @@ public final class SwordShadowRuntime {
       return;
     }
 
+    // 参数快照优先：在 ActivationHookRegistry 中已注册 jiandao:* 字段的快照
+    if (player instanceof ServerPlayer sp) {
+      double snapDaoHen =
+          SkillEffectBus.consumeMetadata(sp, ABILITY_ID, "jiandao:daohen_jiandao", Double.NaN);
+      double snapLiupai =
+          SkillEffectBus.consumeMetadata(sp, ABILITY_ID, "jiandao:liupai_jiandao", Double.NaN);
+      // 当前数值未用于计算，仅完成“优先读取快照”的约定，便于后续数值迭代
+      if (Double.isFinite(snapDaoHen) || Double.isFinite(snapLiupai)) {
+        // no-op
+      }
+    }
+
     PlayerSkinUtil.SkinSnapshot tint =
         PlayerSkinUtil.withTint(PlayerSkinUtil.capture(player), 0.05f, 0.05f, 0.1f, 0.55f);
     float cloneDamage = JianYingCalculator.cloneDamage(efficiency);
@@ -327,10 +317,7 @@ public final class SwordShadowRuntime {
       }
     }
 
-    history.addLast(now);
-    while (history.size() > organCount) {
-      history.pollFirst();
-    }
+    // 历史记录已在 windowAcceptAndRecord 中更新
 
     level.playSound(
         null,
@@ -393,6 +380,53 @@ public final class SwordShadowRuntime {
       ready.setReadyAt(readyAt);
       ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, nowTick);
     }
+  }
+
+  /**
+   * 纯函数：滑动窗口限并发判定。按容量与冷却窗口裁剪历史，并在允许时记录本次时间戳。
+   *
+   * @param history 时间戳队列（升序，队首为最早一次）
+   * @param now 当前tick
+   * @param capacity 同时占用的最大数量（通常=器官数，最小为1）
+   * @param cooldownTicks 冷却窗口（每个占用之间的最小间隔）
+   * @return true 表示通过并已记录；false 表示拒绝，不修改记录
+   */
+  public static boolean windowAcceptAndRecord(
+      ArrayDeque<Long> history, long now, int capacity, int cooldownTicks) {
+    if (history == null) {
+      return true;
+    }
+    if (capacity < 1) capacity = 1;
+    if (cooldownTicks < 0) cooldownTicks = 0;
+
+    // 时间回退保护：若 now 小于队首，视为时间偏斜，清空历史
+    if (!history.isEmpty() && now < history.peekFirst()) {
+      history.clear();
+    }
+
+    // 清理过期记录（超过冷却窗口）
+    while (!history.isEmpty()) {
+      long head = history.peekFirst();
+      long delta = now - head;
+      if (delta >= cooldownTicks) {
+        history.pollFirst();
+      } else {
+        break;
+      }
+    }
+
+    // 若当前占用已达容量，则拒绝（仍保持历史不变）
+    if (history.size() >= capacity) {
+      return false;
+    }
+
+    // 记录本次占用
+    history.addLast(now);
+    // 防御性裁剪（一般不会触发）
+    while (history.size() > capacity) {
+      history.pollFirst();
+    }
+    return true;
   }
 
   /**

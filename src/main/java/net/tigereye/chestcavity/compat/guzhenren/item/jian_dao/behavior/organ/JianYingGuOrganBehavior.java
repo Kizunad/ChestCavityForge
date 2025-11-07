@@ -57,9 +57,6 @@ public enum JianYingGuOrganBehavior implements OrganOnHitListener {
       ChestCavityInstance cc,
       ItemStack organ,
       float damage) {
-    if (Boolean.TRUE.equals(REENTRY_GUARD.get())) {
-      return damage;
-    }
     if (!(attacker instanceof Player player) || attacker.level().isClientSide()) {
       return damage;
     }
