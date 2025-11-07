@@ -48,10 +48,11 @@ public final class FxScheduler {
     FxTrack track = spec.toTrack();
     String trackId = engine.register(track, spec);
 
+    FxEngineConfig config = FxEngine.getConfig();
     if (trackId != null) {
-      LOGGER.debug("[FxScheduler] Scheduled track: {}", trackId);
+      debugLog(config, "[FxScheduler] Scheduled track: {}", trackId);
     } else {
-      LOGGER.debug("[FxScheduler] Track was merged/dropped: {}", spec.getId());
+      debugLog(config, "[FxScheduler] Track was merged/dropped: {}", spec.getId());
     }
 
     return trackId;
@@ -70,10 +71,11 @@ public final class FxScheduler {
 
     String trackId = engine.register(track);
 
+    FxEngineConfig config = FxEngine.getConfig();
     if (trackId != null) {
-      LOGGER.debug("[FxScheduler] Scheduled track: {}", trackId);
+      debugLog(config, "[FxScheduler] Scheduled track: {}", trackId);
     } else {
-      LOGGER.debug("[FxScheduler] Track was dropped: {}", track.getId());
+      debugLog(config, "[FxScheduler] Track was dropped: {}", track.getId());
     }
 
     return trackId;
@@ -93,7 +95,8 @@ public final class FxScheduler {
 
     boolean cancelled = engine.cancel(trackId, level);
     if (cancelled) {
-      LOGGER.debug("[FxScheduler] Cancelled track: {}", trackId);
+      FxEngineConfig config = FxEngine.getConfig();
+      debugLog(config, "[FxScheduler] Cancelled track: {}", trackId);
     }
     return cancelled;
   }
@@ -124,6 +127,13 @@ public final class FxScheduler {
         engine.getDropCount(),
         engine.getReplaceCount(),
         engine.getPauseCount());
+  }
+
+  /** Debug 日志辅助方法：仅在 debugEnabled 时输出。 */
+  private void debugLog(FxEngineConfig config, String message, Object... args) {
+    if (config.debugEnabled) {
+      LOGGER.debug(message, args);
+    }
   }
 
   /** FxScheduler 统计信息。 */

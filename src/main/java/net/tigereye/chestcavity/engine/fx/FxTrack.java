@@ -33,6 +33,17 @@ public interface FxTrack {
   }
 
   /**
+   * 获取关联的 Level（可选）。
+   *
+   * <p>如果返回 null，将使用服务器的默认 Level（overworld）。
+   *
+   * @return 关联的 ServerLevel，如果为 null 则使用默认 Level
+   */
+  default ServerLevel getLevel() {
+    return null;
+  }
+
+  /**
    * Track 启动回调（首 tick 前调用一次）。
    *
    * @param level 服务器世界
