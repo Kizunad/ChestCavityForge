@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.rift.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.rift.RiftEntity;
 import net.tigereye.chestcavity.compat.guzhenren.rift.RiftType;
+import com.mojang.blaze3d.platform.NativeImage;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
@@ -50,9 +52,10 @@ public class RiftRenderer extends EntityRenderer<RiftEntity> {
     // Billboard效果：面向相机
     poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
 
-    // 根据裂隙类型缩放
+    // 根据裂隙类型与纹理比例缩放（等比适配PNG，避免被压成正方形）
     RiftType type = entity.getRiftType();
-    poseStack.scale(type.displayWidth, type.displayHeight, 0.1f);
+    float[] wh = computeFittedSize(type.displayWidth, type.displayHeight);
+    poseStack.scale(wh[0], wh[1], 0.1f);
 
     // 调整透明度（根据剩余时间）
     float alpha = calculateAlpha(entity);
@@ -66,6 +69,50 @@ public class RiftRenderer extends EntityRenderer<RiftEntity> {
     poseStack.popPose();
 
     super.render(entity, entityYaw, partialTicks, poseStack, buffer, packedLight);
+  }
+
+  // ===== 纹理比例与等比适配 =====
+  /** 缓存的纹理宽高比（width/height），懒加载。*/
+  private static volatile Float CACHED_TEX_ASPECT = null;
+
+  /**
+   * 计算在给定最大宽高下，按纹理比例等比适配后的实际渲染宽高。
+   *
+   * <p>算法：Contain（等比“塞进”最大框），保证不拉伸变形。
+   */
+  private static float[] computeFittedSize(float maxWidth, float maxHeight) {
+    float aspect = getTextureAspectSafe(); // w/h
+    // 先尝试以高度为基准
+    float fitW = maxHeight * aspect;
+    float fitH = maxHeight;
+    if (fitW > maxWidth) {
+      // 超出宽度上限，则以宽度为基准
+      fitW = maxWidth;
+      fitH = maxWidth / aspect;
+    }
+    return new float[] {fitW, fitH};
+  }
+
+  /** 获取纹理宽高比（若失败则回退1:1）。*/
+  private static float getTextureAspectSafe() {
+    Float cached = CACHED_TEX_ASPECT;
+    if (cached != null) return cached;
+    try {
+      var opt = Minecraft.getInstance().getResourceManager().getResource(RIFT_TEXTURE);
+      if (opt.isPresent()) {
+        var res = opt.get();
+        try (var in = res.open()) {
+          NativeImage img = NativeImage.read(in);
+          float aspect = (float) img.getWidth() / (float) img.getHeight();
+          img.close();
+          CACHED_TEX_ASPECT = aspect > 0 ? aspect : 1f;
+          return CACHED_TEX_ASPECT;
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    CACHED_TEX_ASPECT = 1f;
+    return 1f;
   }
 
   private void renderResonanceLines(
