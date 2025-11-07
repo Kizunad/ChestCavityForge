@@ -211,12 +211,21 @@ f067a11 - feat(flyingsword): 实现优美的TUI系统重构
 - 进度条和友好提示
 ```
 
-### Commit 2: UUID+sid完整实现（当前）
+### Commit 2: UUID+sid完整实现
 ```
 6b524ee - feat(flyingsword): 完成UUID+sid命令系统，实现真正的过期保护
 - 8个UUID命令
 - 完整的sid校验链路
 - TUI按钮全部切换
+```
+
+### Commit 3: 代码质量打磨（当前）
+```
+805464c - refactor(flyingsword): 打磨TUI代码命名和清理遗留方法
+- 修复ValidationResult命名冲突（isValid组件 + success()/failure()工厂方法）
+- 移除错误的createGroupButtons包装方法
+- 清理遗留的index版本方法
+- 代码命名一致性优化
 ```
 
 ---
@@ -348,7 +357,32 @@ validateSessionIfPresent() // 统一校验
 
 ---
 
+## 🎨 代码质量打磨（2025-11-07更新）
+
+根据代码审查反馈，完成了以下打磨工作：
+
+### 命名冲突修复
+**问题**: `ValidationResult` record的组件名 `valid` 与静态工厂方法 `valid()` 同名
+**解决**:
+- 组件改为 `isValid`（符合Java布尔值accessor惯例）
+- 工厂方法改为 `success()` 和 `failure()`（语义更清晰）
+
+### 遗留代码清理
+移除了以下不再使用的方法：
+- `createGroupButtons(int index, ...)` - 错误的包装方法，调用了null参数
+- `createModeButton(String label, int index, String mode)` - 旧版index方法
+- `createGroupButton(int index, ...)` - 旧版index方法
+
+### 代码统计
+- **删除行数**: 47行（遗留代码）
+- **修改行数**: 8行（命名修正）
+- **净减少**: 39行代码
+
+**结果**: 代码更简洁、命名更一致、无遗留技术债
+
+---
+
 **维护**: ChestCavityForge 开发团队
 **实现**: Claude (Sonnet 4.5)
-**最后更新**: 2025-11-07
-**状态**: ✅ **生产就绪**
+**最后更新**: 2025-11-07（代码打磨完成）
+**状态**: ✅ **生产就绪 + 代码质量优化**
