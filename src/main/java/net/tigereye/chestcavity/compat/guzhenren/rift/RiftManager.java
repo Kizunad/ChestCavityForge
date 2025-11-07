@@ -331,6 +331,7 @@ public final class RiftManager {
 
     // 注：owner 已在上方获取
 
+    long now = currentRateLimitTimestamp(level);
     for (LivingEntity target : targets) {
       // 跳过所有者、触发者及友军（包含释放者以及其Owner的友军）
       if (target == owner || target == instigator) {
@@ -344,7 +345,7 @@ public final class RiftManager {
       }
 
       // 限频门：检查是否允许对此目标造成伤害
-      if (!tryPassDamageGate(target, level.getGameTime())) {
+      if (!tryPassDamageGate(target, now)) {
         continue;
       }
 
@@ -370,7 +371,7 @@ public final class RiftManager {
    * <p>用于裂隙伤害限频。同一目标在窗口期内只允许一次伤害通过。
    *
    * @param target 目标实体
-   * @param now 当前世界时间 (gameTime)
+   * @param now 当前全局tick（建议使用 {@link ServerLevel#getServer()} 的 tick 计数）
    * @return true 允许伤害；false 拒绝伤害
    */
   public boolean tryPassDamageGate(LivingEntity target, long now) {
@@ -450,5 +451,15 @@ public final class RiftManager {
    */
   public Collection<RiftEntity> getAllRifts() {
     return Collections.unmodifiableCollection(rifts.values());
+  }
+
+  /**
+   * 获取限频使用的全局时间戳
+   *
+   * <p>优先使用服务端的全局 tick 计数，若不可用则回退到当前维度的 gameTime。</p>
+   */
+  public long currentRateLimitTimestamp(ServerLevel level) {
+    var server = level.getServer();
+    return server != null ? server.getTickCount() : level.getGameTime();
   }
 }
