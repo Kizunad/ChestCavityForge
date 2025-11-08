@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianDangGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianSuoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.YunJianQingLianGuOrganBehavior;
@@ -64,6 +65,18 @@ public final class JiandaoOrganRegistry {
           // 剑脉蛊：卸载监听器（被动事件通过@EventBusSubscriber自动注册）
           OrganIntegrationSpec.builder(JianmaiGuOrganBehavior.ORGAN_ID)
               .addRemovalListener(JianmaiGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑梭蛊（三转）：受击躲避被动
+          OrganIntegrationSpec.builder(JianSuoGuOrganBehavior.ORGAN_ID_3)
+              .addIncomingDamageListener(JianSuoGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑梭蛊（四转）：受击躲避被动
+          OrganIntegrationSpec.builder(JianSuoGuOrganBehavior.ORGAN_ID_4)
+              .addIncomingDamageListener(JianSuoGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑梭蛊（五转）：受击躲避被动
+          OrganIntegrationSpec.builder(JianSuoGuOrganBehavior.ORGAN_ID_5)
+              .addIncomingDamageListener(JianSuoGuOrganBehavior.INSTANCE)
               .build());
 
   private JiandaoOrganRegistry() {}
