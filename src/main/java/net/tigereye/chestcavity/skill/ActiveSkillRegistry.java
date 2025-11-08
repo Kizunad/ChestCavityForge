@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.skill;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -98,6 +99,8 @@ public final class ActiveSkillRegistry {
   }
 
   private static final Map<ResourceLocation, ActiveSkillEntry> ENTRIES = new LinkedHashMap<>();
+  private static final Map<ResourceLocation, List<ResourceLocation>> EXTRA_ORGAN_IDS =
+      new HashMap<>();
   private static boolean bootstrapped = false;
 
   private ActiveSkillRegistry() {}
@@ -1115,7 +1118,9 @@ public final class ActiveSkillRegistry {
               net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                   .JianSuoGuOrganBehavior.INSTANCE);
         },
-        CooldownHint.useOrgan("剑梭就绪", "3-6 秒冷却"));
+        CooldownHint.useOrgan("剑梭就绪", "3-6 秒冷却"))
+        .allowAdditionalOrgans(
+            "guzhenren:jiansuogusizhuan", "guzhenren:jiansuoguwuzhuan");
 
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
     register(
@@ -1218,6 +1223,27 @@ public final class ActiveSkillRegistry {
     return ENTRIES.containsKey(skillId);
   }
 
+  private static boolean hasOrganEquipped(ChestCavityInstance cc, ActiveSkillEntry entry) {
+    if (cc == null || entry == null) {
+      return false;
+    }
+    boolean primarySatisfied =
+        entry.organId() != null && hasOrganEquipped(cc, entry.organId());
+    if (primarySatisfied) {
+      return true;
+    }
+    List<ResourceLocation> extras = EXTRA_ORGAN_IDS.get(entry.skillId());
+    if (extras == null || extras.isEmpty()) {
+      return entry.organId() == null;
+    }
+    for (ResourceLocation organId : extras) {
+      if (hasOrganEquipped(cc, organId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static boolean hasOrganEquipped(ChestCavityInstance cc, ResourceLocation organId) {
     if (cc == null || organId == null) {
       return false;
@@ -1247,7 +1273,7 @@ public final class ActiveSkillRegistry {
     if (cc == null) {
       return TriggerResult.NO_CHEST_CAVITY;
     }
-    if (!hasOrganEquipped(cc, entry.organId())) {
+    if (!hasOrganEquipped(cc, entry)) {
       return TriggerResult.MISSING_ORGAN;
     }
     SkillActivationHooks.ActivePreHookDecision decision =
@@ -1327,6 +1353,11 @@ public final class ActiveSkillRegistry {
   }
 
   public record Registration(ResourceLocation skillId) {
+    public Registration allowAdditionalOrgans(String... organIds) {
+      addAdditionalOrganIds(skillId, organIds);
+      return this;
+    }
+
     public Registration withCooldownToast(String title) {
       return withCooldownToast(title, null, null);
     }
@@ -1356,6 +1387,23 @@ public final class ActiveSkillRegistry {
               hint);
       ENTRIES.put(skillId, updated);
       return this;
+    }
+  }
+
+  private static void addAdditionalOrganIds(ResourceLocation skillId, String... organIds) {
+    if (skillId == null || organIds == null || organIds.length == 0) {
+      return;
+    }
+    List<ResourceLocation> list =
+        EXTRA_ORGAN_IDS.computeIfAbsent(skillId, id -> new ArrayList<>());
+    for (String organId : organIds) {
+      if (organId == null || organId.isBlank()) {
+        continue;
+      }
+      ResourceLocation parsed = ResourceLocation.parse(organId);
+      if (!list.contains(parsed)) {
+        list.add(parsed);
+      }
     }
   }
 }

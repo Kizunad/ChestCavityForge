@@ -19,10 +19,12 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTun
  *   "JME_Radius": 12.0,          // 扫描半径
  *   "JME_DistAlpha": 1.25,       // 距离权重指数
  *   "JME_MaxCap": 2.5,           // JME 上限
- *   "JME_Amp": {                 // 临时增幅数据
+ *   "JME_Amp": {                 // 临时增幅数据（被动和主动分离）
  *     "ampK": 0.10,              // 道痕增幅系数
- *     "mult": 1.0,               // 当前倍率
- *     "expireGameTime": 0,       // 过期时间（游戏刻）
+ *     "passiveDelta": 0.0,       // 被动增量（JME 提供）
+ *     "passiveExpire": 0,        // 被动过期时间（游戏刻）
+ *     "activeDelta": 0.0,        // 主动增量（主动技能提供）
+ *     "activeExpire": 0,         // 主动过期时间（游戏刻）
  *     "graceTicks": 40           // 宽限期（tick）
  *   }
  * }
@@ -44,10 +46,10 @@ public final class JianmaiNBT {
 
   // ========== JME_Amp 子字段 ==========
   private static final String K_AMP_K = "ampK";
-  private static final String K_AMP_MULT_PASSIVE = "multPassive"; // 被动 JME 倍率
-  private static final String K_AMP_MULT_ACTIVE = "multActive";   // 主动技能倍率
-  private static final String K_AMP_EXPIRE = "expireGameTime";     // 被动过期时间
-  private static final String K_AMP_ACTIVE_EXPIRE = "activeExpireGameTime"; // 主动过期时间
+  private static final String K_AMP_PASSIVE_DELTA = "passiveDelta";    // 被动增量
+  private static final String K_AMP_PASSIVE_EXPIRE = "passiveExpire";  // 被动过期时间
+  private static final String K_AMP_ACTIVE_DELTA = "activeDelta";      // 主动增量
+  private static final String K_AMP_ACTIVE_EXPIRE = "activeExpire";    // 主动过期时间
   private static final String K_AMP_GRACE = "graceTicks";
 
   // ========== 读取方法 ==========
@@ -190,33 +192,33 @@ public final class JianmaiNBT {
   }
 
   /**
-   * 写入临时增幅数据。
+   * 写入临时增幅数据（被动和主动分离）。
    *
    * @param player 玩家
    * @param ampK 道痕增幅系数
-   * @param multPassive 被动倍率
-   * @param multActive 主动倍率
-   * @param expireGameTime 被动过期时间
-   * @param activeExpireGameTime 主动过期时间
+   * @param passiveDelta 被动增量
+   * @param passiveExpire 被动过期时间
+   * @param activeDelta 主动增量
+   * @param activeExpire 主动过期时间
    * @param graceTicks 宽限期
    */
   public static void writeAmp(
       ServerPlayer player,
       double ampK,
-      double multPassive,
-      double multActive,
-      long expireGameTime,
-      long activeExpireGameTime,
+      double passiveDelta,
+      long passiveExpire,
+      double activeDelta,
+      long activeExpire,
       int graceTicks) {
     CompoundTag root = player.getPersistentData();
     CompoundTag data = root.getCompound(NAMESPACE);
 
     CompoundTag amp = new CompoundTag();
     amp.putDouble(K_AMP_K, ampK);
-    amp.putDouble(K_AMP_MULT_PASSIVE, multPassive);
-    amp.putDouble(K_AMP_MULT_ACTIVE, multActive);
-    amp.putLong(K_AMP_EXPIRE, expireGameTime);
-    amp.putLong(K_AMP_ACTIVE_EXPIRE, activeExpireGameTime);
+    amp.putDouble(K_AMP_PASSIVE_DELTA, passiveDelta);
+    amp.putLong(K_AMP_PASSIVE_EXPIRE, passiveExpire);
+    amp.putDouble(K_AMP_ACTIVE_DELTA, activeDelta);
+    amp.putLong(K_AMP_ACTIVE_EXPIRE, activeExpire);
     amp.putInt(K_AMP_GRACE, graceTicks);
 
     data.put(K_JME_AMP, amp);
@@ -234,37 +236,37 @@ public final class JianmaiNBT {
   }
 
   /**
-   * 读取被动倍率（multPassive）。
+   * 读取被动增量（passiveDelta）。
    *
    * @param ampData 增幅数据（CompoundTag）
-   * @return multPassive，默认 1.0
+   * @return passiveDelta，默认 0.0
    */
-  public static double getMultPassive(CompoundTag ampData) {
-    return ampData.contains(K_AMP_MULT_PASSIVE) ? ampData.getDouble(K_AMP_MULT_PASSIVE) : 1.0;
+  public static double getPassiveDelta(CompoundTag ampData) {
+    return ampData.getDouble(K_AMP_PASSIVE_DELTA);
   }
 
   /**
-   * 读取主动倍率（multActive）。
-   *
-   * @param ampData 增幅数据（CompoundTag）
-   * @return multActive，默认 1.0
-   */
-  public static double getMultActive(CompoundTag ampData) {
-    return ampData.contains(K_AMP_MULT_ACTIVE) ? ampData.getDouble(K_AMP_MULT_ACTIVE) : 1.0;
-  }
-
-  /**
-   * 读取被动过期时间（expireGameTime）。
+   * 读取被动过期时间（passiveExpire）。
    *
    * @param ampData 增幅数据（CompoundTag）
    * @return 被动过期时间，默认 0
    */
-  public static long getExpire(CompoundTag ampData) {
-    return ampData.getLong(K_AMP_EXPIRE);
+  public static long getPassiveExpire(CompoundTag ampData) {
+    return ampData.getLong(K_AMP_PASSIVE_EXPIRE);
   }
 
   /**
-   * 读取主动过期时间（activeExpireGameTime）。
+   * 读取主动增量（activeDelta）。
+   *
+   * @param ampData 增幅数据（CompoundTag）
+   * @return activeDelta，默认 0.0
+   */
+  public static double getActiveDelta(CompoundTag ampData) {
+    return ampData.getDouble(K_AMP_ACTIVE_DELTA);
+  }
+
+  /**
+   * 读取主动过期时间（activeExpire）。
    *
    * @param ampData 增幅数据（CompoundTag）
    * @return 主动过期时间，默认 0

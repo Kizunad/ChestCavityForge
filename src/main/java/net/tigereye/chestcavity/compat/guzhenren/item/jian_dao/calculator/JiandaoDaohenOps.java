@@ -2,30 +2,32 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiAmpOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 剑道道痕有效值计算器。
  *
- * <p>负责计算包含流派经验加成与 JME 临时增幅的"有效剑道道痕"：
+ * <p>负责计算包含流派经验加成的"有效剑道道痕"：
  * <ul>
- *   <li>读取原始道痕值（daohen_jiandao）与流派经验（liupai_jiandao）</li>
+ *   <li>读取原始道痕值（daohen_jiandao，已包含 JME 临时增幅）与流派经验（liupai_jiandao）</li>
  *   <li>计算流派经验加成：expMult = 1 + LIUPAI_EXP_K * min(L, SOFTCAP)^ALPHA</li>
- *   <li>应用 JME 临时倍率：finalMult = JianmaiAmpOps.finalMult(owner, now)</li>
- *   <li>最终有效值：effective = D * expMult * finalMult</li>
+ *   <li>最终有效值：effective = daohen * expMult</li>
  * </ul>
  *
  * <p>重要规则：
  * <ul>
- *   <li>仅用于读取期计算，严禁写回永久值</li>
+ *   <li>JME 增幅已直接应用到原始道痕上，无需额外倍率</li>
  *   <li>使用 {@link SwordOwnerDaohenCache} 提供 20t 缓存</li>
  *   <li>在 JME 或流派经验变化时通过缓存失效保证实时性</li>
  * </ul>
  */
 public final class JiandaoDaohenOps {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JiandaoDaohenOps.class);
 
   private JiandaoDaohenOps() {}
 
@@ -35,12 +37,13 @@ public final class JiandaoDaohenOps {
    * <p>公式：
    * <pre>
    * expMult = 1 + LIUPAI_EXP_K * min(L, LIUPAI_SOFTCAP)^LIUPAI_ALPHA
-   * jmeMult = JianmaiAmpOps.finalMult(owner, now)
-   * effective = daohen * expMult * jmeMult
+   * effective = daohen * expMult
    * </pre>
    *
+   * <p>注意：daohen 已包含 JME 临时增幅（由 JianmaiAmpOps 直接调整原始值）
+   *
    * @param owner 实体（玩家）
-   * @param now 当前游戏刻
+   * @param now 当前游戏刻（未使用，保留以兼容接口）
    * @return 有效剑道道痕值
    */
   public static double effectiveUncached(LivingEntity owner, long now) {
@@ -64,11 +67,21 @@ public final class JiandaoDaohenOps {
     double cappedLiupai = Math.min(liupai, JianmaiTuning.LIUPAI_SOFTCAP);
     double expMult = 1.0 + JianmaiTuning.LIUPAI_EXP_K * Math.pow(cappedLiupai, JianmaiTuning.LIUPAI_ALPHA);
 
-    // 计算 JME 临时倍率
-    double jmeMult = JianmaiAmpOps.finalMult(player, now);
+    // 最终有效值：daohen * expMult
+    // 注意：daohen 已包含 JME 临时增幅
+    double effective = daohen * expMult;
 
-    // 最终有效值：daohen * expMult * jmeMult
-    return daohen * expMult * jmeMult;
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[JiandaoDaohen] Player {} effective daohen: daohen={} (incl JME), liupai={}, expMult={}, effective={}",
+          player.getName().getString(),
+          daohen,
+          liupai,
+          expMult,
+          effective);
+    }
+
+    return effective;
   }
 
   /**

@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.cost.ResourceCost;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.SuiRenGuState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.SuiRenGuCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.SuiRenGuFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.SuiRenGuBalance;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -120,8 +121,8 @@ public final class SuiRenGuActive {
       );
       statsList.add(stats);
 
-      // 播放特效（如果有 FX 模块）
-      // SuiRenGuFx.playShardBurst(player, sword);
+      // 播放飞剑碎裂特效
+      SuiRenGuFx.playShardBurst(player, sword);
 
       // 触发飞剑消散事件（不回收）
       DespawnContext ctx = new DespawnContext(
@@ -147,8 +148,8 @@ public final class SuiRenGuActive {
     // 7. 启动冷却
     readyEntry.setReadyAt(now + SuiRenGuBalance.COOLDOWN_TICKS);
 
-    // 8. 播放完成特效（如果有）
-    // SuiRenGuFx.playActivationComplete(player, sacrificeable.size(), totalDelta);
+    // 8. 播放技能激活完成特效
+    SuiRenGuFx.playActivationComplete(player, sacrificeable.size(), totalDelta);
 
     return true;
   }
@@ -270,7 +271,7 @@ public final class SuiRenGuActive {
         0
     );
 
-    // 4. 播放 buff 结束特效（如果有）
-    // SuiRenGuFx.playBuffExpired(player);
+    // 4. 播放 buff 结束特效
+    SuiRenGuFx.playBuffExpired(player);
   }
 }

@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -171,8 +172,8 @@ public final class JianSuoRuntime {
         break;
       }
 
-      // 安全移动
-      self.setPos(nextPos);
+      // 安全移动（玩家使用 teleportTo 确保同步）
+      moveEntity(self, nextPos);
       actualDist += step.length();
 
       // 胶囊采样：从上一帧到当前帧的路径
@@ -295,7 +296,7 @@ public final class JianSuoRuntime {
       AABB movedBB = self.getBoundingBox().move(stepDelta);
 
       if (level.noCollision(self, movedBB)) {
-        self.setPos(nextPos);
+        moveEntity(self, nextPos);
         currentPos = nextPos;
         successfulSteps++;
       } else {
@@ -315,6 +316,22 @@ public final class JianSuoRuntime {
           successfulSteps,
           BACKSTEP_SAFE_STEPS,
           self.position());
+    }
+  }
+
+  /**
+   * 将实体移动到指定位置。
+   *
+   * <p>ServerPlayer 需要使用 {@link ServerPlayer#teleportTo(double, double, double)} 同步到客户端；
+   * 其他 LivingEntity 直接复用 teleport，非生物实体保持 setPos 行为以避免额外副作用。
+   */
+  private static void moveEntity(Entity self, Vec3 nextPos) {
+    if (self instanceof ServerPlayer player) {
+      player.teleportTo(nextPos.x, nextPos.y, nextPos.z);
+    } else if (self instanceof LivingEntity living) {
+      living.teleportTo(nextPos.x, nextPos.y, nextPos.z);
+    } else {
+      self.setPos(nextPos);
     }
   }
 

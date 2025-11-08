@@ -15,6 +15,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiAm
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiNBT;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTuning;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 剑脉蛊被动事件处理类。
@@ -28,6 +30,8 @@ import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class JianmaiPlayerTickEvents {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JianmaiPlayerTickEvents.class);
 
   private JianmaiPlayerTickEvents() {}
 
@@ -60,15 +64,27 @@ public final class JianmaiPlayerTickEvents {
     }
 
     long now = player.serverLevel().getGameTime();
+
+    // 先检查并回滚过期的增幅
+    JianmaiAmpOps.rollbackIfExpired(player, now);
+
     long lastTick = JianmaiNBT.readLastTick(player);
 
-    // 检查刷新间隔
-    if (now - lastTick < JianmaiTuning.JME_TICK_INTERVAL) {
+    // 检查刷新间隔（首次触发时 lastTick = 0，应立即执行）
+    if (lastTick > 0 && now - lastTick < JianmaiTuning.JME_TICK_INTERVAL) {
       return;
     }
 
     // 扫描飞剑并计算 JME
     double jme = scanAndCalculateJME(player);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[Jianmai] Player {} JME calculated: jme={}, isFirstTick={}",
+          player.getName().getString(),
+          jme,
+          lastTick == 0);
+    }
 
     // 写回 JME 与刷新时间
     JianmaiNBT.writeJME(player, jme);
@@ -130,7 +146,19 @@ public final class JianmaiPlayerTickEvents {
     }
 
     // 裁剪到上限
-    return Math.max(0.0, Math.min(totalJME, maxCap));
+    double finalJME = Math.max(0.0, Math.min(totalJME, maxCap));
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[Jianmai] Player {} scan result: swords={}, totalJME={}, finalJME={}, radius={}",
+          player.getName().getString(),
+          swords.size(),
+          totalJME,
+          finalJME,
+          radius);
+    }
+
+    return finalJME;
   }
 
   /**

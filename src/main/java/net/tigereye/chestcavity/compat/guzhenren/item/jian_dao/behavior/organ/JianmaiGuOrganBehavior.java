@@ -105,13 +105,13 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
       return;
     }
 
-    // 计算主动倍率：activeMult = 1 + ACTIVE_DAOMARK_K * clamp(consumed * ACTIVE_COST_K, 0, ACTIVE_SOFTCAP)
+    // 计算主动增幅量：deltaAmount = costScaled
     double costRaw = consumed.getAsDouble();
     double costScaled = Math.max(0.0, Math.min(costRaw * JianmaiTuning.ACTIVE_COST_K, JianmaiTuning.ACTIVE_SOFTCAP));
-    double activeMult = 1.0 + JianmaiTuning.ACTIVE_DAOMARK_K * costScaled;
+    double deltaAmount = costScaled * JianmaiTuning.ACTIVE_DAOMARK_K;
 
-    // 应用主动增幅券
-    JianmaiAmpOps.applyActiveTicket(player, activeMult, now, JianmaiTuning.ACTIVE_DURATION_TICKS);
+    // 应用主动增幅（直接调整道痕值）
+    JianmaiAmpOps.applyActiveBuff(player, deltaAmount, JianmaiTuning.ACTIVE_DURATION_TICKS, now);
 
     // 启动冷却并安排就绪提示
     long readyAt = now + JianmaiTuning.ACTIVE_COOLDOWN_TICKS;
@@ -122,7 +122,7 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
     player.displayClientMessage(
         net.minecraft.network.chat.Component.translatable(
             "guzhenren.ability.jianmai.activated",
-            String.format("%.1f", activeMult),
+            String.format("+%.0f", deltaAmount),
             JianmaiTuning.ACTIVE_DURATION_TICKS / 20.0),
         true);
   }
