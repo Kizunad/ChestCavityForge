@@ -8,6 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.Ji
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.YunJianQingLianGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmaiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYinGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
@@ -59,6 +60,10 @@ public final class JiandaoOrganRegistry {
           OrganIntegrationSpec.builder(JianDangGuOrganBehavior.ORGAN_ID)
               .addOnHitListener(JianDangGuOrganBehavior.INSTANCE)
               .addSlowTickListener(JianDangGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑脉蛊：卸载监听器（被动事件通过@EventBusSubscriber自动注册）
+          OrganIntegrationSpec.builder(JianmaiGuOrganBehavior.ORGAN_ID)
+              .addRemovalListener(JianmaiGuOrganBehavior.INSTANCE)
               .build());
 
   private JiandaoOrganRegistry() {}
