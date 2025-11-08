@@ -60,5 +60,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianmai)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(jianmai);
     }
+
+    // 碎刃蛊：碎刃祭痕
+    var suiRen = net.minecraft.resources.ResourceLocation.parse("guzhenren:sui_ren_gu");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(suiRen)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(suiRen);
+    }
   }
 }

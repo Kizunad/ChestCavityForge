@@ -1084,6 +1084,24 @@ public final class ActiveSkillRegistry {
         },
         CooldownHint.useOrgan("青莲蛊就绪", null));
 
+    // 碎刃蛊：碎刃祭痕（五转爆发）
+    register(
+        "guzhenren:sui_ren_gu",
+        "guzhenren:sui_ren_gu",
+        "guzhenren:sui_ren_gu",
+        tags("爆发", "增益", "剑道", "五转"),
+        "碎刃祭痕：牺牲在场飞剑临时获得剑道道痕增幅，增幅基于飞剑经验与属性，持续时间与飞剑数量相关",
+        "compat/guzhenren/item/jian_dao/behavior/organ/SuiRenGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .SuiRenGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan(
+            "碎刃蛊就绪", formatCooldownSeconds(
+                net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
+                    .SuiRenGuBalance.COOLDOWN_TICKS)));
+
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
     register(
         "guzhenren:synergy/she_sheng_qu_yi",
