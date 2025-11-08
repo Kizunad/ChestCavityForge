@@ -1,0 +1,20 @@
+{
+  "jianmai.heartbeat": {
+    "sounds": [
+      {
+        "name": "guzhenren:jianmai/heartbeat",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitle.guzhenren.jianmai.heartbeat"
+  },
+  "jianmai.activate": {
+    "sounds": [
+      {
+        "name": "guzhenren:jianmai/activate",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitle.guzhenren.jianmai.activate"
+  }
+}

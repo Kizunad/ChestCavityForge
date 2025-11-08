@@ -11,6 +11,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianmaiAudioEffects;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianmaiVisualEffects;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiAmpOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiNBT;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTuning;
@@ -42,6 +44,9 @@ public final class JianmaiPlayerTickEvents {
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "jianmai_speed");
   private static final ResourceLocation ATK_MODIFIER_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "jianmai_atk");
+
+  // 心跳音效追踪
+  private static long lastHeartbeat = 0;
 
   /**
    * 玩家 Tick 事件处理器（服务端）。
@@ -95,6 +100,38 @@ public final class JianmaiPlayerTickEvents {
 
     // 应用玩家属性修饰
     applyPlayerAttributes(player, jme);
+
+    // ========== 特效处理 ==========
+
+    // 扫描周围飞剑用于特效
+    List<FlyingSwordEntity> swords = scanSwords(player);
+
+    // 被动视觉效果：每 Tick 渲染能量脉络
+    if (!swords.isEmpty()) {
+      JianmaiVisualEffects.renderPassiveLines(player, swords, now);
+    }
+
+    // 被动音效：每 10 秒播放心跳声
+    if (now - lastHeartbeat >= JianmaiTuning.HEARTBEAT_INTERVAL) {
+      if (!swords.isEmpty()) {
+        JianmaiAudioEffects.playHeartbeat(player);
+      }
+      lastHeartbeat = now;
+    }
+  }
+
+  /**
+   * 扫描周围飞剑（用于特效）。
+   *
+   * @param player 玩家
+   * @return 飞剑列表
+   */
+  private static List<FlyingSwordEntity> scanSwords(ServerPlayer player) {
+    double radius = JianmaiNBT.readRadius(player);
+    return player.level().getEntitiesOfClass(
+        FlyingSwordEntity.class,
+        player.getBoundingBox().inflate(radius),
+        sword -> sword.isAlive() && isOwnedBy(sword, player));
   }
 
   /**
@@ -117,11 +154,7 @@ public final class JianmaiPlayerTickEvents {
     double maxCap = JianmaiNBT.readMaxCap(player);
 
     // 扫描周围飞剑
-    List<FlyingSwordEntity> swords =
-        player.level().getEntitiesOfClass(
-            FlyingSwordEntity.class,
-            player.getBoundingBox().inflate(radius),
-            sword -> sword.isAlive() && isOwnedBy(sword, player));
+    List<FlyingSwordEntity> swords = scanSwords(player);
 
     double totalJME = 0.0;
 
