@@ -13,6 +13,7 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUITheme;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
@@ -149,13 +150,13 @@ public final class FlyingSwordEventHandler {
     // 创建可点击的恢复消息
     Component message =
         Component.literal("[飞剑系统] ")
-            .withStyle(Style.EMPTY.withColor(0xFFAA00))
+            .withStyle(Style.EMPTY.withColor(TUITheme.ACCENT.getColor()))
             .append(
                 Component.literal(
                         String.format("你有 %d 个召回的飞剑。点击此处恢复或使用 /flyingsword restore", count))
                     .withStyle(
                         Style.EMPTY
-                            .withColor(0xFFFFAA)
+                            .withColor(TUITheme.VALUE.getColor())
                             .withClickEvent(
                                 new ClickEvent(
                                     ClickEvent.Action.RUN_COMMAND, "/flyingsword restore"))

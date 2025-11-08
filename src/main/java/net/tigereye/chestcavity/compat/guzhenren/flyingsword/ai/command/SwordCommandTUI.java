@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command;
 
 import java.util.Locale;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -8,6 +9,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUITheme;
 
 /**
  * 剑引指挥棒的聊天式 TUI。
@@ -17,39 +19,49 @@ public final class SwordCommandTUI {
   private SwordCommandTUI() {}
 
   static void open(ServerPlayer player, SwordCommandCenter.CommandSession session) {
-    player.sendSystemMessage(banner(Component.translatable("text.guzhenren.jianyingu.command.title")));
+    // 估算内容宽度并初始化frame
+    String titleText = Component.translatable("text.guzhenren.jianyingu.command.title").getString();
+    int frameWidth = TUITheme.estimateFrameWidthFromStrings(40, titleText);
+    TUITheme.beginFrame(frameWidth);
 
+    // 顶部边框
+    player.sendSystemMessage(TUITheme.createTopBorder(titleText));
+
+    // 目标信息行
     int currentGroup = session.groupId();
     int marked = session.markedCount(currentGroup);
     MutableComponent targetInfo =
-        Component.translatable("text.guzhenren.jianyingu.command.targets", marked);
+        Component.translatable("text.guzhenren.jianyingu.command.targets", marked)
+            .withStyle(TUITheme.TEXT);
     if (session.hasExecutingGroup(currentGroup)) {
       long remaining = Math.max(0, session.executingUntil(currentGroup) - player.level().getGameTime());
       double seconds = remaining / 20.0;
       targetInfo =
           targetInfo.append(space())
               .append(
-                  dim(
-                      Component.translatable(
+                  Component.translatable(
                           "text.guzhenren.jianyingu.command.state.executing",
-                          String.format(Locale.ROOT, "%.1f", seconds))));
+                          String.format(Locale.ROOT, "%.1f", seconds))
+                      .withStyle(TUITheme.DIM));
     } else if (session.hasSelectionActive()) {
       long remaining = Math.max(0, session.selectionExpiresAt() - player.level().getGameTime());
       double seconds = remaining / 20.0;
       targetInfo =
           targetInfo.append(space())
               .append(
-                  dim(
-                      Component.translatable(
+                  Component.translatable(
                           "text.guzhenren.jianyingu.command.state.selecting",
-                          String.format(Locale.ROOT, "%.1f", seconds))));
+                          String.format(Locale.ROOT, "%.1f", seconds))
+                      .withStyle(TUITheme.DIM));
     } else {
       targetInfo =
           targetInfo.append(space())
-              .append(dim(Component.translatable("text.guzhenren.jianyingu.command.state.idle")));
+              .append(Component.translatable("text.guzhenren.jianyingu.command.state.idle")
+                  .withStyle(TUITheme.DIM));
     }
-    player.sendSystemMessage(targetInfo);
+    player.sendSystemMessage(TUITheme.wrapContentLine(targetInfo));
 
+    // 其他组概览
     long now = player.level().getGameTime();
     var otherGroups = session.groupSummaries(now);
     MutableComponent otherLine = null;
@@ -63,7 +75,8 @@ public final class SwordCommandTUI {
       }
       if (!hasOther) {
         otherLine =
-            dim(Component.translatable("text.guzhenren.jianyingu.command.group.overview"));
+            Component.translatable("text.guzhenren.jianyingu.command.group.overview")
+                .withStyle(TUITheme.DIM);
         hasOther = true;
       }
       otherLine =
@@ -71,18 +84,25 @@ public final class SwordCommandTUI {
               .append(otherGroupStatus(summary));
     }
     if (hasOther && otherLine != null) {
-      player.sendSystemMessage(otherLine);
+      player.sendSystemMessage(TUITheme.wrapContentLine(otherLine));
     }
 
+    // 分隔线
+    player.sendSystemMessage(TUITheme.createDivider());
+
+    // 战术选择行
     MutableComponent tacticLine =
-        Component.translatable("text.guzhenren.jianyingu.command.tactic");
+        Component.translatable("text.guzhenren.jianyingu.command.tactic")
+            .withStyle(TUITheme.ACCENT);
     for (CommandTactic tactic : CommandTactic.values()) {
       tacticLine = tacticLine.append(space()).append(tacticButton(tactic, session.tactic() == tactic));
     }
-    player.sendSystemMessage(tacticLine);
+    player.sendSystemMessage(TUITheme.wrapContentLine(tacticLine));
 
+    // 分组选择行
     MutableComponent groupLine =
         Component.translatable("text.guzhenren.jianyingu.command.group")
+            .withStyle(TUITheme.ACCENT)
             .append(space())
             .append(groupButton(0, currentGroup == 0, Component.translatable("text.guzhenren.jianyingu.command.group.all")));
     groupLine =
@@ -102,10 +122,12 @@ public final class SwordCommandTUI {
                       currentGroup == FlyingSwordEntity.SWARM_GROUP_ID,
                       Component.translatable("text.guzhenren.jianyingu.command.group.swarm")));
     }
-    player.sendSystemMessage(groupLine);
+    player.sendSystemMessage(TUITheme.wrapContentLine(groupLine));
 
+    // 操作按钮行
     MutableComponent actions =
         Component.translatable("text.guzhenren.jianyingu.command.actions")
+            .withStyle(TUITheme.ACCENT)
             .append(space())
             .append(
                 button(
@@ -130,8 +152,10 @@ public final class SwordCommandTUI {
                     Component.translatable("text.guzhenren.jianyingu.command.button.refresh"),
                     "/jianyin command open",
                     Component.translatable("text.guzhenren.jianyingu.command.button.refresh.hover")));
-    player.sendSystemMessage(actions);
-    player.sendSystemMessage(hr());
+    player.sendSystemMessage(TUITheme.wrapContentLine(actions));
+
+    // 底部边框
+    player.sendSystemMessage(TUITheme.createBottomBorder());
   }
 
   private static MutableComponent tacticButton(CommandTactic tactic, boolean selected) {
@@ -139,10 +163,11 @@ public final class SwordCommandTUI {
         Component.literal("[")
             .append(tactic.displayName())
             .append(Component.literal("]"));
+    ChatFormatting color = selected ? TUITheme.SUCCESS : TUITheme.LABEL;
     Style style =
-        (selected
-                ? Style.EMPTY.withColor(0x22FFAA).withBold(true)
-                : Style.EMPTY.withColor(0xA0A0A0))
+        Style.EMPTY
+            .withColor(color.getColor())
+            .withBold(selected)
             .withClickEvent(
                 new ClickEvent(
                     ClickEvent.Action.RUN_COMMAND, "/jianyin command tactic " + tactic.id()))
@@ -163,21 +188,18 @@ public final class SwordCommandTUI {
         .append(Component.literal("]"))
         .withStyle(
             Style.EMPTY
-                .withColor(0x4FC3F7)
+                .withColor(TUITheme.BUTTON.getColor())
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverText)));
   }
 
-  private static MutableComponent banner(Component text) {
-    return text.copy().withStyle(Style.EMPTY.withColor(0x3FD5C3));
-  }
-
   private static MutableComponent groupButton(int groupId, boolean selected, Component label) {
     MutableComponent content = Component.literal("[").append(label).append(Component.literal("]"));
+    ChatFormatting color = selected ? TUITheme.VALUE : TUITheme.LABEL;
     Style style =
-        (selected
-                ? Style.EMPTY.withColor(0xFFD54F).withBold(true)
-                : Style.EMPTY.withColor(0xA0A0A0))
+        Style.EMPTY
+            .withColor(color.getColor())
+            .withBold(selected)
             .withClickEvent(
                 new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/jianyin command group " + groupId))
             .withHoverEvent(
@@ -211,24 +233,16 @@ public final class SwordCommandTUI {
     Component label = groupLabel(summary.groupId());
     if (summary.executing()) {
       String seconds = String.format(Locale.ROOT, "%.1f", summary.executingSeconds());
-      return dim(
-          Component.translatable(
+      return Component.translatable(
               "text.guzhenren.jianyingu.command.group.summary.executing",
               label,
               summary.marks(),
-              seconds));
+              seconds)
+          .withStyle(TUITheme.DIM);
     }
-    return dim(
-        Component.translatable(
-            "text.guzhenren.jianyingu.command.group.summary.idle", label, summary.marks()));
-  }
-
-  private static MutableComponent hr() {
-    return dim(Component.literal("------------------------------"));
-  }
-
-  private static MutableComponent dim(Component component) {
-    return component.copy().withStyle(Style.EMPTY.withColor(0x808080));
+    return Component.translatable(
+            "text.guzhenren.jianyingu.command.group.summary.idle", label, summary.marks())
+        .withStyle(TUITheme.DIM);
   }
 
   private static MutableComponent space() {

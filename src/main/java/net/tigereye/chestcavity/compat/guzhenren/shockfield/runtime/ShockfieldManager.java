@@ -38,6 +38,10 @@ public final class ShockfieldManager {
   private final Map<UUID, Long> ownerDpsBucketSec = new HashMap<>();
   private final Map<UUID, Double> ownerDpsRawAgg = new HashMap<>();
 
+  // 触发冷却：主波创建 & 飞剑次波均采用 5 秒限流
+  private static final long SPAWN_COOLDOWN_TICKS = 5L * 20L;
+  private static final long SUBWAVE_COOLDOWN_TICKS = 5L * 20L;
+
   private ShockfieldManager() {}
 
   public static ShockfieldManager getInstance() {
@@ -67,14 +71,23 @@ public final class ShockfieldManager {
       net.minecraft.world.item.ItemStack organ,
       String organStateRoot) {
     UUID ownerId = owner.getUUID();
-    int serial = computeSerial(ownerId, currentTick);
-    WaveId waveId = WaveId.of(ownerId, currentTick, serial);
 
-    // 冷却容器：绑定到该器官的 OrganState
+    // 确保冷却容器存在（与器官状态绑定，便于在移除/同步时持久化）
     if (!ownerCooldowns.containsKey(ownerId) && organ != null && !organ.isEmpty()) {
       OrganState state = OrganState.of(organ, organStateRoot == null ? "JianDangGu" : organStateRoot);
       ownerCooldowns.put(ownerId, MultiCooldown.builder(state).withSync(cc, organ).build());
     }
+    // 主波创建触发冷却：5 秒内只能触发一次
+    MultiCooldown cd = ownerCooldowns.get(ownerId);
+    if (cd != null) {
+      MultiCooldown.Entry spawnGate = cd.entry("shockfield:spawn").withDefault(0L);
+      if (!spawnGate.isReady(currentTick)) {
+        return null; // 冷却中，静默拒绝
+      }
+      spawnGate.setReadyAt(currentTick + SPAWN_COOLDOWN_TICKS);
+    }
+    int serial = computeSerial(ownerId, currentTick);
+    WaveId waveId = WaveId.of(ownerId, currentTick, serial);
 
     // 参数快照：剑道道痕 / 流派经验 / 力量分数 / 武器-飞剑阶权
     double jd = 0.0, flow = 0.0;
@@ -141,6 +154,7 @@ public final class ShockfieldManager {
     }
 
     List<WaveId> toRemove = new ArrayList<>();
+    List<ShockfieldState> toAdd = new ArrayList<>();
 
     for (Map.Entry<WaveId, ShockfieldState> entry : activeShockfields.entrySet()) {
       ShockfieldState state = entry.getValue();
@@ -171,8 +185,8 @@ public final class ShockfieldManager {
         continue;
       }
 
-      // 命中判定与伤害结算
-      processHitDetection(level, state, currentTick);
+      // 命中判定与伤害结算（可能计划生成子波包，延后统一加入，避免并发修改）
+      processHitDetection(level, state, currentTick, toAdd);
 
       // tick 后FX（已更新半径/振幅/周期）
       ShockfieldFx.service().onWaveTick(level, state);
@@ -181,6 +195,13 @@ public final class ShockfieldManager {
     // 移除已熄灭的波场
     for (WaveId waveId : toRemove) {
       activeShockfields.remove(waveId);
+    }
+
+    // 统一加入本tick生成的子波包，避免迭代过程中修改 Map 导致 CME
+    if (!toAdd.isEmpty()) {
+      for (ShockfieldState sub : toAdd) {
+        activeShockfields.put(sub.getWaveId(), sub);
+      }
     }
 
     // MultiCooldown 无需在此清理，冷却自然到期
@@ -224,13 +245,39 @@ public final class ShockfieldManager {
   }
 
   /**
+   * 计算同一tick内的波源序列号（包含待加入的子波包）。
+   *
+   * @param ownerId 所有者UUID
+   * @param currentTick 当前游戏tick
+   * @param pendingAdds 本tick待加入的子波列表
+   */
+  private int computeSerial(UUID ownerId, long currentTick, java.util.Collection<ShockfieldState> pendingAdds) {
+    int maxSerial = -1;
+    for (WaveId waveId : activeShockfields.keySet()) {
+      if (waveId.sourceId().equals(ownerId) && waveId.spawnTick() == currentTick) {
+        maxSerial = Math.max(maxSerial, waveId.serial());
+      }
+    }
+    if (pendingAdds != null) {
+      for (ShockfieldState s : pendingAdds) {
+        WaveId wid = s.getWaveId();
+        if (wid != null && wid.sourceId().equals(ownerId) && wid.spawnTick() == currentTick) {
+          maxSerial = Math.max(maxSerial, wid.serial());
+        }
+      }
+    }
+    return maxSerial + 1;
+  }
+
+  /**
    * 处理波场的命中判定与伤害结算。
    *
    * @param level 服务器世界
    * @param state 波场状态
    * @param currentTick 当前游戏tick
    */
-  private void processHitDetection(ServerLevel level, ShockfieldState state, long currentTick) {
+  private void processHitDetection(
+      ServerLevel level, ShockfieldState state, long currentTick, List<ShockfieldState> pendingAdds) {
     // 获取波源所有者
     LivingEntity owner =
         level.getEntity(state.getOwnerId()) instanceof LivingEntity living ? living : null;
@@ -330,8 +377,7 @@ public final class ShockfieldManager {
             if (!entry.isReady(currentTick)) {
               ready = false;
             } else {
-              // 内部限流：至少0.5秒
-              entry.setReadyAt(currentTick + (long) (0.5 * 20));
+              entry.setReadyAt(currentTick + SUBWAVE_COOLDOWN_TICKS);
             }
           }
           if (!ready) continue;
@@ -339,7 +385,7 @@ public final class ShockfieldManager {
           // 新建二级波包（中心=飞剑位置；速度比例=WAVE_SPEED_SCALE；振幅延续当前振幅）
           ShockfieldState sub =
               new ShockfieldState(
-                  WaveId.of(state.getOwnerId(), currentTick, computeSerial(state.getOwnerId(), currentTick)),
+                  WaveId.of(state.getOwnerId(), currentTick, computeSerial(state.getOwnerId(), currentTick, pendingAdds)),
                   state.getOwnerId(),
                   sword.position(),
                   currentTick,
@@ -352,7 +398,12 @@ public final class ShockfieldManager {
                   state.getStr(),
                   state.getFlow(),
                   state.getWTier());
-          activeShockfields.put(sub.getWaveId(), sub);
+          if (pendingAdds != null) {
+            pendingAdds.add(sub);
+          } else {
+            // 理论不走到这里；兜底以防空指针
+            activeShockfields.put(sub.getWaveId(), sub);
+          }
           ShockfieldFx.service().onSubwaveCreate(level, state, sub);
 
           // 扣减飞剑耐久：最大耐久的 0.5%
@@ -421,8 +472,10 @@ public final class ShockfieldManager {
   private static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
     var server = event.getServer();
     if (server == null) return;
-    long now = server.getTickCount();
+    // 统一使用每个 Level 的 gameTime 作为 Shockfield 的时间域，
+    // 避免与 create(...) 中使用的 level.getGameTime() 出现“跨域”差值导致的即刻熄灭或负半径。
     for (ServerLevel level : server.getAllLevels()) {
+      long now = level.getGameTime();
       INSTANCE.tickLevel(level, now);
     }
   }
