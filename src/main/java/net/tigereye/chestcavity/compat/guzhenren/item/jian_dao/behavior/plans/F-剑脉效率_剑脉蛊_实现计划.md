@@ -2,7 +2,7 @@
 
 目标：提供“周身飞剑 → 距离 → 剑脉效率（JME）”的被动循环；将 JME 转换为临时的“剑道道痕”增幅倍率（仅影响计算期，不落账）；在 GUARD 模式提升格挡率；主动技按指定资源集合消耗，发放一段时间的额外倍率券；与既有剑道技能/飞剑系统无缝接线。
 
-— 本文仅列“需要调用的函数/事件/类、遵循的规则、文件与键名”，可直接按序开发。
+— 本文仅列“需要调用的函数/事件/类、遵循的规则、文件与键名”，可直接按序开发。遵循“最小入侵”：不新增飞剑系统 Hook；通过“有效剑道道痕”读取热更新增幅；格挡走飞剑 GUARD 通用判断。
 
 ## 一、文件与类（新增/修改）
 
@@ -28,11 +28,7 @@
     4) `JianmaiAmpOps.refreshFromJME(player, JME, now)`；
     5) 动态属性应用（见“六、运行时应用”）。
 
-- 新增（格挡事件）：`compat/guzhenren/item/jian_dao/events/JianmaiGuardBlockEvents.java`
-  - 监听 `net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent`；
-  - 条件：`target instanceof ServerPlayer p`，近身范围内存在 `AIMode.GUARD` 的友方飞剑（如半径 3.0）；
-  - 正面判定：基于 `p.getViewVector(1)` 与 `atk.position()-p.position()` 的夹角（<=90°）；
-  - 概率：`chance = clamp(BLOCK_BASE + BLOCK_K * JME, 0, 0.95)`；命中则 `event.setAmount(0)` 并静默。
+— 通用格挡（飞剑 GUARD 判定链）：新增 `compat/guzhenren/flyingsword/guard/GuardBlockOps.java` 提供 `tryBlock(ServerPlayer, DamageSource, float)`；在 `OrganDefenseEvents.onLivingIncomingDamage` 开头（分发器之前）调用一次，命中直接将伤害置 0（完全免伤）。
 
 - 新增（器官行为）：`compat/guzhenren/item/jian_dao/behavior/organ/JianmaiGuOrganBehavior.java`
   - `enum` 单例实现 `OrganRemovalListener`（必要时也可实现慢 tick，但本器官逻辑主在线上事件）；
@@ -52,16 +48,16 @@
 - 修改（客户端热键）：`compat/guzhenren/item/jian_dao/JiandaoClientAbilities.java`
   - 在 `onClientSetup` 追加字面 ID：`guzhenren:jianmai_overdrive`。
 
-- 新增（计算期“通用道痕增幅”）：
+- 新增（“有效剑道道痕”读取 + 20t 缓存，每秒动态重算）：
   - `compat/guzhenren/item/jian_dao/calculator/JiandaoDaohenOps.java`
-    - `compute(ChestCavityInstance cc)`：
-      1) 读 base：`ResourceOps.openHandle(player).map(h -> h.read("daohen_jiandao")).orElse(0.0)`；
-      2) 读乘区：`JianmaiAmpOps.finalMult(player, now)`；
-      3) 返回 `base * finalMult`（不落账）。
-  - `compat/guzhenren/item/jian_dao/behavior/ComputedJiandaoDaohenEffect.java`（实现 `Effect`）
-    - `applyPre`: `SkillEffectBus.putMetadata(ctx, "daohen", JiandaoDaohenOps.compute(ctx.chestCavity()))`。
-  - `registration/ActivationHookRegistry.java`
-    - 为 `^guzhenren:(jiandao/.*|jian_.*|.*_slash|.*_wave|flying_sword_.*)$` 注册 `ComputedJiandaoDaohenEffect`（沿用已有 `ResourceFieldSnapshotEffect` 以快照字段）。
+    - `effectiveUncached(LivingEntity owner, long now)`：同时读取 `daohen_jiandao`（D）与 `liupai_jiandao`（L），计算经验加成与临时倍率后返回：
+      `effective = D * expMult(L) * JianmaiAmpOps.finalMult(owner, now)`；其中 `expMult(L) = 1 + LIUPAI_EXP_K * min(L, LIUPAI_SOFTCAP)^LIUPAI_ALPHA`（常量置于 `JianmaiTuning`）；严格只读、不落账；
+    - `effectiveCached(LivingEntity owner, long now)`：基于“玩家级 20t（1s）缓存”返回有效值；若命中缓存且检测到 D/L 与上次一致（|Δ|≤1e-6），则跳过重算；
+  - `compat/guzhenren/flyingsword/runtime/SwordOwnerDaohenCache.java`（新）：
+    - 维护 `Map<UUID, Entry{double lastD; double lastL; double lastEffective; long updatedAt; int gen;}>`；`now - updatedAt >= 20` 自动触发重算；
+    - 暴露 `getEffective(ServerPlayer, now, Supplier<Double> loader)` 和 `invalidate(ServerPlayer)`；由 `JiandaoDaohenOps.effectiveCached` 调用；
+  - 失效：在 `JianmaiAmpOps.refreshFromJME/applyActiveTicket/clearAll` 成功写入后调用 `SwordOwnerDaohenCache.invalidate(player)`（保证 JME/主动券变化下一帧可见）；
+  - 修改最小化：`compat/guzhenren/flyingsword/calculator/context/CalcContexts.java` 将 `ownerJianDaoScar` 来源替换为 `JiandaoDaohenOps.effectiveCached(owner, now)`；`ownerSwordPathExp` 仍按原路径用于耐久减免。
 
 - 修改（飞剑系统）
   - `compat/guzhenren/flyingsword/calculator/context/CalcContext.java`：新增 `public double ownerJme = 0.0;`
@@ -80,11 +76,11 @@
 
 ## 二、事件与规则
 
-- 被动刷新：`PlayerTickEvent`（服务端），间隔 `JME_TICK_INTERVAL`；按“距离权重+等级加成”聚合 JME → `JianmaiAmpOps.refreshFromJME`。
-- Guard 格挡：`LivingIncomingDamageEvent`（服务端），正面锥形+GUARD 飞剑条件下按 `BLOCK_BASE + BLOCK_K * JME` 概率免伤（上限 0.95）。
+- 被动刷新：`PlayerTickEvent`（服务端），间隔 `JME_TICK_INTERVAL=20t（每秒）`；按“距离权重+等级加成”聚合 JME → `JianmaiAmpOps.refreshFromJME`。
+- Guard 格挡：`OrganDefenseEvents` 开头调用 `GuardBlockOps.tryBlock` 做“飞剑 GUARD 通用格挡”，命中置 0。
 - 主动技：热键包触发 → `OrganActivationListeners.activate(id, cc)` → `JianmaiGuOrganBehavior.activateAbility`，用 `ResourceOps.payCost` 支付后发券。
 - OnRemove：立刻 `JME=0；清空 JME_Amp；移除属性修饰`，静默不落日志。
-- 临时增幅：仅影响“计算期”的 `daohen_jiandao` 读取（通过 `ComputedJiandaoDaohenEffect` 注入元数据）；严禁写回永久值。
+- 临时增幅：仅影响“读取期”的 `daohen_jiandao` 值（由 `JiandaoDaohenOps.effective` 返回），严禁写回永久值。
 
 ## 三、数据结构（NBT 键）
 
@@ -121,12 +117,13 @@
 
 ## 五、运行时应用（属性/飞剑）
 
-- 玩家属性（0.5s 刷新时更新；仅实时，不落账）：
+- 玩家属性（1.0s 刷新时更新；仅实时，不落账）：
   - `Attributes.MOVEMENT_SPEED`：`ADD_MULTIPLIED_TOTAL`，amount=`PLAYER_SPEED_K * JME`，ID=`chestcavity:modifiers/jianmai_speed`
   - `Attributes.ATTACK_DAMAGE`：`ADD_MULTIPLIED_BASE`，amount=`PLAYER_ATK_K * JME`，ID=`.../jianmai_atk`
   - OnRemove：用 `AttributeInstance.removeModifier(ResourceLocation)` 清除上述两项。
 
 - 飞剑乘区：通过 `FlyingSwordCalcRegistry.register` 钩子读取 `ctx.ownerJme`，对 `out.speedBaseMult/out.speedMaxMult/out.damageMult` 乘 `(1 + K*JME)`（K 见常量）。
+- 动态增幅保障：飞剑所有计算路径都调用 `CalcContexts.from(sword)` 组装上下文；切换到 `JiandaoDaohenOps.effectiveCached` 后，默认每 20t 热更新；在 JME/Amp 改变时通过 `SwordOwnerDaohenCache.invalidate(player)` 触发“下一帧刷新”。此外，`DefaultHooks` 中 `(1+ownerJianDaoScar/1000)` 放大项将自动感知“含流派经验”的有效道痕值。
 
 ## 六、主动技（不落账）
 
@@ -147,17 +144,19 @@
 
 - `JianmaiMathTest`：`w(d)`、单剑贡献、截断、概率上限。
 - `JianmaiAmpOpsTest`：JME→Amp 刷新/叠乘/衰减到期（世界刻推进为参数）。
-- `JiandaoDaohenOpsTest`：乘 `finalMult` 仅影响计算期（通过桩实现 handle 读取）。
+- `JiandaoDaohenOpsTest`：`effectiveUncached/ effectiveCached` 仅影响读取期、不落账；`effectiveCached` 在 20t 内命中缓存：
+  - 当 D/L 未变化（±1e-6）时跳过重算；
+  - `invalidate` 或 20t 到期后下一次刷新；
+  - 验证 `expMult(L) = 1 + LIUPAI_EXP_K * min(L, SOFTCAP)^ALPHA` 曲线与上限裁剪。
 
 （注意：Minecraft 核心类不可 Mockito mock；仅测纯函数/静态计算器）
 
 ## 九、验收清单
 
-- [ ] 玩家周身飞剑→JME 被动每 0.5s 刷新，半径/指数可镜像常量
+- [ ] 玩家周身飞剑→JME 被动每 1.0s 刷新，半径/指数可镜像常量
 - [ ] JME 临时增幅严格过期；离线/跨服不可卡永久
 - [ ] 玩家移速/攻击力与飞剑速度/伤害随 JME 实时放大
 - [ ] GUARD 正面格挡按 JME 提升，最大 95%
 - [ ] 主动技支付资源→发券；倍率与 JME 增幅相乘，受上限；不落账
-- [ ] 剑道技能在“通用道痕增幅”管线读到已乘倍率后的值
+- [ ] 剑道技能在“通用道痕增幅”管线读到已乘倍率后的值（已含流派经验加成）
 - [ ] OnRemove 归零+清理所有属性修饰
-
