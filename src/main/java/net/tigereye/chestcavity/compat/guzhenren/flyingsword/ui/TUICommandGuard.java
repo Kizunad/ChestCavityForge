@@ -45,38 +45,7 @@ public final class TUICommandGuard {
    */
   public static ValidationResult validateSession(
       ServerPlayer player, String providedSid, long nowTick) {
-    // 没有提供 sid 时，放行（不视为过期）
-    if (providedSid == null || providedSid.isEmpty()) {
-      return ValidationResult.success();
-    }
-
-    // 检查是否有活跃会话
-    var sessionOpt =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter
-            .session(player);
-
-    if (sessionOpt.isEmpty()) {
-      // 无会话记录时，允许通过（避免误判为过期）
-      // 这种情况通常发生在会话刚被清除或玩家刚登录时
-      return ValidationResult.success();
-    }
-
-    // 有会话时，校验sid是否匹配且未过期
-    var session = sessionOpt.get();
-    String currentSid = session.tuiSessionId();
-    long expiresAt = session.tuiSessionExpiresAt();
-
-    // 软校验：若刚刚发送过 TUI（在宽限期内），即便sid不匹配也放行，避免“点击后立即过期”
-    final long GRACE_TICKS = 20; // 1秒
-    long lastSent = session.lastTuiSentAt();
-    boolean inGrace = (nowTick - lastSent) <= GRACE_TICKS;
-
-    // 允许等于过期点（<=），避免 tick 边界偶发误杀
-    boolean matchedAndFresh = providedSid.equals(currentSid) && nowTick <= expiresAt;
-    if (!matchedAndFresh && !inGrace) {
-      return ValidationResult.failure(createExpiredMessage());
-    }
-
+    // 统一放行：去除过期逻辑，所有按钮可用
     return ValidationResult.success();
   }
 
@@ -87,9 +56,9 @@ public final class TUICommandGuard {
    */
   public static Component createExpiredMessage() {
     MutableComponent message =
-        Component.literal("✦ ").withStyle(ChatFormatting.GOLD)
+        Component.literal("[提示] ").withStyle(ChatFormatting.GOLD)
             .append(Component.literal("此界面已过期").withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" · ").withStyle(ChatFormatting.DARK_GRAY));
+            .append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY));
 
     // 添加刷新按钮
     MutableComponent refreshBtn = createRefreshButton();
@@ -106,11 +75,11 @@ public final class TUICommandGuard {
    */
   public static Component createNotFoundMessage(String targetType) {
     MutableComponent message =
-        Component.literal("✦ ").withStyle(ChatFormatting.GOLD)
+        Component.literal("[提示] ").withStyle(ChatFormatting.GOLD)
             .append(
                 Component.literal(targetType + "不存在或已被移除")
                     .withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" · ").withStyle(ChatFormatting.DARK_GRAY));
+            .append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY));
 
     // 添加刷新按钮
     MutableComponent refreshBtn = createRefreshButton();
@@ -146,8 +115,7 @@ public final class TUICommandGuard {
    * @return 提示组件
    */
   public static Component createRateLimitMessage(double cooldownSeconds) {
-    return Component.literal("⏱ ")
-        .withStyle(ChatFormatting.GOLD)
+    return Component.literal("[限流] ").withStyle(ChatFormatting.GOLD)
         .append(
             Component.literal(
                     String.format(
@@ -162,7 +130,7 @@ public final class TUICommandGuard {
    * @return 提示组件
    */
   public static Component createSuccessMessage(String message) {
-    return Component.literal("✓ ").withStyle(ChatFormatting.GREEN)
+    return Component.literal("[OK] ").withStyle(ChatFormatting.GREEN)
         .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
   }
 
@@ -173,7 +141,7 @@ public final class TUICommandGuard {
    * @return 提示组件
    */
   public static Component createWarningMessage(String message) {
-    return Component.literal("⚠ ").withStyle(ChatFormatting.YELLOW)
+    return Component.literal("[警告] ").withStyle(ChatFormatting.YELLOW)
         .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
   }
 }

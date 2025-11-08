@@ -646,6 +646,10 @@ public final class SwordCommandCenter {
     String tuiSessionId;
     long tuiSessionExpiresAt;
 
+    // 最近浏览的 TUI 页码
+    int lastActivePage = 1;
+    int lastStoragePage = 1;
+
     private CommandSession(UUID ownerId) {
       this.ownerId = ownerId;
       this.tactic =
@@ -801,6 +805,12 @@ public final class SwordCommandCenter {
     public void setLastTuiSentAt(long sentAt) {
       this.lastTuiSentAt = sentAt;
     }
+
+    // ========== TUI 最近页 ========== 
+    public int lastActivePage() { return Math.max(1, lastActivePage); }
+    public void setLastActivePage(int p) { this.lastActivePage = Math.max(1, p); }
+    public int lastStoragePage() { return Math.max(1, lastStoragePage); }
+    public void setLastStoragePage(int p) { this.lastStoragePage = Math.max(1, p); }
 
     static final class GroupSummary {
       private final int groupId;

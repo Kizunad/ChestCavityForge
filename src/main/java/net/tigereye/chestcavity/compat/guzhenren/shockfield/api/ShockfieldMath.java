@@ -8,8 +8,9 @@ package net.tigereye.chestcavity.compat.guzhenren.shockfield.api;
 public final class ShockfieldMath {
 
   // ==================== 触发与节奏 ====================
-  public static final double A0_PLAYER = 0.10; // 玩家OnHit初始振幅
-  public static final double A0_SWORD = 0.50; // 飞剑OnHit初始振幅
+  public static final double Multiplyer_A0 = 10.0; // 初始振幅乘数
+  public static final double A0_PLAYER = 0.10 * Multiplyer_A0; // 玩家OnHit初始振幅
+  public static final double A0_SWORD = 0.50 * Multiplyer_A0; // 飞剑OnHit初始振幅
   public static final double BASE_PERIOD_SEC = 1.0; // 基础周期（秒）
   public static final double RADIAL_SPEED = 8.0; // 波前外扩速度 (m/s)
   public static final double DAMPING_PER_SEC = 0.15; // 振幅衰减率 (/s)

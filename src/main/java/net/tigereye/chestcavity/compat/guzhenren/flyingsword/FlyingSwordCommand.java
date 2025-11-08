@@ -593,6 +593,7 @@ public final class FlyingSwordCommand {
             .FlyingSwordController.recallByIndex(level, player, index);
     if (ok) {
       ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Recalled one"), true);
+      refreshActiveView(player);
       return 1;
     }
     ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to recall"));
@@ -622,6 +623,7 @@ public final class FlyingSwordCommand {
                           index, mode.getDisplayName())),
               true);
       SwordCommandCenter.clear(player);
+      refreshActiveView(player);
       return 1;
     }
     ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to set mode"));
@@ -683,6 +685,7 @@ public final class FlyingSwordCommand {
                           "[flyingsword] Selected sword #%d (Lv.%d, Dist: %.1fm)",
                           index, sword.getSwordLevel(), sword.distanceTo(player))),
               false);
+      refreshActiveView(player);
       return 1;
     }
     ctx.getSource().sendFailure(Component.literal("[flyingsword] Failed to select sword"));
@@ -695,6 +698,7 @@ public final class FlyingSwordCommand {
     FlyingSwordController.clearSelectedSword(player);
     ctx.getSource().sendSuccess(
         () -> Component.literal("[flyingsword] Selection cleared"), false);
+    refreshActiveView(player);
     return 1;
   }
 
@@ -797,6 +801,7 @@ public final class FlyingSwordCommand {
                     String.format(Locale.ROOT, "[flyingsword] Sword #%d -> group %d", index, Math.max(0, group))),
             true);
     SwordCommandCenter.clear(player);
+    refreshActiveView(player);
     return 1;
   }
 
@@ -864,6 +869,12 @@ public final class FlyingSwordCommand {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     boolean ok = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops
         .RepairOps.repairSelected(player.serverLevel(), player);
+    // 操作后刷新主界面
+    if (ok) {
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .FlyingSwordTUI
+          .openMain(player);
+    }
     return ok ? 1 : 0;
   }
 
@@ -873,6 +884,11 @@ public final class FlyingSwordCommand {
     int index = IntegerArgumentType.getInteger(ctx, "index");
     boolean ok = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops
         .RepairOps.repairByIndex(player.serverLevel(), player, index);
+    if (ok) {
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+              .FlyingSwordTUI
+          .openMain(player);
+    }
     return ok ? 1 : 0;
   }
 
@@ -896,6 +912,15 @@ public final class FlyingSwordCommand {
     return 1;
   }
 
+  // ========== Helpers ==========
+  private static void refreshActiveView(ServerPlayer player) {
+    int page = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command
+        .SwordCommandCenter.session(player).map(s -> s.lastActivePage()).orElse(1);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .FlyingSwordTUI
+        .openActiveList(player, page);
+  }
+
   private static int withdrawByIndex(CommandContext<CommandSourceStack> ctx)
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -903,6 +928,10 @@ public final class FlyingSwordCommand {
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
             .FlyingSwordTUIOps
         .withdrawDisplayItem(player.serverLevel(), player, index);
+    // 操作后刷新当前页（默认回到第1页，后续可接入会话记录）
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .FlyingSwordTUI
+        .openStorageList(player, 1);
     return 1;
   }
 
@@ -913,6 +942,9 @@ public final class FlyingSwordCommand {
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
             .FlyingSwordTUIOps
         .depositMainHand(player.serverLevel(), player, index);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
+            .FlyingSwordTUI
+        .openStorageList(player, 1);
     return 1;
   }
 

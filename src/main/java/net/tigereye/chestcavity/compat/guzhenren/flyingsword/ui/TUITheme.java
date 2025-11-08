@@ -80,11 +80,26 @@ public final class TUITheme {
     int maxWidth = Math.max(MIN_FANCY_FRAME_WIDTH, FlyingSwordTuning.TUI_FRAME_MAX_WIDTH);
     fancyFrameWidth = Math.min(maxWidth, Math.max(MIN_FANCY_FRAME_WIDTH, desiredWidth));
     asciiFrameWidth = Math.min(maxWidth, Math.max(MIN_ASCII_FRAME_WIDTH, desiredWidth));
-    borderWidth = Math.max(16, FlyingSwordTuning.TUI_BORDER_WIDTH);
+    int borderMin = Math.max(16, FlyingSwordTuning.TUI_BORDER_WIDTH);
+    borderWidth = Math.max(borderMin, fancyFrameWidth);
   }
 
   private static int currentBorderWidth() {
     return borderWidth;
+  }
+
+  // ==================== 公共度量（统计字数/可视宽度） ====================
+
+  /** 统计字符串在TUI中的可视宽度（使用精确的全角/半角计算）。 */
+  public static int measureWidth(String text) {
+    return CharWidthCalculator.calculateWidth(text);
+  }
+
+  /** 统计组件在TUI中的可视宽度。 */
+  public static int measureWidth(Component component) {
+    if (component == null) return 0;
+    // getString() 已经会递归获取所有子组件的文本
+    return CharWidthCalculator.calculateWidth(component.getString());
   }
 
   /**
@@ -95,7 +110,7 @@ public final class TUITheme {
     if (lines != null) {
       for (String s : lines) {
         if (s == null) continue;
-        max = Math.max(max, visualLength(s));
+        max = Math.max(max, CharWidthCalculator.calculateWidth(s));
       }
     }
     // 额外加 4 个字符余量（两侧留白）
@@ -111,7 +126,7 @@ public final class TUITheme {
     if (lines != null) {
       for (Component c : lines) {
         if (c == null) continue;
-        max = Math.max(max, visualLength(c.getString()));
+        max = Math.max(max, CharWidthCalculator.calculateWidth(c.getString()));
       }
     }
     int desired = Math.max(minWidth, max + 4);
@@ -128,42 +143,50 @@ public final class TUITheme {
    */
   public static Component createTopBorder(String title) {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      // 使用独立的边框宽度
       int interior = Math.max(0, currentBorderWidth() - 2);
-      String content = EMOJI_SPARK + " " + title + " " + EMOJI_SPARK;
-      int contentWidth = visualLength(content);
+      String content = title;
+      int contentWidth = codePointLength(content);
       int padding = Math.max(0, interior - contentWidth);
       int left = padding / 2;
       int right = padding - left;
 
       MutableComponent line = Component.literal("╭").withStyle(DIM);
       if (left > 0) {
-        line.append(Component.literal(repeat('─', left)).withStyle(DIM));
+        line.append(Component.literal(
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                ? repeat('─', left)
+                : padUnits(left)).withStyle(DIM));
       }
-      line.append(Component.literal(EMOJI_SPARK + " ").withStyle(ACCENT));
       line.append(Component.literal(title).withStyle(ChatFormatting.BOLD).withStyle(TEXT));
-      line.append(Component.literal(" " + EMOJI_SPARK).withStyle(ACCENT));
       if (right > 0) {
-        line.append(Component.literal(repeat('─', right)).withStyle(DIM));
+        line.append(Component.literal(
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                ? repeat('─', right)
+                : padUnits(right)).withStyle(DIM));
       }
       line.append(Component.literal("╮").withStyle(DIM));
       return line;
     } else {
-      // ASCII 模式同样与边框宽度对齐
       int interior = Math.max(0, currentBorderWidth() - 2);
       String content = " " + title + " ";
-      int contentWidth = visualLength(content);
+      int contentWidth = codePointLength(content);
       int padding = Math.max(0, interior - contentWidth);
       int left = padding / 2;
       int right = padding - left;
 
       MutableComponent line = Component.literal("=").withStyle(DIM);
       if (left > 0) {
-        line.append(Component.literal(repeat('=', left)).withStyle(DIM));
+        line.append(Component.literal(
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                ? repeat('=', left)
+                : padUnits(left)).withStyle(DIM));
       }
       line.append(Component.literal(content).withStyle(ChatFormatting.BOLD).withStyle(TEXT));
       if (right > 0) {
-        line.append(Component.literal(repeat('=', right)).withStyle(DIM));
+        line.append(Component.literal(
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                ? repeat('=', right)
+                : padUnits(right)).withStyle(DIM));
       }
       line.append(Component.literal("=").withStyle(DIM));
       return line;
@@ -179,11 +202,18 @@ public final class TUITheme {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
       // 与独立边框宽度一致
       int interior = Math.max(0, currentBorderWidth() - 2);
-      return Component.literal("╰" + repeat('─', interior) + "╯").withStyle(DIM);
+      return Component.literal("╰" + (
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                  ? repeat('─', interior)
+                  : padUnits(interior)) + "╯").withStyle(DIM);
     } else {
       // ASCII 模式宽度 = 边框宽度
       int width = currentBorderWidth();
-      return Component.literal(repeat('=', width)).withStyle(DIM);
+      return Component.literal(
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                  ? repeat('=', width)
+                  : padUnits(width))
+          .withStyle(DIM);
     }
   }
 
@@ -196,262 +226,65 @@ public final class TUITheme {
     if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
       // 使用边框宽度，确保左右边界对齐
       int interior = Math.max(0, currentBorderWidth() - 2);
-      return Component.literal("├" + repeat('─', interior) + "┤").withStyle(DIM);
+      return Component.literal("├" + (
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                  ? repeat('─', interior)
+                  : padUnits(interior)) + "┤").withStyle(DIM);
     } else {
       // ASCII 模式同样对齐边框宽度
       int width = currentBorderWidth();
-      return Component.literal(repeat('-', width)).withStyle(DIM);
+      return Component.literal(
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.TUI_VISIBLE_HLINES
+                  ? repeat('-', width)
+                  : padUnits(width))
+          .withStyle(DIM);
     }
   }
 
   /**
-   * 包装内容行，添加左右边框实现闭合效果。
-   * <p>模式：左边框 + 内容 + 填充 + 右边框
+   * 包装内容行（无左右边框，仅对齐）。
    *
    * @param content 内容组件
    * @return 包装后的组件
    */
   public static Component wrapContentLine(Component content) {
-    if (!FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      // ASCII 模式不添加边框，直接返回内容
-      return content;
-    }
+    // 直接返回内容，不添加边框
+    return content == null ? Component.literal("") : content;
+  }
 
-    int innerWidth = Math.max(0, currentBorderWidth());
+  // ==================== 插入/对齐辅助 ====================
 
-    MutableComponent display = Component.empty().append(content);
-    int contentWidth = visualLength(display.getString());
+  /** 对齐方式。 */
+  public enum Align { LEFT, CENTER, RIGHT }
 
-    int fillNeeded = Math.max(0, innerWidth - contentWidth);
-    int leftPad = fillNeeded / 2;
-    int rightPad = fillNeeded - leftPad;
+  /**
+   * 按对齐方式包装一行内容（无边框，仅对齐）。
+   */
+  public static Component wrapContentLineAligned(Component content, Align align) {
+    // 无边框模式：直接返回内容
+    return content == null ? Component.literal("") : content;
+  }
 
-    MutableComponent line = Component.literal(repeat(' ', leftPad));
-    line.append(display);
-    if (rightPad > 0) {
-      line.append(Component.literal(repeat(' ', rightPad)).withStyle(DIM));
-    }
-    return line;
+  // ==================== 内容行（无边框） ====================
+
+  /** 创建一个空白行。 */
+  public static Component createEmptyLine() {
+    return Component.literal("");
   }
 
   /**
-   * 创建节标题（带图标）。
-   *
-   * @param icon 图标emoji
-   * @param title 标题文本
-   * @return 格式化的节标题组件
+   * 创建内容行（无左右边框，保留所有样式）。
    */
-  public static Component createSectionTitle(String icon, String title) {
-    MutableComponent content = Component.literal("");
-    if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      content.append(Component.literal(icon + " ").withStyle(ACCENT));
-      content.append(Component.literal(title).withStyle(TEXT));
-    } else {
-      content.append(Component.literal("▸ " + title).withStyle(TEXT));
-    }
-    return content;
+  public static Component createContentLine(Component content) {
+    return content == null ? Component.literal("") : content;
   }
 
-  /**
-   * 创建模式药丸（彩色标签）。
-   *
-   * @param mode 模式名称
-   * @return 格式化的模式组件
-   */
-  public static Component createModePill(String mode) {
-    String emoji;
-    ChatFormatting color;
 
-    switch (mode.toLowerCase()) {
-      case "hunt", "出击" -> {
-        emoji = EMOJI_HUNT;
-        color = MODE_HUNT;
-      }
-      case "guard", "守护" -> {
-        emoji = EMOJI_GUARD;
-        color = MODE_GUARD;
-      }
-      case "orbit", "环绕" -> {
-        emoji = EMOJI_ORBIT;
-        color = MODE_ORBIT;
-      }
-      case "hover", "悬浮" -> {
-        emoji = EMOJI_HOVER;
-        color = MODE_HOVER;
-      }
-      case "recall", "召回" -> {
-        emoji = EMOJI_RECALL;
-        color = MODE_RECALL;
-      }
-      case "swarm", "集群" -> {
-        emoji = EMOJI_SWARM;
-        color = MODE_SWARM;
-      }
-      default -> {
-        emoji = "?";
-        color = LABEL;
-      }
-    }
-
-    if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal(emoji + " " + mode).withStyle(color);
-    } else {
-      return Component.literal("[" + mode + "]").withStyle(color);
-    }
+  /** 将字符串按可视宽度裁剪到不超过 maxWidth（考虑 CJK/emoji 宽度）。 */
+  public static String truncateToVisualWidth(String s, int maxWidth) {
+    return CharWidthCalculator.truncate(s, maxWidth);
   }
 
-  /**
-   * 创建标签：值格式的文本。
-   *
-   * @param label 标签
-   * @param value 值
-   * @return 格式化的组件
-   */
-  public static Component createLabelValue(String label, String value) {
-    return Component.literal(label + ": ").withStyle(LABEL)
-        .append(Component.literal(value).withStyle(VALUE));
-  }
-
-  /**
-   * 创建标签：值格式的文本（带颜色）。
-   *
-   * @param label 标签
-   * @param value 值
-   * @param valueColor 值的颜色
-   * @return 格式化的组件
-   */
-  public static Component createLabelValue(String label, String value, ChatFormatting valueColor) {
-    return Component.literal(label + ": ").withStyle(LABEL)
-        .append(Component.literal(value).withStyle(valueColor));
-  }
-
-  /**
-   * 创建进度条。
-   *
-   * @param current 当前值
-   * @param max 最大值
-   * @param width 进度条宽度（字符数）
-   * @param fullColor 已填充部分颜色
-   * @param emptyColor 空白部分颜色
-   * @return 格式化的进度条组件
-   */
-  public static Component createProgressBar(
-      double current, double max, int width, ChatFormatting fullColor, ChatFormatting emptyColor) {
-    double ratio = Math.min(1.0, Math.max(0.0, current / max));
-    int filled = (int) Math.round(ratio * width);
-    int empty = width - filled;
-
-    String fullChar = FlyingSwordTuning.TUI_FANCY_EMOJI ? "█" : "#";
-    String emptyChar = FlyingSwordTuning.TUI_FANCY_EMOJI ? "░" : "-";
-
-    MutableComponent bar = Component.literal("");
-
-    if (filled > 0) {
-      bar.append(Component.literal(fullChar.repeat(filled)).withStyle(fullColor));
-    }
-    if (empty > 0) {
-      bar.append(Component.literal(emptyChar.repeat(empty)).withStyle(emptyColor));
-    }
-
-    return bar;
-  }
-
-  /**
-   * 创建按钮（可点击文本）。
-   *
-   * @param label 按钮文本
-   * @return 格式化的按钮组件（不含命令和悬停）
-   */
-  public static MutableComponent createButton(String label) {
-    if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      return Component.literal("[" + label + "]")
-          .withStyle(BUTTON)
-          .withStyle(ChatFormatting.UNDERLINE);
-    } else {
-      return Component.literal("[" + label + "]")
-          .withStyle(BUTTON);
-    }
-  }
-
-  /**
-   * 创建导航按钮行。
-   *
-   * @param hasPrev 是否有上一页
-   * @param hasNext 是否有下一页
-   * @param currentPage 当前页码
-   * @param totalPages 总页数
-   * @return 格式化的导航栏组件
-   */
-  public static Component createNavigation(
-      boolean hasPrev, boolean hasNext, int currentPage, int totalPages) {
-    MutableComponent nav = Component.literal("");
-
-    if (FlyingSwordTuning.TUI_FANCY_EMOJI) {
-      // Fancy 模式：使导航条与边框宽度对齐（├──── content ────┤）
-      int interior = Math.max(0, currentBorderWidth() - 2);
-      String contentStr =
-          " " + EMOJI_ARROW_LEFT + " 第" + currentPage + "/" + totalPages + "页 " + EMOJI_ARROW_RIGHT
-              + " ";
-      int contentWidth = visualLength(contentStr);
-      int padding = Math.max(0, interior - contentWidth);
-      int left = padding / 2;
-      int right = padding - left;
-
-      nav.append(Component.literal("├").withStyle(DIM));
-      if (left > 0) {
-        nav.append(Component.literal(repeat('─', left)).withStyle(DIM));
-      }
-
-      // 左空格
-      nav.append(Component.literal(" ").withStyle(DIM));
-      // 上一页箭头
-      nav.append(
-          Component.literal(EMOJI_ARROW_LEFT)
-              .withStyle(hasPrev ? BUTTON : DIM));
-      // 文本
-      nav.append(
-          Component.literal(" 第" + currentPage + "/" + totalPages + "页 ")
-              .withStyle(LABEL));
-      // 下一页箭头
-      nav.append(
-          Component.literal(EMOJI_ARROW_RIGHT)
-              .withStyle(hasNext ? BUTTON : DIM));
-      // 右空格
-      nav.append(Component.literal(" ").withStyle(DIM));
-
-      if (right > 0) {
-        nav.append(Component.literal(repeat('─', right)).withStyle(DIM));
-      }
-      nav.append(Component.literal("┤").withStyle(DIM));
-    } else {
-      if (hasPrev) {
-        nav.append(Component.literal("< ").withStyle(BUTTON));
-      } else {
-        nav.append(Component.literal("< ").withStyle(DIM));
-      }
-
-      nav.append(
-          Component.literal(" 第" + currentPage + "/" + totalPages + "页 ")
-              .withStyle(LABEL));
-
-      if (hasNext) {
-        nav.append(Component.literal(" >").withStyle(BUTTON));
-      } else {
-        nav.append(Component.literal(" >").withStyle(DIM));
-      }
-    }
-
-    return nav;
-  }
-
-  /**
-   * 创建间隔符。
-   *
-   * @return 格式化的间隔符
-   */
-  public static Component createSpacer() {
-    return Component.literal(" " + EMOJI_SEPARATOR + " ").withStyle(DIM);
-  }
 
   private static String repeat(char ch, int count) {
     if (count <= 0) {
@@ -460,44 +293,29 @@ public final class TUITheme {
     return String.valueOf(ch).repeat(count);
   }
 
-  private static int visualLength(String text) {
-    if (text == null || text.isEmpty()) {
-      return 0;
+  /** 以"单位"为计数的填充：当启用全角模式时，用 U+3000；否则用普通空格或降级字符。 */
+  private static String padUnits(int units) {
+    if (units <= 0) return "";
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
+        .FlyingSwordTuning.TUI_FULLWIDTH_PAD) {
+      // 全角空格占2单位，所以需要除以2（向下取整）
+      // 如果units是奇数，会少1单位，用半角空格补齐
+      int fullwidthCount = units / 2;
+      int remainder = units % 2;
+      String result = "　".repeat(fullwidthCount);
+      if (remainder > 0) {
+        result += " ";  // 补充半角空格
+      }
+      return result;
     }
-    int width = 0;
-    for (int i = 0; i < text.length(); ) {
-      int cp = text.codePointAt(i);
-      i += Character.charCount(cp);
-      width += isWide(cp) ? 2 : 1;
-    }
-    return width;
+    // 默认使用半角空格
+    return " ".repeat(units);
   }
 
-  private static boolean isWide(int cp) {
-    // CJK 统一表意 + 扩展
-    if ((cp >= 0x4E00 && cp <= 0x9FFF)
-        || (cp >= 0x3400 && cp <= 0x4DBF)
-        || (cp >= 0x20000 && cp <= 0x2A6DF)
-        || (cp >= 0x2A700 && cp <= 0x2B73F)
-        || (cp >= 0x2B740 && cp <= 0x2B81F)
-        || (cp >= 0x2B820 && cp <= 0x2CEAF)
-        || (cp >= 0xF900 && cp <= 0xFAFF)
-        || (cp >= 0x2F800 && cp <= 0x2FA1F)) {
-      return true;
-    }
-    // CJK 标点/全角符号
-    if ((cp >= 0x3000 && cp <= 0x303F)
-        || (cp >= 0xFF00 && cp <= 0xFFEF)) {
-      return true;
-    }
-    // 常用 emoji 区段
-    if (cp >= 0x1F300 && cp <= 0x1FAD6) {
-      return true;
-    }
-    // 项目常用符号
-    if ("✦⚔🛡🌀⏸🔁🌿🗡📦🔧👥🎯◀▶✓✗⏱⚠·".indexOf(cp) >= 0) {
-      return true;
-    }
-    return false;
+  // 注：宽度计算已迁移到 CharWidthCalculator
+  // 近似等宽度量：仅按 codePoint 计数，用于顶部/ASCII边框的居中对齐。
+  private static int codePointLength(String text) {
+    if (text == null || text.isEmpty()) return 0;
+    return text.codePointCount(0, text.length());
   }
 }

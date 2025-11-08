@@ -177,5 +177,28 @@ public final class FlyingSwordTuning {
   public static final int TUI_FRAME_MAX_WIDTH = 20;
 
   /** 飞剑 TUI 边框宽度（字符）。 */
-  public static final int TUI_BORDER_WIDTH = 12;
+  public static final int TUI_BORDER_WIDTH = 20;
+
+  /** 使用全角空格（U+3000）作为填充，令横向填充隐形且像素宽一致。 */
+  public static final boolean TUI_FULLWIDTH_PAD = true;
+
+  /** 竖线绘制字符（默认 U+FF5C，全角竖线，减少行间缝隙视觉感）。 */
+  public static final char TUI_VBAR_CHAR = '\uFF5C';
+
+  /** 是否显示可见的水平线（顶边/底边/分隔）。关闭则使用全角空格隐形。 */
+  public static final boolean TUI_VISIBLE_HLINES = false;
+
+  // 移除标题偏置/装饰调试项，采用稳定的无装饰标题与 ASCII 边框。
+
+  // ==================== TUI 占位模式（固定边界） ====================
+  /** 是否将 /flyingsword ui 切换为固定边界占位版。 */
+  public static final boolean TUI_PLACEHOLDER_MAIN = true;
+  /** 是否将 /flyingsword ui_active 切换为固定边界占位版。 */
+  public static final boolean TUI_PLACEHOLDER_ACTIVE = false;
+  /** 是否将 /flyingsword ui_storage 切换为固定边界占位版。 */
+  public static final boolean TUI_PLACEHOLDER_STORAGE = false;
+  /** 占位版默认宽度。 */
+  public static final int TUI_PLACEHOLDER_WIDTH = 120;
+  /** 占位版默认空白行数。 */
+  public static final int TUI_PLACEHOLDER_ROWS = 8;
 }
