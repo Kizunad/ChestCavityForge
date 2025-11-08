@@ -66,5 +66,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(suiRen)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(suiRen);
     }
+
+    // 剑梭蛊：剑梭突进
+    var jianSuo = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_suo_gu_dash");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianSuo)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianSuo);
+    }
   }
 }

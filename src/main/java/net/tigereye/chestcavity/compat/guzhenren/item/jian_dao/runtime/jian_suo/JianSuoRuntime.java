@@ -39,7 +39,41 @@ public final class JianSuoRuntime {
   /** 后退安全检测步数。*/
   private static final int BACKSTEP_SAFE_STEPS = 8;
 
+  /** 命中记录过期时间（ticks）= 5分钟。超过此时间未被命中的记录将被清理。*/
+  private static final long HIT_RECORD_EXPIRE_TICKS = 6000L;
+
+  /** 上次清理时间。*/
+  private static long lastCleanupTick = 0L;
+
+  /** 清理间隔（ticks）= 30秒。*/
+  private static final long CLEANUP_INTERVAL_TICKS = 600L;
+
   private JianSuoRuntime() {}
+
+  /**
+   * 清理过期的命中记录（防止内存泄漏）。
+   *
+   * <p>定期清理超过 {@link #HIT_RECORD_EXPIRE_TICKS} 未被命中的记录。
+   *
+   * @param now 当前游戏时间（ticks）
+   */
+  private static void cleanupExpiredHitRecords(long now) {
+    if (now - lastCleanupTick < CLEANUP_INTERVAL_TICKS) {
+      return; // 未到清理间隔
+    }
+
+    lastCleanupTick = now;
+
+    int sizeBefore = LAST_HIT_TICK.size();
+    LAST_HIT_TICK.entrySet().removeIf(entry -> now - entry.getValue() > HIT_RECORD_EXPIRE_TICKS);
+    int sizeAfter = LAST_HIT_TICK.size();
+
+    if (sizeBefore != sizeAfter && LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[JianSuoRuntime] Cleaned up {} expired hit records ({} -> {})",
+          sizeBefore - sizeAfter, sizeBefore, sizeAfter);
+    }
+  }
 
   /**
    * 执行突进并沿路径造成伤害。
@@ -112,6 +146,9 @@ public final class JianSuoRuntime {
 
     ServerLevel serverLevel = (ServerLevel) level;
     long now = serverLevel.getGameTime();
+
+    // 定期清理过期记录（防止内存泄漏）
+    cleanupExpiredHitRecords(now);
 
     Vec3 step = dir.normalize().scale(totalDist / maxSteps);
     Vec3 startPos = self.position();

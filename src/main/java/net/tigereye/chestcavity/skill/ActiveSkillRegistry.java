@@ -1102,6 +1102,21 @@ public final class ActiveSkillRegistry {
                 net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning
                     .SuiRenGuBalance.COOLDOWN_TICKS)));
 
+    // 剑梭蛊：剑梭突进（三至五转）
+    register(
+        "guzhenren:jian_suo_gu_dash",
+        "guzhenren:jian_suo_gu_dash",
+        "guzhenren:jiansuogu",
+        tags("位移", "输出", "剑道"),
+        "剑梭突进：向前突进并沿路径造成伤害，距离与伤害受剑道道痕增幅；被动受击触发躲避后退与减伤",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianSuoGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .JianSuoGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("剑梭就绪", "3-6 秒冷却"));
+
     // 舍生取义（联动）：以生机叶图标展示，实际激活时要求具备舍利蛊 + 生机系器官
     register(
         "guzhenren:synergy/she_sheng_qu_yi",
