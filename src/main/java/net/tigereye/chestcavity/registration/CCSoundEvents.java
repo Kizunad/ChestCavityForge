@@ -76,6 +76,13 @@ public final class CCSoundEvents {
               SoundEvent.createVariableRangeEvent(
                   ChestCavity.id("custom.flyingsword.out_of_energy")));
 
+  public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_FLYINGSWORD_SHATTER =
+      SOUND_EVENTS.register(
+          "custom.flyingsword.shatter",
+          () ->
+              SoundEvent.createVariableRangeEvent(
+                  ChestCavity.id("custom.flyingsword.shatter")));
+
   // ===== Rift (裂隙) =====
   public static final DeferredHolder<SoundEvent, SoundEvent> CUSTOM_RIFT_SPAWN =
       SOUND_EVENTS.register(
