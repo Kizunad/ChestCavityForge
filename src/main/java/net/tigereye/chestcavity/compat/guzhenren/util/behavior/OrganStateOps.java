@@ -147,6 +147,22 @@ public final class OrganStateOps {
     return change;
   }
 
+  /** Remove a stored key and sync the owning slot if needed. */
+  public static boolean removeKey(
+      OrganState state, ChestCavityInstance cc, ItemStack stack, String key) {
+    if (state == null || key == null || key.isEmpty()) {
+      return false;
+    }
+    if (!state.contains(key)) {
+      return false;
+    }
+    state.remove(key);
+    if (cc != null && stack != null && !stack.isEmpty()) {
+      NetworkUtil.sendOrganSlotUpdate(cc, stack);
+    }
+    return true;
+  }
+
   /**
    * Create a collector that aggregates {@link OrganState.Change} instances and emits a single
    * {@link NetworkUtil#sendOrganSlotUpdate(ChestCavityInstance, ItemStack)} call when committed.

@@ -155,6 +155,7 @@ public final class ShockfieldManager {
 
     List<WaveId> toRemove = new ArrayList<>();
     List<ShockfieldState> toAdd = new ArrayList<>();
+    Set<UUID> ownersPendingCleanup = new HashSet<>();
 
     for (Map.Entry<WaveId, ShockfieldState> entry : activeShockfields.entrySet()) {
       ShockfieldState state = entry.getValue();
@@ -175,6 +176,7 @@ public final class ShockfieldManager {
       boolean lifetime = ShockfieldMath.hasExceededLifetime(state.getAgeSeconds(currentTick));
       if (damped || lifetime) {
         toRemove.add(entry.getKey());
+        ownersPendingCleanup.add(state.getOwnerId());
         ShockfieldFx.service()
             .onExtinguish(
                 level,
@@ -204,6 +206,14 @@ public final class ShockfieldManager {
       }
     }
 
+    if (!ownersPendingCleanup.isEmpty()) {
+      for (UUID ownerId : ownersPendingCleanup) {
+        if (!hasActiveShockfield(ownerId)) {
+          cleanupOwnerState(ownerId);
+        }
+      }
+    }
+
     // MultiCooldown 无需在此清理，冷却自然到期
   }
 
@@ -214,6 +224,7 @@ public final class ShockfieldManager {
    */
   public void removeByOwner(UUID ownerId) {
     activeShockfields.entrySet().removeIf(entry -> entry.getValue().getOwnerId().equals(ownerId));
+    cleanupOwnerState(ownerId);
   }
 
   /**
@@ -427,6 +438,30 @@ public final class ShockfieldManager {
    */
   private String makeHitGateKey(WaveId waveId, UUID targetId) {
     return "shockfield:hit|" + waveId.toString() + "|" + targetId;
+  }
+
+  private void cleanupOwnerState(UUID ownerId) {
+    if (ownerId == null) {
+      return;
+    }
+    MultiCooldown cd = ownerCooldowns.remove(ownerId);
+    if (cd != null) {
+      cd.purgeAll();
+    }
+    ownerDpsBucketSec.remove(ownerId);
+    ownerDpsRawAgg.remove(ownerId);
+  }
+
+  private boolean hasActiveShockfield(UUID ownerId) {
+    if (ownerId == null) {
+      return false;
+    }
+    for (ShockfieldState state : activeShockfields.values()) {
+      if (ownerId.equals(state.getOwnerId())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** 计算目标的抗性百分比（近似）：使用抗性药水，按 20%/级，最高 60%。 */

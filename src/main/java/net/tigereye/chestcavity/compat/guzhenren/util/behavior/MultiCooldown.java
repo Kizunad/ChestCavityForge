@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.util.behavior;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -86,6 +87,18 @@ public final class MultiCooldown {
   public void clearAll() {
     longEntries.values().forEach(Entry::clear);
     intEntries.values().forEach(EntryInt::clear);
+  }
+
+  /** Remove all tracked entries and delete their stored keys. */
+  public void purgeAll() {
+    for (Entry entry : new ArrayList<>(longEntries.values())) {
+      entry.purge();
+    }
+    longEntries.clear();
+    for (EntryInt entry : new ArrayList<>(intEntries.values())) {
+      entry.purge();
+    }
+    intEntries.clear();
   }
 
   private OrganState.Change<Long> writeLong(
@@ -188,6 +201,11 @@ public final class MultiCooldown {
       return this;
     }
 
+    /** Remove the stored key entirely. */
+    public void purge() {
+      MultiCooldown.this.removeKey(key);
+    }
+
     private long resolveDefault() {
       return defaultOverride == null ? longDefault : defaultOverride;
     }
@@ -288,6 +306,22 @@ public final class MultiCooldown {
 
     private IntUnaryOperator resolveClamp() {
       return clampOverride == null ? intClamp : clampOverride;
+    }
+
+    /** Remove the stored key entirely. */
+    public void purge() {
+      MultiCooldown.this.removeKey(key);
+    }
+  }
+
+  private void removeKey(String key) {
+    if (key == null) {
+      return;
+    }
+    if (chestCavity != null && organ != null && !organ.isEmpty()) {
+      OrganStateOps.removeKey(state, chestCavity, organ, key);
+    } else {
+      state.remove(key);
     }
   }
 
