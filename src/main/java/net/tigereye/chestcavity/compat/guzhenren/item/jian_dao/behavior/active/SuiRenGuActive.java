@@ -217,6 +217,9 @@ public final class SuiRenGuActive {
   /**
    * 清除已应用的道痕增幅（buff 结束时调用）。
    *
+   * <p>关键：支持多次叠加施放。若玩家在 buff 持续期间再次施放并延长了结束时间，
+   * 需要检查当前时间是否真正到达最新的结束时间，避免旧回调提前清除累积增幅。
+   *
    * @param player 玩家
    * @param cc 胸腔实例
    * @param organ 器官物品
@@ -227,6 +230,15 @@ public final class SuiRenGuActive {
       ChestCavityInstance cc,
       ItemStack organ,
       OrganState state) {
+
+    // 0. 时间检查：只有当前时间确实到达或超过结束时间才执行清除
+    //    这样可以防止多次施放时旧回调提前清除累积的增幅
+    long now = player.serverLevel().getGameTime();
+    long buffEndAt = state.getLong(SuiRenGuState.KEY_BUFF_END_AT_TICK, 0L);
+    if (now < buffEndAt) {
+      // 还未到真正的结束时间，这是旧回调提前触发，直接返回
+      return;
+    }
 
     // 1. 读取已应用的增幅值
     int appliedDelta = state.getInt(SuiRenGuState.KEY_BUFF_APPLIED_DELTA, 0);
