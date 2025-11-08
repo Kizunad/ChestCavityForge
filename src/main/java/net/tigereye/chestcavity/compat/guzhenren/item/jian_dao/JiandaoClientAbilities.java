@@ -54,5 +54,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianLiao)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(jianLiao);
     }
+
+    // 剑脉蛊：剑脉涌流
+    var jianmai = net.minecraft.resources.ResourceLocation.parse("guzhenren:jianmai_overdrive");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianmai)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianmai);
+    }
   }
 }
