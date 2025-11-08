@@ -90,9 +90,10 @@ public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
           swordId, daohen, dashDist, damage);
     }
 
-    // 6. 执行突进
+    // 6. 执行突进（使用主人作为攻击者进行敌我判断）
     double actualDist = JianSuoRuntime.tryDashAndDamage(
         ctx.sword,
+        ctx.owner, // 主人作为攻击者，用于敌我判断和伤害源
         dir,
         dashDist,
         damage,

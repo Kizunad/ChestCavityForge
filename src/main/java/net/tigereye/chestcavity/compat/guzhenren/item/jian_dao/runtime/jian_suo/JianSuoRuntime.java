@@ -69,6 +69,41 @@ public final class JianSuoRuntime {
       double halfWidth,
       int maxSteps,
       int hitDedupTicks) {
+    // 如果 self 是 LivingEntity，则用自己作为攻击者
+    LivingEntity attacker = self instanceof LivingEntity living ? living : null;
+    return tryDashAndDamage(self, attacker, dir, totalDist, damage, halfWidth, maxSteps, hitDedupTicks);
+  }
+
+  /**
+   * 执行突进并沿路径造成伤害（带显式攻击者参数）。
+   *
+   * <p>特性：
+   * <ul>
+   *   <li>逐帧推进，每步检查碰撞，遇到障碍提前终止</li>
+   *   <li>胶囊体采样命中，过滤友方与自身</li>
+   *   <li>命中去重（基于时间窗口）</li>
+   *   <li>应用轻微击退</li>
+   * </ul>
+   *
+   * @param self 突进者（玩家或飞剑）
+   * @param attacker 攻击者（用于敌我判断和伤害源），可为 null
+   * @param dir 突进方向（已归一化）
+   * @param totalDist 总距离（格）
+   * @param damage 路径伤害
+   * @param halfWidth 胶囊体半宽
+   * @param maxSteps 最大步数
+   * @param hitDedupTicks 命中去重窗口（ticks）
+   * @return 实际移动距离
+   */
+  public static double tryDashAndDamage(
+      Entity self,
+      @Nullable LivingEntity attacker,
+      Vec3 dir,
+      double totalDist,
+      double damage,
+      double halfWidth,
+      int maxSteps,
+      int hitDedupTicks) {
 
     Level level = self.level();
     if (level.isClientSide()) {
@@ -112,10 +147,19 @@ public final class JianSuoRuntime {
           level.getEntitiesOfClass(LivingEntity.class, sweepBox, entity -> entity != self);
 
       for (LivingEntity target : candidates) {
-        // 友方过滤
-        if (!CombatEntityUtil.areEnemies(self, target)) {
-          continue;
+        // 友方过滤：使用 attacker（如果提供）进行敌我判断
+        if (attacker != null) {
+          if (!CombatEntityUtil.areEnemies(attacker, target)) {
+            continue;
+          }
         }
+        // 如果没有 attacker 但 self 是 LivingEntity，也尝试判断
+        else if (self instanceof LivingEntity living) {
+          if (!CombatEntityUtil.areEnemies(living, target)) {
+            continue;
+          }
+        }
+        // 否则跳过友方过滤（无法判断，默认允许命中）
 
         int targetId = target.getId();
 
@@ -130,9 +174,11 @@ public final class JianSuoRuntime {
           continue;
         }
 
-        // 造成伤害
+        // 造成伤害：优先使用 attacker 作为伤害源
         DamageSource damageSource;
-        if (self instanceof LivingEntity living) {
+        if (attacker != null) {
+          damageSource = attacker.damageSources().mobAttack(attacker);
+        } else if (self instanceof LivingEntity living) {
           damageSource = living.damageSources().mobAttack(living);
         } else {
           damageSource = target.damageSources().generic();
