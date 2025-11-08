@@ -35,8 +35,11 @@ public final class CalcContexts {
       if (owner instanceof Player) {
         // 使用有效道痕（含 JME 和流派经验加成）
         if (owner instanceof ServerPlayer serverPlayer) {
+          // IMPORTANT: 使用玩家所在世界的时间，而非飞剑所在世界的时间
+          // 这确保与 JianmaiAmpOps 和 SwordOwnerDaohenCache 的时间轴一致
+          long playerWorldTime = serverPlayer.serverLevel().getGameTime();
           ctx.ownerJianDaoScar =
-              JiandaoDaohenOps.effectiveCached(serverPlayer, ctx.worldTime);
+              JiandaoDaohenOps.effectiveCached(serverPlayer, playerWorldTime);
         } else {
           // 客户端玩家：fallback 到原始道痕
           net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
