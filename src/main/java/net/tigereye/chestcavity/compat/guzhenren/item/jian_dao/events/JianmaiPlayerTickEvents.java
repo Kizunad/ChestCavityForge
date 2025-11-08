@@ -53,6 +53,11 @@ public final class JianmaiPlayerTickEvents {
       return;
     }
 
+    // 检查玩家是否装备了剑脉蛊
+    if (!hasJianmaiGu(player)) {
+      return;
+    }
+
     long now = player.serverLevel().getGameTime();
     long lastTick = JianmaiNBT.readLastTick(player);
 
@@ -198,5 +203,35 @@ public final class JianmaiPlayerTickEvents {
     if (atkAttr != null) {
       atkAttr.removeModifier(ATK_MODIFIER_ID);
     }
+  }
+
+  /**
+   * 检查玩家是否装备了剑脉蛊。
+   *
+   * @param player 玩家
+   * @return 是否装备了剑脉蛊
+   */
+  private static boolean hasJianmaiGu(ServerPlayer player) {
+    var cc = net.tigereye.chestcavity.ChestCavity.getChestCavityInstance(player);
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
+
+    ResourceLocation organId = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jianmaigu");
+
+    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+      var stack = cc.inventory.getItem(i);
+      if (stack.isEmpty()) {
+        continue;
+      }
+
+      ResourceLocation itemId =
+          net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+      if (itemId != null && itemId.equals(organId)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

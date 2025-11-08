@@ -44,8 +44,10 @@ public final class JianmaiNBT {
 
   // ========== JME_Amp 子字段 ==========
   private static final String K_AMP_K = "ampK";
-  private static final String K_AMP_MULT = "mult";
-  private static final String K_AMP_EXPIRE = "expireGameTime";
+  private static final String K_AMP_MULT_PASSIVE = "multPassive"; // 被动 JME 倍率
+  private static final String K_AMP_MULT_ACTIVE = "multActive";   // 主动技能倍率
+  private static final String K_AMP_EXPIRE = "expireGameTime";     // 被动过期时间
+  private static final String K_AMP_ACTIVE_EXPIRE = "activeExpireGameTime"; // 主动过期时间
   private static final String K_AMP_GRACE = "graceTicks";
 
   // ========== 读取方法 ==========
@@ -192,19 +194,29 @@ public final class JianmaiNBT {
    *
    * @param player 玩家
    * @param ampK 道痕增幅系数
-   * @param mult 当前倍率
-   * @param expireGameTime 过期时间
+   * @param multPassive 被动倍率
+   * @param multActive 主动倍率
+   * @param expireGameTime 被动过期时间
+   * @param activeExpireGameTime 主动过期时间
    * @param graceTicks 宽限期
    */
   public static void writeAmp(
-      ServerPlayer player, double ampK, double mult, long expireGameTime, int graceTicks) {
+      ServerPlayer player,
+      double ampK,
+      double multPassive,
+      double multActive,
+      long expireGameTime,
+      long activeExpireGameTime,
+      int graceTicks) {
     CompoundTag root = player.getPersistentData();
     CompoundTag data = root.getCompound(NAMESPACE);
 
     CompoundTag amp = new CompoundTag();
     amp.putDouble(K_AMP_K, ampK);
-    amp.putDouble(K_AMP_MULT, mult);
+    amp.putDouble(K_AMP_MULT_PASSIVE, multPassive);
+    amp.putDouble(K_AMP_MULT_ACTIVE, multActive);
     amp.putLong(K_AMP_EXPIRE, expireGameTime);
+    amp.putLong(K_AMP_ACTIVE_EXPIRE, activeExpireGameTime);
     amp.putInt(K_AMP_GRACE, graceTicks);
 
     data.put(K_JME_AMP, amp);
@@ -222,23 +234,43 @@ public final class JianmaiNBT {
   }
 
   /**
-   * 读取当前倍率（mult）。
+   * 读取被动倍率（multPassive）。
    *
    * @param ampData 增幅数据（CompoundTag）
-   * @return mult，默认 1.0
+   * @return multPassive，默认 1.0
    */
-  public static double getMult(CompoundTag ampData) {
-    return ampData.contains(K_AMP_MULT) ? ampData.getDouble(K_AMP_MULT) : 1.0;
+  public static double getMultPassive(CompoundTag ampData) {
+    return ampData.contains(K_AMP_MULT_PASSIVE) ? ampData.getDouble(K_AMP_MULT_PASSIVE) : 1.0;
   }
 
   /**
-   * 读取过期时间（expireGameTime）。
+   * 读取主动倍率（multActive）。
    *
    * @param ampData 增幅数据（CompoundTag）
-   * @return 过期时间，默认 0
+   * @return multActive，默认 1.0
+   */
+  public static double getMultActive(CompoundTag ampData) {
+    return ampData.contains(K_AMP_MULT_ACTIVE) ? ampData.getDouble(K_AMP_MULT_ACTIVE) : 1.0;
+  }
+
+  /**
+   * 读取被动过期时间（expireGameTime）。
+   *
+   * @param ampData 增幅数据（CompoundTag）
+   * @return 被动过期时间，默认 0
    */
   public static long getExpire(CompoundTag ampData) {
     return ampData.getLong(K_AMP_EXPIRE);
+  }
+
+  /**
+   * 读取主动过期时间（activeExpireGameTime）。
+   *
+   * @param ampData 增幅数据（CompoundTag）
+   * @return 主动过期时间，默认 0
+   */
+  public static long getActiveExpire(CompoundTag ampData) {
+    return ampData.getLong(K_AMP_ACTIVE_EXPIRE);
   }
 
   /**
