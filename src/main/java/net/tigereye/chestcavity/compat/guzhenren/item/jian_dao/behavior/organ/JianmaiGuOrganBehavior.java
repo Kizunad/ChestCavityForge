@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ;
 
+import java.util.List;
 import java.util.OptionalDouble;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -7,8 +8,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.events.JianmaiPlayerTickEvents;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianmaiAudioEffects;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianmaiVisualEffects;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiAmpOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiNBT;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTuning;
@@ -113,6 +117,24 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
     // 应用主动增幅（直接调整道痕值）
     JianmaiAmpOps.applyActiveBuff(player, deltaAmount, JianmaiTuning.ACTIVE_DURATION_TICKS, now);
 
+    // ========== 主动特效 ==========
+
+    // 播放激活音效
+    JianmaiAudioEffects.playActivation(player, deltaAmount);
+
+    // 扫描周围飞剑并渲染雷电链
+    double radius = JianmaiNBT.readRadius(player);
+    List<FlyingSwordEntity> swords =
+        player.level().getEntitiesOfClass(
+            FlyingSwordEntity.class,
+            player.getBoundingBox().inflate(radius),
+            sword -> sword.isAlive() && isOwnedBy(sword, player));
+
+    // 渲染雷电链视觉效果
+    if (!swords.isEmpty()) {
+      JianmaiVisualEffects.renderActiveLightning(player, swords, deltaAmount, now);
+    }
+
     // 启动冷却并安排就绪提示
     long readyAt = now + JianmaiTuning.ACTIVE_COOLDOWN_TICKS;
     ready.setReadyAt(readyAt);
@@ -155,6 +177,17 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
     }
 
     return ItemStack.EMPTY;
+  }
+
+  /**
+   * 判断飞剑是否属于玩家。
+   *
+   * @param sword 飞剑
+   * @param player 玩家
+   * @return 是否属于玩家
+   */
+  private static boolean isOwnedBy(FlyingSwordEntity sword, ServerPlayer player) {
+    return sword.getOwner() != null && sword.getOwner().getUUID().equals(player.getUUID());
   }
 
   // ========== 卸载监听器 ==========

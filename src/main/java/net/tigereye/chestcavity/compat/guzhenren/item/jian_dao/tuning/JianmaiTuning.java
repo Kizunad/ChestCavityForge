@@ -106,4 +106,54 @@ public final class JianmaiTuning {
 
   /** 流派经验指数。*/
   public static final double LIUPAI_ALPHA = 0.8;
+
+  // ========== 视觉特效参数（被动） ==========
+
+  /** 脉络扫描间隔（Tick）：每 Tick 更新一次。*/
+  public static final int VEIN_RENDER_INTERVAL = 1;
+
+  /** 脉络最大粒子数：防止过载。*/
+  public static final int VEIN_MAX_PARTICLES = 50;
+
+  /** 脉络粒子间隔（方块）：每隔1米放置一个粒子。*/
+  public static final double VEIN_PARTICLE_SPACING = 1.0;
+
+  /** 脉络透明度（0-1）：能量线的不透明度。*/
+  public static final float VEIN_ALPHA = 0.5f;
+
+  /** 脉络颜色（RGB）：淡蓝色。*/
+  public static final int[] VEIN_COLOR = {100, 150, 255};
+
+  // ========== 音频特效参数（被动） ==========
+
+  /** 心跳声触发间隔（Tick）：每10秒播放一次。*/
+  public static final int HEARTBEAT_INTERVAL = 200;
+
+  /** 心跳声音量：很小声，不打扰。*/
+  public static final float HEARTBEAT_VOLUME = 0.3f;
+
+  // ========== 视觉特效参数（主动） ==========
+
+  /** 雷电链持续时间（Tick）：3秒后淡出。*/
+  public static final int LIGHTNING_DURATION = 60;
+
+  /** 雷电链粒子生成间隔（Tick）：每0.3秒生成一次粒子。*/
+  public static final int LIGHTNING_PARTICLE_INTERVAL = 6;
+
+  /** 雷电链颜色（RGB）：纯蓝色。*/
+  public static final int[] LIGHTNING_COLOR = {0, 100, 255};
+
+  /** 雷电链粒子间隔（方块）：每隔0.5米放置一个粒子。*/
+  public static final double LIGHTNING_PARTICLE_SPACING = 0.5;
+
+  // ========== 音频特效参数（主动） ==========
+
+  /** 激活音效音量：清晰可听。*/
+  public static final float ACTIVATION_VOLUME = 1.0f;
+
+  /** 激活音效范围（格）：附近玩家都能听到。*/
+  public static final double ACTIVATION_SOUND_RANGE = 40.0;
+
+  /** 屏幕白闪强度（0-1）：可选效果，强化激活感。*/
+  public static final float SCREEN_FLASH_INTENSITY = 0.3f;
 }
