@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.SwordOwnerDaohenCache;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTuning;
 
 /**
@@ -74,6 +75,9 @@ public final class JianmaiAmpOps {
 
     // 写回（保留主动倍率）
     JianmaiNBT.writeAmp(player, ampK, multPassive, multActive, newPassiveExpire, activeExpire, grace);
+
+    // 失效缓存（JME 倍率变化）
+    SwordOwnerDaohenCache.invalidate(player);
   }
 
   /**
@@ -115,6 +119,9 @@ public final class JianmaiAmpOps {
 
     // 写回（保留被动倍率）
     JianmaiNBT.writeAmp(player, ampK, multPassive, newMultActive, passiveExpire, newActiveExpire, grace);
+
+    // 失效缓存（主动券倍率变化）
+    SwordOwnerDaohenCache.invalidate(player);
   }
 
   /**
@@ -125,7 +132,7 @@ public final class JianmaiAmpOps {
    *   <li>分别检查被动和主动过期：now >= expireGameTime → 对应倍率重置为 1.0</li>
    *   <li>被动宽限期：线性插值回 1.0</li>
    *   <li>最终倍率 = multPassive * multActive</li>
-   *   <li>裁剪上限：max(finalMult, AMP_MULT_CAP)</li>
+   *   <li>裁剪上限：min(finalMult, AMP_MULT_CAP)</li>
    * </ul>
    *
    * @param player 玩家
@@ -174,5 +181,8 @@ public final class JianmaiAmpOps {
    */
   public static void clearAll(ServerPlayer player) {
     JianmaiNBT.clearAmp(player);
+
+    // 失效缓存（倍率清空）
+    SwordOwnerDaohenCache.invalidate(player);
   }
 }
