@@ -277,17 +277,17 @@ public final class SuiRenGuFx {
                           (Math.PI * 2.0 * i) / spiralCount + elapsed * 0.3; // 旋转上升
                       double x = playerPos.x + Math.cos(angle) * spiralRadius;
                       double z = playerPos.z + Math.sin(angle) * spiralRadius;
-                      double y = playerPos.y + currentHeight;
+                      double spiralY = playerPos.y + currentHeight;
 
                       // 螺旋能量粒子（附魔 + 灵魂火焰）
                       lvl.sendParticles(
-                          ParticleTypes.ENCHANT, x, y, z, 1, 0.0, 0.05, 0.0, 0.01);
+                          ParticleTypes.ENCHANT, x, spiralY, z, 1, 0.0, 0.05, 0.0, 0.01);
 
                       if (i % 2 == 0) {
                         lvl.sendParticles(
                             ParticleTypes.SOUL_FIRE_FLAME,
                             x,
-                            y,
+                            spiralY,
                             z,
                             1,
                             0.0,
@@ -330,20 +330,20 @@ public final class SuiRenGuFx {
 
                       double x = playerPos.x + Math.cos(angle) * currentRadius;
                       double z = playerPos.z + Math.sin(angle) * currentRadius;
-                      double y = playerPos.y + height;
+                      double absorbY = playerPos.y + height;
 
                       // 向中心移动的粒子
                       double dx = (playerPos.x - x) * 0.15;
                       double dz = (playerPos.z - z) * 0.15;
-                      double dy = (playerPos.y + 1.0 - y) * 0.1;
+                      double dy = (playerPos.y + 1.0 - absorbY) * 0.1;
 
                       lvl.sendParticles(
-                          ParticleTypes.ENCHANTED_HIT, x, y, z, 1, dx, dy, dz, 0.1);
+                          ParticleTypes.ENCHANTED_HIT, x, absorbY, z, 1, dx, dy, dz, 0.1);
 
                       // 额外光效（图腾粒子）
                       if (i % 3 == 0) {
                         lvl.sendParticles(
-                            ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 1, dx, dy, dz, 0.08);
+                            ParticleTypes.TOTEM_OF_UNDYING, x, absorbY, z, 1, dx, dy, dz, 0.08);
                       }
                     }
 
@@ -369,7 +369,7 @@ public final class SuiRenGuFx {
             .onStop(
                 (lvl, reason) -> {
                   // 完成时的最终爆发（成功融入）
-                  if (reason == net.tigereye.chestcavity.engine.fx.StopReason.COMPLETED) {
+                  if (reason == net.tigereye.chestcavity.engine.fx.StopReason.TTL_EXPIRED) {
                     // 最终爆发粒子
                     for (int i = 0; i < 20; i++) {
                       double angle = (Math.PI * 2.0 * i) / 20.0;

@@ -4,6 +4,7 @@ import java.util.Optional;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -79,7 +80,7 @@ public final class JianSuoGuActive {
     }
 
     GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-    double daohen = handle.getDouble("jiandao:daohen_jiandao").orElse(0.0);
+    double daohen = handle.read("jiandao:daohen_jiandao").orElse(0.0);
 
     // 3. 决定方向
     Vec3 dir = determineDashDirection(player);
@@ -106,7 +107,10 @@ public final class JianSuoGuActive {
     ResourceCost cost = new ResourceCost(
         JianSuoGuTuning.BASE_COST_ZHENYUAN,
         JianSuoGuTuning.BASE_COST_JINGLI,
-        JianSuoGuTuning.BASE_COST_NIANTOU
+        0.0, // hunpo
+        JianSuoGuTuning.BASE_COST_NIANTOU,
+        0, // hunger
+        0.0f // health
     );
 
     if (!ResourceOps.payCost(player, cost, "剑梭蛊")) {
@@ -159,7 +163,7 @@ public final class JianSuoGuActive {
     }
 
     // NPC：优先朝向目标
-    LivingEntity target = entity.getTarget();
+    LivingEntity target = entity instanceof Mob mob ? mob.getTarget() : null;
     if (target != null && entity.distanceTo(target) <= JianSuoGuTuning.NPC_GOAL_LOCK_MAXDIST) {
       Vec3 toTarget = target.position().subtract(entity.position());
       Vec3 horizontal = new Vec3(toTarget.x, 0, toTarget.z);

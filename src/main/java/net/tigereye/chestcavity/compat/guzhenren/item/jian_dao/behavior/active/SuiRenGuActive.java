@@ -76,7 +76,10 @@ public final class SuiRenGuActive {
     ResourceCost cost = new ResourceCost(
         SuiRenGuBalance.BASE_COST_ZHENYUAN,
         SuiRenGuBalance.BASE_COST_JINGLI,
-        SuiRenGuBalance.BASE_COST_NIANTOU
+        0.0, // hunpo
+        SuiRenGuBalance.BASE_COST_NIANTOU,
+        0, // hunger
+        0.0f // health
     );
     if (!ResourceOps.payCost(player, cost, "碎刃蛊")) {
       return false; // 资源不足，静默失败
@@ -98,9 +101,9 @@ public final class SuiRenGuActive {
       Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = ResourceOps.openHandle(player);
       if (handleOpt.isPresent()) {
         GuzhenrenResourceBridge.ResourceHandle h = handleOpt.get();
-        h.adjustZhenyuan(+cost.zhenyuan, true);
-        h.adjustJingli(+cost.jingli, true);
-        h.adjustNiantou(+cost.niantou, true);
+        h.adjustZhenyuan(cost.zhenyuan(), true);
+        h.adjustJingli(cost.jingli(), true);
+        h.adjustNiantou(cost.niantou(), true);
       }
       return false;
     }
@@ -112,8 +115,8 @@ public final class SuiRenGuActive {
       SuiRenGuCalc.SwordStats stats = new SuiRenGuCalc.SwordStats(
           sword.getExperience(),
           sword.getSwordAttributes().maxDurability,
-          sword.getSwordAttributes().maxAttack,
-          sword.getSwordAttributes().maxSpeed
+          sword.getSwordAttributes().damageBase,
+          sword.getSwordAttributes().speedMax
       );
       statsList.add(stats);
 
@@ -180,10 +183,11 @@ public final class SuiRenGuActive {
 
     // 2. 记录已应用的增幅值（累加，支持多次叠加）
     int currentApplied = state.getInt(SuiRenGuState.KEY_BUFF_APPLIED_DELTA, 0);
-    int newApplied = currentApplied + delta;
+    int newApplied = currentApplied + (int) delta;
     OrganStateOps.setIntSync(
         cc,
         organ,
+        SuiRenGuState.ROOT,
         SuiRenGuState.KEY_BUFF_APPLIED_DELTA,
         newApplied,
         v -> newApplied,
@@ -196,6 +200,7 @@ public final class SuiRenGuActive {
     OrganStateOps.setLongSync(
         cc,
         organ,
+        SuiRenGuState.ROOT,
         SuiRenGuState.KEY_BUFF_END_AT_TICK,
         newEndAt,
         v -> newEndAt,
@@ -258,6 +263,7 @@ public final class SuiRenGuActive {
     OrganStateOps.setIntSync(
         cc,
         organ,
+        SuiRenGuState.ROOT,
         SuiRenGuState.KEY_BUFF_APPLIED_DELTA,
         0,
         v -> 0,

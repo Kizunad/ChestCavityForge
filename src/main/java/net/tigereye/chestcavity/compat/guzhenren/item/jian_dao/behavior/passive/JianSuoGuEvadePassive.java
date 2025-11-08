@@ -89,7 +89,7 @@ public final class JianSuoGuEvadePassive {
     }
 
     GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-    double daohen = handle.getDouble("jiandao:daohen_jiandao").orElse(0.0);
+    double daohen = handle.read("jiandao:daohen_jiandao").orElse(0.0);
 
     // 3. 计算触发几率
     double evadeChance = JianSuoCalc.evadeChance(daohen);

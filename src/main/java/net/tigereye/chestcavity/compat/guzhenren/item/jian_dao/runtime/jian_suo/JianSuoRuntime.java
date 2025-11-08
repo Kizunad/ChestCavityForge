@@ -351,6 +351,6 @@ public final class JianSuoRuntime {
   public static void spawnEvadeEffect(ServerLevel level, Vec3 pos) {
     level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y + 0.5, pos.z, 8, 0.3, 0.3, 0.3, 0.05);
     level.playSound(
-        null, pos.x, pos.y, pos.z, SoundEvents.WIND_CHARGE_SHOOT, SoundSource.PLAYERS, 0.1f, 1.0f);
+        null, pos.x, pos.y, pos.z, SoundEvents.WIND_CHARGE_BURST, SoundSource.PLAYERS, 0.1f, 1.0f);
   }
 }

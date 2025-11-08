@@ -71,7 +71,7 @@ public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
     }
 
     GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
-    double daohen = handle.getDouble("jiandao:daohen_jiandao").orElse(0.0);
+    double daohen = handle.read("jiandao:daohen_jiandao").orElse(0.0);
 
     // 4. 计算突进参数
     double dashDist = JianSuoCalc.dashDistance(daohen) * JianSuoGuTuning.SWORD_DASH_DISTANCE_SCALE;
