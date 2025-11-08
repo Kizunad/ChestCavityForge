@@ -93,3 +93,22 @@
     生成测试用例文档（Test Case Document）
     为每个功能模块编写单元测试
     逐个执行并确保测试通过
+
+——
+
+本次主题：新增“OnHit 聚合接口与伤害桶（Damage Buckets）”方案
+
+文档产出已分组存放于 `docs/damage-buckets/`，按上述步骤对应如下：
+
+- 01 需求方案：`docs/damage-buckets/01-requirements.md`
+- 02 技术框架：`docs/damage-buckets/02-architecture.md`
+- 03 红线文档：`docs/damage-buckets/03-constraints.md`
+- 04 规范文档：`docs/damage-buckets/04-standards.md`
+- 05 实施文档：`docs/damage-buckets/05-implementation.md`
+- 06 总任务：`docs/damage-buckets/06-master-plan.md`
+- 06 阶段任务（样例）：
+  - `docs/damage-buckets/06-stage-1.md`
+  - `docs/damage-buckets/06-stage-2.md`
+- 08 测试用例：`docs/damage-buckets/08-test-cases.md`
+
+说明：本轮仅产出“聚合接口与桶”的方案，不包含具体器官/行为的迁移实现，迁移留待重构阶段按需推进。
