@@ -84,6 +84,11 @@ public final class ActivationHookRegistry {
         "^guzhenren:jian_ying_fenshen$",
         new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
 
+    // 技能效果: 碎刃蛊主动技能需在激活前快照剑道字段（道痕/流派经验）
+    SkillEffectBus.register(
+        "^guzhenren:sui_ren_gu$",
+        new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
+
     SkillEffectBus.register(
         "^guzhenren:shou_jian_ling$",
         new ResourceFieldSnapshotEffect(
