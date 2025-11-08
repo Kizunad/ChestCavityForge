@@ -41,13 +41,14 @@ public final class CalcContexts {
           ctx.ownerJianDaoScar =
               JiandaoDaohenOps.effectiveCached(serverPlayer, playerWorldTime);
         } else {
-          // 客户端玩家：fallback 到原始道痕
-          net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
-              .open(owner)
-              .ifPresent(
-                  handle -> {
-                    handle.read("daohen_jiandao").ifPresent(value -> ctx.ownerJianDaoScar = value);
-                  });
+        // 客户端玩家：fallback 到原始道痕
+        // TODO: 当前仍直接读取 Guzhenren 的 daohen_jiandao，后续可改为 JiandaoDaohenOps 与缓存，以支持 JME+流派经验加成。
+        net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
+            .open(owner)
+            .ifPresent(
+                handle -> {
+                  handle.read("daohen_jiandao").ifPresent(value -> ctx.ownerJianDaoScar = value);
+                });
         }
 
         // 流派经验仍用于耐久减免（原始值）

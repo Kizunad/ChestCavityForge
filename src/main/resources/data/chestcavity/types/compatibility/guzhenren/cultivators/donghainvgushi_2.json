@@ -112,11 +112,11 @@
         "min": 0,
         "max": 3
       },
+      "chance": 10,
       "items": [
         "guzhenren:bai_shi_gu",
         "guzhenren:bai_yin_she_li_gu",
         "guzhenren:bai_yun_gu",
-        "guzhenren:bainianshougu",
         "guzhenren:baishouwanghugu",
         "guzhenren:bing_bu_gu",
         "guzhenren:bing_ji_gu",
@@ -167,9 +167,7 @@
         "guzhenren:rou_bai_gu",
         "guzhenren:sanzhuanyuanlaogu",
         "guzhenren:shan_guang_gu",
-        "guzhenren:shi_nian_shou_gu",
         "guzhenren:shi_pi_gu",
-        "guzhenren:shou_gu",
         "guzhenren:shouhanghugu",
         "guzhenren:shuang_xi_gu",
         "guzhenren:shui_ti_gu",

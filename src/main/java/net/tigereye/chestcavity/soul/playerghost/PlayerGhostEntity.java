@@ -427,6 +427,8 @@ public class PlayerGhostEntity extends Monster {
 
     double percentage = minPercent + this.random.nextDouble() * (maxPercent - minPercent);
     double amount = ghostHP * percentage;
+    // 确保最小值为 1
+    amount = Math.max(1.0, amount);
 
     // 使用 GuzhenrenResourceBridge 调整属性
     Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =

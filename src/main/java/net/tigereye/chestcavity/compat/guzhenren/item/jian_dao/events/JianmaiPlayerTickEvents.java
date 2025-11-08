@@ -8,12 +8,13 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiAmpOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.JianmaiNBT;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmaiTuning;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /**
  * 剑脉蛊被动事件处理类。
@@ -44,7 +45,7 @@ public final class JianmaiPlayerTickEvents {
    * @param event 玩家 Tick 事件
    */
   @SubscribeEvent
-  public static void onPlayerTick(PlayerEvent.PlayerTickEvent.Post event) {
+  public static void onPlayerTick(PlayerTickEvent.Post event) {
     if (!(event.getEntity() instanceof ServerPlayer player)) {
       return;
     }
@@ -212,26 +213,25 @@ public final class JianmaiPlayerTickEvents {
    * @return 是否装备了剑脉蛊
    */
   private static boolean hasJianmaiGu(ServerPlayer player) {
-    var cc = net.tigereye.chestcavity.ChestCavity.getChestCavityInstance(player);
-    if (cc == null || cc.inventory == null) {
-      return false;
-    }
-
     ResourceLocation organId = ResourceLocation.fromNamespaceAndPath(MOD_ID, "jianmaigu");
-
-    for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
-      var stack = cc.inventory.getItem(i);
-      if (stack.isEmpty()) {
-        continue;
-      }
-
-      ResourceLocation itemId =
-          net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-      if (itemId != null && itemId.equals(organId)) {
-        return true;
-      }
-    }
-
-    return false;
+    return ChestCavityEntity.of(player)
+        .map(ChestCavityEntity::getChestCavityInstance)
+        .filter(cc -> cc.inventory != null)
+        .map(
+            cc -> {
+              for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+                var stack = cc.inventory.getItem(i);
+                if (stack.isEmpty()) {
+                  continue;
+                }
+                ResourceLocation itemId =
+                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+                if (itemId != null && itemId.equals(organId)) {
+                  return true;
+                }
+              }
+              return false;
+            })
+        .orElse(false);
   }
 }

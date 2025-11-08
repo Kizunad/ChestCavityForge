@@ -11,6 +11,19 @@ from typing import Iterable, List, Set
 REPO_ROOT = Path(__file__).resolve().parents[1]
 JAVA_ROOT = REPO_ROOT / "src" / "main" / "java" / "net" / "tigereye" / "chestcavity" / "compat" / "guzhenren" / "item"
 CULTIVATOR_TYPES_DIR = REPO_ROOT / "src" / "main" / "resources" / "data" / "chestcavity" / "types" / "compatibility" / "guzhenren" / "cultivators"
+TIAN_DAO_ADVANCED_DIR = (
+    REPO_ROOT
+    / "src"
+    / "main"
+    / "resources"
+    / "data"
+    / "chestcavity"
+    / "organs"
+    / "guzhenren"
+    / "human"
+    / "tian_dao"
+)
+CHEST_CAVITY_FILLER_CHANCE = 10
 
 # Regex patterns covering the ID declarations inside *OrganRegistry classes.
 FROM_NAMESPACE_PATTERN = re.compile(
@@ -79,6 +92,23 @@ def collect_all_ids(root: Path) -> List[str]:
     return sorted(collected)
 
 
+def collect_tian_dao_item_ids(root: Path) -> Set[str]:
+    item_ids: Set[str] = set()
+    if not root.exists():
+        return item_ids
+    for path in root.glob("*.json"):
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        item_id = data.get("itemID")
+        if isinstance(item_id, str):
+            item_ids.add(item_id)
+    return item_ids
+
+
 def build_generator_entry(generator_id: str, items: List[str]) -> dict:
     return {
         "id": generator_id,
@@ -86,6 +116,7 @@ def build_generator_entry(generator_id: str, items: List[str]) -> dict:
             "min": 0,
             "max": 3,
         },
+        "chance": CHEST_CAVITY_FILLER_CHANCE,
         "items": items,
     }
 
@@ -124,7 +155,10 @@ def main() -> None:
     if not JAVA_ROOT.exists() or not CULTIVATOR_TYPES_DIR.exists():
         raise SystemExit("Expected directories are missing; aborting.")
 
+    tian_dao_excluded = collect_tian_dao_item_ids(TIAN_DAO_ADVANCED_DIR)
+
     items = collect_all_ids(JAVA_ROOT)
+    items = [item for item in items if item not in tian_dao_excluded]
     if not items:
         raise SystemExit("No Guzhenren organ IDs discovered; cannot update pools.")
 
