@@ -19,12 +19,12 @@ public final class FlyingSwordCoreTuning {
   public static final double TURN_RATE_SPEED_SCALE = 0.4;
 
   // 伤害
-  public static final double DAMAGE_BASE = 4.0;
-  public static final double VEL_DMG_COEF = 1.0;
+  public static final double DAMAGE_BASE = 40.0;
+  public static final double VEL_DMG_COEF = 100.0;
   public static final double V_REF = 0.35;
 
   // 耐久
-  public static final double MAX_DURABILITY = 25565.0;
+  public static final double MAX_DURABILITY = 100000.0;
   public static final double DURA_LOSS_RATIO = 0.1;
   public static final double DURA_BREAK_MULT = 2.0;
 
