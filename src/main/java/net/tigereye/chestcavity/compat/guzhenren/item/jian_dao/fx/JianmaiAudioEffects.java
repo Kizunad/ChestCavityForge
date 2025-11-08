@@ -64,8 +64,7 @@ public final class JianmaiAudioEffects {
         heartbeatSound,
         SoundSource.PLAYERS,
         JianmaiTuning.HEARTBEAT_VOLUME, // 音量：0.3（很小声）
-        0.6f, // 音高：降低以模拟心跳声
-        player.level().random.nextLong());
+        0.6f); // 音高：降低以模拟心跳声
   }
 
   // ==================== 主动效果：激活音效 ====================
@@ -104,8 +103,7 @@ public final class JianmaiAudioEffects {
         activationSound,
         SoundSource.PLAYERS,
         JianmaiTuning.ACTIVATION_VOLUME, // 音量：1.0（清晰可听）
-        pitch,
-        player.level().random.nextLong());
+        pitch);
 
     // 添加电流声强化效果
     playElectricEffect(level, pos);
@@ -127,8 +125,7 @@ public final class JianmaiAudioEffects {
         SoundEvents.LIGHTNING_BOLT_THUNDER,
         SoundSource.PLAYERS,
         0.4f, // 音量较小
-        1.5f, // 音高较高
-        level.random.nextLong());
+        1.5f); // 音高较高
   }
 
   /**
@@ -172,7 +169,6 @@ public final class JianmaiAudioEffects {
         SoundEvents.LIGHTNING_BOLT_IMPACT,
         SoundSource.PLAYERS,
         0.3f, // 音量很小
-        1.2f, // 音高略高
-        level.random.nextLong());
+        1.2f); // 音高略高
   }
 }

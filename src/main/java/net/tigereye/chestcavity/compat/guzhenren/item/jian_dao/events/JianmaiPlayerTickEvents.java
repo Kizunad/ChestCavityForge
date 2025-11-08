@@ -8,6 +8,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
@@ -118,6 +119,23 @@ public final class JianmaiPlayerTickEvents {
       }
       lastHeartbeat = now;
     }
+  }
+
+  /**
+   * 玩家登出时立刻回滚主动增幅，避免离线长期保留。
+   */
+  @SubscribeEvent
+  public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+    if (!(event.getEntity() instanceof ServerPlayer player)) {
+      return;
+    }
+
+    if (player.level().isClientSide()) {
+      return;
+    }
+
+    JianmaiAmpOps.clearActive(player);
+    JianmaiAmpOps.clearPassive(player);
   }
 
   /**

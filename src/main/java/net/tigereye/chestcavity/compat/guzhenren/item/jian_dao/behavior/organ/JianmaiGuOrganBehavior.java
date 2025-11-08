@@ -64,8 +64,8 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
    * <p>规则：
    * <ul>
    *   <li>消耗真元：五转·一阶段·爆发档（24 单位）</li>
-   *   <li>计算倍率：activeMult = 1 + ACTIVE_DAOMARK_K * clamp(consumed * ACTIVE_COST_K, 0, ACTIVE_SOFTCAP)</li>
-   *   <li>发放增幅券：叠乘到 JME 增幅，裁剪上限</li>
+   *   <li>计算增幅：每把飞剑提供基础道痕 + 经验加成，再叠加额外消耗奖励</li>
+   *   <li>发放增幅券：直接调整道痕值</li>
    *   <li>持续时间：ACTIVE_DURATION_TICKS</li>
    *   <li>冷却时间：ACTIVE_COOLDOWN_TICKS</li>
    * </ul>
@@ -109,10 +109,18 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
       return;
     }
 
-    // 计算主动增幅量：deltaAmount = costScaled
+    // 扫描周围飞剑：用于增幅和特效
+    List<FlyingSwordEntity> swords = collectOwnedSwords(player);
+
+    // 计算基础增幅：每把飞剑至少提供 ACTIVE_SWORD_BASE，道痕额外随经验线性增加
+    double swordBonus = calculateSwordBonus(swords);
+
+    // 计算资源消耗增幅：额外叠加在基础增幅上
     double costRaw = consumed.getAsDouble();
     double costScaled = Math.max(0.0, Math.min(costRaw * JianmaiTuning.ACTIVE_COST_K, JianmaiTuning.ACTIVE_SOFTCAP));
-    double deltaAmount = costScaled * JianmaiTuning.ACTIVE_DAOMARK_K;
+    double resourceBonus = costScaled * JianmaiTuning.ACTIVE_BONUS_K;
+
+    double deltaAmount = swordBonus + resourceBonus;
 
     // 应用主动增幅（直接调整道痕值）
     JianmaiAmpOps.applyActiveBuff(player, deltaAmount, JianmaiTuning.ACTIVE_DURATION_TICKS, now);
@@ -121,14 +129,6 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
 
     // 播放激活音效
     JianmaiAudioEffects.playActivation(player, deltaAmount);
-
-    // 扫描周围飞剑并渲染雷电链
-    double radius = JianmaiNBT.readRadius(player);
-    List<FlyingSwordEntity> swords =
-        player.level().getEntitiesOfClass(
-            FlyingSwordEntity.class,
-            player.getBoundingBox().inflate(radius),
-            sword -> sword.isAlive() && isOwnedBy(sword, player));
 
     // 渲染雷电链视觉效果
     if (!swords.isEmpty()) {
@@ -188,6 +188,30 @@ public enum JianmaiGuOrganBehavior implements OrganRemovalListener {
    */
   private static boolean isOwnedBy(FlyingSwordEntity sword, ServerPlayer player) {
     return sword.getOwner() != null && sword.getOwner().getUUID().equals(player.getUUID());
+  }
+
+  /**
+   * 收集玩家周围可用的飞剑。
+   */
+  private static List<FlyingSwordEntity> collectOwnedSwords(ServerPlayer player) {
+    double radius = JianmaiNBT.readRadius(player);
+    return player.level().getEntitiesOfClass(
+        FlyingSwordEntity.class,
+        player.getBoundingBox().inflate(radius),
+        sword -> sword.isAlive() && isOwnedBy(sword, player));
+  }
+
+  /**
+   * 计算飞剑对主动增幅的贡献：每把剑提供基础值 + 经验线性加成。
+   */
+  private static double calculateSwordBonus(List<FlyingSwordEntity> swords) {
+    double total = 0.0;
+    for (FlyingSwordEntity sword : swords) {
+      double base = JianmaiTuning.ACTIVE_SWORD_BASE;
+      double expBonus = sword.getExperience() * JianmaiTuning.ACTIVE_SWORD_EXP_K;
+      total += base + expBonus;
+    }
+    return total;
   }
 
   // ========== 卸载监听器 ==========

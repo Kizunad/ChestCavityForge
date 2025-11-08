@@ -1072,6 +1072,21 @@ public final class ActiveSkillRegistry {
                   .INSTANCE);
         });
 
+    // 剑脉蛊：剑脉涌流（增幅型主动技能）
+    register(
+        "guzhenren:jianmai_overdrive",
+        "guzhenren:jianmai_overdrive",
+        "guzhenren:jianmaigu",
+        tags("输出", "增幅", "飞剑"),
+        "剑脉涌流：消耗真元激发剑脉，临时获得道痕增幅，与飞剑数量联动",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianmaiGuOrganBehavior.java:72",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .JianmaiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
+
     // 蕴剑青莲蛊：蕴剑化莲（五转核心）
     register(
         "guzhenren:yun_jian_qing_lian_activate",

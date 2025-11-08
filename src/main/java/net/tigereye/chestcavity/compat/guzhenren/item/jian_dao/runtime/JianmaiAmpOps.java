@@ -297,4 +297,86 @@ public final class JianmaiAmpOps {
     // 失效缓存
     SwordOwnerDaohenCache.invalidate(player);
   }
+
+  /**
+   * 清理当前的主动增幅（登出/断线时调用）。
+   *
+   * <p>避免玩家在主动技持续期间退出游戏后保留永久道痕。
+   *
+   * @param player 玩家
+   */
+  public static void clearActive(ServerPlayer player) {
+    CompoundTag ampData = JianmaiNBT.readAmp(player);
+    if (ampData.isEmpty()) {
+      return;
+    }
+
+    double activeDelta = JianmaiNBT.getActiveDelta(ampData);
+    if (activeDelta == 0.0) {
+      return;
+    }
+
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = ResourceOps.openHandle(player);
+    if (handleOpt.isEmpty()) {
+      return;
+    }
+
+    GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+    handle.adjustDouble("daohen_jiandao", -activeDelta, true);
+
+    double ampK = JianmaiNBT.getAmpK(ampData);
+    double passiveDelta = JianmaiNBT.getPassiveDelta(ampData);
+    long passiveExpire = JianmaiNBT.getPassiveExpire(ampData);
+    int grace = JianmaiNBT.getGrace(ampData);
+
+    JianmaiNBT.writeAmp(player, ampK, passiveDelta, passiveExpire, 0.0, 0L, grace);
+    SwordOwnerDaohenCache.invalidate(player);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[JianmaiAmp] Cleared active delta {} for player {} on logout",
+          activeDelta,
+          player.getName().getString());
+    }
+  }
+
+  /**
+   * 清理当前的被动增幅（登出/断线时调用）。
+   *
+   * @param player 玩家
+   */
+  public static void clearPassive(ServerPlayer player) {
+    CompoundTag ampData = JianmaiNBT.readAmp(player);
+    if (ampData.isEmpty()) {
+      return;
+    }
+
+    double passiveDelta = JianmaiNBT.getPassiveDelta(ampData);
+    if (passiveDelta == 0.0) {
+      return;
+    }
+
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = ResourceOps.openHandle(player);
+    if (handleOpt.isEmpty()) {
+      return;
+    }
+
+    GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
+    handle.adjustDouble("daohen_jiandao", -passiveDelta, true);
+
+    double ampK = JianmaiNBT.getAmpK(ampData);
+    double activeDelta = JianmaiNBT.getActiveDelta(ampData);
+    long activeExpire = JianmaiNBT.getActiveExpire(ampData);
+    int grace = JianmaiNBT.getGrace(ampData);
+
+    JianmaiNBT.writeAmp(player, ampK, 0.0, 0L, activeDelta, activeExpire, grace);
+    SwordOwnerDaohenCache.invalidate(player);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[JianmaiAmp] Cleared passive delta {} for player {} on logout",
+          passiveDelta,
+          player.getName().getString());
+    }
+  }
 }

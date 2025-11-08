@@ -51,22 +51,28 @@ public final class JianmaiTuning {
 
   // ========== 主动技参数 ==========
 
-  /** 主动技倍率系数：activeMult = 1 + ACTIVE_DAOMARK_K * consumed。*/
-  public static final double ACTIVE_DAOMARK_K = 0.02;
+  /** 主动技单把飞剑基础道痕增幅。*/
+  public static final double ACTIVE_SWORD_BASE = 100.0;
 
-  /** 主动技资源成本缩放系数：consumed = COST_RAW * ACTIVE_COST_K。*/
+  /** 主动技飞剑经验增幅系数：每把剑额外增幅 = swordExp * ACTIVE_SWORD_EXP_K。*/
+  public static final double ACTIVE_SWORD_EXP_K = 0.001;
+
+  /** 主动技资源成本系数：用于缩放消耗的真元对增幅的影响。*/
   public static final double ACTIVE_COST_K = 1.0;
 
-  /** 主动技资源软上限：裁剪到 [0, ACTIVE_SOFTCAP]。*/
-  public static final double ACTIVE_SOFTCAP = 50.0;
+  /** 主动技资源软上限：裁剪消耗到 [0, ACTIVE_SOFTCAP] 用于可选的额外增幅。*/
+  public static final double ACTIVE_SOFTCAP = 200.0;
+
+  /** 主动技额外消耗增幅系数：总增幅 += (consumed * ACTIVE_COST_K) * ACTIVE_BONUS_K。*/
+  public static final double ACTIVE_BONUS_K = 0.5;
 
   /** 主动技持续时间（tick）。*/
-  public static final int ACTIVE_DURATION_TICKS = 100; // 5秒
+  public static final int ACTIVE_DURATION_TICKS = 300; // 15秒
 
   /** 主动技冷却时间（tick）。*/
-  public static final int ACTIVE_COOLDOWN_TICKS = 200; // 10秒
+  public static final int ACTIVE_COOLDOWN_TICKS = 600; // 30秒
 
-  /** 总倍率上限：max(mult_JME * mult_ACTIVE, AMP_MULT_CAP)。*/
+  /** 总倍率上限（已弃用，改为直接调整值）。*/
   public static final double AMP_MULT_CAP = 3.0;
 
   // ========== 飞剑增益系数 ==========
