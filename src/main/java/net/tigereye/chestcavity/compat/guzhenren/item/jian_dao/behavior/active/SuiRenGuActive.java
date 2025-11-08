@@ -12,6 +12,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.DespawnContext;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.cost.ResourceCost;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.SuiRenGuState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.SuiRenGuCalc;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.SuiRenGuBalance;
@@ -72,7 +73,7 @@ public final class SuiRenGuActive {
     }
 
     // 2. 检查并消耗资源
-    ResourceOps.ResourceCost cost = new ResourceOps.ResourceCost(
+    ResourceCost cost = new ResourceCost(
         SuiRenGuBalance.BASE_COST_ZHENYUAN,
         SuiRenGuBalance.BASE_COST_JINGLI,
         SuiRenGuBalance.BASE_COST_NIANTOU
