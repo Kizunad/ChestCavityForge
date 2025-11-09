@@ -44,7 +44,7 @@ The architecture is based on a **Polling Detection Model**.
 -   [x] Gamerule for enabling/disabling the system.
 -   [x] Player data attachment for `trigger_once` state.
 -   [x] Basic file and package structure.
--   [ ] **TODO:** `ModConfig` file for settings like polling interval.
+-   [x] `ModConfig` file for settings like polling interval.
 
 ### Phase 2: Event Processing Engine (Complete)
 
@@ -53,12 +53,12 @@ The architecture is based on a **Polling Detection Model**.
 -   [x] `TriggerRegistry`, `ConditionRegistry`, and `ActionRegistry` implementation.
 -   [x] Integration of all components into the mod's lifecycle.
 
-### Phase 3: Basic Module Implementation (Next Steps)
+### Phase 3: Basic Module Implementation (Complete)
 
--   [ ] Implement the `player_stat_change` trigger logic.
--   [ ] Implement the `player_obtained_item` trigger logic.
--   [ ] Implement a set of standard conditions (e.g., `minecraft:random_chance`, `guzhenren:player_health_percent`).
--   [ ] Implement a set of standard actions (e.g., `guzhenren_event_ext:send_message`, `guzhenren_event_ext:run_command`, `guzhenren_event_ext:adjust_player_stat`).
+-   [x] Implement the `player_stat_change` trigger logic.
+-   [x] Implement the `player_obtained_item` trigger logic.
+-   [x] Implement a set of standard conditions (`minecraft:random_chance`, `guzhenren:player_health_percent`).
+-   [x] Implement a set of standard actions (`guzhenren_event_ext:send_message`, `guzhenren_event_ext:run_command`, `guzhenren_event_ext:adjust_player_stat`).
 
 ### Phase 4: Advanced Features & Optimization
 

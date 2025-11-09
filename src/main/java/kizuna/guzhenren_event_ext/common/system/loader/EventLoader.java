@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import kizuna.guzhenren_event_ext.GuzhenrenEventExtension;
+import kizuna.guzhenren_event_ext.common.config.ModConfig;
 import kizuna.guzhenren_event_ext.common.system.PlayerInventoryWatcher;
 import kizuna.guzhenren_event_ext.common.system.PlayerStatWatcher;
 import kizuna.guzhenren_event_ext.common.system.def.EventDefinition;
@@ -83,13 +84,17 @@ public class EventLoader extends SimplePreparableReloadListener<List<EventDefini
             }
         }
 
+        // Apply configuration values to watchers
         PlayerStatWatcher.getInstance().setWatchedStats(statsToWatch);
+        PlayerStatWatcher.getInstance().setPollingInterval(ModConfig.getStatWatcherInterval());
+
         if (watchInventory) {
             PlayerInventoryWatcher.getInstance().activate();
+            PlayerInventoryWatcher.getInstance().setPollingInterval(ModConfig.getInventoryWatcherInterval());
         }
 
-        GuzhenrenEventExtension.LOGGER.info("Stat Watcher is monitoring {} stats.", statsToWatch.size());
-        GuzhenrenEventExtension.LOGGER.info("Inventory Watcher is {}.", watchInventory ? "ACTIVE" : "INACTIVE");
+        GuzhenrenEventExtension.LOGGER.info("Stat Watcher is monitoring {} stats (interval: {} ticks).", statsToWatch.size(), ModConfig.getStatWatcherInterval());
+        GuzhenrenEventExtension.LOGGER.info("Inventory Watcher is {} (interval: {} ticks).", watchInventory ? "ACTIVE" : "INACTIVE", ModConfig.getInventoryWatcherInterval());
     }
 
     public List<EventDefinition> getLoadedEvents() {
