@@ -16,49 +16,47 @@ The architecture is based on a **Polling Detection Model**.
 
 ### Key Components
 
--   **`PlayerStatWatcher`**: This is the heart of the system. It's a server-side manager that runs periodically.
-    -   It maintains a cache of players' last known stats (e.g., `zhenyuan`, `hunpo`).
-    -   At a configurable interval (e.g., every 2 seconds), it compares current stats against the cached values.
-    -   If a change is detected, it fires a `GuzhenrenStatChangeEvent`.
-    -   For performance, it only watches stats that are actively used by at least one event definition in the JSON files.
+-   **`PlayerStatWatcher` / `PlayerInventoryWatcher`**: These are the system's sensors. They are server-side managers that run on configurable timers (e.g., every 2 seconds for stats, every 1 minute for inventory). They compare current player data against a cached version and fire specific events (`GuzhenrenStatChangeEvent`, `PlayerObtainedItemEvent`) when a change is detected.
 
--   **`GuzhenrenStatChangeEvent`**: A custom event that is fired by the `PlayerStatWatcher`. It contains information about the change: the player, the stat that changed, the old value, and the new value.
+-   **`EventLoader`**: This component automatically loads and parses all event definition `.json` files when the server starts or when the `/reload` command is used. It also intelligently activates the necessary watchers only if corresponding triggers are found in the definitions.
 
--   **`CustomEventBus`**: An isolated event bus used exclusively for this module's events, preventing conflicts with other parts of the mod or Minecraft itself.
+-   **`EventManager`**: This is the central hub of the system. It listens for events fired by the watchers, finds the matching event definitions provided by the `EventLoader`, and processes them.
 
--   **`EventManager` (To be implemented)**: This component will listen for events on the `CustomEventBus`. When an event occurs, it will search through all loaded JSON definitions to find a matching `trigger`. If found, it will evaluate the `conditions` and, if they pass, execute the defined `actions`.
-
--   **Registries (To be implemented)**: A set of registries (`TriggerRegistry`, `ConditionRegistry`, `ActionRegistry`) will allow developers to easily add new types of triggers, conditions, and actions to the system, making it highly extensible.
+-   **Registries (`TriggerRegistry`, `ConditionRegistry`, `ActionRegistry`)**: These are simple mapping systems that allow developers to register new, reusable logic components. For example, one can register a new "has_potion_effect" condition, and it can then be used by its type ID in any event JSON file.
 
 ### Workflow
 
-1.  **Load:** The server starts, and the `EventLoader` reads all event JSONs, determining which stats need to be watched.
-2.  **Poll:** The `PlayerStatWatcher` periodically checks the watched stats for all online players.
-3.  **Detect & Fire:** It detects a change in a player's stat (e.g., `zhenyuan` drops below a threshold) and fires a `GuzhenrenStatChangeEvent`.
-4.  **Process:** The `EventManager` catches the event, finds a matching JSON rule, checks its conditions (e.g., is the player in a specific biome?), and if all checks pass, runs the associated actions (e.g., send a chat message, run a command).
+1.  **Load:** The server starts, and the `EventLoader` reads all event JSONs, determining which stats and watchers need to be active.
+2.  **Poll:** The active `Watcher` components periodically check player data.
+3.  **Detect & Fire:** A watcher detects a change (e.g., a new item in the inventory) and fires the corresponding event (e.g., `PlayerObtainedItemEvent`) on a `CustomEventBus`.
+4.  **Process:** The `EventManager` catches the event, finds a matching JSON rule (e.g., one with a `player_obtained_item` trigger), and validates it.
+5.  **Validate & Execute:** The `EventManager` checks the `trigger_once` flag and all `conditions`. If all checks pass, it runs the associated `actions`.
 
 ---
 
 ## Development Roadmap
 
-### Phase 1: Core Framework (90% Complete)
+### Phase 1: Core Framework (Complete)
 
--   [x] Polling mechanism (`PlayerStatWatcher`).
--   [x] Custom event classes (`GuzhenrenStatChangeEvent`).
+-   [x] Polling mechanisms (`PlayerStatWatcher`, `PlayerInventoryWatcher`).
+-   [x] Custom event classes (`GuzhenrenStatChangeEvent`, `PlayerObtainedItemEvent`).
 -   [x] Custom Event Bus.
 -   [x] Gamerule for enabling/disabling the system.
+-   [x] Player data attachment for `trigger_once` state.
 -   [x] Basic file and package structure.
 -   [ ] **TODO:** `ModConfig` file for settings like polling interval.
 
-### Phase 2: Event Processing Engine (Next Steps)
+### Phase 2: Event Processing Engine (Complete)
 
--   [ ] Implement `EventLoader` to parse event definition JSONs.
--   [ ] Implement `EventManager` to orchestrate event processing.
--   [ ] Implement `TriggerRegistry`, `ConditionRegistry`, and `ActionRegistry`.
+-   [x] `EventLoader` implementation for parsing JSON files from data packs.
+-   [x] `EventManager` implementation for handling the core event processing loop.
+-   [x] `TriggerRegistry`, `ConditionRegistry`, and `ActionRegistry` implementation.
+-   [x] Integration of all components into the mod's lifecycle.
 
-### Phase 3: Basic Module Implementation
+### Phase 3: Basic Module Implementation (Next Steps)
 
 -   [ ] Implement the `player_stat_change` trigger logic.
+-   [ ] Implement the `player_obtained_item` trigger logic.
 -   [ ] Implement a set of standard conditions (e.g., `minecraft:random_chance`, `guzhenren:player_health_percent`).
 -   [ ] Implement a set of standard actions (e.g., `guzhenren_event_ext:send_message`, `guzhenren_event_ext:run_command`, `guzhenren_event_ext:adjust_player_stat`).
 

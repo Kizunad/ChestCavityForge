@@ -52,7 +52,12 @@ public class DefaultWardTuning implements WardTuning {
         double exp = getSectExperience(owner);
 
         int n = 1 + (int) Math.floor(Math.sqrt(trail / 100.0)) + (int) Math.floor(exp / 1000.0);
-        return Math.max(1, Math.min(n, WardConfig.MAX_WARDS));
+        int result = Math.max(1, Math.min(n, WardConfig.MAX_WARDS));
+
+        LOGGER.info("[WardTuning] maxSwords for {}: trail={}, exp={}, calculated={}, result={}",
+            owner, trail, exp, n, result);
+
+        return result;
     }
 
     @Override

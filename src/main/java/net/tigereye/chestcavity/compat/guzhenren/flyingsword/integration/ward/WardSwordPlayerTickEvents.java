@@ -1,11 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward;
 
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,15 +25,6 @@ public final class WardSwordPlayerTickEvents {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WardSwordPlayerTickEvents.class);
 
-    private static final String MOD_ID = "guzhenren";
-
-    /**
-     * 剑幕·反击之幕器官ID
-     * TODO: 确保这个ID与实际的器官注册ID一致
-     */
-    private static final ResourceLocation BLOCKSHIELD_ORGAN_ID =
-        ResourceLocation.fromNamespaceAndPath(MOD_ID, "blockshield");
-
     private WardSwordPlayerTickEvents() {}
 
     /**
@@ -51,12 +42,12 @@ public final class WardSwordPlayerTickEvents {
             return;
         }
 
-        // 检查玩家是否装备了剑幕器官
-        if (!hasBlockShieldOrgan(player)) {
-            // 如果之前有护幕飞剑，现在没有器官了，需要清理
+        // 检查玩家护幕是否处于激活状态
+        if (!isWardActive(player)) {
+            // 如果之前有护幕飞剑，现在护幕未激活，需要清理
             DefaultWardSwordService service = DefaultWardSwordService.getInstance();
             if (service.hasWardSwords(player)) {
-                LOGGER.debug("Player {} unequipped BlockShield organ, disposing ward swords",
+                LOGGER.debug("Player {} disabled Jianmu ward, disposing ward swords",
                     player.getName().getString());
                 service.disposeWardSwords(player);
             }
@@ -84,24 +75,10 @@ public final class WardSwordPlayerTickEvents {
      * @param player 玩家
      * @return 是否装备了剑幕器官
      */
-    private static boolean hasBlockShieldOrgan(ServerPlayer player) {
+    private static boolean isWardActive(ServerPlayer player) {
         return ChestCavityEntity.of(player)
             .map(ChestCavityEntity::getChestCavityInstance)
-            .filter(cc -> cc.inventory != null)
-            .map(cc -> {
-                for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
-                    var stack = cc.inventory.getItem(i);
-                    if (stack.isEmpty()) {
-                        continue;
-                    }
-                    ResourceLocation itemId =
-                        net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-                    if (itemId != null && itemId.equals(BLOCKSHIELD_ORGAN_ID)) {
-                        return true;
-                    }
-                }
-                return false;
-            })
+            .map(JianmuGuOrganBehavior::isWardActive)
             .orElse(false);
     }
 }

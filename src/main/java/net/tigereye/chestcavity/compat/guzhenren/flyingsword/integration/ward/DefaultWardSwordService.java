@@ -7,6 +7,10 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.IncomingThreat;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.InterceptPlanner;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.InterceptQuery;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.PathfindingContext;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.OrbitPathfinder;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.InterceptPathfinder;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.ObstacleAvoidance;
 import net.tigereye.chestcavity.registration.CCEntities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +74,9 @@ public class DefaultWardSwordService implements WardSwordService {
 
         UUID ownerId = owner.getUUID();
 
+        // 更新玩家缓存，确保 tuning 能够访问玩家数据
+        tuning.updatePlayerCache(owner);
+
         // 获取当前护幕列表（如果不存在则创建）
         List<FlyingSwordEntity> currentSwords = wardSwordMap.computeIfAbsent(
             ownerId,
@@ -83,17 +90,27 @@ public class DefaultWardSwordService implements WardSwordService {
         int targetCount = tuning.maxSwords(ownerId);
         int currentCount = currentSwords.size();
 
+        LOGGER.info("[WardSword] Player: {}, Target: {}, Current: {}",
+            owner.getName().getString(), targetCount, currentCount);
+
         if (currentCount < targetCount) {
             // 需要创建新飞剑
             int toCreate = targetCount - currentCount;
-            LOGGER.debug("Creating {} ward swords for player {}", toCreate, owner.getName().getString());
+            LOGGER.info("Creating {} ward swords for player {}", toCreate, owner.getName().getString());
 
             for (int i = 0; i < toCreate; i++) {
-                FlyingSwordEntity sword = createWardSword(owner, serverLevel, currentCount + i);
+                // 传入目标总数而不是当前数量，确保所有飞剑使用相同的环绕半径
+                FlyingSwordEntity sword = createWardSword(owner, serverLevel, currentCount + i, targetCount);
                 if (sword != null) {
                     currentSwords.add(sword);
+                    LOGGER.info("[WardSword] Successfully created sword #{}, total now: {}", i, currentSwords.size());
+                } else {
+                    LOGGER.error("[WardSword] Failed to create sword #{}", i);
                 }
             }
+
+            // 最终验证
+            LOGGER.info("[WardSword] Final count after creation: {}, expected: {}", currentSwords.size(), targetCount);
         } else if (currentCount > targetCount) {
             // 需要移除多余飞剑
             int toRemove = currentCount - targetCount;
@@ -110,8 +127,13 @@ public class DefaultWardSwordService implements WardSwordService {
 
     /**
      * 创建一个新的护幕飞剑
+     *
+     * @param owner 拥有者
+     * @param level 世界
+     * @param slotIndex 槽位索引
+     * @param totalSlots 目标总槽位数（用于计算环绕半径）
      */
-    private FlyingSwordEntity createWardSword(Player owner, ServerLevel level, int slotIndex) {
+    private FlyingSwordEntity createWardSword(Player owner, ServerLevel level, int slotIndex, int totalSlots) {
         try {
             // 创建飞剑实体
             FlyingSwordEntity sword = new FlyingSwordEntity(CCEntities.FLYING_SWORD.get(), level);
@@ -129,8 +151,27 @@ public class DefaultWardSwordService implements WardSwordService {
             // 设置初始状态
             sword.setWardState(WardState.ORBIT);
 
-            // 计算环绕槽位（相对位置）
-            Vec3 orbitSlot = calculateOrbitSlot(slotIndex, getWardCount(owner));
+            // === 设置护幕飞剑的显示物品 ===
+            // 优先尝试使用"剑刃"物品，失败则使用铁剑
+            try {
+                net.minecraft.world.item.Item jianrenItem = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                    .get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "jianren"));
+                if (jianrenItem != net.minecraft.world.item.Items.AIR) {
+                    sword.setDisplayItemStack(new net.minecraft.world.item.ItemStack(jianrenItem));
+                    LOGGER.debug("Ward sword {} using jianren item", sword.getId());
+                } else {
+                    // 剑刃物品不存在，使用铁剑
+                    sword.setDisplayItemStack(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD));
+                    LOGGER.debug("Ward sword {} using iron sword (jianren not found)", sword.getId());
+                }
+            } catch (Exception e) {
+                // 异常情况下使用铁剑作为后备
+                sword.setDisplayItemStack(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD));
+                LOGGER.warn("Failed to set jianren item for ward sword, using iron sword", e);
+            }
+
+            // 计算环绕槽位（相对位置）- 使用传入的totalSlots确保一致性
+            Vec3 orbitSlot = calculateOrbitSlot(slotIndex, totalSlots);
             sword.setOrbitSlot(orbitSlot);
 
             // 设置初始位置（在主人周围）
@@ -138,10 +179,10 @@ public class DefaultWardSwordService implements WardSwordService {
             sword.setPos(absolutePos);
 
             // 添加到世界
-            level.addFreshEntity(sword);
+            boolean added = level.addFreshEntity(sword);
 
-            LOGGER.debug("Created ward sword {} for player {} at slot {}",
-                sword.getId(), owner.getName().getString(), slotIndex);
+            LOGGER.info("[WardSword] Created ward sword {} for player {} at slot {} of {}, addedToWorld: {}, isRemoved: {}, pos: {}",
+                sword.getId(), owner.getName().getString(), slotIndex, totalSlots, added, sword.isRemoved(), absolutePos);
 
             return sword;
         } catch (Exception e) {
@@ -162,8 +203,8 @@ public class DefaultWardSwordService implements WardSwordService {
             totalSlots = 1;
         }
 
-        // 环绕半径：r = 2.6 + 0.4 * N
-        double radius = WardConfig.ORBIT_RADIUS_BASE + WardConfig.ORBIT_RADIUS_PER_SWORD * totalSlots;
+        // 环绕半径：固定为2米的圆环绕
+        double radius = 2.0;
 
         // 均匀分布在圆周上
         double angleStep = 2.0 * Math.PI / totalSlots;
@@ -197,7 +238,7 @@ public class DefaultWardSwordService implements WardSwordService {
     }
 
     @Override
-    public boolean onIncomingThreat(IncomingThreat threat) {
+    public boolean onIncomingThreat(IncomingThreat threat, float damageAmount) {
         if (threat == null || threat.target() == null) {
             return false;
         }
@@ -231,35 +272,93 @@ public class DefaultWardSwordService implements WardSwordService {
             return false;
         }
 
-        // 计算每个飞剑到达拦截点的时间，选择最快的
-        FlyingSwordEntity bestSword = null;
-        double minTime = Double.MAX_VALUE;
+        // === 新逻辑: 根据伤害比例计算需要的飞剑数量 ===
+        int requiredSwords = calculateRequiredSwords(owner, damageAmount);
+
+        if (requiredSwords == 0) {
+            LOGGER.debug("Damage too low ({} HP), not intercepting", damageAmount);
+            return false;
+        }
+
+        // 实际分配的飞剑数量 = min(需要的数量, 可用的数量)
+        int actualSwords = Math.min(requiredSwords, availableSwords.size());
+
+        LOGGER.info("[WardDebug] Damage: {}, MaxHealth: {}, Required: {}, Available: {}, Actual: {}",
+            damageAmount, owner.getMaxHealth(), requiredSwords, availableSwords.size(), actualSwords);
+
+        // === 计算每个飞剑到达拦截点的时间，并排序 ===
+        List<SwordTimeEntry> swordTimes = new ArrayList<>();
 
         for (FlyingSwordEntity sword : availableSwords) {
             double tReach = InterceptPlanner.timeToReach(sword, query.interceptPoint(), tuning);
 
             // 检查是否在时间窗内
             if (tReach >= tuning.windowMin() && tReach <= tuning.windowMax()) {
-                if (tReach < minTime) {
-                    minTime = tReach;
-                    bestSword = sword;
-                }
+                swordTimes.add(new SwordTimeEntry(sword, tReach));
             }
         }
 
-        if (bestSword == null) {
+        if (swordTimes.isEmpty()) {
+            LOGGER.debug("No swords can reach intercept point in time window");
             return false;
         }
 
-        // 分配拦截任务给最优飞剑
-        bestSword.setWardState(WardState.INTERCEPT);
-        bestSword.setCurrentQuery(query);
-        bestSword.setInterceptStartTime(owner.level().getGameTime());
+        // 按到达时间排序，选择最快的N把飞剑
+        swordTimes.sort(Comparator.comparingDouble(SwordTimeEntry::tReach));
 
-        LOGGER.debug("Assigned intercept task to sword {} (tReach={:.2f}s)",
-            bestSword.getId(), minTime);
+        // 分配拦截任务给最快的actualSwords把飞剑
+        int assigned = 0;
+        long currentTime = owner.level().getGameTime();
 
-        return true;
+        for (int i = 0; i < Math.min(actualSwords, swordTimes.size()); i++) {
+            SwordTimeEntry entry = swordTimes.get(i);
+            FlyingSwordEntity sword = entry.sword();
+
+            sword.setWardState(WardState.INTERCEPT);
+            sword.setCurrentQuery(query);
+            sword.setInterceptStartTime(currentTime);
+
+            assigned++;
+
+            LOGGER.debug("Assigned sword {} for intercept (tReach={:.2f}s, rank={})",
+                sword.getId(), entry.tReach(), i + 1);
+        }
+
+        LOGGER.info("Successfully assigned {} sword(s) to intercept threat (damage: {} HP)",
+            assigned, damageAmount);
+
+        return assigned > 0;
+    }
+
+    /**
+     * 根据伤害比例计算需要分配的飞剑数量
+     *
+     * @param owner 玩家
+     * @param damageAmount 原始伤害值
+     * @return 需要的飞剑数量 (0-4)
+     */
+    private int calculateRequiredSwords(Player owner, float damageAmount) {
+        float maxHealth = owner.getMaxHealth();
+        float damageRatio = damageAmount / maxHealth;
+
+        // 根据伤害比例返回需要的飞剑数量
+        if (damageRatio >= WardConfig.DAMAGE_THRESHOLD_4_SWORDS) {
+            return 4;  // >= 40% 生命值: 全部飞剑
+        } else if (damageRatio >= WardConfig.DAMAGE_THRESHOLD_3_SWORDS) {
+            return 3;  // >= 30% 生命值: 3把飞剑
+        } else if (damageRatio >= WardConfig.DAMAGE_THRESHOLD_2_SWORDS) {
+            return 2;  // >= 20% 生命值: 2把飞剑
+        } else if (damageRatio >= WardConfig.DAMAGE_THRESHOLD_1_SWORD) {
+            return 1;  // >= 10% 生命值: 1把飞剑
+        } else {
+            return 0;  // < 10% 生命值: 不拦截
+        }
+    }
+
+    /**
+     * 飞剑与到达时间的记录
+     */
+    private record SwordTimeEntry(FlyingSwordEntity sword, double tReach) {
     }
 
     @Override
@@ -324,7 +423,7 @@ public class DefaultWardSwordService implements WardSwordService {
     }
 
     /**
-     * ORBIT 状态：保持环绕位置
+     * ORBIT 状态：保持环绕位置(使用新的环绕寻路算法)
      */
     private void tickOrbit(FlyingSwordEntity sword, Player owner) {
         Vec3 orbitSlot = sword.getOrbitSlot();
@@ -338,14 +437,31 @@ public class DefaultWardSwordService implements WardSwordService {
         // 计算目标位置（绝对坐标）
         Vec3 targetPos = owner.position().add(orbitSlot);
 
-        // 转向目标
+        // 获取参数
         double aMax = tuning.aMax(owner.getUUID());
         double vMax = tuning.vMax(owner.getUUID());
-        sword.steerTo(targetPos, aMax, vMax);
+
+        // 使用新的环绕寻路算法
+        PathfindingContext ctx = PathfindingContext.from(sword, targetPos, owner, aMax, vMax);
+
+        // 计算环绕速度
+        Vec3 orbitVel = OrbitPathfinder.computeOrbitVelocity(ctx);
+
+        // 应用避障调整
+        Vec3 safeVel = ObstacleAvoidance.adjustForObstacles(ctx, orbitVel);
+
+        // 检查是否卡在方块中
+        Vec3 escapeVel = ObstacleAvoidance.computeEscapeVelocity(ctx);
+        if (escapeVel.lengthSqr() > 0.0) {
+            safeVel = escapeVel;
+        }
+
+        // 应用速度
+        sword.setDeltaMovement(safeVel);
     }
 
     /**
-     * INTERCEPT 状态：向拦截点移动
+     * INTERCEPT 状态：向拦截点移动(使用新的拦截寻路算法)
      */
     private void tickIntercept(FlyingSwordEntity sword, Player owner) {
         InterceptQuery query = sword.getCurrentQuery();
@@ -359,7 +475,18 @@ public class DefaultWardSwordService implements WardSwordService {
         Vec3 targetPos = query.interceptPoint();
         double aMax = tuning.aMax(owner.getUUID());
         double vMax = tuning.vMax(owner.getUUID());
-        sword.steerTo(targetPos, aMax, vMax);
+
+        // 使用新的拦截寻路算法
+        PathfindingContext ctx = PathfindingContext.from(sword, targetPos, owner, aMax, vMax);
+
+        // 计算拦截速度(全速冲刺)
+        Vec3 interceptVel = InterceptPathfinder.computeInterceptVelocity(ctx);
+
+        // 应用避障调整(拦截时避障优先级较低,只做基本检查)
+        Vec3 safeVel = ObstacleAvoidance.adjustForObstacles(ctx, interceptVel);
+
+        // 应用速度
+        sword.setDeltaMovement(safeVel);
 
         // 检查是否超时
         long currentTime = owner.level().getGameTime();
@@ -604,7 +731,7 @@ public class DefaultWardSwordService implements WardSwordService {
     }
 
     /**
-     * RETURN 状态：返回环绕位
+     * RETURN 状态：返回环绕位(使用拦截寻路算法快速返回)
      */
     private void tickReturn(FlyingSwordEntity sword, Player owner) {
         Vec3 orbitSlot = sword.getOrbitSlot();
@@ -618,10 +745,21 @@ public class DefaultWardSwordService implements WardSwordService {
         // 计算目标位置
         Vec3 targetPos = owner.position().add(orbitSlot);
 
-        // 转向目标
+        // 获取参数
         double aMax = tuning.aMax(owner.getUUID());
         double vMax = tuning.vMax(owner.getUUID());
-        sword.steerTo(targetPos, aMax, vMax);
+
+        // RETURN阶段使用拦截寻路算法(快速直线返回)
+        PathfindingContext ctx = PathfindingContext.from(sword, targetPos, owner, aMax, vMax);
+
+        // 计算返回速度
+        Vec3 returnVel = InterceptPathfinder.computeInterceptVelocity(ctx);
+
+        // 应用避障调整
+        Vec3 safeVel = ObstacleAvoidance.adjustForObstacles(ctx, returnVel);
+
+        // 应用速度
+        sword.setDeltaMovement(safeVel);
 
         // 检查是否已返回（距离 < 0.5m）
         double distance = sword.position().distanceTo(targetPos);
@@ -642,11 +780,18 @@ public class DefaultWardSwordService implements WardSwordService {
         List<FlyingSwordEntity> swords = wardSwordMap.get(ownerId);
 
         if (swords == null) {
+            LOGGER.debug("[WardDebug] No ward sword map entry for player {}", owner.getName().getString());
             return Collections.emptyList();
         }
 
+        int beforeClean = swords.size();
         // 清理已被移除的飞剑
         swords.removeIf(sword -> sword == null || sword.isRemoved());
+        int afterClean = swords.size();
+
+        if (beforeClean != afterClean) {
+            LOGGER.info("[WardDebug] Cleaned {} removed swords, remaining: {}", beforeClean - afterClean, afterClean);
+        }
 
         return new ArrayList<>(swords);
     }

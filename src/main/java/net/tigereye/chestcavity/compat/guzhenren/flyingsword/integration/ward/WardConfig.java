@@ -63,6 +63,14 @@ public final class WardConfig {
      */
     public static final double ACCEL_BASE = 40.0;
 
+    /**
+     * 环绕状态下的速度系数
+     * <p>
+     * 环绕速度 = vMax * ORBIT_SPEED_FACTOR
+     * 该值设为较低，以实现"缓慢环绕"的效果。
+     */
+    public static final double ORBIT_SPEED_FACTOR = 0.2;
+
     // ====== 耐久默认值 ======
 
     /**
@@ -236,4 +244,38 @@ public final class WardConfig {
      * 设为 0.0 表示完全免疫，设为 1.0 表示不减免。
      */
     public static final float ARMOR_PENETRATION_FACTOR = 0.3f;
+
+    // ====== 多飞剑拦截参数 ======
+
+    /**
+     * 触发单剑拦截的伤害阈值（相对玩家最大生命值的比例）
+     * <p>
+     * 当 原伤害 / 玩家最大生命值 >= 此值时，分配1把飞剑拦截
+     * 默认值 0.10 表示伤害达到玩家最大生命值的 10% 时触发
+     */
+    public static final float DAMAGE_THRESHOLD_1_SWORD = 0.10f;
+
+    /**
+     * 触发双剑拦截的伤害阈值（相对玩家最大生命值的比例）
+     * <p>
+     * 当 原伤害 / 玩家最大生命值 >= 此值时，分配2把飞剑拦截
+     * 默认值 0.20 表示伤害达到玩家最大生命值的 20% 时触发
+     */
+    public static final float DAMAGE_THRESHOLD_2_SWORDS = 0.20f;
+
+    /**
+     * 触发三剑拦截的伤害阈值（相对玩家最大生命值的比例）
+     * <p>
+     * 当 原伤害 / 玩家最大生命值 >= 此值时，分配3把飞剑拦截
+     * 默认值 0.30 表示伤害达到玩家最大生命值的 30% 时触发
+     */
+    public static final float DAMAGE_THRESHOLD_3_SWORDS = 0.30f;
+
+    /**
+     * 触发四剑拦截的伤害阈值（相对玩家最大生命值的比例）
+     * <p>
+     * 当 原伤害 / 玩家最大生命值 >= 此值时，分配4把飞剑（全部）拦截
+     * 默认值 0.40 表示伤害达到玩家最大生命值的 40% 时触发
+     */
+    public static final float DAMAGE_THRESHOLD_4_SWORDS = 0.40f;
 }

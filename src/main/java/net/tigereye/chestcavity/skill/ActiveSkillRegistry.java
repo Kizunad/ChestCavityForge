@@ -32,6 +32,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOr
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior.LeiDunGuOrganBehavior;
@@ -1149,6 +1150,19 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(SheShengQuYiSynergyBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("誓约就绪", null));
+
+    // 剑幕蛊：护幕飞剑拦截系统
+    register(
+        "guzhenren:jianmu_ward_toggle",
+        "guzhenren:jianmu_ward_toggle",
+        "guzhenren:jianmugu",
+        tags("防御", "护盾", "飞剑"),
+        "激活护幕飞剑防御；玩家消耗精力和真元维持，非玩家无消耗自动开启；脱战自动关闭",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianmuGuOrganBehavior.java:72",
+        () -> {
+          ensureClassLoaded(JianmuGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("技能就绪", null));
   }
 
   private static Registration register(

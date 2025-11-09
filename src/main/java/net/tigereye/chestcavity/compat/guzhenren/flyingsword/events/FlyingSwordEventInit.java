@@ -45,6 +45,11 @@ public final class FlyingSwordEventInit {
         new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.hooks
             .JianSuoGuSwordAutoDashHook());
 
+    // 注册护幕飞剑事件钩子（跳过维持消耗）
+    FlyingSwordEventRegistry.register(
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward
+            .WardSwordEventHook());
+
     initialized = true;
     ChestCavity.LOGGER.info(
         "[FlyingSwordEvent] Event system initialized with {} hooks",

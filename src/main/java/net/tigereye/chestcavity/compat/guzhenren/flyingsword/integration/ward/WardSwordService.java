@@ -117,7 +117,22 @@ public interface WardSwordService {
      * @param threat 威胁信息
      * @return 是否成功分配拦截任务（用于决定是否取消伤害）
      */
-    boolean onIncomingThreat(IncomingThreat threat);
+    /**
+     * @deprecated 使用 {@link #onIncomingThreat(IncomingThreat, float)} 代替
+     */
+    @Deprecated
+    default boolean onIncomingThreat(IncomingThreat threat) {
+        return onIncomingThreat(threat, 0.0f);
+    }
+
+    /**
+     * 处理威胁事件，根据伤害大小分配1-4把飞剑拦截
+     *
+     * @param threat 威胁信息
+     * @param damageAmount 原始伤害值(减伤前)
+     * @return 是否成功分配拦截任务
+     */
+    boolean onIncomingThreat(IncomingThreat threat, float damageAmount);
 
     // ====== 驱动循环 ======
 

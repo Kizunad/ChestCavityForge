@@ -10,7 +10,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.Yu
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.LieJianGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmaiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYinGuTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianmuGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 /** Declarative registry for sword-path organs. */
@@ -77,6 +79,12 @@ public final class JiandaoOrganRegistry {
           // 剑梭蛊（五转）：受击躲避被动
           OrganIntegrationSpec.builder(JianSuoGuOrganBehavior.ORGAN_ID_5)
               .addIncomingDamageListener(JianSuoGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑幕蛊：护幕飞剑拦截 + 被动盔甲
+          OrganIntegrationSpec.builder(JianmuGuTuning.ORGAN_ID)
+              .addSlowTickListener(JianmuGuOrganBehavior.INSTANCE)
+              .addIncomingDamageListener(JianmuGuOrganBehavior.INSTANCE)
+              .ensureAttached(JianmuGuOrganBehavior.INSTANCE::ensureAttached)
               .build());
 
   private JiandaoOrganRegistry() {}

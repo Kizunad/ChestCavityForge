@@ -1,6 +1,5 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward;
 
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -35,15 +34,6 @@ public final class WardSwordDamageEvents {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WardSwordDamageEvents.class);
 
-    private static final String MOD_ID = "guzhenren";
-
-    /**
-     * 剑幕·反击之幕器官ID
-     * TODO: 确保这个ID与实际的器官注册ID一致
-     */
-    private static final ResourceLocation BLOCKSHIELD_ORGAN_ID =
-        ResourceLocation.fromNamespaceAndPath(MOD_ID, "blockshield");
-
     private WardSwordDamageEvents() {}
 
     /**
@@ -70,8 +60,17 @@ public final class WardSwordDamageEvents {
             return;
         }
 
-        // 检查玩家是否装备了剑幕器官
-        if (!hasBlockShieldOrgan(player)) {
+        // === 调试日志 ===
+        LOGGER.info("[WardDebug] Player {} taking damage from {}",
+            player.getName().getString(),
+            event.getSource().getMsgId());
+
+        // 检查玩家的护幕是否激活(使用与PlayerTickEvents相同的逻辑)
+        boolean wardActive = isWardActive(player);
+        LOGGER.info("[WardDebug] Ward active: {}", wardActive);
+
+        if (!wardActive) {
+            LOGGER.info("[WardDebug] Skipping - ward not active");
             return;
         }
 
@@ -79,29 +78,41 @@ public final class WardSwordDamageEvents {
         DefaultWardSwordService service = DefaultWardSwordService.getInstance();
 
         // 如果没有护幕飞剑，跳过
-        if (!service.hasWardSwords(player)) {
+        boolean hasSwords = service.hasWardSwords(player);
+        LOGGER.info("[WardDebug] Has ward swords: {}", hasSwords);
+
+        if (!hasSwords) {
+            LOGGER.info("[WardDebug] Skipping - no ward swords");
             return;
         }
 
         // 构建 IncomingThreat 对象
         IncomingThreat threat = buildThreat(event.getSource(), player);
         if (threat == null) {
+            LOGGER.info("[WardDebug] Skipping - could not build threat from damage source");
             return;
         }
 
+        LOGGER.info("[WardDebug] Built threat: {}", threat.describe());
+
+        // 获取原始伤害值(减伤前)
+        float originalDamage = event.getAmount();
+        LOGGER.info("[WardDebug] Original damage: {} HP", originalDamage);
+
         try {
-            // 尝试拦截
-            boolean intercepted = service.onIncomingThreat(threat);
+            // 尝试拦截 - 传入伤害值用于计算需要分配的飞剑数量
+            boolean intercepted = service.onIncomingThreat(threat, originalDamage);
+
+            LOGGER.info("[WardDebug] Intercept result: {}", intercepted);
 
             if (intercepted) {
-                LOGGER.debug("Ward sword intercept initiated for player {} against threat from {}",
+                LOGGER.info("Ward sword intercept initiated for player {} against threat from {}",
                     player.getName().getString(),
                     threat.attacker() != null ? threat.attacker().getName().getString() : "unknown");
 
                 // D阶段：拦截成功时减免伤害
                 // 根据护幕设计，拦截成功时伤害应该清零或大幅减免
                 // 这里实现"穿甲保留 30%" 规则：拦截成功后，玩家只受到 30% 的伤害
-                float originalDamage = event.getAmount();
                 float reducedDamage = originalDamage * WardConfig.ARMOR_PENETRATION_FACTOR;
                 event.setAmount(reducedDamage);
 
@@ -183,29 +194,18 @@ public final class WardSwordDamageEvents {
     }
 
     /**
-     * 检查玩家是否装备了剑幕·反击之幕器官
+     * 检查玩家的护幕是否激活
+     * <p>
+     * 与 {@link net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior#isWardActive}
+     * 使用相同的逻辑
      *
      * @param player 玩家
-     * @return 是否装备了剑幕器官
+     * @return 护幕是否激活
      */
-    private static boolean hasBlockShieldOrgan(Player player) {
+    private static boolean isWardActive(Player player) {
         return ChestCavityEntity.of(player)
             .map(ChestCavityEntity::getChestCavityInstance)
-            .filter(cc -> cc.inventory != null)
-            .map(cc -> {
-                for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
-                    var stack = cc.inventory.getItem(i);
-                    if (stack.isEmpty()) {
-                        continue;
-                    }
-                    ResourceLocation itemId =
-                        net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-                    if (itemId != null && itemId.equals(BLOCKSHIELD_ORGAN_ID)) {
-                        return true;
-                    }
-                }
-                return false;
-            })
+            .map(net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior::isWardActive)
             .orElse(false);
     }
 }
