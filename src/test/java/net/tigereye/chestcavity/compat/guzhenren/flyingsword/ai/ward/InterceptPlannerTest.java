@@ -102,12 +102,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0, -0.05, 0); // 缓慢下落（1 block/tick = 20 m/s）
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -129,12 +124,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.5, 0, 0); // 向右飞行（0.5 blocks/tick = 10 m/s）
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -155,12 +145,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.3, -0.1, 0); // 向右下飞行，受重力影响
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -181,12 +166,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.0001, 0, 0); // 极慢速度
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -205,12 +185,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0, 0, 0.5); // 沿Z轴飞行，不会命中
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -240,9 +215,11 @@ public class InterceptPlannerTest {
 
             IncomingThreat threat = new IncomingThreat(
                     attacker,
+                    player,
                     null,
                     null,
-                    null
+                    null,
+                    0L
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
@@ -269,9 +246,11 @@ public class InterceptPlannerTest {
 
             IncomingThreat threat = new IncomingThreat(
                     attacker,
+                    player,
                     null,
                     null,
-                    null
+                    null,
+                    0L
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
@@ -296,9 +275,11 @@ public class InterceptPlannerTest {
 
             IncomingThreat threat = new IncomingThreat(
                     attacker,
+                    player,
                     null,
                     null,
-                    null
+                    null,
+                    0L
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
@@ -324,9 +305,11 @@ public class InterceptPlannerTest {
 
             IncomingThreat threat = new IncomingThreat(
                     attacker,
+                    player,
                     null,
                     null,
-                    null
+                    null,
+                    0L
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
@@ -352,12 +335,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.4, 0, 0); // 0.4 blocks/tick = 8 m/s
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -386,9 +364,11 @@ public class InterceptPlannerTest {
 
             IncomingThreat threat = new IncomingThreat(
                     attacker,
+                    player,
                     null,
                     null,
-                    null
+                    null,
+                    0L
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
@@ -411,12 +391,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.3, 0, 0);
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -539,12 +514,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(10, 0, 0); // 极快速度
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -567,12 +537,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.01, 0, 0); // 极慢速度：0.2 m/s
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -592,12 +557,7 @@ public class InterceptPlannerTest {
             Vec3 projVel = new Vec3(0.5, 0, 0); // 0.5 blocks/tick = 10 m/s
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    null,
-                    projPos,
-                    projVel,
-                    null
-            );
+            IncomingThreat threat = IncomingThreat.forTest(projPos, projVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -628,11 +588,9 @@ public class InterceptPlannerTest {
         @Test
         @DisplayName("plan() - owner为null应返回null")
         void testPlanNullOwner() {
-            IncomingThreat threat = new IncomingThreat(
-                    null,
+            IncomingThreat threat = IncomingThreat.forTest(
                     new Vec3(0, 1, 0),
-                    new Vec3(0.1, 0, 0),
-                    null
+                    new Vec3(0.1, 0, 0)
             );
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
@@ -646,11 +604,9 @@ public class InterceptPlannerTest {
         void testPlanNullTuning() {
             Player player = createMockPlayer(new Vec3(0, 0, 0),
                     new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
-            IncomingThreat threat = new IncomingThreat(
-                    null,
+            IncomingThreat threat = IncomingThreat.forTest(
                     new Vec3(0, 1, 0),
-                    new Vec3(0.1, 0, 0),
-                    null
+                    new Vec3(0.1, 0, 0)
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, null);
@@ -707,7 +663,9 @@ public class InterceptPlannerTest {
                     null,
                     null,
                     null,
-                    null
+                    null,
+                    null,
+                    0L
             );
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
@@ -725,11 +683,9 @@ public class InterceptPlannerTest {
         @Test
         @DisplayName("isProjectile() - 有projPos和projVel时返回true")
         void testIsProjectileTrue() {
-            IncomingThreat threat = new IncomingThreat(
-                    null,
+            IncomingThreat threat = IncomingThreat.forTest(
                     new Vec3(0, 1, 0),
-                    new Vec3(0.1, 0, 0),
-                    null
+                    new Vec3(0.1, 0, 0)
             );
 
             assertTrue(threat.isProjectile());
@@ -744,7 +700,9 @@ public class InterceptPlannerTest {
                     attacker,
                     null,
                     null,
-                    null
+                    null,
+                    null,
+                    0L
             );
 
             assertTrue(threat.isMelee());
@@ -758,7 +716,9 @@ public class InterceptPlannerTest {
                     null,
                     null,
                     null,
-                    null
+                    null,
+                    null,
+                    0L
             );
 
             assertFalse(threat.isProjectile());
