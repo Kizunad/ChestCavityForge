@@ -170,6 +170,22 @@ public interface WardSwordService {
      */
     void tick(Player owner);
 
+    /**
+     * 单个护幕飞剑 Tick 驱动（每 tick 调用）
+     * <p>
+     * 由 {@link FlyingSwordEntity#tickWardBehavior} 调用，处理单个飞剑的状态机逻辑。
+     * <p>
+     * 流程：
+     * <ol>
+     *   <li>根据 {@link WardState} 执行对应行为（ORBIT/INTERCEPT/COUNTER/RETURN）</li>
+     *   <li>检测护幕耐久耗尽，移除实体</li>
+     * </ol>
+     *
+     * @param sword 护幕飞剑实体
+     * @param owner 护幕主人（玩家）
+     */
+    void tickWardSword(FlyingSwordEntity sword, Player owner);
+
     // ====== 工具方法 ======
 
     /**
