@@ -279,12 +279,12 @@ function predictMeleeHitPoint(attacker, target):
 **工具**: Serena (write)
 
 **实现要点**:
-- [ ] 内存映射存储护幕飞剑 (Map<UUID, List<FlyingSwordEntity>>)
-- [ ] ensureWardSwords(): 创建或移除飞剑以达到目标数量
-- [ ] disposeWardSwords(): 清空列表
-- [ ] onIncomingThreat(): 调用规划器，分配拦截任务
-- [ ] tick(): 驱动状态机（ORBIT → INTERCEPT → RETURN → ORBIT）
-- [ ] getWardSwords(), getWardCount(), hasWardSwords(): 查询方法
+- [x] 内存映射存储护幕飞剑 (Map<UUID, List<FlyingSwordEntity>>)
+- [x] ensureWardSwords(): 创建或移除飞剑以达到目标数量
+- [x] disposeWardSwords(): 清空列表
+- [x] onIncomingThreat(): 调用规划器，分配拦截任务
+- [x] tick(): 驱动状态机（ORBIT → INTERCEPT → RETURN → ORBIT）
+- [x] getWardSwords(), getWardCount(), hasWardSwords(): 查询方法
 
 **状态机逻辑伪代码**:
 ```

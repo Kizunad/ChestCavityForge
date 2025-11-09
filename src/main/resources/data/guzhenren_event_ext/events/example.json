@@ -1,0 +1,25 @@
+[
+  {
+    "id": "guzhenren_event_ext:example/low_zhenyuan_warning",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "zhenyuan",
+      "to": {
+        "max_percent": 0.1
+      }
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.5
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§c警告：你的真元已低于10%！"
+      }
+    ]
+  }
+]
