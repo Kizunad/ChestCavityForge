@@ -1,6 +1,8 @@
 package kizuna.guzhenren_event_ext;
 
+import kizuna.guzhenren_event_ext.common.attachment.ModAttachments;
 import kizuna.guzhenren_event_ext.common.config.Gamerules;
+import kizuna.guzhenren_event_ext.common.system.PlayerInventoryWatcher;
 import kizuna.guzhenren_event_ext.common.system.PlayerStatWatcher;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -19,8 +21,12 @@ public class GuzhenrenEventExtension {
     // 事件注册置于构造函数（符合本工程总线注册规范）
     modEventBus.addListener(this::onCommonSetup);
 
+    // Register our DeferredRegister to the mod event bus
+    ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
+
     // Register event listeners to the Forge event bus
     MinecraftForge.EVENT_BUS.register(PlayerStatWatcher.getInstance());
+    MinecraftForge.EVENT_BUS.register(PlayerInventoryWatcher.getInstance());
   }
 
   private void onCommonSetup(FMLCommonSetupEvent event) {
