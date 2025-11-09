@@ -42,7 +42,7 @@ public class DefaultWardSwordService implements WardSwordService {
     /**
      * 默认 WardTuning 实现
      */
-    private WardTuning tuning = new DefaultWardTuning();
+    private DefaultWardTuning tuning = new DefaultWardTuning();
 
     private DefaultWardSwordService() {
         // 私有构造函数，单例模式
@@ -58,7 +58,7 @@ public class DefaultWardSwordService implements WardSwordService {
     /**
      * 设置自定义的 WardTuning 实现
      */
-    public void setTuning(WardTuning tuning) {
+    public void setTuning(DefaultWardTuning tuning) {
         this.tuning = tuning;
     }
 
@@ -276,6 +276,9 @@ public class DefaultWardSwordService implements WardSwordService {
      * 服务端 Tick 逻辑
      */
     private void tickServerSide(Player owner) {
+        // 更新玩家缓存，以便 WardTuning 能够访问玩家数据
+        tuning.updatePlayerCache(owner);
+
         List<FlyingSwordEntity> swords = getWardSwords(owner);
 
         for (FlyingSwordEntity sword : swords) {
@@ -406,16 +409,200 @@ public class DefaultWardSwordService implements WardSwordService {
         int costCounter = tuning.costCounter(owner.getUUID());
         sword.consumeWardDurability(costCounter);
 
-        // 执行反击（骨架阶段：仅消耗耐久，不实际造成伤害）
-        // TODO: 在 D 阶段实现实际的反击逻辑
-        if (query != null && query.threat() != null && query.threat().attacker() != null) {
-            double damage = tuning.counterDamage(owner.getUUID());
-            LOGGER.debug("Ward sword {} counter-attacking with damage {}", sword.getId(), damage);
-            // 实际伤害逻辑将在 D 阶段实现
+        // 执行反击逻辑
+        if (query != null && query.threat() != null) {
+            IncomingThreat threat = query.threat();
+
+            // 检查威胁类型：投射物 vs 近战
+            if (threat.type() == IncomingThreat.Type.PROJECTILE) {
+                // D.2: 投射物反弹
+                performProjectileDeflection(threat, owner, sword);
+            } else if (threat.type() == IncomingThreat.Type.MELEE) {
+                // D.3: 近战反击（将在下一步实现）
+                performMeleeCounter(threat, owner, sword);
+            }
         }
 
         // 反击完成，返回环绕
         sword.setWardState(WardState.RETURN);
+    }
+
+    /**
+     * 执行投射物反弹
+     * <p>
+     * 实现镜面反射：v' = v - 2*(v·n)*n
+     * <ul>
+     *   <li>计算反射速度</li>
+     *   <li>改变投射物的所有者（如果可能）</li>
+     *   <li>改变投射物速度</li>
+     * </ul>
+     *
+     * @param threat 威胁对象
+     * @param owner 玩家
+     * @param sword 反击的飞剑
+     */
+    private void performProjectileDeflection(IncomingThreat threat, Player owner, FlyingSwordEntity sword) {
+        // 获取投射物实体
+        net.minecraft.world.entity.Entity directEntity = null;
+
+        // 尝试从世界中找到投射物
+        // 由于 IncomingThreat 中保存的是位置和速度，我们需要找到实际的投射物实体
+        // 这里使用一个简单的方法：在附近查找投射物
+        Vec3 threatPos = threat.position();
+        if (owner.level() instanceof ServerLevel serverLevel) {
+            // 在威胁位置附近查找投射物
+            List<net.minecraft.world.entity.Entity> nearbyEntities = serverLevel.getEntities(
+                owner,
+                new net.minecraft.world.phys.AABB(threatPos, threatPos).inflate(2.0)
+            );
+
+            for (net.minecraft.world.entity.Entity entity : nearbyEntities) {
+                if (entity instanceof net.minecraft.world.entity.projectile.Projectile projectile) {
+                    // 找到投射物，执行反弹
+                    deflectProjectile(projectile, threat, owner, sword);
+                    return;
+                }
+            }
+        }
+
+        LOGGER.debug("Could not find projectile to deflect at position {}", threatPos);
+    }
+
+    /**
+     * 反弹投射物
+     *
+     * @param projectile 投射物实体
+     * @param threat 威胁对象
+     * @param owner 玩家
+     * @param sword 反击的飞剑
+     */
+    private void deflectProjectile(
+        net.minecraft.world.entity.projectile.Projectile projectile,
+        IncomingThreat threat,
+        Player owner,
+        FlyingSwordEntity sword
+    ) {
+        Vec3 v = projectile.getDeltaMovement();
+
+        // 计算反射法向量（从拦截点指向玩家的方向）
+        Vec3 toOwner = owner.position().subtract(projectile.position()).normalize();
+
+        // 镜面反射公式：v' = v - 2*(v·n)*n
+        double vDotN = v.dot(toOwner);
+        Vec3 vReflected = v.subtract(toOwner.scale(2.0 * vDotN));
+
+        // 改变投射物速度
+        projectile.setDeltaMovement(vReflected);
+
+        // 尝试改变投射物的所有者为玩家
+        try {
+            if (projectile instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow) {
+                // 对于箭矢，可以直接设置所有者
+                arrow.setOwner(owner);
+                LOGGER.debug("Deflected arrow, changed owner to player {}", owner.getName().getString());
+            } else {
+                // 对于其他投射物，尝试通用方法
+                projectile.setOwner(owner);
+                LOGGER.debug("Deflected projectile {}, changed owner to player {}",
+                    projectile.getType().getDescription().getString(),
+                    owner.getName().getString());
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Could not change projectile owner: {}", e.getMessage());
+        }
+
+        LOGGER.debug("Projectile deflected with velocity {} -> {}", v, vReflected);
+    }
+
+    /**
+     * 执行近战反击
+     * <p>
+     * 对攻击者造成反击伤害
+     *
+     * @param threat 威胁对象
+     * @param owner 玩家
+     * @param sword 反击的飞剑
+     */
+    private void performMeleeCounter(IncomingThreat threat, Player owner, FlyingSwordEntity sword) {
+        if (threat.attacker() == null) {
+            return;
+        }
+
+        net.minecraft.world.entity.LivingEntity attacker = threat.attacker();
+
+        // 计算反击伤害
+        double damageAmount = tuning.counterDamage(owner.getUUID());
+
+        // 创建伤害源：标记为来自玩家的反击
+        // 使用飞剑作为直接来源，玩家作为实际来源
+        net.minecraft.world.damagesource.DamageSource damageSource =
+            owner.damageSources().mobAttack(owner);
+
+        // 对攻击者造成伤害
+        boolean damaged = attacker.hurt(damageSource, (float) damageAmount);
+
+        if (damaged) {
+            LOGGER.debug("Ward sword {} counter-attacked melee attacker {} with {} damage",
+                sword.getId(),
+                attacker.getName().getString(),
+                damageAmount);
+
+            // 可选：添加击退效果
+            // 计算从玩家到攻击者的方向
+            Vec3 knockbackDirection = attacker.position()
+                .subtract(owner.position())
+                .normalize()
+                .scale(0.3); // 击退强度
+
+            attacker.setDeltaMovement(
+                attacker.getDeltaMovement().add(knockbackDirection.x, 0.2, knockbackDirection.z)
+            );
+
+            // 可选：生成粒子效果（表示"剑气突刺"）
+            spawnCounterParticles(owner, attacker, sword);
+        } else {
+            LOGGER.debug("Ward sword {} counter-attack failed against {}",
+                sword.getId(),
+                attacker.getName().getString());
+        }
+    }
+
+    /**
+     * 生成反击粒子效果
+     * <p>
+     * 在玩家和攻击者之间生成粒子，表示"剑气突刺"
+     *
+     * @param owner 玩家
+     * @param attacker 攻击者
+     * @param sword 反击的飞剑
+     */
+    private void spawnCounterParticles(Player owner, net.minecraft.world.entity.LivingEntity attacker, FlyingSwordEntity sword) {
+        if (!(owner.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        // 从玩家到攻击者的方向
+        Vec3 start = owner.position().add(0, 1.0, 0);
+        Vec3 end = attacker.position().add(0, 1.0, 0);
+        Vec3 direction = end.subtract(start);
+        double distance = direction.length();
+        Vec3 step = direction.normalize().scale(0.3);
+
+        // 生成粒子轨迹
+        for (double d = 0; d < distance; d += 0.3) {
+            Vec3 particlePos = start.add(step.scale(d));
+
+            // 使用剑气粒子（这里使用 SWEEP_ATTACK 粒子）
+            serverLevel.sendParticles(
+                net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK,
+                particlePos.x, particlePos.y, particlePos.z,
+                1, // 粒子数量
+                0.0, 0.0, 0.0, // 偏移
+                0.0 // 速度
+            );
+        }
+
+        LOGGER.debug("Spawned counter particles from {} to {}", start, end);
     }
 
     /**

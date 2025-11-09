@@ -225,4 +225,15 @@ public final class WardConfig {
      * 拦截点会在预测命中点前方此距离，确保有效拦截
      */
     public static final double INTERCEPT_OFFSET = 0.3;
+
+    // ====== 伤害减免参数 ======
+
+    /**
+     * 穿甲因子（无量纲）
+     * <p>
+     * 拦截成功时，玩家受到的伤害比例。
+     * 默认值 0.3 表示"穿甲保留 30%"，即拦截后玩家只受到原伤害的 30%。
+     * 设为 0.0 表示完全免疫，设为 1.0 表示不减免。
+     */
+    public static final float ARMOR_PENETRATION_FACTOR = 0.3f;
 }

@@ -1,32 +1,49 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward;
 
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.OptionalDouble;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 默认护幕数值供给实现
  * <p>
- * 骨架阶段：所有方法返回常量或简单公式。
+ * D 阶段：集成道痕与流派经验参数，动态计算护幕属性。
  * <p>
- * 在后续阶段，可以替换为读取玩家道痕、经验等数据的实现。
+ * 使用 {@link GuzhenrenResourceBridge} 读取玩家的剑道道痕和剑道流派经验。
  *
  * <h3>实现策略</h3>
  * <ul>
- *   <li>所有方法使用 {@link WardConfig} 中的常量</li>
- *   <li>公式使用简化版本（不读取实际玩家数据）</li>
- *   <li>支持后续扩展为数据驱动实现</li>
+ *   <li>所有方法使用 {@link WardConfig} 中的常量作为基准值</li>
+ *   <li>公式根据玩家的道痕和流派经验动态计算</li>
+ *   <li>支持后续扩展为配置文件驱动实现</li>
  * </ul>
  */
 public class DefaultWardTuning implements WardTuning {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWardTuning.class);
+
     /**
-     * 默认道痕等级（骨架阶段固定值）
+     * 默认道痕等级（当无法读取时使用）
      */
     private static final double DEFAULT_TRAIL_LEVEL = 0.0;
 
     /**
-     * 默认流派经验（骨架阶段固定值）
+     * 默认流派经验（当无法读取时使用）
      */
     private static final double DEFAULT_SECT_EXP = 0.0;
+
+    /**
+     * 玩家数据缓存（UUID → 玩家实例）
+     * <p>
+     * 用于从 UUID 反查 Player 对象
+     */
+    private final ConcurrentHashMap<UUID, Player> playerCache = new ConcurrentHashMap<>();
 
     @Override
     public int maxSwords(UUID owner) {
@@ -138,35 +155,105 @@ public class DefaultWardTuning implements WardTuning {
             + WardConfig.INITIAL_DUR_EXP * exp;
     }
 
-    // ====== 辅助方法（骨架阶段返回固定值）======
+    // ====== 辅助方法（D 阶段：集成 GuzhenRen API）======
+
+    /**
+     * 更新玩家缓存
+     * <p>
+     * 用于从 UUID 反查 Player 对象。
+     * 应该在每次 tick 或操作时调用，以确保缓存是最新的。
+     *
+     * @param player 玩家实例
+     */
+    public void updatePlayerCache(Player player) {
+        if (player != null) {
+            playerCache.put(player.getUUID(), player);
+        }
+    }
+
+    /**
+     * 从 UUID 获取玩家实例
+     *
+     * @param owner 玩家 UUID
+     * @return 玩家实例，如果未找到则返回 null
+     */
+    protected Player getPlayer(UUID owner) {
+        return playerCache.get(owner);
+    }
 
     /**
      * 获取玩家道痕等级
      * <p>
-     * 骨架阶段：返回固定值 0
-     * <p>
-     * 在后续阶段，可以替换为读取玩家实际道痕数据
+     * D 阶段：使用 {@link GuzhenrenResourceBridge} 读取剑道道痕
      *
      * @param owner 玩家 UUID
-     * @return 道痕等级
+     * @return 道痕等级（剑道道痕值）
      */
     protected double getTrailLevel(UUID owner) {
-        // TODO: 在后续阶段集成 GuzhenRen API 读取实际道痕
-        return DEFAULT_TRAIL_LEVEL;
+        Player player = getPlayer(owner);
+        if (player == null) {
+            return DEFAULT_TRAIL_LEVEL;
+        }
+
+        // 检查 GuzhenRen 桥接是否可用
+        if (!GuzhenrenResourceBridge.isAvailable()) {
+            return DEFAULT_TRAIL_LEVEL;
+        }
+
+        try {
+            // 获取资源句柄
+            return GuzhenrenResourceBridge.open(player)
+                .flatMap(handle -> {
+                    // 读取剑道道痕（DAOHEN_JIANDAO）
+                    OptionalDouble jiandao = handle.read("daohen_jiandao");
+                    if (jiandao.isPresent()) {
+                        return OptionalDouble.of(jiandao.getAsDouble());
+                    }
+                    return OptionalDouble.empty();
+                })
+                .orElse(DEFAULT_TRAIL_LEVEL);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to read trail level for player {}: {}",
+                owner, e.getMessage());
+            return DEFAULT_TRAIL_LEVEL;
+        }
     }
 
     /**
      * 获取玩家流派经验
      * <p>
-     * 骨架阶段：返回固定值 0
-     * <p>
-     * 在后续阶段，可以替换为读取玩家实际流派经验
+     * D 阶段：使用 {@link GuzhenrenResourceBridge} 读取剑道流派经验
      *
      * @param owner 玩家 UUID
-     * @return 流派经验
+     * @return 流派经验（剑道流派经验值）
      */
     protected double getSectExperience(UUID owner) {
-        // TODO: 在后续阶段集成 GuzhenRen API 读取实际流派经验
-        return DEFAULT_SECT_EXP;
+        Player player = getPlayer(owner);
+        if (player == null) {
+            return DEFAULT_SECT_EXP;
+        }
+
+        // 检查 GuzhenRen 桥接是否可用
+        if (!GuzhenrenResourceBridge.isAvailable()) {
+            return DEFAULT_SECT_EXP;
+        }
+
+        try {
+            // 获取资源句柄
+            return GuzhenrenResourceBridge.open(player)
+                .flatMap(handle -> {
+                    // 读取剑道流派经验（LIUPAI_JIANDAO）
+                    OptionalDouble liupai = handle.read("liupai_jiandao");
+                    if (liupai.isPresent()) {
+                        return OptionalDouble.of(liupai.getAsDouble());
+                    }
+                    return OptionalDouble.empty();
+                })
+                .orElse(DEFAULT_SECT_EXP);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to read sect experience for player {}: {}",
+                owner, e.getMessage());
+            return DEFAULT_SECT_EXP;
+        }
     }
 }
