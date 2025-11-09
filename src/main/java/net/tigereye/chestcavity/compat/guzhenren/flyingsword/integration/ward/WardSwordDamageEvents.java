@@ -149,7 +149,8 @@ public final class WardSwordDamageEvents {
                 projectile.position(),
                 velocity,
                 velocity.length(),
-                IncomingThreat.Type.PROJECTILE
+                IncomingThreat.Type.PROJECTILE,
+                target.level().getGameTime()
             );
         }
 
@@ -173,7 +174,8 @@ public final class WardSwordDamageEvents {
                 attackerPos,
                 velocity,
                 speed,
-                IncomingThreat.Type.MELEE
+                IncomingThreat.Type.MELEE,
+                target.level().getGameTime()
             );
         }
 

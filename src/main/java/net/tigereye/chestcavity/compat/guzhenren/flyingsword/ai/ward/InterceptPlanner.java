@@ -92,16 +92,16 @@ public final class InterceptPlanner {
         if (threat.isProjectile()) {
             // 投射物威胁：预测轨迹与目标AABB的相交点
             hitPoint = predictProjectileHitPoint(
-                    threat.projPos(),
-                    threat.projVel(),
+                    threat.position(),
+                    threat.velocity(),
                     owner,
                     GRAVITY
             );
 
             if (hitPoint != null) {
                 // 计算投射物到达命中点的时间
-                double distance = threat.projPos().distanceTo(hitPoint);
-                double speedPerTick = threat.projVel().length(); // blocks/tick
+                double distance = threat.position().distanceTo(hitPoint);
+                double speedPerTick = threat.velocity().length(); // blocks/tick
                 double speedPerSecond = speedPerTick * 20.0; // 转换为 m/s
                 if (speedPerSecond > 0.02) { // 0.001 * 20 = 0.02
                     tImpact = distance / speedPerSecond; // 秒
@@ -122,8 +122,8 @@ public final class InterceptPlanner {
             if (hitPoint != null) {
                 // 近战的到达时间基于攻击者移动速度
                 // 简化处理：假设攻击者瞬间到达（或使用攻击者当前速度）
-                Vec3 attackerVel = threat.attacker().getDeltaMovement();
-                double attackerSpeed = attackerVel.length() * 20.0; // tick/s → m/s
+                Vec3 attackerVel = threat.velocity();
+                double attackerSpeed = threat.speed() * 20.0; // threat.speed 为 blocks/tick
 
                 if (attackerSpeed < 0.1) {
                     // 攻击者静止或速度很慢，假设0.2秒内攻击
@@ -143,8 +143,8 @@ public final class InterceptPlanner {
         // 步骤3: 从命中点推导拦截点P*
         // P* = I - offset * normalize(velocity_direction)
         Vec3 interceptPoint;
-        if (threat.isProjectile() && threat.projVel() != null) {
-            Vec3 direction = threat.projVel().normalize();
+        if (threat.isProjectile() && threat.velocity() != null) {
+            Vec3 direction = threat.velocity().normalize();
             interceptPoint = hitPoint.subtract(direction.scale(0.3)); // 提前0.3m
         } else {
             // 近战：拦截点就是命中点

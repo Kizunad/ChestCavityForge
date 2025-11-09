@@ -5,112 +5,75 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 完整的威胁描述（近战或投射）
+ * 完整的威胁描述（近战或投射）。
  * <p>
- * 此记录封装了来自攻击者的威胁信息，用于护幕系统的拦截规划。
- * 威胁可以是投射物（箭、火球等）或近战攻击。
+ * 在 D 阶段之后，威胁对象携带明确的类型、位置与速度信息，供拦截、反弹与反击逻辑共用。
  *
- * <h3>投射物威胁</h3>
- * 投射物威胁包含位置和速度信息，用于预测轨迹：
- * <ul>
- *   <li>{@link #projPos} - 投射物当前位置</li>
- *   <li>{@link #projVel} - 投射物速度向量</li>
- * </ul>
- *
- * <h3>近战威胁</h3>
- * 近战威胁基于攻击者和目标的位置关系：
- * <ul>
- *   <li>{@link #projPos} 和 {@link #projVel} 为 null</li>
- *   <li>使用 {@link #attacker} 位置到 {@link #target} 位置的线段</li>
- * </ul>
- *
- * @param attacker 攻击发起者（实体）
+ * @param attacker 攻击发起者（可为空，比如环境投射物）
  * @param target 预期目标（通常为玩家）
- * @param targetHitPoint 预期命中点（用于投射预测或近战线段），可选
- * @param projPos 投射物当前位置（null 表示近战）
- * @param projVel 投射物速度（null 表示近战或未知）
+ * @param position 威胁当前位置
+ * @param velocity 威胁速度向量（m/s）
+ * @param speed 威胁速度标量（m/s）
+ * @param type 威胁类型（投射物/近战）
  * @param worldTime 事件发生的世界时刻（tick）
  */
 public record IncomingThreat(
-        Entity attacker,
-        Entity target,
-        @Nullable Vec3 targetHitPoint,
-        @Nullable Vec3 projPos,
-        @Nullable Vec3 projVel,
+        @Nullable Entity attacker,
+        @Nullable Entity target,
+        Vec3 position,
+        Vec3 velocity,
+        double speed,
+        Type type,
         long worldTime
 ) {
-    /**
-     * 判定威胁是否为投射物
-     * <p>
-     * 投射物威胁同时包含位置和速度信息
-     *
-     * @return 如果是投射物威胁返回 true
-     */
+
+    /** 威胁类型 */
+    public enum Type {
+        PROJECTILE,
+        MELEE
+    }
+
+    /** 是否为投射物 */
     public boolean isProjectile() {
-        return projPos != null && projVel != null;
+        return type == Type.PROJECTILE;
     }
 
-    /**
-     * 判定威胁是否为近战
-     * <p>
-     * 近战威胁不包含投射物位置和速度信息
-     *
-     * @return 如果是近战威胁返回 true
-     */
+    /** 是否为近战 */
     public boolean isMelee() {
-        return projPos == null && projVel == null;
+        return type == Type.MELEE;
     }
 
     /**
-     * 获取威胁的简要描述（用于日志）
-     *
-     * @return 威胁描述字符串
+     * 获取威胁描述（用于日志）
      */
     public String describe() {
+        String attackerName = attacker != null ? attacker.getName().getString() : "environment";
+        String targetName = target != null ? target.getName().getString() : "unknown";
         if (isProjectile()) {
-            return String.format("Projectile[%s -> %s @ %.1fm/s]",
-                    attacker.getName().getString(),
-                    target.getName().getString(),
-                    projVel != null ? projVel.length() : 0.0);
-        } else {
-            return String.format("Melee[%s -> %s]",
-                    attacker.getName().getString(),
-                    target.getName().getString());
+            return String.format("Projectile[%s -> %s @ %.1fm/s]", attackerName, targetName, speed);
         }
+        return String.format("Melee[%s -> %s]", attackerName, targetName);
     }
 
     /**
-     * 创建测试用的投射物威胁
-     * <p>
-     * 此工厂方法简化了测试代码，为非关键参数提供合理的默认值。
-     * 仅用于单元测试，生产代码应使用完整的构造函数。
-     *
-     * @param projPos 投射物当前位置
-     * @param projVel 投射物速度向量
-     * @param target 目标实体（可为 null）
-     * @return 投射物威胁实例
+     * 构建用于测试的投射物威胁
      */
-    public static IncomingThreat forTest(@Nullable Vec3 projPos, @Nullable Vec3 projVel, @Nullable Entity target) {
+    public static IncomingThreat forTest(Vec3 projPos, Vec3 projVel, @Nullable Entity target) {
         return new IncomingThreat(
-                null,           // attacker - 测试中通常不需要
-                target,         // target
-                null,           // targetHitPoint - 测试中通常不需要
-                projPos,        // projPos
-                projVel,        // projVel
-                0L              // worldTime - 测试中通常不需要
+                null,
+                target,
+                projPos,
+                projVel,
+                projVel.length(),
+                Type.PROJECTILE,
+                0L
         );
     }
 
     /**
-     * 创建测试用的投射物威胁（无目标实体）
-     * <p>
-     * 简化版本，适用于不需要目标实体的测试场景
-     *
-     * @param projPos 投射物当前位置
-     * @param projVel 投射物速度向量
-     * @return 投射物威胁实例
+     * 构建用于测试的投射物威胁（无目标实体）
      */
-    public static IncomingThreat forTest(@Nullable Vec3 projPos, @Nullable Vec3 projVel) {
+    public static IncomingThreat forTest(Vec3 projPos, Vec3 projVel) {
         return forTest(projPos, projVel, null);
     }
 }

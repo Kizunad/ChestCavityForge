@@ -6,7 +6,7 @@ import kizuna.guzhenren_event_ext.common.event.api.GuzhenrenStatChangeEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
@@ -42,10 +42,8 @@ public class PlayerStatWatcher {
     }
 
     @SubscribeEvent
-    public void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
-            this.tick(event.getServer());
-        }
+    public void onServerTick(ServerTickEvent.Post event) {
+        this.tick(event.getServer());
     }
 
     @SubscribeEvent

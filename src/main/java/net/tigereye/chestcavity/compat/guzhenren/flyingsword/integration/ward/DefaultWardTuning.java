@@ -6,7 +6,6 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -201,16 +200,8 @@ public class DefaultWardTuning implements WardTuning {
         }
 
         try {
-            // 获取资源句柄
             return GuzhenrenResourceBridge.open(player)
-                .flatMap(handle -> {
-                    // 读取剑道道痕（DAOHEN_JIANDAO）
-                    OptionalDouble jiandao = handle.read("daohen_jiandao");
-                    if (jiandao.isPresent()) {
-                        return OptionalDouble.of(jiandao.getAsDouble());
-                    }
-                    return OptionalDouble.empty();
-                })
+                .map(handle -> handle.read("daohen_jiandao").orElse(DEFAULT_TRAIL_LEVEL))
                 .orElse(DEFAULT_TRAIL_LEVEL);
         } catch (Exception e) {
             LOGGER.warn("Failed to read trail level for player {}: {}",
@@ -239,16 +230,8 @@ public class DefaultWardTuning implements WardTuning {
         }
 
         try {
-            // 获取资源句柄
             return GuzhenrenResourceBridge.open(player)
-                .flatMap(handle -> {
-                    // 读取剑道流派经验（LIUPAI_JIANDAO）
-                    OptionalDouble liupai = handle.read("liupai_jiandao");
-                    if (liupai.isPresent()) {
-                        return OptionalDouble.of(liupai.getAsDouble());
-                    }
-                    return OptionalDouble.empty();
-                })
+                .map(handle -> handle.read("liupai_jiandao").orElse(DEFAULT_SECT_EXP))
                 .orElse(DEFAULT_SECT_EXP);
         } catch (Exception e) {
             LOGGER.warn("Failed to read sect experience for player {}: {}",

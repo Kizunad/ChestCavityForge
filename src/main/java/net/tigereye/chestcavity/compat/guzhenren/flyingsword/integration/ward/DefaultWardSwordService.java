@@ -524,11 +524,9 @@ public class DefaultWardSwordService implements WardSwordService {
      * @param sword 反击的飞剑
      */
     private void performMeleeCounter(IncomingThreat threat, Player owner, FlyingSwordEntity sword) {
-        if (threat.attacker() == null) {
+        if (!(threat.attacker() instanceof net.minecraft.world.entity.LivingEntity attacker)) {
             return;
         }
-
-        net.minecraft.world.entity.LivingEntity attacker = threat.attacker();
 
         // 计算反击伤害
         double damageAmount = tuning.counterDamage(owner.getUUID());

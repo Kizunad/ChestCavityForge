@@ -85,6 +85,32 @@ public class InterceptPlannerTest {
         return tuning;
     }
 
+    private IncomingThreat createMeleeThreat(
+            Entity attacker,
+            Player target,
+            Vec3 attackerPos,
+            Vec3 attackerVel
+    ) {
+        Vec3 velocity = attackerVel;
+        double speed = attackerVel.length();
+
+        if (speed < 0.1) {
+            Vec3 direction = target.position().subtract(attackerPos).normalize();
+            speed = 0.5;
+            velocity = direction.scale(speed);
+        }
+
+        return new IncomingThreat(
+                attacker,
+                target,
+                attackerPos,
+                velocity,
+                speed,
+                IncomingThreat.Type.MELEE,
+                0L
+        );
+    }
+
     // ====== B.1: 投射物轨迹预测测试 ======
 
     @Nested
@@ -214,14 +240,7 @@ public class InterceptPlannerTest {
 
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    attacker,
-                    player,
-                    null,
-                    null,
-                    null,
-                    0L
-            );
+            IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -245,14 +264,7 @@ public class InterceptPlannerTest {
 
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    attacker,
-                    player,
-                    null,
-                    null,
-                    null,
-                    0L
-            );
+            IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -274,14 +286,7 @@ public class InterceptPlannerTest {
 
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    attacker,
-                    player,
-                    null,
-                    null,
-                    null,
-                    0L
-            );
+            IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -304,14 +309,7 @@ public class InterceptPlannerTest {
 
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    attacker,
-                    player,
-                    null,
-                    null,
-                    null,
-                    0L
-            );
+            IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -363,14 +361,7 @@ public class InterceptPlannerTest {
 
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-            IncomingThreat threat = new IncomingThreat(
-                    attacker,
-                    player,
-                    null,
-                    null,
-                    null,
-                    0L
-            );
+            IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
 
             InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -662,9 +653,10 @@ public class InterceptPlannerTest {
             // 既没有投射物数据，也没有攻击者
             IncomingThreat threat = new IncomingThreat(
                     null,
-                    null,
-                    null,
-                    null,
+                    player,
+                    Vec3.ZERO,
+                    Vec3.ZERO,
+                    0.0,
                     null,
                     0L
             );
@@ -696,13 +688,15 @@ public class InterceptPlannerTest {
         @Test
         @DisplayName("isMelee() - 有attacker时返回true")
         void testIsMeleeTrue() {
-            Entity attacker = createMockAttacker(new Vec3(0, 0, 0), new Vec3(0, 0, 0));
+            Entity attacker = createMockAttacker(new Vec3(0, 0, 0), new Vec3(0.2, 0, 0));
+            Player player = createMockPlayer(new Vec3(0, 0, 0), new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
             IncomingThreat threat = new IncomingThreat(
                     attacker,
-                    null,
-                    null,
-                    null,
-                    null,
+                    player,
+                    attacker.position(),
+                    new Vec3(0.2, 0, 0),
+                    0.2,
+                    IncomingThreat.Type.MELEE,
                     0L
             );
 
@@ -713,11 +707,13 @@ public class InterceptPlannerTest {
         @Test
         @DisplayName("既没有投射物也没有攻击者 - 两个都返回false")
         void testNeitherProjectileNorMeleeHelper() {
+            Player player = createMockPlayer(new Vec3(0, 0, 0), new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
             IncomingThreat threat = new IncomingThreat(
                     null,
-                    null,
-                    null,
-                    null,
+                    player,
+                    Vec3.ZERO,
+                    Vec3.ZERO,
+                    0.0,
                     null,
                     0L
             );

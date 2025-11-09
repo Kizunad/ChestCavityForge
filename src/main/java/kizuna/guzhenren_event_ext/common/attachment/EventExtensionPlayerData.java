@@ -1,5 +1,6 @@
 package kizuna.guzhenren_event_ext.common.attachment;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -26,7 +27,7 @@ public class EventExtensionPlayerData implements INBTSerializable<CompoundTag> {
     }
 
     @Override
-    public CompoundTag serializeNBT() {
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag nbt = new CompoundTag();
         ListTag list = new ListTag();
         for (String eventId : triggeredOnceEvents) {
@@ -37,7 +38,7 @@ public class EventExtensionPlayerData implements INBTSerializable<CompoundTag> {
     }
 
     @Override
-    public void deserializeNBT(CompoundTag nbt) {
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
         triggeredOnceEvents.clear();
         ListTag list = nbt.getList("TriggeredOnceEvents", Tag.TAG_STRING);
         for (int i = 0; i < list.size(); i++) {
