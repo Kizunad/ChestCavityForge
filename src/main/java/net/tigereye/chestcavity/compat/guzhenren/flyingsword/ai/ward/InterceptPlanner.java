@@ -77,9 +77,90 @@ public final class InterceptPlanner {
             Player owner,
             WardTuning tuning
     ) {
-        // 骨架实现：返回 null
-        // B 阶段将实现完整的预测算法
-        return null;
+        if (threat == null || owner == null || tuning == null) {
+            return null;
+        }
+
+        // Minecraft gravity constant: 0.05 blocks/tick² → 0.05 * 20² = 20 m/s²
+        final double GRAVITY = 20.0;
+        final double MELEE_REACH = 3.0; // 近战攻击范围
+
+        Vec3 hitPoint = null;
+        double tImpact = 0.0;
+
+        // 步骤1: 判断威胁类型并预测命中点
+        if (threat.isProjectile()) {
+            // 投射物威胁：预测轨迹与目标AABB的相交点
+            hitPoint = predictProjectileHitPoint(
+                    threat.projPos(),
+                    threat.projVel(),
+                    owner,
+                    GRAVITY
+            );
+
+            if (hitPoint != null) {
+                // 计算投射物到达命中点的时间
+                double distance = threat.projPos().distanceTo(hitPoint);
+                double speed = threat.projVel().length();
+                if (speed > 0.001) {
+                    tImpact = distance / speed; // 秒
+                } else {
+                    // 速度太慢或为0，无法拦截
+                    return null;
+                }
+            }
+
+        } else if (threat.isMelee()) {
+            // 近战威胁：预测攻击线段与目标的相交点
+            hitPoint = predictMeleeHitPoint(
+                    threat.attacker(),
+                    owner,
+                    MELEE_REACH
+            );
+
+            if (hitPoint != null) {
+                // 近战的到达时间基于攻击者移动速度
+                // 简化处理：假设攻击者瞬间到达（或使用攻击者当前速度）
+                Vec3 attackerVel = threat.attacker().getDeltaMovement();
+                double attackerSpeed = attackerVel.length() * 20.0; // tick/s → m/s
+
+                if (attackerSpeed < 0.1) {
+                    // 攻击者静止或速度很慢，假设0.2秒内攻击
+                    tImpact = 0.2;
+                } else {
+                    double distance = threat.attacker().position().distanceTo(hitPoint);
+                    tImpact = distance / attackerSpeed;
+                }
+            }
+        }
+
+        // 步骤2: 如果无法预测命中点，返回null
+        if (hitPoint == null) {
+            return null;
+        }
+
+        // 步骤3: 从命中点推导拦截点P*
+        // P* = I - offset * normalize(velocity_direction)
+        Vec3 interceptPoint;
+        if (threat.isProjectile() && threat.projVel() != null) {
+            Vec3 direction = threat.projVel().normalize();
+            interceptPoint = hitPoint.subtract(direction.scale(0.3)); // 提前0.3m
+        } else {
+            // 近战：拦截点就是命中点
+            interceptPoint = hitPoint;
+        }
+
+        // 步骤4: 验证时间窗口
+        double windowMin = tuning.windowMin();
+        double windowMax = tuning.windowMax();
+
+        if (tImpact < windowMin || tImpact > windowMax) {
+            // 超出时间窗，无法拦截
+            return null;
+        }
+
+        // 步骤5: 返回拦截查询
+        return new InterceptQuery(interceptPoint, tImpact, threat);
     }
 
     // ====== 辅助方法 ======
@@ -164,9 +245,47 @@ public final class InterceptPlanner {
             Player target,
             double gravity
     ) {
-        // 骨架实现：返回 null
-        // B 阶段将实现迭代预测算法
-        return null;
+        if (projPos == null || projVel == null || target == null) {
+            return null;
+        }
+
+        AABB targetBox = target.getBoundingBox();
+
+        // Minecraft gravity: 0.05 blocks/tick² = 0.05 * 20² = 20 m/s² (approx)
+        // But we use the provided gravity parameter
+        Vec3 gravityVec = new Vec3(0, -gravity, 0);
+
+        // 迭代预测：从 0 到 1.0s，步长 0.05s（共20次迭代）
+        double maxTime = 1.0;  // 秒
+        double stepSize = 0.05; // 秒
+
+        for (double t = 0.0; t <= maxTime; t += stepSize) {
+            // 二次轨迹公式：P(t) = P₀ + v₀*t + 0.5*g*t²
+            Vec3 predPos = projPos
+                    .add(projVel.scale(t))
+                    .add(gravityVec.scale(0.5 * t * t));
+
+            // 检测是否与目标AABB相交
+            if (isPointInAABB(predPos, targetBox)) {
+                return predPos;
+            }
+
+            // 也检查从上一点到当前点的线段是否穿过AABB（更精确）
+            if (t > 0) {
+                double prevT = t - stepSize;
+                Vec3 prevPos = projPos
+                        .add(projVel.scale(prevT))
+                        .add(gravityVec.scale(0.5 * prevT * prevT));
+
+                // 如果线段与AABB相交，返回最近点
+                Vec3 closest = closestPointOnAABB(predPos, targetBox);
+                if (closest.distanceTo(predPos) < 0.1) {
+                    return closest;
+                }
+            }
+        }
+
+        return null; // 无相交
     }
 
     /**
@@ -192,9 +311,42 @@ public final class InterceptPlanner {
             Player target,
             double reach
     ) {
-        // 骨架实现：返回 null
-        // B 阶段将实现线段最近点算法
-        return null;
+        if (attacker == null || target == null) {
+            return null;
+        }
+
+        // 构造攻击线段：从攻击者的眼睛位置到目标的中心位置
+        Vec3 attackerEye = attacker.getEyePosition();
+        Vec3 targetCenter = target.position().add(0, target.getBbHeight() / 2.0, 0);
+
+        // 检查距离是否在攻击范围内
+        double distance = attackerEye.distanceTo(targetCenter);
+        if (distance > reach) {
+            return null; // 超出攻击范围
+        }
+
+        // 计算线段到目标AABB的最近点
+        AABB targetBox = target.getBoundingBox();
+
+        // 先检查攻击者是否已经在AABB内（近距离攻击）
+        if (isPointInAABB(attackerEye, targetBox)) {
+            return attackerEye;
+        }
+
+        // 计算从攻击者指向目标的方向
+        Vec3 direction = targetCenter.subtract(attackerEye).normalize();
+        Vec3 attackPoint = attackerEye.add(direction.scale(reach));
+
+        // 找到线段与AABB的最近点
+        Vec3 closestOnBox = closestPointOnAABB(targetCenter, targetBox);
+
+        // 如果目标中心点不在盒子内，则使用线段到盒子的最近点
+        if (!isPointInAABB(targetCenter, targetBox)) {
+            // 计算线段到AABB各个面的最近点
+            closestOnBox = closestPointOnSegmentToAABB(attackerEye, attackPoint, targetBox);
+        }
+
+        return closestOnBox;
     }
 
     // ====== 几何工具方法（骨架阶段仅签名） ======
@@ -239,6 +391,31 @@ public final class InterceptPlanner {
         t = Math.max(0.0, Math.min(1.0, t)); // 限制在 [0, 1]
 
         return lineStart.add(segment.scale(t));
+    }
+
+    /**
+     * 计算线段到AABB的最近点
+     * <p>
+     * 用于近战攻击线段与目标盒子的碰撞检测
+     *
+     * @param lineStart 线段起点
+     * @param lineEnd 线段终点
+     * @param box 边界盒
+     * @return AABB上距离线段最近的点
+     */
+    private static Vec3 closestPointOnSegmentToAABB(Vec3 lineStart, Vec3 lineEnd, AABB box) {
+        // 获取AABB中心点
+        Vec3 boxCenter = new Vec3(
+                (box.minX + box.maxX) / 2.0,
+                (box.minY + box.maxY) / 2.0,
+                (box.minZ + box.maxZ) / 2.0
+        );
+
+        // 计算线段到盒子中心的最近点
+        Vec3 closestOnSegment = closestPointOnSegment(lineStart, lineEnd, boxCenter);
+
+        // 计算该点到AABB的最近点
+        return closestPointOnAABB(closestOnSegment, box);
     }
 
     /**
