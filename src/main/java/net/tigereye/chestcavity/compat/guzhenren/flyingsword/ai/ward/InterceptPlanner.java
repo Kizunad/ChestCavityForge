@@ -101,9 +101,10 @@ public final class InterceptPlanner {
             if (hitPoint != null) {
                 // 计算投射物到达命中点的时间
                 double distance = threat.projPos().distanceTo(hitPoint);
-                double speed = threat.projVel().length();
-                if (speed > 0.001) {
-                    tImpact = distance / speed; // 秒
+                double speedPerTick = threat.projVel().length(); // blocks/tick
+                double speedPerSecond = speedPerTick * 20.0; // 转换为 m/s
+                if (speedPerSecond > 0.02) { // 0.001 * 20 = 0.02
+                    tImpact = distance / speedPerSecond; // 秒
                 } else {
                     // 速度太慢或为0，无法拦截
                     return null;
@@ -251,8 +252,11 @@ public final class InterceptPlanner {
 
         AABB targetBox = target.getBoundingBox();
 
-        // Minecraft gravity: 0.05 blocks/tick² = 0.05 * 20² = 20 m/s² (approx)
-        // But we use the provided gravity parameter
+        // 单位转换：projVel 是 blocks/tick，需要转换为 m/s
+        // 1 tick = 1/20 秒，所以 v(m/s) = v(blocks/tick) * 20
+        Vec3 velPerSecond = projVel.scale(20.0);
+
+        // Minecraft gravity: 0.05 blocks/tick² = 0.05 * 20² = 20 m/s²
         Vec3 gravityVec = new Vec3(0, -gravity, 0);
 
         // 迭代预测：从 0 到 1.0s，步长 0.05s（共20次迭代）
@@ -261,8 +265,9 @@ public final class InterceptPlanner {
 
         for (double t = 0.0; t <= maxTime; t += stepSize) {
             // 二次轨迹公式：P(t) = P₀ + v₀*t + 0.5*g*t²
+            // 现在 velPerSecond 和 gravity 都是 m/s 单位
             Vec3 predPos = projPos
-                    .add(projVel.scale(t))
+                    .add(velPerSecond.scale(t))
                     .add(gravityVec.scale(0.5 * t * t));
 
             // 检测是否与目标AABB相交
@@ -274,7 +279,7 @@ public final class InterceptPlanner {
             if (t > 0) {
                 double prevT = t - stepSize;
                 Vec3 prevPos = projPos
-                        .add(projVel.scale(prevT))
+                        .add(velPerSecond.scale(prevT))
                         .add(gravityVec.scale(0.5 * prevT * prevT));
 
                 // 如果线段与AABB相交，返回最近点
