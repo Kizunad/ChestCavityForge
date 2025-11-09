@@ -36,11 +36,11 @@ The architecture is based on a **Polling Detection Model**.
 
 ## Development Roadmap
 
-### Phase 1: Core Framework (In Progress)
+### Phase 1: Core Framework (Complete)
 
 -   [x] Polling mechanisms (`PlayerStatWatcher`, `PlayerInventoryWatcher`).
 -   [x] Custom event classes (`GuzhenrenStatChangeEvent`, `PlayerObtainedItemEvent`).
--   [ ] Custom Event Bus wiring（当前为占位实现，未实际转发事件）。
+-   [x] Custom Event Bus wiring（已完成实现，支持订阅者注册和事件分发）。
 -   [x] Gamerule for enabling/disabling the system.
 -   [x] Player data attachment for `trigger_once` state.
 -   [x] Basic file and package structure.
@@ -53,13 +53,13 @@ The architecture is based on a **Polling Detection Model**.
 -   [x] `TriggerRegistry`, `ConditionRegistry`, and `ActionRegistry` implementation.
 -   [x] Integration of all components into the mod's lifecycle.
 
-### Phase 3: Basic Module Implementation (Blocked by Phase 1)
+### Phase 3: Basic Module Implementation (Complete)
 
 -   [x] Implement the `player_stat_change` trigger logic.
 -   [x] Implement the `player_obtained_item` trigger logic.
 -   [x] Implement a set of standard conditions (`minecraft:random_chance`, `guzhenren:player_health_percent`).
 -   [x] Implement a set of standard actions (`guzhenren_event_ext:send_message`, `guzhenren_event_ext:run_command`, `guzhenren_event_ext:adjust_player_stat`).
--   [ ] 验证触发器/动作全链路（等待 Custom Event Bus 生效后才能勾选）。
+-   [x] 验证触发器/动作全链路（CustomEventBus 已实现，全链路已验证）。
 
 ### Phase 4: Advanced Features & Optimization
 
