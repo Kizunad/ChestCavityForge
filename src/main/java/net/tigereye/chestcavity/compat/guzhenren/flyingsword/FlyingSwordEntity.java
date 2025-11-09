@@ -785,8 +785,13 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     // 若由主人驾驶，则跳过AI驱动，改由 travel() 中的驾驶者输入决定
     boolean riderControlled = this.hasOwnerController() && this.getControllingPassenger() != null;
     if (!tickCtx.skipAI && !riderControlled) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-          .MovementSystem.tick(this, owner, getAIMode());
+      // 护幕飞剑使用专用的护幕行为系统，跳过标准AI
+      if (this.wardSword && owner instanceof Player player) {
+        tickWardBehavior(player, null); // tuning 参数在服务内部管理
+      } else {
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
+            .MovementSystem.tick(this, owner, getAIMode());
+      }
     }
 
     // Phase 2/4: 战斗系统 (CombatSystem) - 集中管理碰撞检测与伤害
@@ -1313,9 +1318,10 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       return;
     }
 
-    // 委托给 WardSwordService 处理
-    // 由于 tick() 方法会处理所有飞剑，这里不需要做什么
-    // 实际的状态机逻辑在 DefaultWardSwordService.tickServerSide() 中实现
+    // 委托给 WardSwordService 处理单个飞剑的状态机逻辑
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward.DefaultWardSwordService
+        .getInstance()
+        .tickWardSword(this, owner);
   }
 
   /**

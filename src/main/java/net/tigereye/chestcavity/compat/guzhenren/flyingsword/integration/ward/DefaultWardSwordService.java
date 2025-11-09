@@ -283,30 +283,40 @@ public class DefaultWardSwordService implements WardSwordService {
                 continue;
             }
 
-            // 根据状态机执行对应行为
-            switch (sword.getWardState()) {
-                case ORBIT:
-                    tickOrbit(sword, owner);
-                    break;
+            // 委托给 tickWardSword 处理单个飞剑
+            tickWardSword(sword, owner);
+        }
+    }
 
-                case INTERCEPT:
-                    tickIntercept(sword, owner);
-                    break;
+    @Override
+    public void tickWardSword(FlyingSwordEntity sword, Player owner) {
+        if (sword == null || sword.isRemoved() || owner == null) {
+            return;
+        }
 
-                case COUNTER:
-                    tickCounter(sword, owner);
-                    break;
+        // 根据状态机执行对应行为
+        switch (sword.getWardState()) {
+            case ORBIT:
+                tickOrbit(sword, owner);
+                break;
 
-                case RETURN:
-                    tickReturn(sword, owner);
-                    break;
-            }
+            case INTERCEPT:
+                tickIntercept(sword, owner);
+                break;
 
-            // 检查耐久是否耗尽
-            if (sword.getWardDurability() <= 0) {
-                LOGGER.debug("Ward sword {} durability depleted, removing", sword.getId());
-                sword.discard();
-            }
+            case COUNTER:
+                tickCounter(sword, owner);
+                break;
+
+            case RETURN:
+                tickReturn(sword, owner);
+                break;
+        }
+
+        // 检查耐久是否耗尽
+        if (sword.getWardDurability() <= 0) {
+            LOGGER.debug("Ward sword {} durability depleted, removing", sword.getId());
+            sword.discard();
         }
     }
 
