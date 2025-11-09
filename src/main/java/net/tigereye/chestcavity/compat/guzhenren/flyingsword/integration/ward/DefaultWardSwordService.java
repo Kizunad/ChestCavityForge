@@ -202,7 +202,10 @@ public class DefaultWardSwordService implements WardSwordService {
             return false;
         }
 
-        Player owner = threat.target();
+        if (!(threat.target() instanceof Player owner)) {
+            return false;
+        }
+
         List<FlyingSwordEntity> swords = getWardSwords(owner);
 
         if (swords.isEmpty()) {
