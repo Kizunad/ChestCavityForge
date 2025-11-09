@@ -27,7 +27,10 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.InterceptQuery;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward.WardState;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward.WardTuning;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
@@ -99,6 +102,27 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   private int upkeepTicks = 0;
 
   private int age = 0;
+
+  // ========== 护幕运行期字段 ==========
+  /** 是否为护幕飞剑 */
+  private boolean wardSword = false;
+
+  /** 护幕当前耐久值 */
+  private double wardDurability = 0.0;
+
+  /** 护幕状态机 (ORBIT/INTERCEPT/COUNTER/RETURN) */
+  private WardState wardState = WardState.ORBIT;
+
+  /** 环绕槽位（相对主人的相对位置） */
+  @Nullable
+  private Vec3 orbitSlot = null;
+
+  /** 当前拦截任务 */
+  @Nullable
+  private InterceptQuery currentQuery = null;
+
+  /** 最后一次进入 INTERCEPT 的时刻 */
+  private long interceptStartTime = 0L;
 
   // Phase 4：冷却统一到 owner 附件（FlyingSwordCooldownAttachment），此处不再维护镜像字段。
 
@@ -1159,6 +1183,153 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
    * 对目标造成速度²伤害
    */
   // 攻击逻辑已统一集中到 combat.FlyingSwordCombat
+
+  // ========== 护幕系统访问器 ==========
+
+  /**
+   * 是否为护幕飞剑
+   */
+  public boolean isWardSword() {
+    return wardSword;
+  }
+
+  /**
+   * 设置护幕标志（生成时调用）
+   */
+  public void setWardSword(boolean value) {
+    this.wardSword = value;
+    if (value) {
+      this.setRecallable(false);
+    }
+  }
+
+  /**
+   * 获取护幕耐久
+   */
+  public double getWardDurability() {
+    return wardDurability;
+  }
+
+  /**
+   * 设置护幕耐久
+   */
+  public void setWardDurability(double durability) {
+    this.wardDurability = Math.max(0.0, durability);
+  }
+
+  /**
+   * 消耗护幕耐久
+   */
+  public void consumeWardDurability(int amount) {
+    wardDurability = Math.max(0.0, wardDurability - amount);
+    if (wardDurability <= 0.0 && this.wardSword) {
+      // 护幕耐尽 → 消散
+      this.discard();
+    }
+  }
+
+  /**
+   * 获取护幕状态
+   */
+  public WardState getWardState() {
+    return wardState;
+  }
+
+  /**
+   * 设置护幕状态
+   */
+  public void setWardState(WardState state) {
+    if (state == null) state = WardState.ORBIT;
+    if (this.wardState == state) return;
+
+    this.wardState = state;
+
+    // 进入 INTERCEPT 时记录时刻
+    if (state == WardState.INTERCEPT) {
+      this.interceptStartTime = this.level().getGameTime();
+    }
+  }
+
+  /**
+   * 获取环绕槽位（相对主人的位置）
+   */
+  @Nullable
+  public Vec3 getOrbitSlot() {
+    return orbitSlot;
+  }
+
+  /**
+   * 设置环绕槽位
+   */
+  public void setOrbitSlot(@Nullable Vec3 slot) {
+    this.orbitSlot = slot;
+  }
+
+  /**
+   * 获取当前拦截任务
+   */
+  @Nullable
+  public InterceptQuery getCurrentQuery() {
+    return currentQuery;
+  }
+
+  /**
+   * 设置当前拦截任务
+   */
+  public void setCurrentQuery(@Nullable InterceptQuery query) {
+    this.currentQuery = query;
+  }
+
+  /**
+   * 获取最后一次进入拦截状态的时刻
+   */
+  public long getInterceptStartTime() {
+    return interceptStartTime;
+  }
+
+  // ========== 护幕行为钩子（骨架阶段仅签名） ==========
+
+  /**
+   * 护幕行为驱动（每 tick 调用）
+   *
+   * 流程：
+   * 1. 根据 wardState 决定是否继续或转换状态
+   * 2. 计算目标位置（ORBIT 环绕槽 / INTERCEPT 拦截点 / RETURN 回环）
+   * 3. 调用 steerTo() 驱动位移
+   * 4. 检测时间窗或成功判定，触发状态转换
+   *
+   * @param owner 主人
+   * @param tuning 参数供给接口
+   */
+  public void tickWardBehavior(Player owner, WardTuning tuning) {
+    // 仅签名，具体实现在 WardSwordService 或专属系统中
+  }
+
+  /**
+   * 转向目标点（运动执行）
+   *
+   * @param target 目标位置
+   * @param aMax 最大加速度
+   * @param vMax 最大速度
+   */
+  public void steerTo(Vec3 target, double aMax, double vMax) {
+    // 仅签名，具体实现由 MovementSystem 或护幕系统调用
+  }
+
+  /**
+   * 检测是否已回到环绕位（用于 RETURN 状态）
+   *
+   * @return 若距环绕槽位 < 0.5m 则返回 true
+   */
+  public boolean backToOrbitSlot() {
+    if (orbitSlot == null) return true; // 无槽位视为已回
+
+    LivingEntity owner = getOwner();
+    if (owner == null) return true;
+
+    Vec3 absoluteSlot = owner.position().add(orbitSlot);
+    return this.position().distanceTo(absoluteSlot) < 0.5;
+  }
 
   // ========== 工厂方法 ==========
   /**
