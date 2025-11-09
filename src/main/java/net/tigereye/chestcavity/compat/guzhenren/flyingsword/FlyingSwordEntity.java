@@ -1287,6 +1287,13 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     return interceptStartTime;
   }
 
+  /**
+   * 设置拦截开始时刻
+   */
+  public void setInterceptStartTime(long time) {
+    this.interceptStartTime = time;
+  }
+
   // ========== 护幕行为钩子（骨架阶段仅签名） ==========
 
   /**
@@ -1302,18 +1309,61 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
    * @param tuning 参数供给接口
    */
   public void tickWardBehavior(Player owner, WardTuning tuning) {
-    // 仅签名，具体实现在 WardSwordService 或专属系统中
+    if (!this.wardSword || owner == null) {
+      return;
+    }
+
+    // 委托给 WardSwordService 处理
+    // 由于 tick() 方法会处理所有飞剑，这里不需要做什么
+    // 实际的状态机逻辑在 DefaultWardSwordService.tickServerSide() 中实现
   }
 
   /**
    * 转向目标点（运动执行）
    *
    * @param target 目标位置
-   * @param aMax 最大加速度
-   * @param vMax 最大速度
+   * @param aMax 最大加速度（米/秒²）
+   * @param vMax 最大速度（米/秒）
    */
   public void steerTo(Vec3 target, double aMax, double vMax) {
-    // 仅签名，具体实现由 MovementSystem 或护幕系统调用
+    if (target == null) {
+      return;
+    }
+
+    Vec3 toTarget = target.subtract(this.position());
+    double dist = toTarget.length();
+
+    // 已到达目标，停止移动
+    if (dist < 0.1) {
+      this.setDeltaMovement(Vec3.ZERO);
+      return;
+    }
+
+    // 计算方向向量
+    Vec3 dir = toTarget.normalize();
+
+    // 获取当前速度
+    Vec3 currentVel = this.getDeltaMovement();
+    double currentSpeed = currentVel.length();
+
+    // 计算每 tick 的最大加速度（aMax 是 m/s²，需要转换为 m/tick）
+    // 1 tick = 1/20 秒，所以 a(m/tick) = a(m/s²) / 20
+    double maxAccelThisTick = aMax / 20.0;
+
+    // 计算目标速度（考虑减速距离，避免超调）
+    double targetSpeed = vMax;
+
+    // 简化的减速逻辑：如果距离很近，降低速度
+    if (dist < 2.0) {
+      targetSpeed = Math.max(vMax * 0.3, dist * vMax / 2.0);
+    }
+
+    // 计算速度变化（限制加速度）
+    double desiredSpeed = Math.min(currentSpeed + maxAccelThisTick, targetSpeed);
+
+    // 应用速度向量
+    Vec3 newVel = dir.scale(desiredSpeed);
+    this.setDeltaMovement(newVel);
   }
 
   /**
