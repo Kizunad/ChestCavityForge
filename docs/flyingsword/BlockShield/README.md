@@ -180,8 +180,8 @@ docs/flyingsword/BlockShield/
 - [ ] 04_DEVELOPMENT_PLAN.md (30 min)
 
 ### 开发阶段
-- [ ] A. 基础设施与接口定义 (4h)
-- [ ] B. 规划算法实现 (6h)
+- [x] A. 基础设施与接口定义 (4h)
+- [x] B. 规划算法实现 (6h)
 - [ ] C. 最小可玩原型 (8h)
 - [ ] D. 反弹与高级特性 (6h)
 - [ ] E. 配置与热加载 (3h)
@@ -241,4 +241,3 @@ docs/flyingsword/BlockShield/
 **最后更新**: 2025年
 **文档版本**: v1.0
 **维护者**: AI Assistant
-

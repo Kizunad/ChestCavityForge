@@ -42,9 +42,9 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (insert_before_symbol)
 
 **实现要点**:
-- [ ] 定义 4 个枚举值 (ORBIT, INTERCEPT, COUNTER, RETURN)
-- [ ] 实现 `fromId(String)` 静态方法
-- [ ] Javadoc 注释完整
+- [x] 定义 4 个枚举值 (ORBIT, INTERCEPT, COUNTER, RETURN)
+- [x] 实现 `fromId(String)` 静态方法
+- [x] Javadoc 注释完整
 
 **检查点**: 编译通过，能被 FlyingSwordEntity 导入
 
@@ -56,10 +56,10 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (write)
 
 **实现要点**:
-- [ ] IncomingThreat record 包含 6 个字段
-- [ ] InterceptQuery record 包含 3 个字段
-- [ ] 添加 `isProjectile()`, `isMelee()` 辅助方法
-- [ ] Javadoc 完整
+- [x] IncomingThreat record 包含 6 个字段
+- [x] InterceptQuery record 包含 3 个字段
+- [x] 添加 `isProjectile()`, `isMelee()` 辅助方法
+- [x] Javadoc 完整
 
 **检查点**: 编译通过
 
@@ -71,9 +71,9 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (write)
 
 **实现要点**:
-- [ ] 定义 12 个方法签名（数量、参数、伤害、耐久等）
-- [ ] 每个方法都有详细 Javadoc（包括公式）
-- [ ] 无实现体，仅接口
+- [x] 定义 12 个方法签名（数量、参数、伤害、耐久等）
+- [x] 每个方法都有详细 Javadoc（包括公式）
+- [x] 无实现体，仅接口
 
 **检查点**: 编译通过
 
@@ -85,9 +85,9 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (write)
 
 **实现要点**:
-- [ ] 定义 6 个核心方法 (ensureWardSwords, disposeWardSwords, onIncomingThreat, tick, getWardSwords, etc.)
-- [ ] Javadoc 包含详细的流程描述
-- [ ] 方法签名与 01_INTERFACE_DESIGN.md 完全一致
+- [x] 定义 6 个核心方法 (ensureWardSwords, disposeWardSwords, onIncomingThreat, tick, getWardSwords, etc.)
+- [x] Javadoc 包含详细的流程描述
+- [x] 方法签名与 01_INTERFACE_DESIGN.md 完全一致
 
 **检查点**: 编译通过
 
@@ -99,9 +99,9 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (write)
 
 **实现要点**:
-- [ ] 定义 14 个常量字段
-- [ ] 值与 01_INTERFACE_DESIGN.md 一致
-- [ ] 私有构造函数
+- [x] 定义 14 个常量字段
+- [x] 值与 01_INTERFACE_DESIGN.md 一致
+- [x] 私有构造函数
 
 **检查点**: 编译通过
 
@@ -113,10 +113,10 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (find_symbol + insert_after_symbol)
 
 **实现要点**:
-- [ ] 新增 6 个私有字段 (wardSword, wardDurability, wardState, orbitSlot, currentQuery, interceptStartTime)
-- [ ] 实现 11 个访问器方法
-- [ ] 仅签名（`tickWardBehavior`, `steerTo` 返回 void 或布尔）
-- [ ] 导入必要的类
+- [x] 新增 6 个私有字段 (wardSword, wardDurability, wardState, orbitSlot, currentQuery, interceptStartTime)
+- [x] 实现 11 个访问器方法
+- [x] 仅签名（`tickWardBehavior`, `steerTo` 返回 void 或布尔）
+- [x] 导入必要的类
 
 **具体步骤**:
 
@@ -155,11 +155,11 @@ mkdir -p src/main/java/net/tigereye/chestcavity/compat/guzhenren/flyingsword/ai/
 **工具**: Serena (write)
 
 **实现要点**:
-- [ ] 定义 3 个静态方法 (plan, timeToReach, 辅助方法)
-- [ ] plan() 返回 null （骨架）
-- [ ] timeToReach() 返回 0.0 （骨架）
-- [ ] Javadoc 包含详细算法描述
-- [ ] 私有构造函数
+- [x] 定义 3 个静态方法 (plan, timeToReach, 辅助方法)
+- [x] plan() 返回 null （骨架）
+- [x] timeToReach() 返回 0.0 （骨架）
+- [x] Javadoc 包含详细算法描述
+- [x] 私有构造函数
 
 **检查点**: 编译通过
 
@@ -196,10 +196,10 @@ function predictProjectileHitPoint(projPos, projVel, target, gravity):
 ```
 
 **实现要点**:
-- [ ] 使用梯形法或线性逼近模拟重力
-- [ ] 检测与目标 AABB 的相交
-- [ ] 返回第一个相交点或 null
-- [ ] 考虑性能（最多 20 个迭代）
+- [x] 使用梯形法或线性逼近模拟重力
+- [x] 检测与目标 AABB 的相交
+- [x] 返回第一个相交点或 null
+- [x] 考虑性能（最多 20 个迭代）
 
 **检查点**: 通过单元测试（静止投射物应快速相交）
 
@@ -220,10 +220,10 @@ function predictMeleeHitPoint(attacker, target):
 ```
 
 **实现要点**:
-- [ ] 构造 3D 线段
-- [ ] 计算线段到 AABB 的最近点
-- [ ] 返回有效点或 null
-- [ ] 考虑到达时间（基于攻击者速度）
+- [x] 构造 3D 线段
+- [x] 计算线段到 AABB 的最近点
+- [x] 返回有效点或 null
+- [x] 考虑到达时间（基于攻击者速度）
 
 **检查点**: 通过单元测试（直线冲刺应有有效的最近点）
 
@@ -234,12 +234,12 @@ function predictMeleeHitPoint(attacker, target):
 **工具**: Serena (replace_symbol_body)
 
 **实现要点**:
-- [ ] 判断威胁类型（投射 vs 近战）
-- [ ] 调用相应的预测方法获得命中点 I
-- [ ] 从命中点推导拦截点 P* (I - 0.3*norm(v))
-- [ ] 计算 tImpact
-- [ ] 验证是否在时间窗内
-- [ ] 返回 InterceptQuery 或 null
+- [x] 判断威胁类型（投射 vs 近战）
+- [x] 调用相应的预测方法获得命中点 I
+- [x] 从命中点推导拦截点 P* (I - 0.3*norm(v))
+- [x] 计算 tImpact
+- [x] 验证是否在时间窗内
+- [x] 返回 InterceptQuery 或 null
 
 **检查点**: 单元测试（投射与近战各 3 个场景）
 
@@ -250,10 +250,10 @@ function predictMeleeHitPoint(attacker, target):
 **工具**: Serena (replace_symbol_body)
 
 **实现要点**:
-- [ ] 计算飞剑到 P* 的距离
-- [ ] 获取 vMax 与 reaction
-- [ ] 返回 max(reaction, distance/vMax)
-- [ ] 边界检查（vMax 不为 0）
+- [x] 计算飞剑到 P* 的距离
+- [x] 获取 vMax 与 reaction
+- [x] 返回 max(reaction, distance/vMax)
+- [x] 边界检查（vMax 不为 0）
 
 **检查点**: 公式验证（d=10m, vMax=10m/s, reaction=0.06s → result≈1.06s）
 
@@ -663,19 +663,18 @@ A.1 (目录创建)
 使用以下模板跟踪每个任务的完成度：
 
 ```markdown
-### [ ] A.1 - 创建目录结构
-- [ ] 目录存在
-- [ ] 权限正确
-- [ ] 检查点通过
+### [x] A.1 - 创建目录结构
+- [x] 目录存在
+- [x] 权限正确
+- [x] 检查点通过
 
-### [ ] A.2 - WardState 枚举
-- [ ] 编码完成
-- [ ] Javadoc 完整
-- [ ] 编译通过
+### [x] A.2 - WardState 枚举
+- [x] 编码完成
+- [x] Javadoc 完整
+- [x] 编译通过
 ```
 
 ---
 
 **计划版本**: v1.0
 **最后更新**: 2025年
-

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import java.util.UUID;
 
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -43,7 +44,7 @@ public class InterceptPlannerTest {
         Player player = mock(Player.class);
         when(player.position()).thenReturn(position);
         when(player.getBoundingBox()).thenReturn(boundingBox);
-        when(player.getBbHeight()).thenReturn(1.8);
+        when(player.getBbHeight()).thenReturn(1.8f);
         return player;
     }
 
@@ -65,7 +66,7 @@ public class InterceptPlannerTest {
     /**
      * 创建模拟的 FlyingSwordEntity
      */
-    private FlyingSwordEntity createMockSword(Vec3 position, Entity owner) {
+    private FlyingSwordEntity createMockSword(Vec3 position, LivingEntity owner) {
         FlyingSwordEntity sword = mock(FlyingSwordEntity.class);
         when(sword.position()).thenReturn(position);
         when(sword.getOwner()).thenReturn(owner);
@@ -414,7 +415,7 @@ public class InterceptPlannerTest {
             Vec3 swordPos = new Vec3(0, 0, 0);
             Vec3 interceptPoint = new Vec3(10, 0, 0); // 10米距离
             UUID ownerId = UUID.randomUUID();
-            Entity owner = mock(Entity.class);
+            Player owner = mock(Player.class);
             when(owner.getUUID()).thenReturn(ownerId);
 
             FlyingSwordEntity sword = createMockSword(swordPos, owner);
@@ -432,7 +433,7 @@ public class InterceptPlannerTest {
             Vec3 swordPos = new Vec3(0, 0, 0);
             Vec3 interceptPoint = new Vec3(0.3, 0, 0); // 0.3米
             UUID ownerId = UUID.randomUUID();
-            Entity owner = mock(Entity.class);
+            Player owner = mock(Player.class);
             when(owner.getUUID()).thenReturn(ownerId);
 
             FlyingSwordEntity sword = createMockSword(swordPos, owner);
@@ -450,7 +451,7 @@ public class InterceptPlannerTest {
             Vec3 swordPos = new Vec3(0, 0, 0);
             Vec3 interceptPoint = new Vec3(50, 0, 0); // 50米
             UUID ownerId = UUID.randomUUID();
-            Entity owner = mock(Entity.class);
+            Player owner = mock(Player.class);
             when(owner.getUUID()).thenReturn(ownerId);
 
             FlyingSwordEntity sword = createMockSword(swordPos, owner);
@@ -468,7 +469,7 @@ public class InterceptPlannerTest {
             Vec3 swordPos = new Vec3(0, 0, 0);
             Vec3 interceptPoint = new Vec3(10, 0, 0);
             UUID ownerId = UUID.randomUUID();
-            Entity owner = mock(Entity.class);
+            Player owner = mock(Player.class);
             when(owner.getUUID()).thenReturn(ownerId);
 
             FlyingSwordEntity sword = createMockSword(swordPos, owner);
@@ -628,7 +629,7 @@ public class InterceptPlannerTest {
         @DisplayName("timeToReach() - pStar为null应返回MAX_VALUE")
         void testTimeToReachNullPStar() {
             UUID ownerId = UUID.randomUUID();
-            Entity owner = mock(Entity.class);
+            Player owner = mock(Player.class);
             when(owner.getUUID()).thenReturn(ownerId);
             FlyingSwordEntity sword = createMockSword(new Vec3(0, 0, 0), owner);
             WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
@@ -642,7 +643,7 @@ public class InterceptPlannerTest {
         @DisplayName("timeToReach() - tuning为null应返回MAX_VALUE")
         void testTimeToReachNullTuning() {
             UUID ownerId = UUID.randomUUID();
-            Entity owner = mock(Entity.class);
+            Player owner = mock(Player.class);
             when(owner.getUUID()).thenReturn(ownerId);
             FlyingSwordEntity sword = createMockSword(new Vec3(0, 0, 0), owner);
 

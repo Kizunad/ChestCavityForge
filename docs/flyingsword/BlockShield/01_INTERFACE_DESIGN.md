@@ -748,17 +748,16 @@ void onIncomingThreat(IncomingThreat threat) {
 
 ## 📝 设计检查清单
 
-- [ ] WardState 枚举定义完整
-- [ ] IncomingThreat record 包含必要字段
-- [ ] InterceptQuery record 包含结果数据
-- [ ] WardTuning 接口涵盖所有参数
-- [ ] WardSwordService 接口方法签名完整
-- [ ] FlyingSwordEntity 新增字段与访问器正确
-- [ ] InterceptPlanner 方法签名正确
-- [ ] WardConfig 常量值合理
+- [x] WardState 枚举定义完整
+- [x] IncomingThreat record 包含必要字段
+- [x] InterceptQuery record 包含结果数据
+- [x] WardTuning 接口涵盖所有参数
+- [x] WardSwordService 接口方法签名完整
+- [x] FlyingSwordEntity 新增字段与访问器正确
+- [x] InterceptPlanner 方法签名正确
+- [x] WardConfig 常量值合理
 
 ---
 
 **设计版本**: v1.0
 **最后更新**: 2025年
-
