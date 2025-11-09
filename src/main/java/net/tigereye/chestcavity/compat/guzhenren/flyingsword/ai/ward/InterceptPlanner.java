@@ -116,9 +116,15 @@ public final class InterceptPlanner {
             return Double.MAX_VALUE;
         }
 
+        // 检查主人是否存在，避免空指针异常
+        var owner = sword.getOwner();
+        if (owner == null) {
+            return Double.MAX_VALUE;
+        }
+
         double distance = sword.position().distanceTo(pStar);
-        double vMax = tuning.vMax(sword.getOwner().getUUID());
-        double reaction = tuning.reactionDelay(sword.getOwner().getUUID());
+        double vMax = tuning.vMax(owner.getUUID());
+        double reaction = tuning.reactionDelay(owner.getUUID());
 
         // 防止除零
         if (vMax <= 0.0) {
