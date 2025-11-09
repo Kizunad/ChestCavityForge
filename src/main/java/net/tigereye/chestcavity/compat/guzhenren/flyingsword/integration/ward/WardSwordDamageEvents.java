@@ -98,9 +98,15 @@ public final class WardSwordDamageEvents {
                     player.getName().getString(),
                     threat.attacker() != null ? threat.attacker().getName().getString() : "unknown");
 
-                // C阶段：仅记录日志，不修改伤害
-                // D阶段 TODO: 根据拦截成功情况减免伤害
-                // event.setAmount(event.getAmount() * 0.5f); // 示例：减半伤害
+                // D阶段：拦截成功时减免伤害
+                // 根据护幕设计，拦截成功时伤害应该清零或大幅减免
+                // 这里实现"穿甲保留 30%" 规则：拦截成功后，玩家只受到 30% 的伤害
+                float originalDamage = event.getAmount();
+                float reducedDamage = originalDamage * WardConfig.ARMOR_PENETRATION_FACTOR;
+                event.setAmount(reducedDamage);
+
+                LOGGER.debug("Damage reduced from {} to {} ({}% armor penetration)",
+                    originalDamage, reducedDamage, (int)(WardConfig.ARMOR_PENETRATION_FACTOR * 100));
             }
 
         } catch (Exception e) {
