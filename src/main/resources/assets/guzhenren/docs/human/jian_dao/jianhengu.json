@@ -1,9 +1,10 @@
 {
   "id": "guzhenren:jianhengu",
   "title": "剑痕蛊",
-  "summary": "基础剑道道痕来源，用于铺垫剑道系器官联动。",
+  "summary": "基础剑道道痕来源，铺垫剑道联动。",
   "details": [
-    "剑道道痕：10"
+    "用途：入门铺垫、触发联动",
+    "属性：剑道道痕 10"
   ],
   "tags": [
     "剑痕蛊",
@@ -11,4 +12,3 @@
   ],
   "icon": "guzhenren:jianhengu"
 }
-

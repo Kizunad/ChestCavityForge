@@ -180,8 +180,13 @@ public enum YunJianQingLianGuOrganBehavior
           net.minecraft.core.component.DataComponents.CUSTOM_NAME,
           net.minecraft.network.chat.Component.literal("青莲剑"));
 
+      // 创建修正器并设置青莲飞剑独立最大耐久度
+      var modifiers = net.tigereye.chestcavity.compat.guzhenren.flyingsword
+          .FlyingSwordAttributes.AttributeModifiers.empty();
+      modifiers.maxDurabilityOverride = YunJianQingLianGuTuning.QINGLIAN_SWORD_MAX_DURABILITY;
+
       FlyingSwordEntity sword =
-          FlyingSwordSpawner.spawn(level, entity, spawnPos, direction, swordItem);
+          FlyingSwordSpawner.spawnWithModifiers(level, (net.minecraft.world.entity.player.Player) entity, spawnPos, direction, swordItem, net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordType.DEFAULT, modifiers);
 
       if (sword != null) {
         // 显式设置显示物品为钻石剑（确保渲染正确）

@@ -8,6 +8,6 @@
     { "id": "chestcavity:knockback_resistant", "value": "3" },
     { "id": "guzhenren:zuida_zhenyuan", "value": "8" },
     { "id": "guzhenren:zuida_jingli", "value": "6" },
-    { "id": "guzhenren:qiyun_shangxian", "value": "10" }
+    { "id": "guzhenren:qiyun_shangxian", "value": "1" }
   ]
 }

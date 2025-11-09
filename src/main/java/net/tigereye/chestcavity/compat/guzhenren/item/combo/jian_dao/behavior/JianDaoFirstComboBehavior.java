@@ -92,6 +92,9 @@ public final class JianDaoFirstComboBehavior {
             .ItemAffinityUtil.evaluate(
                 (net.minecraft.server.level.ServerLevel) player.level(), source, cfg);
 
+    // Combo飞剑独立配置最大耐久度（完全覆盖默认值）
+    result.modifiers.maxDurabilityOverride = JianDaoComboTuning.COMBO_SWORD_MAX_DURABILITY;
+
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity sword =
         net.tigereye.chestcavity.compat.guzhenren.flyingsword
             .FlyingSwordSpawner.spawnFromOwnerWithModifiersAndSpec(

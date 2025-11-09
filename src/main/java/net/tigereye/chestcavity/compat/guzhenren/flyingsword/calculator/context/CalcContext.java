@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context;
 
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
 /**
  * 飞剑计算上下文（纯数据结构，用于传入计算器/钩子）
@@ -28,6 +29,9 @@ public class CalcContext {
   // 所有者状态
   public double ownerHpPercent = 1.0; // 0~1
   public double ownerJianDaoScar = 0.0; // 剑道道痕强度（可为0）
+
+  // 飞剑实体引用（用于域等高级计算）
+  public FlyingSwordEntity caster = null;
 
   // 其他扩展位
   public long worldTime = 0L;

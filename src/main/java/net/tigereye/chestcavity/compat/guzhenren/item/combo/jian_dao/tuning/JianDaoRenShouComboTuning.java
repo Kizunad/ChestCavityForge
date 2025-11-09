@@ -44,6 +44,9 @@ public final class JianDaoRenShouComboTuning {
   public static final double AFFINITY_ARMOR_TO_MAX_DURABILITY = 8.0;
   public static final double AFFINITY_ARMOR_DURA_LOSS_MULT_PER_POINT = 0.97;
 
+  // Combo飞剑独立最大耐久度（完全覆盖默认值，不走继承增量）
+  public static final double COMBO_SWORD_MAX_DURABILITY = 250.0; // 葬生飞剑基准值，略高于正道
+
   // 资源消耗（独立配置；默认为占位值，可按需调整）
   public static final double COST_ZHENYUAN_BASE = 100.0D; // 真元上限扣减
   public static final String KEY_MAX_ZHENYUAN = "zuida_zhenyuan";

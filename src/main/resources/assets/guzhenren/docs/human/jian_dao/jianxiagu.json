@@ -1,10 +1,9 @@
 {
   "id": "guzhenren:jianxiagu",
   "title": "剑匣蛊",
-  "summary": "",
+  "summary": "入门部件，提供极少量道痕与力量。",
   "details": [
-    "剑道道痕：1",
-    "力量：1"
+    "属性：剑道道痕 1，力量 1"
   ],
   "tags": [
     "剑匣蛊",

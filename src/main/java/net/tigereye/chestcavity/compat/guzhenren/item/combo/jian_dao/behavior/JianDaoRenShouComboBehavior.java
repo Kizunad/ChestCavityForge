@@ -167,6 +167,9 @@ public final class JianDaoRenShouComboBehavior {
         net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
             .ItemAffinityUtil.evaluate(level, source, cfg);
 
+    // Combo飞剑独立配置最大耐久度（完全覆盖默认值）
+    result.modifiers.maxDurabilityOverride = JianDaoRenShouComboTuning.COMBO_SWORD_MAX_DURABILITY;
+
     var sword = net.tigereye.chestcavity.compat.guzhenren.flyingsword
         .FlyingSwordSpawner.spawnFromOwnerWithModifiersAndSpec(
             level,

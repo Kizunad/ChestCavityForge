@@ -94,8 +94,12 @@ public class FlyingSwordAttributes {
     this.duraLossRatio *= modifiers.duraLossRatioMult;
     this.upkeepRate += modifiers.upkeepRate;
 
-    // 最大耐久增量（受物品耐久/护甲映射）
-    if (modifiers.maxDurability > 0) {
+    // 最大耐久度处理：优先使用完全覆盖，否则使用增量
+    if (modifiers.maxDurabilityOverride > 0) {
+      // 独立配置（Combo/ActiveSkill）：完全覆盖默认值
+      this.maxDurability = modifiers.maxDurabilityOverride;
+    } else if (modifiers.maxDurability > 0) {
+      // 传统继承逻辑：增量（受物品耐久/护甲映射）
       this.maxDurability += modifiers.maxDurability;
       // 下限保护，避免异常为0
       this.maxDurability = Math.max(1.0, this.maxDurability);
@@ -180,6 +184,8 @@ public class FlyingSwordAttributes {
     public double duraLossRatioMult = 1.0;
     public double upkeepRate = 0;
     public double maxDurability = 0;
+    /** 独立配置最大耐久度（用于Combo/ActiveSkill），若>0则完全覆盖默认值，忽略maxDurability增量 */
+    public double maxDurabilityOverride = 0;
     public int toolTier = 0;
     public double blockBreakEff = 0;
     public boolean enableSweep = false;

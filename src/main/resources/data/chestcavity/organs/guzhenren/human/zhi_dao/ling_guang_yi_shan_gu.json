@@ -1,8 +1,6 @@
 {
   "itemID": "guzhenren:ling_guang_yi_shan_gu",
   "organScores": [
-    {"id":"guzhenren:niantou_zhida","value": "2000"},
-    {"id":"guzhenren:niantou_rongliang","value": "300"},
     {"id":"chestcavity:nerves","value": "1"}
   ]
 }

@@ -23,6 +23,7 @@ public final class CalcContexts {
     ctx.baseDamage = attrs.damageBase;
     ctx.swordLevel = sword.getSwordLevel();
     ctx.worldTime = sword.level().getGameTime();
+    ctx.caster = sword; // 设置飞剑实体引用，供剑心域伤害修正使用
 
     @Nullable net.minecraft.world.entity.LivingEntity owner = sword.getOwner();
     if (owner != null) {

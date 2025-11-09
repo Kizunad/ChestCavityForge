@@ -31,6 +31,9 @@ public final class YunJianQingLianGuTuning {
   /** 飞剑速度基础值 */
   public static final double SWORD_SPEED_BASE = 1.5;
 
+  /** 青莲飞剑独立最大耐久度（完全覆盖默认值，不走继承增量） */
+  public static final double QINGLIAN_SWORD_MAX_DURABILITY = 150.0; // 基准值，可调
+
   // ========== 资源消耗 ==========
 
   /** 设计转数（五转） */

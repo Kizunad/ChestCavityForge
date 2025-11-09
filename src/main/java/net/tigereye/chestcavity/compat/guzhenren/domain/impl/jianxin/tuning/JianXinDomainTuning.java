@@ -134,4 +134,12 @@ public final class JianXinDomainTuning {
 
   /** 资源告急阈值（低于此比例触发心跳特效） */
   public static final double BREATHING_PANIC_THRESHOLD = 0.3; // 30%
+
+  // ========== 飞剑伤害修正 ==========
+
+  /** 友方飞剑伤害增益（最终伤害 × (1 + 增益)） */
+  public static final double FRIENDLY_SWORD_DAMAGE_BUFF = 0.5; // +50%
+
+  /** 敌方飞剑伤害减益（最终伤害 × (1 - 减益)） */
+  public static final double ENEMY_SWORD_DAMAGE_DEBUFF = 0.5; // -50%
 }

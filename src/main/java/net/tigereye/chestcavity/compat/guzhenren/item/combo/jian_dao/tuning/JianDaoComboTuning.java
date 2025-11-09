@@ -70,4 +70,7 @@ public final class JianDaoComboTuning {
   public static final double AFFINITY_MAX_DAMAGE_TO_MAX_DURABILITY = 0.10; // 物品耐久 → 飞剑耐久
   public static final double AFFINITY_ARMOR_TO_MAX_DURABILITY = 8.0; // 护甲 → 飞剑耐久
   public static final double AFFINITY_ARMOR_DURA_LOSS_MULT_PER_POINT = 0.97; // 每点护甲耐久损耗倍率
+
+  // Combo飞剑独立最大耐久度（完全覆盖默认值，不走继承增量）
+  public static final double COMBO_SWORD_MAX_DURABILITY = 200.0; // 基准值，可调
 }
