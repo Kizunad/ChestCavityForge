@@ -7,6 +7,10 @@ import kizuna.guzhenren_event_ext.common.system.EventManager;
 import kizuna.guzhenren_event_ext.common.system.PlayerInventoryWatcher;
 import kizuna.guzhenren_event_ext.common.system.PlayerStatWatcher;
 import kizuna.guzhenren_event_ext.common.system.loader.EventLoader;
+import kizuna.guzhenren_event_ext.common.system.registry.ActionRegistry;
+import kizuna.guzhenren_event_ext.common.system.registry.TriggerRegistry;
+import kizuna.guzhenren_event_ext.common.system_modules.actions.SendMessageAction;
+import kizuna.guzhenren_event_ext.common.system_modules.triggers.PlayerObtainedItemTrigger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -39,8 +43,24 @@ public class GuzhenrenEventExtension {
   }
 
   private void onCommonSetup(FMLCommonSetupEvent event) {
-    event.enqueueWork(Gamerules::register);
+    event.enqueueWork(() -> {
+      Gamerules.register();
+      registerTriggersAndActions();
+    });
     LOGGER.info("[{}] 初始化完成", MODID);
+  }
+
+  /**
+   * Register all triggers and actions for the event system
+   */
+  private void registerTriggersAndActions() {
+    // Register triggers
+    TriggerRegistry.getInstance().register("guzhenren_event_ext:player_obtained_item", new PlayerObtainedItemTrigger());
+
+    // Register actions
+    ActionRegistry.getInstance().register("guzhenren_event_ext:send_message", new SendMessageAction());
+
+    LOGGER.info("[{}] Registered triggers and actions", MODID);
   }
 
   @SubscribeEvent
