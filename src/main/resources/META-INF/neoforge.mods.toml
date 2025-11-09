@@ -46,3 +46,28 @@ type = "required"
 versionRange = "[0,)"
 ordering = "NONE"
 side = "CLIENT"
+
+# --------------------------
+# 第二个模组（单 Jar 多 Mod）
+# 蛊真人事件拓展 - 基础骨架
+# --------------------------
+[[mods]]
+modId = "guzhenren_event_ext"
+version = "${mod_version}"
+displayName = "蛊真人事件拓展"
+authors = "${mod_authors}"
+description = '''Extensions for Guzhenren events, packaged with ChestCavity in a single JAR.'''
+
+[[dependencies."guzhenren_event_ext"]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."guzhenren_event_ext"]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

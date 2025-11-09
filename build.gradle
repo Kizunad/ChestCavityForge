@@ -113,6 +113,10 @@ neoForge {
         "${mod_id}" {
             sourceSet(sourceSets.main)
         }
+        // 单 Jar 多 Mod：注册第二个模组供开发运行环境识别
+        "guzhenren_event_ext" {
+            sourceSet(sourceSets.main)
+        }
     }
 }
 
