@@ -1,0 +1,18 @@
+[
+  {
+    "id": "guzhenren_event_ext:test/obtain_dirt",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "minecraft:dirt",
+      "min_count": 1
+    },
+    "conditions": [],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "获得了一个泥土！"
+      }
+    ]
+  }
+]
