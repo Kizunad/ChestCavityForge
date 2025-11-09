@@ -78,4 +78,39 @@ public record IncomingThreat(
                     target.getName().getString());
         }
     }
+
+    /**
+     * 创建测试用的投射物威胁
+     * <p>
+     * 此工厂方法简化了测试代码，为非关键参数提供合理的默认值。
+     * 仅用于单元测试，生产代码应使用完整的构造函数。
+     *
+     * @param projPos 投射物当前位置
+     * @param projVel 投射物速度向量
+     * @param target 目标实体（可为 null）
+     * @return 投射物威胁实例
+     */
+    public static IncomingThreat forTest(@Nullable Vec3 projPos, @Nullable Vec3 projVel, @Nullable Entity target) {
+        return new IncomingThreat(
+                null,           // attacker - 测试中通常不需要
+                target,         // target
+                null,           // targetHitPoint - 测试中通常不需要
+                projPos,        // projPos
+                projVel,        // projVel
+                0L              // worldTime - 测试中通常不需要
+        );
+    }
+
+    /**
+     * 创建测试用的投射物威胁（无目标实体）
+     * <p>
+     * 简化版本，适用于不需要目标实体的测试场景
+     *
+     * @param projPos 投射物当前位置
+     * @param projVel 投射物速度向量
+     * @return 投射物威胁实例
+     */
+    public static IncomingThreat forTest(@Nullable Vec3 projPos, @Nullable Vec3 projVel) {
+        return forTest(projPos, projVel, null);
+    }
 }
