@@ -161,7 +161,8 @@ public final class GuScriptExecutor {
         executedPages++;
         rootLimitReached = true;
         ChestCavity.LOGGER.warn(
-            "[GuScript] Keybind page {} truncated to {} roots due to max root limit {} (running total {})",
+            "[GuScript] Keybind page {} truncated to {} roots due to max root limit {} (running"
+                + " total {})",
             pageIndex,
             remainingRootBudget,
             unlimitedRoots ? "unlimited" : maxRoots,
@@ -337,7 +338,9 @@ public final class GuScriptExecutor {
         pending.snapshotSessionScale(afterTimeScale);
       }
       ChestCavity.LOGGER.info(
-          "[GuScript] Root {}#{} exported modifiers: delta(multiplier={}, flat={}), direct(multiplier={}, flat={}), timeScale(mult={}, flat={}). Session {} -> {} / {} -> {} / timeScale {} -> {}",
+          "[GuScript] Root {}#{} exported modifiers: delta(multiplier={}, flat={}),"
+              + " direct(multiplier={}, flat={}), timeScale(mult={}, flat={}). Session {} -> {} / {}"
+              + " -> {} / timeScale {} -> {}",
           root.name(),
           index,
           formatDouble(deltaMultiplier),

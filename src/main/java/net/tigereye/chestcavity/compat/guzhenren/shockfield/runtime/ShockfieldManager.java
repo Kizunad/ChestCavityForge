@@ -323,7 +323,8 @@ public final class ShockfieldManager {
       UUID targetId = target.getUUID();
 
       // 自波连带：仅排除“OnHit当帧的那个目标本体”
-      if (state.getWaveId().spawnTick() == currentTick && state.getSpawnTargetId() != null && state.getSpawnTargetId().equals(targetId)) {
+      if (state.getWaveId().spawnTick() == currentTick && state.getSpawnTargetId() != null
+          && state.getSpawnTargetId().equals(targetId)) {
         continue;
       }
 
@@ -360,7 +361,8 @@ public final class ShockfieldManager {
       double finalDamageRaw = ShockfieldMath.computeFinalDamage(coreDamage, resistPct, armor);
 
       // 软上限聚合：以“每秒桶”聚合所有者的原始DPS并应用软封顶
-      double dealt = applyDpsSoftCap(state.getOwnerId(), currentTick, state.getJd(), finalDamageRaw);
+      double dealt =
+          applyDpsSoftCap(state.getOwnerId(), currentTick, state.getJd(), finalDamageRaw);
 
       // 应用伤害
       if (dealt > 0.0) {
@@ -375,9 +377,10 @@ public final class ShockfieldManager {
           level.getEntitiesOfClass(
               net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity.class,
               searchBox,
-              e -> e.isOwnedBy(owner)
-                  && e.position().distanceTo(center) >= radius - ringWidth
-                  && e.position().distanceTo(center) <= radius + ringWidth);
+              e ->
+                  e.isOwnedBy(owner)
+                      && e.position().distanceTo(center) >= radius - ringWidth
+                      && e.position().distanceTo(center) <= radius + ringWidth);
       if (!swords.isEmpty()) {
         MultiCooldown cd = ownerCooldowns.get(state.getOwnerId());
         for (var sword : swords) {
@@ -391,12 +394,17 @@ public final class ShockfieldManager {
               entry.setReadyAt(currentTick + SUBWAVE_COOLDOWN_TICKS);
             }
           }
-          if (!ready) continue;
+          if (!ready) {
+            continue;
+          }
 
           // 新建二级波包（中心=飞剑位置；速度比例=WAVE_SPEED_SCALE；振幅延续当前振幅）
           ShockfieldState sub =
               new ShockfieldState(
-                  WaveId.of(state.getOwnerId(), currentTick, computeSerial(state.getOwnerId(), currentTick, pendingAdds)),
+                  WaveId.of(
+                      state.getOwnerId(),
+                      currentTick,
+                      computeSerial(state.getOwnerId(), currentTick, pendingAdds)),
                   state.getOwnerId(),
                   sword.position(),
                   currentTick,
