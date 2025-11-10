@@ -36,10 +36,14 @@ public final class YuYueCalculator {
 
   public static void grantAuxiliaryBuffs(Player player, boolean tailSynergy, boolean upgraded) {
     if (tailSynergy) {
-      player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, YuYueTuning.SLOW_FALL_TICKS, 0, false, false));
+      player.addEffect(
+          new MobEffectInstance(
+              MobEffects.SLOW_FALLING, YuYueTuning.SLOW_FALL_TICKS, 0, false, false));
     }
     if (upgraded) {
-      player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, YuYueTuning.UPGRADE_RESIST_TICKS, 0, false, false));
+      player.addEffect(
+          new MobEffectInstance(
+              MobEffects.DAMAGE_RESISTANCE, YuYueTuning.UPGRADE_RESIST_TICKS, 0, false, false));
     }
   }
 
@@ -51,12 +55,14 @@ public final class YuYueCalculator {
         level.getEntitiesOfClass(
             LivingEntity.class,
             swept,
-            candidate -> candidate != player && candidate.isAlive() && !candidate.isAlliedTo(player));
+            candidate ->
+                candidate != player && candidate.isAlive() && !candidate.isAlliedTo(player));
     double strength = 0.35 + (player.isInWaterOrBubble() ? 0.2 : 0.0);
     for (LivingEntity target : targets) {
       target.push(direction.x * strength, 0.25, direction.z * strength);
       target.hurtMarked = true;
     }
-    level.playSound(null, player.blockPosition(), SoundEvents.DOLPHIN_JUMP, SoundSource.PLAYERS, 0.9f, 1.1f);
+    level.playSound(
+        null, player.blockPosition(), SoundEvents.DOLPHIN_JUMP, SoundSource.PLAYERS, 0.9f, 1.1f);
   }
 }

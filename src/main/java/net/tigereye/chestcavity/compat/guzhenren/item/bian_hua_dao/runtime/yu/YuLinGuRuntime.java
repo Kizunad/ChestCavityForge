@@ -94,7 +94,8 @@ public final class YuLinGuRuntime {
     YuLinGuOps.recordWetContact(attacker, organ);
   }
 
-  public static void onHurt(Player player, ChestCavityInstance cc, DamageSource source, float amount) {
+  public static void onHurt(
+      Player player, ChestCavityInstance cc, DamageSource source, float amount) {
     if (player == null || cc == null || amount <= 0.0f) {
       return;
     }

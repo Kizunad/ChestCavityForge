@@ -1,12 +1,12 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state;
 
 import java.util.Optional;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -14,10 +14,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment;
-import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.YinYangZhuanShenGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Anchor;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYangDualityAttachment.Mode;
+import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.YinYangZhuanShenGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
@@ -103,19 +102,12 @@ public final class YinYangDualityOps {
           .isPresent();
     }
     player.teleportTo(
-        targetLevel,
-        anchor.x(),
-        anchor.y(),
-        anchor.z(),
-        anchor.yaw(),
-        anchor.pitch());
+        targetLevel, anchor.x(), anchor.y(), anchor.z(), anchor.yaw(), anchor.pitch());
     player.fallDistance = 0.0F;
     return true;
   }
 
-  /**
-   * Saves当前态资源并切换到另一态的离线资源池。若目标态尚未初始化，则复制当前态数据作为初始值。
-   */
+  /** Saves当前态资源并切换到另一态的离线资源池。若目标态尚未初始化，则复制当前态数据作为初始值。 */
   public static boolean swapPools(
       ServerPlayer player, YinYangDualityAttachment attachment, Mode nextMode) {
     if (player == null || attachment == null || nextMode == null) {
@@ -138,7 +130,8 @@ public final class YinYangDualityOps {
       return false;
     }
     int size = cc.inventory.getContainerSize();
-    Item targetItem = BuiltInRegistries.ITEM.getOptional(YinYangZhuanShenGuTuning.ORGAN_ID).orElse(null);
+    Item targetItem =
+        BuiltInRegistries.ITEM.getOptional(YinYangZhuanShenGuTuning.ORGAN_ID).orElse(null);
     if (targetItem == null) {
       return false;
     }

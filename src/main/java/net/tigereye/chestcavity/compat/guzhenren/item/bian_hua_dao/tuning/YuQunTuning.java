@@ -4,7 +4,8 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class YuQunTuning {
   public static final String MOD_ID = "guzhenren";
-  public static final ResourceLocation ABILITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_qun");
+  public static final ResourceLocation ABILITY_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "yu_qun");
 
   public static final String COOLDOWN_KEY = "YuQunReadyAt";
   public static final int COOLDOWN_TICKS = 20 * 12;
@@ -25,7 +26,8 @@ public final class YuQunTuning {
   public static final int SLOW_AMP_BASE = 0;
   public static final int SLOW_AMP_UPGRADE = 1;
 
-  public static final ResourceLocation BLEED_EFFECT_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "lliuxue");
+  public static final ResourceLocation BLEED_EFFECT_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, "lliuxue");
   public static final int BLEED_TICKS_BASE = 80;
   public static final int BLEED_TICKS_UPGRADE = 120;
   public static final int BLEED_AMP_BASE = 0;

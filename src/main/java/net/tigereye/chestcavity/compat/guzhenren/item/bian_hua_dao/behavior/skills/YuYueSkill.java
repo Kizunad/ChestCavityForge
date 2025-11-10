@@ -61,7 +61,8 @@ public final class YuYueSkill {
 
     boolean inWater = player.isInWaterOrBubble();
     OrganState state = OrganState.of(organ, "YuLinGu");
-    boolean moist = inWater || YuLinGuOps.isPlayerMoist(player, state, player.level().getGameTime());
+    boolean moist =
+        inWater || YuLinGuOps.isPlayerMoist(player, state, player.level().getGameTime());
     if (!moist) {
       sendFailure(player, "需要潮湿或水中才能鱼跃破浪。");
       return;
@@ -75,7 +76,8 @@ public final class YuYueSkill {
       return;
     }
 
-    Optional<ResourceHandle> handleOpt = net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(player);
+    Optional<ResourceHandle> handleOpt =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(player);
     if (handleOpt.isEmpty()) {
       return;
     }
