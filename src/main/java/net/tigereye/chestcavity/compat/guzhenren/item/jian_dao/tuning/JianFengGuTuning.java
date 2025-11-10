@@ -67,6 +67,9 @@ public final class JianFengGuTuning {
   /** 两次协同触发最小间隔（ticks，去抖） */
   public static final int COOP_MIN_INTERVAL_TICKS = 10;
 
+  /** 协同触发冷却（ticks），用于 OnHit 触发节流 */
+  public static final int COOP_COOLDOWN_TICKS = 20;
+
   /** 协同伤害基础倍率（相对原伤害） */
   public static final double COOP_DAMAGE_BASE_MULT = 0.5;
 
@@ -93,6 +96,11 @@ public final class JianFengGuTuning {
 
   /** 五转共振额外速度加成（+25%） */
   public static final double RESONANCE_FIVE_BONUS = 0.25;
+
+  // ========== 非玩家自动化 ==========
+
+  /** 脱战延迟（ticks），超过后回收生成飞剑 */
+  public static final int DISENGAGE_DELAY_TICKS = 100;
 
   // ========== 器官属性 ==========
 

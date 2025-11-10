@@ -6,6 +6,8 @@ import java.util.Optional;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,12 +19,16 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordSpawner;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.active.JianFengHuaxingActive;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.fx.JianFengGuFx;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianFengGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AIIntrospection;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.CombatDetectionOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
@@ -70,6 +76,8 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
       ResourceLocation.fromNamespaceAndPath(MOD_ID, JianFengGuTuning.ABILITY_ID);
 
   private static final String STATE_ROOT = "JianFengGu";
+  private static final String K_LAST_ATTACK_GOALS = "LastAttackGoals";
+  private static final String K_DISENGAGED_AT = "DisengagedAt";
 
   static {
     // 注册主动技能激活入口
@@ -188,10 +196,11 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
       return finalDamage; // 未达到阈值，不触发协同
     }
 
-    // 检查去抖间隔
-    long lastCoopTick = state.getLong("last_coop_tick", 0L);
-    if (now - lastCoopTick < JianFengGuTuning.COOP_MIN_INTERVAL_TICKS) {
-      return finalDamage; // 间隔太短，不触发
+    // 协同触发冷却（MultiCooldown）
+    MultiCooldown cooldown = MultiCooldown.builder(state).withSync(cc, organ).build();
+    MultiCooldown.Entry coopEntry = cooldown.entry("coop_ready_tick").withDefault(0L);
+    if (now < coopEntry.getReadyTick()) {
+      return finalDamage; // 冷却未就绪，不触发
     }
 
     // 查找可用的飞剑
@@ -200,22 +209,23 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
       return finalDamage; // 没有可用飞剑
     }
 
-    // 计算协同伤害
-    float coopDamage = calculateCoopDamage(attacker, finalDamage, isFiveTurn);
-
-    // 执行协同突击
-    performCoopStrike(level, sword, target, coopDamage);
+    // 传递目标并引导飞剑进行一次协同突击（不直接结算伤害，由飞剑AI处理命中）
+    performCoopStrike(level, sword, target);
 
     // 更新状态
     state.setLong("last_coop_tick", now);
     int coopCount = state.getInt("coop_count", 0);
     state.setInt("coop_count", coopCount + 1);
 
+    // 设置协同冷却
+    coopEntry.setReadyAt(now + JianFengGuTuning.COOP_COOLDOWN_TICKS);
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "[JianFengGuOrganBehavior] Coop strike! Damage: {}, Coop count: {}",
-          coopDamage,
-          coopCount + 1);
+          "[JianFengGuOrganBehavior] Coop strike! target={}, Coop count={}, nextReady={}",
+          target.getName().getString(),
+          coopCount + 1,
+          coopEntry.getReadyTick());
     }
 
     return finalDamage;
@@ -238,6 +248,40 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     OrganState state = OrganState.of(organ, STATE_ROOT);
     long now = level.getGameTime();
 
+    // 非玩家实体（Mob）自动化：参考 蕴剑青莲 的进战检测与引导
+    if (!(entity instanceof net.minecraft.world.entity.player.Player)) {
+      if (!(entity instanceof net.minecraft.world.entity.Mob mob)) {
+        return; // 仅对 Mob 生效
+      }
+
+      boolean active = !state.getList("spawned_sword_ids", 3).isEmpty();
+
+      // 识别四/五转
+      ResourceLocation organId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+      boolean isFiveTurn = organId != null && organId.equals(ORGAN_ID_FIVE);
+
+      // 使用通用进战检测
+      CombatDetectionOps.CombatStatus status =
+          CombatDetectionOps.detectAndUpdate(
+              mob,
+              state,
+              active,
+              now,
+              K_LAST_ATTACK_GOALS,
+              K_DISENGAGED_AT,
+              JianFengGuTuning.DISENGAGE_DELAY_TICKS);
+
+      if (status.enteredCombat()) {
+        spawnSwordsForMob(level, mob, organ, state, isFiveTurn);
+        guideMobSwordsToTarget(level, mob, state);
+      } else if (status.inCombat()) {
+        guideMobSwordsToTarget(level, mob, state);
+      } else if (status.shouldDespawn()) {
+        despawnGeneratedSwords(level, state);
+        state.remove("spawned_sword_ids");
+      }
+    }
+
     // 检查主动态是否结束
     long activeUntil = state.getLong("active_until", 0L);
     if (activeUntil > 0 && now >= activeUntil) {
@@ -255,6 +299,71 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     int coopCount = state.getInt("coop_count", 0);
     if (coopCount >= JianFengGuTuning.COOP_COUNT_FOR_RESONANCE) {
       triggerResonance(entity, state, cc);
+    }
+  }
+
+  /** 判定非玩家是否处于战斗状态（有目标且存在攻击类Goal在运行）。 */
+  private boolean isMobInCombat(LivingEntity entity) {
+    if (!(entity instanceof net.minecraft.world.entity.Mob mob)) {
+      return false;
+    }
+    if (mob.getTarget() == null) {
+      return false;
+    }
+    List<String> running = AIIntrospection.getRunningAttackGoalNames(mob);
+    return !running.isEmpty();
+  }
+
+  /** 为非玩家在身后生成随侍飞剑（四转1把/五转2把）。 */
+  private void spawnSwordsForMob(
+      ServerLevel level, LivingEntity owner, ItemStack organ, OrganState state, boolean isFiveTurn) {
+    int count = isFiveTurn ? JianFengGuTuning.SPAWN_COUNT_FIVE : JianFengGuTuning.SPAWN_COUNT_FOUR;
+
+    Vec3 ownerPos = owner.position();
+    Vec3 look = owner.getLookAngle();
+    Vec3 backward = look.scale(-1.0).normalize();
+    Vec3 basePos = ownerPos.add(
+        backward.x * JianFengGuTuning.SPAWN_OFFSET_Z,
+        JianFengGuTuning.SPAWN_OFFSET_Y,
+        backward.z * JianFengGuTuning.SPAWN_OFFSET_Z);
+
+    ListTag idList = new ListTag();
+    for (int i = 0; i < count; i++) {
+      double angle = (Math.PI * 2.0 * i) / Math.max(count, 1);
+      Vec3 offset = new Vec3(Math.cos(angle) * 0.5, 0.0, Math.sin(angle) * 0.5);
+      Vec3 spawnPos = basePos.add(offset);
+
+      FlyingSwordEntity sword =
+          FlyingSwordSpawner.spawn(level, owner, spawnPos, null, organ);
+      if (sword != null) {
+        sword.setAIMode(AIMode.ORBIT);
+        idList.add(IntTag.valueOf(sword.getId()));
+      }
+    }
+
+    if (!idList.isEmpty()) {
+      state.setList("spawned_sword_ids", idList);
+    }
+  }
+
+  /** 引导非玩家的飞剑攻击当前目标（切换HUNT并设置目标）。 */
+  private void guideMobSwordsToTarget(ServerLevel level, LivingEntity owner, OrganState state) {
+    if (!(owner instanceof net.minecraft.world.entity.Mob mob)) {
+      return;
+    }
+    LivingEntity target = mob.getTarget();
+    if (target == null) {
+      return;
+    }
+
+    ListTag idList = state.getList("spawned_sword_ids", 3);
+    for (int i = 0; i < idList.size(); i++) {
+      int swordId = idList.getInt(i);
+      Entity e = level.getEntity(swordId);
+      if (e instanceof FlyingSwordEntity sword && sword.isAlive() && sword.isOwnedBy(owner)) {
+        sword.setTargetEntity(target);
+        sword.setAIMode(AIMode.HUNT);
+      }
     }
   }
 
@@ -327,7 +436,7 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
    * @param target 目标
    * @param damage 协同伤害
    */
-  private void performCoopStrike(ServerLevel level, FlyingSwordEntity sword, LivingEntity target, float damage) {
+  private void performCoopStrike(ServerLevel level, FlyingSwordEntity sword, LivingEntity target) {
     // 保存当前AI模式
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode originalMode = sword.getAIMode();
 
@@ -336,9 +445,6 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
 
     // 切换到HUNT模式，让飞剑飞向目标
     sword.setAIMode(net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode.HUNT);
-
-    // 造成协同伤害
-    target.hurt(sword.damageSources().mobAttack(sword), damage);
 
     // 播放协同突击特效
     Vec3 swordPos = sword.position();
@@ -365,10 +471,9 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "[JianFengGuOrganBehavior] Coop strike initiated: sword={}, target={}, damage={}, mode={} -> HUNT",
+          "[JianFengGuOrganBehavior] Coop strike initiated: sword={}, target={}, mode={} -> HUNT",
           sword.getId(),
           target.getName().getString(),
-          damage,
           originalMode);
     }
   }

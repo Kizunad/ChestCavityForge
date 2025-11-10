@@ -301,9 +301,31 @@
     <module name="ConstructorsDeclarationGrouping"/>
     <module name="VariableDeclarationUsageDistance"/>
     <module name="CustomImportOrder">
+      <!--
+        Import grouping strategy tuned for this project and compatible with the
+        CustomImportOrderCheck supported rule set:
+
+        Groups (top -> bottom):
+        1. STANDARD_JAVA_PACKAGE   -> java.*
+        2. SPECIAL_IMPORTS         -> javax.*, net.minecraft.*, net.neoforged.*, net.tigereye.chestcavity.*
+        3. THIRD_PARTY_PACKAGE     -> everything else
+        4. STATIC                  -> static imports (last)
+
+        Behavior:
+        - sortImportsInGroupAlphabetically: true
+        - separateLineBetweenGroups: true
+
+        Notes:
+        - PACKAGE_DEF is NOT part of customImportOrderRules (per Checkstyle semantics).
+        - PACKAGE_DEF is still included in tokens so it's checked separately.
+      -->
       <property name="sortImportsInGroupAlphabetically" value="true"/>
       <property name="separateLineBetweenGroups" value="true"/>
-      <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>
+      <property name="customImportOrderRules"
+                value="STANDARD_JAVA_PACKAGE###SPECIAL_IMPORTS###THIRD_PARTY_PACKAGE###STATIC"/>
+      <!-- SPECIAL_IMPORTS: ordered by the checkstyle rule (not by this regex order) -->
+      <property name="specialImportsRegExp"
+                value="^(javax\.|net\.minecraft\.|net\.neoforged\.|net\.tigereye\.chestcavity\.).*"/>
       <property name="tokens" value="IMPORT, STATIC_IMPORT, PACKAGE_DEF"/>
     </module>
     <module name="MethodParamPad">
