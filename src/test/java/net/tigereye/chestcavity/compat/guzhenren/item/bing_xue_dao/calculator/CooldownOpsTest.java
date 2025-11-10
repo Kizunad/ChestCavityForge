@@ -13,7 +13,8 @@ public class CooldownOpsTest {
         assertEquals(baseCooldown, CooldownOps.withBingXueExp(baseCooldown, 0));
 
         // Test at exp = 5000 (mid-point, approx 50% reduction)
-        // Expected: 200 - round( (200 - 20) * (5000 / 10001.0) ) = 200 - round(180 * 0.49995) = 200 - 90 = 110
+        // Expected: 200 - round( (200 - 20) * (5000 / 10001.0) )
+        //         = 200 - round(180 * 0.49995) = 200 - 90 = 110
         assertEquals(110, CooldownOps.withBingXueExp(baseCooldown, 5000));
 
         // Test at exp = 10001 (max reduction)
