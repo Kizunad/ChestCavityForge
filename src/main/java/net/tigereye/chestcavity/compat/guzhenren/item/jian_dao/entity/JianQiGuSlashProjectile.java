@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianQiGuCalc;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianQiGuTuning;
@@ -62,8 +63,8 @@ public class JianQiGuSlashProjectile extends Entity {
   private static final String KEY_LAST_CAST_TICK = "LastCastTick";
 
   // ========== 数据同步字段 ==========
-
-  /** 视觉威能（归一化到0-1，用于客户端渲染） */
+ 
+  /** 视觉威能（归一化到0-1，用于客户端渲染与规模插值） */
   private static final EntityDataAccessor<Float> DATA_VISUAL_POWER =
       SynchedEntityData.defineId(JianQiGuSlashProjectile.class, EntityDataSerializers.FLOAT);
 
@@ -186,6 +187,12 @@ public class JianQiGuSlashProjectile extends Entity {
     Vec3 currentPos = this.position();
     Vec3 nextPos = currentPos.add(motion);
 
+    // 基于当前威能动态扩展判定宽度，实现随修为无限成长的命中/破坏范围
+    double baseScale = Math.max(this.initialPower * 0.25, 1.0);
+    double ratio = Math.max(this.currentPower / baseScale, 0.0);
+    // 与视觉类似使用对数放大，保持单调且无硬上限；最低保证略大于原始宽度
+    double dynamicWidth = JianQiGuTuning.SLASH_WIDTH * (1.0 + Math.log1p(ratio));
+
     // 服务端处理碰撞
     if (!this.level().isClientSide) {
       handleEntityHits(currentPos, nextPos);
@@ -214,8 +221,11 @@ public class JianQiGuSlashProjectile extends Entity {
       return;
     }
 
-    // 构建扫描盒子
-    AABB sweep = new AABB(start, end).inflate(JianQiGuTuning.SLASH_WIDTH * 0.5);
+    // 构建扫描盒子（宽度随 currentPower 动态扩张）
+    double baseScale = Math.max(this.initialPower * 0.25, 1.0);
+    double ratio = Math.max(this.currentPower / baseScale, 0.0);
+    double dynamicWidth = JianQiGuTuning.SLASH_WIDTH * (1.0 + Math.log1p(ratio));
+    AABB sweep = new AABB(start, end).inflate(dynamicWidth * 0.5);
 
     // 查找范围内的生物
     for (LivingEntity target :
@@ -309,7 +319,8 @@ public class JianQiGuSlashProjectile extends Entity {
     }
 
     // 获取胸腔实例
-    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
     if (cc == null) {
       return;
     }
@@ -380,8 +391,11 @@ public class JianQiGuSlashProjectile extends Entity {
       return;
     }
 
-    // 构建扫描盒子
-    AABB box = new AABB(start, end).inflate(JianQiGuTuning.SLASH_WIDTH * 0.5);
+    // 构建扫描盒子（宽度随 currentPower 动态扩张）
+    double baseScale = Math.max(this.initialPower * 0.25, 1.0);
+    double ratio = Math.max(this.currentPower / baseScale, 0.0);
+    double dynamicWidth = JianQiGuTuning.SLASH_WIDTH * (1.0 + Math.log1p(ratio));
+    AABB box = new AABB(start, end).inflate(dynamicWidth * 0.5);
 
     int minX = Mth.floor(box.minX);
     int minY = Mth.floor(box.minY);
@@ -390,11 +404,16 @@ public class JianQiGuSlashProjectile extends Entity {
     int maxY = Mth.floor(box.maxY);
     int maxZ = Mth.floor(box.maxZ);
 
+    // 动态破坏预算：随威能范围增加
+    int breakBudget = Mth.clamp(
+        (int) Math.ceil(JianQiGuTuning.BLOCK_BREAK_CAP_BASE + dynamicWidth * JianQiGuTuning.BLOCK_BREAK_CAP_SCALE),
+        JianQiGuTuning.BLOCK_BREAK_CAP_BASE,
+        JianQiGuTuning.BLOCK_BREAK_CAP_MAX);
     int brokenCount = 0;
 
-    for (int x = minX; x <= maxX && brokenCount < JianQiGuTuning.BLOCK_BREAK_CAP_PER_TICK; x++) {
-      for (int y = minY; y <= maxY && brokenCount < JianQiGuTuning.BLOCK_BREAK_CAP_PER_TICK; y++) {
-        for (int z = minZ; z <= maxZ && brokenCount < JianQiGuTuning.BLOCK_BREAK_CAP_PER_TICK;
+    for (int x = minX; x <= maxX && brokenCount < breakBudget; x++) {
+      for (int y = minY; y <= maxY && brokenCount < breakBudget; y++) {
+        for (int z = minZ; z <= maxZ && brokenCount < breakBudget;
             z++) {
           BlockPos pos = new BlockPos(x, y, z);
           BlockState state = server.getBlockState(pos);
@@ -403,12 +422,7 @@ public class JianQiGuSlashProjectile extends Entity {
             continue;
           }
 
-          if (!isBreakableBlock(state)) {
-            continue;
-          }
-
-          float hardness = state.getDestroySpeed(server, pos);
-          if (hardness < 0.0f || hardness > JianQiGuTuning.BLOCK_BREAK_HARDNESS_MAX) {
+          if (!isBreakableBlock(server, pos, state)) {
             continue;
           }
 
@@ -429,33 +443,47 @@ public class JianQiGuSlashProjectile extends Entity {
   /**
    * 判断方块是否可破坏。
    *
+   * <p>根据需求：允许破坏所有硬度不为 -1 的方块（即排除不可破坏方块，如基岩）。
+   *
    * @param state 方块状态
    * @return 是否可破坏
    */
-  private boolean isBreakableBlock(BlockState state) {
-    if (BREAKABLE_BLOCKS.contains(state.getBlock())) {
-      return true;
-    }
-
-    return state.is(BlockTags.LEAVES)
-        || state.is(BlockTags.FLOWERS)
-        || state.is(BlockTags.SMALL_FLOWERS)
-        || state.is(BlockTags.TALL_FLOWERS)
-        || state.is(BlockTags.CROPS)
-        || state.is(BlockTags.SAPLINGS);
+  private boolean isBreakableBlock(ServerLevel server, BlockPos pos, BlockState state) {
+    // 仅排除不可破坏（硬度为 -1）的方块，其余均允许
+    float hardness = state.getDestroySpeed(server, pos);
+    return hardness >= 0.0f;
   }
 
-  /**
-   * 更新视觉威能（同步到客户端）。
-   */
-  private void updateVisualPower() {
-    if (this.initialPower <= 0.0) {
-      this.entityData.set(DATA_VISUAL_POWER, 0.0f);
-    } else {
-      float ratio = (float) (this.currentPower / this.initialPower);
-      this.entityData.set(DATA_VISUAL_POWER, Mth.clamp(ratio, 0.0f, 1.0f));
-    }
-  }
+ /**
+  * 更新视觉威能（同步到客户端）。
+  *
+  * <p>规则（无限上限版）：
+  * - 基于 currentPower / baseScale 的对数映射，DATA_VISUAL_POWER 单调递增且无上限硬截断。
+  * - 渲染层可直接将该值用于尺度/特效放大（例如 size = 0.5F + DATA_VISUAL_POWER）。
+  *
+  * <p>这样高道痕/高威能不会被强行压平，上限仅由渲染实现自行决定。
+  */
+ private void updateVisualPower() {
+   if (this.initialPower <= 0.0) {
+     this.entityData.set(DATA_VISUAL_POWER, 0.0f);
+     return;
+   }
+
+   // 以初始威能的一部分作为基准，防止低配时过高
+   double baseScale = Math.max(this.initialPower * 0.25, 1.0);
+   double ratio = Math.max(this.currentPower / baseScale, 0.0);
+
+   // 使用对数放大：ratio 越大，值越大，且无固定上限
+   // +1 防止 log(0)，0.5F 控制增长速度，可根据体感调整
+   float visual = (float) (Math.log1p(ratio) * 0.5F);
+
+   // 不再做上限截断，仅避免负值
+   if (visual < 0.0f) {
+     visual = 0.0f;
+   }
+
+   this.entityData.set(DATA_VISUAL_POWER, visual);
+ }
 
   /**
    * 获取视觉威能（客户端渲染用）。
@@ -471,7 +499,7 @@ public class JianQiGuSlashProjectile extends Entity {
    *
    * @return 移动方向
    */
-  public Vec3 getDirection() {
+  public Vec3 getSlashDirection() {
     return this.direction;
   }
 

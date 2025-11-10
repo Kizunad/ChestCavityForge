@@ -29,7 +29,7 @@ public final class JianQiGuFx {
     int particleCount = (int) (1 + visualPower * 3);
 
     Vec3 pos = projectile.position();
-    Vec3 direction = projectile.getDirection();
+    Vec3 direction = projectile.getSlashDirection();
 
     for (int i = 0; i < particleCount; i++) {
       // 在剑光中段或尾端随机生成粒子

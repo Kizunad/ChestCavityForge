@@ -15,11 +15,13 @@ import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.JianQiGuSl
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianQiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.util.ZhenyuanBaseCosts.Tier;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCEntities;
+import net.tigereye.chestcavity.skill.ActiveSkillRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,40 +160,25 @@ public enum JianQiGuOrganBehavior
       return;
     }
 
-    // 检查并消耗资源
+    // 检查并消耗资源（使用与境界挂钩的缩放消耗）
     if (caster instanceof ServerPlayer player) {
       boolean consumed =
-          ResourceOps.openHandle(player)
-              .map(
-                  h -> {
-                    // 检查真元（BURST）
-                    double zhenyuan = h.read("zhenyuan_burst").orElse(0.0);
-                    if (zhenyuan < JianQiGuTuning.COST_ZHENYUAN_BURST) {
-                      return false;
-                    }
-
-                    // 检查精力
-                    double jingli = h.read("jingli").orElse(0.0);
-                    if (jingli < JianQiGuTuning.COST_JINGLI) {
-                      return false;
-                    }
-
-                    // 检查念头
-                    double niantou = h.read("niantou").orElse(0.0);
-                    if (niantou < JianQiGuTuning.COST_NIANTOU) {
-                      return false;
-                    }
-
-                    // 消耗资源
-                    h.add("zhenyuan_burst", -JianQiGuTuning.COST_ZHENYUAN_BURST);
-                    h.add("jingli", -JianQiGuTuning.COST_JINGLI);
-                    h.add("niantou", -JianQiGuTuning.COST_NIANTOU);
-                    return true;
-                  })
-              .orElse(false);
+          ResourceOps.tryConsumeTieredZhenyuan(
+                      player,
+                      JianQiGuTuning.MIN_REALM_REQUIREMENT,
+                      JianQiGuTuning.MIN_TIER_REQUIREMENT,
+                      Tier.BURST)
+                  .isPresent()
+              && ResourceOps.openHandle(player)
+                  .map(
+                      h ->
+                          h.consumeScaledJingli(JianQiGuTuning.COST_JINGLI).isPresent()
+                              && h.adjustDouble(
+                                      "niantou", -JianQiGuTuning.COST_NIANTOU, true)
+                                  .isPresent())
+                  .orElse(false);
 
       if (!consumed) {
-        // TODO: 向玩家发送资源不足的消息
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug(
               "[JianQiGuOrganBehavior] Insufficient resources for {}",
@@ -204,18 +191,19 @@ public enum JianQiGuOrganBehavior
     // 读取道痕和流派经验
     double daohen =
         ResourceOps.openHandle(caster)
-            .flatMap(h -> h.read("daohen_jiandao"))
+            .map(h -> h.read("daohen_jiandao").orElse(0.0))
             .orElse(0.0);
 
     double liupaiExp =
         ResourceOps.openHandle(caster)
-            .flatMap(h -> h.read("liupai_jiandao"))
+            .map(h -> h.read("liupai_jiandao").orElse(0.0))
             .orElse(0.0);
 
     // 读取并消耗断势层数
     int currentStacks = state.getInt(KEY_DUANSHI_STACKS, 0);
     int triggers = JianQiGuCalc.computeDuanshiTriggers(currentStacks);
     int decayGrace = JianQiGuCalc.computeDecayGrace(triggers);
+    decayGrace += JianQiGuCalc.computeExtraGraceByDaohen(daohen);
 
     // 消耗断势层数（使用后清空）
     if (triggers > 0) {
@@ -231,8 +219,12 @@ public enum JianQiGuOrganBehavior
     // 更新施放时间
     state.setLong(KEY_LAST_CAST_TICK, now);
 
-    // 设置冷却
-    mainCooldown.setReadyAt(now + JianQiGuTuning.COOLDOWN_TICKS);
+    // 设置冷却并安排冷却完成提示（仅玩家）
+    long readyAt = now + JianQiGuTuning.COOLDOWN_TICKS;
+    mainCooldown.setReadyAt(readyAt);
+    if (caster instanceof ServerPlayer sp) {
+      ActiveSkillRegistry.scheduleReadyToast(sp, ABILITY_ID, readyAt, now);
+    }
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
@@ -348,18 +340,19 @@ public enum JianQiGuOrganBehavior
     // 读取道痕和流派经验（非玩家可能没有，使用默认值）
     double daohen =
         ResourceOps.openHandle(attacker)
-            .flatMap(h -> h.read("daohen_jiandao"))
+            .map(h -> h.read("daohen_jiandao").orElse(0.0))
             .orElse(0.0);
 
     double liupaiExp =
         ResourceOps.openHandle(attacker)
-            .flatMap(h -> h.read("liupai_jiandao"))
+            .map(h -> h.read("liupai_jiandao").orElse(0.0))
             .orElse(0.0);
 
     // 读取并消耗断势层数
     int currentStacks = state.getInt(KEY_DUANSHI_STACKS, 0);
     int triggers = JianQiGuCalc.computeDuanshiTriggers(currentStacks);
     int decayGrace = JianQiGuCalc.computeDecayGrace(triggers);
+    decayGrace += JianQiGuCalc.computeExtraGraceByDaohen(daohen);
 
     if (triggers > 0) {
       state.setInt(KEY_DUANSHI_STACKS, 0);
@@ -439,5 +432,19 @@ public enum JianQiGuOrganBehavior
     if (!state.contains(KEY_NPC_TRIGGER_COOLDOWN_UNTIL)) {
       state.setLong(KEY_NPC_TRIGGER_COOLDOWN_UNTIL, 0L);
     }
+  }
+
+  /** ChestCavity 集成入口：根据胸腔内容定位器官并执行初始化。*/
+  public void ensureAttached(ChestCavityInstance cc) {
+    if (cc == null) {
+      return;
+    }
+
+    ItemStack organ = findMatchingOrgan(cc);
+    if (organ.isEmpty()) {
+      return;
+    }
+
+    ensureAttached(cc.owner, cc, organ);
   }
 }

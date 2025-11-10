@@ -21,16 +21,16 @@ public final class JianQiGuTuning {
   /** 器官ID：guzhenren:jianqigu */
   public static final String ORGAN_ID = "jianqigu";
 
-  /** 主动技能ID：guzhenren:jian_qi_yi_zhan_kai_tian */
-  public static final String ABILITY_ID = "jian_qi_yi_zhan_kai_tian";
+  /** 主动技能ID：guzhenren:jian_qi_gu_yi_zhan_kai_tian */
+  public static final String ABILITY_ID = "jian_qi_gu_yi_zhan_kai_tian";
 
   // ========== 主动技能·一斩开天 ==========
 
   /** 基础伤害（真实伤害，尽量绕过护甲减免） */
-  public static final double BASE_DAMAGE = 80.0;
+  public static final double BASE_DAMAGE = 2000.0;
 
   /** 最大射程（blocks） */
-  public static final double MAX_RANGE = 20.0;
+  public static final double MAX_RANGE = 100.0;
 
   /** 剑光速度（blocks/tick） */
   public static final double SLASH_SPEED = 2.5;
@@ -42,7 +42,7 @@ public final class JianQiGuTuning {
   public static final double MIN_DAMAGE_RATIO = 0.20;
 
   /** 剑光宽度（用于碰撞检测，blocks） */
-  public static final double SLASH_WIDTH = 1.5;
+  public static final double SLASH_WIDTH = 3;
 
   /** 真元消耗（BURST Tier 4-1） */
   public static final double COST_ZHENYUAN_BURST = 80.0;
@@ -54,24 +54,29 @@ public final class JianQiGuTuning {
   public static final double COST_NIANTOU = 15.0;
 
   /** 冷却时间（ticks）= 15秒 */
-  public static final int COOLDOWN_TICKS = 300;
+  public static final int COOLDOWN_TICKS = 4 * 20;
 
   /** 最小境界要求（4转） */
   public static final int MIN_REALM_REQUIREMENT = 4;
 
   /** 最小阶位要求（4阶） */
-  public static final int MIN_TIER_REQUIREMENT = 4;
+  public static final int MIN_TIER_REQUIREMENT = 1;
 
   // ========== 方块破坏 ==========
 
-  /** 方块破坏硬度上限（仅破坏硬度低于此值的方块） */
-  public static final float BLOCK_BREAK_HARDNESS_MAX = 3.0f;
-
-  /** 每次破坏方块后的额外威能衰减（5%，与命中实体叠加） */
+  /**
+   * 每次破坏方块后的额外威能衰减比例。
+   * 留作性能与强度的微调项，不影响是否能破坏的判定规则。
+   */
   public static final double BLOCK_BREAK_DECAY = 0.05;
 
-  /** 每tick最多破坏的方块数量（防止性能问题） */
-  public static final int BLOCK_BREAK_CAP_PER_TICK = 3;
+  /**
+   * 方块破坏每 tick 的动态上限：base + dynamicWidth * scale，且不超过 max。
+   * 这样在高威能/高道痕时破坏带宽会随之增加，同时保留全局保护上限以避免极端卡顿。
+   */
+  public static final int BLOCK_BREAK_CAP_BASE = 3;
+  public static final double BLOCK_BREAK_CAP_SCALE = 2.0;
+  public static final int BLOCK_BREAK_CAP_MAX = 64;
 
   // ========== 被动技能·气断山河 ==========
 
@@ -83,6 +88,12 @@ public final class JianQiGuTuning {
 
   /** 每次断势触发减少的衰减次数（豁免1次衰减） */
   public static final int DUANSHI_DECAY_GRACE = 1;
+
+  /**
+   * 道痕带来的额外“耐久度”（衰减豁免）对数系数：
+   * extraGrace = floor(log1p(daohen / DAOHEN_GRACE_DIV))
+   */
+  public static final double DAOHEN_GRACE_DIV = 400.0;
 
   /** 断势层数过期时间（ticks）= 10秒 */
   public static final int STACK_EXPIRE_TICKS = 200;
@@ -101,13 +112,13 @@ public final class JianQiGuTuning {
   public static final double DAOHEN_DAMAGE_DIV = 100.0;
 
   /** 道痕加成上限（最多+50%） */
-  public static final double DAOHEN_DAMAGE_MAX = 0.50;
+  public static final double DAOHEN_DAMAGE_MAX = 1000;
 
   /** 流派经验系数除数（每200流派经验提供额外5%伤害） */
   public static final double LIUPAI_DAMAGE_DIV = 200.0;
 
   /** 流派经验加成上限（最多+30%） */
-  public static final double LIUPAI_DAMAGE_MAX = 0.30;
+  public static final double LIUPAI_DAMAGE_MAX = 1;
 
   // ========== 器官属性（用于物品属性定义，这里仅作参考） ==========
 
@@ -118,7 +129,7 @@ public final class JianQiGuTuning {
   public static final double SPEED = 0.03;
 
   /** 防御减免（攻击型器官，减少防御） */
-  public static final double ARMOR = -3.0;
+  public static final double ARMOR = -30.0;
 
   /** 力量加成 */
   public static final double STRENGTH = 3.0;

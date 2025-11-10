@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianFengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
@@ -1179,6 +1180,19 @@ public final class ActiveSkillRegistry {
           ensureClassLoaded(JianmuGuOrganBehavior.INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    // 剑气蛊：一斩开天（四转剑道主动+被动器官）
+    register(
+        "guzhenren:jian_qi_gu_yi_zhan_kai_tian",
+        "guzhenren:jian_qi_gu_yi_zhan_kai_tian",
+        "guzhenren:jianqigu",
+        tags("剑道", "输出", "爆发", "直线", "多段命中"),
+        "一斩开天：消耗真元/精力/念头释放直线剑气斩击，可多段命中与破坏方块；断势层数可强化威能并延缓衰减；非玩家近战有概率自动触发。",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianQiGuOrganBehavior.java",
+        () -> {
+          ensureClassLoaded(JianQiGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("一斩开天就绪", null));
   }
 
   private static Registration register(

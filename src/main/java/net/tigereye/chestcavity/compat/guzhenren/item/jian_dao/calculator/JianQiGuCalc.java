@@ -29,10 +29,8 @@ public final class JianQiGuCalc {
   public static double computeInitialDamage(
       double daohen, double liupaiExp, int duanshiTriggers) {
 
-    // 道痕加成
-    double daohenBonus =
-        Math.min(
-            daohen / JianQiGuTuning.DAOHEN_DAMAGE_DIV, JianQiGuTuning.DAOHEN_DAMAGE_MAX);
+    // 道痕加成：改为对数增长，取消硬上限，避免线性爆炸
+    double daohenBonus = Math.log1p(Math.max(0.0, daohen) / JianQiGuTuning.DAOHEN_DAMAGE_DIV);
 
     // 流派经验加成
     double liupaiBonus =
@@ -114,5 +112,21 @@ public final class JianQiGuCalc {
    */
   public static int computeDecayGrace(int triggers) {
     return triggers * JianQiGuTuning.DUANSHI_DECAY_GRACE;
+  }
+
+  /**
+   * 依据道痕提供额外的衰减豁免（“耐久度”）。
+   *
+   * <p>采用对数增长避免极端爆炸：extra = floor(log1p(daohen / div))。
+   */
+  public static int computeExtraGraceByDaohen(double daohen) {
+    if (!(daohen > 0.0)) {
+      return 0;
+    }
+    double v = Math.log1p(daohen / JianQiGuTuning.DAOHEN_GRACE_DIV);
+    if (!Double.isFinite(v) || v <= 0.0) {
+      return 0;
+    }
+    return (int) Math.floor(v);
   }
 }

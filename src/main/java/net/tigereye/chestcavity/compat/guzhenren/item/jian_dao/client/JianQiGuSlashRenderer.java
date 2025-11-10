@@ -13,7 +13,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.JianQiGuSlashProjectile;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 /**
@@ -68,7 +67,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
     float alpha = BASE_ALPHA + visualPower * MAX_EXTRA_ALPHA;
 
     // 获取方向
-    Vec3 direction = entity.getDirection();
+    Vec3 direction = entity.getSlashDirection();
     if (direction.lengthSqr() < 1.0E-6) {
       direction = entity.getViewVector(partialTicks);
     }
@@ -113,7 +112,6 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
     VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucent(TEXTURE));
 
     Matrix4f matrix4f = poseStack.last().pose();
-    Matrix3f matrix3f = poseStack.last().normal();
 
     // 颜色（淡蓝白色）
     float r = 0.8f + 0.2f * alpha; // 白色偏蓝
@@ -143,7 +141,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(0.0f, 0.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, 1.0f, 0.0f);
+        .setNormal(0.0f, 1.0f, 0.0f);
 
     // 顶点 1：(halfWidth, 0, z0)
     consumer
@@ -152,7 +150,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(1.0f, 0.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, 1.0f, 0.0f);
+        .setNormal(0.0f, 1.0f, 0.0f);
 
     // 顶点 2：(halfWidth, 0, z1)
     consumer
@@ -161,7 +159,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(1.0f, 1.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, 1.0f, 0.0f);
+        .setNormal(0.0f, 1.0f, 0.0f);
 
     // 顶点 3：(-halfWidth, 0, z1)
     consumer
@@ -170,7 +168,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(0.0f, 1.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, 1.0f, 0.0f);
+        .setNormal(0.0f, 1.0f, 0.0f);
 
     // 双面渲染（反向）
     consumer
@@ -179,7 +177,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(0.0f, 1.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, -1.0f, 0.0f);
+        .setNormal(0.0f, -1.0f, 0.0f);
 
     consumer
         .addVertex(matrix4f, halfWidth, 0.0f, z1)
@@ -187,7 +185,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(1.0f, 1.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, -1.0f, 0.0f);
+        .setNormal(0.0f, -1.0f, 0.0f);
 
     consumer
         .addVertex(matrix4f, halfWidth, 0.0f, z0)
@@ -195,7 +193,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(1.0f, 0.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, -1.0f, 0.0f);
+        .setNormal(0.0f, -1.0f, 0.0f);
 
     consumer
         .addVertex(matrix4f, -halfWidth, 0.0f, z0)
@@ -203,7 +201,7 @@ public class JianQiGuSlashRenderer extends EntityRenderer<JianQiGuSlashProjectil
         .setUv(0.0f, 0.0f)
         .setOverlay(OverlayTexture.NO_OVERLAY)
         .setLight(enhancedLight)
-        .setNormal(matrix3f, 0.0f, -1.0f, 0.0f);
+        .setNormal(0.0f, -1.0f, 0.0f);
   }
 
   @Override
