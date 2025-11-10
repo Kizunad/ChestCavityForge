@@ -18,8 +18,8 @@ public final class JianQiGuTuning {
   /** 模组ID */
   public static final String MOD_ID = "guzhenren";
 
-  /** 器官ID：guzhenren:jian_qi_gu */
-  public static final String ORGAN_ID = "jian_qi_gu";
+  /** 器官ID：guzhenren:jianqigu */
+  public static final String ORGAN_ID = "jianqigu";
 
   /** 主动技能ID：guzhenren:jian_qi/yi_zhan_kai_tian */
   public static final String ABILITY_ID = "jian_qi/yi_zhan_kai_tian";
