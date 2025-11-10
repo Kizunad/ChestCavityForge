@@ -19,8 +19,8 @@ import org.slf4j.Logger;
 /**
  * Player attachment that stores all state for 阴阳转身蛊（阴/阳双态资源池、锚点、冷却等）。
  *
- * <p>该附件挂在 Player 上，以避免器官堆叠或物品替换导致的状态丢失。序列化/反序列化以 {@link CompoundTag}
- * 为载体，确保可跨存档持久化，并允许后续在 Capability 层扩展。
+ * <p>该附件挂在 Player 上，以避免器官堆叠或物品替换导致的状态丢失。序列化/反序列化以 {@link CompoundTag} 为载体，确保可跨存档持久化，并允许后续在
+ * Capability 层扩展。
  */
 public final class YinYangDualityAttachment {
 
@@ -408,7 +408,9 @@ public final class YinYangDualityAttachment {
           Mth.clamp(
               soul,
               0.0D,
-              maxSoul > 0.0D ? Math.min(maxSoul, handle.getMaxHunpo().orElse(maxSoul)) : Double.MAX_VALUE);
+              maxSoul > 0.0D
+                  ? Math.min(maxSoul, handle.getMaxHunpo().orElse(maxSoul))
+                  : Double.MAX_VALUE);
       handle.adjustHunpo(targetSoul - currentSoul, true);
 
       double currentNiantou = handle.getNiantou().orElse(0.0D);
@@ -421,9 +423,7 @@ public final class YinYangDualityAttachment {
                   : Double.MAX_VALUE);
       handle.adjustNiantou(targetNiantou - currentNiantou, true);
 
-      player
-          .getFoodData()
-          .setFoodLevel(Mth.clamp(food, 0, 20));
+      player.getFoodData().setFoodLevel(Mth.clamp(food, 0, 20));
       player.setHealth((float) Mth.clamp(hpMark, 1.0D, player.getMaxHealth()));
     }
 
@@ -600,11 +600,11 @@ public final class YinYangDualityAttachment {
     }
 
     public double damageFactor() {
-        return damageFactor;
+      return damageFactor;
     }
 
     public void setDamageFactor(double damageFactor) {
-        this.damageFactor = damageFactor;
+      this.damageFactor = damageFactor;
     }
 
     public CompoundTag save() {
@@ -677,8 +677,7 @@ public final class YinYangDualityAttachment {
     }
 
     @Override
-    public CompoundTag write(
-        YinYangDualityAttachment attachment, HolderLookup.Provider provider) {
+    public CompoundTag write(YinYangDualityAttachment attachment, HolderLookup.Provider provider) {
       Objects.requireNonNull(attachment, "attachment");
       return attachment.save(provider);
     }

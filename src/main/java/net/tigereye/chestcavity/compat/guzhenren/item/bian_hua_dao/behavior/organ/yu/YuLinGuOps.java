@@ -48,7 +48,8 @@ public final class YuLinGuOps {
     YuLinGuCalculator.recordWetContact(player, organ);
   }
 
-  public static void addProgress(Player player, ChestCavityInstance cc, ItemStack organ, int amount) {
+  public static void addProgress(
+      Player player, ChestCavityInstance cc, ItemStack organ, int amount) {
     YuLinGuCalculator.addProgress(player, cc, organ, amount);
   }
 

@@ -76,7 +76,8 @@ public final class YuQunSkill {
       return;
     }
 
-    Optional<ResourceHandle> handleOpt = net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(player);
+    Optional<ResourceHandle> handleOpt =
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(player);
     if (handleOpt.isEmpty()) {
       return;
     }

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.behavior.organ.shou_pi;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -8,7 +9,6 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
-import net.minecraft.resources.ResourceLocation;
 
 /** 兽皮蛊聚合入口。 */
 public final class ShouPiGuOps {
@@ -32,7 +32,8 @@ public final class ShouPiGuOps {
     return ShouPiGuCalculator.findOrgan(cc);
   }
 
-  public static boolean hasOrgan(ChestCavityInstance cc, net.minecraft.resources.ResourceLocation organId) {
+  public static boolean hasOrgan(
+      ChestCavityInstance cc, net.minecraft.resources.ResourceLocation organId) {
     return ShouPiGuCalculator.hasOrgan(cc, organId);
   }
 
@@ -44,15 +45,18 @@ public final class ShouPiGuOps {
     return ShouPiGuCalculator.resolveState(organ);
   }
 
-  public static void applyRollCounter(LivingEntity player, int resistanceDurationTicks, int resistanceAmplifier) {
+  public static void applyRollCounter(
+      LivingEntity player, int resistanceDurationTicks, int resistanceAmplifier) {
     ShouPiGuCalculator.applyRollCounter(player, resistanceDurationTicks, resistanceAmplifier);
   }
 
-  public static void applyRollSlow(ServerPlayer player, int slowDurationTicks, int slowAmplifier, double slowRadius) {
+  public static void applyRollSlow(
+      ServerPlayer player, int slowDurationTicks, int slowAmplifier, double slowRadius) {
     ShouPiGuCalculator.applyRollSlow(player, slowDurationTicks, slowAmplifier, slowRadius);
   }
 
-  public static void dealCrashDamage(ServerPlayer player, Vec3 center, double damage, double radius) {
+  public static void dealCrashDamage(
+      ServerPlayer player, Vec3 center, double damage, double radius) {
     ShouPiGuCalculator.dealCrashDamage(player, center, damage, radius);
   }
 

@@ -43,7 +43,6 @@ public final class ShouPiGuTuning {
   public static final double MIN_COST_MULTIPLIER = 0.5; // Minimum cost is 50% of base
   public static final double MIN_COOLDOWN_MULTIPLIER = 0.5; // Minimum cooldown is 50% of base
 
-
   public static final String KEY_STOIC_STACKS = "StoicStacks";
   public static final String KEY_STOIC_ACCUM = "StoicAccumulator";
   public static final String KEY_STOIC_ACTIVE_UNTIL = "StoicActiveUntil";
@@ -61,7 +60,6 @@ public final class ShouPiGuTuning {
   public static final net.minecraft.resources.ResourceLocation TIE_GU_GU_ID =
       net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("guzhenren", "tie_gu_gu");
 
-
   public enum Tier {
     STAGE1,
     STAGE2,
@@ -70,23 +68,20 @@ public final class ShouPiGuTuning {
     STAGE5
   }
 
-  public record TierParameters(Tier stage, double stoicMitigation, double stoicShield,
-      long lockTicks) {
-  }
-  public record ScalingParameters(double costMultiplier, double cooldownMultiplier,
-      double durationMultiplier, double magnitudeMultiplier) {
-  }
+  public record TierParameters(
+      Tier stage, double stoicMitigation, double stoicShield, long lockTicks) {}
 
-  public static final TierParameters TIER1 =
-      new TierParameters(Tier.STAGE1, 0.04, 2.0, 10 * 20L);
-  public static final TierParameters TIER2 =
-      new TierParameters(Tier.STAGE2, 0.06, 3.0, 9 * 20L);
-  public static final TierParameters TIER3 =
-      new TierParameters(Tier.STAGE3, 0.08, 4.0, 8 * 20L);
-  public static final TierParameters TIER4 =
-      new TierParameters(Tier.STAGE4, 0.10, 5.0, 7 * 20L);
-  public static final TierParameters TIER5 =
-      new TierParameters(Tier.STAGE5, 0.12, 6.0, 6 * 20L);
+  public record ScalingParameters(
+      double costMultiplier,
+      double cooldownMultiplier,
+      double durationMultiplier,
+      double magnitudeMultiplier) {}
+
+  public static final TierParameters TIER1 = new TierParameters(Tier.STAGE1, 0.04, 2.0, 10 * 20L);
+  public static final TierParameters TIER2 = new TierParameters(Tier.STAGE2, 0.06, 3.0, 9 * 20L);
+  public static final TierParameters TIER3 = new TierParameters(Tier.STAGE3, 0.08, 4.0, 8 * 20L);
+  public static final TierParameters TIER4 = new TierParameters(Tier.STAGE4, 0.10, 5.0, 7 * 20L);
+  public static final TierParameters TIER5 = new TierParameters(Tier.STAGE5, 0.12, 6.0, 6 * 20L);
 
   public static final String KEY_ROLL_READY = "RollReady";
   public static final String KEY_ROLL_EXPIRE = "RollExpire";
@@ -102,7 +97,6 @@ public final class ShouPiGuTuning {
   public static final String KEY_STOIC_READY = "StoicReady";
   public static final String KEY_TIER = "Tier";
   public static final String KEY_SOFT_THORNS_WINDOW = "SoftThornsWindow";
-
 
   private ShouPiGuTuning() {}
 }

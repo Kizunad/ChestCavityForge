@@ -126,7 +126,7 @@ public final class GuScriptRuntime {
       boolean clientSide =
           context.performer() != null
               ? context.performer().level().isClientSide()
-              : context.target() != null && context.target().level().isClientSide();
+              : context.target() != null && context.target().level().isClientSide;
       ChestCavity.LOGGER.info(
           "[GuScript] Executing root {}#{} ({}) with context {} on {} side for performer {}",
           rootName,

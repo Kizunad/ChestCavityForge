@@ -118,9 +118,11 @@ public final class YuShiSummonSharkSkill {
     }
 
     Inventory inventory = player.getInventory();
-    Optional<YuShiSummonCalculator.OfferingSlot> offeringOpt = YuShiSummonCalculator.findBestOffering(inventory);
+    Optional<YuShiSummonCalculator.OfferingSlot> offeringOpt =
+        YuShiSummonCalculator.findBestOffering(inventory);
     if (offeringOpt.isEmpty()) {
-      sendFailure(player, "你大口吞下了空气。鱼鳞蛊沉默以对。(也许需要整组对应阶的鲨材作为供品...)");
+      sendFailure(
+          player, "你大口吞下了空气。鱼鳞蛊沉默以对。(也许需要整组对应阶的鲨材作为供品...)");
       return;
     }
     YuShiSummonCalculator.OfferingSlot offering = offeringOpt.get();

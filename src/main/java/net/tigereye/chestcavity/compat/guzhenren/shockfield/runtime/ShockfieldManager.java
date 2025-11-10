@@ -4,21 +4,19 @@ import java.util.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldFx;
+import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldFxService;
 import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldMath;
 import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldState;
 import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.WaveId;
-import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldFx;
-import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldFxService;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
-import net.tigereye.chestcavity.engine.ServerTickEngine;
-import net.tigereye.chestcavity.engine.TickEngineHub;
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.item.ItemStack;
+import net.tigereye.chestcavity.engine.TickEngineHub;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.registration.CCOrganScores;
 
@@ -77,7 +75,8 @@ public final class ShockfieldManager {
 
     // 确保冷却容器存在（与器官状态绑定，便于在移除/同步时持久化）
     if (!ownerCooldowns.containsKey(ownerId) && organ != null && !organ.isEmpty()) {
-      OrganState state = OrganState.of(organ, organStateRoot == null ? "JianDangGu" : organStateRoot);
+      OrganState state =
+          OrganState.of(organ, organStateRoot == null ? "JianDangGu" : organStateRoot);
       ownerCooldowns.put(ownerId, MultiCooldown.builder(state).withSync(cc, organ).build());
     }
     // 主波创建触发冷却：5 秒内只能触发一次
@@ -101,7 +100,8 @@ public final class ShockfieldManager {
         jd = h.read("daohen_jiandao").orElse(0.0);
         flow = h.read("liupai_jiandao").orElse(0.0);
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
     double str = 0.0;
     try {
       var ccOpt = net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(owner);
@@ -109,7 +109,8 @@ public final class ShockfieldManager {
         var ccInst = ccOpt.get().getChestCavityInstance();
         str = ccInst.getOrganScore(CCOrganScores.STRENGTH);
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
     double wTier = 1.0;
     try {
       ItemStack main;
@@ -128,7 +129,8 @@ public final class ShockfieldManager {
         }
         wTier = Math.max(1.0, 1.0 + lvl);
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
 
     ShockfieldState state =
         new ShockfieldState(
@@ -303,7 +305,10 @@ public final class ShockfieldManager {
    * @param currentTick 当前游戏tick
    */
   private void processHitDetection(
-      ServerLevel level, ShockfieldState state, long currentTick, List<ShockfieldState> pendingAdds) {
+      ServerLevel level,
+      ShockfieldState state,
+      long currentTick,
+      List<ShockfieldState> pendingAdds) {
     // 获取波源所有者
     LivingEntity owner =
         level.getEntity(state.getOwnerId()) instanceof LivingEntity living ? living : null;
@@ -338,7 +343,8 @@ public final class ShockfieldManager {
       UUID targetId = target.getUUID();
 
       // 自波连带：仅排除“OnHit当帧的那个目标本体”
-      if (state.getWaveId().spawnTick() == currentTick && state.getSpawnTargetId() != null
+      if (state.getWaveId().spawnTick() == currentTick
+          && state.getSpawnTargetId() != null
           && state.getSpawnTargetId().equals(targetId)) {
         continue;
       }
@@ -372,7 +378,8 @@ public final class ShockfieldManager {
       try {
         var ai = target.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
         armor = ai == null ? 0.0 : ai.getValue();
-      } catch (Throwable ignored) {}
+      } catch (Throwable ignored) {
+      }
       double finalDamageRaw = ShockfieldMath.computeFinalDamage(coreDamage, resistPct, armor);
 
       // 软上限聚合：以“每秒桶”聚合所有者的原始DPS并应用软封顶
@@ -445,7 +452,8 @@ public final class ShockfieldManager {
             double max = Math.max(1.0, sword.getSwordAttributes().maxDurability);
             float loss = (float) (ShockfieldMath.FS_DURA_COST_ON_TOUCH_PCT * max);
             sword.damageDurability(loss);
-          } catch (Throwable ignored) {}
+          } catch (Throwable ignored) {
+          }
         }
       }
     } catch (Throwable ignored) {
@@ -491,7 +499,9 @@ public final class ShockfieldManager {
   private static double computeResistPct(LivingEntity target) {
     try {
       var inst = target.getEffect(net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE);
-      if (inst == null) return 0.0;
+      if (inst == null) {
+        return 0.0;
+      }
       int amp = Math.max(0, inst.getAmplifier());
       return Math.min(ShockfieldMath.RESIST_PCT_CAP, 0.2 * (amp + 1));
     } catch (Throwable ignored) {
@@ -521,10 +531,12 @@ public final class ShockfieldManager {
     TickEngineHub.register(TickEngineHub.PRIORITY_DOT + 10, ShockfieldManager::onServerTick);
 
     // 注册 FxEngine 优化的 Shockfield FX 方案
-    net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxOptimized.registerFxSchemes();
+    net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxOptimized
+        .registerFxSchemes();
 
     // 注册特效服务（优化版：使用 FxRegistry + fallback）
-    ShockfieldFx.set(new net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxOptimized());
+    ShockfieldFx.set(
+        new net.tigereye.chestcavity.compat.guzhenren.shockfield.fx.ShockfieldFxOptimized());
   }
 
   private static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
