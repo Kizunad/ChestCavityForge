@@ -345,14 +345,23 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     Vec3 targetPos = target.position();
     JianFengGuFx.playCoopStrike(level, swordPos, targetPos);
 
-    // 1秒后恢复原AI模式（20 ticks）
-    long restoreTick = level.getGameTime() + 20L;
-    level.getServer().execute(() -> {
-      if (sword.isAlive() && !sword.isRemoved()) {
-        // 延迟执行：恢复原AI模式
-        scheduleAIModeRestore(level, sword, originalMode, restoreTick);
-      }
-    });
+    // 使用TickOps调度：1秒后恢复原AI模式（20 ticks）
+    net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps.schedule(
+        level,
+        () -> {
+          if (sword.isAlive() && !sword.isRemoved()) {
+            sword.setAIMode(originalMode);
+            sword.setTargetEntity(null);
+
+            if (LOGGER.isDebugEnabled()) {
+              LOGGER.debug(
+                  "[JianFengGuOrganBehavior] Restored AI mode for sword {} to {}",
+                  sword.getId(),
+                  originalMode);
+            }
+          }
+        },
+        20);
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
@@ -362,50 +371,6 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
           damage,
           originalMode);
     }
-  }
-
-  /**
-   * 安排恢复飞剑AI模式。
-   *
-   * @param level 服务端世界
-   * @param sword 飞剑
-   * @param mode 要恢复的模式
-   * @param restoreTick 恢复时间点
-   */
-  private void scheduleAIModeRestore(
-      ServerLevel level,
-      FlyingSwordEntity sword,
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode mode,
-      long restoreTick) {
-
-    // 使用递归检查直到达到目标tick
-    class RestoreTask implements Runnable {
-      @Override
-      public void run() {
-        if (!sword.isAlive() || sword.isRemoved()) {
-          return; // 飞剑已死亡或移除，停止
-        }
-
-        long now = level.getGameTime();
-        if (now >= restoreTick) {
-          // 时间到，恢复AI模式
-          sword.setAIMode(mode);
-          sword.setTargetEntity(null); // 清除目标
-
-          if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                "[JianFengGuOrganBehavior] Restored AI mode for sword {} to {}",
-                sword.getId(),
-                mode);
-          }
-        } else {
-          // 还没到时间，继续等待
-          level.getServer().execute(this);
-        }
-      }
-    }
-
-    level.getServer().execute(new RestoreTask());
   }
 
   /**
