@@ -46,10 +46,10 @@ import net.tigereye.chestcavity.client.modernui.config.data.SoulConfigDataClient
 import net.tigereye.chestcavity.client.modernui.config.docs.CategoryTranslations;
 import net.tigereye.chestcavity.client.modernui.config.docs.DocEntry;
 import net.tigereye.chestcavity.client.modernui.config.docs.DocRegistry;
+import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceUpdatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigActivatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigForceTeleportPayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigRenamePayload;
-import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceUpdatePayload;
 import net.tigereye.chestcavity.client.modernui.config.network.SoulConfigSetOrderPayload;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarClientData;
 import net.tigereye.chestcavity.client.modernui.skill.SkillHotbarKey;
@@ -132,8 +132,7 @@ public class ChestCavityConfigFragment extends Fragment {
 
     // 4. 为 ViewPager 设置布局参数，使其填充所有剩余空间
     var pagerParams =
-        new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 0); // 高度设为 0
+        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0); // 高度设为 0
     pagerParams.weight = 1.0f; // 设置权重为 1
 
     // 5. 在 Tabs 之后将 Pager 添加到 root
@@ -207,9 +206,7 @@ public class ChestCavityConfigFragment extends Fragment {
       var layout = baseLayout(context);
       addHeadline(layout, "Chest Cavity 设置总览", 18);
       addBody(
-          layout,
-          "· 规划全局配置入口，未来将同步 ModMenu / NeoForge Config。\n"
-              + "· 在此页面添加常用开关、QoL 选项与快速跳转。");
+          layout, "· 规划全局配置入口，未来将同步 ModMenu / NeoForge Config。\n" + "· 在此页面添加常用开关、QoL 选项与快速跳转。");
       PlayerPreferenceClientState.requestSync();
 
       // 屏蔽 Reaction 调试/提示输出（实时）
@@ -256,8 +253,7 @@ public class ChestCavityConfigFragment extends Fragment {
       rouLabel.setTextSize(13);
       rouLabel.setTextColor(0xFFDEE5F4);
       rouRow.addView(
-          rouLabel,
-          new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+          rouLabel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
       var rouToggle = new CheckBox(context);
       boolean rouInit =
           PlayerPreferenceClientState.get(
@@ -424,9 +420,10 @@ public class ChestCavityConfigFragment extends Fragment {
       // Style helper for mode buttons
       Consumer<Button> updateModeButtonStyle =
           button -> {
-            boolean isSelected = button == organsModeButton
-                ? currentMode.get().equals("organs")
-                : currentMode.get().equals("combos");
+            boolean isSelected =
+                button == organsModeButton
+                    ? currentMode.get().equals("organs")
+                    : currentMode.get().equals("combos");
             var bgDrawable = new ShapeDrawable();
             if (isSelected) {
               bgDrawable.setColor(0xFF4080FF); // Bright blue for selected
@@ -683,12 +680,13 @@ public class ChestCavityConfigFragment extends Fragment {
 
             if (category.isEmpty()) {
               // Show top-level categories
-              var categories = allIconRecords.stream()
-                  .map(SkillIcon::category)
-                  .filter(c -> !c.isEmpty())
-                  .distinct()
-                  .sorted()
-                  .toList();
+              var categories =
+                  allIconRecords.stream()
+                      .map(SkillIcon::category)
+                      .filter(c -> !c.isEmpty())
+                      .distinct()
+                      .sorted()
+                      .toList();
 
               LinearLayout currentRow = null;
               int col = 0;
@@ -699,8 +697,7 @@ public class ChestCavityConfigFragment extends Fragment {
                   currentRow.setGravity(Gravity.START);
                   var rowParams =
                       new LinearLayout.LayoutParams(
-                          ViewGroup.LayoutParams.MATCH_PARENT,
-                          ViewGroup.LayoutParams.WRAP_CONTENT);
+                          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                   if (folderGrid.getChildCount() > 0) {
                     rowParams.topMargin = gap;
                   }
@@ -746,8 +743,7 @@ public class ChestCavityConfigFragment extends Fragment {
                       renderIconsRef[0].run();
                       updateBreadcrumbRef[0].run();
                     });
-                var params =
-                    new LinearLayout.LayoutParams(folderButtonWidth, folderButtonHeight);
+                var params = new LinearLayout.LayoutParams(folderButtonWidth, folderButtonHeight);
                 params.leftMargin = gap;
                 params.rightMargin = gap;
                 params.bottomMargin = gap;
@@ -756,13 +752,14 @@ public class ChestCavityConfigFragment extends Fragment {
               }
             } else if (subcategory.isEmpty()) {
               // Show subcategories for selected category
-              var subcategories = allIconRecords.stream()
-                  .filter(icon -> icon.category().equals(category))
-                  .map(SkillIcon::subcategory)
-                  .filter(sc -> !sc.isEmpty())
-                  .distinct()
-                  .sorted()
-                  .toList();
+              var subcategories =
+                  allIconRecords.stream()
+                      .filter(icon -> icon.category().equals(category))
+                      .map(SkillIcon::subcategory)
+                      .filter(sc -> !sc.isEmpty())
+                      .distinct()
+                      .sorted()
+                      .toList();
 
               LinearLayout currentRow = null;
               int col = 0;
@@ -773,8 +770,7 @@ public class ChestCavityConfigFragment extends Fragment {
                   currentRow.setGravity(Gravity.START);
                   var rowParams =
                       new LinearLayout.LayoutParams(
-                          ViewGroup.LayoutParams.MATCH_PARENT,
-                          ViewGroup.LayoutParams.WRAP_CONTENT);
+                          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                   if (folderGrid.getChildCount() > 0) {
                     rowParams.topMargin = gap;
                   }
@@ -819,8 +815,7 @@ public class ChestCavityConfigFragment extends Fragment {
                       renderIconsRef[0].run();
                       updateBreadcrumbRef[0].run();
                     });
-                var params =
-                    new LinearLayout.LayoutParams(folderButtonWidth, folderButtonHeight);
+                var params = new LinearLayout.LayoutParams(folderButtonWidth, folderButtonHeight);
                 params.leftMargin = gap;
                 params.rightMargin = gap;
                 params.bottomMargin = gap;
@@ -850,9 +845,7 @@ public class ChestCavityConfigFragment extends Fragment {
             } else if (subcategory.isEmpty()) {
               // Show all skills in category
               filteredIcons =
-                  allIconRecords.stream()
-                      .filter(icon -> icon.category().equals(category))
-                      .toList();
+                  allIconRecords.stream().filter(icon -> icon.category().equals(category)).toList();
             } else {
               // Show skills in subcategory
               filteredIcons =
@@ -882,8 +875,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 iconGrid.addView(
                     emptyView,
                     new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
               }
               return;
             }
@@ -897,8 +889,7 @@ public class ChestCavityConfigFragment extends Fragment {
                 currentRow.setGravity(Gravity.START);
                 var rowParams =
                     new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 if (iconGrid.getChildCount() > 0) {
                   rowParams.topMargin = gap;
                 }
@@ -1157,21 +1148,21 @@ public class ChestCavityConfigFragment extends Fragment {
     private View createDocsPage(ViewGroup container) {
       var context = container.getContext();
 
-    var root = new FrameLayout(context);
+      var root = new FrameLayout(context);
 
-    var scroll = new ScrollView(context);
-    scroll.setClipToPadding(true);
-    scroll.setFillViewport(true);
-    root.addView(
-        scroll,
-        new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      var scroll = new ScrollView(context);
+      scroll.setClipToPadding(true);
+      scroll.setFillViewport(true);
+      root.addView(
+          scroll,
+          new FrameLayout.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-    var layout = baseLayout(context);
-    scroll.addView(
-        layout,
-        new ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      var layout = baseLayout(context);
+      scroll.addView(
+          layout,
+          new ViewGroup.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
       addHeadline(layout, "器官与技能图鉴", 18);
 
@@ -2691,7 +2682,12 @@ public class ChestCavityConfigFragment extends Fragment {
    * @param durationMs Animation duration in milliseconds
    */
   private void animateButton(
-      View view, float startScale, float endScale, float startAlpha, float endAlpha, long durationMs) {
+      View view,
+      float startScale,
+      float endScale,
+      float startAlpha,
+      float endAlpha,
+      long durationMs) {
     long startTime = System.currentTimeMillis();
     Runnable animator =
         new Runnable() {

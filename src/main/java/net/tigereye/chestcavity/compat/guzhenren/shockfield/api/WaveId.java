@@ -30,6 +30,7 @@ public record WaveId(UUID sourceId, long spawnTick, int serial) {
 
   @Override
   public String toString() {
-    return String.format("WaveId[%s@%d#%d]", sourceId.toString().substring(0, 8), spawnTick, serial);
+    return String.format(
+        "WaveId[%s@%d#%d]", sourceId.toString().substring(0, 8), spawnTick, serial);
   }
 }

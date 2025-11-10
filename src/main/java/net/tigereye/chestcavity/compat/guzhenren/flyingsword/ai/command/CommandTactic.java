@@ -5,9 +5,7 @@ import java.util.Optional;
 import net.minecraft.network.chat.Component;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.TrajectoryType;
 
-/**
- * 指挥棒可选择的战术集合。每个战术绑定一个默认轨迹类型，并提供本地化键。
- */
+/** 指挥棒可选择的战术集合。每个战术绑定一个默认轨迹类型，并提供本地化键。 */
 public enum CommandTactic {
   FOCUS_FIRE(
       "focus_fire",
@@ -40,8 +38,7 @@ public enum CommandTactic {
   private final String descriptionKey;
   private final TrajectoryType trajectoryType;
 
-  CommandTactic(
-      String id, String nameKey, String descriptionKey, TrajectoryType trajectoryType) {
+  CommandTactic(String id, String nameKey, String descriptionKey, TrajectoryType trajectoryType) {
     this.id = id;
     this.nameKey = nameKey;
     this.descriptionKey = descriptionKey;
@@ -77,4 +74,3 @@ public enum CommandTactic {
     return Optional.empty();
   }
 }
-

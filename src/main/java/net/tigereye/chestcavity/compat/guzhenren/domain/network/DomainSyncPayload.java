@@ -84,8 +84,7 @@ public record DomainSyncPayload(
     try {
       ResourceLocation texture = ResourceLocation.parse(texturePath);
       Class<?> clazz =
-          Class.forName(
-              "net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer");
+          Class.forName("net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer");
       clazz
           .getMethod(
               "registerDomain",

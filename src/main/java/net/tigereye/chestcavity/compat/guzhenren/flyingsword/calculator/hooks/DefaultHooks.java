@@ -1,11 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.hooks;
 
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcOutputs;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.domain.SwordDomainDamageHook;
 
-/**
- * 内置默认钩子注册：将常见的全局规则集中注册，便于覆盖与禁用。
- */
+/** 内置默认钩子注册：将常见的全局规则集中注册，便于覆盖与禁用。 */
 public final class DefaultHooks {
   private static boolean registered = false;
 

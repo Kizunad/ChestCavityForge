@@ -12,4 +12,3 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.
 public interface FlyingSwordCalcHook {
   void apply(CalcContext ctx, CalcOutputs out);
 }
-

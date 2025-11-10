@@ -5,8 +5,7 @@ import net.minecraft.world.phys.Vec3;
 /**
  * 承载轨迹或行为层输出的“期望运动命令”。
  *
- * <p>核心思想：策略层只负责给出期望方向和速度倍率，最终由运动层统一处理
- * 加速度、角速度、领域缩放等细节，确保全局一致。
+ * <p>核心思想：策略层只负责给出期望方向和速度倍率，最终由运动层统一处理 加速度、角速度、领域缩放等细节，确保全局一致。
  */
 public record SteeringCommand(
     Vec3 direction,
@@ -39,7 +38,16 @@ public record SteeringCommand(
    * @return 带有覆盖的命令
    */
   public SteeringCommand withDesiredMaxFactor(double factor) {
-    return new SteeringCommand(direction, speedScale, factor, accelOverride, turnOverride, turnPerTick, headingKp, minTurnFloor, suppressSeparation);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        factor,
+        accelOverride,
+        turnOverride,
+        turnPerTick,
+        headingKp,
+        minTurnFloor,
+        suppressSeparation);
   }
 
   /**
@@ -49,7 +57,16 @@ public record SteeringCommand(
    * @return 带有覆盖的命令
    */
   public SteeringCommand withAccelFactor(double factor) {
-    return new SteeringCommand(direction, speedScale, desiredMaxFactor, factor, turnOverride, turnPerTick, headingKp, minTurnFloor, suppressSeparation);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        desiredMaxFactor,
+        factor,
+        turnOverride,
+        turnPerTick,
+        headingKp,
+        minTurnFloor,
+        suppressSeparation);
   }
 
   /**
@@ -58,34 +75,71 @@ public record SteeringCommand(
    * @return 标记后的命令
    */
   public SteeringCommand disableSeparation() {
-    return new SteeringCommand(direction, speedScale, desiredMaxFactor, accelOverride, turnOverride, turnPerTick, headingKp, minTurnFloor, true);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        desiredMaxFactor,
+        accelOverride,
+        turnOverride,
+        turnPerTick,
+        headingKp,
+        minTurnFloor,
+        true);
   }
 
-  /**
-   * 设置转向角速度覆盖值。
-   */
+  /** 设置转向角速度覆盖值。 */
   public SteeringCommand withTurnOverride(double radians) {
-    return new SteeringCommand(direction, speedScale, desiredMaxFactor, accelOverride, radians, turnPerTick, headingKp, minTurnFloor, suppressSeparation);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        desiredMaxFactor,
+        accelOverride,
+        radians,
+        turnPerTick,
+        headingKp,
+        minTurnFloor,
+        suppressSeparation);
   }
 
-  /**
-   * 设置每 tick 目标转向角（弧度）。
-   */
+  /** 设置每 tick 目标转向角（弧度）。 */
   public SteeringCommand withTurnPerTick(double radians) {
-    return new SteeringCommand(direction, speedScale, desiredMaxFactor, accelOverride, turnOverride, radians, headingKp, minTurnFloor, suppressSeparation);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        desiredMaxFactor,
+        accelOverride,
+        turnOverride,
+        radians,
+        headingKp,
+        minTurnFloor,
+        suppressSeparation);
   }
 
-  /**
-   * 设置基于角误差的比例转向（PD 的 P 项），单位：rad_out per (rad_error)。
-   */
+  /** 设置基于角误差的比例转向（PD 的 P 项），单位：rad_out per (rad_error)。 */
   public SteeringCommand withHeadingKp(double kp) {
-    return new SteeringCommand(direction, speedScale, desiredMaxFactor, accelOverride, turnOverride, turnPerTick, kp, minTurnFloor, suppressSeparation);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        desiredMaxFactor,
+        accelOverride,
+        turnOverride,
+        turnPerTick,
+        kp,
+        minTurnFloor,
+        suppressSeparation);
   }
 
-  /**
-   * 设置最小转向地板（避免小角误差时完全不转）。
-   */
+  /** 设置最小转向地板（避免小角误差时完全不转）。 */
   public SteeringCommand withMinTurnFloor(double radians) {
-    return new SteeringCommand(direction, speedScale, desiredMaxFactor, accelOverride, turnOverride, turnPerTick, headingKp, radians, suppressSeparation);
+    return new SteeringCommand(
+        direction,
+        speedScale,
+        desiredMaxFactor,
+        accelOverride,
+        turnOverride,
+        turnPerTick,
+        headingKp,
+        radians,
+        suppressSeparation);
   }
 }

@@ -1,6 +1,5 @@
 package net.tigereye.chestcavity.compat.common.passive;
 
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;

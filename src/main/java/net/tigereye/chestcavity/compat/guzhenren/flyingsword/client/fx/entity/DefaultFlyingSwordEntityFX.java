@@ -48,7 +48,8 @@ public class DefaultFlyingSwordEntityFX implements IFlyingSwordEntityFX {
   }
 
   @Override
-  public void spawnAttackImpact(ServerLevel level, FlyingSwordEntity sword, Vec3 pos, double damage) {
+  public void spawnAttackImpact(
+      ServerLevel level, FlyingSwordEntity sword, Vec3 pos, double damage) {
     int particleCount = (int) Math.min(20, 5 + damage);
 
     // 横扫粒子
@@ -108,8 +109,7 @@ public class DefaultFlyingSwordEntityFX implements IFlyingSwordEntityFX {
     Vec3 pos = sword.position();
 
     // 末地烛光闪耀
-    level.sendParticles(
-        ParticleTypes.END_ROD, pos.x, pos.y + 0.5, pos.z, 20, 0.3, 0.3, 0.3, 0.1);
+    level.sendParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.5, pos.z, 20, 0.3, 0.3, 0.3, 0.1);
 
     // 烟花环形扩散
     for (int i = 0; i < 16; i++) {
@@ -166,7 +166,8 @@ public class DefaultFlyingSwordEntityFX implements IFlyingSwordEntityFX {
   @Override
   public void spawnGuardTrail(ServerLevel level, FlyingSwordEntity sword) {
     Vec3 pos = sword.position();
-    level.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
+    level.sendParticles(
+        ParticleTypes.HAPPY_VILLAGER, pos.x, pos.y, pos.z, 1, 0.05, 0.05, 0.05, 0.0);
   }
 
   @Override

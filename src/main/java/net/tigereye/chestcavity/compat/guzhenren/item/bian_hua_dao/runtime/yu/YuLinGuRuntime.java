@@ -40,7 +40,10 @@ public final class YuLinGuRuntime {
     boolean hasFishArmor =
         state.getBoolean(YuLinGuTuning.HAS_FISH_ARMOR_KEY, false);
     int progress =
-        Mth.clamp(state.getInt(YuLinGuTuning.PROGRESS_KEY, 0), 0, YuLinGuTuning.FISH_ARMOR_MAX_PROGRESS);
+        Mth.clamp(
+            state.getInt(YuLinGuTuning.PROGRESS_KEY, 0),
+            0,
+            YuLinGuTuning.FISH_ARMOR_MAX_PROGRESS);
 
     if (!hasFishArmor && progress >= YuLinGuTuning.FISH_ARMOR_MAX_PROGRESS) {
       hasFishArmor = true;

@@ -23,8 +23,8 @@ public final class DomainEvents {
         net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.tickUnbreakableFocus(player);
         net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.tickJiandaoFrozen(player);
         // 确保"冥想减速"与属性保持一致
-        net.tigereye.chestcavity.compat.guzhenren.domain.DomainMovementOps
-            .tickEnsureMeditationSlow(player);
+        net.tigereye.chestcavity.compat.guzhenren.domain.DomainMovementOps.tickEnsureMeditationSlow(
+            player);
         // 计算并广播通用"剑域"系数（独立于具体领域）
         net.tigereye.chestcavity.compat.guzhenren.domain.SwordDomainOps.tickPlayer(
             player, level.getGameTime());
@@ -32,9 +32,7 @@ public final class DomainEvents {
     }
   }
 
-  /**
-   * 玩家登出时清理该玩家的所有领域（服务端）
-   */
+  /** 玩家登出时清理该玩家的所有领域（服务端） */
   @SubscribeEvent
   public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
     var player = event.getEntity();
@@ -49,9 +47,7 @@ public final class DomainEvents {
     }
   }
 
-  /**
-   * 客户端世界卸载时清理所有领域渲染数据（客户端）
-   */
+  /** 客户端世界卸载时清理所有领域渲染数据（客户端） */
   @OnlyIn(Dist.CLIENT)
   @SubscribeEvent
   public static void onClientLevelUnload(LevelEvent.Unload event) {

@@ -8,9 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringComm
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate.SpeedUnit;
 
-/**
- * 将旧的 {@link Trajectory} 适配到新的 {@link SteeringTemplate}。
- */
+/** 将旧的 {@link Trajectory} 适配到新的 {@link SteeringTemplate}。 */
 public final class TrajectorySteeringAdapter implements SteeringTemplate {
 
   private final Trajectory delegate;
@@ -22,13 +20,10 @@ public final class TrajectorySteeringAdapter implements SteeringTemplate {
   }
 
   @Override
-  public SteeringCommand compute(
-      AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
+  public SteeringCommand compute(AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
     Vec3 desired = delegate.computeDesiredVelocity(ctx, intent);
     double reference =
-        meta.speedUnit() == SpeedUnit.MAX
-            ? snapshot.scaledMaxSpeed()
-            : snapshot.scaledBaseSpeed();
+        meta.speedUnit() == SpeedUnit.MAX ? snapshot.scaledMaxSpeed() : snapshot.scaledBaseSpeed();
     double speedScale = desired.length() / Math.max(1.0e-6, reference);
 
     SteeringCommand cmd = SteeringCommand.of(desired, speedScale);

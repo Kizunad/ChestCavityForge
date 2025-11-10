@@ -79,7 +79,9 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
               .onTick(
                   (level, elapsed) -> {
                     Vec3 center = context.getPosition();
-                    if (center == null) return;
+                    if (center == null) {
+                      return;
+                    }
 
                     PulseRuntimeState runtimeState = PULSE_RUNTIME.get(mergeKey);
                     double effectiveRadius = runtimeState != null ? runtimeState.radius : radius;
@@ -95,7 +97,9 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
                     for (int wave = 0; wave < waveCount; wave++) {
                       double waveRadius =
                           effectiveRadius - (wave * waveSpacing); // 从外向内的波纹
-                      if (waveRadius < 0.3) continue; // 跳过太小的半径
+                      if (waveRadius < 0.3) {
+                        continue;
+                      } // 跳过太小的半径
 
                       // 每层波纹的粒子数量（根据半径和振幅调整）
                       int particleCount = Math.max(16, (int) (waveRadius * 12.0));
@@ -215,7 +219,9 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
               .onStart(
                   level -> {
                     Vec3 center = context.getPosition();
-                    if (center == null) return;
+                    if (center == null) {
+                      return;
+                    }
 
                     // 真元爆发（复用原版逻辑）
                     for (int i = 0; i < 8; i++) {
@@ -281,7 +287,9 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
               .onStart(
                   level -> {
                     Vec3 center = context.getPosition();
-                    if (center == null) return;
+                    if (center == null) {
+                      return;
+                    }
 
                     // 涟光闪烁
                     for (int i = 0; i < 8; i++) {
@@ -315,7 +323,9 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
               .onTick(
                   (level, elapsed) -> {
                     Vec3 center = context.getPosition();
-                    if (center == null) return;
+                    if (center == null) {
+                      return;
+                    }
 
                     // 持续的扩散效果
                     double expandRadius = (elapsed / 40.0) * 2.0;
@@ -346,7 +356,9 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
               .onTick(
                   (level, elapsed) -> {
                     Vec3 center = context.getPosition();
-                    if (center == null) return;
+                    if (center == null) {
+                      return;
+                    }
 
                     // 收束进度（从外向内）
                     double progress = elapsed / 30.0;
@@ -370,9 +382,13 @@ public final class ShockfieldFxOptimized implements ShockfieldFxService {
                   })
               .onStop(
                   (level, stopReason) -> {
-                    if (level == null) return;
+                    if (level == null) {
+                      return;
+                    }
                     Vec3 center = context.getPosition();
-                    if (center == null) return;
+                    if (center == null) {
+                      return;
+                    }
 
                     // 音效
                     level.playSound(

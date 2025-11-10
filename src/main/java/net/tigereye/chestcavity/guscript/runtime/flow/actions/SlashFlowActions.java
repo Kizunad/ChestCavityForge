@@ -372,7 +372,8 @@ final class SlashFlowActions {
     Vec3 end = start.add(direction.scale(length));
 
     ChestCavity.LOGGER.info(
-        "[Slash] Ray start performer={} damage={} breakPower={} length={} radius={} start=({}, {}, {}) dir=({}, {}, {})",
+        "[Slash] Ray start performer={} damage={} breakPower={} length={} radius={} start=({}, {},"
+            + " {}) dir=({}, {}, {})",
         performer.getGameProfile().getName(),
         formatDouble(damage),
         formatDouble(breakPower),

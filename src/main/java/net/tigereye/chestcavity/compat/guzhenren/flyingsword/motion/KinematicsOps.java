@@ -2,18 +2,14 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion;
 
 import net.minecraft.world.phys.Vec3;
 
-/**
- * 纯函数集合：负责角速度、线速度相关的辅助计算。
- */
+/** 纯函数集合：负责角速度、线速度相关的辅助计算。 */
 public final class KinematicsOps {
 
   private static final double EPS = 1.0e-6;
 
   private KinematicsOps() {}
 
-  /**
-   * 将向量限制在给定长度（若超出则归一化后放大到 limit）。
-   */
+  /** 将向量限制在给定长度（若超出则归一化后放大到 limit）。 */
   public static Vec3 clampVectorLength(Vec3 vec, double limit) {
     double len = vec.length();
     if (len < EPS || len <= limit) {
@@ -22,16 +18,12 @@ public final class KinematicsOps {
     return vec.scale(limit / len);
   }
 
-  /**
-   * 限制“速度向量变化量”，用于线速度加速度限制。
-   */
+  /** 限制“速度向量变化量”，用于线速度加速度限制。 */
   public static Vec3 limitDelta(Vec3 delta, double maxDelta) {
     return clampVectorLength(delta, maxDelta);
   }
 
-  /**
-   * 限制方向变化角度（弧度）。输入向量不要求归一化。
-   */
+  /** 限制方向变化角度（弧度）。输入向量不要求归一化。 */
   public static Vec3 limitTurn(Vec3 currentDir, Vec3 desiredDir, double maxRadians) {
     Vec3 from = normaliseSafe(currentDir);
     Vec3 to = normaliseSafe(desiredDir);
@@ -50,9 +42,7 @@ public final class KinematicsOps {
     return normaliseSafe(lerped);
   }
 
-  /**
-   * 将向量归一化，若长度过小则返回零向量。
-   */
+  /** 将向量归一化，若长度过小则返回零向量。 */
   public static Vec3 normaliseSafe(Vec3 vec) {
     double len = vec.length();
     if (len < EPS) {

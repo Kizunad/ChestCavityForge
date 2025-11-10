@@ -11,9 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUITheme;
 
-/**
- * 剑引指挥棒的聊天式 TUI。
- */
+/** 剑引指挥棒的聊天式 TUI。 */
 public final class SwordCommandTUI {
 
   private SwordCommandTUI() {}
@@ -34,10 +32,12 @@ public final class SwordCommandTUI {
         Component.translatable("text.guzhenren.jianyingu.command.targets", marked)
             .withStyle(TUITheme.TEXT);
     if (session.hasExecutingGroup(currentGroup)) {
-      long remaining = Math.max(0, session.executingUntil(currentGroup) - player.level().getGameTime());
+      long remaining =
+          Math.max(0, session.executingUntil(currentGroup) - player.level().getGameTime());
       double seconds = remaining / 20.0;
       targetInfo =
-          targetInfo.append(space())
+          targetInfo
+              .append(space())
               .append(
                   Component.translatable(
                           "text.guzhenren.jianyingu.command.state.executing",
@@ -47,7 +47,8 @@ public final class SwordCommandTUI {
       long remaining = Math.max(0, session.selectionExpiresAt() - player.level().getGameTime());
       double seconds = remaining / 20.0;
       targetInfo =
-          targetInfo.append(space())
+          targetInfo
+              .append(space())
               .append(
                   Component.translatable(
                           "text.guzhenren.jianyingu.command.state.selecting",
@@ -55,9 +56,11 @@ public final class SwordCommandTUI {
                       .withStyle(TUITheme.DIM));
     } else {
       targetInfo =
-          targetInfo.append(space())
-              .append(Component.translatable("text.guzhenren.jianyingu.command.state.idle")
-                  .withStyle(TUITheme.DIM));
+          targetInfo
+              .append(space())
+              .append(
+                  Component.translatable("text.guzhenren.jianyingu.command.state.idle")
+                      .withStyle(TUITheme.DIM));
     }
     player.sendSystemMessage(TUITheme.wrapContentLine(targetInfo));
 
@@ -79,9 +82,7 @@ public final class SwordCommandTUI {
                 .withStyle(TUITheme.DIM);
         hasOther = true;
       }
-      otherLine =
-          otherLine.append(space())
-              .append(otherGroupStatus(summary));
+      otherLine = otherLine.append(space()).append(otherGroupStatus(summary));
     }
     if (hasOther && otherLine != null) {
       player.sendSystemMessage(TUITheme.wrapContentLine(otherLine));
@@ -95,7 +96,8 @@ public final class SwordCommandTUI {
         Component.translatable("text.guzhenren.jianyingu.command.tactic")
             .withStyle(TUITheme.ACCENT);
     for (CommandTactic tactic : CommandTactic.values()) {
-      tacticLine = tacticLine.append(space()).append(tacticButton(tactic, session.tactic() == tactic));
+      tacticLine =
+          tacticLine.append(space()).append(tacticButton(tactic, session.tactic() == tactic));
     }
     player.sendSystemMessage(TUITheme.wrapContentLine(tacticLine));
 
@@ -104,18 +106,36 @@ public final class SwordCommandTUI {
         Component.translatable("text.guzhenren.jianyingu.command.group")
             .withStyle(TUITheme.ACCENT)
             .append(space())
-            .append(groupButton(0, currentGroup == 0, Component.translatable("text.guzhenren.jianyingu.command.group.all")));
+            .append(
+                groupButton(
+                    0,
+                    currentGroup == 0,
+                    Component.translatable("text.guzhenren.jianyingu.command.group.all")));
     groupLine =
         groupLine
             .append(space())
-            .append(groupButton(1, currentGroup == 1, Component.translatable("text.guzhenren.jianyingu.command.group.g1")))
+            .append(
+                groupButton(
+                    1,
+                    currentGroup == 1,
+                    Component.translatable("text.guzhenren.jianyingu.command.group.g1")))
             .append(space())
-            .append(groupButton(2, currentGroup == 2, Component.translatable("text.guzhenren.jianyingu.command.group.g2")))
+            .append(
+                groupButton(
+                    2,
+                    currentGroup == 2,
+                    Component.translatable("text.guzhenren.jianyingu.command.group.g2")))
             .append(space())
-            .append(groupButton(3, currentGroup == 3, Component.translatable("text.guzhenren.jianyingu.command.group.g3")));
-    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+            .append(
+                groupButton(
+                    3,
+                    currentGroup == 3,
+                    Component.translatable("text.guzhenren.jianyingu.command.group.g3")));
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+        .ENABLE_SWARM) {
       groupLine =
-          groupLine.append(space())
+          groupLine
+              .append(space())
               .append(
                   groupButton(
                       FlyingSwordEntity.SWARM_GROUP_ID,
@@ -133,7 +153,8 @@ public final class SwordCommandTUI {
                 button(
                     Component.translatable("text.guzhenren.jianyingu.command.button.execute"),
                     "/jianyin command execute",
-                    Component.translatable("text.guzhenren.jianyingu.command.button.execute.hover")))
+                    Component.translatable(
+                        "text.guzhenren.jianyingu.command.button.execute.hover")))
             .append(space())
             .append(
                 button(
@@ -151,7 +172,8 @@ public final class SwordCommandTUI {
                 button(
                     Component.translatable("text.guzhenren.jianyingu.command.button.refresh"),
                     "/jianyin command open",
-                    Component.translatable("text.guzhenren.jianyingu.command.button.refresh.hover")));
+                    Component.translatable(
+                        "text.guzhenren.jianyingu.command.button.refresh.hover")));
     player.sendSystemMessage(TUITheme.wrapContentLine(actions));
 
     // 底部边框
@@ -160,9 +182,7 @@ public final class SwordCommandTUI {
 
   private static MutableComponent tacticButton(CommandTactic tactic, boolean selected) {
     MutableComponent label =
-        Component.literal("[")
-            .append(tactic.displayName())
-            .append(Component.literal("]"));
+        Component.literal("[").append(tactic.displayName()).append(Component.literal("]"));
     ChatFormatting color = selected ? TUITheme.SUCCESS : TUITheme.LABEL;
     Style style =
         Style.EMPTY
@@ -181,8 +201,7 @@ public final class SwordCommandTUI {
     return label.withStyle(style);
   }
 
-  private static MutableComponent button(
-      Component display, String command, Component hoverText) {
+  private static MutableComponent button(Component display, String command, Component hoverText) {
     return Component.literal("[")
         .append(display)
         .append(Component.literal("]"))
@@ -206,7 +225,8 @@ public final class SwordCommandTUI {
                 new HoverEvent(
                     HoverEvent.Action.SHOW_TEXT,
                     Component.translatable(
-                        "text.guzhenren.jianyingu.command.group.button.hover", groupLabel(groupId))));
+                        "text.guzhenren.jianyingu.command.group.button.hover",
+                        groupLabel(groupId))));
     return content.withStyle(style);
   }
 
@@ -229,7 +249,8 @@ public final class SwordCommandTUI {
     return Component.literal(String.format(Locale.ROOT, "#%d", groupId));
   }
 
-  private static MutableComponent otherGroupStatus(SwordCommandCenter.CommandSession.GroupSummary summary) {
+  private static MutableComponent otherGroupStatus(
+      SwordCommandCenter.CommandSession.GroupSummary summary) {
     Component label = groupLabel(summary.groupId());
     if (summary.executing()) {
       String seconds = String.format(Locale.ROOT, "%.1f", summary.executingSeconds());

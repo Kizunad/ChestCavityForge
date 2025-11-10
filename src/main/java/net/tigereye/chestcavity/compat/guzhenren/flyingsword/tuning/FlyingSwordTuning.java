@@ -3,10 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 /**
  * 飞剑参数聚合（兼容旧引用）。
  *
- * <p>新项目请直接引用细分类：
- * - FlyingSwordCoreTuning
- * - FlyingSwordExperienceTuning
- * - FlyingSwordInheritTuning
+ * <p>新项目请直接引用细分类： - FlyingSwordCoreTuning - FlyingSwordExperienceTuning - FlyingSwordInheritTuning
  * - FlyingSwordAITuning
  */
 public final class FlyingSwordTuning {
@@ -48,10 +45,8 @@ public final class FlyingSwordTuning {
   public static final double INHERIT_DMG_MAX = FlyingSwordInheritTuning.INHERIT_DMG_MAX;
   public static final double INHERIT_SPEED_MIN = FlyingSwordInheritTuning.INHERIT_SPEED_MIN;
   public static final double INHERIT_SPEED_MAX = FlyingSwordInheritTuning.INHERIT_SPEED_MAX;
-  public static final double INHERIT_SHARPNESS_DMG =
-      FlyingSwordInheritTuning.INHERIT_SHARPNESS_DMG;
-  public static final double INHERIT_SHARPNESS_VEL =
-      FlyingSwordInheritTuning.INHERIT_SHARPNESS_VEL;
+  public static final double INHERIT_SHARPNESS_DMG = FlyingSwordInheritTuning.INHERIT_SHARPNESS_DMG;
+  public static final double INHERIT_SHARPNESS_VEL = FlyingSwordInheritTuning.INHERIT_SHARPNESS_VEL;
   public static final double INHERIT_ATTACK_DAMAGE_COEF =
       FlyingSwordInheritTuning.INHERIT_ATTACK_DAMAGE_COEF;
   public static final double INHERIT_ATTACK_SPEED_COEF =
@@ -70,19 +65,17 @@ public final class FlyingSwordTuning {
   public static final double GUARD_SEARCH_RANGE = FlyingSwordAITuning.GUARD_SEARCH_RANGE;
   public static final double GUARD_FOLLOW_DISTANCE = FlyingSwordAITuning.GUARD_FOLLOW_DISTANCE;
   public static final double HUNT_SEARCH_RANGE = FlyingSwordAITuning.HUNT_SEARCH_RANGE;
-  public static final double HUNT_TARGET_VALID_RANGE =
-      FlyingSwordAITuning.HUNT_TARGET_VALID_RANGE;
+  public static final double HUNT_TARGET_VALID_RANGE = FlyingSwordAITuning.HUNT_TARGET_VALID_RANGE;
   public static final double HUNT_RETURN_DISTANCE = FlyingSwordAITuning.HUNT_RETURN_DISTANCE;
 
   public static final double ORBIT_TANGENT_SPEED_FACTOR =
       FlyingSwordAITuning.ORBIT_TANGENT_SPEED_FACTOR;
   public static final double ORBIT_RADIAL_PULL_IN = FlyingSwordAITuning.ORBIT_RADIAL_PULL_IN;
   public static final double ORBIT_APPROACH_SPEED_FACTOR =
-    FlyingSwordAITuning.ORBIT_APPROACH_SPEED_FACTOR;
+      FlyingSwordAITuning.ORBIT_APPROACH_SPEED_FACTOR;
   public static final double ORBIT_RETREAT_SPEED_FACTOR =
-    FlyingSwordAITuning.ORBIT_RETREAT_SPEED_FACTOR;
-  public static final double GUARD_CHASE_MAX_FACTOR =
-      FlyingSwordAITuning.GUARD_CHASE_MAX_FACTOR;
+      FlyingSwordAITuning.ORBIT_RETREAT_SPEED_FACTOR;
+  public static final double GUARD_CHASE_MAX_FACTOR = FlyingSwordAITuning.GUARD_CHASE_MAX_FACTOR;
   public static final double GUARD_FOLLOW_APPROACH_FACTOR =
       FlyingSwordAITuning.GUARD_FOLLOW_APPROACH_FACTOR;
   public static final double GUARD_IDLE_TANGENT_FACTOR =
@@ -114,10 +107,11 @@ public final class FlyingSwordTuning {
    * 维持消耗失败策略
    *
    * <p>Phase 4: 当维持消耗失败（真元不足）时，系统的处理策略：
+   *
    * <ul>
-   *   <li>RECALL: 召回飞剑到物品栏（默认，兼容旧版行为）</li>
-   *   <li>STALL: 停滞不动，保持姿态但冻结移动</li>
-   *   <li>SLOW: 减速移动，速度降低为原来的 SLOW_FACTOR 倍</li>
+   *   <li>RECALL: 召回飞剑到物品栏（默认，兼容旧版行为）
+   *   <li>STALL: 停滞不动，保持姿态但冻结移动
+   *   <li>SLOW: 减速移动，速度降低为原来的 SLOW_FACTOR 倍
    * </ul>
    *
    * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.UpkeepSystem
@@ -132,8 +126,7 @@ public final class FlyingSwordTuning {
   }
 
   /** 维持失败策略（默认：召回） */
-  public static final UpkeepFailureStrategy UPKEEP_FAILURE_STRATEGY =
-      UpkeepFailureStrategy.RECALL;
+  public static final UpkeepFailureStrategy UPKEEP_FAILURE_STRATEGY = UpkeepFailureStrategy.RECALL;
 
   /** SLOW 策略的速度倍率（0.0 到 1.0） */
   public static final double UPKEEP_FAILURE_SLOW_FACTOR = 0.3;
@@ -170,7 +163,7 @@ public final class FlyingSwordTuning {
   /** TUI 每页显示条目数（飞剑/存储物品） */
   public static final int TUI_PAGE_SIZE = 6;
 
-  /** 启用 TUI Fancy Emoji（边框、图标等）*/
+  /** 启用 TUI Fancy Emoji（边框、图标等） */
   public static final boolean TUI_FANCY_EMOJI = true;
 
   /** 飞剑 TUI 最大宽度（字符）。适当增大可减少按钮被截断的情况。 */
@@ -193,12 +186,16 @@ public final class FlyingSwordTuning {
   // ==================== TUI 占位模式（固定边界） ====================
   /** 是否将 /flyingsword ui 切换为固定边界占位版。 */
   public static final boolean TUI_PLACEHOLDER_MAIN = true;
+
   /** 是否将 /flyingsword ui_active 切换为固定边界占位版。 */
   public static final boolean TUI_PLACEHOLDER_ACTIVE = false;
+
   /** 是否将 /flyingsword ui_storage 切换为固定边界占位版。 */
   public static final boolean TUI_PLACEHOLDER_STORAGE = false;
+
   /** 占位版默认宽度。 */
   public static final int TUI_PLACEHOLDER_WIDTH = 120;
+
   /** 占位版默认空白行数。 */
   public static final int TUI_PLACEHOLDER_ROWS = 8;
 }

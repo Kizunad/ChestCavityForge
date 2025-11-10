@@ -6,9 +6,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 
-/**
- * 领域相关的移动速度操作（应用/移除“冥想减速”）。
- */
+/** 领域相关的移动速度操作（应用/移除“冥想减速”）。 */
 public final class DomainMovementOps {
 
   private DomainMovementOps() {}
@@ -40,7 +38,8 @@ public final class DomainMovementOps {
     if (player == null) return;
     AttributeInstance attr = player.getAttribute(Attributes.MOVEMENT_SPEED);
     if (attr == null) return;
-    net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps.removeById(attr, JIANXIN_SLOW_ID);
+    net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps.removeById(
+        attr, JIANXIN_SLOW_ID);
   }
 
   /** 每tick保证状态与标签一致。 */

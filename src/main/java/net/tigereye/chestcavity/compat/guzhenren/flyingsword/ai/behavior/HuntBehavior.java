@@ -2,19 +2,14 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior;
 
 import javax.annotation.Nullable;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 出击行为 - 主动搜索并攻击敌对实体
- */
+/** 出击行为 - 主动搜索并攻击敌对实体 */
 public class HuntBehavior {
 
-  /**
-   * 执行出击行为
-   */
+  /** 执行出击行为 */
   public static void tick(
       FlyingSwordEntity sword, LivingEntity owner, @Nullable LivingEntity nearestHostile) {
     LivingEntity currentTarget = sword.getTargetEntity();
@@ -36,8 +31,7 @@ public class HuntBehavior {
       Vec3 direction = orbitPoint.subtract(sword.position()).normalize();
       Vec3 desiredVelocity =
           direction.scale(
-              sword.getSwordAttributes().speedMax
-                  * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
+              sword.getSwordAttributes().speedMax * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
 
       BehaviorSteering.commit(sword, desiredVelocity, true);
     } else if (nearestHostile != null) {
@@ -54,8 +48,7 @@ public class HuntBehavior {
       Vec3 direction = orbitPoint.subtract(sword.position()).normalize();
       Vec3 desiredVelocity =
           direction.scale(
-              sword.getSwordAttributes().speedMax
-                  * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
+              sword.getSwordAttributes().speedMax * FlyingSwordAITuning.HUNT_CHASE_MAX_FACTOR);
 
       // 应用分离力，避免飞剑重叠
       desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
@@ -70,7 +63,8 @@ public class HuntBehavior {
 
       if (distance > FlyingSwordAITuning.HUNT_RETURN_DISTANCE) {
         Vec3 desiredVelocity =
-            toOwner.normalize()
+            toOwner
+                .normalize()
                 .scale(
                     sword.getSwordAttributes().speedBase
                         * FlyingSwordAITuning.HUNT_RETURN_APPROACH_FACTOR);
@@ -89,9 +83,7 @@ public class HuntBehavior {
     }
   }
 
-  /**
-   * 获取搜索范围
-   */
+  /** 获取搜索范围 */
   public static double getSearchRange() {
     return FlyingSwordAITuning.HUNT_SEARCH_RANGE;
   }
@@ -99,12 +91,12 @@ public class HuntBehavior {
   /**
    * 计算环绕斩杀轨迹点
    *
-   * <p>飞剑将围绕目标做螺旋环绕运动，并周期性穿过目标中心进行斩杀。
-   * 轨迹特点：
+   * <p>飞剑将围绕目标做螺旋环绕运动，并周期性穿过目标中心进行斩杀。 轨迹特点：
+   *
    * <ul>
-   *   <li>半径周期性变化：从外圈收缩到穿过中心</li>
-   *   <li>垂直位置振荡：形成立体螺旋效果</li>
-   *   <li>根据目标hitbox大小自适应调整</li>
+   *   <li>半径周期性变化：从外圈收缩到穿过中心
+   *   <li>垂直位置振荡：形成立体螺旋效果
+   *   <li>根据目标hitbox大小自适应调整
    * </ul>
    *
    * @param sword 飞剑实体

@@ -6,7 +6,6 @@ import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 
@@ -16,11 +15,12 @@ import net.tigereye.chestcavity.ChestCavity;
  * <p>全局单例，管理所有活跃的领域。
  *
  * <p>功能：
+ *
  * <ul>
- *   <li>注册和移除领域</li>
- *   <li>每tick更新所有领域</li>
- *   <li>查询位置或实体所在的领域</li>
- *   <li>领域优先级和冲突处理</li>
+ *   <li>注册和移除领域
+ *   <li>每tick更新所有领域
+ *   <li>查询位置或实体所在的领域
+ *   <li>领域优先级和冲突处理
  * </ul>
  */
 public final class DomainManager {
@@ -53,8 +53,7 @@ public final class DomainManager {
 
     UUID id = domain.getDomainId();
     if (domains.containsKey(id)) {
-      ChestCavity.LOGGER.warn(
-          "[DomainManager] Domain {} already registered, skipping", id);
+      ChestCavity.LOGGER.warn("[DomainManager] Domain {} already registered, skipping", id);
       return false;
     }
 
@@ -79,9 +78,7 @@ public final class DomainManager {
     if (removed != null) {
       removed.destroy();
       ChestCavity.LOGGER.info(
-          "[DomainManager] Unregistered domain {} (type: {})",
-          domainId,
-          removed.getDomainType());
+          "[DomainManager] Unregistered domain {} (type: {})", domainId, removed.getDomainType());
     }
     return removed;
   }
@@ -268,8 +265,7 @@ public final class DomainManager {
     }
 
     // 裂剑蛊：更新裂隙与剑域的协同状态（每tick）
-    net.tigereye.chestcavity.compat.guzhenren.rift.RiftDomainSynergy
-        .tickDomainSynergy(level);
+    net.tigereye.chestcavity.compat.guzhenren.rift.RiftDomainSynergy.tickDomainSynergy(level);
   }
 
   /**

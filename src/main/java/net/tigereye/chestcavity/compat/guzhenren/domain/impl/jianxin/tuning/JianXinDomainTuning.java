@@ -50,13 +50,13 @@ public final class JianXinDomainTuning {
 
   // ========== 友方飞剑加速 ==========
 
-  /** 友方飞剑基础加速比例（最终缩放为 1.0 + clamp(...)）。*/
+  /** 友方飞剑基础加速比例（最终缩放为 1.0 + clamp(...)）。 */
   public static final double FRIENDLY_SWORD_SPEED_BOOST_BASE = 0.15; // +15%
 
-  /** 友方飞剑最大加速上限。*/
+  /** 友方飞剑最大加速上限。 */
   public static final double FRIENDLY_SWORD_SPEED_BOOST_MAX = 0.35; // +35%
 
-  /** 强化状态对加速的额外倍乘。*/
+  /** 强化状态对加速的额外倍乘。 */
   public static final double FRIENDLY_SWORD_BOOST_ENHANCED_MULT = 1.15; // +15% on top
 
   // ========== 实力判定 ==========

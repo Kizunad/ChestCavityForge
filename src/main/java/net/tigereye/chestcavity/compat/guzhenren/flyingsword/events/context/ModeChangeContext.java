@@ -11,11 +11,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
  * <p>Phase 3: 当飞剑的AI模式发生变化时触发。
  *
  * <p>用途：
+ *
  * <ul>
- *   <li>记录模式切换历史（统计、调试）</li>
- *   <li>触发模式特定的初始化逻辑（粒子效果、音效）</li>
- *   <li>阻止非法模式切换（如在某些状态下禁止进入HUNT模式）</li>
- *   <li>同步客户端状态（自定义渲染、UI更新）</li>
+ *   <li>记录模式切换历史（统计、调试）
+ *   <li>触发模式特定的初始化逻辑（粒子效果、音效）
+ *   <li>阻止非法模式切换（如在某些状态下禁止进入HUNT模式）
+ *   <li>同步客户端状态（自定义渲染、UI更新）
  * </ul>
  */
 public class ModeChangeContext {
@@ -30,10 +31,7 @@ public class ModeChangeContext {
   public boolean cancelled = false;
 
   public ModeChangeContext(
-      FlyingSwordEntity sword,
-      AIMode oldMode,
-      AIMode newMode,
-      @Nullable LivingEntity trigger) {
+      FlyingSwordEntity sword, AIMode oldMode, AIMode newMode, @Nullable LivingEntity trigger) {
     this.sword = sword;
     this.oldMode = oldMode;
     this.newMode = newMode;

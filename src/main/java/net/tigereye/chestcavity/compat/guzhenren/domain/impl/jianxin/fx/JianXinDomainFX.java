@@ -13,12 +13,15 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
  * 剑心域粒子特效
  *
  * <p>提供剑心域的各种视觉效果：
+ *
  * <ul>
- *   <li>领域边界光环（粒子）</li>
- *   <li>中心能量涌动（粒子）</li>
- *   <li>强化状态特效（粒子）</li>
- *   <li>创建和销毁特效（粒子）</li>
- *   <li>领域PNG纹理渲染（在玩家上方20格显示，由 {@link net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.client.JianXinDomainRenderer} 负责）</li>
+ *   <li>领域边界光环（粒子）
+ *   <li>中心能量涌动（粒子）
+ *   <li>强化状态特效（粒子）
+ *   <li>创建和销毁特效（粒子）
+ *   <li>领域PNG纹理渲染（在玩家上方20格显示，由 {@link
+ *       net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.client.JianXinDomainRenderer}
+ *       负责）
  * </ul>
  *
  * <p><b>注意：</b>PNG纹理渲染是通过网络同步实现的，服务端会定期同步领域数据到客户端。
@@ -33,9 +36,10 @@ public final class JianXinDomainFX {
    * 计算当前呼吸相位值（0.0-1.0）
    *
    * <p>基于正弦波，频率根据资源状态动态调整：
+   *
    * <ul>
-   *   <li>正常状态：慢呼吸（频率低）</li>
-   *   <li>资源告急：快呼吸（频率高，类似心跳加速）</li>
+   *   <li>正常状态：慢呼吸（频率低）
+   *   <li>资源告急：快呼吸（频率高，类似心跳加速）
    * </ul>
    *
    * @param level 服务端世界
@@ -259,15 +263,7 @@ public final class JianXinDomainFX {
       if (phase > 0.9 && level.random.nextFloat() < 0.3f) {
         // 红色粒子爆发，提示续航告急
         level.sendParticles(
-            ParticleTypes.LAVA,
-            center.x,
-            center.y + 0.5,
-            center.z,
-            3,
-            0.2,
-            0.2,
-            0.2,
-            0.02);
+            ParticleTypes.LAVA, center.x, center.y + 0.5, center.z, 3, 0.2, 0.2, 0.2, 0.02);
       }
     }
   }
@@ -291,8 +287,7 @@ public final class JianXinDomainFX {
         double z = center.z + Math.sin(angle) * r;
         double y = center.y + 0.1;
 
-        level.sendParticles(
-            ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 2, 0.05, 0.05, 0.05, 0.02);
+        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 2, 0.05, 0.05, 0.05, 0.02);
       }
     }
 
@@ -328,8 +323,7 @@ public final class JianXinDomainFX {
         double vx = -Math.cos(angle) * 0.1;
         double vz = -Math.sin(angle) * 0.1;
 
-        level.sendParticles(
-            ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 1, vx, 0.0, vz, 0.05);
+        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 1, vx, 0.0, vz, 0.05);
       }
     }
 

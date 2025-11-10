@@ -64,16 +64,24 @@ public enum BaiYinSheLiGuOrganBehavior
   }
 
   public static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
-    if (entity == null || cc == null || entity.level().isClientSide()) return;
+    if (entity == null || cc == null || entity.level().isClientSide()) {
+      return;
+    }
     ItemStack organ = findPrimaryOrgan(cc);
-    if (organ.isEmpty()) return;
+    if (organ.isEmpty()) {
+      return;
+    }
     ServerLevel server = entity.level() instanceof ServerLevel s ? s : null;
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
 
     MultiCooldown cd = createCooldown(cc, organ);
     long now = server.getGameTime();
     long cdUntil = cd.entry(KEY_ACTIVE_COOLDOWN_UNTIL).getReadyTick();
-    if (now < Math.max(0L, cdUntil)) return;
+    if (now < Math.max(0L, cdUntil)) {
+      return;
+    }
 
     // 10s 抗性II
     entity.addEffect(
@@ -171,13 +179,17 @@ public enum BaiYinSheLiGuOrganBehavior
   }
 
   private static boolean matchesOrgan(ItemStack stack) {
-    if (stack == null || stack.isEmpty()) return false;
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
     ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
     return ORGAN_ID.equals(id);
   }
 
   private static ItemStack findPrimaryOrgan(ChestCavityInstance cc) {
-    if (cc == null || cc.inventory == null) return ItemStack.EMPTY;
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack candidate = cc.inventory.getItem(i);
       if (matchesOrgan(candidate)) {

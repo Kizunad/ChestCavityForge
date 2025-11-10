@@ -8,11 +8,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
  * <p>Phase 3: 当飞剑等级提升时触发（经验值突破阈值）。
  *
  * <p>用途：
+ *
  * <ul>
- *   <li>触发升级效果（粒子爆发、音效、全体回血）</li>
- *   <li>记录升级历史（统计、成就）</li>
- *   <li>解锁新技能或属性（如新轨迹、新意图）</li>
- *   <li>向玩家发送升级通知消息</li>
+ *   <li>触发升级效果（粒子爆发、音效、全体回血）
+ *   <li>记录升级历史（统计、成就）
+ *   <li>解锁新技能或属性（如新轨迹、新意图）
+ *   <li>向玩家发送升级通知消息
  * </ul>
  */
 public class LevelUpContext {

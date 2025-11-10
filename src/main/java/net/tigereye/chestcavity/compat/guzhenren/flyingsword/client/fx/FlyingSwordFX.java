@@ -13,14 +13,14 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.entity.Zh
 /**
  * 飞剑粒子特效调度器
  *
- * <p>根据飞剑类型路由到对应的粒子特效实现。
- * 提供统一的API入口，内部委托给特定类型的粒子特效处理器。
+ * <p>根据飞剑类型路由到对应的粒子特效实现。 提供统一的API入口，内部委托给特定类型的粒子特效处理器。
  *
  * <p>支持的飞剑类型：
+ *
  * <ul>
- *   <li>正道（ZHENG_DAO）- 青色、亮色、光芒类粒子</li>
- *   <li>魔道（REN_SHOU_ZANG_SHENG）- 深红色、暗色、血滴类粒子</li>
- *   <li>默认（DEFAULT）- 标准白色/混合粒子</li>
+ *   <li>正道（ZHENG_DAO）- 青色、亮色、光芒类粒子
+ *   <li>魔道（REN_SHOU_ZANG_SHENG）- 深红色、暗色、血滴类粒子
+ *   <li>默认（DEFAULT）- 标准白色/混合粒子
  * </ul>
  */
 public final class FlyingSwordFX {
@@ -138,8 +138,7 @@ public final class FlyingSwordFX {
   /**
    * 生成飞剑召唤时的"剑阵"粒子：玩家脚下三环圆阵并带有花纹。
    *
-   * <p>为降低开销，采用稀疏采样：每环48点，8条放射纹路，每条8点。
-   * 不同类型飞剑在粒子选择上略有差异。
+   * <p>为降低开销，采用稀疏采样：每环48点，8条放射纹路，每条8点。 不同类型飞剑在粒子选择上略有差异。
    */
   public static void spawnSummonArrayAt(ServerLevel level, Vec3 center, FlyingSwordType type) {
     if (level == null || center == null) return;
@@ -152,16 +151,18 @@ public final class FlyingSwordFX {
     int samples = 48;
 
     // 选择粒子：正道偏光亮，默认使用 ENCHANT 与 END_ROD，魔道使用 SOUL/SOUL_FIRE_FLAME
-    var ringParticle = switch (type) {
-      case ZHENG_DAO -> ParticleTypes.ENCHANT;
-      case REN_SHOU_ZANG_SHENG -> ParticleTypes.SOUL;
-      default -> ParticleTypes.ENCHANT;
-    };
-    var accentParticle = switch (type) {
-      case ZHENG_DAO -> ParticleTypes.END_ROD;
-      case REN_SHOU_ZANG_SHENG -> ParticleTypes.SOUL_FIRE_FLAME;
-      default -> ParticleTypes.END_ROD;
-    };
+    var ringParticle =
+        switch (type) {
+          case ZHENG_DAO -> ParticleTypes.ENCHANT;
+          case REN_SHOU_ZANG_SHENG -> ParticleTypes.SOUL;
+          default -> ParticleTypes.ENCHANT;
+        };
+    var accentParticle =
+        switch (type) {
+          case ZHENG_DAO -> ParticleTypes.END_ROD;
+          case REN_SHOU_ZANG_SHENG -> ParticleTypes.SOUL_FIRE_FLAME;
+          default -> ParticleTypes.END_ROD;
+        };
 
     // 画三重环
     for (double r : radii) {

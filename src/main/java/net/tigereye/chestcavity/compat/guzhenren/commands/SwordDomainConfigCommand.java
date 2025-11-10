@@ -22,10 +22,10 @@ import net.tigereye.chestcavity.registration.CCAttachments;
 /**
  * 剑域蛊配置命令：提供可点击的聊天 TUI 用于快速设置半径缩放。
  *
- * 命令：
- * - /sword_domain ui                 显示可点击选项：min 10 20 30 40 50 60 70 80 90 max
- * - /sword_domain radius set <v>     直接设置缩放（正数）
- * - /sword_domain radius preset <p>  以预设设置（min/10/.../90/max）
+ * <p>命令： - /sword_domain ui 显示可点击选项：min 10 20 30 40 50 60 70 80 90 max - /sword_domain radius set
+ * <v> 直接设置缩放（正数） - /sword_domain radius preset
+ *
+ * <p>以预设设置（min/10/.../90/max）
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SwordDomainConfigCommand {
@@ -142,8 +142,7 @@ public final class SwordDomainConfigCommand {
       return 0;
     }
     CCAttachments.getSwordDomainConfig(player).setRadiusScale(value);
-    player.sendSystemMessage(
-        Component.literal("§a剑域蛊：半径预设 §b" + label + " §a→ §e" + fmt(value)));
+    player.sendSystemMessage(Component.literal("§a剑域蛊：半径预设 §b" + label + " §a→ §e" + fmt(value)));
     return 1;
   }
 

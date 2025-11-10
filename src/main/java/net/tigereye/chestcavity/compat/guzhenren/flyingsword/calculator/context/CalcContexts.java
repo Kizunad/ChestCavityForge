@@ -7,9 +7,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordAttribut
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JiandaoDaohenOps;
 
-/**
- * 上下文构造辅助：从运行时对象提取必要数据，避免在计算器中直接依赖 MC 类。
- */
+/** 上下文构造辅助：从运行时对象提取必要数据，避免在计算器中直接依赖 MC 类。 */
 public final class CalcContexts {
   private CalcContexts() {}
 
@@ -39,22 +37,19 @@ public final class CalcContexts {
           // IMPORTANT: 使用玩家所在世界的时间，而非飞剑所在世界的时间
           // 这确保与 JianmaiAmpOps 和 SwordOwnerDaohenCache 的时间轴一致
           long playerWorldTime = serverPlayer.serverLevel().getGameTime();
-          ctx.ownerJianDaoScar =
-              JiandaoDaohenOps.effectiveCached(serverPlayer, playerWorldTime);
+          ctx.ownerJianDaoScar = JiandaoDaohenOps.effectiveCached(serverPlayer, playerWorldTime);
         } else {
-        // 客户端玩家：fallback 到原始道痕
-        // TODO: 当前仍直接读取 Guzhenren 的 daohen_jiandao，后续可改为 JiandaoDaohenOps 与缓存，以支持 JME+流派经验加成。
-        net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
-            .open(owner)
-            .ifPresent(
-                handle -> {
-                  handle.read("daohen_jiandao").ifPresent(value -> ctx.ownerJianDaoScar = value);
-                });
+          // 客户端玩家：fallback 到原始道痕
+          // TODO: 当前仍直接读取 Guzhenren 的 daohen_jiandao，后续可改为 JiandaoDaohenOps 与缓存，以支持 JME+流派经验加成。
+          net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.open(owner)
+              .ifPresent(
+                  handle -> {
+                    handle.read("daohen_jiandao").ifPresent(value -> ctx.ownerJianDaoScar = value);
+                  });
         }
 
         // 流派经验仍用于耐久减免（原始值）
-        net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge
-            .open(owner)
+        net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.open(owner)
             .ifPresent(
                 handle -> {
                   handle.read("liupai_jiandao").ifPresent(value -> ctx.ownerSwordPathExp = value);
@@ -62,8 +57,8 @@ public final class CalcContexts {
       } else {
         // 非玩家：设置默认流派经验（提供耐久减免），道痕保持 0（无加成）
         ctx.ownerSwordPathExp =
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
-                .FlyingSwordTuning.NON_PLAYER_DEFAULT_SWORD_PATH_EXP;
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+                .NON_PLAYER_DEFAULT_SWORD_PATH_EXP;
       }
     }
     // 其他如 ownerJianDaoScar、ownerSwordPathExp 等，由外部钩子补全

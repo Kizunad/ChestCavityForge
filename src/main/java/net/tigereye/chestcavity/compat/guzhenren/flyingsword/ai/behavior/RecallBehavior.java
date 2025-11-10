@@ -3,16 +3,16 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
 /**
  * 召回行为 - 弧形轨迹返回主人
  *
  * <p>特点：
+ *
  * <ul>
- *   <li>弧形轨迹：通过二次贝塞尔曲线计算，形成优雅的弧线</li>
- *   <li>速度变化：从快速接近逐渐减速，最后平稳到达</li>
- *   <li>自动消散：到达主人附近后自动消失</li>
+ *   <li>弧形轨迹：通过二次贝塞尔曲线计算，形成优雅的弧线
+ *   <li>速度变化：从快速接近逐渐减速，最后平稳到达
+ *   <li>自动消散：到达主人附近后自动消失
  * </ul>
  */
 public class RecallBehavior {
@@ -40,8 +40,7 @@ public class RecallBehavior {
     // 检查是否到达主人
     if (distanceToOwner < ARRIVAL_DISTANCE) {
       // 召回完成，触发实际召回逻辑
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword
-          .FlyingSwordController.recall(sword);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController.recall(sword);
       return;
     }
 
@@ -63,11 +62,11 @@ public class RecallBehavior {
     // 使用平滑的减速曲线
     double progress = 1.0 - Math.min(1.0, distanceToOwner / 20.0); // 20格开始减速
     double speedFactor =
-        INITIAL_SPEED_FACTOR - (INITIAL_SPEED_FACTOR - FINAL_SPEED_FACTOR) * smoothProgress(progress);
+        INITIAL_SPEED_FACTOR
+            - (INITIAL_SPEED_FACTOR - FINAL_SPEED_FACTOR) * smoothProgress(progress);
 
     // 应用速度
-    Vec3 desiredVelocity =
-        direction.scale(sword.getSwordAttributes().speedMax * speedFactor);
+    Vec3 desiredVelocity = direction.scale(sword.getSwordAttributes().speedMax * speedFactor);
 
     sword.applySteeringVelocity(desiredVelocity);
   }
@@ -76,10 +75,11 @@ public class RecallBehavior {
    * 计算弧形轨迹上的下一个目标点
    *
    * <p>使用二次贝塞尔曲线创建弧形效果：
+   *
    * <ul>
-   *   <li>起点：飞剑当前位置</li>
-   *   <li>控制点：在起点和终点之间的上方和侧方</li>
-   *   <li>终点：主人位置</li>
+   *   <li>起点：飞剑当前位置
+   *   <li>控制点：在起点和终点之间的上方和侧方
+   *   <li>终点：主人位置
    * </ul>
    *
    * @param sword 飞剑实体

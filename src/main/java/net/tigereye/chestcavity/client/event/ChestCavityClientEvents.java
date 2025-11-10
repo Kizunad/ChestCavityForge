@@ -1,10 +1,8 @@
 package net.tigereye.chestcavity.client.event;
 
 import icyllis.modernui.mc.neoforge.MenuScreenFactory;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
 import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;

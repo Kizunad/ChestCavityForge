@@ -18,7 +18,8 @@ public final class HoverBehavior {
     if (dist > keep) {
       // 逼近
       Vec3 dir = toOwner.normalize();
-      double speed = sword.getSwordAttributes().speedBase * FlyingSwordAITuning.HOVER_APPROACH_FACTOR;
+      double speed =
+          sword.getSwordAttributes().speedBase * FlyingSwordAITuning.HOVER_APPROACH_FACTOR;
       Vec3 desired = dir.scale(speed);
       sword.applySteeringVelocity(desired);
     } else {
@@ -32,4 +33,3 @@ public final class HoverBehavior {
     }
   }
 }
-

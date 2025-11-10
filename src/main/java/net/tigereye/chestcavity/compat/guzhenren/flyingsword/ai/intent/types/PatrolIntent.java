@@ -7,9 +7,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.Intent;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentResult;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.TrajectoryType;
 
-/**
- * 巡域（Patrol）：沿域边巡航，维持对“剑域”边界的覆盖。
- */
+/** 巡域（Patrol）：沿域边巡航，维持对“剑域”边界的覆盖。 */
 public final class PatrolIntent implements Intent {
   private static final double DEFAULT_DOMAIN_RADIUS = 12.0;
 
@@ -33,6 +31,7 @@ public final class PatrolIntent implements Intent {
   }
 
   @Override
-  public String name() { return "Patrol"; }
+  public String name() {
+    return "Patrol";
+  }
 }
-

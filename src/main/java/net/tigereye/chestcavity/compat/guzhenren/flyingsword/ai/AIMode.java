@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai;
 
-/**
- * 飞剑AI模式
- */
+/** 飞剑AI模式 */
 public enum AIMode {
   /** 环绕模式：待命跟随 */
   ORBIT("orbit", "环绕"),

@@ -9,9 +9,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
-import net.tigereye.chestcavity.chestcavities.ChestCavityInventory;
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.GuzhenrenCompatBootstrap;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.registration.ActivationHookRegistry;
 
@@ -30,8 +27,8 @@ public final class PassiveBus {
   }
 
   /**
-   * Initializes the passive bus, subscribing to the necessary events and enabling the passives
-   * that belong to the enabled families.
+   * Initializes the passive bus, subscribing to the necessary events and enabling the passives that
+   * belong to the enabled families.
    */
   public static void init() {
     for (String familyId : ActivationHookRegistry.getEnabledFamilies()) {

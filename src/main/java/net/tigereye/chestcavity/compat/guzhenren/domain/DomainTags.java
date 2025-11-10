@@ -1,7 +1,5 @@
 package net.tigereye.chestcavity.compat.guzhenren.domain;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -10,11 +8,12 @@ import net.minecraft.world.entity.Entity;
  * 领域标签系统
  *
  * <p>为实体和坐标附加领域相关的标签，用于：
+ *
  * <ul>
- *   <li>标记实体是否在某个领域内</li>
- *   <li>记录领域主人UUID</li>
- *   <li>记录领域来源和等级</li>
- *   <li>特殊状态标记（如无敌、无法打断等）</li>
+ *   <li>标记实体是否在某个领域内
+ *   <li>记录领域主人UUID
+ *   <li>记录领域来源和等级
+ *   <li>特殊状态标记（如无敌、无法打断等）
  * </ul>
  *
  * <p>标签存储在实体的NBT数据中，自动随实体序列化。
@@ -46,8 +45,7 @@ public final class DomainTags {
   public static final String TAG_JIANGDAO_FREEZE_TICKS = "jiandao_frozen_ticks";
 
   /** 标签：剑域·移动速度衰减（0表示关闭，(0,1] 表示倍率 1-衰减。例如0.9 => 90% 衰减） */
-  public static final String TAG_JIANXIN_VELOCITY_DECREASEMENT =
-      "jianxin_velocity_decreasement";
+  public static final String TAG_JIANXIN_VELOCITY_DECREASEMENT = "jianxin_velocity_decreasement";
 
   // ===== 剑域“域控系数”广播（存放于领域所有者的 NBT） =====
   public static final String TAG_SD_R = "sword_domain_R";
@@ -202,8 +200,7 @@ public final class DomainTags {
    * @param ownerUUID 领域主人UUID
    * @param level 领域等级
    */
-  public static void markEnterSwordDomain(
-      Entity entity, UUID domainId, UUID ownerUUID, int level) {
+  public static void markEnterSwordDomain(Entity entity, UUID domainId, UUID ownerUUID, int level) {
     addTag(entity, TAG_SWORD_DOMAIN);
     addTag(entity, TAG_IN_SWORD_DOMAIN);
     setStringTag(entity, TAG_SWORD_DOMAIN_OWNER, ownerUUID.toString());

@@ -52,4 +52,3 @@ public class SwordModelObjectRenderer extends GeoObjectRenderer<SwordModelObject
     }
   }
 }
-

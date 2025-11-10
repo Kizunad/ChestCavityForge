@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 战斗参数（攻击范围与冷却）
- */
+/** 战斗参数（攻击范围与冷却） */
 public final class FlyingSwordCombatTuning {
   private FlyingSwordCombatTuning() {}
 

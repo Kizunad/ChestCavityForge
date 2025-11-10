@@ -6,24 +6,25 @@ import java.util.Locale;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /**
  * 飞剑控制接口（Flying Sword Controller）
  *
  * <p>提供对玩家飞剑的控制功能：
+ *
  * <ul>
- *   <li>查询玩家的飞剑列表</li>
- *   <li>切换AI模式</li>
- *   <li>召回所有飞剑</li>
- *   <li>获取飞剑状态信息</li>
+ *   <li>查询玩家的飞剑列表
+ *   <li>切换AI模式
+ *   <li>召回所有飞剑
+ *   <li>获取飞剑状态信息
  * </ul>
  */
 public final class FlyingSwordController {
@@ -102,14 +103,15 @@ public final class FlyingSwordController {
     }
 
     AIMode current = sword.getAIMode();
-    AIMode next = switch (current) {
-      case ORBIT -> AIMode.GUARD;
-      case GUARD -> AIMode.HUNT;
-      case HUNT -> AIMode.HOVER;
-      case HOVER -> AIMode.ORBIT;
-      case RECALL -> AIMode.ORBIT; // RECALL 被打断时回到 ORBIT
-      case SWARM -> AIMode.SWARM; // SWARM 模式不可切换（青莲蛊专用集群模式）
-    };
+    AIMode next =
+        switch (current) {
+          case ORBIT -> AIMode.GUARD;
+          case GUARD -> AIMode.HUNT;
+          case HUNT -> AIMode.HOVER;
+          case HOVER -> AIMode.ORBIT;
+          case RECALL -> AIMode.ORBIT; // RECALL 被打断时回到 ORBIT
+          case SWARM -> AIMode.SWARM; // SWARM 模式不可切换（青莲蛊专用集群模式）
+        };
 
     sword.setAIMode(next);
     return next;
@@ -118,8 +120,7 @@ public final class FlyingSwordController {
   /**
    * 召回单个飞剑
    *
-   * <p>首次调用时，将飞剑设置为召回模式，开始弧形返回动画。
-   * 飞剑到达主人后，RecallBehavior 会再次调用此方法完成实际召回。
+   * <p>首次调用时，将飞剑设置为召回模式，开始弧形返回动画。 飞剑到达主人后，RecallBehavior 会再次调用此方法完成实际召回。
    *
    * @param sword 飞剑实体
    */
@@ -148,8 +149,7 @@ public final class FlyingSwordController {
             .spawnRecallEffect(serverLevel, sword);
       }
       // 音效：召回
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-          .playRecall(sword);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playRecall(sword);
       return;
     }
 
@@ -199,18 +199,18 @@ public final class FlyingSwordController {
             new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
       }
 
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-          .DespawnContext despawnCtx =
-          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-              .context.DespawnContext(
-              sword,
-              serverLevel,
-              player,
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                  .context.DespawnContext.Reason.RECALLED,
-              targetStack);
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-          .FlyingSwordEventRegistry.fireDespawnOrRecall(despawnCtx);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.DespawnContext
+          despawnCtx =
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                  .DespawnContext(
+                  sword,
+                  serverLevel,
+                  player,
+                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                      .DespawnContext.Reason.RECALLED,
+                  targetStack);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+          .fireDespawnOrRecall(despawnCtx);
 
       // 检查是否被钩子阻止消散
       if (despawnCtx.preventDespawn) {
@@ -278,16 +278,18 @@ public final class FlyingSwordController {
     StringBuilder status = new StringBuilder();
     status.append("飞剑 等级").append(sword.getSwordLevel());
     status.append(" [").append(sword.getAIMode().getDisplayName()).append("]");
-    status.append("\n耐久: ")
+    status
+        .append("\n耐久: ")
         .append(String.format("%.1f", sword.getDurability()))
         .append("/")
         .append(String.format("%.1f", sword.getSwordAttributes().maxDurability));
-    status.append("\n经验: ")
+    status
+        .append("\n经验: ")
         .append(sword.getExperience())
         .append("/")
         .append(
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-                .FlyingSwordCalculator.calculateExpToNext(sword.getSwordLevel()));
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+                .calculateExpToNext(sword.getSwordLevel()));
     status.append("\n速度: ").append(String.format("%.2f", sword.getCurrentSpeed()));
 
     return status.toString();
@@ -381,7 +383,10 @@ public final class FlyingSwordController {
   }
 
   /** 设置在场第 index(1-based) 把飞剑的模式。返回是否成功。 */
-  public static boolean setModeByIndex(ServerLevel level, Player owner, int index1,
+  public static boolean setModeByIndex(
+      ServerLevel level,
+      Player owner,
+      int index1,
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode mode) {
     List<FlyingSwordEntity> swords = getPlayerSwords(level, owner);
     if (index1 < 1 || index1 > swords.size()) {
@@ -405,9 +410,7 @@ public final class FlyingSwordController {
   /** 清除玩家“已指定”的飞剑。 */
   public static void clearSelectedSword(Player owner) {
     if (owner == null) return;
-    net.tigereye.chestcavity.registration.CCAttachments
-        .getFlyingSwordSelection(owner)
-        .clear();
+    net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordSelection(owner).clear();
   }
 
   /** 获取玩家“已指定”的飞剑（若仍存活）。 */

@@ -117,8 +117,7 @@ public final class QingLianDomainFX {
         double y = center.y + 0.2;
 
         // 青色魂焰扩散
-        level.sendParticles(
-            ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 2, 0.05, 0.05, 0.05, 0.02);
+        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 2, 0.05, 0.05, 0.05, 0.02);
       }
     }
 

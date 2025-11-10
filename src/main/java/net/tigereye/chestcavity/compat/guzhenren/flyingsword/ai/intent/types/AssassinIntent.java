@@ -9,16 +9,15 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.TrajectoryType;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 猎首（Assassin）：优先针对低血量/高威胁目标。
- */
+/** 猎首（Assassin）：优先针对低血量/高威胁目标。 */
 public final class AssassinIntent implements Intent {
   @Override
   public Optional<IntentResult> evaluate(AIContext ctx) {
     var sword = ctx.sword();
 
-    LivingEntity target = TargetFinder.findLowestHealthHostile(
-        sword, sword.position(), FlyingSwordAITuning.HUNT_SEARCH_RANGE);
+    LivingEntity target =
+        TargetFinder.findLowestHealthHostile(
+            sword, sword.position(), FlyingSwordAITuning.HUNT_SEARCH_RANGE);
     if (target == null) {
       return Optional.empty();
     }
@@ -42,5 +41,7 @@ public final class AssassinIntent implements Intent {
   }
 
   @Override
-  public String name() { return "Assassin"; }
+  public String name() {
+    return "Assassin";
+  }
 }

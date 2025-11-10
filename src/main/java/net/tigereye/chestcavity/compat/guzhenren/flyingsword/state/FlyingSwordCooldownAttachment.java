@@ -10,8 +10,7 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
 /**
  * 飞剑冷却附件（存储于 owner 实体上）。
  *
- * <p>结构：使用字符串 Key → int ticks 存储冷却倒计时。
- * Key 格式建议："cc:flying_sword/<sword_uuid>/<domain>"
+ * <p>结构：使用字符串 Key → int ticks 存储冷却倒计时。 Key 格式建议："cc:flying_sword/<sword_uuid>/<domain>"
  */
 public class FlyingSwordCooldownAttachment implements INBTSerializable<CompoundTag> {
 
@@ -80,4 +79,3 @@ public class FlyingSwordCooldownAttachment implements INBTSerializable<CompoundT
     }
   }
 }
-

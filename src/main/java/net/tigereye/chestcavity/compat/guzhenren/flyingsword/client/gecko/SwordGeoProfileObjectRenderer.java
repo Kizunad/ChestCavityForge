@@ -24,7 +24,8 @@ public class SwordGeoProfileObjectRenderer extends GeoObjectRenderer<SwordGeoPro
   }
 
   @Override
-  public Color getRenderColor(SwordGeoProfileObject animatable, float partialTick, int packedLight) {
+  public Color getRenderColor(
+      SwordGeoProfileObject animatable, float partialTick, int packedLight) {
     return Color.WHITE;
   }
 
@@ -47,4 +48,3 @@ public class SwordGeoProfileObjectRenderer extends GeoObjectRenderer<SwordGeoPro
     }
   }
 }
-

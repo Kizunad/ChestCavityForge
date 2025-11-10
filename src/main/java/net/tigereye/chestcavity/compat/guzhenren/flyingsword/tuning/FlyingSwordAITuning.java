@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 飞剑 AI 行为参数（距离与速度系数）
- */
+/** 飞剑 AI 行为参数（距离与速度系数） */
 public final class FlyingSwordAITuning {
   private FlyingSwordAITuning() {}
 

@@ -11,11 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver;
 
-/**
- * 非技能专用、面向 LivingEntity 的通用上下文：
- * - 提供 serverTime、ChestCavity、以及一次性收集的库存“流派标签”摘要
- * - 玩家与非玩家 NPC 共用
- */
+/** 非技能专用、面向 LivingEntity 的通用上下文： - 提供 serverTime、ChestCavity、以及一次性收集的库存“流派标签”摘要 - 玩家与非玩家 NPC 共用 */
 public final class AgentContext {
 
   private final LivingEntity living;
@@ -37,15 +33,25 @@ public final class AgentContext {
     this.distinctFlows = distinctFlows == null ? ImmutableSet.of() : distinctFlows;
   }
 
-  public LivingEntity living() { return living; }
+  public LivingEntity living() {
+    return living;
+  }
 
-  public ChestCavityInstance chestCavity() { return cc; }
+  public ChestCavityInstance chestCavity() {
+    return cc;
+  }
 
-  public long serverTime() { return serverTime; }
+  public long serverTime() {
+    return serverTime;
+  }
 
-  public ImmutableList<GuzhenrenFlowTooltipResolver.FlowInfo> itemFlows() { return itemFlows; }
+  public ImmutableList<GuzhenrenFlowTooltipResolver.FlowInfo> itemFlows() {
+    return itemFlows;
+  }
 
-  public ImmutableSet<String> distinctFlows() { return distinctFlows; }
+  public ImmutableSet<String> distinctFlows() {
+    return distinctFlows;
+  }
 
   public boolean hasFlow(String keyword) {
     if (keyword == null || keyword.isBlank()) return false;
@@ -94,4 +100,3 @@ public final class AgentContext {
     return out.isEmpty() ? ImmutableSet.of() : ImmutableSet.copyOf(out);
   }
 }
-
