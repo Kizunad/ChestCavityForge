@@ -241,7 +241,8 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     // 检查主动态是否结束
     long activeUntil = state.getLong("active_until", 0L);
     if (activeUntil > 0 && now >= activeUntil) {
-      // 主动态结束：清空飞剑ID列表（但不强制回收实体）
+      // 主动态结束：移除生成的飞剑
+      despawnGeneratedSwords(level, state);
       state.remove("spawned_sword_ids");
       state.setLong("active_until", 0L);
 
@@ -253,7 +254,7 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     // 检查是否触发共振
     int coopCount = state.getInt("coop_count", 0);
     if (coopCount >= JianFengGuTuning.COOP_COUNT_FOR_RESONANCE) {
-      triggerResonance(entity, state);
+      triggerResonance(entity, state, cc);
     }
   }
 
@@ -318,8 +319,10 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
    * @param damage 协同伤害
    */
   private void performCoopStrike(ServerLevel level, FlyingSwordEntity sword, LivingEntity target, float damage) {
-    // 简化实现：直接对目标造成伤害
-    // TODO: 后续可以通过 SwordCommandCenter 实现更复杂的突击轨迹
+    // 设置飞剑目标，让飞剑的AI系统处理攻击
+    sword.setTargetEntity(target);
+
+    // 直接造成伤害（协同突击是瞬间的）
     target.hurt(sword.damageSources().mobAttack(sword), damage);
 
     // 播放协同突击特效
@@ -337,20 +340,56 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
   }
 
   /**
+   * 移除主动态生成的飞剑。
+   *
+   * @param level 服务端世界
+   * @param state 器官状态
+   */
+  private void despawnGeneratedSwords(ServerLevel level, OrganState state) {
+    ListTag swordIdList = state.getList("spawned_sword_ids", 3); // 3 = IntTag
+    if (swordIdList.isEmpty()) {
+      return;
+    }
+
+    int removedCount = 0;
+    for (int i = 0; i < swordIdList.size(); i++) {
+      int swordId = swordIdList.getInt(i);
+      Entity entity = level.getEntity(swordId);
+      if (entity instanceof FlyingSwordEntity sword && sword.isAlive()) {
+        sword.discard();
+        removedCount++;
+      }
+    }
+
+    if (LOGGER.isDebugEnabled() && removedCount > 0) {
+      LOGGER.debug("[JianFengGuOrganBehavior] Despawned {} generated swords", removedCount);
+    }
+  }
+
+  /**
    * 触发剑意共振。
    *
    * <p>为宿主名下的全部飞剑提供短时速度提升。
    *
    * @param owner 宿主
    * @param state 器官状态
+   * @param cc 胸腔实例
    */
-  private void triggerResonance(LivingEntity owner, OrganState state) {
+  private void triggerResonance(LivingEntity owner, OrganState state, ChestCavityInstance cc) {
     if (!(owner.level() instanceof ServerLevel level)) {
       return;
     }
 
     // 重置协同计数
     state.setInt("coop_count", 0);
+
+    // 仅玩家触发共振效果
+    if (!(owner instanceof net.minecraft.world.entity.player.Player player)) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("[JianFengGuOrganBehavior] Resonance skipped for non-player entity");
+      }
+      return;
+    }
 
     // 获取道痕和流派经验（用于计算加成）
     Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt = ResourceOps.openHandle(owner);
@@ -369,10 +408,7 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
         + (liupaiExp / 300.0) * JianFengGuTuning.RESONANCE_DURATION_PER_300_DAOHEN);
 
     // 检查是否五转（额外加成）
-    ItemStack organ = findMatchingOrgan(
-        net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(owner)
-            .map(cc -> cc.getChestCavityInstance().orElse(null))
-            .orElse(null));
+    ItemStack organ = findMatchingOrgan(cc);
     if (!organ.isEmpty()) {
       ResourceLocation organId = BuiltInRegistries.ITEM.getKey(organ.getItem());
       if (organId != null && organId.equals(ORGAN_ID_FIVE)) {
@@ -381,7 +417,7 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     }
 
     // 获取所有自有飞剑
-    List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, (net.minecraft.world.entity.player.Player) owner);
+    List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
     int affectedCount = 0;
 
     for (FlyingSwordEntity sword : swords) {
