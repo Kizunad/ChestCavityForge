@@ -89,16 +89,20 @@ public class FlyingSwordCalculatorTest {
   @Test
   public void testCalculateLevelScale() {
     // 等级1：无加成
-    double scale1 = FlyingSwordCalculator.calculateLevelScale(1, FlyingSwordTuning.DAMAGE_PER_LEVEL);
+    double scale1 = FlyingSwordCalculator.calculateLevelScale(
+        1, FlyingSwordTuning.DAMAGE_PER_LEVEL);
     assertEquals(1.0, scale1, 0.001);
 
     // 等级2：有加成
-    double scale2 = FlyingSwordCalculator.calculateLevelScale(2, FlyingSwordTuning.DAMAGE_PER_LEVEL);
-    double expected = 1.0 + (1.0 * FlyingSwordTuning.DAMAGE_PER_LEVEL / FlyingSwordTuning.DAMAGE_BASE);
+    double scale2 = FlyingSwordCalculator.calculateLevelScale(
+        2, FlyingSwordTuning.DAMAGE_PER_LEVEL);
+    double expected = 1.0 + (1.0 * FlyingSwordTuning.DAMAGE_PER_LEVEL
+        / FlyingSwordTuning.DAMAGE_BASE);
     assertEquals(expected, scale2, 0.001);
 
     // 等级0或负值：应视为等级1
-    double scale0 = FlyingSwordCalculator.calculateLevelScale(0, FlyingSwordTuning.DAMAGE_PER_LEVEL);
+    double scale0 = FlyingSwordCalculator.calculateLevelScale(
+        0, FlyingSwordTuning.DAMAGE_PER_LEVEL);
     assertEquals(1.0, scale0, 0.001);
   }
 
@@ -484,7 +488,8 @@ public class FlyingSwordCalculatorTest {
     double velocity = 0.5; // 低速
     double vRef = 1.0;
     double velDmgCoef = FlyingSwordTuning.VEL_DMG_COEF;
-    double levelScale = FlyingSwordCalculator.calculateLevelScale(level, FlyingSwordTuning.DAMAGE_PER_LEVEL);
+    double levelScale = FlyingSwordCalculator.calculateLevelScale(
+        level, FlyingSwordTuning.DAMAGE_PER_LEVEL);
 
     double damage = FlyingSwordCalculator.calculateDamage(
         baseDamage, velocity, vRef, velDmgCoef, levelScale);
@@ -502,7 +507,8 @@ public class FlyingSwordCalculatorTest {
     double velocity = 2.0; // 高速
     double vRef = 1.0;
     double velDmgCoef = FlyingSwordTuning.VEL_DMG_COEF;
-    double levelScale = FlyingSwordCalculator.calculateLevelScale(level, FlyingSwordTuning.DAMAGE_PER_LEVEL);
+    double levelScale = FlyingSwordCalculator.calculateLevelScale(
+        level, FlyingSwordTuning.DAMAGE_PER_LEVEL);
 
     double damage = FlyingSwordCalculator.calculateDamage(
         baseDamage, velocity, vRef, velDmgCoef, levelScale);

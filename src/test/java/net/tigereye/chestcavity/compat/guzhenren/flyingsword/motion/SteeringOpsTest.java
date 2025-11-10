@@ -21,9 +21,11 @@ import org.junit.jupiter.api.Disabled;
  * </ul>
  *
  * <p>注意：由于 computeNewVelocity 依赖 FlyingSwordEntity.getAIMode()，
- * 测试使用 Mockito 创建简化的 mock 实体。后续可考虑将 AIMode 作为参数传入以进一步抽象MC依赖。
+ * 测试使用 Mockito 创建简化的 mock 实体。
+ * 后续可考虑将 AIMode 作为参数传入以进一步抽象MC依赖。
  */
-@Disabled("依赖 FlyingSwordEntity（MC 类）mock，单元测试阶段跳过；建议后续将 AIMode 解耦为参数再补测")
+@Disabled("依赖 FlyingSwordEntity（MC 类）mock，单元测试阶段跳过；"
+    + "建议后续将 AIMode 解耦为参数再补测")
 class SteeringOpsTest {
 
   // ========== 边界条件测试 ==========
@@ -76,7 +78,8 @@ class SteeringOpsTest {
     KinematicsSnapshot snapshot = createSnapshot(currentVel, baseSpeed, maxSpeed, 0.5, 0.3);
 
     // 命令尝试加速到更高速度
-    SteeringCommand command = SteeringCommand.of(new Vec3(1, 0, 0), 3.0); // 期望 baseSpeed * 3.0 = 1.5
+    // 期望 baseSpeed * 3.0 = 1.5
+    SteeringCommand command = SteeringCommand.of(new Vec3(1, 0, 0), 3.0);
 
     Vec3 result = SteeringOps.computeNewVelocity(mockSword, command, snapshot);
 
@@ -268,7 +271,8 @@ class SteeringOpsTest {
     KinematicsSnapshot snapshot = createSnapshot(currentVel, baseSpeed, maxSpeed, accel, 0.25);
 
     // 复杂命令：转向、加速、有各种覆盖
-    SteeringCommand command = SteeringCommand.of(new Vec3(0, 0, 1), 2.0) // 转90度，加速到2倍base
+    // 转90度，加速到2倍base
+    SteeringCommand command = SteeringCommand.of(new Vec3(0, 0, 1), 2.0)
         .withDesiredMaxFactor(0.8)
         .withAccelFactor(1.5)
         .withTurnOverride(Math.PI / 6);
@@ -376,7 +380,8 @@ class SteeringOpsTest {
       double effectiveAccel,
       double turnRate) {
     // domainScale 设为 1.0 简化测试
-    return new KinematicsSnapshot(currentVelocity, effectiveBase, effectiveMax, effectiveAccel, turnRate, 1.0);
+    return new KinematicsSnapshot(
+        currentVelocity, effectiveBase, effectiveMax, effectiveAccel, turnRate, 1.0);
   }
 
   /**

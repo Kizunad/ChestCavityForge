@@ -186,7 +186,8 @@ public class UpkeepOpsTest {
         baseRate, mode, true, true, 0.5, intervalTicks);
 
     // 同时冲刺和破块时消耗应该是两个倍率的乘积
-    double expectedRatio = FlyingSwordTuning.UPKEEP_SPRINT_MULT * FlyingSwordTuning.UPKEEP_BREAK_MULT;
+    double expectedRatio = FlyingSwordTuning.UPKEEP_SPRINT_MULT
+        * FlyingSwordTuning.UPKEEP_BREAK_MULT;
     double actualRatio = bothCost / normalCost;
     assertEquals(expectedRatio, actualRatio, 0.001);
   }

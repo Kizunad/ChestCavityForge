@@ -76,7 +76,8 @@ public class InterceptPlannerTest {
   /**
      * 创建模拟的 WardTuning
      */
-  private WardTuning createMockTuning(double windowMin, double windowMax, double vMax, double reaction) {
+  private WardTuning createMockTuning(
+      double windowMin, double windowMax, double vMax, double reaction) {
     WardTuning tuning = mock(WardTuning.class);
     when(tuning.windowMin()).thenReturn(windowMin);
     when(tuning.windowMax()).thenReturn(windowMax);

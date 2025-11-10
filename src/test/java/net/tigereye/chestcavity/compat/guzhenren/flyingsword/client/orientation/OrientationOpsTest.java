@@ -18,10 +18,12 @@ class OrientationOpsTest {
         forward, up, 0f, 0f, 0f,
         OrientationMode.BASIS,
         UpMode.WORLD_Y);
-    assertTrue(Float.isFinite(q.x) && Float.isFinite(q.y) && Float.isFinite(q.z) && Float.isFinite(q.w));
+    assertTrue(Float.isFinite(q.x) && Float.isFinite(q.y)
+        && Float.isFinite(q.z) && Float.isFinite(q.w));
   }
 
-  @Disabled("近对向的符号选择存在多解，此处仅检查非退化在后续实现中完善")
+  @Disabled("近对向的符号选择存在多解，"
+      + "此处仅检查非退化在后续实现中完善")
   @Test
   void nearOpposite_NoCollapse() {
     Vec3 forward = new Vec3(-1, 1e-6, 0); // 近似对向
@@ -30,9 +32,12 @@ class OrientationOpsTest {
     // 用四元数旋转“模型 X 轴”（即世界中的 (1,0,0)）应接近 forward
     Vector3f modelX = new Vector3f(1, 0, 0);
     Vector3f xf = q.transform(modelX, new Vector3f());
-    assertTrue(Double.isFinite(xf.x) && Double.isFinite(xf.y) && Double.isFinite(xf.z));
+    assertTrue(Double.isFinite(xf.x) && Double.isFinite(xf.y)
+        && Double.isFinite(xf.z));
     // 点积应为正（大致同向）
-    float dot = xf.normalize().dot(new Vector3f((float) forward.x, (float) forward.y, (float) forward.z).normalize());
+    float dot = xf.normalize().dot(
+        new Vector3f((float) forward.x, (float) forward.y, (float) forward.z)
+            .normalize());
     assertTrue(dot > 0.0f);
   }
 
@@ -48,7 +53,8 @@ class OrientationOpsTest {
         OrientationMode.BASIS,
         UpMode.WORLD_Y);
     // 有限性检查
-    assertTrue(Float.isFinite(q.x) && Float.isFinite(q.y) && Float.isFinite(q.z) && Float.isFinite(q.w));
+    assertTrue(Float.isFinite(q.x) && Float.isFinite(q.y)
+        && Float.isFinite(q.z) && Float.isFinite(q.w));
     // 单位化检查
     float l2 = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
     assertEquals(1.0f, (float)Math.sqrt(l2), 1e-5f);
