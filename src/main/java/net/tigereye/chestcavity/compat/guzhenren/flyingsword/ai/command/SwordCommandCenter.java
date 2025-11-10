@@ -1,31 +1,29 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Collection;
-import java.util.Comparator;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -34,9 +32,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentResult;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianYinGuTuning;
 
-/**
- * 剑引蛊指挥中心：维护玩家的目标标记、战术选择以及飞剑指令。
- */
+/** 剑引蛊指挥中心：维护玩家的目标标记、战术选择以及飞剑指令。 */
 public final class SwordCommandCenter {
 
   private static final Map<UUID, CommandSession> SESSIONS = new HashMap<>();
@@ -75,9 +71,7 @@ public final class SwordCommandCenter {
   }
 
   public static boolean isSelectionActive(ServerPlayer player) {
-    return session(player)
-        .map(session -> session.selectionActive)
-        .orElse(false);
+    return session(player).map(session -> session.selectionActive).orElse(false);
   }
 
   public static int startSelection(ServerPlayer player, long nowTick) {
@@ -139,10 +133,11 @@ public final class SwordCommandCenter {
    * Phase 5: 最小反馈模式 - 当 TUI 关闭时使用
    *
    * <p>输出简化的文本消息，保留核心信息：
+   *
    * <ul>
-   *   <li>当前标记数量</li>
-   *   <li>当前战术</li>
-   *   <li>当前分组</li>
+   *   <li>当前标记数量
+   *   <li>当前战术
+   *   <li>当前分组
    * </ul>
    */
   private static void sendMinimalFeedback(ServerPlayer player, CommandSession session) {
@@ -197,7 +192,8 @@ public final class SwordCommandCenter {
 
   public static Optional<IntentResult> buildIntent(AIContext ctx) {
     // Phase 1: TUI 功能开关守卫
-    if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_TUI) {
+    if (!net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+        .ENABLE_TUI) {
       return Optional.empty();
     }
     if (!(ctx.owner() instanceof ServerPlayer player)) {
@@ -271,7 +267,8 @@ public final class SwordCommandCenter {
       return;
     }
     if (session.selectionActive) {
-      Iterator<Map.Entry<UUID, MarkedTarget>> selectionIt = session.selectionMarks().entrySet().iterator();
+      Iterator<Map.Entry<UUID, MarkedTarget>> selectionIt =
+          session.selectionMarks().entrySet().iterator();
       while (selectionIt.hasNext()) {
         Map.Entry<UUID, MarkedTarget> entry = selectionIt.next();
         MarkedTarget mark = entry.getValue();
@@ -379,15 +376,15 @@ public final class SwordCommandCenter {
     return best;
   }
 
-  private static LivingEntity pickHighestCluster(
-      List<LivingEntity> candidates, ServerLevel level) {
+  private static LivingEntity pickHighestCluster(List<LivingEntity> candidates, ServerLevel level) {
     LivingEntity best = null;
     double bestScore = Double.NEGATIVE_INFINITY;
     for (LivingEntity living : candidates) {
       double radius = 6.0;
       AABB area = new AABB(living.position(), living.position()).inflate(radius);
       long count =
-          level.getEntitiesOfClass(LivingEntity.class, area, e -> e.isAlive() && e != living)
+          level
+              .getEntitiesOfClass(LivingEntity.class, area, e -> e.isAlive() && e != living)
               .stream()
               .filter(e -> e.getType().getCategory() == MobCategory.MONSTER)
               .count();
@@ -430,11 +427,11 @@ public final class SwordCommandCenter {
     return best;
   }
 
-  private static double computePriority(
-      CommandTactic tactic, LivingEntity target, AIContext ctx) {
+  private static double computePriority(CommandTactic tactic, LivingEntity target, AIContext ctx) {
     double base = JianYinGuTuning.COMMAND_INTENT_PRIORITY;
     return switch (tactic) {
-      case FOCUS_FIRE -> base + (1.0 - target.getHealth() / Math.max(1.0f, target.getMaxHealth())) * 25.0;
+      case FOCUS_FIRE -> base
+          + (1.0 - target.getHealth() / Math.max(1.0f, target.getMaxHealth())) * 25.0;
       case INTERCEPT -> base + target.getDeltaMovement().length() * 18.0;
       case SUPPRESS -> base + 12.0;
       case SHEPHERD -> base + Math.max(0.0, 8.0 - target.distanceTo(ctx.owner())) * 3.0;
@@ -449,25 +446,27 @@ public final class SwordCommandCenter {
       List<LivingEntity> candidates,
       AIContext ctx) {
     switch (tactic) {
-      case FOCUS_FIRE ->
-          builder.param("speed_scale", 1.1).param("lead_time", 0.45);
-      case INTERCEPT ->
-          builder.param("speed_scale", 1.2).param("curvature_scale", 1.3).param("lead_time", 0.55);
+      case FOCUS_FIRE -> builder.param("speed_scale", 1.1).param("lead_time", 0.45);
+      case INTERCEPT -> builder
+          .param("speed_scale", 1.2)
+          .param("curvature_scale", 1.3)
+          .param("lead_time", 0.55);
       case SUPPRESS -> {
         double clusterRadius = 8.0 + countNearby(target, candidates, 6.0) * 0.6;
-        builder.param("kiting_safe_radius", clusterRadius)
+        builder
+            .param("kiting_safe_radius", clusterRadius)
             .param("serpentine_amplitude", 0.8)
             .param("serpentine_frequency", 0.42)
             .param("speed_scale", 0.95);
       }
-      case SHEPHERD ->
-          builder.param("orbit_radius", 1.8)
-              .param("orbit_shrink", 0.8)
-              .param("speed_scale", 1.15);
-      case DUEL ->
-          builder.param("corkscrew_radius", 0.9)
-              .param("corkscrew_frequency", 0.36)
-              .param("speed_scale", 1.05);
+      case SHEPHERD -> builder
+          .param("orbit_radius", 1.8)
+          .param("orbit_shrink", 0.8)
+          .param("speed_scale", 1.15);
+      case DUEL -> builder
+          .param("corkscrew_radius", 0.9)
+          .param("corkscrew_frequency", 0.36)
+          .param("speed_scale", 1.05);
     }
   }
 
@@ -514,7 +513,8 @@ public final class SwordCommandCenter {
 
     AABB searchBox = new AABB(eye, end).inflate(radius);
     List<LivingEntity> candidates =
-        level.getEntitiesOfClass(LivingEntity.class, searchBox, entity -> isCommandTarget(player, entity));
+        level.getEntitiesOfClass(
+            LivingEntity.class, searchBox, entity -> isCommandTarget(player, entity));
 
     List<LivingEntity> marked = new ArrayList<>();
     for (LivingEntity target : candidates) {
@@ -604,9 +604,7 @@ public final class SwordCommandCenter {
     return start.add(seg.scale(t));
   }
 
-  /**
-   * 打印调试信息（仅供命令使用）。
-   */
+  /** 打印调试信息（仅供命令使用）。 */
   public static List<String> dumpDebug(ServerPlayer player) {
     CommandSession session = session(player).orElse(null);
     if (session == null) {
@@ -692,7 +690,9 @@ public final class SwordCommandCenter {
     }
 
     boolean isCompletelyIdle() {
-      return !selectionActive && selectionMarks.isEmpty() && groups.values().stream().allMatch(GroupState::isIdle);
+      return !selectionActive
+          && selectionMarks.isEmpty()
+          && groups.values().stream().allMatch(GroupState::isIdle);
     }
 
     int markedCount(int groupId) {
@@ -745,11 +745,8 @@ public final class SwordCommandCenter {
       List<GroupSummary> list = new ArrayList<>();
       for (Map.Entry<Integer, GroupState> entry : groups.entrySet()) {
         GroupState state = entry.getValue();
-        long execRemain =
-            state.executing ? Math.max(0L, state.executingUntil - nowTick) : 0L;
-        list.add(
-            new GroupSummary(
-                entry.getKey(), state.markCount(), state.executing, execRemain));
+        long execRemain = state.executing ? Math.max(0L, state.executingUntil - nowTick) : 0L;
+        list.add(new GroupSummary(entry.getKey(), state.markCount(), state.executing, execRemain));
       }
       list.sort(Comparator.comparingInt(GroupSummary::groupId));
       return list;
@@ -806,11 +803,22 @@ public final class SwordCommandCenter {
       this.lastTuiSentAt = sentAt;
     }
 
-    // ========== TUI 最近页 ========== 
-    public int lastActivePage() { return Math.max(1, lastActivePage); }
-    public void setLastActivePage(int p) { this.lastActivePage = Math.max(1, p); }
-    public int lastStoragePage() { return Math.max(1, lastStoragePage); }
-    public void setLastStoragePage(int p) { this.lastStoragePage = Math.max(1, p); }
+    // ========== TUI 最近页 ==========
+    public int lastActivePage() {
+      return Math.max(1, lastActivePage);
+    }
+
+    public void setLastActivePage(int p) {
+      this.lastActivePage = Math.max(1, p);
+    }
+
+    public int lastStoragePage() {
+      return Math.max(1, lastStoragePage);
+    }
+
+    public void setLastStoragePage(int p) {
+      this.lastStoragePage = Math.max(1, p);
+    }
 
     static final class GroupSummary {
       private final int groupId;
@@ -819,10 +827,7 @@ public final class SwordCommandCenter {
       private final long executingRemainingTicks;
 
       private GroupSummary(
-          int groupId,
-          int marks,
-          boolean executing,
-          long executingRemainingTicks) {
+          int groupId, int marks, boolean executing, long executingRemainingTicks) {
         this.groupId = groupId;
         this.marks = marks;
         this.executing = executing;

@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context;
 
-/**
- * 计算输出（可被钩子累积修改的系数/结果）。
- */
+/** 计算输出（可被钩子累积修改的系数/结果）。 */
 public class CalcOutputs {
   // 速度系数
   public double speedBaseMult = 1.0;

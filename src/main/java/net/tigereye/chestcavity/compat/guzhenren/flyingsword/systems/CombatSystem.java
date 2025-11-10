@@ -7,25 +7,28 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.combat.FlyingSwordC
  * Phase 2: 战斗系统 (Combat System)
  *
  * <p>职责:
+ *
  * <ul>
- *   <li>集中管理碰撞检测</li>
- *   <li>计算伤害 (速度² 公式)</li>
- *   <li>触发战斗事件 (OnHitEntity, PostHit)</li>
- *   <li>管理攻击冷却</li>
+ *   <li>集中管理碰撞检测
+ *   <li>计算伤害 (速度² 公式)
+ *   <li>触发战斗事件 (OnHitEntity, PostHit)
+ *   <li>管理攻击冷却
  * </ul>
  *
  * <p>设计原则:
+ *
  * <ul>
- *   <li>无状态: 所有方法为静态方法，不持有实例变量</li>
- *   <li>事件驱动: 关键操作触发事件钩子</li>
- *   <li>可测试: 输入输出明确，便于单元测试</li>
+ *   <li>无状态: 所有方法为静态方法，不持有实例变量
+ *   <li>事件驱动: 关键操作触发事件钩子
+ *   <li>可测试: 输入输出明确，便于单元测试
  * </ul>
  *
  * <p>实现说明:
+ *
  * <ul>
- *   <li>Phase 2 保持现有战斗逻辑不变，仅重构调用方式</li>
- *   <li>委托给 FlyingSwordCombat 处理具体战斗逻辑</li>
- *   <li>未来可在此层增加战斗事件扩展 (PostHit, BlockBreakAttempt 等)</li>
+ *   <li>Phase 2 保持现有战斗逻辑不变，仅重构调用方式
+ *   <li>委托给 FlyingSwordCombat 处理具体战斗逻辑
+ *   <li>未来可在此层增加战斗事件扩展 (PostHit, BlockBreakAttempt 等)
  * </ul>
  */
 public final class CombatSystem {
@@ -85,7 +88,8 @@ public final class CombatSystem {
    *
    * <p>当前 Phase 2 暂不实现，保持与原逻辑一致
    */
-  // public static void firePostHitEvent(FlyingSwordEntity sword, LivingEntity target, double damage) {
+  // public static void firePostHitEvent(FlyingSwordEntity sword, LivingEntity target, double
+  // damage) {
   //   // Phase 3: 触发 PostHit 事件
   // }
 
@@ -96,7 +100,8 @@ public final class CombatSystem {
    *
    * <p>当前 Phase 2 暂不实现，保持与原逻辑一致
    */
-  // public static boolean fireBlockBreakAttemptEvent(FlyingSwordEntity sword, BlockPos pos, BlockState state) {
+  // public static boolean fireBlockBreakAttemptEvent(FlyingSwordEntity sword, BlockPos pos,
+  // BlockState state) {
   //   // Phase 3: 触发 BlockBreakAttempt 事件
   //   return true; // 默认允许破块
   // }

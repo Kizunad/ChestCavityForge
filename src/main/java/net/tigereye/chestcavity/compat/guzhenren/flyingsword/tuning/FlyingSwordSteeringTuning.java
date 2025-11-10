@@ -2,9 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 
-/**
- * 统一管理转向相关参数，便于调参与共享。
- */
+/** 统一管理转向相关参数，便于调参与共享。 */
 public final class FlyingSwordSteeringTuning {
 
   private FlyingSwordSteeringTuning() {}

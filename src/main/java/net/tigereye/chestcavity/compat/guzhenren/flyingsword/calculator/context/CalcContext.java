@@ -1,12 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context;
 
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 
-/**
- * 飞剑计算上下文（纯数据结构，用于传入计算器/钩子）
- * 不直接依赖 Minecraft 运行时对象，方便单元测试。
- */
+/** 飞剑计算上下文（纯数据结构，用于传入计算器/钩子） 不直接依赖 Minecraft 运行时对象，方便单元测试。 */
 public class CalcContext {
   // 基础状态
   public AIMode aiMode = AIMode.ORBIT;
@@ -36,4 +33,3 @@ public class CalcContext {
   // 其他扩展位
   public long worldTime = 0L;
 }
-

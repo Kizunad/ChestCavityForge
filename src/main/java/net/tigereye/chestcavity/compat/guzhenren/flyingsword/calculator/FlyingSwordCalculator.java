@@ -1,21 +1,17 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator;
 
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContext;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcOutputs;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.hooks.FlyingSwordCalcRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 
-/**
- * 飞剑核心计算器（纯函数，无副作用）
- * 所有计算都是纯函数，便于测试和推导
- */
+/** 飞剑核心计算器（纯函数，无副作用） 所有计算都是纯函数，便于测试和推导 */
 public final class FlyingSwordCalculator {
   private FlyingSwordCalculator() {}
 
   /**
-   * 速度²伤害公式
-   * damage = (basedam * levelScale) × [1 + (v/vRef)² × velCoef]
+   * 速度²伤害公式 damage = (basedam * levelScale) × [1 + (v/vRef)² × velCoef]
    *
    * @param baseDamage 基础伤害
    * @param velocity 当前速度（方块/tick）
@@ -25,11 +21,7 @@ public final class FlyingSwordCalculator {
    * @return 最终伤害
    */
   public static double calculateDamage(
-      double baseDamage,
-      double velocity,
-      double vRef,
-      double velDmgCoef,
-      double levelScale) {
+      double baseDamage, double velocity, double vRef, double velDmgCoef, double levelScale) {
     if (baseDamage <= 0 || velocity < 0 || vRef <= 0 || levelScale <= 0) {
       return 0;
     }
@@ -50,8 +42,7 @@ public final class FlyingSwordCalculator {
   }
 
   /**
-   * 维持消耗计算
-   * cost = baseRate × modeMultiplier × stateMultiplier × speedMultiplier
+   * 维持消耗计算 cost = baseRate × modeMultiplier × stateMultiplier × speedMultiplier
    *
    * @param baseRate 基础消耗率
    * @param mode AI模式
@@ -85,9 +76,7 @@ public final class FlyingSwordCalculator {
     return baseRate * modeFactor * stateFactor * speedFactor;
   }
 
-  /**
-   * 维持消耗（带上下文钩子）
-   */
+  /** 维持消耗（带上下文钩子） */
   public static double calculateUpkeepWithContext(
       double baseRate,
       AIMode mode,
@@ -118,8 +107,7 @@ public final class FlyingSwordCalculator {
   }
 
   /**
-   * 计算升级所需经验
-   * expToNext = base × (1 + level) ^ alpha
+   * 计算升级所需经验 expToNext = base × (1 + level) ^ alpha
    *
    * @param level 当前等级
    * @return 升到下一级所需经验
@@ -128,8 +116,7 @@ public final class FlyingSwordCalculator {
     if (level >= FlyingSwordTuning.MAX_LEVEL) {
       return Integer.MAX_VALUE;
     }
-    double exp =
-        FlyingSwordTuning.EXP_BASE * Math.pow(1 + level, FlyingSwordTuning.EXP_ALPHA);
+    double exp = FlyingSwordTuning.EXP_BASE * Math.pow(1 + level, FlyingSwordTuning.EXP_ALPHA);
     return (int) Math.round(exp);
   }
 
@@ -147,9 +134,7 @@ public final class FlyingSwordCalculator {
     return Math.max(0, loss);
   }
 
-  /**
-   * 耐久损耗（带上下文钩子）
-   */
+  /** 耐久损耗（带上下文钩子） */
   public static float calculateDurabilityLossWithContext(
       float damage, double lossRatio, boolean breaking, CalcContext ctx) {
     float base = calculateDurabilityLoss(damage, lossRatio, breaking);
@@ -158,9 +143,7 @@ public final class FlyingSwordCalculator {
     return (float) v;
   }
 
-  /**
-   * 伤害（带上下文钩子）
-   */
+  /** 伤害（带上下文钩子） */
   public static double calculateDamageWithContext(
       double baseDamage,
       double velocity,
@@ -173,9 +156,7 @@ public final class FlyingSwordCalculator {
     return Math.max(0.0, base * out.damageMult);
   }
 
-  /**
-   * 计算攻击冷却（ticks）。钩子可直接覆盖或按倍数修改。
-   */
+  /** 计算攻击冷却（ticks）。钩子可直接覆盖或按倍数修改。 */
   public static int calculateAttackCooldownTicks(CalcContext ctx, int baseTicks) {
     CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
     int result = out.attackCooldownTicks >= 0 ? out.attackCooldownTicks : baseTicks;
@@ -183,9 +164,7 @@ public final class FlyingSwordCalculator {
     return clamp(result, 1, 200);
   }
 
-  /**
-   * 有效最大/基础速度（应用钩子系数）。
-   */
+  /** 有效最大/基础速度（应用钩子系数）。 */
   public static double effectiveSpeedMax(double baseMax, CalcContext ctx) {
     CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
     return Math.max(0.0, baseMax * out.speedMaxMult);
@@ -196,9 +175,7 @@ public final class FlyingSwordCalculator {
     return Math.max(0.0, baseBase * out.speedBaseMult);
   }
 
-  /**
-   * 有效加速度（应用钩子系数）。
-   */
+  /** 有效加速度（应用钩子系数）。 */
   public static double effectiveAccel(double baseAccel, CalcContext ctx) {
     CalcOutputs out = FlyingSwordCalcRegistry.applyAll(ctx);
     return Math.max(0.0, baseAccel * out.accelMult);
@@ -217,16 +194,12 @@ public final class FlyingSwordCalculator {
     return hardness * tierFactor;
   }
 
-  /**
-   * 限制数值在范围内
-   */
+  /** 限制数值在范围内 */
   public static double clamp(double value, double min, double max) {
     return Math.max(min, Math.min(max, value));
   }
 
-  /**
-   * 限制整数在范围内
-   */
+  /** 限制整数在范围内 */
   public static int clamp(int value, int min, int max) {
     return Math.max(min, Math.min(max, value));
   }

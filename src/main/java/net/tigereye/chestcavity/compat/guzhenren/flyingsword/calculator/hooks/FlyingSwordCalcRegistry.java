@@ -5,9 +5,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContext;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcOutputs;
 
-/**
- * 飞剑计算钩子注册表：集中管理、按顺序应用。
- */
+/** 飞剑计算钩子注册表：集中管理、按顺序应用。 */
 public final class FlyingSwordCalcRegistry {
   private static final List<FlyingSwordCalcHook> HOOKS = new CopyOnWriteArrayList<>();
 
@@ -33,4 +31,3 @@ public final class FlyingSwordCalcRegistry {
     return out;
   }
 }
-

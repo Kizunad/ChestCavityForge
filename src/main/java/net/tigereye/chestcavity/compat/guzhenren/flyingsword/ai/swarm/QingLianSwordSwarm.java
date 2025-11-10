@@ -3,7 +3,6 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm;
 import java.util.*;
 import javax.annotation.Nullable;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
@@ -14,11 +13,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.QingLianSwar
  * 青莲剑群集群AI管理器
  *
  * <p>负责协调2-32把青莲剑的集群行为，实现：
+ *
  * <ul>
- *   <li>莲花护卫阵 - 所有剑形成莲花瓣状环绕玩家</li>
- *   <li>螺旋攻击 - 剑依次螺旋飞向目标，形成连续打击</li>
- *   <li>轮流防御 - 部分剑护卫、部分剑攻击，定期轮换</li>
- *   <li>合击 - 多把剑同时从不同角度攻击同一目标</li>
+ *   <li>莲花护卫阵 - 所有剑形成莲花瓣状环绕玩家
+ *   <li>螺旋攻击 - 剑依次螺旋飞向目标，形成连续打击
+ *   <li>轮流防御 - 部分剑护卫、部分剑攻击，定期轮换
+ *   <li>合击 - 多把剑同时从不同角度攻击同一目标
  * </ul>
  */
 public class QingLianSwordSwarm {
@@ -51,7 +51,12 @@ public class QingLianSwordSwarm {
   private double centerOrbitAngle = 0.0; // 攻击模式：中心绕目标旋转角
 
   // —— 个体代理（每把剑的独立状态机） ——
-  private enum AgentPhase { FORMATION, DEPART, ATTACK, RETURN }
+  private enum AgentPhase {
+    FORMATION,
+    DEPART,
+    ATTACK,
+    RETURN
+  }
 
   private static final class SwordAgent {
     final UUID id;
@@ -72,7 +77,7 @@ public class QingLianSwordSwarm {
 
   // 目标选择的滞后与范围（避免边界抖动）
   private static final double ACQUIRE_RANGE = 32.0; // 新目标获取半径
-  private static final double RETAIN_RANGE = 38.0;  // 保持锁定的半径（>获取半径，形成滞后）
+  private static final double RETAIN_RANGE = 38.0; // 保持锁定的半径（>获取半径，形成滞后）
   // IDLE 最大移动速度（绝对值，避免高属性时过快）
   private static final double IDLE_MAX_SPEED = 0.10;
 
@@ -112,13 +117,14 @@ public class QingLianSwordSwarm {
 
   /** 清理已销毁的剑 */
   private void cleanupDeadSwords() {
-    swords.removeIf(sword -> {
-      boolean removed = !sword.isAlive() || sword.isRemoved();
-      if (removed) {
-        agents.remove(sword.getUUID());
-      }
-      return removed;
-    });
+    swords.removeIf(
+        sword -> {
+          boolean removed = !sword.isAlive() || sword.isRemoved();
+          if (removed) {
+            agents.remove(sword.getUUID());
+          }
+          return removed;
+        });
   }
 
   // ==================== 集群AI主循环 ====================
@@ -173,8 +179,8 @@ public class QingLianSwordSwarm {
 
     // 使用 TargetFinder 搜索敌对目标（优先敌方飞剑），限定获取半径
     LivingEntity newTarget =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior
-            .TargetFinder.findNearestHostileForGuard(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior.TargetFinder
+            .findNearestHostileForGuard(
                 representativeSword, searchCenter, QingLianSwarmTuning.SWARM_TARGET_ACQUIRE_RANGE);
     boolean targetChanged = (newTarget != swarmTarget);
     swarmTarget = newTarget;
@@ -235,10 +241,11 @@ public class QingLianSwordSwarm {
    * 莲花护卫阵 - 所有剑形成莲花瓣状环绕玩家
    *
    * <p>特点：
+   *
    * <ul>
-   *   <li>剑均匀分布在圆周上</li>
-   *   <li>形成3层立体莲花（内、中、外）</li>
-   *   <li>缓慢旋转，营造仙侠氛围</li>
+   *   <li>剑均匀分布在圆周上
+   *   <li>形成3层立体莲花（内、中、外）
+   *   <li>缓慢旋转，营造仙侠氛围
    * </ul>
    */
   private void tickLotusGuard() {
@@ -254,7 +261,8 @@ public class QingLianSwordSwarm {
     int swordCount = swords.size();
     double formationRadius = computeFormationRadius(swordCount);
     // 需求：去除编队槽位自转，保持相对位置稳定
-    double globalRotation = 0.0; // swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_IDLE_SPEED;
+    double globalRotation =
+        0.0; // swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_IDLE_SPEED;
 
     // 槽位稳定排序
     List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
@@ -298,10 +306,11 @@ public class QingLianSwordSwarm {
    * 螺旋攻击 - 剑依次螺旋飞向目标
    *
    * <p>特点：
+   *
    * <ul>
-   *   <li>剑按顺序依次攻击，形成连续打击</li>
-   *   <li>螺旋轨迹，增加观赏性</li>
-   *   <li>攻击后退回护卫位置</li>
+   *   <li>剑按顺序依次攻击，形成连续打击
+   *   <li>螺旋轨迹，增加观赏性
+   *   <li>攻击后退回护卫位置
    * </ul>
    */
   private void tickSpiralAttack() {
@@ -325,7 +334,8 @@ public class QingLianSwordSwarm {
 
     // 槽位与排序
     // 去除攻击阶段槽位自转
-    double globalRotation = 0.0; // swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_ATTACK_SPEED;
+    double globalRotation =
+        0.0; // swarmTick * QingLianSwarmTuning.SWARM_GLOBAL_ROTATION_ATTACK_SPEED;
     List<FlyingSwordEntity> ordered = new ArrayList<>(swords);
     ordered.sort(Comparator.comparing(FlyingSwordEntity::getUUID));
 
@@ -338,7 +348,8 @@ public class QingLianSwordSwarm {
         if (a == null) continue;
         // 保证单体之间最小触发间隔≈0.1s，避免同一把剑被过度调度
         if (a.phase == AgentPhase.FORMATION
-            && (swarmTick - a.lastLaunchTick) >= QingLianSwarmTuning.SWARM_MIN_LAUNCH_INTERVAL_TICKS) {
+            && (swarmTick - a.lastLaunchTick)
+                >= QingLianSwarmTuning.SWARM_MIN_LAUNCH_INTERVAL_TICKS) {
           a.phase = AgentPhase.DEPART;
           a.phaseTick = 0;
           a.lastLaunchTick = swarmTick;
@@ -372,8 +383,11 @@ public class QingLianSwordSwarm {
           sword.applySteeringVelocity(v);
           // 固定朝向：让每把剑“看向”当前目标（若存在）
           if (swarmTarget != null && swarmTarget.isAlive()) {
-            Vec3 lookDir = swarmTarget.position().add(0, swarmTarget.getBbHeight() * 0.5, 0)
-                .subtract(sword.position());
+            Vec3 lookDir =
+                swarmTarget
+                    .position()
+                    .add(0, swarmTarget.getBbHeight() * 0.5, 0)
+                    .subtract(sword.position());
             if (lookDir.lengthSqr() > 1.0e-6) {
               double yaw = Math.toDegrees(Math.atan2(lookDir.x, lookDir.z));
               double horiz = Math.sqrt(lookDir.x * lookDir.x + lookDir.z * lookDir.z);
@@ -463,10 +477,11 @@ public class QingLianSwordSwarm {
    * 轮流防御 - 部分剑护卫、部分剑攻击
    *
    * <p>特点：
+   *
    * <ul>
-   *   <li>50%剑环绕主人，50%剑追击敌人</li>
-   *   <li>每60 ticks轮换角色</li>
-   *   <li>平衡防守与进攻</li>
+   *   <li>50%剑环绕主人，50%剑追击敌人
+   *   <li>每60 ticks轮换角色
+   *   <li>平衡防守与进攻
    * </ul>
    */
   private void tickRotatingDefense() {
@@ -491,19 +506,26 @@ public class QingLianSwordSwarm {
       if (isAttacking) {
         // 攻击组：基于 arrive 的追击（平滑逼近）
         Vec3 desiredVelocity =
-            arrive(sword, targetPos, /*maxSpeed*/ sword.getSwordAttributes().speedMax,
-                /*arriveRadius*/ 2.0, /*stopRadius*/ 0.15);
+            arrive(
+                sword,
+                targetPos, /*maxSpeed*/
+                sword.getSwordAttributes().speedMax,
+                /*arriveRadius*/ 2.0, /*stopRadius*/
+                0.15);
         sword.applySteeringVelocity(desiredVelocity);
       } else {
         // 防守组：环绕主人
         double angle = (2.0 * Math.PI / (swords.size() / 2.0)) * (i / 2);
         double radius = 2.0;
-        Vec3 guardPos =
-            ownerPos.add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+        Vec3 guardPos = ownerPos.add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
 
         Vec3 desiredVelocity =
-            arrive(sword, guardPos, /*maxSpeed*/ sword.getSwordAttributes().speedBase,
-                /*arriveRadius*/ 2.5, /*stopRadius*/ 0.15);
+            arrive(
+                sword,
+                guardPos, /*maxSpeed*/
+                sword.getSwordAttributes().speedBase,
+                /*arriveRadius*/ 2.5, /*stopRadius*/
+                0.15);
         desiredVelocity = SeparationBehavior.applySeparation(sword, desiredVelocity);
         sword.applySteeringVelocity(desiredVelocity);
       }
@@ -514,10 +536,11 @@ public class QingLianSwordSwarm {
    * 合击 - 多把剑同时从不同角度攻击
    *
    * <p>特点：
+   *
    * <ul>
-   *   <li>所有剑同时从不同方向飞向目标</li>
-   *   <li>形成球形包围，无死角打击</li>
-   *   <li>攻击后散开再次聚集</li>
+   *   <li>所有剑同时从不同方向飞向目标
+   *   <li>形成球形包围，无死角打击
+   *   <li>攻击后散开再次聚集
    * </ul>
    */
   private void tickConvergingStrike() {
@@ -548,16 +571,24 @@ public class QingLianSwordSwarm {
       if (phase < 40) {
         // 聚集阶段：基于 arrive 逼近
         Vec3 desiredVelocity =
-            arrive(sword, targetPos, /*maxSpeed*/ sword.getSwordAttributes().speedMax,
-                /*arriveRadius*/ 2.0, /*stopRadius*/ 0.15);
+            arrive(
+                sword,
+                targetPos, /*maxSpeed*/
+                sword.getSwordAttributes().speedMax,
+                /*arriveRadius*/ 2.0, /*stopRadius*/
+                0.15);
         sword.applySteeringVelocity(desiredVelocity);
       } else {
         // 散开阶段：沿球面方向散开
         double scatterRadius = 4.0;
         Vec3 scatterPos = targetPos.add(direction.scale(scatterRadius));
         Vec3 desiredVelocity =
-            arrive(sword, scatterPos, /*maxSpeed*/ sword.getSwordAttributes().speedMax,
-                /*arriveRadius*/ 3.0, /*stopRadius*/ 0.15);
+            arrive(
+                sword,
+                scatterPos, /*maxSpeed*/
+                sword.getSwordAttributes().speedMax,
+                /*arriveRadius*/ 3.0, /*stopRadius*/
+                0.15);
         sword.applySteeringVelocity(desiredVelocity);
       }
     }
@@ -565,13 +596,14 @@ public class QingLianSwordSwarm {
 
   // ==================== 简化的平滑“到达/减速” ====================
   /**
-   * 统一的到达/减速速度计算：
-   * - 距离小于 stopRadius 则停下（去抖动）
-   * - 距离在 [stopRadius, arriveRadius] 内按比例减速
-   * - 距离大于 arriveRadius 以 maxSpeed 追击
+   * 统一的到达/减速速度计算： - 距离小于 stopRadius 则停下（去抖动） - 距离在 [stopRadius, arriveRadius] 内按比例减速 - 距离大于
+   * arriveRadius 以 maxSpeed 追击
    */
   private Vec3 arrive(
-      FlyingSwordEntity sword, Vec3 targetPos, double maxSpeed, double arriveRadius,
+      FlyingSwordEntity sword,
+      Vec3 targetPos,
+      double maxSpeed,
+      double arriveRadius,
       double stopRadius) {
     Vec3 toTarget = targetPos.subtract(sword.position());
     double dist = toTarget.length();
@@ -579,7 +611,10 @@ public class QingLianSwordSwarm {
       return Vec3.ZERO;
     }
 
-    double t = dist >= arriveRadius ? 1.0 : Math.max(0.0, (dist - stopRadius) / Math.max(1e-6, (arriveRadius - stopRadius)));
+    double t =
+        dist >= arriveRadius
+            ? 1.0
+            : Math.max(0.0, (dist - stopRadius) / Math.max(1e-6, (arriveRadius - stopRadius)));
     // 在 base 与 max 之间插值，近处更慢，远处更快；并对 base 与结果施加不超过 maxSpeed 的硬上限
     double base = Math.min(sword.getSwordAttributes().speedBase, maxSpeed);
     double desiredSpeed = base + (maxSpeed - base) * t;
@@ -613,8 +648,7 @@ public class QingLianSwordSwarm {
   /**
    * 外部指令：将集群切换为攻击指定目标。
    *
-   * <p>会立即设置内部目标并切到攻击模式，同时同步每把飞剑的个体目标，
-   * 以便碰撞攻击逻辑立刻生效。
+   * <p>会立即设置内部目标并切到攻击模式，同时同步每把飞剑的个体目标， 以便碰撞攻击逻辑立刻生效。
    */
   public boolean commandAttack(@Nullable LivingEntity target) {
     if (target == null || !target.isAlive()) {

@@ -7,14 +7,11 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSn
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringCommand;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
 
-/**
- * 召回血线：高速直线回到主人。
- */
+/** 召回血线：高速直线回到主人。 */
 public final class BoomerangTemplate implements SteeringTemplate {
 
   @Override
-  public SteeringCommand compute(
-      AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
+  public SteeringCommand compute(AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
     Vec3 ownerPos = ctx.owner().getEyePosition();
     Vec3 dir = ownerPos.subtract(ctx.sword().position());
     if (dir.lengthSqr() < 1.0e-6) {

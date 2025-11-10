@@ -20,192 +20,198 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 护幕飞剑伤害事件处理器
- * <p>
- * 监听玩家受到的伤害事件，触发护幕飞剑的拦截逻辑。
+ *
+ * <p>监听玩家受到的伤害事件，触发护幕飞剑的拦截逻辑。
+ *
  * <ul>
- *   <li>检查玩家是否装备了"剑幕·反击之幕"器官</li>
- *   <li>构建 {@link IncomingThreat} 对象</li>
- *   <li>调用 {@link WardSwordService#onIncomingThreat} 尝试拦截</li>
- *   <li>如果拦截成功（C阶段），记录日志（D阶段将实现伤害减免）</li>
+ *   <li>检查玩家是否装备了"剑幕·反击之幕"器官
+ *   <li>构建 {@link IncomingThreat} 对象
+ *   <li>调用 {@link WardSwordService#onIncomingThreat} 尝试拦截
+ *   <li>如果拦截成功（C阶段），记录日志（D阶段将实现伤害减免）
  * </ul>
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class WardSwordDamageEvents {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(WardSwordDamageEvents.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WardSwordDamageEvents.class);
 
-    private WardSwordDamageEvents() {}
+  private WardSwordDamageEvents() {}
 
-    /**
-     * 监听玩家受到伤害事件，触发护幕拦截
-     * <p>
-     * 使用 HIGHEST 优先级，在大部分伤害修改之前运行
-     *
-     * @param event 伤害事件
-     */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
-        // 跳过标记为绕过器官钩子的伤害
-        if (event.getSource().is(GRDamageTags.BYPASS_ORGAN_HOOKS)) {
-            return;
-        }
+  /**
+   * 监听玩家受到伤害事件，触发护幕拦截
+   *
+   * <p>使用 HIGHEST 优先级，在大部分伤害修改之前运行
+   *
+   * @param event 伤害事件
+   */
+  @SubscribeEvent(priority = EventPriority.HIGHEST)
+  public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
+    // 跳过标记为绕过器官钩子的伤害
+    if (event.getSource().is(GRDamageTags.BYPASS_ORGAN_HOOKS)) {
+      return;
+    }
 
-        // 跳过已在处理中的伤害（防止递归）
-        if (DamagePipeline.guarded()) {
-            return;
-        }
+    // 跳过已在处理中的伤害（防止递归）
+    if (DamagePipeline.guarded()) {
+      return;
+    }
 
-        // 只处理玩家受到的伤害
-        if (!(event.getEntity() instanceof Player player)) {
-            return;
-        }
+    // 只处理玩家受到的伤害
+    if (!(event.getEntity() instanceof Player player)) {
+      return;
+    }
 
-        // === 调试日志 ===
-        LOGGER.info("[WardDebug] Player {} taking damage from {}",
+    // === 调试日志 ===
+    LOGGER.info(
+        "[WardDebug] Player {} taking damage from {}",
+        player.getName().getString(),
+        event.getSource().getMsgId());
+
+    // 检查玩家的护幕是否激活(使用与PlayerTickEvents相同的逻辑)
+    boolean wardActive = isWardActive(player);
+    LOGGER.info("[WardDebug] Ward active: {}", wardActive);
+
+    if (!wardActive) {
+      LOGGER.info("[WardDebug] Skipping - ward not active");
+      return;
+    }
+
+    // 获取护幕服务实例
+    DefaultWardSwordService service = DefaultWardSwordService.getInstance();
+
+    // 如果没有护幕飞剑，跳过
+    boolean hasSwords = service.hasWardSwords(player);
+    LOGGER.info("[WardDebug] Has ward swords: {}", hasSwords);
+
+    if (!hasSwords) {
+      LOGGER.info("[WardDebug] Skipping - no ward swords");
+      return;
+    }
+
+    // 构建 IncomingThreat 对象
+    IncomingThreat threat = buildThreat(event.getSource(), player);
+    if (threat == null) {
+      LOGGER.info("[WardDebug] Skipping - could not build threat from damage source");
+      return;
+    }
+
+    LOGGER.info("[WardDebug] Built threat: {}", threat.describe());
+
+    // 获取原始伤害值(减伤前)
+    float originalDamage = event.getAmount();
+    LOGGER.info("[WardDebug] Original damage: {} HP", originalDamage);
+
+    try {
+      // 尝试拦截 - 传入伤害值用于计算需要分配的飞剑数量
+      boolean intercepted = service.onIncomingThreat(threat, originalDamage);
+
+      LOGGER.info("[WardDebug] Intercept result: {}", intercepted);
+
+      if (intercepted) {
+        LOGGER.info(
+            "Ward sword intercept initiated for player {} against threat from {}",
             player.getName().getString(),
-            event.getSource().getMsgId());
+            threat.attacker() != null ? threat.attacker().getName().getString() : "unknown");
 
-        // 检查玩家的护幕是否激活(使用与PlayerTickEvents相同的逻辑)
-        boolean wardActive = isWardActive(player);
-        LOGGER.info("[WardDebug] Ward active: {}", wardActive);
+        // D阶段：拦截成功时减免伤害
+        // 根据护幕设计，拦截成功时伤害应该清零或大幅减免
+        // 这里实现"穿甲保留 30%" 规则：拦截成功后，玩家只受到 30% 的伤害
+        float reducedDamage = originalDamage * WardConfig.ARMOR_PENETRATION_FACTOR;
+        event.setAmount(reducedDamage);
 
-        if (!wardActive) {
-            LOGGER.info("[WardDebug] Skipping - ward not active");
-            return;
-        }
+        LOGGER.debug(
+            "Damage reduced from {} to {} ({}% armor penetration)",
+            originalDamage, reducedDamage, (int) (WardConfig.ARMOR_PENETRATION_FACTOR * 100));
+      }
 
-        // 获取护幕服务实例
-        DefaultWardSwordService service = DefaultWardSwordService.getInstance();
+    } catch (Exception e) {
+      LOGGER.error(
+          "Error processing ward sword intercept for player {}", player.getName().getString(), e);
+    }
+  }
 
-        // 如果没有护幕飞剑，跳过
-        boolean hasSwords = service.hasWardSwords(player);
-        LOGGER.info("[WardDebug] Has ward swords: {}", hasSwords);
+  /**
+   * 从伤害源构建 IncomingThreat 对象
+   *
+   * @param source 伤害源
+   * @param target 受害玩家
+   * @return IncomingThreat 对象，如果无法构建则返回 null
+   */
+  private static IncomingThreat buildThreat(DamageSource source, Player target) {
+    Entity directEntity = source.getDirectEntity();
+    Entity attacker = source.getEntity();
 
-        if (!hasSwords) {
-            LOGGER.info("[WardDebug] Skipping - no ward swords");
-            return;
-        }
-
-        // 构建 IncomingThreat 对象
-        IncomingThreat threat = buildThreat(event.getSource(), player);
-        if (threat == null) {
-            LOGGER.info("[WardDebug] Skipping - could not build threat from damage source");
-            return;
-        }
-
-        LOGGER.info("[WardDebug] Built threat: {}", threat.describe());
-
-        // 获取原始伤害值(减伤前)
-        float originalDamage = event.getAmount();
-        LOGGER.info("[WardDebug] Original damage: {} HP", originalDamage);
-
-        try {
-            // 尝试拦截 - 传入伤害值用于计算需要分配的飞剑数量
-            boolean intercepted = service.onIncomingThreat(threat, originalDamage);
-
-            LOGGER.info("[WardDebug] Intercept result: {}", intercepted);
-
-            if (intercepted) {
-                LOGGER.info("Ward sword intercept initiated for player {} against threat from {}",
-                    player.getName().getString(),
-                    threat.attacker() != null ? threat.attacker().getName().getString() : "unknown");
-
-                // D阶段：拦截成功时减免伤害
-                // 根据护幕设计，拦截成功时伤害应该清零或大幅减免
-                // 这里实现"穿甲保留 30%" 规则：拦截成功后，玩家只受到 30% 的伤害
-                float reducedDamage = originalDamage * WardConfig.ARMOR_PENETRATION_FACTOR;
-                event.setAmount(reducedDamage);
-
-                LOGGER.debug("Damage reduced from {} to {} ({}% armor penetration)",
-                    originalDamage, reducedDamage, (int)(WardConfig.ARMOR_PENETRATION_FACTOR * 100));
-            }
-
-        } catch (Exception e) {
-            LOGGER.error("Error processing ward sword intercept for player {}",
-                player.getName().getString(), e);
-        }
+    // 如果没有直接实体，可能是环境伤害，暂不处理
+    if (directEntity == null && attacker == null) {
+      return null;
     }
 
-    /**
-     * 从伤害源构建 IncomingThreat 对象
-     *
-     * @param source 伤害源
-     * @param target 受害玩家
-     * @return IncomingThreat 对象，如果无法构建则返回 null
-     */
-    private static IncomingThreat buildThreat(DamageSource source, Player target) {
-        Entity directEntity = source.getDirectEntity();
-        Entity attacker = source.getEntity();
-
-        // 如果没有直接实体，可能是环境伤害，暂不处理
-        if (directEntity == null && attacker == null) {
-            return null;
-        }
-
-        // 确定攻击者（优先使用实际攻击者，其次使用直接实体）
-        LivingEntity attackerEntity = null;
-        if (attacker instanceof LivingEntity living) {
-            attackerEntity = living;
-        } else if (directEntity instanceof LivingEntity living) {
-            attackerEntity = living;
-        }
-
-        // 如果是投射物攻击
-        if (directEntity instanceof Projectile projectile) {
-            Vec3 velocity = projectile.getDeltaMovement();
-
-            return new IncomingThreat(
-                attackerEntity,
-                target,
-                projectile.position(),
-                velocity,
-                velocity.length(),
-                IncomingThreat.Type.PROJECTILE,
-                target.level().getGameTime()
-            );
-        }
-
-        // 如果是近战攻击
-        if (attackerEntity != null) {
-            // 近战攻击：使用攻击者的速度作为方向
-            Vec3 attackerPos = attackerEntity.position();
-            Vec3 toTarget = target.position().subtract(attackerPos).normalize();
-            double speed = attackerEntity.getDeltaMovement().length();
-
-            // 如果攻击者静止，使用一个默认速度
-            if (speed < 0.1) {
-                speed = 0.5; // 假设近战攻击速度
-            }
-
-            Vec3 velocity = toTarget.scale(speed);
-
-            return new IncomingThreat(
-                attackerEntity,
-                target,
-                attackerPos,
-                velocity,
-                speed,
-                IncomingThreat.Type.MELEE,
-                target.level().getGameTime()
-            );
-        }
-
-        return null;
+    // 确定攻击者（优先使用实际攻击者，其次使用直接实体）
+    LivingEntity attackerEntity = null;
+    if (attacker instanceof LivingEntity living) {
+      attackerEntity = living;
+    } else if (directEntity instanceof LivingEntity living) {
+      attackerEntity = living;
     }
 
-    /**
-     * 检查玩家的护幕是否激活
-     * <p>
-     * 与 {@link net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior#isWardActive}
-     * 使用相同的逻辑
-     *
-     * @param player 玩家
-     * @return 护幕是否激活
-     */
-    private static boolean isWardActive(Player player) {
-        return ChestCavityEntity.of(player)
-            .map(ChestCavityEntity::getChestCavityInstance)
-            .map(net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior::isWardActive)
-            .orElse(false);
+    // 如果是投射物攻击
+    if (directEntity instanceof Projectile projectile) {
+      Vec3 velocity = projectile.getDeltaMovement();
+
+      return new IncomingThreat(
+          attackerEntity,
+          target,
+          projectile.position(),
+          velocity,
+          velocity.length(),
+          IncomingThreat.Type.PROJECTILE,
+          target.level().getGameTime());
     }
+
+    // 如果是近战攻击
+    if (attackerEntity != null) {
+      // 近战攻击：使用攻击者的速度作为方向
+      Vec3 attackerPos = attackerEntity.position();
+      Vec3 toTarget = target.position().subtract(attackerPos).normalize();
+      double speed = attackerEntity.getDeltaMovement().length();
+
+      // 如果攻击者静止，使用一个默认速度
+      if (speed < 0.1) {
+        speed = 0.5; // 假设近战攻击速度
+      }
+
+      Vec3 velocity = toTarget.scale(speed);
+
+      return new IncomingThreat(
+          attackerEntity,
+          target,
+          attackerPos,
+          velocity,
+          speed,
+          IncomingThreat.Type.MELEE,
+          target.level().getGameTime());
+    }
+
+    return null;
+  }
+
+  /**
+   * 检查玩家的护幕是否激活
+   *
+   * <p>与 {@link
+   * net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianmuGuOrganBehavior#isWardActive}
+   * 使用相同的逻辑
+   *
+   * @param player 玩家
+   * @return 护幕是否激活
+   */
+  private static boolean isWardActive(Player player) {
+    return ChestCavityEntity.of(player)
+        .map(ChestCavityEntity::getChestCavityInstance)
+        .map(
+            net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                    .JianmuGuOrganBehavior
+                ::isWardActive)
+        .orElse(false);
+  }
 }

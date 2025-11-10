@@ -8,14 +8,11 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringComm
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 新版环绕模板：共用 SteeringCommand 输出。
- */
+/** 新版环绕模板：共用 SteeringCommand 输出。 */
 public final class OrbitTemplate implements SteeringTemplate {
 
   @Override
-  public SteeringCommand compute(
-      AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
+  public SteeringCommand compute(AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
     var sword = ctx.sword();
     var owner = ctx.owner();
     Vec3 ownerPos = owner.getEyePosition();

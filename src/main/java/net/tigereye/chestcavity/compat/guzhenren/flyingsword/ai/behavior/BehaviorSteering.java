@@ -6,11 +6,8 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSn
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.LegacySteeringAdapter;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringCommand;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringOps;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior.SeparationBehavior;
 
-/**
- * 行为层共用的转向提交工具，统一走 SteeringOps 流程。
- */
+/** 行为层共用的转向提交工具，统一走 SteeringOps 流程。 */
 public final class BehaviorSteering {
 
   private BehaviorSteering() {}

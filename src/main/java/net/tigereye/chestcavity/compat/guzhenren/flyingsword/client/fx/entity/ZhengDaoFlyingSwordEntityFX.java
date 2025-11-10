@@ -8,8 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 /**
  * 正道飞剑粒子特效
  *
- * <p>使用青色、亮色、光芒类粒子效果。
- * 体现正道飞剑的清澈、明亮、圣洁特征。
+ * <p>使用青色、亮色、光芒类粒子效果。 体现正道飞剑的清澈、明亮、圣洁特征。
  */
 public class ZhengDaoFlyingSwordEntityFX implements IFlyingSwordEntityFX {
 
@@ -49,7 +48,8 @@ public class ZhengDaoFlyingSwordEntityFX implements IFlyingSwordEntityFX {
   }
 
   @Override
-  public void spawnAttackImpact(ServerLevel level, FlyingSwordEntity sword, Vec3 pos, double damage) {
+  public void spawnAttackImpact(
+      ServerLevel level, FlyingSwordEntity sword, Vec3 pos, double damage) {
     int particleCount = (int) Math.min(20, 5 + damage);
 
     // 横扫粒子
@@ -128,8 +128,7 @@ public class ZhengDaoFlyingSwordEntityFX implements IFlyingSwordEntityFX {
     Vec3 pos = sword.position();
 
     // 发光粒子闪耀
-    level.sendParticles(
-        ParticleTypes.GLOW, pos.x, pos.y + 0.5, pos.z, 20, 0.3, 0.3, 0.3, 0.1);
+    level.sendParticles(ParticleTypes.GLOW, pos.x, pos.y + 0.5, pos.z, 20, 0.3, 0.3, 0.3, 0.1);
 
     // 青白闪光环形扩散
     for (int i = 0; i < 16; i++) {
@@ -160,15 +159,7 @@ public class ZhengDaoFlyingSwordEntityFX implements IFlyingSwordEntityFX {
       double velocityZ = Math.sin(angle) * 0.2;
 
       level.sendParticles(
-          ParticleTypes.END_ROD,
-          pos.x,
-          pos.y + 0.5,
-          pos.z,
-          1,
-          velocityX,
-          0.1,
-          velocityZ,
-          0.1);
+          ParticleTypes.END_ROD, pos.x, pos.y + 0.5, pos.z, 1, velocityX, 0.1, velocityZ, 0.1);
     }
   }
 

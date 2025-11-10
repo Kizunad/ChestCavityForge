@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 飞剑释放继承参数（由物品转化到实体）
- */
+/** 飞剑释放继承参数（由物品转化到实体） */
 public final class FlyingSwordInheritTuning {
   private FlyingSwordInheritTuning() {}
 

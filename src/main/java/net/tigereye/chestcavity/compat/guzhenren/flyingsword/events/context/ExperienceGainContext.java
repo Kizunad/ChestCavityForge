@@ -8,11 +8,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
  * <p>Phase 3: 当飞剑获得经验时触发。
  *
  * <p>用途：
+ *
  * <ul>
- *   <li>修改经验获取量（如道痕加成、buff效果）</li>
- *   <li>记录经验来源（统计、分析）</li>
- *   <li>触发经验获取特效（粒子、音效）</li>
- *   <li>阻止特定来源的经验（如刷怪塔限制）</li>
+ *   <li>修改经验获取量（如道痕加成、buff效果）
+ *   <li>记录经验来源（统计、分析）
+ *   <li>触发经验获取特效（粒子、音效）
+ *   <li>阻止特定来源的经验（如刷怪塔限制）
  * </ul>
  */
 public class ExperienceGainContext {

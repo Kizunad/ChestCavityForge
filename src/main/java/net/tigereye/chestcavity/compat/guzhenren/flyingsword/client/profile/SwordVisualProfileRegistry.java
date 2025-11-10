@@ -29,4 +29,3 @@ public final class SwordVisualProfileRegistry {
     if (defs != null) BY_KEY.putAll(defs);
   }
 }
-

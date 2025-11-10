@@ -24,11 +24,12 @@ import org.slf4j.LoggerFactory;
  * 剑梭蛊飞剑自动突进钩子。
  *
  * <p>功能：
+ *
  * <ul>
- *   <li>检测主人是否拥有剑梭蛊器官</li>
- *   <li>定时沿飞剑朝向执行短突进</li>
- *   <li>不消耗资源，独立冷却</li>
- *   <li>仅对非友方有效</li>
+ *   <li>检测主人是否拥有剑梭蛊器官
+ *   <li>定时沿飞剑朝向执行短突进
+ *   <li>不消耗资源，独立冷却
+ *   <li>仅对非友方有效
  * </ul>
  */
 public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
@@ -76,7 +77,8 @@ public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
     // 4. 计算突进参数
     double dashDist = JianSuoCalc.dashDistance(daohen) * JianSuoGuTuning.SWORD_DASH_DISTANCE_SCALE;
     double velocity = ctx.sword.getDeltaMovement().length();
-    double damage = JianSuoCalc.pathDamage(daohen, velocity) * JianSuoGuTuning.SWORD_DASH_DAMAGE_SCALE;
+    double damage =
+        JianSuoCalc.pathDamage(daohen, velocity) * JianSuoGuTuning.SWORD_DASH_DAMAGE_SCALE;
 
     // 5. 决定方向
     Vec3 dir = determineDashDirection(ctx);
@@ -87,20 +89,23 @@ public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "[JianSuoGuSwordDash] Sword {} dashing: daohen={}, dist={}, dmg={}",
-          swordId, daohen, dashDist, damage);
+          swordId,
+          daohen,
+          dashDist,
+          damage);
     }
 
     // 6. 执行突进（使用主人作为攻击者进行敌我判断）
-    double actualDist = JianSuoRuntime.tryDashAndDamage(
-        ctx.sword,
-        ctx.owner, // 主人作为攻击者，用于敌我判断和伤害源
-        dir,
-        dashDist,
-        damage,
-        JianSuoGuTuning.RAY_WIDTH,
-        6, // 较少的步数（飞剑版简化）
-        JianSuoGuTuning.HIT_ONCE_DEDUP_TICKS
-    );
+    double actualDist =
+        JianSuoRuntime.tryDashAndDamage(
+            ctx.sword,
+            ctx.owner, // 主人作为攻击者，用于敌我判断和伤害源
+            dir,
+            dashDist,
+            damage,
+            JianSuoGuTuning.RAY_WIDTH,
+            6, // 较少的步数（飞剑版简化）
+            JianSuoGuTuning.HIT_ONCE_DEDUP_TICKS);
 
     // 7. 记录时间
     LAST_DASH_TICK.put(swordId, now);
@@ -111,24 +116,22 @@ public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
   }
 
   @Override
-  public void onDespawnOrRecall(net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.DespawnContext ctx) {
+  public void onDespawnOrRecall(
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.DespawnContext ctx) {
     // 清理记录
     if (ctx != null && ctx.sword != null) {
       LAST_DASH_TICK.remove(ctx.sword.getId());
     }
   }
 
-  /**
-   * 检查主人是否拥有剑梭蛊器官。
-   */
+  /** 检查主人是否拥有剑梭蛊器官。 */
   private boolean ownerHasOrgan(LivingEntity owner) {
     if (owner == null) {
       return false;
     }
 
-    ChestCavityInstance cc = ChestCavityEntity.of(owner)
-        .map(ChestCavityEntity::getChestCavityInstance)
-        .orElse(null);
+    ChestCavityInstance cc =
+        ChestCavityEntity.of(owner).map(ChestCavityEntity::getChestCavityInstance).orElse(null);
 
     if (cc == null || cc.inventory == null) {
       return false;
@@ -152,9 +155,7 @@ public final class JianSuoGuSwordAutoDashHook implements FlyingSwordEventHook {
     return false;
   }
 
-  /**
-   * 决定突进方向（优先目标，否则视线方向）。
-   */
+  /** 决定突进方向（优先目标，否则视线方向）。 */
   private Vec3 determineDashDirection(TickContext ctx) {
     // 优先朝向目标
     LivingEntity target = ctx.sword.getTargetEntity();

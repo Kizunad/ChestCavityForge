@@ -5,9 +5,7 @@ import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
-/**
- * 记录玩家“已指定”的飞剑（单个）。
- */
+/** 记录玩家“已指定”的飞剑（单个）。 */
 public class FlyingSwordSelection implements INBTSerializable<CompoundTag> {
 
   private UUID selectedSword; // 实体UUID
@@ -34,8 +32,7 @@ public class FlyingSwordSelection implements INBTSerializable<CompoundTag> {
   }
 
   @Override
-  public void deserializeNBT(
-      net.minecraft.core.HolderLookup.Provider provider, CompoundTag nbt) {
+  public void deserializeNBT(net.minecraft.core.HolderLookup.Provider provider, CompoundTag nbt) {
     if (nbt.hasUUID("Selected")) {
       selectedSword = nbt.getUUID("Selected");
     } else {
@@ -43,4 +40,3 @@ public class FlyingSwordSelection implements INBTSerializable<CompoundTag> {
     }
   }
 }
-

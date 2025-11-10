@@ -108,7 +108,8 @@ public final class ResourceDocProvider implements DocProvider {
     String category = pathParts[0];
     String subcategory = pathParts[1];
 
-    return new DocEntry(id, title, summary, details, tags, icon, iconTexture, category, subcategory);
+    return new DocEntry(
+        id, title, summary, details, tags, icon, iconTexture, category, subcategory);
   }
 
   /**

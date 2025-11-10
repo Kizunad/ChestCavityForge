@@ -9,9 +9,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
-/**
- * 统一管理飞剑速度类修正（域/道痕/控制效果）。
- */
+/** 统一管理飞剑速度类修正（域/道痕/控制效果）。 */
 public final class SwordSpeedModifiers {
 
   private SwordSpeedModifiers() {}
@@ -19,8 +17,7 @@ public final class SwordSpeedModifiers {
   /**
    * 计算域内速度缩放（剑心域）。
    *
-   * <p>当前实现：若飞剑处于某个剑心域内且与该域主人不为友，应用缩放系数 scale =
-   * (enemyDaohen / ownerDaohen) 并裁剪到 [0.25, 1.0]。
+   * <p>当前实现：若飞剑处于某个剑心域内且与该域主人不为友，应用缩放系数 scale = (enemyDaohen / ownerDaohen) 并裁剪到 [0.25, 1.0]。
    *
    * <p>后续可扩展：考虑域等级、增强状态、额外减速上限等。
    */
@@ -42,8 +39,8 @@ public final class SwordSpeedModifiers {
     if (jianXin.isFriendly(swordOwner)) {
       double ownerDaohen = readJiandaoDaohen(jianXin.getOwner());
       double ownerSchool =
-          net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
-              .openHandle(jianXin.getOwner())
+          net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(
+                  jianXin.getOwner())
               .map(h -> h.read("liupai_jiandao").orElse(0.0))
               .orElse(0.0);
       double intensity =
@@ -54,11 +51,11 @@ public final class SwordSpeedModifiers {
                   * net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
                       .JianXinDomainTuning.SCHOOL_EXP_INTENSITY_COEF;
       double baseBoost =
-          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
-              .JianXinDomainTuning.FRIENDLY_SWORD_SPEED_BOOST_BASE;
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning.JianXinDomainTuning
+              .FRIENDLY_SWORD_SPEED_BOOST_BASE;
       double maxBoost =
-          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
-              .JianXinDomainTuning.FRIENDLY_SWORD_SPEED_BOOST_MAX;
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning.JianXinDomainTuning
+              .FRIENDLY_SWORD_SPEED_BOOST_MAX;
       double boost = Math.min(maxBoost, baseBoost * (1.0 + intensity));
       // 统一效果乘积缩放（剑域蛊/配置可调整）
       double effectScale = 1.0;
@@ -70,8 +67,8 @@ public final class SwordSpeedModifiers {
       boost *= effectScale;
       if (jianXin.isEnhanced()) {
         boost *=
-            net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
-                .JianXinDomainTuning.FRIENDLY_SWORD_BOOST_ENHANCED_MULT;
+            net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning.JianXinDomainTuning
+                .FRIENDLY_SWORD_BOOST_ENHANCED_MULT;
       }
       return 1.0 + Math.max(0.0, boost);
     }

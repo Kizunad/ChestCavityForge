@@ -10,10 +10,10 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Traje
  *
  * <p><b>Phase 7: 软删除标记（Soft Deletion Mark）</b> - 高级轨迹
  *
- * <p>本轨迹仅在 {@code ENABLE_ADVANCED_TRAJECTORIES=true} 时注册启用。
- * 默认配置下不会被加载，实现零性能开销。
+ * <p>本轨迹仅在 {@code ENABLE_ADVANCED_TRAJECTORIES=true} 时注册启用。 默认配置下不会被加载，实现零性能开销。
  *
- * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES
+ * @see
+ *     net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES
  * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Trajectories
  */
 public final class CorkscrewTrajectory implements Trajectory {
@@ -22,10 +22,12 @@ public final class CorkscrewTrajectory implements Trajectory {
   public Vec3 computeDesiredVelocity(AIContext ctx, IntentResult intent) {
     var sword = ctx.sword();
 
-    Vec3 targetPos = intent.getTargetEntity()
-        .map(e -> e.position().add(0.0, e.getBbHeight() * 0.5, 0.0))
-        .or(() -> intent.getTargetPos())
-        .orElse(sword.position());
+    Vec3 targetPos =
+        intent
+            .getTargetEntity()
+            .map(e -> e.position().add(0.0, e.getBbHeight() * 0.5, 0.0))
+            .or(() -> intent.getTargetPos())
+            .orElse(sword.position());
 
     Vec3 toTarget = targetPos.subtract(sword.position());
     double distance = toTarget.length();

@@ -24,8 +24,7 @@ public final class DomainNetworkHandler {
    * @param center 领域中心
    * @param level 世界
    */
-  public static void sendDomainSync(
-      DomainSyncPayload payload, Vec3 center, ServerLevel level) {
+  public static void sendDomainSync(DomainSyncPayload payload, Vec3 center, ServerLevel level) {
     // 发送给范围内的所有玩家
     for (ServerPlayer player : level.players()) {
       if (player.position().distanceToSqr(center) <= SYNC_RANGE * SYNC_RANGE) {
@@ -41,8 +40,7 @@ public final class DomainNetworkHandler {
    * @param center 领域中心
    * @param level 世界
    */
-  public static void sendDomainRemove(
-      DomainRemovePayload payload, Vec3 center, ServerLevel level) {
+  public static void sendDomainRemove(DomainRemovePayload payload, Vec3 center, ServerLevel level) {
     // 发送给范围内的所有玩家
     for (ServerPlayer player : level.players()) {
       if (player.position().distanceToSqr(center) <= SYNC_RANGE * SYNC_RANGE) {

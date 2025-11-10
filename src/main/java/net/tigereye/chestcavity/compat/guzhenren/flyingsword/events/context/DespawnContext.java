@@ -7,9 +7,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 飞剑消散或召回事件上下文
- */
+/** 飞剑消散或召回事件上下文 */
 public class DespawnContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
@@ -20,6 +18,7 @@ public class DespawnContext {
 
   /**
    * 如果是召回到物品，这里存储目标ItemStack（可修改NBT）
+   *
    * <p>如果为null，表示直接消散不回收
    */
   @Nullable public ItemStack targetStack;

@@ -10,11 +10,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
  * <p>Phase 3: 当飞剑失去当前目标时触发。
  *
  * <p>用途：
+ *
  * <ul>
- *   <li>记录目标丢失原因（统计、调试）</li>
- *   <li>触发搜索新目标逻辑</li>
- *   <li>清理目标相关状态（buff、debuff、追踪标记）</li>
- *   <li>自动切换AI模式（如HUNT→ORBIT）</li>
+ *   <li>记录目标丢失原因（统计、调试）
+ *   <li>触发搜索新目标逻辑
+ *   <li>清理目标相关状态（buff、debuff、追踪标记）
+ *   <li>自动切换AI模式（如HUNT→ORBIT）
  * </ul>
  */
 public class TargetLostContext {

@@ -39,4 +39,3 @@ public final class AimResolver {
     return new Vec3(0, 0, -1);
   }
 }
-

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -90,8 +89,7 @@ public abstract class AbstractDomain implements Domain {
     // 玩家队友判定
     if (owner instanceof Player ownerPlayer && entity instanceof Player targetPlayer) {
       // 简化判定：同队伍 = 友方
-      return ownerPlayer.getTeam() != null
-          && ownerPlayer.getTeam().equals(targetPlayer.getTeam());
+      return ownerPlayer.getTeam() != null && ownerPlayer.getTeam().equals(targetPlayer.getTeam());
     }
 
     // 其他情况默认为敌方
@@ -127,6 +125,7 @@ public abstract class AbstractDomain implements Domain {
    * 更新领域中心位置
    *
    * <p>默认行为：跟随主人位置
+   *
    * <p>子类可以覆盖以实现不同的定位逻辑
    *
    * @param owner 主人

@@ -256,7 +256,8 @@ public class ChestCavityInstance implements ContainerListener {
     List<RandomFillerEntry> loaded = new ArrayList<>();
     for (int i = 0; i < fillers.size(); i++) {
       CompoundTag fillerTag = fillers.getCompound(i);
-      if (!fillerTag.contains("Slot", Tag.TAG_INT) || !fillerTag.contains("Stack", Tag.TAG_COMPOUND)) {
+      if (!fillerTag.contains("Slot", Tag.TAG_INT)
+          || !fillerTag.contains("Stack", Tag.TAG_COMPOUND)) {
         continue;
       }
       int slot = fillerTag.getInt("Slot");

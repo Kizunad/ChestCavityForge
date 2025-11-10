@@ -2,14 +2,9 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory;
 
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate.SpeedUnit;
 
-/**
- * 轨迹的元数据，用于新旧系统桥接。
- */
+/** 轨迹的元数据，用于新旧系统桥接。 */
 public record TrajectoryMeta(
-    SpeedUnit speedUnit,
-    boolean enableSeparation,
-    Double maxTurnOverride,
-    Double accelOverride) {
+    SpeedUnit speedUnit, boolean enableSeparation, Double maxTurnOverride, Double accelOverride) {
 
   public static Builder builder() {
     return new Builder();

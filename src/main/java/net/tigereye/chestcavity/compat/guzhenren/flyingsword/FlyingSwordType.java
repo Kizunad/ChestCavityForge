@@ -61,9 +61,7 @@ public enum FlyingSwordType {
     return DEFAULT;
   }
 
-  /**
-   * 从注册名识别
-   */
+  /** 从注册名识别 */
   public static FlyingSwordType fromRegistryName(String name) {
     if (name == null) {
       return DEFAULT;

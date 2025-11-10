@@ -2,19 +2,14 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior;
 
 import javax.annotation.Nullable;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 防守行为 - 跟随主人并攻击附近的敌对实体
- */
+/** 防守行为 - 跟随主人并攻击附近的敌对实体 */
 public class GuardBehavior {
 
-  /**
-   * 执行防守行为
-   */
+  /** 执行防守行为 */
   public static void tick(
       FlyingSwordEntity sword, LivingEntity owner, @Nullable LivingEntity nearestHostile) {
     if (nearestHostile != null) {
@@ -32,8 +27,7 @@ public class GuardBehavior {
       Vec3 direction = targetPos.subtract(sword.position()).normalize();
       Vec3 desiredVelocity =
           direction.scale(
-              sword.getSwordAttributes().speedMax
-                  * FlyingSwordAITuning.GUARD_CHASE_MAX_FACTOR);
+              sword.getSwordAttributes().speedMax * FlyingSwordAITuning.GUARD_CHASE_MAX_FACTOR);
 
       BehaviorSteering.commit(sword, desiredVelocity, true);
     } else {
@@ -47,7 +41,8 @@ public class GuardBehavior {
       if (distance > followDistance) {
         // 向主人移动
         Vec3 desiredVelocity =
-            toOwner.normalize()
+            toOwner
+                .normalize()
                 .scale(
                     sword.getSwordAttributes().speedBase
                         * FlyingSwordAITuning.GUARD_FOLLOW_APPROACH_FACTOR);
@@ -66,9 +61,7 @@ public class GuardBehavior {
     }
   }
 
-  /**
-   * 获取搜索范围
-   */
+  /** 获取搜索范围 */
   public static double getSearchRange() {
     return FlyingSwordAITuning.GUARD_SEARCH_RANGE;
   }

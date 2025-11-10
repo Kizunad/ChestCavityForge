@@ -6,29 +6,26 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.TieredItem;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 
 /**
  * 飞剑召唤接口（Flying Sword Spawner）
  *
- * <p>提供给Organ和Skill调用的统一召唤接口。
- * 负责：
+ * <p>提供给Organ和Skill调用的统一召唤接口。 负责：
+ *
  * <ul>
- *   <li>从ItemStack计算释放继承修正</li>
- *   <li>生成飞剑实体</li>
- *   <li>应用初始速度和方向</li>
+ *   <li>从ItemStack计算释放继承修正
+ *   <li>生成飞剑实体
+ *   <li>应用初始速度和方向
  * </ul>
  */
 public final class FlyingSwordSpawner {
@@ -79,20 +76,21 @@ public final class FlyingSwordSpawner {
         calculateReleaseAffinity(level, sourceStack);
 
     // 根据类型选择对应的EntityType
-    net.minecraft.world.entity.EntityType<FlyingSwordEntity> entityType = getEntityTypeForSwordType(swordType);
+    net.minecraft.world.entity.EntityType<FlyingSwordEntity> entityType =
+        getEntityTypeForSwordType(swordType);
 
     // 创建飞剑实体
-    FlyingSwordEntity sword = FlyingSwordEntity.create(level, owner, spawnPos, modifiers, entityType);
+    FlyingSwordEntity sword =
+        FlyingSwordEntity.create(level, owner, spawnPos, modifiers, entityType);
     if (sword == null) {
       return null;
     }
 
     // 初始化定制：从源物品读取并应用（属性覆盖/模型/音效档等）
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-        .FlyingSwordInit.applyTo(
-            sword,
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-                .FlyingSwordInit.fromItemStack(sourceStack));
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInit.applyTo(
+        sword,
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInit.fromItemStack(
+            sourceStack));
 
     // 属性可能被定制覆盖，需同步生命-耐久
     sword.syncHealthWithDurability();
@@ -113,20 +111,18 @@ public final class FlyingSwordSpawner {
     }
 
     // 音效：生成
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-        .playSpawn(sword);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playSpawn(sword);
 
     // 召唤时的剑阵粒子（玩家脚下三环阵）
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX
         .spawnSummonArrayAt(level, owner.position(), swordType);
 
     // 触发onSpawn事件钩子
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-        .SpawnContext spawnCtx =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .context.SpawnContext(sword, level, owner, spawnPos, sourceStack);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-        .FlyingSwordEventRegistry.fireSpawn(spawnCtx);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.SpawnContext spawnCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.SpawnContext(
+            sword, level, owner, spawnPos, sourceStack);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry.fireSpawn(
+        spawnCtx);
 
     // 检查是否被钩子取消
     if (spawnCtx.cancelled) {
@@ -137,26 +133,17 @@ public final class FlyingSwordSpawner {
     return sword;
   }
 
-  /**
-   * 简化版召唤方法：在主人面前生成，沿视线方向飞行（默认类型）
-   */
+  /** 简化版召唤方法：在主人面前生成，沿视线方向飞行（默认类型） */
   @Nullable
   public static FlyingSwordEntity spawnFromOwner(
-      ServerLevel level,
-      Player owner,
-      @Nullable ItemStack sourceStack) {
+      ServerLevel level, Player owner, @Nullable ItemStack sourceStack) {
     return spawnFromOwner(level, owner, sourceStack, FlyingSwordType.DEFAULT);
   }
 
-  /**
-   * 简化版召唤方法：在主人面前生成，沿视线方向飞行（指定类型）
-   */
+  /** 简化版召唤方法：在主人面前生成，沿视线方向飞行（指定类型） */
   @Nullable
   public static FlyingSwordEntity spawnFromOwner(
-      ServerLevel level,
-      Player owner,
-      @Nullable ItemStack sourceStack,
-      FlyingSwordType swordType) {
+      ServerLevel level, Player owner, @Nullable ItemStack sourceStack, FlyingSwordType swordType) {
 
     // 在主人前方1.5格生成
     Vec3 lookVec = owner.getLookAngle();
@@ -165,10 +152,7 @@ public final class FlyingSwordSpawner {
     return spawn(level, owner, spawnPos, lookVec, sourceStack, swordType);
   }
 
-  /**
-   * 召唤飞剑（指定类型 + 指定修正）。
-   * 用于外部已计算好 AttributeModifiers 的场景（例如 Combo 自定义数值）。
-   */
+  /** 召唤飞剑（指定类型 + 指定修正）。 用于外部已计算好 AttributeModifiers 的场景（例如 Combo 自定义数值）。 */
   @Nullable
   public static FlyingSwordEntity spawnWithModifiers(
       ServerLevel level,
@@ -186,8 +170,8 @@ public final class FlyingSwordSpawner {
         sourceStack,
         swordType,
         modifiers,
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-            .FlyingSwordInit.fromItemStack(sourceStack));
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInit.fromItemStack(
+            sourceStack));
   }
 
   /** 简化：基于主人视线与位置的 spawnWithModifiers 封装。 */
@@ -203,9 +187,7 @@ public final class FlyingSwordSpawner {
     return spawnWithModifiers(level, owner, spawnPos, lookVec, sourceStack, swordType, modifiers);
   }
 
-  /**
-   * 召唤飞剑（指定类型 + 指定修正 + 指定初始化Spec）。
-   */
+  /** 召唤飞剑（指定类型 + 指定修正 + 指定初始化Spec）。 */
   @Nullable
   public static FlyingSwordEntity spawnWithModifiersAndSpec(
       ServerLevel level,
@@ -215,27 +197,28 @@ public final class FlyingSwordSpawner {
       @Nullable ItemStack sourceStack,
       FlyingSwordType swordType,
       FlyingSwordAttributes.AttributeModifiers modifiers,
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-          .FlyingSwordInitSpec initSpec) {
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInitSpec initSpec) {
 
     // 根据类型选择对应的EntityType
-    net.minecraft.world.entity.EntityType<FlyingSwordEntity> entityType = getEntityTypeForSwordType(swordType);
+    net.minecraft.world.entity.EntityType<FlyingSwordEntity> entityType =
+        getEntityTypeForSwordType(swordType);
 
     // 创建飞剑实体
-    FlyingSwordEntity sword = FlyingSwordEntity.create(level, owner, spawnPos, modifiers, entityType);
+    FlyingSwordEntity sword =
+        FlyingSwordEntity.create(level, owner, spawnPos, modifiers, entityType);
     if (sword == null) {
       return null;
     }
 
     // 应用初始化Spec（可设置显示用物品ID/模型/音效）
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-        .FlyingSwordInit.applyTo(sword, initSpec);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInit.applyTo(
+        sword, initSpec);
 
     // 若提供了源物品，优先使用其完整拷贝作为渲染ItemStack，以保留附魔发光/自定义组件
     if (sourceStack != null && !sourceStack.isEmpty()) {
       // 为源物品打上稳定 UUID（如无），copy 将继承该 UUID。
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
-          .ItemIdentityUtil.ensureItemUUID(sourceStack);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemIdentityUtil.ensureItemUUID(
+          sourceStack);
       net.minecraft.world.item.ItemStack copy = sourceStack.copy();
       copy.setCount(1);
       sword.setDisplayItemStack(copy);
@@ -260,20 +243,18 @@ public final class FlyingSwordSpawner {
     }
 
     // 音效：生成
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-        .playSpawn(sword);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playSpawn(sword);
 
     // 召唤时的剑阵粒子（玩家脚下三环阵）
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX
         .spawnSummonArrayAt(level, owner.position(), swordType);
 
     // 触发onSpawn事件钩子
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-        .SpawnContext spawnCtx =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .context.SpawnContext(sword, level, owner, spawnPos, sourceStack);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-        .FlyingSwordEventRegistry.fireSpawn(spawnCtx);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.SpawnContext spawnCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.SpawnContext(
+            sword, level, owner, spawnPos, sourceStack);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry.fireSpawn(
+        spawnCtx);
 
     return sword;
   }
@@ -286,8 +267,7 @@ public final class FlyingSwordSpawner {
       @Nullable ItemStack sourceStack,
       FlyingSwordType swordType,
       FlyingSwordAttributes.AttributeModifiers modifiers,
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-          .FlyingSwordInitSpec initSpec) {
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInitSpec initSpec) {
     Vec3 lookVec = owner.getLookAngle();
     Vec3 spawnPos = owner.getEyePosition().add(lookVec.scale(1.5));
     return spawnWithModifiersAndSpec(
@@ -298,11 +278,12 @@ public final class FlyingSwordSpawner {
    * 从ItemStack计算释放继承修正
    *
    * <p>根据武器属性和附魔计算飞剑的属性加成：
+   *
    * <ul>
-   *   <li>攻击伤害 → 基础伤害</li>
-   *   <li>攻击速度 → 最大速度</li>
-   *   <li>锋利附魔 → 伤害和速度²系数</li>
-   *   <li>工具等级 → 破块等级</li>
+   *   <li>攻击伤害 → 基础伤害
+   *   <li>攻击速度 → 最大速度
+   *   <li>锋利附魔 → 伤害和速度²系数
+   *   <li>工具等级 → 破块等级
    * </ul>
    */
   public static FlyingSwordAttributes.AttributeModifiers calculateReleaseAffinity(
@@ -433,15 +414,16 @@ public final class FlyingSwordSpawner {
 
     // 检查真元
     return net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.open(owner)
-        .map(handle -> {
-          var estimate = handle.estimateScaledZhenyuanCost(baseCost);
-          if (estimate.isEmpty()) {
-            return false;
-          }
-          double required = estimate.getAsDouble();
-          var current = handle.getZhenyuan();
-          return current.isPresent() && current.getAsDouble() >= required;
-        })
+        .map(
+            handle -> {
+              var estimate = handle.estimateScaledZhenyuanCost(baseCost);
+              if (estimate.isEmpty()) {
+                return false;
+              }
+              double required = estimate.getAsDouble();
+              var current = handle.getZhenyuan();
+              return current.isPresent() && current.getAsDouble() >= required;
+            })
         .orElse(false);
   }
 
@@ -488,7 +470,8 @@ public final class FlyingSwordSpawner {
     if (recalled.swordType != null && !recalled.swordType.isEmpty()) {
       type = FlyingSwordType.fromRegistryName(recalled.swordType);
     }
-    net.minecraft.world.entity.EntityType<FlyingSwordEntity> entityType = getEntityTypeForSwordType(type);
+    net.minecraft.world.entity.EntityType<FlyingSwordEntity> entityType =
+        getEntityTypeForSwordType(type);
 
     // 创建飞剑实体（不使用释放继承修正）
     FlyingSwordEntity sword =
@@ -512,13 +495,17 @@ public final class FlyingSwordSpawner {
     // 1) 优先完整 ItemStack NBT
     if (recalled.displayItem != null && !recalled.displayItem.isEmpty()) {
       net.minecraft.world.item.ItemStack parsed =
-          net.minecraft.world.item.ItemStack.parseOptional(level.registryAccess(), recalled.displayItem);
+          net.minecraft.world.item.ItemStack.parseOptional(
+              level.registryAccess(), recalled.displayItem);
       if (!parsed.isEmpty()) {
         sword.setDisplayItemStack(parsed);
       }
     } else if (recalled.displayItemId != null) {
       // 2) 回退到 itemId
-      var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(recalled.displayItemId).orElse(null);
+      var item =
+          net.minecraft.core.registries.BuiltInRegistries.ITEM
+              .getOptional(recalled.displayItemId)
+              .orElse(null);
       if (item != null) {
         sword.setDisplayItemStack(new net.minecraft.world.item.ItemStack(item));
       }
@@ -536,8 +523,7 @@ public final class FlyingSwordSpawner {
       if (recalled.chestCavity != null && !recalled.chestCavity.isEmpty()) {
         var wrapper = new net.minecraft.nbt.CompoundTag();
         wrapper.put("ChestCavity", recalled.chestCavity.copy());
-        net.tigereye.chestcavity.registration.CCAttachments
-            .getChestCavity(sword)
+        net.tigereye.chestcavity.registration.CCAttachments.getChestCavity(sword)
             .fromTag(wrapper, sword, level.registryAccess());
       }
     } catch (Throwable t) {
@@ -570,13 +556,11 @@ public final class FlyingSwordSpawner {
 
     int storageCount = storage.getCount();
     if (storageCount == 0) {
-      owner.sendSystemMessage(
-          net.minecraft.network.chat.Component.literal("[飞剑] 存储中没有召回的飞剑"));
+      owner.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] 存储中没有召回的飞剑"));
       return 0;
     }
 
-    java.util.List<FlyingSwordStorage.RecalledSword> recalledSwords =
-        storage.getRecalledSwords();
+    java.util.List<FlyingSwordStorage.RecalledSword> recalledSwords = storage.getRecalledSwords();
 
     int successCount = 0;
     for (FlyingSwordStorage.RecalledSword recalled : recalledSwords) {
@@ -615,8 +599,7 @@ public final class FlyingSwordSpawner {
         net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(owner);
     java.util.List<FlyingSwordStorage.RecalledSword> list = storage.getRecalledSwords();
     if (index1 < 1 || index1 > list.size()) {
-      owner.sendSystemMessage(
-          net.minecraft.network.chat.Component.literal("[飞剑] 索引无效"));
+      owner.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] 索引无效"));
       return false;
     }
     FlyingSwordStorage.RecalledSword recalled = list.get(index1 - 1);
@@ -651,8 +634,11 @@ public final class FlyingSwordSpawner {
   private static net.minecraft.world.entity.EntityType<FlyingSwordEntity> getEntityTypeForSwordType(
       FlyingSwordType swordType) {
     return switch (swordType) {
-      case ZHENG_DAO -> net.tigereye.chestcavity.registration.CCEntities.FLYING_SWORD_ZHENG_DAO.get();
-      case REN_SHOU_ZANG_SHENG -> net.tigereye.chestcavity.registration.CCEntities.FLYING_SWORD_REN_SHOU_ZANG_SHENG.get();
+      case ZHENG_DAO -> net.tigereye.chestcavity.registration.CCEntities.FLYING_SWORD_ZHENG_DAO
+          .get();
+      case REN_SHOU_ZANG_SHENG -> net.tigereye.chestcavity.registration.CCEntities
+          .FLYING_SWORD_REN_SHOU_ZANG_SHENG
+          .get();
       default -> net.tigereye.chestcavity.registration.CCEntities.FLYING_SWORD.get();
     };
   }

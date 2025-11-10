@@ -15,9 +15,9 @@ import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.SpellcasterIllager;
 import net.minecraft.world.entity.monster.warden.Warden;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Fireball;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.SmallFireball;
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.phys.AABB;
@@ -144,9 +144,7 @@ public final class TargetFinder {
     return nearest;
   }
 
-  /**
-   * 搜索低血量敌对实体（Assassin 使用）。
-   */
+  /** 搜索低血量敌对实体（Assassin 使用）。 */
   @Nullable
   public static LivingEntity findLowestHealthHostile(
       FlyingSwordEntity sword, Vec3 center, double range) {
@@ -198,12 +196,9 @@ public final class TargetFinder {
     return best;
   }
 
-  /**
-   * 查找“标记目标”：优先当前锁定，其次是主人最近攻击/被攻击的敌人。
-   */
+  /** 查找“标记目标”：优先当前锁定，其次是主人最近攻击/被攻击的敌人。 */
   @Nullable
-  public static LivingEntity findMarkedTarget(
-      FlyingSwordEntity sword, Vec3 center, double range) {
+  public static LivingEntity findMarkedTarget(FlyingSwordEntity sword, Vec3 center, double range) {
     LivingEntity owner = sword.getOwner();
     if (owner == null) {
       return null;
@@ -234,12 +229,9 @@ public final class TargetFinder {
     return null;
   }
 
-  /**
-   * 查找“断阵”目标：优先召唤物 / 防御装置 / 低移动护盾实体。
-   */
+  /** 查找“断阵”目标：优先召唤物 / 防御装置 / 低移动护盾实体。 */
   @Nullable
-  public static LivingEntity findBreakerTarget(
-      FlyingSwordEntity sword, Vec3 center, double range) {
+  public static LivingEntity findBreakerTarget(FlyingSwordEntity sword, Vec3 center, double range) {
     List<LivingEntity> hostiles = collectHostiles(sword, center, range);
     LivingEntity best = null;
     double bestScore = Double.NEGATIVE_INFINITY;
@@ -256,7 +248,9 @@ public final class TargetFinder {
         }
       }
 
-      if (living instanceof SpellcasterIllager || living instanceof Shulker || living instanceof Ghast) {
+      if (living instanceof SpellcasterIllager
+          || living instanceof Shulker
+          || living instanceof Ghast) {
         summonScore += 6.0;
       }
 
@@ -283,9 +277,7 @@ public final class TargetFinder {
     return best;
   }
 
-  /**
-   * 查找“高威胁近战”目标（放风筝用）。
-   */
+  /** 查找“高威胁近战”目标（放风筝用）。 */
   @Nullable
   public static LivingEntity findHighThreatMelee(
       FlyingSwordEntity sword, Vec3 center, double range) {
@@ -324,9 +316,7 @@ public final class TargetFinder {
     return best;
   }
 
-  /**
-   * 计算敌群中心（牧群/扫荡用）。
-   */
+  /** 计算敌群中心（牧群/扫荡用）。 */
   @Nullable
   public static Vec3 estimateHostileClusterCenter(
       FlyingSwordEntity sword, Vec3 center, double range) {
@@ -362,9 +352,7 @@ public final class TargetFinder {
     return bestCenter;
   }
 
-  /**
-   * 查找位于外域的威胁，用于穿域 Pivot。
-   */
+  /** 查找位于外域的威胁，用于穿域 Pivot。 */
   @Nullable
   public static LivingEntity findOuterThreat(
       FlyingSwordEntity sword, Vec3 center, double innerRadius, double maxRange) {
@@ -387,9 +375,7 @@ public final class TargetFinder {
     return best;
   }
 
-  /**
-   * 查找远程/施法目标用于压制。
-   */
+  /** 查找远程/施法目标用于压制。 */
   @Nullable
   public static LivingEntity findCasterOrChanneler(
       FlyingSwordEntity sword, Vec3 center, double range) {
@@ -402,7 +388,9 @@ public final class TargetFinder {
       double distanceScore = 5.0 / Math.max(1.0, distance);
 
       double casterScore = 0.0;
-      if (living instanceof SpellcasterIllager || living instanceof Ghast || living instanceof Blaze) {
+      if (living instanceof SpellcasterIllager
+          || living instanceof Ghast
+          || living instanceof Blaze) {
         casterScore = 10.0;
       }
       if (living instanceof Warden) {
@@ -425,9 +413,7 @@ public final class TargetFinder {
     return best;
   }
 
-  /**
-   * 搜索高速飞行或冲锋实体，用于拦截。
-   */
+  /** 搜索高速飞行或冲锋实体，用于拦截。 */
   @Nullable
   public static InterceptCandidate findInterceptCandidate(
       FlyingSwordEntity sword, Vec3 center, double range) {
@@ -453,7 +439,9 @@ public final class TargetFinder {
         double distance = projectile.position().distanceTo(center);
         double eta = distance / Math.max(0.001, speed);
         double score = speed * 6.0 + 8.0 / Math.max(1.0, distance) + Math.max(0.0, 1.2 - eta) * 4.0;
-        if (projectile instanceof Fireball || projectile instanceof SmallFireball || projectile instanceof ThrownTrident) {
+        if (projectile instanceof Fireball
+            || projectile instanceof SmallFireball
+            || projectile instanceof ThrownTrident) {
           score += 8.0;
         }
         Vec3 interceptPoint = projectile.position().add(velocity.scale(Math.min(eta, 1.5)));
@@ -480,9 +468,7 @@ public final class TargetFinder {
     return best;
   }
 
-  /**
-   * 收集范围内的敌对实体列表。
-   */
+  /** 收集范围内的敌对实体列表。 */
   private static List<LivingEntity> collectHostiles(
       FlyingSwordEntity sword, Vec3 center, double range) {
     List<LivingEntity> result = new ArrayList<>();

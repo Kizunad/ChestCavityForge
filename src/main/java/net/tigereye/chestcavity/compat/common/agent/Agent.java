@@ -15,10 +15,9 @@ import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 /**
  * 统一“行动体”抽象：面向玩家与非玩家生物（NPC/怪物）的一致读取/操作入口。
  *
- * <p>用法：
- * - 通过 {@link Agents#from(Entity)} 或 {@link Agents#of(LivingEntity)} 获取实例。
- * - 读取：{@link #living()}、{@link #asPlayer()}、{@link #chestCavity()}、{@link #serverTime()}。
- * - 资源：配合 {@link Agents#openResource(LivingEntity)} 与 {@link Agents} 中的静态 Ops 使用。
+ * <p>用法： - 通过 {@link Agents#from(Entity)} 或 {@link Agents#of(LivingEntity)} 获取实例。 - 读取：{@link
+ * #living()}、{@link #asPlayer()}、{@link #chestCavity()}、{@link #serverTime()}。 - 资源：配合 {@link
+ * Agents#openResource(LivingEntity)} 与 {@link Agents} 中的静态 Ops 使用。
  */
 public final class Agent {
 
@@ -64,8 +63,8 @@ public final class Agent {
   }
 
   /** 快捷：获取属性实例（可能为 null）。 */
-  public AttributeInstance getAttribute(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr) {
+  public AttributeInstance getAttribute(
+      net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr) {
     return living.getAttribute(attr);
   }
 }
-

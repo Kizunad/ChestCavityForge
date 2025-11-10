@@ -2,23 +2,23 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.impl;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventHook;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.*;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX;
 
 /**
  * 默认事件钩子实现
  *
  * <p>包含核心逻辑：
+ *
  * <ul>
- *   <li>受击折返/虚弱</li>
- *   <li>消散时回写物品NBT</li>
- *   <li>其他示例钩子</li>
+ *   <li>受击折返/虚弱
+ *   <li>消散时回写物品NBT
+ *   <li>其他示例钩子
  * </ul>
  *
  * <p>这个钩子会在模组初始化时自动注册。
@@ -35,9 +35,7 @@ public class DefaultEventHooks implements FlyingSwordEventHook {
   public void onSpawn(SpawnContext ctx) {
     // 示例：生成时记录日志
     ChestCavity.LOGGER.debug(
-        "[FlyingSword] Spawned sword for {} at {}",
-        ctx.owner.getName().getString(),
-        ctx.spawnPos);
+        "[FlyingSword] Spawned sword for {} at {}", ctx.owner.getName().getString(), ctx.spawnPos);
   }
 
   @Override
@@ -140,9 +138,7 @@ public class DefaultEventHooks implements FlyingSwordEventHook {
     }
 
     ChestCavity.LOGGER.debug(
-        "[FlyingSword] Despawning sword: reason={}, prevented={}",
-        ctx.reason,
-        ctx.preventDespawn);
+        "[FlyingSword] Despawning sword: reason={}, prevented={}", ctx.reason, ctx.preventDespawn);
   }
 
   @Override
@@ -208,9 +204,7 @@ public class DefaultEventHooks implements FlyingSwordEventHook {
         "[FlyingSword] Applied weakened state to sword {} for {} ticks", sword.getId(), duration);
   }
 
-  /**
-   * 检查飞剑是否处于虚弱状态
-   */
+  /** 检查飞剑是否处于虚弱状态 */
   public static boolean isWeakened(FlyingSwordEntity sword) {
     CompoundTag nbt = new CompoundTag();
     sword.saveWithoutId(nbt);

@@ -14,9 +14,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_
 import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**
- * Command handler for WuxingHuaHen configuration.
- * Usage: /wuxing_config element <jin|mu|shui|yan|tu>
- *        /wuxing_config mode <all|ratio_25|ratio_50|ratio_100|fixed_10|fixed_25|fixed_50|fixed_100>
+ * Command handler for WuxingHuaHen configuration. Usage: /wuxing_config element
+ * <jin|mu|shui|yan|tu> /wuxing_config mode
+ * <all|ratio_25|ratio_50|ratio_100|fixed_10|fixed_25|fixed_50|fixed_100>
  */
 public final class WuxingConfigCommand {
 
@@ -73,7 +73,9 @@ public final class WuxingConfigCommand {
     if (mode == null) {
       player.sendSystemMessage(
           Component.literal(
-              "§c无效的模式：" + value + " (可选: all, ratio_25, ratio_50, ratio_100, fixed_10, fixed_25, fixed_50, fixed_100)"));
+              "§c无效的模式："
+                  + value
+                  + " (可选: all, ratio_25, ratio_50, ratio_100, fixed_10, fixed_25, fixed_50, fixed_100)"));
       return 0;
     }
 

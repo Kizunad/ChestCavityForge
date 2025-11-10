@@ -5,9 +5,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 
-/**
- * 飞剑Tick事件上下文
- */
+/** 飞剑Tick事件上下文 */
 public class TickContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;

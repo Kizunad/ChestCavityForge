@@ -32,8 +32,7 @@ public final class FlyingSwordEventInit {
 
     // 注册飞剑碰撞反推钩子
     FlyingSwordEventRegistry.register(
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.hooks
-            .SwordClashHook());
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.hooks.SwordClashHook());
 
     // 注册剑影蛊分身（飞剑版）钩子
     FlyingSwordEventRegistry.register(

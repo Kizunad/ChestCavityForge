@@ -6,9 +6,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 飞剑破坏方块事件上下文
- */
+/** 飞剑破坏方块事件上下文 */
 public class BlockBreakContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;

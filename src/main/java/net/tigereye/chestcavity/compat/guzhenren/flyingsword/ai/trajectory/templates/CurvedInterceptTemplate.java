@@ -8,9 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSn
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringCommand;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
 
-/**
- * 曲线拦截模板：在直线提前量基础上加入侧向摆动，兼顾平滑转向与截击。
- */
+/** 曲线拦截模板：在直线提前量基础上加入侧向摆动，兼顾平滑转向与截击。 */
 public final class CurvedInterceptTemplate implements SteeringTemplate {
 
   private static final double CURVE_ALPHA_MIN = 0.0;
@@ -23,8 +21,7 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
   private static final double SWEEP_MAGNETUDE = 1.0;
 
   @Override
-  public SteeringCommand compute(
-      AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
+  public SteeringCommand compute(AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
     Vec3 intercept = calculateInterceptPoint(ctx, intent);
     Vec3 toIntercept = intercept.subtract(ctx.sword().position());
     if (toIntercept.lengthSqr() < 1.0e-6) {
@@ -38,10 +35,8 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
     double distance = toIntercept.length();
     double curvature = computeCurvature(distance, intent);
     double speedRatio = computeSpeedRatio(ctx, snapshot);
-    double steeringAngle =
-        computeSteeringAngle(ctx, forward, blended, curvature, speedRatio);
-    Vec3 desiredDir =
-        composeDesiredDirection(blended, lateral, steeringAngle, forward);
+    double steeringAngle = computeSteeringAngle(ctx, forward, blended, curvature, speedRatio);
+    Vec3 desiredDir = composeDesiredDirection(blended, lateral, steeringAngle, forward);
 
     double speedScale = computeSpeedScale(intent, snapshot);
     TurnParams p = computeDynamicTurnParams(speedRatio, curvature, intent);
@@ -195,13 +190,9 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
             turnMax,
             turnBase + turnSpeedGain * speedRatio + turnCurvatureGain * curvature);
     double headingKp =
-        clamp(
-            kpMin,
-            kpMax,
-            kpBase + kpSpeedGain * speedRatio + kpCurvatureGain * curvature);
+        clamp(kpMin, kpMax, kpBase + kpSpeedGain * speedRatio + kpCurvatureGain * curvature);
     double minFloor = clamp(floorMin, floorMax, floorBase + floorSpeedGain * speedRatio);
-    double accelMul =
-        clamp(accelMin, accelMax, accelBase + accelSpeedGain * (1.0 - speedRatio));
+    double accelMul = clamp(accelMin, accelMax, accelBase + accelSpeedGain * (1.0 - speedRatio));
     turnPerTick = getOrDefault(intent, "turn_pt", turnPerTick);
     headingKp = getOrDefault(intent, "heading_kp", headingKp);
     minFloor = getOrDefault(intent, "turn_floor", minFloor);
@@ -214,6 +205,7 @@ public final class CurvedInterceptTemplate implements SteeringTemplate {
     final double headingKp;
     final double minFloor;
     final double accelMul;
+
     TurnParams(double t, double k, double f, double a) {
       this.turnPerTick = t;
       this.headingKp = k;

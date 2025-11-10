@@ -11,10 +11,12 @@ public final class CurvedInterceptTrajectory implements Trajectory {
   public Vec3 computeDesiredVelocity(AIContext ctx, IntentResult intent) {
     var sword = ctx.sword();
 
-    Vec3 intercept = intent.getTargetEntity()
-        .map(e -> e.position().add(e.getDeltaMovement().normalize().scale(0.5)))
-        .or(() -> intent.getTargetPos())
-        .orElse(sword.position());
+    Vec3 intercept =
+        intent
+            .getTargetEntity()
+            .map(e -> e.position().add(e.getDeltaMovement().normalize().scale(0.5)))
+            .or(() -> intent.getTargetPos())
+            .orElse(sword.position());
 
     Vec3 toIntercept = intercept.subtract(sword.position());
     double distance = toIntercept.length();

@@ -8,9 +8,23 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.
 
 /** 数据驱动的飞剑视觉配置（新一代 Profile）。 */
 public final class SwordVisualProfile {
-  public enum RendererKind { ITEM, GECKO }
-  public enum AlignMode { VELOCITY, TARGET, OWNER, NONE }
-  public enum GlintMode { INHERIT, FORCE_ON, FORCE_OFF }
+  public enum RendererKind {
+    ITEM,
+    GECKO
+  }
+
+  public enum AlignMode {
+    VELOCITY,
+    TARGET,
+    OWNER,
+    NONE
+  }
+
+  public enum GlintMode {
+    INHERIT,
+    FORCE_ON,
+    FORCE_OFF
+  }
 
   public final String key;
   public final boolean enabled;
@@ -66,7 +80,8 @@ public final class SwordVisualProfile {
     this.orientationMode = orientationMode != null ? orientationMode : OrientationMode.BASIS;
     this.upMode = upMode != null ? upMode : UpMode.WORLD_Y;
     this.glint = glint;
-    this.matchModelKeys = matchModelKeys == null ? List.of() : Collections.unmodifiableList(matchModelKeys);
+    this.matchModelKeys =
+        matchModelKeys == null ? List.of() : Collections.unmodifiableList(matchModelKeys);
   }
 
   // 便捷默认
@@ -89,4 +104,3 @@ public final class SwordVisualProfile {
         List.of(key));
   }
 }
-

@@ -10,10 +10,10 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Traje
  *
  * <p><b>Phase 7: 软删除标记（Soft Deletion Mark）</b> - 高级轨迹
  *
- * <p>本轨迹仅在 {@code ENABLE_ADVANCED_TRAJECTORIES=true} 时注册启用。
- * 默认配置下不会被加载，实现零性能开销。
+ * <p>本轨迹仅在 {@code ENABLE_ADVANCED_TRAJECTORIES=true} 时注册启用。 默认配置下不会被加载，实现零性能开销。
  *
- * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES
+ * @see
+ *     net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_ADVANCED_TRAJECTORIES
  * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Trajectories
  */
 public final class DomainEdgePatrolTrajectory implements Trajectory {
@@ -34,4 +34,3 @@ public final class DomainEdgePatrolTrajectory implements Trajectory {
     return desired.normalize().scale(speed);
   }
 }
-

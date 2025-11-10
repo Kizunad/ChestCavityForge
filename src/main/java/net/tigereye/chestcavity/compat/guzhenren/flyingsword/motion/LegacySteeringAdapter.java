@@ -2,9 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion;
 
 import net.minecraft.world.phys.Vec3;
 
-/**
- * 针对旧逻辑返回“原始速度向量”的适配器，将其转换为 {@link SteeringCommand}。
- */
+/** 针对旧逻辑返回“原始速度向量”的适配器，将其转换为 {@link SteeringCommand}。 */
 public final class LegacySteeringAdapter {
 
   private static final double EPS = 1.0e-6;

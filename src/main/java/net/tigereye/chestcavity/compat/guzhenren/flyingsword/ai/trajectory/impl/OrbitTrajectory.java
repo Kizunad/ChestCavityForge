@@ -6,9 +6,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Trajectory;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 简化的环绕轨迹：基于 Owner 与当前相对向量生成切向速度。
- */
+/** 简化的环绕轨迹：基于 Owner 与当前相对向量生成切向速度。 */
 public final class OrbitTrajectory implements Trajectory {
   @Override
   public Vec3 computeDesiredVelocity(AIContext ctx, IntentResult intent) {
@@ -22,15 +20,25 @@ public final class OrbitTrajectory implements Trajectory {
     double tolerance = FlyingSwordAITuning.ORBIT_DISTANCE_TOLERANCE;
 
     if (distance > targetDistance + tolerance) {
-      return toOwner.normalize().scale(sword.getSwordAttributes().speedBase * FlyingSwordAITuning.ORBIT_APPROACH_SPEED_FACTOR);
+      return toOwner
+          .normalize()
+          .scale(
+              sword.getSwordAttributes().speedBase
+                  * FlyingSwordAITuning.ORBIT_APPROACH_SPEED_FACTOR);
     } else if (distance < targetDistance - tolerance) {
-      return toOwner.normalize().scale(-sword.getSwordAttributes().speedBase * FlyingSwordAITuning.ORBIT_RETREAT_SPEED_FACTOR);
+      return toOwner
+          .normalize()
+          .scale(
+              -sword.getSwordAttributes().speedBase
+                  * FlyingSwordAITuning.ORBIT_RETREAT_SPEED_FACTOR);
     }
 
     Vec3 tangent = new Vec3(-toOwner.z, 0, toOwner.x).normalize();
     Vec3 radial = toOwner.normalize().scale(-FlyingSwordAITuning.ORBIT_RADIAL_PULL_IN);
-    return tangent.add(radial).normalize().scale(
-        sword.getSwordAttributes().speedBase * FlyingSwordAITuning.ORBIT_TANGENT_SPEED_FACTOR);
+    return tangent
+        .add(radial)
+        .normalize()
+        .scale(
+            sword.getSwordAttributes().speedBase * FlyingSwordAITuning.ORBIT_TANGENT_SPEED_FACTOR);
   }
 }
-

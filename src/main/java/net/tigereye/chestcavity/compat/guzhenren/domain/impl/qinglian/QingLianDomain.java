@@ -43,8 +43,7 @@ public class QingLianDomain extends AbstractDomain {
   private final double radiusScale;
 
   /** 青莲剑群集群管理器 */
-  private final net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm
-          .QingLianSwordSwarm
+  private final net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm.QingLianSwordSwarm
       swarmManager;
 
   /** 上次粒子特效tick */
@@ -58,6 +57,7 @@ public class QingLianDomain extends AbstractDomain {
 
   /** 同步间隔（tick） */
   private static final int SYNC_INTERVAL = 20; // 每秒同步一次
+
   /** 标签同步间隔（tick） */
   private static final int TAG_SYNC_INTERVAL = 20; // 每秒执行一次标签进入/离开判定
 
@@ -75,8 +75,8 @@ public class QingLianDomain extends AbstractDomain {
 
     // 初始化集群管理器
     this.swarmManager =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm
-            .QingLianSwordSwarm(getDomainId(), owner);
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm.QingLianSwordSwarm(
+            getDomainId(), owner);
   }
 
   @Override
@@ -107,7 +107,8 @@ public class QingLianDomain extends AbstractDomain {
     }
 
     // Phase 1: 集群AI管理器tick（功能开关控制）
-    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_SWARM) {
+    if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+        .ENABLE_SWARM) {
       swarmManager.tick();
     }
 
@@ -152,16 +153,10 @@ public class QingLianDomain extends AbstractDomain {
             false));
 
     // 跳跃增幅（+30% → 药水等级2-3）
-    int jumpLevel =
-        Math.max(0, (int) Math.round(QingLianDomainTuning.FRIENDLY_JUMP_MULT * 10) - 1);
+    int jumpLevel = Math.max(0, (int) Math.round(QingLianDomainTuning.FRIENDLY_JUMP_MULT * 10) - 1);
     entity.addEffect(
         new MobEffectInstance(
-            MobEffects.JUMP,
-            QingLianDomainTuning.EFFECT_DURATION,
-            jumpLevel,
-            false,
-            false,
-            false));
+            MobEffects.JUMP, QingLianDomainTuning.EFFECT_DURATION, jumpLevel, false, false, false));
 
     // 呼吸恢复加成（精力恢复）
     double regenAmount = QingLianDomainTuning.FRIENDLY_BREATHING_REGEN / 20.0; // 每tick
@@ -177,8 +172,7 @@ public class QingLianDomain extends AbstractDomain {
     if (owner != null && owner.level() instanceof ServerLevel serverLevel) {
       // 标签清理：将附近实体上属于本领域主人的标签移除
       var cleanupBounds = getBounds().inflate(8.0);
-      var maybeTagged =
-          serverLevel.getEntitiesOfClass(LivingEntity.class, cleanupBounds);
+      var maybeTagged = serverLevel.getEntitiesOfClass(LivingEntity.class, cleanupBounds);
       for (var e : maybeTagged) {
         java.util.UUID tagOwner =
             net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.getSwordDomainOwner(e);
@@ -193,8 +187,8 @@ public class QingLianDomain extends AbstractDomain {
       net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload removePayload =
           new net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload(
               getDomainId());
-      net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainNetworkHandler.sendDomainRemove(
-          removePayload, getCenter(), serverLevel);
+      net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainNetworkHandler
+          .sendDomainRemove(removePayload, getCenter(), serverLevel);
     }
   }
 
@@ -231,8 +225,7 @@ public class QingLianDomain extends AbstractDomain {
 
   @Override
   public ResourceLocation getTexturePath() {
-    return ResourceLocation.fromNamespaceAndPath(
-        "guzhenren", QingLianDomainTuning.TEXTURE_PATH);
+    return ResourceLocation.fromNamespaceAndPath("guzhenren", QingLianDomainTuning.TEXTURE_PATH);
   }
 
   @Override
@@ -255,8 +248,7 @@ public class QingLianDomain extends AbstractDomain {
    *
    * @return 集群管理器
    */
-  public net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm
-          .QingLianSwordSwarm
+  public net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.swarm.QingLianSwordSwarm
       getSwarmManager() {
     return swarmManager;
   }

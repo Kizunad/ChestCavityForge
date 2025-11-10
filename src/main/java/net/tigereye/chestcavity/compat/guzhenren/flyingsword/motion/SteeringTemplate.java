@@ -6,8 +6,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 /**
  * 统一的转向模板接口。
  *
- * <p>轨迹/行为实现者只需关注如何产出 {@link SteeringCommand}，其余运动学细节由
- * {@link SteeringOps} 处理。
+ * <p>轨迹/行为实现者只需关注如何产出 {@link SteeringCommand}，其余运动学细节由 {@link SteeringOps} 处理。
  */
 public interface SteeringTemplate {
 
@@ -30,9 +29,7 @@ public interface SteeringTemplate {
     return SpeedUnit.BASE;
   }
 
-  /**
-   * 是否启用默认分离力。
-   */
+  /** 是否启用默认分离力。 */
   default boolean enableSeparation() {
     return true;
   }
@@ -46,9 +43,7 @@ public interface SteeringTemplate {
     return null;
   }
 
-  /**
-   * 速度倍率单位。
-   */
+  /** 速度倍率单位。 */
   enum SpeedUnit {
     BASE,
     MAX

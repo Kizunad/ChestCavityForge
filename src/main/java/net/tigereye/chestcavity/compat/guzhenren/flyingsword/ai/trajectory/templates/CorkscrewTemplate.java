@@ -8,14 +8,11 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSn
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringCommand;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
 
-/**
- * 螺旋逼近模板：根据目标距离调整半径与速度。
- */
+/** 螺旋逼近模板：根据目标距离调整半径与速度。 */
 public final class CorkscrewTemplate implements SteeringTemplate {
 
   @Override
-  public SteeringCommand compute(
-      AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
+  public SteeringCommand compute(AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
     Vec3 targetPos =
         intent
             .getTargetEntity()

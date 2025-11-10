@@ -5,9 +5,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 飞剑交互事件上下文
- */
+/** 飞剑交互事件上下文 */
 public class InteractContext {
   public final FlyingSwordEntity sword;
   public final Player interactor;

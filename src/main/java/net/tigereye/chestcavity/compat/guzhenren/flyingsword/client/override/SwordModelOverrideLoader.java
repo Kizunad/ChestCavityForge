@@ -48,23 +48,36 @@ public final class SwordModelOverrideLoader extends SimpleJsonResourceReloadList
             RendererKind renderer =
                 parseRenderer(GsonHelper.getAsString(json, "renderer", "gecko"));
 
-            ResourceLocation model = json.has("model") ? ResourceLocation.parse(GsonHelper.getAsString(json, "model")) : null;
+            ResourceLocation model =
+                json.has("model")
+                    ? ResourceLocation.parse(GsonHelper.getAsString(json, "model"))
+                    : null;
             java.util.List<ResourceLocation> textures = new java.util.ArrayList<>();
             if (json.has("textures") && json.get("textures").isJsonArray()) {
               for (var e : json.getAsJsonArray("textures")) {
                 textures.add(ResourceLocation.parse(e.getAsString()));
               }
             }
-            ResourceLocation texture = json.has("texture") ? ResourceLocation.parse(GsonHelper.getAsString(json, "texture")) : null;
-            ResourceLocation animation = json.has("animation") ? ResourceLocation.parse(GsonHelper.getAsString(json, "animation")) : null;
-            ResourceLocation displayItem = json.has("display_item") ? ResourceLocation.parse(GsonHelper.getAsString(json, "display_item")) : null;
+            ResourceLocation texture =
+                json.has("texture")
+                    ? ResourceLocation.parse(GsonHelper.getAsString(json, "texture"))
+                    : null;
+            ResourceLocation animation =
+                json.has("animation")
+                    ? ResourceLocation.parse(GsonHelper.getAsString(json, "animation"))
+                    : null;
+            ResourceLocation displayItem =
+                json.has("display_item")
+                    ? ResourceLocation.parse(GsonHelper.getAsString(json, "display_item"))
+                    : null;
 
             AlignMode align = parseAlign(GsonHelper.getAsString(json, "align", "velocity"));
             float preRoll = GsonHelper.getAsFloat(json, "pre_roll", -45.0F);
             float yawOffset = GsonHelper.getAsFloat(json, "yaw_offset", -90.0F);
             float pitchOffset = GsonHelper.getAsFloat(json, "pitch_offset", 0.0F);
             float scale = GsonHelper.getAsFloat(json, "scale", 1.0F);
-            OrientationMode orientationMode = parseOrientationMode(GsonHelper.getAsString(json, "orientation_mode", "basis"));
+            OrientationMode orientationMode =
+                parseOrientationMode(GsonHelper.getAsString(json, "orientation_mode", "basis"));
             UpMode upMode = parseUpMode(GsonHelper.getAsString(json, "up_mode", "world_y"));
 
             SwordModelOverrideDef def;
@@ -106,17 +119,16 @@ public final class SwordModelOverrideLoader extends SimpleJsonResourceReloadList
                 f2.setAccessible(true);
                 f1.set(def, orientationMode);
                 f2.set(def, upMode);
-              } catch (Exception ignored) {}
+              } catch (Exception ignored) {
+              }
             }
             collected.put(key, def);
           } catch (Exception ex) {
-            ChestCavity.LOGGER.error(
-                "[SwordModelOverride] Failed to parse definition {}", id, ex);
+            ChestCavity.LOGGER.error("[SwordModelOverride] Failed to parse definition {}", id, ex);
           }
         });
     SwordModelOverrideRegistry.replaceAll(collected);
-    ChestCavity.LOGGER.info(
-        "[SwordModelOverride] Loaded {} overrides", collected.size());
+    ChestCavity.LOGGER.info("[SwordModelOverride] Loaded {} overrides", collected.size());
   }
 
   private static RendererKind parseRenderer(String raw) {

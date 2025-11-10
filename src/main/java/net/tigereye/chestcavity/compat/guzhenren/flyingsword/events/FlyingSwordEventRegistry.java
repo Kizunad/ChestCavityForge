@@ -11,6 +11,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.*;
  * <p>线程安全的钩子管理器，支持动态注册和注销。
  *
  * <p>使用示例：
+ *
  * <pre>{@code
  * // 注册钩子
  * FlyingSwordEventRegistry.register(new MyCustomHook());
@@ -67,18 +68,14 @@ public final class FlyingSwordEventRegistry {
     }
   }
 
-  /**
-   * 获取所有已注册的钩子（只读副本）
-   */
+  /** 获取所有已注册的钩子（只读副本） */
   public static List<FlyingSwordEventHook> getHooks() {
     synchronized (lock) {
       return new ArrayList<>(hooks);
     }
   }
 
-  /**
-   * 清空所有钩子（谨慎使用）
-   */
+  /** 清空所有钩子（谨慎使用） */
   public static void clear() {
     synchronized (lock) {
       hooks.clear();
@@ -165,9 +162,7 @@ public final class FlyingSwordEventRegistry {
         if (ctx.preventDespawn) break;
       } catch (Exception e) {
         ChestCavity.LOGGER.error(
-            "[FlyingSwordEvent] Error in onDespawnOrRecall hook: {}",
-            hook.getClass().getName(),
-            e);
+            "[FlyingSwordEvent] Error in onDespawnOrRecall hook: {}", hook.getClass().getName(), e);
       }
     }
   }
@@ -252,9 +247,7 @@ public final class FlyingSwordEventRegistry {
         if (ctx.cancelled) break;
       } catch (Exception e) {
         ChestCavity.LOGGER.error(
-            "[FlyingSwordEvent] Error in onExperienceGain hook: {}",
-            hook.getClass().getName(),
-            e);
+            "[FlyingSwordEvent] Error in onExperienceGain hook: {}", hook.getClass().getName(), e);
       }
     }
   }

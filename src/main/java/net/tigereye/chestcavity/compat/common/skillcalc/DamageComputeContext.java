@@ -34,14 +34,33 @@ public final class DamageComputeContext {
     this.kinds = kinds == null ? EnumSet.noneOf(DamageKind.class) : kinds.clone();
   }
 
-  public Agent attacker() { return attacker; }
-  public Agent defender() { return defender; }
-  public double baseDamage() { return baseDamage; }
-  public ResourceLocation skillId() { return skillId; }
-  public long castId() { return castId; }
-  public Set<DamageKind> kinds() { return Collections.unmodifiableSet(kinds); }
+  public Agent attacker() {
+    return attacker;
+  }
 
-  public boolean kind(DamageKind k) { return kinds.contains(k); }
+  public Agent defender() {
+    return defender;
+  }
+
+  public double baseDamage() {
+    return baseDamage;
+  }
+
+  public ResourceLocation skillId() {
+    return skillId;
+  }
+
+  public long castId() {
+    return castId;
+  }
+
+  public Set<DamageKind> kinds() {
+    return Collections.unmodifiableSet(kinds);
+  }
+
+  public boolean kind(DamageKind k) {
+    return kinds.contains(k);
+  }
 
   public static Builder builder(LivingEntity attacker, double baseDamage) {
     return new Builder(attacker, baseDamage);
@@ -65,13 +84,23 @@ public final class DamageComputeContext {
       return this;
     }
 
-    public Builder skill(ResourceLocation id) { this.skillId = id; return this; }
-    public Builder cast(long castId) { this.castId = castId; return this; }
-    public Builder addKind(DamageKind k) { if (k != null) kinds.add(k); return this; }
+    public Builder skill(ResourceLocation id) {
+      this.skillId = id;
+      return this;
+    }
+
+    public Builder cast(long castId) {
+      this.castId = castId;
+      return this;
+    }
+
+    public Builder addKind(DamageKind k) {
+      if (k != null) kinds.add(k);
+      return this;
+    }
 
     public DamageComputeContext build() {
       return new DamageComputeContext(attacker, defender, baseDamage, skillId, castId, kinds);
     }
   }
 }
-

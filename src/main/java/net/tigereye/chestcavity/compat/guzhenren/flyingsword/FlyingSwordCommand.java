@@ -7,8 +7,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -21,21 +21,21 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter;
 
 /**
  * 飞剑命令系统
  *
  * <p>命令列表：
+ *
  * <ul>
- *   <li>/flyingsword spawn [count] - 召唤飞剑</li>
- *   <li>/flyingsword test spawn - 测试召唤（带调试信息）</li>
- *   <li>/flyingsword recall - 召回所有飞剑</li>
- *   <li>/flyingsword mode <orbit|guard|hunt> - 切换AI模式</li>
- *   <li>/flyingsword status - 查看状态</li>
- *   <li>/flyingsword list - 列出所有飞剑</li>
- *   <li>/flyingsword clear - 清除所有飞剑目标</li>
+ *   <li>/flyingsword spawn [count] - 召唤飞剑
+ *   <li>/flyingsword test spawn - 测试召唤（带调试信息）
+ *   <li>/flyingsword recall - 召回所有飞剑
+ *   <li>/flyingsword mode <orbit|guard|hunt> - 切换AI模式
+ *   <li>/flyingsword status - 查看状态
+ *   <li>/flyingsword list - 列出所有飞剑
+ *   <li>/flyingsword clear - 清除所有飞剑目标
  * </ul>
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
@@ -50,14 +50,16 @@ public final class FlyingSwordCommand {
         Commands.literal("flyingsword")
             // /flyingsword spawn [count]
             .then(
-                Commands.literal("spawn").requires(src -> src.hasPermission(2))
+                Commands.literal("spawn")
+                    .requires(src -> src.hasPermission(2))
                     .executes(FlyingSwordCommand::spawnOne)
                     .then(
                         Commands.argument("count", IntegerArgumentType.integer(1, 10))
                             .executes(FlyingSwordCommand::spawnMultiple)))
             // /flyingsword test spawn
             .then(
-                Commands.literal("test").requires(src -> src.hasPermission(2))
+                Commands.literal("test")
+                    .requires(src -> src.hasPermission(2))
                     .then(Commands.literal("spawn").executes(FlyingSwordCommand::testSpawn)))
             // /flyingsword recall
             .then(Commands.literal("recall").executes(FlyingSwordCommand::recallAll))
@@ -142,15 +144,12 @@ public final class FlyingSwordCommand {
                     .then(
                         Commands.literal("index")
                             .then(
-                                Commands.argument(
-                                        "index", IntegerArgumentType.integer(1, 999))
+                                Commands.argument("index", IntegerArgumentType.integer(1, 999))
                                     .executes(FlyingSwordCommand::selectByIndex)))
                     .then(Commands.literal("clear").executes(FlyingSwordCommand::clearSelection))
                     .then(Commands.literal("show").executes(FlyingSwordCommand::showSelection)))
             // /flyingsword recall_selected
-            .then(
-                Commands.literal("recall_selected")
-                    .executes(FlyingSwordCommand::recallSelected))
+            .then(Commands.literal("recall_selected").executes(FlyingSwordCommand::recallSelected))
             // /flyingsword mode_selected <orbit|guard|hunt|hover>
             .then(
                 Commands.literal("mode_selected")
@@ -180,7 +179,8 @@ public final class FlyingSwordCommand {
                             .then(
                                 Commands.argument(
                                         "group",
-                                        IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
+                                        IntegerArgumentType.integer(
+                                            0, FlyingSwordEntity.SWARM_GROUP_ID))
                                     .executes(FlyingSwordCommand::setGroupByIndex))))
             .then(
                 Commands.literal("group_all")
@@ -253,7 +253,8 @@ public final class FlyingSwordCommand {
                             .then(
                                 Commands.argument(
                                         "group",
-                                        IntegerArgumentType.integer(0, FlyingSwordEntity.SWARM_GROUP_ID))
+                                        IntegerArgumentType.integer(
+                                            0, FlyingSwordEntity.SWARM_GROUP_ID))
                                     .executes(FlyingSwordCommand::setGroupById)
                                     .then(
                                         Commands.argument("sid", StringArgumentType.word())
@@ -332,8 +333,7 @@ public final class FlyingSwordCommand {
     StringBuilder debugInfo = new StringBuilder();
 
     for (int i = 0; i < count; i++) {
-      FlyingSwordEntity sword =
-          FlyingSwordSpawner.spawnFromOwner(level, player, sourceStack);
+      FlyingSwordEntity sword = FlyingSwordSpawner.spawnFromOwner(level, player, sourceStack);
 
       if (sword != null) {
         successCount++;
@@ -341,14 +341,19 @@ public final class FlyingSwordCommand {
         if (debug) {
           debugInfo
               .append(String.format("\n[Sword #%d]", i + 1))
-              .append(String.format("\n  Position: %.2f, %.2f, %.2f",
-                  sword.getX(), sword.getY(), sword.getZ()))
+              .append(
+                  String.format(
+                      "\n  Position: %.2f, %.2f, %.2f", sword.getX(), sword.getY(), sword.getZ()))
               .append(String.format("\n  Attributes:"))
               .append(String.format("\n    Damage: %.2f", sword.getSwordAttributes().damageBase))
-              .append(String.format("\n    Speed: %.2f/%.2f",
-                  sword.getSwordAttributes().speedBase, sword.getSwordAttributes().speedMax))
-              .append(String.format("\n    Durability: %.1f/%.1f",
-                  sword.getDurability(), sword.getSwordAttributes().maxDurability))
+              .append(
+                  String.format(
+                      "\n    Speed: %.2f/%.2f",
+                      sword.getSwordAttributes().speedBase, sword.getSwordAttributes().speedMax))
+              .append(
+                  String.format(
+                      "\n    Durability: %.1f/%.1f",
+                      sword.getDurability(), sword.getSwordAttributes().maxDurability))
               .append(String.format("\n    Tool Tier: %d", sword.getSwordAttributes().toolTier))
               .append(String.format("\n  State:"))
               .append(String.format("\n    Level: %d", sword.getSwordLevel()))
@@ -433,8 +438,8 @@ public final class FlyingSwordCommand {
     ServerLevel level = player.serverLevel();
     int index = IntegerArgumentType.getInteger(ctx, "index");
     boolean ok =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword
-            .FlyingSwordSpawner.restoreOne(level, player, index);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordSpawner.restoreOne(
+            level, player, index);
     if (ok) {
       ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Restored one"), true);
       return 1;
@@ -443,8 +448,7 @@ public final class FlyingSwordCommand {
     return 0;
   }
 
-  private static int setMode(CommandContext<CommandSourceStack> ctx)
-      throws CommandSyntaxException {
+  private static int setMode(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     ServerLevel level = player.serverLevel();
 
@@ -457,7 +461,8 @@ public final class FlyingSwordCommand {
           .sendFailure(
               Component.literal(
                   String.format(
-                      "[flyingsword] Invalid mode: %s (valid: orbit, guard, hunt, hover)", modeStr)));
+                      "[flyingsword] Invalid mode: %s (valid: orbit, guard, hunt, hover)",
+                      modeStr)));
       return 0;
     }
 
@@ -488,14 +493,12 @@ public final class FlyingSwordCommand {
     List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
 
     if (swords.isEmpty()) {
-      ctx.getSource()
-          .sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
+      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
       return 0;
     }
 
     StringBuilder status = new StringBuilder();
-    status.append(
-        String.format(Locale.ROOT, "[flyingsword] Total: %d sword(s)\n", swords.size()));
+    status.append(String.format(Locale.ROOT, "[flyingsword] Total: %d sword(s)\n", swords.size()));
 
     for (int i = 0; i < swords.size(); i++) {
       FlyingSwordEntity sword = swords.get(i);
@@ -504,14 +507,13 @@ public final class FlyingSwordCommand {
       status.append(String.format(" [%s]", sword.getAIMode().getDisplayName()));
       status.append(
           String.format(
-              " Dur:%.0f/%.0f",
-              sword.getDurability(), sword.getSwordAttributes().maxDurability));
+              " Dur:%.0f/%.0f", sword.getDurability(), sword.getSwordAttributes().maxDurability));
       status.append(
           String.format(
               " Exp:%d/%d",
               sword.getExperience(),
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-                  .FlyingSwordCalculator.calculateExpToNext(sword.getSwordLevel())));
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+                  .calculateExpToNext(sword.getSwordLevel())));
       status.append(String.format(" Speed:%.2f", sword.getCurrentSpeed()));
 
       // 距离信息
@@ -533,8 +535,7 @@ public final class FlyingSwordCommand {
     List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
 
     if (swords.isEmpty()) {
-      ctx.getSource()
-          .sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
+      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
       return 0;
     }
 
@@ -548,13 +549,11 @@ public final class FlyingSwordCommand {
       list.append(String.format(" | Mode: %s", sword.getAIMode().getDisplayName()));
       list.append(
           String.format(
-              " | Position: (%.1f, %.1f, %.1f)",
-              sword.getX(), sword.getY(), sword.getZ()));
+              " | Position: (%.1f, %.1f, %.1f)", sword.getX(), sword.getY(), sword.getZ()));
       list.append(String.format(" | Distance: %.1fm", sword.distanceTo(player)));
 
       if (sword.getTargetEntity() != null) {
-        list.append(
-            String.format(" | Target: %s", sword.getTargetEntity().getName().getString()));
+        list.append(String.format(" | Target: %s", sword.getTargetEntity().getName().getString()));
       }
     }
 
@@ -589,8 +588,8 @@ public final class FlyingSwordCommand {
     ServerLevel level = player.serverLevel();
     int index = IntegerArgumentType.getInteger(ctx, "index");
     boolean ok =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword
-            .FlyingSwordController.recallByIndex(level, player, index);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController.recallByIndex(
+            level, player, index);
     if (ok) {
       ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Recalled one"), true);
       refreshActiveView(player);
@@ -606,12 +605,10 @@ public final class FlyingSwordCommand {
     ServerLevel level = player.serverLevel();
     int index = IntegerArgumentType.getInteger(ctx, "index");
     String modeStr = StringArgumentType.getString(ctx, "mode");
-    var mode =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode
-            .fromId(modeStr);
+    var mode = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode.fromId(modeStr);
     boolean ok =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword
-            .FlyingSwordController.setModeByIndex(level, player, index, mode);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController.setModeByIndex(
+            level, player, index, mode);
     if (ok) {
       ctx.getSource()
           .sendSuccess(
@@ -620,7 +617,8 @@ public final class FlyingSwordCommand {
                       String.format(
                           java.util.Locale.ROOT,
                           "[flyingsword] Sword #%d set to mode: %s",
-                          index, mode.getDisplayName())),
+                          index,
+                          mode.getDisplayName())),
               true);
       SwordCommandCenter.clear(player);
       refreshActiveView(player);
@@ -670,8 +668,7 @@ public final class FlyingSwordCommand {
       ctx.getSource()
           .sendFailure(
               Component.literal(
-                  String.format(
-                      "[flyingsword] Invalid index %d (1..%d)", index, swords.size())));
+                  String.format("[flyingsword] Invalid index %d (1..%d)", index, swords.size())));
       return 0;
     }
     FlyingSwordEntity sword = swords.get(index - 1);
@@ -696,8 +693,7 @@ public final class FlyingSwordCommand {
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     FlyingSwordController.clearSelectedSword(player);
-    ctx.getSource().sendSuccess(
-        () -> Component.literal("[flyingsword] Selection cleared"), false);
+    ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Selection cleared"), false);
     refreshActiveView(player);
     return 1;
   }
@@ -708,7 +704,8 @@ public final class FlyingSwordCommand {
     ServerLevel level = player.serverLevel();
     FlyingSwordEntity sword = FlyingSwordController.getSelectedSword(level, player);
     if (sword == null) {
-      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] No selected sword"), false);
+      ctx.getSource()
+          .sendSuccess(() -> Component.literal("[flyingsword] No selected sword"), false);
       return 0;
     }
     String msg =
@@ -734,7 +731,8 @@ public final class FlyingSwordCommand {
       return 0;
     }
     FlyingSwordController.recall(sword);
-    ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] Recalled selected sword"), true);
+    ctx.getSource()
+        .sendSuccess(() -> Component.literal("[flyingsword] Recalled selected sword"), true);
     return 1;
   }
 
@@ -749,14 +747,14 @@ public final class FlyingSwordCommand {
     }
     String modeStr = StringArgumentType.getString(ctx, "mode");
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode mode =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode
-            .fromId(modeStr);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode.fromId(modeStr);
     sword.setAIMode(mode);
     ctx.getSource()
         .sendSuccess(
             () ->
                 Component.literal(
-                    String.format("[flyingsword] Selected sword set to mode: %s", mode.getDisplayName())),
+                    String.format(
+                        "[flyingsword] Selected sword set to mode: %s", mode.getDisplayName())),
             true);
     SwordCommandCenter.clear(player);
     return 1;
@@ -777,7 +775,10 @@ public final class FlyingSwordCommand {
         .sendSuccess(
             () ->
                 Component.literal(
-                    String.format(Locale.ROOT, "[flyingsword] Selected sword -> group %d", Math.max(0, group))),
+                    String.format(
+                        Locale.ROOT,
+                        "[flyingsword] Selected sword -> group %d",
+                        Math.max(0, group))),
             true);
     SwordCommandCenter.clear(player);
     return 1;
@@ -798,7 +799,11 @@ public final class FlyingSwordCommand {
         .sendSuccess(
             () ->
                 Component.literal(
-                    String.format(Locale.ROOT, "[flyingsword] Sword #%d -> group %d", index, Math.max(0, group))),
+                    String.format(
+                        Locale.ROOT,
+                        "[flyingsword] Sword #%d -> group %d",
+                        index,
+                        Math.max(0, group))),
             true);
     SwordCommandCenter.clear(player);
     refreshActiveView(player);
@@ -816,7 +821,10 @@ public final class FlyingSwordCommand {
             () ->
                 Component.literal(
                     String.format(
-                        Locale.ROOT, "[flyingsword] Set %d sword(s) -> group %d", count, Math.max(0, group))),
+                        Locale.ROOT,
+                        "[flyingsword] Set %d sword(s) -> group %d",
+                        count,
+                        Math.max(0, group))),
             true);
     SwordCommandCenter.clear(player);
     return count;
@@ -826,14 +834,12 @@ public final class FlyingSwordCommand {
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
 
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage
-        storage =
-            net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage storage =
+        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
 
     int count = storage.getCount();
     java.util.List<
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword
-                .FlyingSwordStorage.RecalledSword>
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage.RecalledSword>
         swords = storage.getRecalledSwords();
 
     StringBuilder message = new StringBuilder();
@@ -845,7 +851,9 @@ public final class FlyingSwordCommand {
       message.append(String.format("\n  #%d: ", i + 1));
       message.append(String.format("Level %d", sword.level));
       message.append(String.format(" | Exp: %d", sword.experience));
-      message.append(String.format(" | Durability: %.1f/%.1f", sword.durability, sword.attributes.maxDurability));
+      message.append(
+          String.format(
+              " | Durability: %.1f/%.1f", sword.durability, sword.attributes.maxDurability));
     }
 
     final String msg = message.toString();
@@ -854,12 +862,9 @@ public final class FlyingSwordCommand {
     return count;
   }
 
-  private static int openUI(CommandContext<CommandSourceStack> ctx)
-      throws CommandSyntaxException {
+  private static int openUI(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUI
-        .openMain(player);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openMain(player);
     return 1;
   }
 
@@ -867,13 +872,12 @@ public final class FlyingSwordCommand {
   private static int repairSelected(CommandContext<CommandSourceStack> ctx)
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
-    boolean ok = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops
-        .RepairOps.repairSelected(player.serverLevel(), player);
+    boolean ok =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.RepairOps.repairSelected(
+            player.serverLevel(), player);
     // 操作后刷新主界面
     if (ok) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .FlyingSwordTUI
-          .openMain(player);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openMain(player);
     }
     return ok ? 1 : 0;
   }
@@ -882,12 +886,11 @@ public final class FlyingSwordCommand {
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     int index = IntegerArgumentType.getInteger(ctx, "index");
-    boolean ok = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops
-        .RepairOps.repairByIndex(player.serverLevel(), player, index);
+    boolean ok =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.RepairOps.repairByIndex(
+            player.serverLevel(), player, index);
     if (ok) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .FlyingSwordTUI
-          .openMain(player);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openMain(player);
     }
     return ok ? 1 : 0;
   }
@@ -896,9 +899,8 @@ public final class FlyingSwordCommand {
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     int page = IntegerArgumentType.getInteger(ctx, "page");
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUI
-        .openActiveList(player, page);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openActiveList(
+        player, page);
     return 1;
   }
 
@@ -906,32 +908,31 @@ public final class FlyingSwordCommand {
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     int page = IntegerArgumentType.getInteger(ctx, "page");
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUI
-        .openStorageList(player, page);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openStorageList(
+        player, page);
     return 1;
   }
 
   // ========== Helpers ==========
   private static void refreshActiveView(ServerPlayer player) {
-    int page = net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command
-        .SwordCommandCenter.session(player).map(s -> s.lastActivePage()).orElse(1);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUI
-        .openActiveList(player, page);
+    int page =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter.session(
+                player)
+            .map(s -> s.lastActivePage())
+            .orElse(1);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openActiveList(
+        player, page);
   }
 
   private static int withdrawByIndex(CommandContext<CommandSourceStack> ctx)
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     int index = IntegerArgumentType.getInteger(ctx, "index");
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUIOps
-        .withdrawDisplayItem(player.serverLevel(), player, index);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUIOps.withdrawDisplayItem(
+        player.serverLevel(), player, index);
     // 操作后刷新当前页（默认回到第1页，后续可接入会话记录）
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUI
-        .openStorageList(player, 1);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openStorageList(
+        player, 1);
     return 1;
   }
 
@@ -939,12 +940,10 @@ public final class FlyingSwordCommand {
       throws CommandSyntaxException {
     ServerPlayer player = ctx.getSource().getPlayerOrException();
     int index = IntegerArgumentType.getInteger(ctx, "index");
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUIOps
-        .depositMainHand(player.serverLevel(), player, index);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUI
-        .openStorageList(player, 1);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUIOps.depositMainHand(
+        player.serverLevel(), player, index);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUI.openStorageList(
+        player, 1);
     return 1;
   }
 
@@ -962,8 +961,8 @@ public final class FlyingSwordCommand {
     }
 
     var validation =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .TUICommandGuard.validateSession(player, sid, nowTick);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard.validateSession(
+            player, sid, nowTick);
 
     // 软提示：如果判定为过期，仅发送提示消息，但不阻断命令继续执行
     if (!validation.isValid() && validation.errorMessage() != null) {
@@ -973,9 +972,7 @@ public final class FlyingSwordCommand {
     return Optional.empty();
   }
 
-  /**
-   * Helper method to find flying sword by UUID.
-   */
+  /** Helper method to find flying sword by UUID. */
   private static Optional<FlyingSwordEntity> findSwordByUuid(
       ServerLevel level, ServerPlayer player, String uuidStr) {
     UUID uuid;
@@ -1020,8 +1017,8 @@ public final class FlyingSwordCommand {
 
     if (swordOpt.isEmpty()) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("飞剑"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("飞剑"));
       return 0;
     }
 
@@ -1029,8 +1026,8 @@ public final class FlyingSwordCommand {
     FlyingSwordController.recall(sword);
 
     player.sendSystemMessage(
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .TUICommandGuard.createSuccessMessage("已召回飞剑"));
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+            .createSuccessMessage("已召回飞剑"));
     return 1;
   }
 
@@ -1067,8 +1064,8 @@ public final class FlyingSwordCommand {
 
     if (swordOpt.isEmpty()) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("飞剑"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("飞剑"));
       return 0;
     }
 
@@ -1078,8 +1075,7 @@ public final class FlyingSwordCommand {
     } catch (Exception e) {
       player.sendSystemMessage(
           Component.literal(
-              String.format(
-                  "[flyingsword] 无效模式: %s (可用: orbit, guard, hunt, hover)", modeStr)));
+              String.format("[flyingsword] 无效模式: %s (可用: orbit, guard, hunt, hover)", modeStr)));
       return 0;
     }
 
@@ -1087,8 +1083,8 @@ public final class FlyingSwordCommand {
     sword.setAIMode(mode);
 
     player.sendSystemMessage(
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .TUICommandGuard.createSuccessMessage("已设置模式为: " + mode.getDisplayName()));
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+            .createSuccessMessage("已设置模式为: " + mode.getDisplayName()));
 
     return 1;
   }
@@ -1124,20 +1120,20 @@ public final class FlyingSwordCommand {
 
     if (swordOpt.isEmpty()) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("飞剑"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("飞剑"));
       return 0;
     }
 
     FlyingSwordEntity sword = swordOpt.get();
     boolean ok =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops
-            .RepairOps.repairByEntity(level, player, sword);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.RepairOps.repairByEntity(
+            level, player, sword);
 
     if (ok) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createSuccessMessage("修复/赋能成功"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createSuccessMessage("修复/赋能成功"));
       return 1;
     }
 
@@ -1176,8 +1172,8 @@ public final class FlyingSwordCommand {
 
     if (swordOpt.isEmpty()) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("飞剑"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("飞剑"));
       return 0;
     }
 
@@ -1185,8 +1181,8 @@ public final class FlyingSwordCommand {
     FlyingSwordController.setSelectedSword(player, sword);
 
     player.sendSystemMessage(
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .TUICommandGuard.createSuccessMessage("已选中飞剑"));
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+            .createSuccessMessage("已选中飞剑"));
 
     return 1;
   }
@@ -1224,8 +1220,8 @@ public final class FlyingSwordCommand {
 
     if (swordOpt.isEmpty()) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("飞剑"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("飞剑"));
       return 0;
     }
 
@@ -1233,17 +1229,15 @@ public final class FlyingSwordCommand {
     sword.setGroupId(groupId);
 
     player.sendSystemMessage(
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .TUICommandGuard.createSuccessMessage("已设置分组: " + groupId));
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+            .createSuccessMessage("已设置分组: " + groupId));
 
     return 1;
   }
 
   // ========== ItemUUID-based storage commands ==========
 
-  /**
-   * Helper method to find storage item by UUID.
-   */
+  /** Helper method to find storage item by UUID. */
   private static Optional<FlyingSwordStorage.RecalledSword> findStorageItemByUuid(
       ServerPlayer player, String uuidStr) {
     UUID uuid;
@@ -1253,16 +1247,13 @@ public final class FlyingSwordCommand {
       return Optional.empty();
     }
 
-    var storage =
-        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+    var storage = net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
     var list = storage.getRecalledSwords();
 
     return list.stream().filter(s -> uuid.equals(s.displayItemUUID)).findFirst();
   }
 
-  /**
-   * Helper method to find storage item index by UUID.
-   */
+  /** Helper method to find storage item index by UUID. */
   private static int findStorageIndexByUuid(ServerPlayer player, String uuidStr) {
     UUID uuid;
     try {
@@ -1271,8 +1262,7 @@ public final class FlyingSwordCommand {
       return -1;
     }
 
-    var storage =
-        net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
+    var storage = net.tigereye.chestcavity.registration.CCAttachments.getFlyingSwordStorage(player);
     var list = storage.getRecalledSwords();
 
     for (int i = 0; i < list.size(); i++) {
@@ -1315,8 +1305,8 @@ public final class FlyingSwordCommand {
 
     if (index < 0) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("存储物品"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("存储物品"));
       return 0;
     }
 
@@ -1324,8 +1314,8 @@ public final class FlyingSwordCommand {
 
     if (ok) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createSuccessMessage("已召唤飞剑"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createSuccessMessage("已召唤飞剑"));
       return 1;
     }
 
@@ -1364,14 +1354,13 @@ public final class FlyingSwordCommand {
 
     if (index < 0) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("存储物品"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("存储物品"));
       return 0;
     }
 
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUIOps
-        .withdrawDisplayItem(level, player, index);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUIOps.withdrawDisplayItem(
+        level, player, index);
 
     return 1;
   }
@@ -1407,14 +1396,13 @@ public final class FlyingSwordCommand {
 
     if (index < 0) {
       player.sendSystemMessage(
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-              .TUICommandGuard.createNotFoundMessage("存储物品"));
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUICommandGuard
+              .createNotFoundMessage("存储物品"));
       return 0;
     }
 
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUIOps
-        .depositMainHand(level, player, index);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUIOps.depositMainHand(
+        level, player, index);
 
     return 1;
   }
@@ -1427,9 +1415,8 @@ public final class FlyingSwordCommand {
     ServerLevel level = player.serverLevel();
     int index = IntegerArgumentType.getInteger(ctx, "index");
 
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-            .FlyingSwordTUIOps
-        .deleteStoredSword(level, player, index);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUIOps.deleteStoredSword(
+        level, player, index);
 
     return 1;
   }
@@ -1444,8 +1431,7 @@ public final class FlyingSwordCommand {
     List<FlyingSwordEntity> swords = FlyingSwordController.getPlayerSwords(level, player);
 
     if (swords.isEmpty()) {
-      ctx.getSource()
-          .sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
+      ctx.getSource().sendSuccess(() -> Component.literal("[flyingsword] No flying swords"), false);
       return 0;
     }
 
@@ -1461,23 +1447,23 @@ public final class FlyingSwordCommand {
 
       // 计算当前伤害
       double levelScale =
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-              .FlyingSwordCalculator.calculateLevelScale(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+              .calculateLevelScale(
                   sword.getSwordLevel(),
-                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
-                      .FlyingSwordTuning.DAMAGE_PER_LEVEL);
+                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+                      .DAMAGE_PER_LEVEL);
 
       double damage =
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-              .FlyingSwordCalculator.calculateDamageWithContext(
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+              .calculateDamageWithContext(
                   attrs.damageBase,
                   speed,
-                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
-                      .FlyingSwordTuning.V_REF,
+                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+                      .V_REF,
                   attrs.velDmgCoef,
                   levelScale,
-                  net.tigereye.chestcavity.compat.guzhenren.flyingsword
-                      .calculator.context.CalcContexts.from(sword));
+                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context
+                      .CalcContexts.from(sword));
 
       debug.append(String.format("\n[Sword #%d]", i + 1));
       debug.append(String.format("\n  Mode: %s", sword.getAIMode().getDisplayName()));
@@ -1487,15 +1473,15 @@ public final class FlyingSwordCommand {
               sword.getTargetEntity() != null
                   ? sword.getTargetEntity().getName().getString()
                   : "None"));
-      debug.append(String.format("\n  Speed: %.3f (%.1f%%)", speed, (speed / attrs.speedMax) * 100));
+      debug.append(
+          String.format("\n  Speed: %.3f (%.1f%%)", speed, (speed / attrs.speedMax) * 100));
       debug.append(String.format("\n  Damage Calc:"));
       debug.append(String.format("\n    Base Damage: %.1f", attrs.damageBase));
       debug.append(
           String.format(
               "\n    Speed Factor: (%.3f / %.2f)² × %.2f = %.3f",
               speed,
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
-                  .FlyingSwordTuning.V_REF,
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.V_REF,
               attrs.velDmgCoef,
               Math.pow(
                       speed
@@ -1507,8 +1493,7 @@ public final class FlyingSwordCommand {
       debug.append(String.format("\n    Final Damage: %.2f", damage));
       debug.append(
           String.format(
-              "\n  Position: (%.1f, %.1f, %.1f)",
-              sword.getX(), sword.getY(), sword.getZ()));
+              "\n  Position: (%.1f, %.1f, %.1f)", sword.getX(), sword.getY(), sword.getZ()));
       debug.append(String.format("\n  Distance to Player: %.1fm", sword.distanceTo(player)));
     }
 

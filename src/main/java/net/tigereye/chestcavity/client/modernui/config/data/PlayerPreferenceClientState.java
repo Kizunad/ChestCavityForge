@@ -7,9 +7,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.client.modernui.config.network.PlayerPreferenceRequestPayload;
 
-/**
- * 客户端缓存玩家偏好开关，并通过 ModernUI 请求/更新。
- */
+/** 客户端缓存玩家偏好开关，并通过 ModernUI 请求/更新。 */
 public final class PlayerPreferenceClientState {
 
   private static final Map<ResourceLocation, Boolean> TOGGLES = new ConcurrentHashMap<>();

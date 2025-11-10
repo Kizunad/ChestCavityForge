@@ -21,12 +21,13 @@ import org.joml.Matrix4f;
  * 通用领域PNG渲染器
  *
  * <p>渲染领域的PNG纹理图案，支持：
+ *
  * <ul>
- *   <li>自定义纹理路径</li>
- *   <li>自定义高度偏移</li>
- *   <li>自动缩放到领域半径</li>
- *   <li>旋转动画</li>
- *   <li>透明度控制</li>
+ *   <li>自定义纹理路径
+ *   <li>自定义高度偏移
+ *   <li>自动缩放到领域半径
+ *   <li>旋转动画
+ *   <li>透明度控制
  * </ul>
  */
 @OnlyIn(Dist.CLIENT)
@@ -131,10 +132,7 @@ public final class DomainRenderer {
    * @param domain 领域数据
    */
   private static void renderDomain(
-      PoseStack poseStack,
-      MultiBufferSource buffer,
-      Vec3 cameraPos,
-      ClientDomainData domain) {
+      PoseStack poseStack, MultiBufferSource buffer, Vec3 cameraPos, ClientDomainData domain) {
     poseStack.pushPose();
 
     // 移动到领域中心 + 高度偏移
@@ -155,8 +153,7 @@ public final class DomainRenderer {
     poseStack.scale(scale, scale, scale);
 
     // 渲染纹理（尝试去除棋盘格背景）
-    ResourceLocation resolved =
-        TransparentTextureResolver.getOrProcess(domain.texturePath);
+    ResourceLocation resolved = TransparentTextureResolver.getOrProcess(domain.texturePath);
     RenderType renderType = RenderType.entityTranslucent(resolved);
     VertexConsumer consumer = buffer.getBuffer(renderType);
     Matrix4f matrix = poseStack.last().pose();

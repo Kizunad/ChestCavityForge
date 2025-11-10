@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 飞剑破块参数。
- */
+/** 飞剑破块参数。 */
 public final class FlyingSwordBlockBreakTuning {
   private FlyingSwordBlockBreakTuning() {}
 

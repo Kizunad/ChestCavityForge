@@ -6,12 +6,18 @@ import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.OrientationMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.orientation.UpMode;
 
-/**
- * 模型覆盖定义（从资源JSON加载），用于在不改代码的情况下为不同飞剑提供专用模型/朝向参数。
- */
+/** 模型覆盖定义（从资源JSON加载），用于在不改代码的情况下为不同飞剑提供专用模型/朝向参数。 */
 public final class SwordModelOverrideDef {
-  public enum RendererKind { ITEM, GECKO }
-  public enum AlignMode { VELOCITY, TARGET, NONE }
+  public enum RendererKind {
+    ITEM,
+    GECKO
+  }
+
+  public enum AlignMode {
+    VELOCITY,
+    TARGET,
+    NONE
+  }
 
   public final String key; // 与 FlyingSwordEntity.getModelKey() 对应
   public final RendererKind renderer;
@@ -25,7 +31,7 @@ public final class SwordModelOverrideDef {
 
   // 姿态/朝向参数
   public final AlignMode alignMode;
-  public final float preRollDeg;   // 渲染前的本体 X 轴预旋（刀面纠正）
+  public final float preRollDeg; // 渲染前的本体 X 轴预旋（刀面纠正）
   public final float yawOffsetDeg; // 额外Yaw偏移（度）
   public final float pitchOffsetDeg; // 额外Pitch偏移（度）
   public final float scale; // 统一缩放
@@ -101,7 +107,20 @@ public final class SwordModelOverrideDef {
       float yawOffsetDeg,
       float pitchOffsetDeg,
       float scale) {
-    this(key, renderer, model, textures, animation, displayItem, alignMode, preRollDeg, yawOffsetDeg, pitchOffsetDeg, scale, OrientationMode.BASIS, UpMode.WORLD_Y);
+    this(
+        key,
+        renderer,
+        model,
+        textures,
+        animation,
+        displayItem,
+        alignMode,
+        preRollDeg,
+        yawOffsetDeg,
+        pitchOffsetDeg,
+        scale,
+        OrientationMode.BASIS,
+        UpMode.WORLD_Y);
   }
 
   public SwordModelOverrideDef(

@@ -18,9 +18,8 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordAttribut
 /**
  * 物品属性 → 飞剑属性修正 的纯工具。
  *
- * <p>职责：
- * - 提取物品可用于映射的“度量”（攻击伤害/速度、护甲/韧性、工具Tier与速度、最大耐久、常见附魔等级）
- * - 按传入的系数配置将度量转换为飞剑 AttributeModifiers（不内置具体数值）
+ * <p>职责： - 提取物品可用于映射的“度量”（攻击伤害/速度、护甲/韧性、工具Tier与速度、最大耐久、常见附魔等级） - 按传入的系数配置将度量转换为飞剑
+ * AttributeModifiers（不内置具体数值）
  *
  * <p>注意：本工具不做任何副作用（不修改物品、不接触世界），便于独立测试。
  */
@@ -113,8 +112,7 @@ public final class ItemAffinityUtil {
 
   /** 将度量按配置转换为飞剑属性修正。 */
   public static FlyingSwordAttributes.AttributeModifiers toModifiers(ItemMetrics m, Config cfg) {
-    FlyingSwordAttributes.AttributeModifiers mod =
-        FlyingSwordAttributes.AttributeModifiers.empty();
+    FlyingSwordAttributes.AttributeModifiers mod = FlyingSwordAttributes.AttributeModifiers.empty();
     if (m == null || cfg == null) return mod;
 
     // 攻击伤害 → 基础伤害
@@ -175,14 +173,11 @@ public final class ItemAffinityUtil {
   }
 
   /** 组合流程：提取度量 + 转换修正 + 构建渲染用 initSpec（displayItemId=主手物品）。 */
-  public static AffinityResult evaluate(
-      ServerLevel level, @Nullable ItemStack stack, Config cfg) {
+  public static AffinityResult evaluate(ServerLevel level, @Nullable ItemStack stack, Config cfg) {
     ItemMetrics metrics = extract(level, stack);
     FlyingSwordAttributes.AttributeModifiers modifiers = toModifiers(metrics, cfg);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-        .FlyingSwordInitSpec spec =
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-                .FlyingSwordInitSpec.empty();
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInitSpec spec =
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInitSpec.empty();
     if (stack != null && !stack.isEmpty()) {
       var id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
       spec.displayItemId = id; // 渲染采用主手物品ID
@@ -190,18 +185,15 @@ public final class ItemAffinityUtil {
     return new AffinityResult(modifiers, spec);
   }
 
-  /**
-   * 封装 evaluate 的结果：飞剑属性修正 + 初始化渲染配置。
-   */
+  /** 封装 evaluate 的结果：飞剑属性修正 + 初始化渲染配置。 */
   public static final class AffinityResult {
     public final FlyingSwordAttributes.AttributeModifiers modifiers;
-    public final net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-        .FlyingSwordInitSpec initSpec;
+    public final net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInitSpec
+        initSpec;
 
     public AffinityResult(
         FlyingSwordAttributes.AttributeModifiers modifiers,
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.init
-            .FlyingSwordInitSpec initSpec) {
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.init.FlyingSwordInitSpec initSpec) {
       this.modifiers = modifiers;
       this.initSpec = initSpec;
     }
