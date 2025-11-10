@@ -313,16 +313,31 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
    *
    * <p>命令飞剑对目标发动一次快速突击，然后回归原位。
    *
+   * <p>实现：
+   * <ul>
+   *   <li>保存飞剑当前AI模式</li>
+   *   <li>设置目标并切换到HUNT模式</li>
+   *   <li>飞剑AI系统会使用DuelIntent或AssassinIntent飞向并攻击目标</li>
+   *   <li>造成协同伤害</li>
+   *   <li>1秒后恢复原AI模式</li>
+   * </ul>
+   *
    * @param level 服务端世界
    * @param sword 飞剑
    * @param target 目标
    * @param damage 协同伤害
    */
   private void performCoopStrike(ServerLevel level, FlyingSwordEntity sword, LivingEntity target, float damage) {
-    // 设置飞剑目标，让飞剑的AI系统处理攻击
+    // 保存当前AI模式
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode originalMode = sword.getAIMode();
+
+    // 设置飞剑目标
     sword.setTargetEntity(target);
 
-    // 直接造成伤害（协同突击是瞬间的）
+    // 切换到HUNT模式，让飞剑飞向目标
+    sword.setAIMode(net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode.HUNT);
+
+    // 造成协同伤害
     target.hurt(sword.damageSources().mobAttack(sword), damage);
 
     // 播放协同突击特效
@@ -330,13 +345,67 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     Vec3 targetPos = target.position();
     JianFengGuFx.playCoopStrike(level, swordPos, targetPos);
 
+    // 1秒后恢复原AI模式（20 ticks）
+    long restoreTick = level.getGameTime() + 20L;
+    level.getServer().execute(() -> {
+      if (sword.isAlive() && !sword.isRemoved()) {
+        // 延迟执行：恢复原AI模式
+        scheduleAIModeRestore(level, sword, originalMode, restoreTick);
+      }
+    });
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "[JianFengGuOrganBehavior] Coop strike executed: sword={}, target={}, damage={}",
+          "[JianFengGuOrganBehavior] Coop strike initiated: sword={}, target={}, damage={}, mode={} -> HUNT",
           sword.getId(),
           target.getName().getString(),
-          damage);
+          damage,
+          originalMode);
     }
+  }
+
+  /**
+   * 安排恢复飞剑AI模式。
+   *
+   * @param level 服务端世界
+   * @param sword 飞剑
+   * @param mode 要恢复的模式
+   * @param restoreTick 恢复时间点
+   */
+  private void scheduleAIModeRestore(
+      ServerLevel level,
+      FlyingSwordEntity sword,
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode mode,
+      long restoreTick) {
+
+    // 使用递归检查直到达到目标tick
+    class RestoreTask implements Runnable {
+      @Override
+      public void run() {
+        if (!sword.isAlive() || sword.isRemoved()) {
+          return; // 飞剑已死亡或移除，停止
+        }
+
+        long now = level.getGameTime();
+        if (now >= restoreTick) {
+          // 时间到，恢复AI模式
+          sword.setAIMode(mode);
+          sword.setTargetEntity(null); // 清除目标
+
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                "[JianFengGuOrganBehavior] Restored AI mode for sword {} to {}",
+                sword.getId(),
+                mode);
+          }
+        } else {
+          // 还没到时间，继续等待
+          level.getServer().execute(this);
+        }
+      }
+    }
+
+    level.getServer().execute(new RestoreTask());
   }
 
   /**

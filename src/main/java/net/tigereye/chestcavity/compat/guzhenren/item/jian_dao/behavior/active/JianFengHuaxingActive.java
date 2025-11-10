@@ -147,7 +147,7 @@ public final class JianFengHuaxingActive {
               finalSpawnPos,
               null, // 方向由飞剑AI控制
               organ, // 使用器官作为源物品
-              FlyingSwordType.DEFAULT);
+              FlyingSwordType.JIAN_FENG_GU);
 
       if (sword != null) {
         // 设置为环绕/随侍模式（ORBIT = 环绕）

@@ -16,7 +16,10 @@ public enum FlyingSwordType {
   ZHENG_DAO("flying_sword_zheng_dao", "正道飞剑"),
 
   /** 人兽葬生飞剑 - 用于魔道器官 */
-  REN_SHOU_ZANG_SHENG("flying_sword_ren_shou_zang_sheng", "人兽葬生");
+  REN_SHOU_ZANG_SHENG("flying_sword_ren_shou_zang_sheng", "人兽葬生"),
+
+  /** 剑锋蛊飞剑 - 用于剑锋蛊器官生成的协同飞剑 */
+  JIAN_FENG_GU("flying_sword_jian_feng_gu", "剑锋");
 
   private final String registryName;
   private final String displayName;
