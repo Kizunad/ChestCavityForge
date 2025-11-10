@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianDangGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianFengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianSuoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
@@ -85,6 +86,16 @@ public final class JiandaoOrganRegistry {
               .addSlowTickListener(JianmuGuOrganBehavior.INSTANCE)
               .addIncomingDamageListener(JianmuGuOrganBehavior.INSTANCE)
               .ensureAttached(JianmuGuOrganBehavior.INSTANCE::ensureAttached)
+              .build(),
+          // 剑锋蛊（四转）：锋芒化形主动技 + 高额一击协同 + 剑意共振
+          OrganIntegrationSpec.builder(JianFengGuOrganBehavior.ORGAN_ID_FOUR)
+              .addOnHitListener(JianFengGuOrganBehavior.INSTANCE)
+              .addSlowTickListener(JianFengGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑锋蛊（五转）：锋芒化形主动技 + 高额一击协同 + 剑意共振
+          OrganIntegrationSpec.builder(JianFengGuOrganBehavior.ORGAN_ID_FIVE)
+              .addOnHitListener(JianFengGuOrganBehavior.INSTANCE)
+              .addSlowTickListener(JianFengGuOrganBehavior.INSTANCE)
               .build());
 
   private JiandaoOrganRegistry() {}
