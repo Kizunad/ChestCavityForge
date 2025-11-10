@@ -29,6 +29,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.gu_dao.behavior.LuoXuanGuQ
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.ShanGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.behavior.XiaoGuangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianFengGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianLiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
@@ -779,6 +780,21 @@ public final class ActiveSkillRegistry {
                   .INSTANCE);
         },
         CooldownHint.useOrgan("技能就绪", null));
+
+    register(
+        "guzhenren:jian_feng/huaxing",
+        "guzhenren:jian_feng/huaxing",
+        "guzhenren:jianfenggu",
+        tags("输出", "增益", "飞剑"),
+        "锋芒化形：消耗真元/精力生成飞剑随侍，持续期间近战伤害+10%；高额伤害触发飞剑协同突击",
+        "compat/guzhenren/item/jian_dao/behavior/organ/JianFengGuOrganBehavior.java:85",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .JianFengGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("锋芒就绪", "20 秒冷却"))
+        .allowAdditionalOrgans("guzhenren:jian_feng_gu_5");
 
     register(
         "guzhenren:jian_ying_fenshen",
