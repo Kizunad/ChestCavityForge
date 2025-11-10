@@ -273,7 +273,10 @@ public enum JianQiGuOrganBehavior
   }
 
   /**
-   * OnHit 钩子：增加断势层数 + 非玩家触发逻辑。
+   * OnHit 钩子：非玩家触发逻辑。
+   *
+   * <p>注意：断势层数的增加已移至 JianQiGuSlashProjectile 的命中回调中，
+   * 以确保只有主动斩击的有效命中才会叠层，而非普通攻击。
    *
    * @param source 伤害源
    * @param attacker 攻击者（宿主）
@@ -299,19 +302,6 @@ public enum JianQiGuOrganBehavior
 
     OrganState state = OrganState.of(organ, STATE_ROOT);
     long now = level.getGameTime();
-
-    // 增加断势层数（玩家和非玩家都生效）
-    int currentStacks = state.getInt(KEY_DUANSHI_STACKS, 0);
-    state.setInt(KEY_DUANSHI_STACKS, currentStacks + 1);
-    state.setLong(KEY_LAST_CAST_TICK, now);
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "[JianQiGuOrganBehavior] {} duanshi stacks: {} -> {}",
-          attacker.getName().getString(),
-          currentStacks,
-          currentStacks + 1);
-    }
 
     // 非玩家触发逻辑
     if (!(attacker instanceof net.minecraft.world.entity.player.Player)) {
