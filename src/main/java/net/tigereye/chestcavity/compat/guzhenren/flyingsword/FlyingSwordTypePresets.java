@@ -4,14 +4,14 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword;
  * 飞剑类型预设配置
  *
  * <p>为三种飞剑类型提供预设的属性修正器：
+ *
  * <ul>
- *   <li>DEFAULT - 通用均衡型</li>
- *   <li>ZHENG_DAO - 正道飞剑，速度快、伤害中等</li>
- *   <li>REN_SHOU_ZANG_SHENG - 魔道飞剑，伤害高、速度慢</li>
+ *   <li>DEFAULT - 通用均衡型
+ *   <li>ZHENG_DAO - 正道飞剑，速度快、伤害中等
+ *   <li>REN_SHOU_ZANG_SHENG - 魔道飞剑，伤害高、速度慢
  * </ul>
  *
- * <p>这些预设可以作为器官或技能生成飞剑时的基础配置，
- * 也可以在此基础上进一步修改。
+ * <p>这些预设可以作为器官或技能生成飞剑时的基础配置， 也可以在此基础上进一步修改。
  */
 public final class FlyingSwordTypePresets {
 
@@ -44,11 +44,12 @@ public final class FlyingSwordTypePresets {
    * 正道飞剑预设 - 速度型
    *
    * <p>特点：
+   *
    * <ul>
-   *   <li>速度快（+30%最大速度）</li>
-   *   <li>伤害中等（+10%基础伤害）</li>
-   *   <li>耐久较低（+10%耐久损耗）</li>
-   *   <li>加速度快（+25%）</li>
+   *   <li>速度快（+30%最大速度）
+   *   <li>伤害中等（+10%基础伤害）
+   *   <li>耐久较低（+10%耐久损耗）
+   *   <li>加速度快（+25%）
    * </ul>
    */
   private static FlyingSwordAttributes.AttributeModifiers createZhengDaoPreset() {
@@ -75,12 +76,13 @@ public final class FlyingSwordTypePresets {
    * 人兽葬生飞剑预设 - 力量型（魔道）
    *
    * <p>特点：
+   *
    * <ul>
-   *   <li>伤害高（+40%基础伤害，+20%速度²系数）</li>
-   *   <li>速度慢（-15%最大速度）</li>
-   *   <li>耐久高（-15%耐久损耗）</li>
-   *   <li>破块能力强（+50%破块效率）</li>
-   *   <li>范围攻击（启用横扫）</li>
+   *   <li>伤害高（+40%基础伤害，+20%速度²系数）
+   *   <li>速度慢（-15%最大速度）
+   *   <li>耐久高（-15%耐久损耗）
+   *   <li>破块能力强（+50%破块效率）
+   *   <li>范围攻击（启用横扫）
    * </ul>
    */
   private static FlyingSwordAttributes.AttributeModifiers createRenShouZangShengPreset() {

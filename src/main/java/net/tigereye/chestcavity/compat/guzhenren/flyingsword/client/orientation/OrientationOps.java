@@ -7,8 +7,7 @@ import org.joml.Vector3f;
 /**
  * P8.1: 渲染姿态统一入口（正交基/四元数）。
  *
- * <p>职责：将“朝向向量 + 上向约束 + 偏移（preRoll/yaw/pitch）”转换为可直接
- * 应用于 PoseStack 的四元数。该类为纯函数工具，不做任何 I/O 或游戏状态访问。
+ * <p>职责：将“朝向向量 + 上向约束 + 偏移（preRoll/yaw/pitch）”转换为可直接 应用于 PoseStack 的四元数。该类为纯函数工具，不做任何 I/O 或游戏状态访问。
  */
 public final class OrientationOps {
 
@@ -45,9 +44,10 @@ public final class OrientationOps {
 
     // 1) 基础向量与退化处理
     Vector3f fwd = toUnit(forward, new Vector3f(0, 0, -1));
-    Vector3f up = (upMode == UpMode.WORLD_Y)
-        ? new Vector3f(0, 1, 0)
-        : toUnit(upRef, new Vector3f(0, 1, 0)); // OWNER_UP 预留：目前仍用世界上向或传入的 upRef
+    Vector3f up =
+        (upMode == UpMode.WORLD_Y)
+            ? new Vector3f(0, 1, 0)
+            : toUnit(upRef, new Vector3f(0, 1, 0)); // OWNER_UP 预留：目前仍用世界上向或传入的 upRef
 
     // 若 up 与 forward 近乎平行，选择水平 fallback 上向
     if (isParallel(up, fwd)) {
@@ -94,14 +94,17 @@ public final class OrientationOps {
     return q;
   }
 
-  /**
-   * 便捷重载：默认 BASIS + WORLD_Y。
-   */
+  /** 便捷重载：默认 BASIS + WORLD_Y。 */
   public static Quaternionf orientationFromForwardUp(
       Vec3 forward, Vec3 upRef, float preRollDeg, float yawOffsetDeg, float pitchOffsetDeg) {
     return orientationFromForwardUp(
-        forward, upRef, preRollDeg, yawOffsetDeg, pitchOffsetDeg,
-        OrientationMode.BASIS, UpMode.WORLD_Y);
+        forward,
+        upRef,
+        preRollDeg,
+        yawOffsetDeg,
+        pitchOffsetDeg,
+        OrientationMode.BASIS,
+        UpMode.WORLD_Y);
   }
 
   // ========== 内部工具 ==========
@@ -120,10 +123,7 @@ public final class OrientationOps {
     return Math.abs(dot) > 1.0f - 1e-6f;
   }
 
-  /**
-   * 将正交基转换为四元数。输入必须近似正交归一。
-   * 列向量：R (right), U (up), F (forward)。
-   */
+  /** 将正交基转换为四元数。输入必须近似正交归一。 列向量：R (right), U (up), F (forward)。 */
   private static Quaternionf basisToQuat_ModelXForward(Vector3f F, Vector3f U, Vector3f R) {
     // 矩阵→四元数（右手，列主序）
     // 列 0 = F (模型 X 轴指向前进方向)

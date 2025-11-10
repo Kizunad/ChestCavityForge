@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior;
 
 import java.util.List;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
@@ -12,10 +11,11 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
  * <p>通过计算排斥力向量，让飞剑之间保持合适的距离，避免拥挤和重叠。
  *
  * <p>特点：
+ *
  * <ul>
- *   <li>距离越近，排斥力越强（反平方定律）</li>
- *   <li>只影响同一主人的飞剑</li>
- *   <li>平滑的推力，不会造成抖动</li>
+ *   <li>距离越近，排斥力越强（反平方定律）
+ *   <li>只影响同一主人的飞剑
+ *   <li>平滑的推力，不会造成抖动
  * </ul>
  */
 public final class SeparationBehavior {
@@ -26,10 +26,11 @@ public final class SeparationBehavior {
    * 最小分离距离（格） - 飞剑间距小于此值会施加强排斥力
    *
    * <p>推荐值：0.8-1.2格
+   *
    * <ul>
-   *   <li>飞剑实体宽度约0.5格，需要留0.3-0.7格的视觉间距</li>
-   *   <li>太小（<0.5）：飞剑会视觉重叠，看起来混乱</li>
-   *   <li>太大（>1.5）：飞剑过于分散，失去紧密护卫感</li>
+   *   <li>飞剑实体宽度约0.5格，需要留0.3-0.7格的视觉间距
+   *   <li>太小（<0.5）：飞剑会视觉重叠，看起来混乱
+   *   <li>太大（>1.5）：飞剑过于分散，失去紧密护卫感
    * </ul>
    */
   private static final double MIN_SEPARATION_DISTANCE = 1.0;
@@ -38,11 +39,12 @@ public final class SeparationBehavior {
    * 排斥力搜索半径（格） - 超过此距离不再计算排斥力
    *
    * <p>推荐值：2.5-3.5格（应为环绕半径的80-120%）
+   *
    * <ul>
-   *   <li>8把剑时环绕半径约3.0格，搜索半径应为2.5-3.0格</li>
-   *   <li>32把剑时环绕半径约1.5格，搜索半径应为2.0-2.5格</li>
-   *   <li>太小（<2.0）：检测不到相邻飞剑，排斥力失效</li>
-   *   <li>太大（>4.0）：性能浪费，且会受远处飞剑影响</li>
+   *   <li>8把剑时环绕半径约3.0格，搜索半径应为2.5-3.0格
+   *   <li>32把剑时环绕半径约1.5格，搜索半径应为2.0-2.5格
+   *   <li>太小（<2.0）：检测不到相邻飞剑，排斥力失效
+   *   <li>太大（>4.0）：性能浪费，且会受远处飞剑影响
    * </ul>
    */
   private static final double SEPARATION_SEARCH_RADIUS = 2.8;
@@ -51,12 +53,13 @@ public final class SeparationBehavior {
    * 排斥力强度系数
    *
    * <p>推荐值：0.2-0.5
+   *
    * <ul>
-   *   <li>0.15-0.25：柔和推开，适合悠闲环绕</li>
-   *   <li>0.3-0.4：标准强度，平衡响应和稳定性（当前）</li>
-   *   <li>0.5-0.8：强力推开，适合密集战斗</li>
-   *   <li>太小（<0.1）：推不开，仍会重叠</li>
-   *   <li>太大（>1.0）：过度反应，飞剑抖动</li>
+   *   <li>0.15-0.25：柔和推开，适合悠闲环绕
+   *   <li>0.3-0.4：标准强度，平衡响应和稳定性（当前）
+   *   <li>0.5-0.8：强力推开，适合密集战斗
+   *   <li>太小（<0.1）：推不开，仍会重叠
+   *   <li>太大（>1.0）：过度反应，飞剑抖动
    * </ul>
    */
   private static final double SEPARATION_STRENGTH = 0.35;
@@ -121,8 +124,7 @@ public final class SeparationBehavior {
       // 计算排斥力：距离越近，排斥力越强
       // 使用反平方定律的变体：force = strength / (distance^2 + epsilon)
       double epsilon = 0.1; // 防止除零
-      double forceMagnitude =
-          SEPARATION_STRENGTH / (distance * distance + epsilon);
+      double forceMagnitude = SEPARATION_STRENGTH / (distance * distance + epsilon);
 
       // 距离小于最小分离距离时，施加额外强排斥力
       if (distance < MIN_SEPARATION_DISTANCE) {
@@ -135,9 +137,8 @@ public final class SeparationBehavior {
       // 如果水平距离很近但垂直距离小，说明飞剑在同一层，需要向上推
       if (horizontalDistance < MIN_SEPARATION_DISTANCE * 0.8 && verticalDistance < 1.0) {
         // 增加向上分量，让飞剑错层飞行
-        Vec3 horizontalForce = horizontalDiff.length() > 0.01
-            ? horizontalDiff.normalize()
-            : new Vec3(1, 0, 0); // 水平推力
+        Vec3 horizontalForce =
+            horizontalDiff.length() > 0.01 ? horizontalDiff.normalize() : new Vec3(1, 0, 0); // 水平推力
         Vec3 upwardForce = new Vec3(0, 1, 0); // 向上推力
 
         // 混合：70% 水平 + 30% 向上
@@ -165,8 +166,7 @@ public final class SeparationBehavior {
   /**
    * 计算飞剑的目标高度偏移
    *
-   * <p>基于飞剑UUID的哈希值，让不同飞剑自然分布在不同高度层。
-   * 形成莲花的立体层次感：底层、中层、顶层。
+   * <p>基于飞剑UUID的哈希值，让不同飞剑自然分布在不同高度层。 形成莲花的立体层次感：底层、中层、顶层。
    *
    * @param sword 飞剑实体
    * @return 高度偏移（-1.0 到 +1.0 格）

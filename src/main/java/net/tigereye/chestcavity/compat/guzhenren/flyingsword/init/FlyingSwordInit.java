@@ -16,14 +16,9 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordM
 /**
  * 初始化定制读取与应用。
  *
- * <p>读取源物品的 CustomData 下的 "cc_flying_sword_init"，示例：
- * {
- *   cc_flying_sword_init: {
- *     attrs: { speedBase: 0.22, damageBase: 6.0 },
- *     model: { item_id: "minecraft:diamond_sword", gecko_model: "mymod:sword/gecko_key" },
- *     sound: { profile: "jade" }
- *   }
- * }
+ * <p>读取源物品的 CustomData 下的 "cc_flying_sword_init"，示例： { cc_flying_sword_init: { attrs: { speedBase:
+ * 0.22, damageBase: 6.0 }, model: { item_id: "minecraft:diamond_sword", gecko_model:
+ * "mymod:sword/gecko_key" }, sound: { profile: "jade" } } }
  */
 public final class FlyingSwordInit {
 
@@ -41,8 +36,10 @@ public final class FlyingSwordInit {
     FlyingSwordInitSpec spec = FlyingSwordInitSpec.empty();
     if (stack == null || stack.isEmpty()) return spec;
 
-    CompoundTag tag = stack.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
-        CustomData.EMPTY).copyTag();
+    CompoundTag tag =
+        stack
+            .getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA, CustomData.EMPTY)
+            .copyTag();
     if (tag == null || !tag.contains(ROOT)) return spec;
 
     CompoundTag root = tag.getCompound(ROOT);
@@ -61,7 +58,8 @@ public final class FlyingSwordInit {
           ResourceLocation id = ResourceLocation.parse(model.getString(KEY_MODEL_ITEM));
           spec.displayItemId = id;
         } catch (Exception e) {
-          ChestCavity.LOGGER.warn("[FlyingSword] Invalid model.item_id: {}", model.getString(KEY_MODEL_ITEM));
+          ChestCavity.LOGGER.warn(
+              "[FlyingSword] Invalid model.item_id: {}", model.getString(KEY_MODEL_ITEM));
         }
       }
       if (model.contains(KEY_MODEL_GECKO)) {
@@ -90,8 +88,8 @@ public final class FlyingSwordInit {
     }
 
     // 2) 模型（物品 ID）
-    ResourceLocation id = Optional.ofNullable(spec.displayItemId)
-        .orElse(FlyingSwordModelTuning.defaultItemId());
+    ResourceLocation id =
+        Optional.ofNullable(spec.displayItemId).orElse(FlyingSwordModelTuning.defaultItemId());
     Item item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
     if (item != null) {
       sword.setDisplayItemStack(new ItemStack(item));
@@ -130,4 +128,3 @@ public final class FlyingSwordInit {
     if (nbt.contains("sweepPercent")) attrs.sweepPercent = nbt.getDouble("sweepPercent");
   }
 }
-

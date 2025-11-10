@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 飞剑音效参数（总开关、分类音量、随机音高等）。
- */
+/** 飞剑音效参数（总开关、分类音量、随机音高等）。 */
 public final class FlyingSwordSoundTuning {
   private FlyingSwordSoundTuning() {}
 

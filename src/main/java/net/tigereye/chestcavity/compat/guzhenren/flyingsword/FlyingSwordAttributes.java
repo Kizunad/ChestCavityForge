@@ -4,10 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 
-/**
- * 飞剑属性数据类
- * 包含所有可配置的属性值
- */
+/** 飞剑属性数据类 包含所有可配置的属性值 */
 public class FlyingSwordAttributes {
   // ========== 速度属性 ==========
   public double speedBase;
@@ -39,9 +36,7 @@ public class FlyingSwordAttributes {
   // 每次命中额外施加的“真伤”数值（简化实现，当前以 magic 伤害类型结算）
   public double trueDamagePerHit;
 
-  /**
-   * 创建默认属性（从Tuning读取）
-   */
+  /** 创建默认属性（从Tuning读取） */
   public static FlyingSwordAttributes createDefault() {
     FlyingSwordAttributes attrs = new FlyingSwordAttributes();
     attrs.speedBase = FlyingSwordTuning.SPEED_BASE;
@@ -69,9 +64,7 @@ public class FlyingSwordAttributes {
     return attrs;
   }
 
-  /**
-   * 应用释放继承修正
-   */
+  /** 应用释放继承修正 */
   public void applyModifiers(AttributeModifiers modifiers) {
     if (modifiers == null) return;
 
@@ -116,9 +109,7 @@ public class FlyingSwordAttributes {
     }
   }
 
-  /**
-   * 保存到NBT
-   */
+  /** 保存到NBT */
   public void saveToNBT(CompoundTag tag) {
     tag.putDouble("speedBase", speedBase);
     tag.putDouble("speedMax", speedMax);
@@ -142,9 +133,7 @@ public class FlyingSwordAttributes {
     tag.putDouble("trueDamagePerHit", trueDamagePerHit);
   }
 
-  /**
-   * 从NBT加载
-   */
+  /** 从NBT加载 */
   public static FlyingSwordAttributes loadFromNBT(CompoundTag tag) {
     FlyingSwordAttributes attrs = new FlyingSwordAttributes();
     attrs.speedBase = tag.getDouble("speedBase");
@@ -167,14 +156,13 @@ public class FlyingSwordAttributes {
     attrs.enableSweep = tag.getBoolean("enableSweep");
     attrs.sweepPercent = tag.getDouble("sweepPercent");
 
-    attrs.trueDamagePerHit = tag.contains("trueDamagePerHit") ? tag.getDouble("trueDamagePerHit") : 0.0;
+    attrs.trueDamagePerHit =
+        tag.contains("trueDamagePerHit") ? tag.getDouble("trueDamagePerHit") : 0.0;
 
     return attrs;
   }
 
-  /**
-   * 属性修正器（用于释放继承）
-   */
+  /** 属性修正器（用于释放继承） */
   public static class AttributeModifiers {
     public double damageBase = 0;
     public double speedMax = 0;
@@ -184,8 +172,10 @@ public class FlyingSwordAttributes {
     public double duraLossRatioMult = 1.0;
     public double upkeepRate = 0;
     public double maxDurability = 0;
+
     /** 独立配置最大耐久度（用于Combo/ActiveSkill），若>0则完全覆盖默认值，忽略maxDurability增量 */
     public double maxDurabilityOverride = 0;
+
     public int toolTier = 0;
     public double blockBreakEff = 0;
     public boolean enableSweep = false;

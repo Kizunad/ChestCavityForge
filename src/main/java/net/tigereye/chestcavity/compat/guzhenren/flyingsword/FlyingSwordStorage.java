@@ -11,8 +11,7 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
 /**
  * 飞剑存储（Flying Sword Storage）
  *
- * <p>存储玩家召回的飞剑数据，用于持久化和恢复。
- * 每个玩家可以存储多个召回的飞剑状态。
+ * <p>存储玩家召回的飞剑数据，用于持久化和恢复。 每个玩家可以存储多个召回的飞剑状态。
  */
 public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
 
@@ -50,32 +49,24 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
     return true;
   }
 
-  /**
-   * 获取所有召回的飞剑
-   */
+  /** 获取所有召回的飞剑 */
   public List<RecalledSword> getRecalledSwords() {
     return new ArrayList<>(recalledSwords);
   }
 
-  /**
-   * 移除指定索引的飞剑
-   */
+  /** 移除指定索引的飞剑 */
   public void remove(int index) {
     if (index >= 0 && index < recalledSwords.size()) {
       recalledSwords.remove(index);
     }
   }
 
-  /**
-   * 清空所有召回的飞剑
-   */
+  /** 清空所有召回的飞剑 */
   public void clear() {
     recalledSwords.clear();
   }
 
-  /**
-   * 获取召回的飞剑数量
-   */
+  /** 获取召回的飞剑数量 */
   public int getCount() {
     return recalledSwords.size();
   }
@@ -107,9 +98,7 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
     }
   }
 
-  /**
-   * 召回的飞剑数据
-   */
+  /** 召回的飞剑数据 */
   public static class RecalledSword {
     public FlyingSwordAttributes attributes;
     public int level;
@@ -118,8 +107,10 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
     public net.minecraft.nbt.CompoundTag chestCavity; // 保存胸腔内容
     // 额外：渲染与类型信息（用于恢复后保持外观与分型）
     // 优先持久化完整的 ItemStack NBT，以保留附魔发光/自定义组件；旧版兼容保留 itemId。
-    public @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag displayItem; // 完整 ItemStack NBT
-    public @org.jetbrains.annotations.Nullable net.minecraft.resources.ResourceLocation displayItemId; // 兼容字段
+    public @org.jetbrains.annotations.Nullable net.minecraft.nbt.CompoundTag
+        displayItem; // 完整 ItemStack NBT
+    public @org.jetbrains.annotations.Nullable net.minecraft.resources.ResourceLocation
+        displayItemId; // 兼容字段
     public @org.jetbrains.annotations.Nullable String modelKey;
     public @org.jetbrains.annotations.Nullable String soundProfile;
     public @org.jetbrains.annotations.Nullable String swordType; // FlyingSwordType 的注册名
@@ -152,9 +143,7 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       this.itemWithdrawn = false;
     }
 
-    /**
-     * 从实体创建召回数据
-     */
+    /** 从实体创建召回数据 */
     public static RecalledSword fromEntity(FlyingSwordEntity entity) {
       net.minecraft.nbt.CompoundTag ccTag = new net.minecraft.nbt.CompoundTag();
       try {
@@ -177,9 +166,10 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
         try {
           double max = Math.max(1.0, entity.getSwordAttributes().maxDurability);
           double percent = entity.getDurability() / max; // 1=满耐久，0=无耐久
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
-              .ItemDurabilityUtil.applyPercentToStack(display, percent);
-        } catch (Throwable ignored) {}
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemDurabilityUtil
+              .applyPercentToStack(display, percent);
+        } catch (Throwable ignored) {
+        }
 
         // 保存完整 ItemStack NBT（含附魔/组件），并保留 itemId 作为回退
         try {
@@ -187,10 +177,12 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
           if (raw instanceof net.minecraft.nbt.CompoundTag ct) {
             displayTag = ct.copy();
           }
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
         displayId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(display.getItem());
-        displayUuid = net.tigereye.chestcavity.compat.guzhenren.flyingsword.util
-            .ItemIdentityUtil.getItemUUID(display);
+        displayUuid =
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemIdentityUtil.getItemUUID(
+                display);
       }
 
       // 模型键与音效档
@@ -214,9 +206,7 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
           displayUuid.map(java.util.UUID::toString).orElse(null));
     }
 
-    /**
-     * 序列化为NBT
-     */
+    /** 序列化为NBT */
     public CompoundTag serializeNBT() {
       CompoundTag tag = new CompoundTag();
       CompoundTag attrTag = new CompoundTag();
@@ -250,9 +240,7 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       return tag;
     }
 
-    /**
-     * 从NBT反序列化
-     */
+    /** 从NBT反序列化 */
     public static RecalledSword fromNBT(CompoundTag tag) {
       FlyingSwordAttributes attributes;
       if (tag.contains("Attributes")) {
@@ -274,7 +262,8 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       net.minecraft.resources.ResourceLocation displayItemId = null;
       if (tag.contains("DisplayItemId")) {
         try {
-          displayItemId = net.minecraft.resources.ResourceLocation.parse(tag.getString("DisplayItemId"));
+          displayItemId =
+              net.minecraft.resources.ResourceLocation.parse(tag.getString("DisplayItemId"));
         } catch (Exception ignored) {
           displayItemId = null;
         }
@@ -282,7 +271,8 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
       String modelKey = tag.contains("ModelKey") ? tag.getString("ModelKey") : null;
       String soundProfile = tag.contains("SoundProfile") ? tag.getString("SoundProfile") : null;
       String swordType = tag.contains("SwordType") ? tag.getString("SwordType") : null;
-      String displayItemUUID = tag.contains("DisplayItemUUID") ? tag.getString("DisplayItemUUID") : null;
+      String displayItemUUID =
+          tag.contains("DisplayItemUUID") ? tag.getString("DisplayItemUUID") : null;
       boolean withdrawn = tag.contains("ItemWithdrawn") && tag.getBoolean("ItemWithdrawn");
 
       return new RecalledSword(
@@ -296,7 +286,11 @@ public class FlyingSwordStorage implements INBTSerializable<CompoundTag> {
           modelKey,
           soundProfile,
           swordType,
-          displayItemUUID) {{ this.itemWithdrawn = withdrawn; }};
+          displayItemUUID) {
+        {
+          this.itemWithdrawn = withdrawn;
+        }
+      };
     }
   }
 }

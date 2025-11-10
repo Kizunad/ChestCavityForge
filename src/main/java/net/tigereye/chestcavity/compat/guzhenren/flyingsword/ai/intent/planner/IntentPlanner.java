@@ -15,38 +15,39 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
  * <p><b>Phase 7: 软删除标记（Soft Deletion Marks）</b>
  *
  * <p>本类使用功能开关实现"软删除"机制，将意图分为两类：
+ *
  * <ul>
  *   <li><b>核心意图</b>（始终启用，每个模式 ≤2 个）：
  *       <ul>
- *         <li>ORBIT 模式：{@code HoldIntent}、{@code PatrolIntent}</li>
- *         <li>GUARD 模式：{@code GuardIntent}、{@code InterceptIntent}</li>
- *         <li>HUNT 模式：{@code AssassinIntent}、{@code DuelIntent}</li>
- *         <li>HOVER 模式：{@code HoldIntent}、{@code PatrolIntent}</li>
- *         <li>RECALL 模式：{@code RecallIntent}</li>
+ *         <li>ORBIT 模式：{@code HoldIntent}、{@code PatrolIntent}
+ *         <li>GUARD 模式：{@code GuardIntent}、{@code InterceptIntent}
+ *         <li>HUNT 模式：{@code AssassinIntent}、{@code DuelIntent}
+ *         <li>HOVER 模式：{@code HoldIntent}、{@code PatrolIntent}
+ *         <li>RECALL 模式：{@code RecallIntent}
  *       </ul>
- *   </li>
  *   <li><b>扩展意图</b>（仅当 {@code ENABLE_EXTRA_INTENTS=true} 时启用）：
  *       <ul>
- *         <li>ORBIT 模式：{@code SweepSearchIntent}</li>
- *         <li>GUARD 模式：{@code DecoyIntent}、{@code KitingIntent}</li>
- *         <li>HUNT 模式：{@code FocusFireIntent}、{@code BreakerIntent}、{@code SuppressIntent}、
- *             {@code ShepherdIntent}、{@code SweepIntent}、{@code KitingIntent}、{@code DecoyIntent}、
- *             {@code PivotIntent}、{@code SweepSearchIntent}</li>
+ *         <li>ORBIT 模式：{@code SweepSearchIntent}
+ *         <li>GUARD 模式：{@code DecoyIntent}、{@code KitingIntent}
+ *         <li>HUNT 模式：{@code FocusFireIntent}、{@code BreakerIntent}、{@code SuppressIntent}、 {@code
+ *             ShepherdIntent}、{@code SweepIntent}、{@code KitingIntent}、{@code DecoyIntent}、 {@code
+ *             PivotIntent}、{@code SweepSearchIntent}
  *       </ul>
- *   </li>
  * </ul>
  *
  * <p><b>软删除策略：</b>
+ *
  * <ul>
- *   <li>默认配置（{@code ENABLE_EXTRA_INTENTS=false}）下，扩展意图不会被实例化，
- *       降低 AI 决策复杂度</li>
- *   <li>扩展意图实现类保留在代码库中，不硬删除，保持可选功能的完整性</li>
- *   <li>用户可通过修改 {@link net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS}
- *       开关启用扩展意图</li>
- *   <li>详见：{@code docs/stages/PHASE_7.md} §7.3.2</li>
+ *   <li>默认配置（{@code ENABLE_EXTRA_INTENTS=false}）下，扩展意图不会被实例化， 降低 AI 决策复杂度
+ *   <li>扩展意图实现类保留在代码库中，不硬删除，保持可选功能的完整性
+ *   <li>用户可通过修改 {@link
+ *       net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS}
+ *       开关启用扩展意图
+ *   <li>详见：{@code docs/stages/PHASE_7.md} §7.3.2
  * </ul>
  *
- * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS
+ * @see
+ *     net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS
  * @see AIMode
  */
 public final class IntentPlanner {
@@ -68,46 +69,88 @@ public final class IntentPlanner {
     switch (mode) {
       case ORBIT -> {
         // Phase 1: 核心意图（2个）
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.HoldIntent());
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.PatrolIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.HoldIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                .PatrolIntent());
         // Phase 1: 额外意图（功能开关控制）
-        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_EXTRA_INTENTS) {
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.SweepSearchIntent());
+        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+            .ENABLE_EXTRA_INTENTS) {
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .SweepSearchIntent());
         }
       }
       case GUARD -> {
         // Phase 1: 核心意图（2个）
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.GuardIntent());
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.InterceptIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                .GuardIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                .InterceptIntent());
         // Phase 1: 额外意图（功能开关控制）
-        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_EXTRA_INTENTS) {
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.DecoyIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.KitingIntent());
+        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+            .ENABLE_EXTRA_INTENTS) {
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .DecoyIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .KitingIntent());
         }
       }
       case HUNT -> {
         // Phase 1: 核心意图（2个）
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.AssassinIntent());
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.DuelIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                .AssassinIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.DuelIntent());
         // Phase 1: 额外意图（功能开关控制）
-        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning.ENABLE_EXTRA_INTENTS) {
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.FocusFireIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.BreakerIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.SuppressIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.ShepherdIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.SweepIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.KitingIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.DecoyIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.PivotIntent());
-          list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.SweepSearchIntent());
+        if (net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning
+            .ENABLE_EXTRA_INTENTS) {
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .FocusFireIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .BreakerIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .SuppressIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .ShepherdIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .SweepIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .KitingIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .DecoyIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .PivotIntent());
+          list.add(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                  .SweepSearchIntent());
         }
       }
       case HOVER -> {
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.HoldIntent());
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.PatrolIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.HoldIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                .PatrolIntent());
       }
       case RECALL -> {
-        list.add(new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.RecallIntent());
+        list.add(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types
+                .RecallIntent());
       }
       case SWARM -> {
         // 交由集群系统调度：此处不返回任何 Intent
@@ -116,9 +159,7 @@ public final class IntentPlanner {
     return list;
   }
 
-  /**
-   * 评估并选择最高优先级的 IntentResult。
-   */
+  /** 评估并选择最高优先级的 IntentResult。 */
   public static Optional<IntentResult> pickBest(AIContext ctx, List<Intent> intents) {
     return intents.stream()
         .map(i -> i.evaluate(ctx))

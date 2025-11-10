@@ -17,9 +17,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordM
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemDurabilityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.util.ItemIdentityUtil;
 
-/**
- * 供 TUI/网络调用的后端操作。
- */
+/** 供 TUI/网络调用的后端操作。 */
 public final class FlyingSwordTUIOps {
   private FlyingSwordTUIOps() {}
 
@@ -71,13 +69,21 @@ public final class FlyingSwordTUIOps {
         double percent = rec.durability / max; // 1=满耐久
         ItemDurabilityUtil.applyPercentToStack(stack, percent);
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
 
     // 写入稳定UUID
     UUID uuid;
-    Optional<UUID> fromRec = Optional.ofNullable(rec.displayItemUUID).flatMap(s -> {
-      try { return Optional.of(UUID.fromString(s)); } catch (Exception e) { return Optional.empty(); }
-    });
+    Optional<UUID> fromRec =
+        Optional.ofNullable(rec.displayItemUUID)
+            .flatMap(
+                s -> {
+                  try {
+                    return Optional.of(UUID.fromString(s));
+                  } catch (Exception e) {
+                    return Optional.empty();
+                  }
+                });
     if (fromRec.isPresent()) {
       uuid = fromRec.get();
     } else {
@@ -99,7 +105,8 @@ public final class FlyingSwordTUIOps {
       net.minecraft.nbt.Tag raw = stack.save(provider(level));
       rec.displayItem = raw instanceof CompoundTag ct ? ct.copy() : new CompoundTag();
       rec.displayItemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
 
     // 发放给玩家（主手空则放主手，否则背包，否则掉落）
     boolean given = false;
@@ -136,8 +143,7 @@ public final class FlyingSwordTUIOps {
 
     // 判定是否已取出（只有取出状态才能放回）
     if (!rec.itemWithdrawn) {
-      player.sendSystemMessage(
-          net.minecraft.network.chat.Component.literal("[飞剑] 该飞剑本体未取出，无需放回"));
+      player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[飞剑] 该飞剑本体未取出，无需放回"));
       return;
     }
 
@@ -162,7 +168,8 @@ public final class FlyingSwordTUIOps {
   }
 
   /** 计算存储项显示名称。 */
-  public static String getStoredDisplayName(ServerLevel level, FlyingSwordStorage.RecalledSword rec) {
+  public static String getStoredDisplayName(
+      ServerLevel level, FlyingSwordStorage.RecalledSword rec) {
     try {
       if (rec.displayItem != null && !rec.displayItem.isEmpty()) {
         ItemStack stack = ItemStack.parseOptional(provider(level), rec.displayItem);
@@ -176,7 +183,8 @@ public final class FlyingSwordTUIOps {
           return new ItemStack(item).getHoverName().getString();
         }
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
     return "飞剑";
   }
 

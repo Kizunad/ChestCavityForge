@@ -19,11 +19,7 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.Resou
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
 
-/**
- * Agent 工具库：
- * - 构造 Agent 封装
- * - 抽象通用操作（属性、吸收、资源、流派标签收集）
- */
+/** Agent 工具库： - 构造 Agent 封装 - 抽象通用操作（属性、吸收、资源、流派标签收集） */
 public final class Agents {
 
   private Agents() {}
@@ -56,9 +52,7 @@ public final class Agents {
     return GuzhenrenResourceBridge.open(living);
   }
 
-  /**
-   * 安装/替换一次性 transient 属性修饰器。
-   */
+  /** 安装/替换一次性 transient 属性修饰器。 */
   public static void applyTransientAttribute(
       LivingEntity entity,
       Holder<Attribute> attribute,
@@ -68,12 +62,14 @@ public final class Agents {
     if (entity == null || attribute == null || id == null) return;
     AttributeInstance inst = entity.getAttribute(attribute);
     if (inst == null) return;
-    AttributeModifier mod = new AttributeModifier(id, amount, op == null ? AttributeModifier.Operation.ADD_VALUE : op);
+    AttributeModifier mod =
+        new AttributeModifier(id, amount, op == null ? AttributeModifier.Operation.ADD_VALUE : op);
     AttributeOps.replaceTransient(inst, id, mod);
   }
 
   /** 移除指定 ID 的属性修饰器。 */
-  public static void removeAttribute(LivingEntity entity, Holder<Attribute> attribute, ResourceLocation id) {
+  public static void removeAttribute(
+      LivingEntity entity, Holder<Attribute> attribute, ResourceLocation id) {
     if (entity == null || attribute == null || id == null) return;
     AttributeInstance inst = entity.getAttribute(attribute);
     if (inst != null) {
@@ -81,18 +77,15 @@ public final class Agents {
     }
   }
 
-  /**
-   * 统一护盾应用：自动保证 MAX_ABSORPTION 容量，支持 onlyIncrease。
-   */
+  /** 统一护盾应用：自动保证 MAX_ABSORPTION 容量，支持 onlyIncrease。 */
   public static float applyAbsorption(
       LivingEntity living, double amount, ResourceLocation modifierId, boolean onlyIncrease) {
     return AbsorptionHelper.applyAbsorption(living, amount, modifierId, onlyIncrease);
   }
 
-  /**
-   * 收集一次胸腔库存中的“流派标签”信息（玩家/NPC 一致）。
-   */
-  public static java.util.List<GuzhenrenFlowTooltipResolver.FlowInfo> collectInventoryFlows(LivingEntity living) {
+  /** 收集一次胸腔库存中的“流派标签”信息（玩家/NPC 一致）。 */
+  public static java.util.List<GuzhenrenFlowTooltipResolver.FlowInfo> collectInventoryFlows(
+      LivingEntity living) {
     ChestCavityInstance cc = chestCavity(living);
     if (cc == null || cc.inventory == null) {
       return java.util.List.of();
@@ -108,11 +101,13 @@ public final class Agents {
   }
 
   // 资源操作透传（便于统一调用习惯）
-  public static java.util.OptionalDouble tryConsumeScaledZhenyuan(LivingEntity entity, double baseCost) {
+  public static java.util.OptionalDouble tryConsumeScaledZhenyuan(
+      LivingEntity entity, double baseCost) {
     return ResourceOps.tryConsumeScaledZhenyuan(entity, baseCost);
   }
 
-  public static java.util.OptionalDouble tryConsumeScaledJingli(LivingEntity entity, double baseCost) {
+  public static java.util.OptionalDouble tryConsumeScaledJingli(
+      LivingEntity entity, double baseCost) {
     return ResourceOps.tryConsumeScaledJingli(entity, baseCost);
   }
 
@@ -120,4 +115,3 @@ public final class Agents {
     return ResourceOps.drainHealth(entity, amount);
   }
 }
-

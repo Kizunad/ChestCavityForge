@@ -12,11 +12,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.*;
  * <p>钩子执行顺序：按注册顺序依次执行，早注册的先执行。
  *
  * <p>钩子可以：
+ *
  * <ul>
- *   <li>读取上下文信息</li>
- *   <li>修改上下文中的可变字段（如伤害、速度、是否取消）</li>
- *   <li>调用实体方法（需谨慎，避免递归）</li>
- *   <li>生成粒子、音效、消息等副作用</li>
+ *   <li>读取上下文信息
+ *   <li>修改上下文中的可变字段（如伤害、速度、是否取消）
+ *   <li>调用实体方法（需谨慎，避免递归）
+ *   <li>生成粒子、音效、消息等副作用
  * </ul>
  */
 public interface FlyingSwordEventHook {
@@ -43,6 +44,7 @@ public interface FlyingSwordEventHook {
    * 命中实体时触发（攻击成功）
    *
    * <p>在伤害计算之后、实际造成伤害之前调用。
+   *
    * <p>可修改最终伤害、添加额外效果。
    *
    * @param ctx 命中实体上下文
@@ -91,6 +93,7 @@ public interface FlyingSwordEventHook {
    * AI模式切换时触发
    *
    * <p>Phase 3: 在飞剑的AI模式发生变化时调用。
+   *
    * <p>可用于触发模式特定的初始化、粒子效果、或阻止非法模式切换。
    *
    * @param ctx 模式切换上下文
@@ -101,6 +104,7 @@ public interface FlyingSwordEventHook {
    * 目标锁定时触发
    *
    * <p>Phase 3: 当飞剑获取新目标时调用（GUARD自动搜索、HUNT指定目标等）。
+   *
    * <p>可用于记录目标历史、触发锁定音效、或阻止锁定特定目标。
    *
    * @param ctx 目标锁定上下文
@@ -111,6 +115,7 @@ public interface FlyingSwordEventHook {
    * 目标丢失时触发
    *
    * <p>Phase 3: 当飞剑失去当前目标时调用（目标死亡、超出范围、模式切换等）。
+   *
    * <p>可用于触发搜索新目标、清理状态、或自动切换AI模式。
    *
    * @param ctx 目标丢失上下文
@@ -121,6 +126,7 @@ public interface FlyingSwordEventHook {
    * 维持消耗检查时触发
    *
    * <p>Phase 3: 在每次维持消耗检查时调用（间隔由FlyingSwordTuning配置）。
+   *
    * <p>可用于修改消耗量、记录消耗历史、或跳过本次消耗。
    *
    * @param ctx 维持消耗检查上下文
@@ -131,6 +137,7 @@ public interface FlyingSwordEventHook {
    * 命中后触发（伤害已造成）
    *
    * <p>Phase 3: 在飞剑成功造成伤害后调用（在HitEntity之后）。
+   *
    * <p>只读上下文，用于触发附加效果（吸血、经验获取、连击效果等）。
    *
    * @param ctx 命中后上下文
@@ -141,6 +148,7 @@ public interface FlyingSwordEventHook {
    * 破块尝试时触发（破块之前）
    *
    * <p>Phase 3: 在飞剑尝试破坏方块之前调用。
+   *
    * <p>可用于权限检查、特殊方块逻辑、或修改破块行为。
    *
    * @param ctx 破块尝试上下文
@@ -151,6 +159,7 @@ public interface FlyingSwordEventHook {
    * 经验获取时触发
    *
    * <p>Phase 3: 当飞剑获得经验时调用（击杀、破块、手动注入等）。
+   *
    * <p>可用于修改经验获取量、记录经验来源、或触发特效。
    *
    * @param ctx 经验获取上下文
@@ -161,6 +170,7 @@ public interface FlyingSwordEventHook {
    * 等级提升时触发
    *
    * <p>Phase 3: 当飞剑等级提升时调用（经验值突破阈值）。
+   *
    * <p>可用于触发升级效果、解锁新技能、或向玩家发送通知。
    *
    * @param ctx 等级提升上下文

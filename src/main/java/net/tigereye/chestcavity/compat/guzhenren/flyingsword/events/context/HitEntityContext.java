@@ -3,12 +3,9 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 飞剑命中实体事件上下文
- */
+/** 飞剑命中实体事件上下文 */
 public class HitEntityContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;

@@ -6,9 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 运行时覆盖注册表，由资源重载器填充。
- */
+/** 运行时覆盖注册表，由资源重载器填充。 */
 public final class SwordModelOverrideRegistry {
   private static final Map<String, SwordModelOverrideDef> BY_KEY = new HashMap<>();
 
@@ -34,4 +32,3 @@ public final class SwordModelOverrideRegistry {
     if (defs != null) BY_KEY.putAll(defs);
   }
 }
-

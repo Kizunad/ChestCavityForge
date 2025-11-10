@@ -10,11 +10,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordT
  * TUI会话管理器：负责生成、刷新和校验TUI会话ID（sid）。
  *
  * <p>核心功能：
+ *
  * <ul>
- *   <li>生成短随机会话ID（6位字母数字）</li>
- *   <li>管理会话过期时间（TTL）</li>
- *   <li>控制TUI刷新频率（限流）</li>
- *   <li>校验会话有效性</li>
+ *   <li>生成短随机会话ID（6位字母数字）
+ *   <li>管理会话过期时间（TTL）
+ *   <li>控制TUI刷新频率（限流）
+ *   <li>校验会话有效性
  * </ul>
  */
 public final class TUISessionManager {
@@ -89,11 +90,12 @@ public final class TUISessionManager {
    */
   public static boolean canSendTui(ServerPlayer player, long nowTick) {
     return SwordCommandCenter.session(player)
-        .map(session -> {
-          long lastSent = session.lastTuiSentAt();
-          long minIntervalTicks = FlyingSwordTuning.TUI_MIN_REFRESH_MILLIS / 50L;
-          return (nowTick - lastSent) >= minIntervalTicks;
-        })
+        .map(
+            session -> {
+              long lastSent = session.lastTuiSentAt();
+              long minIntervalTicks = FlyingSwordTuning.TUI_MIN_REFRESH_MILLIS / 50L;
+              return (nowTick - lastSent) >= minIntervalTicks;
+            })
         .orElse(true); // 如果没有会话，允许发送
   }
 
@@ -104,9 +106,11 @@ public final class TUISessionManager {
    * @param nowTick 当前游戏时间
    */
   public static void markTuiSent(ServerPlayer player, long nowTick) {
-    SwordCommandCenter.session(player).ifPresent(session -> {
-      session.setLastTuiSentAt(nowTick);
-    });
+    SwordCommandCenter.session(player)
+        .ifPresent(
+            session -> {
+              session.setLastTuiSentAt(nowTick);
+            });
   }
 
   /**
@@ -124,12 +128,13 @@ public final class TUISessionManager {
     }
 
     return SwordCommandCenter.session(player)
-        .map(session -> {
-          String currentSid = session.tuiSessionId();
-          long expiresAt = session.tuiSessionExpiresAt();
-          // 匹配且未过期（允许等于边界）
-          return providedSid.equals(currentSid) && nowTick <= expiresAt;
-        })
+        .map(
+            session -> {
+              String currentSid = session.tuiSessionId();
+              long expiresAt = session.tuiSessionExpiresAt();
+              // 匹配且未过期（允许等于边界）
+              return providedSid.equals(currentSid) && nowTick <= expiresAt;
+            })
         .orElse(true); // 无会话记录时不判为过期，避免误杀
   }
 
@@ -142,11 +147,12 @@ public final class TUISessionManager {
    */
   public static double getRemainingSeconds(ServerPlayer player, long nowTick) {
     return SwordCommandCenter.session(player)
-        .map(session -> {
-          long expiresAt = session.tuiSessionExpiresAt();
-          long remainingTicks = Math.max(0L, expiresAt - nowTick);
-          return remainingTicks / 20.0;
-        })
+        .map(
+            session -> {
+              long expiresAt = session.tuiSessionExpiresAt();
+              long remainingTicks = Math.max(0L, expiresAt - nowTick);
+              return remainingTicks / 20.0;
+            })
         .orElse(0.0);
   }
 }

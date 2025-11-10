@@ -39,4 +39,3 @@ public final class SwordModelObject implements SingletonGeoAnimatable {
     return animationTick;
   }
 }
-

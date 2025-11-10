@@ -12,19 +12,20 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.cooldown.FlyingSwordCooldownOps;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordCombatTuning;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 
 /**
  * 飞剑战斗系统
  *
  * <p>处理飞剑的攻击逻辑：
+ *
  * <ul>
- *   <li>碰撞检测</li>
- *   <li>速度²伤害计算</li>
- *   <li>攻击冷却管理</li>
- *   <li>经验获取</li>
- *   <li>耐久消耗</li>
+ *   <li>碰撞检测
+ *   <li>速度²伤害计算
+ *   <li>攻击冷却管理
+ *   <li>经验获取
+ *   <li>耐久消耗
  * </ul>
  */
 public final class FlyingSwordCombat {
@@ -74,8 +75,7 @@ public final class FlyingSwordCombat {
     // 调试信息
     if (distance <= ATTACK_RANGE) {
       // 音效：挥砍
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-          .playSwing(sword);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playSwing(sword);
       ChestCavity.LOGGER.debug(
           "[FlyingSword] Collision detected! Distance: {}, attempting attack...",
           String.format("%.2f", distance));
@@ -161,19 +161,11 @@ public final class FlyingSwordCombat {
         target.isInvulnerableTo(damageSource));
 
     // 触发onHitEntity事件钩子
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-        .HitEntityContext hitCtx =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .context.HitEntityContext(
-            sword,
-            (ServerLevel) sword.level(),
-            owner,
-            target,
-            damageSource,
-            speed,
-            damage);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-        .FlyingSwordEventRegistry.fireHitEntity(hitCtx);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.HitEntityContext hitCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.HitEntityContext(
+            sword, (ServerLevel) sword.level(), owner, target, damageSource, speed, damage);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+        .fireHitEntity(hitCtx);
 
     // 检查是否被钩子取消
     if (hitCtx.cancelled) {
@@ -194,8 +186,7 @@ public final class FlyingSwordCombat {
 
     if (success) {
       // 音效：命中
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-          .playHit(sword);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playHit(sword);
       // 调试信息
       ChestCavity.LOGGER.debug(
           "[FlyingSword] Hit success! Target health: {}/{}",
@@ -224,29 +215,25 @@ public final class FlyingSwordCombat {
         // 精英判断：可在 Phase 8+ 或通过事件钩子扩展
         boolean isElite = false;
         // 经验倍率：可通过事件钩子修改 ExperienceGainContext.finalExpAmount
-        int expGain =
-            FlyingSwordCalculator.calculateExpGain(
-                damage,
-                isKill,
-                isElite,
-                1.0
-                );
+        int expGain = FlyingSwordCalculator.calculateExpGain(damage, isKill, isElite, 1.0);
 
         // Phase 3: 触发经验获取事件（可修改或取消）
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-            .ExperienceGainContext.GainSource source =
-            (target instanceof net.minecraft.world.entity.player.Player)
-                ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-                    .ExperienceGainContext.GainSource.KILL_PLAYER
-                : (isKill
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.ExperienceGainContext
+                .GainSource
+            source =
+                (target instanceof net.minecraft.world.entity.player.Player)
                     ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-                        .ExperienceGainContext.GainSource.KILL_MOB
-                    : net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-                        .ExperienceGainContext.GainSource.OTHER);
-        var expCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-            .ExperienceGainContext(sword, Math.max(0, (int) Math.round(expGain)), source);
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .FlyingSwordEventRegistry.fireExperienceGain(expCtx);
+                        .ExperienceGainContext.GainSource.KILL_PLAYER
+                    : (isKill
+                        ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                            .ExperienceGainContext.GainSource.KILL_MOB
+                        : net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                            .ExperienceGainContext.GainSource.OTHER);
+        var expCtx =
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                .ExperienceGainContext(sword, Math.max(0, (int) Math.round(expGain)), source);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+            .fireExperienceGain(expCtx);
         if (!expCtx.cancelled && expCtx.finalExpAmount > 0) {
           sword.addExperience(expCtx.finalExpAmount);
         }
@@ -264,22 +251,25 @@ public final class FlyingSwordCombat {
       if (extraTrue > 0.0) {
         try {
           target.hurt(sword.damageSources().magic(), (float) extraTrue);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
       }
 
       // Phase 3: 触发 PostHit 事件（伤害已造成，只读上下文）
       boolean wasKilled = !target.isAlive();
-      var postHitCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-          .PostHitContext(sword, target, (float) damage, wasKilled);
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-          .FlyingSwordEventRegistry.firePostHit(postHitCtx);
+      var postHitCtx =
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.PostHitContext(
+              sword, target, (float) damage, wasKilled);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+          .firePostHit(postHitCtx);
 
       // Phase 3: 触发升级事件与特效
       if (newLevel > oldLevel) {
-        var lvlCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-            .LevelUpContext(sword, oldLevel, newLevel);
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .FlyingSwordEventRegistry.fireLevelUp(lvlCtx);
+        var lvlCtx =
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.LevelUpContext(
+                sword, oldLevel, newLevel);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+            .fireLevelUp(lvlCtx);
       }
       if (newLevel > oldLevel && sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnLevelUpEffect(serverLevel, sword, newLevel);

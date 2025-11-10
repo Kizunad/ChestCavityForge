@@ -8,9 +8,7 @@ import net.neoforged.neoforge.attachment.IAttachmentSerializer;
 /**
  * 可调的“剑心域”参数，附着在玩家上。
  *
- * <p>用于统一控制：
- * - 半径缩放（radiusScale）
- * - 效果缩放（effectScale）：统一乘到所有域内效果（增益/减益/飞剑加速与抑制等）
+ * <p>用于统一控制： - 半径缩放（radiusScale） - 效果缩放（effectScale）：统一乘到所有域内效果（增益/减益/飞剑加速与抑制等）
  */
 public final class SwordDomainConfigAttachment {
 

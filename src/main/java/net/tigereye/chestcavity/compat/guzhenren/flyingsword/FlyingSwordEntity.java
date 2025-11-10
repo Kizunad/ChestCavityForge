@@ -8,7 +8,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -32,19 +31,19 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSw
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward.WardState;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward.WardTuning;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 /**
  * 飞剑实体（Flying Sword Entity）
  *
  * <p>独立实体系统，支持：
+ *
  * <ul>
- *   <li>速度²伤害公式</li>
- *   <li>三种AI模式（环绕/防守/出击）</li>
- *   <li>经验成长系统</li>
- *   <li>耐久管理</li>
- *   <li>维持消耗</li>
- *   <li>释放继承（从剑物品继承属性）</li>
+ *   <li>速度²伤害公式
+ *   <li>三种AI模式（环绕/防守/出击）
+ *   <li>经验成长系统
+ *   <li>耐久管理
+ *   <li>维持消耗
+ *   <li>释放继承（从剑物品继承属性）
  * </ul>
  */
 public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
@@ -91,11 +90,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       SynchedEntityData.defineId(FlyingSwordEntity.class, EntityDataSerializers.BOOLEAN);
 
   // ========== 缓存字段 ==========
-  @Nullable
-  private LivingEntity cachedOwner;
+  @Nullable private LivingEntity cachedOwner;
 
-  @Nullable
-  private LivingEntity cachedTarget;
+  @Nullable private LivingEntity cachedTarget;
 
   private FlyingSwordAttributes attributes;
 
@@ -114,12 +111,10 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   private WardState wardState = WardState.ORBIT;
 
   /** 环绕槽位（相对主人的相对位置） */
-  @Nullable
-  private Vec3 orbitSlot = null;
+  @Nullable private Vec3 orbitSlot = null;
 
   /** 当前拦截任务 */
-  @Nullable
-  private InterceptQuery currentQuery = null;
+  @Nullable private InterceptQuery currentQuery = null;
 
   /** 最后一次进入 INTERCEPT 的时刻 */
   private long interceptStartTime = 0L;
@@ -275,8 +270,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   private boolean hasOwnerController() {
-    return net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-        .RiderControlSystem.hasOwnerController(this);
+    return net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.RiderControlSystem
+        .hasOwnerController(this);
   }
 
   @Override
@@ -285,8 +280,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     if (!this.level().isClientSide && this.hasOwnerController()) {
       LivingEntity controller = this.getControllingPassenger();
       if (controller instanceof Player player) {
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-            .RiderControlSystem.apply(this, player);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.RiderControlSystem.apply(
+            this, player);
         super.travel(Vec3.ZERO);
         return;
       }
@@ -358,14 +353,16 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
     // Phase 3: 触发模式切换事件（可取消）
     try {
-      var ctx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-          .ModeChangeContext(this, old, mode, /*trigger*/ null);
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-          .FlyingSwordEventRegistry.fireModeChange(ctx);
+      var ctx =
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+              .ModeChangeContext(this, old, mode, /*trigger*/ null);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+          .fireModeChange(ctx);
       if (ctx.cancelled) {
         return;
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
     this.entityData.set(AI_MODE, mode.ordinal());
   }
 
@@ -395,30 +392,34 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     if (old != target) {
       if (old != null) {
         try {
-          var lostCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-              .TargetLostContext(
-              this,
-              old,
-              target == null
-                  ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-                      .TargetLostContext.LostReason.MANUAL_CANCEL
-                  : net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-                      .TargetLostContext.LostReason.OTHER);
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-              .FlyingSwordEventRegistry.fireTargetLost(lostCtx);
-        } catch (Throwable ignored) {}
+          var lostCtx =
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                  .TargetLostContext(
+                  this,
+                  old,
+                  target == null
+                      ? net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                          .TargetLostContext.LostReason.MANUAL_CANCEL
+                      : net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                          .TargetLostContext.LostReason.OTHER);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+              .fireTargetLost(lostCtx);
+        } catch (Throwable ignored) {
+        }
       }
 
       if (target != null) {
         try {
-          var acqCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-              .TargetAcquiredContext(this, target, getAIMode());
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-              .FlyingSwordEventRegistry.fireTargetAcquired(acqCtx);
+          var acqCtx =
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                  .TargetAcquiredContext(this, target, getAIMode());
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+              .fireTargetAcquired(acqCtx);
           if (acqCtx.cancelled) {
             return; // 取消锁定
           }
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
       }
     }
 
@@ -482,8 +483,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   public void setDurability(float durability) {
-    float clamped = (float) FlyingSwordCalculator.clamp(
-        durability, 0.0, attributes.maxDurability);
+    float clamped = (float) FlyingSwordCalculator.clamp(durability, 0.0, attributes.maxDurability);
     this.entityData.set(DURABILITY, clamped);
     // 生命值与耐久绑定：最大生命 = 最大耐久；当前生命 = 当前耐久
     AttributeInstance hp = this.getAttribute(Attributes.MAX_HEALTH);
@@ -524,12 +524,14 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     this.entityData.set(DISPLAY_ITEM_STACK, stack);
     // 同步名字到实体（用于名称牌显示）
     try {
-      if (!stack.isEmpty() && net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning
-          .FlyingSwordModelTuning.SHOW_ITEM_NAME) {
+      if (!stack.isEmpty()
+          && net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordModelTuning
+              .SHOW_ITEM_NAME) {
         this.setCustomName(stack.getHoverName());
         this.setCustomNameVisible(true);
       }
-    } catch (Throwable ignored) {}
+    } catch (Throwable ignored) {
+    }
   }
 
   public String getModelKey() {
@@ -605,9 +607,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
   }
 
-  /**
-   * 更新平滑朝向向量，避免渲染时抖动
-   */
+  /** 更新平滑朝向向量，避免渲染时抖动 */
   private void updateSmoothedLookAngle() {
     Vec3 currentVelocity = this.getDeltaMovement();
 
@@ -618,7 +618,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       }
       return;
     }
-    //当环绕轨迹切换东西方向时，目标速度向量会在一帧内接近 180° 翻转
+    // 当环绕轨迹切换东西方向时，目标速度向量会在一帧内接近 180° 翻转
     Vec3 targetLook = currentVelocity.normalize();
 
     // 如果是第一次，直接使用目标朝向
@@ -748,8 +748,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     if (this.isControlledByLocalInstance()) {
       net.minecraft.world.entity.Entity ctrl = this.getControllingPassenger();
       if (ctrl instanceof Player player && this.isOwnedBy(player)) {
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-            .RiderControlSystem.applyClient(this, player);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.RiderControlSystem
+            .applyClient(this, player);
       }
     }
     // 其他客户端特定的渲染逻辑在Renderer中处理
@@ -763,18 +763,21 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
 
     // 触发onTick事件钩子
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-        .TickContext tickCtx =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .context.TickContext(
-            this, (net.minecraft.server.level.ServerLevel) this.level(), owner, getAIMode(), this.tickCount);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-        .FlyingSwordEventRegistry.fireTick(tickCtx);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.TickContext tickCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.TickContext(
+            this,
+            (net.minecraft.server.level.ServerLevel) this.level(),
+            owner,
+            getAIMode(),
+            this.tickCount);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry.fireTick(
+        tickCtx);
 
     // Phase 2: 维持系统 (UpkeepSystem) - 集中管理资源消耗
     if (!tickCtx.skipUpkeep) {
-      upkeepTicks = net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-          .UpkeepSystem.tick(this, upkeepTicks);
+      upkeepTicks =
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.UpkeepSystem.tick(
+              this, upkeepTicks);
       // 若维持不足，UpkeepSystem 会召回飞剑，此时实体已被移除
       if (this.isRemoved()) {
         return;
@@ -789,24 +792,23 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
       if (this.wardSword && owner instanceof Player player) {
         tickWardBehavior(player, null); // tuning 参数在服务内部管理
       } else {
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-            .MovementSystem.tick(this, owner, getAIMode());
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.MovementSystem.tick(
+            this, owner, getAIMode());
       }
     }
 
     // Phase 2/4: 战斗系统 (CombatSystem) - 集中管理碰撞检测与伤害
     // Phase 4: 攻击冷却由 MultiCooldown 管理
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-        .CombatSystem.tick(this);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.CombatSystem.tick(this);
 
     // 破块逻辑（速度分段 + 镐子可破范围，可被钩子跳过）
     if (!tickCtx.skipBlockBreak) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.BlockBreakOps
-          .tickBlockBreak(this);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.BlockBreakOps.tickBlockBreak(this);
     }
 
     // 粒子特效（每2 tick生成一次，减少性能消耗）
-    if (this.tickCount % 2 == 0 && this.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+    if (this.tickCount % 2 == 0
+        && this.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
       spawnFlightParticles(serverLevel, getAIMode());
     }
   }
@@ -814,26 +816,20 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   // Phase 2: 维持/运动/战斗逻辑已迁移到 systems/ 目录
   // 原 tickAI() 方法已被 MovementSystem.tick() 替代
 
-  /**
-   * 生成飞行粒子特效
-   */
+  /** 生成飞行粒子特效 */
   private void spawnFlightParticles(ServerLevel level, AIMode mode) {
     double speed = this.getDeltaMovement().length();
 
     // 根据AI模式显示不同的粒子
     switch (mode) {
-      case ORBIT ->
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx
-              .FlyingSwordFX.spawnOrbitTrail(level, this);
-      case GUARD ->
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx
-              .FlyingSwordFX.spawnGuardTrail(level, this);
-      case HUNT ->
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx
-              .FlyingSwordFX.spawnHuntTrail(level, this);
-      case RECALL ->
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx
-              .FlyingSwordFX.spawnRecallTrail(level, this);
+      case ORBIT -> net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX
+          .spawnOrbitTrail(level, this);
+      case GUARD -> net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX
+          .spawnGuardTrail(level, this);
+      case HUNT -> net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX
+          .spawnHuntTrail(level, this);
+      case RECALL -> net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.fx.FlyingSwordFX
+          .spawnRecallTrail(level, this);
     }
 
     // 高速飞行时的额外特效（SONIC_BOOM 音爆圆环）
@@ -844,24 +840,14 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
   }
 
-  /**
-   * 环绕模式：绕着主人旋转
-   */
+  /** 环绕模式：绕着主人旋转 */
   // 旧的环绕/防守/出击行为已迁移到 ai.behavior 包
 
-  /**
-   * 防守模式：跟随主人并攻击附近的敌对实体
-   */
-  
+  /** 防守模式：跟随主人并攻击附近的敌对实体 */
 
-  /**
-   * 出击模式：主动搜索并攻击敌对实体
-   */
-  
+  /** 出击模式：主动搜索并攻击敌对实体 */
 
-  /**
-   * 搜索最近的敌对实体
-   */
+  /** 搜索最近的敌对实体 */
   @Nullable
   // 目标搜索已迁移到 TargetFinder
 
@@ -871,8 +857,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
    * <p>保留此方法以兼容外部模块调用 (如 Swarm 集群管理器)
    */
   public void applySteeringVelocity(Vec3 desiredVelocity) {
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems
-        .MovementSystem.applySteeringVelocity(this, desiredVelocity);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems.MovementSystem
+        .applySteeringVelocity(this, desiredVelocity);
   }
 
   /**
@@ -884,25 +870,20 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
    */
   @Deprecated
   private void applySteeringTemplate(
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-              .SteeringTemplate template,
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent
-              .AIContext ctx,
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent
-              .IntentResult intent) {
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate template,
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext ctx,
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentResult intent) {
     var snapshot =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-            .KinematicsSnapshot.capture(this);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSnapshot.capture(
+            this);
     var command = template.compute(ctx, intent, snapshot);
     Vec3 newVelocity =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-            .SteeringOps.computeNewVelocity(this, command, snapshot);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringOps.computeNewVelocity(
+            this, command, snapshot);
     this.setDeltaMovement(newVelocity);
   }
 
-  /**
-   * 检测碰撞攻击
-   */
+  /** 检测碰撞攻击 */
   // 碰撞攻击已集中到 FlyingSwordCombat
 
   // ========== 交互逻辑 ==========
@@ -920,12 +901,12 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     boolean isOwner = isOwnedBy(player);
 
     // 触发onInteract事件钩子
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-        .InteractContext interactCtx =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .context.InteractContext(this, player, hand, isOwner);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-        .FlyingSwordEventRegistry.fireInteract(interactCtx);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.InteractContext
+        interactCtx =
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                .InteractContext(this, player, hand, isOwner);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+        .fireInteract(interactCtx);
 
     // 检查是否被钩子拦截
     if (interactCtx.cancelDefault) {
@@ -987,9 +968,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     if (owner == null) {
       // 无主人：按基础规则消耗耐久，并与生命同步
       float duraLoss =
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-              .FlyingSwordCalculator.calculateDurabilityLoss(
-                  amount, attributes.duraLossRatio, false);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+              .calculateDurabilityLoss(amount, attributes.duraLossRatio, false);
       damageDurability(duraLoss);
       if (!this.isRemoved()) {
         this.setHealth(this.getDurability());
@@ -999,13 +979,11 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
 
     // 触发onHurt事件钩子
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
-        .HurtContext hurtCtx =
-        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .context.HurtContext(
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.HurtContext hurtCtx =
+        new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.HurtContext(
             this, (net.minecraft.server.level.ServerLevel) this.level(), owner, source, amount);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-        .FlyingSwordEventRegistry.fireHurt(hurtCtx);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry.fireHurt(
+        hurtCtx);
 
     // 检查是否被钩子取消
     if (hurtCtx.cancelled) {
@@ -1017,25 +995,25 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
     // 应用折返效果
     if (hurtCtx.triggerRetreat) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.impl
-          .DefaultEventHooks.applyRetreat(this);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.impl.DefaultEventHooks
+          .applyRetreat(this);
     }
 
     // 应用虚弱状态
     if (hurtCtx.triggerWeakened) {
-      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.impl
-          .DefaultEventHooks.applyWeakened(this, hurtCtx.weakenedDuration);
+      net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.impl.DefaultEventHooks
+          .applyWeakened(this, hurtCtx.weakenedDuration);
     }
 
     // 耐久损耗（带上下文，应用流派经验等影响）
     float duraLoss =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-            .FlyingSwordCalculator.calculateDurabilityLossWithContext(
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+            .calculateDurabilityLossWithContext(
                 amount,
                 attributes.duraLossRatio,
                 false,
-                net.tigereye.chestcavity.compat.guzhenren.flyingsword
-                    .calculator.context.CalcContexts.from(this));
+                net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context
+                    .CalcContexts.from(this));
     damageDurability(duraLoss);
 
     // 保持生命值与耐久一致
@@ -1098,7 +1076,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
     // 展示模型与音效档
     if (tag.contains("DisplayItem")) {
-      ItemStack stack = ItemStack.parseOptional(this.registryAccess(), tag.getCompound("DisplayItem"));
+      ItemStack stack =
+          ItemStack.parseOptional(this.registryAccess(), tag.getCompound("DisplayItem"));
       if (!stack.isEmpty()) {
         this.setDisplayItemStack(stack);
       }
@@ -1184,23 +1163,17 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   // ========== 攻击逻辑 ==========
-  /**
-   * 对目标造成速度²伤害
-   */
+  /** 对目标造成速度²伤害 */
   // 攻击逻辑已统一集中到 combat.FlyingSwordCombat
 
   // ========== 护幕系统访问器 ==========
 
-  /**
-   * 是否为护幕飞剑
-   */
+  /** 是否为护幕飞剑 */
   public boolean isWardSword() {
     return wardSword;
   }
 
-  /**
-   * 设置护幕标志（生成时调用）
-   */
+  /** 设置护幕标志（生成时调用） */
   public void setWardSword(boolean value) {
     this.wardSword = value;
     if (value) {
@@ -1208,23 +1181,17 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
   }
 
-  /**
-   * 获取护幕耐久
-   */
+  /** 获取护幕耐久 */
   public double getWardDurability() {
     return wardDurability;
   }
 
-  /**
-   * 设置护幕耐久
-   */
+  /** 设置护幕耐久 */
   public void setWardDurability(double durability) {
     this.wardDurability = Math.max(0.0, durability);
   }
 
-  /**
-   * 消耗护幕耐久
-   */
+  /** 消耗护幕耐久 */
   public void consumeWardDurability(int amount) {
     wardDurability = Math.max(0.0, wardDurability - amount);
     if (wardDurability <= 0.0 && this.wardSword) {
@@ -1233,16 +1200,12 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
   }
 
-  /**
-   * 获取护幕状态
-   */
+  /** 获取护幕状态 */
   public WardState getWardState() {
     return wardState;
   }
 
-  /**
-   * 设置护幕状态
-   */
+  /** 设置护幕状态 */
   public void setWardState(WardState state) {
     if (state == null) state = WardState.ORBIT;
     if (this.wardState == state) return;
@@ -1255,46 +1218,34 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     }
   }
 
-  /**
-   * 获取环绕槽位（相对主人的位置）
-   */
+  /** 获取环绕槽位（相对主人的位置） */
   @Nullable
   public Vec3 getOrbitSlot() {
     return orbitSlot;
   }
 
-  /**
-   * 设置环绕槽位
-   */
+  /** 设置环绕槽位 */
   public void setOrbitSlot(@Nullable Vec3 slot) {
     this.orbitSlot = slot;
   }
 
-  /**
-   * 获取当前拦截任务
-   */
+  /** 获取当前拦截任务 */
   @Nullable
   public InterceptQuery getCurrentQuery() {
     return currentQuery;
   }
 
-  /**
-   * 设置当前拦截任务
-   */
+  /** 设置当前拦截任务 */
   public void setCurrentQuery(@Nullable InterceptQuery query) {
     this.currentQuery = query;
   }
 
-  /**
-   * 获取最后一次进入拦截状态的时刻
-   */
+  /** 获取最后一次进入拦截状态的时刻 */
   public long getInterceptStartTime() {
     return interceptStartTime;
   }
 
-  /**
-   * 设置拦截开始时刻
-   */
+  /** 设置拦截开始时刻 */
   public void setInterceptStartTime(long time) {
     this.interceptStartTime = time;
   }
@@ -1304,11 +1255,8 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   /**
    * 护幕行为驱动（每 tick 调用）
    *
-   * 流程：
-   * 1. 根据 wardState 决定是否继续或转换状态
-   * 2. 计算目标位置（ORBIT 环绕槽 / INTERCEPT 拦截点 / RETURN 回环）
-   * 3. 调用 steerTo() 驱动位移
-   * 4. 检测时间窗或成功判定，触发状态转换
+   * <p>流程： 1. 根据 wardState 决定是否继续或转换状态 2. 计算目标位置（ORBIT 环绕槽 / INTERCEPT 拦截点 / RETURN 回环） 3. 调用
+   * steerTo() 驱动位移 4. 检测时间窗或成功判定，触发状态转换
    *
    * @param owner 主人
    * @param tuning 参数供给接口
@@ -1388,9 +1336,7 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
   }
 
   // ========== 工厂方法 ==========
-  /**
-   * 创建飞剑实体（默认类型）
-   */
+  /** 创建飞剑实体（默认类型） */
   public static FlyingSwordEntity create(
       ServerLevel level,
       LivingEntity owner,
@@ -1432,8 +1378,9 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     sword.setOwner(owner);
 
     // 从EntityType推导并设置飞剑类型
-    FlyingSwordType swordType = FlyingSwordType.fromEntityTypeId(
-        net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entityType));
+    FlyingSwordType swordType =
+        FlyingSwordType.fromEntityTypeId(
+            net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entityType));
     sword.setSwordType(swordType);
 
     // 应用释放继承修正

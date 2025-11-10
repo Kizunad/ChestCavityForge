@@ -16,17 +16,19 @@ import net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning.Jian
  * 剑心域（Sword Heart Domain）
  *
  * <p>剑道流派的核心领域技能，提供以下功能：
+ *
  * <ul>
- *   <li>友方：资源恢复</li>
- *   <li>敌方：移动速度/攻击速度减慢</li>
- *   <li>敌方剑修：剑气反噬</li>
+ *   <li>友方：资源恢复
+ *   <li>敌方：移动速度/攻击速度减慢
+ *   <li>敌方剑修：剑气反噬
  * </ul>
  *
  * <p>领域特性：
+ *
  * <ul>
- *   <li>基础半径：{@link JianXinDomainTuning#BASE_RADIUS}</li>
- *   <li>等级范围：{@link JianXinDomainTuning#MIN_LEVEL}-{@link JianXinDomainTuning#MAX_LEVEL}</li>
- *   <li>跟随主人移动</li>
+ *   <li>基础半径：{@link JianXinDomainTuning#BASE_RADIUS}
+ *   <li>等级范围：{@link JianXinDomainTuning#MIN_LEVEL}-{@link JianXinDomainTuning#MAX_LEVEL}
+ *   <li>跟随主人移动
  * </ul>
  */
 public class JianXinDomain extends AbstractDomain {
@@ -72,9 +74,7 @@ public class JianXinDomain extends AbstractDomain {
     super(
         owner,
         center,
-        Math.max(
-            JianXinDomainTuning.MIN_LEVEL,
-            Math.min(JianXinDomainTuning.MAX_LEVEL, level)));
+        Math.max(JianXinDomainTuning.MIN_LEVEL, Math.min(JianXinDomainTuning.MAX_LEVEL, level)));
     this.ownerRef = new WeakReference<>(owner);
     this.jiandaoDaohen = jiandaoDaohen;
     this.schoolExperience = schoolExperience;
@@ -160,12 +160,9 @@ public class JianXinDomain extends AbstractDomain {
     }
 
     // 资源恢复（精力）：每tick = 1.0 / 20 * 乘积缩放
-    double regenAmount =
-        (1.0 / 20.0)
-            * enhancedMult
-            * effectScale;
-    net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
-        .tryAdjustJingli(entity, regenAmount, true);
+    double regenAmount = (1.0 / 20.0) * enhancedMult * effectScale;
+    net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.tryAdjustJingli(
+        entity, regenAmount, true);
 
     // 剑势恢复（通过LinkageChannel实现）
     // TODO: 实现剑势层数恢复逻辑
@@ -237,20 +234,18 @@ public class JianXinDomain extends AbstractDomain {
    */
   private void checkSwordCounterAttack(ServerLevel level, Player enemy) {
     // 检查敌方是否正在使用“剑道”物品（tag: guzhenren:jiandao）
-    if (!net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver
-        .isUsingJiandao(enemy)) {
+    if (!net.tigereye.chestcavity.compat.guzhenren.util.GuzhenrenFlowTooltipResolver.isUsingJiandao(
+        enemy)) {
       return;
     }
 
     // 获取敌方实力（道痕 + 流派经验）
     double enemyDaohen =
-        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
-            .openHandle(enemy)
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(enemy)
             .map(h -> h.read("daohen_jiandao").orElse(0.0))
             .orElse(0.0);
     double enemySchoolExp =
-        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps
-            .openHandle(enemy)
+        net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps.openHandle(enemy)
             .map(h -> h.read("liupai_jiandao").orElse(0.0))
             .orElse(0.0);
 
@@ -344,7 +339,8 @@ public class JianXinDomain extends AbstractDomain {
       // 标签清理：将附近实体上属于本领域主人的剑域标签移除
       var cleanupBounds = getBounds().inflate(8.0);
       var maybeTagged =
-          serverLevel.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, cleanupBounds);
+          serverLevel.getEntitiesOfClass(
+              net.minecraft.world.entity.LivingEntity.class, cleanupBounds);
       for (var e : maybeTagged) {
         java.util.UUID tagOwner =
             net.tigereye.chestcavity.compat.guzhenren.domain.DomainTags.getSwordDomainOwner(e);

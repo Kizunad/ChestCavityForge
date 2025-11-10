@@ -13,11 +13,12 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.HitE
  * <p>实现真实剑斗效果：当飞剑命中另一个飞剑时，双方会被反向推开。
  *
  * <p>特性：
+ *
  * <ul>
- *   <li>检测飞剑与飞剑的碰撞</li>
- *   <li>计算反向推力（基于速度和质量）</li>
- *   <li>对双方施加反向加速度</li>
- *   <li>触发粒子和音效</li>
+ *   <li>检测飞剑与飞剑的碰撞
+ *   <li>计算反向推力（基于速度和质量）
+ *   <li>对双方施加反向加速度
+ *   <li>触发粒子和音效
  * </ul>
  */
 public class SwordClashHook implements FlyingSwordEventHook {
@@ -82,10 +83,8 @@ public class SwordClashHook implements FlyingSwordEventHook {
 
     if (distance < 0.01) {
       // 距离太近，使用随机方向避免除零
-      direction = new Vec3(
-          (Math.random() - 0.5) * 2,
-          (Math.random() - 0.5) * 2,
-          (Math.random() - 0.5) * 2);
+      direction =
+          new Vec3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
       distance = direction.length();
     }
 
@@ -134,9 +133,7 @@ public class SwordClashHook implements FlyingSwordEventHook {
     }
 
     // 播放碰撞音效
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-        .playHit(sword1);
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-        .playHit(sword2);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playHit(sword1);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playHit(sword2);
   }
 }

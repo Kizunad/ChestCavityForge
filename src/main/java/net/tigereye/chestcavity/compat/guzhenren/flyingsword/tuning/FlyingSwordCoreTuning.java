@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 飞剑核心参数（移动/伤害/耐久/维持/破块开关与效率）
- */
+/** 飞剑核心参数（移动/伤害/耐久/维持/破块开关与效率） */
 public final class FlyingSwordCoreTuning {
   private FlyingSwordCoreTuning() {}
 
@@ -11,6 +9,7 @@ public final class FlyingSwordCoreTuning {
   public static final double SPEED_MAX = 10;
   public static final double ACCEL = 0.1;
   public static final double TURN_RATE = 0.28;
+
   /**
    * 转向随速度提升的倍率系数。
    *

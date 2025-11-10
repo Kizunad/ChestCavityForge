@@ -45,18 +45,26 @@ public final class SwordVisualProfileLoader extends SimpleJsonResourceReloadList
             String key = GsonHelper.getAsString(json, "key");
             boolean enabled = GsonHelper.getAsBoolean(json, "enabled", false);
             RendererKind renderer = parseRenderer(GsonHelper.getAsString(json, "renderer", "item"));
-            var model = json.has("model") ? ResourceLocation.parse(GsonHelper.getAsString(json, "model")) : null;
-            var animation = json.has("animation") ? ResourceLocation.parse(GsonHelper.getAsString(json, "animation")) : null;
+            var model =
+                json.has("model")
+                    ? ResourceLocation.parse(GsonHelper.getAsString(json, "model"))
+                    : null;
+            var animation =
+                json.has("animation")
+                    ? ResourceLocation.parse(GsonHelper.getAsString(json, "animation"))
+                    : null;
             List<ResourceLocation> textures = new ArrayList<>();
             if (json.has("textures") && json.get("textures").isJsonArray()) {
-              for (var e : json.getAsJsonArray("textures")) textures.add(ResourceLocation.parse(e.getAsString()));
+              for (var e : json.getAsJsonArray("textures"))
+                textures.add(ResourceLocation.parse(e.getAsString()));
             }
             AlignMode align = parseAlign(GsonHelper.getAsString(json, "align", "velocity"));
             float preRoll = GsonHelper.getAsFloat(json, "pre_roll", -45.0f);
             float yawOff = GsonHelper.getAsFloat(json, "yaw_offset", -90.0f);
             float pitchOff = GsonHelper.getAsFloat(json, "pitch_offset", 0.0f);
             float scale = GsonHelper.getAsFloat(json, "scale", 1.0f);
-            OrientationMode orientationMode = parseOrientationMode(GsonHelper.getAsString(json, "orientation_mode", "basis"));
+            OrientationMode orientationMode =
+                parseOrientationMode(GsonHelper.getAsString(json, "orientation_mode", "basis"));
             UpMode upMode = parseUpMode(GsonHelper.getAsString(json, "up_mode", "world_y"));
             GlintMode glint = parseGlint(GsonHelper.getAsString(json, "glint", "inherit"));
             List<String> matchKeys = new ArrayList<>();

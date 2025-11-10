@@ -11,19 +11,20 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.command.SwordCommandCenter;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.TUITheme;
-import net.tigereye.chestcavity.registration.CCAttachments;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiaoGuOrganBehavior;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+import net.tigereye.chestcavity.registration.CCAttachments;
 
 /**
  * 飞剑事件处理器
  *
  * <p>处理飞剑相关的游戏事件：
+ *
  * <ul>
- *   <li>玩家登录时提示恢复召回的飞剑</li>
- *   <li>玩家维度切换时的飞剑管理</li>
+ *   <li>玩家登录时提示恢复召回的飞剑
+ *   <li>玩家维度切换时的飞剑管理
  * </ul>
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
@@ -33,13 +34,11 @@ public final class FlyingSwordEventHandler {
 
   // 注册默认计算钩子（类加载时一次）
   static {
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.hooks
-        .DefaultHooks.registerDefaults();
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.hooks.DefaultHooks
+        .registerDefaults();
   }
 
-  /**
-   * 玩家登录时检查并提示恢复飞剑
-   */
+  /** 玩家登录时检查并提示恢复飞剑 */
   @SubscribeEvent
   public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
     if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -57,9 +56,7 @@ public final class FlyingSwordEventHandler {
             });
   }
 
-  /**
-   * 玩家退出时：将在场且可召回的飞剑保存到存储，防止“退出前正在返回途中”导致丢失。
-   */
+  /** 玩家退出时：将在场且可召回的飞剑保存到存储，防止“退出前正在返回途中”导致丢失。 */
   @SubscribeEvent
   public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
     if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -85,16 +82,16 @@ public final class FlyingSwordEventHandler {
         // 仍通知钩子“主人离线”并移除
         if (level != null) {
           var ctx =
-              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                  .context.DespawnContext(
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                  .DespawnContext(
                   sword,
                   level,
                   player,
-                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                      .context.DespawnContext.Reason.OWNER_GONE,
+                  net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                      .DespawnContext.Reason.OWNER_GONE,
                   null);
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-              .FlyingSwordEventRegistry.fireDespawnOrRecall(ctx);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+              .fireDespawnOrRecall(ctx);
         }
         sword.discard();
         continue;
@@ -109,16 +106,15 @@ public final class FlyingSwordEventHandler {
 
       if (level != null) {
         var ctx =
-            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                .context.DespawnContext(
+            new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.DespawnContext(
                 sword,
                 level,
                 player,
-                net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                    .context.DespawnContext.Reason.OWNER_GONE,
+                net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.DespawnContext
+                    .Reason.OWNER_GONE,
                 new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD));
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-            .FlyingSwordEventRegistry.fireDespawnOrRecall(ctx);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+            .fireDespawnOrRecall(ctx);
       }
 
       sword.discard();
@@ -136,9 +132,7 @@ public final class FlyingSwordEventHandler {
     SwordCommandCenter.clear(player);
   }
 
-  /**
-   * 检查并通知玩家有召回的飞剑
-   */
+  /** 检查并通知玩家有召回的飞剑 */
   private static void checkAndNotifyRecalledSwords(ServerPlayer player) {
     FlyingSwordStorage storage = CCAttachments.getFlyingSwordStorage(player);
     int count = storage.getCount();
@@ -173,9 +167,7 @@ public final class FlyingSwordEventHandler {
         count);
   }
 
-  /**
-   * 玩家维度切换时的处理（可选功能）
-   */
+  /** 玩家维度切换时的处理（可选功能） */
   @SubscribeEvent
   public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
     if (!(event.getEntity() instanceof ServerPlayer player)) {

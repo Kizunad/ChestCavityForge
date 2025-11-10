@@ -25,11 +25,9 @@ public record FlyingSwordDepositPayload(int index1) implements CustomPacketPaylo
     context.enqueueWork(
         () -> {
           if (context.player() instanceof net.minecraft.server.level.ServerPlayer sp) {
-            net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui
-                    .FlyingSwordTUIOps
+            net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui.FlyingSwordTUIOps
                 .depositMainHand(sp.serverLevel(), sp, payload.index1);
           }
         });
   }
 }
-

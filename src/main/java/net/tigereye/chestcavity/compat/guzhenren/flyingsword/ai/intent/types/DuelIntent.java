@@ -9,15 +9,14 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.TrajectoryType;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 缠斗（Duel）：针对指定标记目标，保持胶着并持续施压。
- */
+/** 缠斗（Duel）：针对指定标记目标，保持胶着并持续施压。 */
 public final class DuelIntent implements Intent {
   @Override
   public Optional<IntentResult> evaluate(AIContext ctx) {
     var sword = ctx.sword();
-    LivingEntity target = TargetFinder.findMarkedTarget(
-        sword, sword.position(), FlyingSwordAITuning.HUNT_SEARCH_RANGE);
+    LivingEntity target =
+        TargetFinder.findMarkedTarget(
+            sword, sword.position(), FlyingSwordAITuning.HUNT_SEARCH_RANGE);
     if (target == null) {
       return Optional.empty();
     }
@@ -39,5 +38,7 @@ public final class DuelIntent implements Intent {
   }
 
   @Override
-  public String name() { return "Duel"; }
+  public String name() {
+    return "Duel";
+  }
 }

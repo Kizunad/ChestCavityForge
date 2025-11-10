@@ -7,9 +7,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 飞剑生成事件上下文
- */
+/** 飞剑生成事件上下文 */
 public class SpawnContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;

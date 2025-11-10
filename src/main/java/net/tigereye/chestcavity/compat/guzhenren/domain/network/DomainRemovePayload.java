@@ -50,8 +50,7 @@ public record DomainRemovePayload(UUID domainId) implements CustomPacketPayload 
   private void handleClient() {
     try {
       Class<?> clazz =
-          Class.forName(
-              "net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer");
+          Class.forName("net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer");
       clazz.getMethod("removeDomain", UUID.class).invoke(null, domainId);
     } catch (Exception e) {
       // 服务端或客户端类未加载时忽略

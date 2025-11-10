@@ -14,17 +14,18 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordA
  *
  * <p><b>Phase 7: 软删除标记（Soft Deletion Mark）</b> - 扩展意图
  *
- * <p>本意图仅在 {@code ENABLE_EXTRA_INTENTS=true} 时实例化。
- * 默认配置下不会被使用，降低 AI 决策复杂度。
+ * <p>本意图仅在 {@code ENABLE_EXTRA_INTENTS=true} 时实例化。 默认配置下不会被使用，降低 AI 决策复杂度。
  *
- * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS
+ * @see
+ *     net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning#ENABLE_EXTRA_INTENTS
  * @see net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.planner.IntentPlanner
  */
 public final class ShepherdIntent implements Intent {
   @Override
   public Optional<IntentResult> evaluate(AIContext ctx) {
-    Vec3 cluster = TargetFinder.estimateHostileClusterCenter(
-        ctx.sword(), ctx.sword().position(), FlyingSwordAITuning.HUNT_SEARCH_RANGE);
+    Vec3 cluster =
+        TargetFinder.estimateHostileClusterCenter(
+            ctx.sword(), ctx.sword().position(), FlyingSwordAITuning.HUNT_SEARCH_RANGE);
     if (cluster == null) {
       return Optional.empty();
     }
@@ -43,5 +44,7 @@ public final class ShepherdIntent implements Intent {
   }
 
   @Override
-  public String name() { return "Shepherd"; }
+  public String name() {
+    return "Shepherd";
+  }
 }

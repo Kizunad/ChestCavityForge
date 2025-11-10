@@ -14,9 +14,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordB
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordCoreTuning;
 import net.tigereye.chestcavity.playerprefs.PlayerPreferenceOps;
 
-/**
- * 破块逻辑（服务端）。
- */
+/** 破块逻辑（服务端）。 */
 public final class BlockBreakOps {
   private BlockBreakOps() {}
 
@@ -27,8 +25,7 @@ public final class BlockBreakOps {
     if (!FlyingSwordCoreTuning.ENABLE_BLOCK_BREAK) {
       if (FlyingSwordBlockBreakTuning.BREAK_DEBUG_LOGS && sword.tickCount % 20 == 0) {
         net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-            String.format(
-                "[FlyingSword] BlockBreak disabled by config (id=%d)", sword.getId()));
+            String.format("[FlyingSword] BlockBreak disabled by config (id=%d)", sword.getId()));
       }
       return;
     }
@@ -54,8 +51,8 @@ public final class BlockBreakOps {
     // 速度与阈值
     var ctx = CalcContexts.from(sword);
     double effMax =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
-            .FlyingSwordCalculator.effectiveSpeedMax(sword.getSwordAttributes().speedMax, ctx);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+            .effectiveSpeedMax(sword.getSwordAttributes().speedMax, ctx);
     double speed = sword.getDeltaMovement().length();
 
     // 固定速度阈值优先生效
@@ -73,15 +70,13 @@ public final class BlockBreakOps {
     if (effMax <= 0.0) {
       if (FlyingSwordBlockBreakTuning.BREAK_DEBUG_LOGS && sword.tickCount % 20 == 0) {
         net.tigereye.chestcavity.ChestCavity.LOGGER.info(
-            String.format(
-                "[FlyingSword] BlockBreak skip: effMax<=0 (id=%d)", sword.getId()));
+            String.format("[FlyingSword] BlockBreak skip: effMax<=0 (id=%d)", sword.getId()));
       }
       return;
     }
     double speedPercent = speed / effMax;
     // 兼容保留百分比阈值（当 ABS 为 0 时生效）
-    if (absThr == 0.0
-        && speedPercent < FlyingSwordBlockBreakTuning.BREAK_MIN_SPEED_PERCENT) {
+    if (absThr == 0.0 && speedPercent < FlyingSwordBlockBreakTuning.BREAK_MIN_SPEED_PERCENT) {
       if (FlyingSwordBlockBreakTuning.BREAK_DEBUG_LOGS && sword.tickCount % 20 == 0) {
         net.tigereye.chestcavity.ChestCavity.LOGGER.info(
             String.format(
@@ -116,9 +111,15 @@ public final class BlockBreakOps {
     int eligible = 0;
     int broken = 0;
     boolean playedSound = false;
-    for (int x = minX; x <= maxX && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK; x++) {
-      for (int y = minY; y <= maxY && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK; y++) {
-        for (int z = minZ; z <= maxZ && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK; z++) {
+    for (int x = minX;
+        x <= maxX && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK;
+        x++) {
+      for (int y = minY;
+          y <= maxY && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK;
+          y++) {
+        for (int z = minZ;
+            z <= maxZ && broken < FlyingSwordBlockBreakTuning.BREAK_MAX_BLOCKS_PER_TICK;
+            z++) {
           BlockPos pos = new BlockPos(x, y, z);
           if (!level.isLoaded(pos)) continue;
 
@@ -136,10 +137,11 @@ public final class BlockBreakOps {
 
           // Phase 3: 触发 BlockBreakAttempt 事件（破块之前）
           boolean canBreak = canMine(state, toolTier);
-          var attemptCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-              .context.BlockBreakAttemptContext(sword, pos, state, canBreak);
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-              .FlyingSwordEventRegistry.fireBlockBreakAttempt(attemptCtx);
+          var attemptCtx =
+              new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                  .BlockBreakAttemptContext(sword, pos, state, canBreak);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+              .fireBlockBreakAttempt(attemptCtx);
 
           // Phase 3: 检查是否被事件取消
           if (attemptCtx.cancelled || !attemptCtx.canBreak) {
@@ -150,17 +152,15 @@ public final class BlockBreakOps {
           if (level.destroyBlock(pos, true, sword)) {
             broken++;
             if (!playedSound) {
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-                  .playBlockBreak(sword);
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playBlockBreak(
+                  sword);
               playedSound = true;
             }
             if (FlyingSwordBlockBreakTuning.BREAK_DEBUG_LOGS && sword.tickCount % 20 == 0) {
               net.tigereye.chestcavity.ChestCavity.LOGGER.info(
                   String.format(
                       "[FlyingSword] BlockBreak destroyed %s at %s (id=%d)",
-                      state.toString(),
-                      pos.toShortString(),
-                      sword.getId()));
+                      state.toString(), pos.toShortString(), sword.getId()));
             }
             float hardness = state.getDestroySpeed(level, pos);
             float duraBlock =
@@ -168,29 +168,29 @@ public final class BlockBreakOps {
             float total =
                 net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator
                     .FlyingSwordCalculator.calculateDurabilityLossWithContext(
-                        duraBlock, sword.getSwordAttributes().duraLossRatio, true, ctx);
+                    duraBlock, sword.getSwordAttributes().duraLossRatio, true, ctx);
 
             double decel = FlyingSwordBlockBreakTuning.BREAK_DECEL_PER_BLOCK;
 
             // 触发onBlockBreak事件钩子
             var blockOwner = sword.getOwner();
             if (blockOwner != null) {
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                  .context.BlockBreakContext breakCtx =
-                  new net.tigereye.chestcavity.compat.guzhenren.flyingsword
-                      .events.context.BlockBreakContext(
-                      sword,
-                      level,
-                      blockOwner,
-                      pos,
-                      state,
-                      hardness,
-                      speed,
-                      toolTier,
-                      total,
-                      decel);
-              net.tigereye.chestcavity.compat.guzhenren.flyingsword.events
-                  .FlyingSwordEventRegistry.fireBlockBreak(breakCtx);
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.BlockBreakContext
+                  breakCtx =
+                      new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+                          .BlockBreakContext(
+                          sword,
+                          level,
+                          blockOwner,
+                          pos,
+                          state,
+                          hardness,
+                          speed,
+                          toolTier,
+                          total,
+                          decel);
+              net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
+                  .fireBlockBreak(breakCtx);
 
               // 使用钩子修改后的值
               total = (float) breakCtx.durabilityLoss;

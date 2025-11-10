@@ -10,18 +10,20 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
  * <p>Phase 3: 当飞剑获取新目标时触发。
  *
  * <p>触发时机：
+ *
  * <ul>
- *   <li>GUARD模式自动搜索到敌对目标</li>
- *   <li>HUNT模式被指定新追击目标</li>
- *   <li>玩家通过命令标记目标</li>
+ *   <li>GUARD模式自动搜索到敌对目标
+ *   <li>HUNT模式被指定新追击目标
+ *   <li>玩家通过命令标记目标
  * </ul>
  *
  * <p>用途：
+ *
  * <ul>
- *   <li>记录目标切换历史（分析AI决策）</li>
- *   <li>触发锁定音效、粒子效果</li>
- *   <li>阻止锁定特定目标（友军保护、特权实体）</li>
- *   <li>修改目标优先级（如优先攻击BOSS）</li>
+ *   <li>记录目标切换历史（分析AI决策）
+ *   <li>触发锁定音效、粒子效果
+ *   <li>阻止锁定特定目标（友军保护、特权实体）
+ *   <li>修改目标优先级（如优先攻击BOSS）
  * </ul>
  */
 public class TargetAcquiredContext {

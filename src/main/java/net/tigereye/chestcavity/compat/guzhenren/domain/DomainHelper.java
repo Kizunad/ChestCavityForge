@@ -61,8 +61,8 @@ public final class DomainHelper {
                 domain.getPngHeightOffset(),
                 domain.getPngAlpha(),
                 domain.getPngRotationSpeed());
-        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainNetworkHandler.sendDomainSync(
-            syncPayload, center, serverLevel);
+        net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainNetworkHandler
+            .sendDomainSync(syncPayload, center, serverLevel);
       }
     }
 
@@ -128,10 +128,10 @@ public final class DomainHelper {
     return totalPower
             > net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
                 .JianXinDomainTuning.LEVEL_THRESHOLD
-        ? net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
-            .JianXinDomainTuning.MAX_LEVEL
-        : net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning
-            .JianXinDomainTuning.MIN_LEVEL;
+        ? net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning.JianXinDomainTuning
+            .MAX_LEVEL
+        : net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.tuning.JianXinDomainTuning
+            .MIN_LEVEL;
   }
 
   /**
@@ -159,9 +159,10 @@ public final class DomainHelper {
    * 检查两个玩家的剑心域是否冲突
    *
    * <p>领域冲突规则：
+   *
    * <ul>
-   *   <li>高等级领域压制低等级</li>
-   *   <li>同等级则双方效果都生效</li>
+   *   <li>高等级领域压制低等级
+   *   <li>同等级则双方效果都生效
    * </ul>
    *
    * @param player1 玩家1
@@ -210,7 +211,8 @@ public final class DomainHelper {
     java.util.Set<java.util.UUID> seen = new java.util.HashSet<>();
     for (var e : nearby) {
       if (!domain.isInDomain(e)) continue;
-      DomainTags.markEnterSwordDomain(e, domain.getDomainId(), domain.getOwnerUUID(), domain.getLevel());
+      DomainTags.markEnterSwordDomain(
+          e, domain.getDomainId(), domain.getOwnerUUID(), domain.getLevel());
       seen.add(e.getUUID());
     }
 

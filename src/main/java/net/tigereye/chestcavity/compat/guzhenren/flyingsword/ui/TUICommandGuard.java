@@ -11,20 +11,19 @@ import net.minecraft.server.level.ServerPlayer;
  * TUI命令守卫：校验会话ID并生成友好的错误提示。
  *
  * <p>职责：
+ *
  * <ul>
- *   <li>从命令参数中提取并校验会话ID（sid）</li>
- *   <li>生成"界面已过期，请刷新"提示组件</li>
- *   <li>提供一键刷新按钮</li>
- *   <li>处理实体/物品不存在的情况</li>
+ *   <li>从命令参数中提取并校验会话ID（sid）
+ *   <li>生成"界面已过期，请刷新"提示组件
+ *   <li>提供一键刷新按钮
+ *   <li>处理实体/物品不存在的情况
  * </ul>
  */
 public final class TUICommandGuard {
 
   private TUICommandGuard() {}
 
-  /**
-   * 校验会话结果。
-   */
+  /** 校验会话结果。 */
   public record ValidationResult(boolean isValid, Component errorMessage) {
     public static ValidationResult success() {
       return new ValidationResult(true, null);
@@ -56,7 +55,8 @@ public final class TUICommandGuard {
    */
   public static Component createExpiredMessage() {
     MutableComponent message =
-        Component.literal("[提示] ").withStyle(ChatFormatting.GOLD)
+        Component.literal("[提示] ")
+            .withStyle(ChatFormatting.GOLD)
             .append(Component.literal("此界面已过期").withStyle(ChatFormatting.YELLOW))
             .append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY));
 
@@ -75,10 +75,9 @@ public final class TUICommandGuard {
    */
   public static Component createNotFoundMessage(String targetType) {
     MutableComponent message =
-        Component.literal("[提示] ").withStyle(ChatFormatting.GOLD)
-            .append(
-                Component.literal(targetType + "不存在或已被移除")
-                    .withStyle(ChatFormatting.YELLOW))
+        Component.literal("[提示] ")
+            .withStyle(ChatFormatting.GOLD)
+            .append(Component.literal(targetType + "不存在或已被移除").withStyle(ChatFormatting.YELLOW))
             .append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY));
 
     // 添加刷新按钮
@@ -100,12 +99,12 @@ public final class TUICommandGuard {
         .withStyle(
             style ->
                 style
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/flyingsword ui"))
+                    .withClickEvent(
+                        new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/flyingsword ui"))
                     .withHoverEvent(
                         new HoverEvent(
                             HoverEvent.Action.SHOW_TEXT,
-                            Component.literal("点击重新打开界面")
-                                .withStyle(ChatFormatting.GRAY))));
+                            Component.literal("点击重新打开界面").withStyle(ChatFormatting.GRAY))));
   }
 
   /**
@@ -115,11 +114,10 @@ public final class TUICommandGuard {
    * @return 提示组件
    */
   public static Component createRateLimitMessage(double cooldownSeconds) {
-    return Component.literal("[限流] ").withStyle(ChatFormatting.GOLD)
+    return Component.literal("[限流] ")
+        .withStyle(ChatFormatting.GOLD)
         .append(
-            Component.literal(
-                    String.format(
-                        "界面刷新过于频繁，请稍后再试 (%.1f秒)", cooldownSeconds))
+            Component.literal(String.format("界面刷新过于频繁，请稍后再试 (%.1f秒)", cooldownSeconds))
                 .withStyle(ChatFormatting.YELLOW));
   }
 
@@ -130,7 +128,8 @@ public final class TUICommandGuard {
    * @return 提示组件
    */
   public static Component createSuccessMessage(String message) {
-    return Component.literal("[OK] ").withStyle(ChatFormatting.GREEN)
+    return Component.literal("[OK] ")
+        .withStyle(ChatFormatting.GREEN)
         .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
   }
 
@@ -141,7 +140,8 @@ public final class TUICommandGuard {
    * @return 提示组件
    */
   public static Component createWarningMessage(String message) {
-    return Component.literal("[警告] ").withStyle(ChatFormatting.YELLOW)
+    return Component.literal("[警告] ")
+        .withStyle(ChatFormatting.YELLOW)
         .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
   }
 }

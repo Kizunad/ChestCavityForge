@@ -4,6 +4,7 @@ package net.tigereye.chestcavity.compat.common.skillcalc;
 public interface SkillDamageModifier {
   /**
    * 应用修正。
+   *
    * @param ctx 计算上下文
    * @param current 当前伤害值
    * @param sink 明细收集器
@@ -14,8 +15,9 @@ public interface SkillDamageModifier {
   /** 明细输出接口。 */
   interface SkillDamageSink {
     void mul(String label, double factor, double after);
+
     void add(String label, double delta, double after);
+
     void clamp(String label, double after);
   }
 }
-

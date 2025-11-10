@@ -29,10 +29,7 @@ public final class ItemIdentityUtil {
     }
   }
 
-  /**
-   * 确保物品拥有稳定 UUID；若无则生成并写入，返回当前 UUID。
-   * 会原地修改传入的 ItemStack。
-   */
+  /** 确保物品拥有稳定 UUID；若无则生成并写入，返回当前 UUID。 会原地修改传入的 ItemStack。 */
   public static UUID ensureItemUUID(ItemStack stack) {
     var existing = getItemUUID(stack);
     if (existing.isPresent()) return existing.get();
@@ -53,4 +50,3 @@ public final class ItemIdentityUtil {
     return ua.isPresent() && ub.isPresent() && ua.get().equals(ub.get());
   }
 }
-

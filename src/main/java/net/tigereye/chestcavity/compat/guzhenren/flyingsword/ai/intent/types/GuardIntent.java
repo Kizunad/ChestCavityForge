@@ -3,25 +3,22 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types;
 import java.util.Optional;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior.TargetFinder;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.AIContext;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.Intent;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentResult;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.TrajectoryType;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior.TargetFinder;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordAITuning;
 
-/**
- * 护主（Guard）：
- * - 目标：最近威胁（优先拦截敌方飞剑，其次普通敌对）
- * - 轨迹：环身警戒/拦截线（Orbit / PredictiveLine）
- */
+/** 护主（Guard）： - 目标：最近威胁（优先拦截敌方飞剑，其次普通敌对） - 轨迹：环身警戒/拦截线（Orbit / PredictiveLine） */
 public final class GuardIntent implements Intent {
   @Override
   public Optional<IntentResult> evaluate(AIContext ctx) {
     var sword = ctx.sword();
     var owner = ctx.owner();
-    LivingEntity target = TargetFinder.findNearestHostileForGuard(
-        sword, owner.position(), FlyingSwordAITuning.GUARD_SEARCH_RANGE);
+    LivingEntity target =
+        TargetFinder.findNearestHostileForGuard(
+            sword, owner.position(), FlyingSwordAITuning.GUARD_SEARCH_RANGE);
 
     if (target != null) {
       double dist = Math.max(0.5, sword.distanceTo(target));
@@ -49,6 +46,7 @@ public final class GuardIntent implements Intent {
   }
 
   @Override
-  public String name() { return "Guard"; }
+  public String name() {
+    return "Guard";
+  }
 }
-

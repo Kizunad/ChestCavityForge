@@ -8,8 +8,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 /**
  * 人兽葬生飞剑粒子特效（魔道）
  *
- * <p>使用深红色、暗色、血滴类粒子效果。
- * 体现魔道飞剑的邪恶、血腥、诡异特征。
+ * <p>使用深红色、暗色、血滴类粒子效果。 体现魔道飞剑的邪恶、血腥、诡异特征。
  */
 public class RenShouZangShengFlyingSwordEntityFX implements IFlyingSwordEntityFX {
 
@@ -50,7 +49,8 @@ public class RenShouZangShengFlyingSwordEntityFX implements IFlyingSwordEntityFX
   }
 
   @Override
-  public void spawnAttackImpact(ServerLevel level, FlyingSwordEntity sword, Vec3 pos, double damage) {
+  public void spawnAttackImpact(
+      ServerLevel level, FlyingSwordEntity sword, Vec3 pos, double damage) {
     int particleCount = (int) Math.min(20, 5 + damage);
 
     // 横扫粒子
@@ -198,15 +198,7 @@ public class RenShouZangShengFlyingSwordEntityFX implements IFlyingSwordEntityFX
       double offsetZ = (level.random.nextDouble() - 0.5) * 0.5;
 
       level.sendParticles(
-          ParticleTypes.SOUL,
-          pos.x + offsetX,
-          pos.y,
-          pos.z + offsetZ,
-          1,
-          0.0,
-          0.2,
-          0.0,
-          0.05);
+          ParticleTypes.SOUL, pos.x + offsetX, pos.y, pos.z + offsetZ, 1, 0.0, 0.2, 0.0, 0.05);
     }
   }
 
@@ -245,8 +237,7 @@ public class RenShouZangShengFlyingSwordEntityFX implements IFlyingSwordEntityFX
   public void spawnOrbitTrail(ServerLevel level, FlyingSwordEntity sword) {
     Vec3 pos = sword.position();
     // 诡异孢子轨迹（深色）
-    level.sendParticles(
-        ParticleTypes.WARPED_SPORE, pos.x, pos.y, pos.z, 2, 0.05, 0.05, 0.05, 0.01);
+    level.sendParticles(ParticleTypes.WARPED_SPORE, pos.x, pos.y, pos.z, 2, 0.05, 0.05, 0.05, 0.01);
   }
 
   @Override

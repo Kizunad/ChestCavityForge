@@ -2,8 +2,8 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.resource.UpkeepOps;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordTuning;
 
@@ -11,25 +11,28 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning.FlyingSwordT
  * Phase 2: 维持系统 (Upkeep System)
  *
  * <p>职责:
+ *
  * <ul>
- *   <li>检查维持消耗间隔</li>
- *   <li>调用 ResourceOps 消耗真元</li>
- *   <li>触发 OnUpkeepCheck 事件</li>
- *   <li>处理维持不足的回调 (召回/消散)</li>
+ *   <li>检查维持消耗间隔
+ *   <li>调用 ResourceOps 消耗真元
+ *   <li>触发 OnUpkeepCheck 事件
+ *   <li>处理维持不足的回调 (召回/消散)
  * </ul>
  *
  * <p>设计原则:
+ *
  * <ul>
- *   <li>无状态: 所有方法为静态方法，不持有实例变量</li>
- *   <li>事件驱动: 关键操作触发事件钩子</li>
- *   <li>可测试: 输入输出明确，便于单元测试</li>
+ *   <li>无状态: 所有方法为静态方法，不持有实例变量
+ *   <li>事件驱动: 关键操作触发事件钩子
+ *   <li>可测试: 输入输出明确，便于单元测试
  * </ul>
  *
  * <p>实现说明:
+ *
  * <ul>
- *   <li>Phase 2 保持现有维持逻辑不变，仅重构调用方式</li>
- *   <li>委托给 UpkeepOps 处理资源消耗</li>
- *   <li>Phase 3 将扩展 OnUpkeepCheck 事件，允许外部模块修改消耗量</li>
+ *   <li>Phase 2 保持现有维持逻辑不变，仅重构调用方式
+ *   <li>委托给 UpkeepOps 处理资源消耗
+ *   <li>Phase 3 将扩展 OnUpkeepCheck 事件，允许外部模块修改消耗量
  * </ul>
  */
 public final class UpkeepSystem {
@@ -74,25 +77,32 @@ public final class UpkeepSystem {
       // Phase 3: 触发 UpkeepCheck 事件
       var attrs = sword.getSwordAttributes();
       double speed = sword.getDeltaMovement().length();
-      var ctx = net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts.from(sword);
-      double effectiveMax = net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
-          .effectiveSpeedMax(attrs.speedMax, ctx);
+      var ctx =
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts
+              .from(sword);
+      double effectiveMax =
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
+              .effectiveSpeedMax(attrs.speedMax, ctx);
       double speedPercent = effectiveMax > 0 ? speed / effectiveMax : 0.0;
 
-      boolean sprinting = (owner instanceof net.minecraft.world.entity.player.Player player)
-          && player.isSprinting();
+      boolean sprinting =
+          (owner instanceof net.minecraft.world.entity.player.Player player)
+              && player.isSprinting();
 
-      double baseCost = UpkeepOps.computeIntervalUpkeepCost(
-          attrs.upkeepRate,
-          sword.getAIMode(),
-          sprinting,
-          false,
-          speedPercent,
-          FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
+      double baseCost =
+          UpkeepOps.computeIntervalUpkeepCost(
+              attrs.upkeepRate,
+              sword.getAIMode(),
+              sprinting,
+              false,
+              speedPercent,
+              FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
 
       // Phase 3：事件上下文（finalCost 默认等于 baseCost，为简化不额外乘速度倍率）
-      var upkeepCtx = new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context.UpkeepCheckContext(
-          sword, baseCost, /*speedMultiplier*/ 1.0, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
+      var upkeepCtx =
+          new net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.context
+              .UpkeepCheckContext(
+              sword, baseCost, /*speedMultiplier*/ 1.0, FlyingSwordTuning.UPKEEP_CHECK_INTERVAL);
 
       net.tigereye.chestcavity.compat.guzhenren.flyingsword.events.FlyingSwordEventRegistry
           .fireUpkeepCheck(upkeepCtx);
@@ -118,18 +128,18 @@ public final class UpkeepSystem {
    * Phase 4: 处理维持失败
    *
    * <p>根据 FlyingSwordTuning.UPKEEP_FAILURE_STRATEGY 配置的策略：
+   *
    * <ul>
-   *   <li>RECALL: 召回飞剑到物品栏（默认）</li>
-   *   <li>STALL: 停滞不动，速度设为 0</li>
-   *   <li>SLOW: 减速移动，速度降低到配置的倍率</li>
+   *   <li>RECALL: 召回飞剑到物品栏（默认）
+   *   <li>STALL: 停滞不动，速度设为 0
+   *   <li>SLOW: 减速移动，速度降低到配置的倍率
    * </ul>
    *
    * @param sword 飞剑实体
    */
   private static void handleUpkeepFailure(FlyingSwordEntity sword) {
     // Phase 4: 播放音效（所有策略通用）
-    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-        .playOutOfEnergy(sword);
+    net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playOutOfEnergy(sword);
 
     // Phase 4: 根据策略执行不同处理
     switch (FlyingSwordTuning.UPKEEP_FAILURE_STRATEGY) {
@@ -143,8 +153,7 @@ public final class UpkeepSystem {
 
         // Phase 4: 定期播放音效提示（避免刷屏）
         if (sword.tickCount % FlyingSwordTuning.UPKEEP_FAILURE_SOUND_INTERVAL == 0) {
-          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps
-              .playOutOfEnergy(sword);
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.ops.SoundOps.playOutOfEnergy(sword);
         }
       }
       case SLOW -> {
@@ -175,15 +184,16 @@ public final class UpkeepSystem {
     var attrs = sword.getSwordAttributes();
     double speed = sword.getDeltaMovement().length();
     net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContext ctx =
-        net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts.from(sword);
+        net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcContexts.from(
+            sword);
     double effectiveMax =
         net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.FlyingSwordCalculator
             .effectiveSpeedMax(attrs.speedMax, ctx);
     double speedPercent = effectiveMax > 0 ? speed / effectiveMax : 0.0;
 
     LivingEntity owner = sword.getOwner();
-    boolean sprinting = (owner instanceof net.minecraft.world.entity.player.Player player)
-        && player.isSprinting();
+    boolean sprinting =
+        (owner instanceof net.minecraft.world.entity.player.Player player) && player.isSprinting();
 
     return UpkeepOps.computeIntervalUpkeepCost(
         attrs.upkeepRate,
@@ -193,5 +203,4 @@ public final class UpkeepSystem {
         speedPercent,
         ticks);
   }
-
 }

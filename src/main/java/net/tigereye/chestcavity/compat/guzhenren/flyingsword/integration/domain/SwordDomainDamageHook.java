@@ -9,9 +9,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.context.CalcOutputs;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.calculator.hooks.FlyingSwordCalcHook;
 
-/**
- * 剑心域伤害修正钩子：友方伤害+50%，敌方伤害-50%
- */
+/** 剑心域伤害修正钩子：友方伤害+50%，敌方伤害-50% */
 public final class SwordDomainDamageHook implements FlyingSwordCalcHook {
 
   private static final SwordDomainDamageHook INSTANCE = new SwordDomainDamageHook();
@@ -49,8 +47,9 @@ public final class SwordDomainDamageHook implements FlyingSwordCalcHook {
     // 统一效果乘积缩放
     double effectScale = 1.0;
     if (jianXinDomain.getOwner() instanceof Player ownerPlayer) {
-      effectScale = net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state.DomainConfigOps
-          .effectScale(ownerPlayer);
+      effectScale =
+          net.tigereye.chestcavity.compat.guzhenren.domain.impl.jianxin.state.DomainConfigOps
+              .effectScale(ownerPlayer);
     }
 
     // 友方：伤害 +50%

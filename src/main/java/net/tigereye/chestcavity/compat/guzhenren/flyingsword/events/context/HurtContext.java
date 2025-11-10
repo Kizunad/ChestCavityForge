@@ -5,9 +5,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 
-/**
- * 飞剑本体受击事件上下文
- */
+/** 飞剑本体受击事件上下文 */
 public class HurtContext {
   public final FlyingSwordEntity sword;
   public final ServerLevel level;
@@ -30,7 +28,11 @@ public class HurtContext {
   public int weakenedDuration = 60;
 
   public HurtContext(
-      FlyingSwordEntity sword, ServerLevel level, LivingEntity owner, DamageSource source, float damage) {
+      FlyingSwordEntity sword,
+      ServerLevel level,
+      LivingEntity owner,
+      DamageSource source,
+      float damage) {
     this.sword = sword;
     this.level = level;
     this.owner = owner;

@@ -7,8 +7,7 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 /**
  * 飞剑实体粒子特效接口
  *
- * <p>定义飞剑各种状态和事件的粒子特效方法。
- * 不同类型的飞剑通过实现此接口来提供特定的视觉效果。
+ * <p>定义飞剑各种状态和事件的粒子特效方法。 不同类型的飞剑通过实现此接口来提供特定的视觉效果。
  */
 public interface IFlyingSwordEntityFX {
 

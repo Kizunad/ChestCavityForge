@@ -8,10 +8,9 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.tuning.ShouPiGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
-
-/** 兽皮蛊聚合入口。 */
 import net.minecraft.resources.ResourceLocation;
 
+/** 兽皮蛊聚合入口。 */
 public final class ShouPiGuOps {
   private ShouPiGuOps() {}
 

@@ -1,11 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.systems;
 
 import java.util.Optional;
-import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.AIMode;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.behavior.GuardBehavior;
@@ -21,7 +21,6 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.IntentRes
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.planner.IntentPlanner;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.intent.types.RecallIntent;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.trajectory.Trajectories;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordController;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSnapshot;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringOps;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
@@ -30,17 +29,19 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemp
  * Phase 2: 运动系统 (Movement System)
  *
  * <p>职责:
+ *
  * <ul>
- *   <li>应用 AI 意图与轨迹模板计算速度</li>
- *   <li>调用 setDeltaMovement 更新实体运动</li>
- *   <li>集中管理各种 AI 模式的运动逻辑</li>
+ *   <li>应用 AI 意图与轨迹模板计算速度
+ *   <li>调用 setDeltaMovement 更新实体运动
+ *   <li>集中管理各种 AI 模式的运动逻辑
  * </ul>
  *
  * <p>设计原则:
+ *
  * <ul>
- *   <li>无状态: 所有方法为静态方法，不持有实例变量</li>
- *   <li>事件驱动: 关键操作触发事件钩子</li>
- *   <li>可测试: 输入输出明确，便于单元测试</li>
+ *   <li>无状态: 所有方法为静态方法，不持有实例变量
+ *   <li>事件驱动: 关键操作触发事件钩子
+ *   <li>可测试: 输入输出明确，便于单元测试
  * </ul>
  */
 public final class MovementSystem {
@@ -91,9 +92,7 @@ public final class MovementSystem {
     sword.setCurrentSpeed((float) sword.getDeltaMovement().length());
   }
 
-  /**
-   * Phase 2: 执行 AI 模式对应的行为逻辑
-   */
+  /** Phase 2: 执行 AI 模式对应的行为逻辑 */
   private static void executeAIBehavior(
       FlyingSwordEntity sword, LivingEntity owner, AIMode mode, ServerLevel server) {
 
@@ -110,8 +109,8 @@ public final class MovementSystem {
 
       case HUNT:
         // Phase 2: 出击模式 - 使用旧实现
-        LivingEntity huntTarget = TargetFinder.findNearestHostile(
-            sword, sword.position(), HuntBehavior.getSearchRange());
+        LivingEntity huntTarget =
+            TargetFinder.findNearestHostile(sword, sword.position(), HuntBehavior.getSearchRange());
         HuntBehavior.tick(sword, owner, huntTarget);
         break;
 
@@ -135,9 +134,7 @@ public final class MovementSystem {
     }
   }
 
-  /**
-   * Phase 2: 处理 GUARD 模式 (新 Intent 系统)
-   */
+  /** Phase 2: 处理 GUARD 模式 (新 Intent 系统) */
   private static void handleGuardMode(
       FlyingSwordEntity sword, LivingEntity owner, ServerLevel server) {
 
@@ -151,15 +148,14 @@ public final class MovementSystem {
       applyIntentResult(sword, ctx, res);
     } else {
       // Phase 2: 回退到旧实现
-      LivingEntity nearest = TargetFinder.findNearestHostileForGuard(
-          sword, owner.position(), GuardBehavior.getSearchRange());
+      LivingEntity nearest =
+          TargetFinder.findNearestHostileForGuard(
+              sword, owner.position(), GuardBehavior.getSearchRange());
       GuardBehavior.tick(sword, owner, nearest);
     }
   }
 
-  /**
-   * Phase 2: 处理 RECALL 模式 (新 Intent 系统)
-   */
+  /** Phase 2: 处理 RECALL 模式 (新 Intent 系统) */
   private static void handleRecallMode(
       FlyingSwordEntity sword, LivingEntity owner, ServerLevel server) {
 
@@ -185,12 +181,13 @@ public final class MovementSystem {
    * Phase 2: 应用意图结果，计算并设置速度
    *
    * <p>核心流程:
+   *
    * <ol>
-   *   <li>获取轨迹模板 (SteeringTemplate)</li>
-   *   <li>捕获运动学快照 (KinematicsSnapshot)</li>
-   *   <li>计算转向指令 (SteeringCommand)</li>
-   *   <li>计算新速度 (SteeringOps.computeNewVelocity)</li>
-   *   <li>应用速度 (setDeltaMovement)</li>
+   *   <li>获取轨迹模板 (SteeringTemplate)
+   *   <li>捕获运动学快照 (KinematicsSnapshot)
+   *   <li>计算转向指令 (SteeringCommand)
+   *   <li>计算新速度 (SteeringOps.computeNewVelocity)
+   *   <li>应用速度 (setDeltaMovement)
    * </ol>
    *
    * @param sword 飞剑实体
@@ -222,7 +219,8 @@ public final class MovementSystem {
     } catch (Exception e) {
       // Phase 2: 防御性错误处理，避免单个飞剑崩溃影响全局
       // 在生产环境中可替换为日志系统
-      // LOGGER.warn("Failed to apply intent result for sword {}: {}", sword.getId(), e.getMessage());
+      // LOGGER.warn("Failed to apply intent result for sword {}: {}", sword.getId(),
+      // e.getMessage());
     }
   }
 
@@ -241,8 +239,9 @@ public final class MovementSystem {
 
     try {
       var snapshot = KinematicsSnapshot.capture(sword);
-      var command = net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion
-          .LegacySteeringAdapter.fromDesiredVelocity(desiredVelocity, snapshot);
+      var command =
+          net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.LegacySteeringAdapter
+              .fromDesiredVelocity(desiredVelocity, snapshot);
       Vec3 newVelocity = SteeringOps.computeNewVelocity(sword, command, snapshot);
       sword.setDeltaMovement(newVelocity);
     } catch (Exception e) {

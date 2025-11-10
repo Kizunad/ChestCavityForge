@@ -12,10 +12,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.state.WuxingGuiBianAttachment.ConversionMode;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
-/**
- * Command handler for configuring 五行归变·逆转.
- * Usage: /wuxing_gui_config mode <temporary|permanent>
- */
+/** Command handler for configuring 五行归变·逆转. Usage: /wuxing_gui_config mode <temporary|permanent> */
 public final class WuxingGuiBianConfigCommand {
 
   private WuxingGuiBianConfigCommand() {}
@@ -49,8 +46,7 @@ public final class WuxingGuiBianConfigCommand {
     WuxingGuiBianAttachment attachment = CCAttachments.getWuxingGuiBian(player);
     attachment.setLastMode(mode);
 
-    player.sendSystemMessage(
-        Component.literal("§a五行归变·逆转 §f转化模式已设置为：§b" + getModeName(mode)));
+    player.sendSystemMessage(Component.literal("§a五行归变·逆转 §f转化模式已设置为：§b" + getModeName(mode)));
     return 1;
   }
 

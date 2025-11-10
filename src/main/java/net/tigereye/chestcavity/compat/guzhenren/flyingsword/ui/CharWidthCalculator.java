@@ -4,10 +4,11 @@ package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ui;
  * Minecraft聊天系统中的字符宽度计算器。
  *
  * <p>Minecraft使用等宽字体，但中文、英文、emoji的宽度不同：
+ *
  * <ul>
- *   <li>英文字母/数字/半角符号：1 个单位（~5px）</li>
- *   <li>中文字符/全角符号/emoji：2 个单位（~10px）</li>
- *   <li>空格：根据上下文，半角空格1单位，全角空格2单位</li>
+ *   <li>英文字母/数字/半角符号：1 个单位（~5px）
+ *   <li>中文字符/全角符号/emoji：2 个单位（~10px）
+ *   <li>空格：根据上下文，半角空格1单位，全角空格2单位
  * </ul>
  */
 public final class CharWidthCalculator {
@@ -70,19 +71,19 @@ public final class CharWidthCalculator {
     }
 
     // CJK 统一表意文字及扩展（中日韩）
-    if ((codePoint >= 0x4E00 && codePoint <= 0x9FFF)      // CJK 基础区
-        || (codePoint >= 0x3400 && codePoint <= 0x4DBF)   // CJK 扩展A
+    if ((codePoint >= 0x4E00 && codePoint <= 0x9FFF) // CJK 基础区
+        || (codePoint >= 0x3400 && codePoint <= 0x4DBF) // CJK 扩展A
         || (codePoint >= 0x20000 && codePoint <= 0x2A6DF) // CJK 扩展B
         || (codePoint >= 0x2A700 && codePoint <= 0x2B73F) // CJK 扩展C
         || (codePoint >= 0x2B740 && codePoint <= 0x2B81F) // CJK 扩展D
         || (codePoint >= 0x2B820 && codePoint <= 0x2CEAF) // CJK 扩展E
-        || (codePoint >= 0xF900 && codePoint <= 0xFAFF)   // CJK 兼容表意字
+        || (codePoint >= 0xF900 && codePoint <= 0xFAFF) // CJK 兼容表意字
         || (codePoint >= 0x2F800 && codePoint <= 0x2FA1F)) { // CJK 兼容表意扩展
       return 2;
     }
 
     // CJK 标点/全角符号
-    if ((codePoint >= 0x3000 && codePoint <= 0x303F)      // CJK 符号和标点
+    if ((codePoint >= 0x3000 && codePoint <= 0x303F) // CJK 符号和标点
         || (codePoint >= 0xFF00 && codePoint <= 0xFFEF)) { // 全角和半角形式
       return 2;
     }
@@ -164,9 +165,7 @@ public final class CharWidthCalculator {
     return text + " ".repeat(needed);
   }
 
-  /**
-   * 用空格补充到指定宽度（左对齐）。
-   */
+  /** 用空格补充到指定宽度（左对齐）。 */
   public static String padLeft(String text, int targetWidth) {
     int currentWidth = calculateWidth(text);
     int needed = targetWidth - currentWidth;
@@ -176,9 +175,7 @@ public final class CharWidthCalculator {
     return " ".repeat(needed) + text;
   }
 
-  /**
-   * 用空格补充到指定宽度（居中）。
-   */
+  /** 用空格补充到指定宽度（居中）。 */
   public static String padCenter(String text, int targetWidth) {
     int currentWidth = calculateWidth(text);
     int needed = targetWidth - currentWidth;

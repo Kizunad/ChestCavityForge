@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.tuning;
 
-/**
- * 飞剑修复/赋能相关参数。
- */
+/** 飞剑修复/赋能相关参数。 */
 public final class FlyingSwordRepairTuning {
   private FlyingSwordRepairTuning() {}
 

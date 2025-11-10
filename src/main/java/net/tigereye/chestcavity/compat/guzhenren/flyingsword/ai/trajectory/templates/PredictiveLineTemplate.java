@@ -7,17 +7,14 @@ import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.KinematicsSn
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringCommand;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.motion.SteeringTemplate;
 
-/**
- * 线性拦截模板，支持参数化提前量与速度倍率。
- */
+/** 线性拦截模板，支持参数化提前量与速度倍率。 */
 public final class PredictiveLineTemplate implements SteeringTemplate {
 
   private static final double DEFAULT_LEAD_SEC = 0.3;
   private static final double MAX_LEAD_SEC = 0.6;
 
   @Override
-  public SteeringCommand compute(
-      AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
+  public SteeringCommand compute(AIContext ctx, IntentResult intent, KinematicsSnapshot snapshot) {
     var sword = ctx.sword();
     Vec3 from = sword.position();
 
@@ -112,6 +109,7 @@ public final class PredictiveLineTemplate implements SteeringTemplate {
     final double headingKp;
     final double minFloor;
     final double accelMul;
+
     TurnParams(double t, double k, double f, double a) {
       this.turnPerTick = t;
       this.headingKp = k;

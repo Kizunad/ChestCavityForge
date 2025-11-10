@@ -6,12 +6,7 @@ import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
 
-/**
- * 绑定 SwordVisualProfile 的轻量 Geo 渲染对象：
- * - model 固定
- * - texture 可在每层渲染前切换
- * - animation 可为空
- */
+/** 绑定 SwordVisualProfile 的轻量 Geo 渲染对象： - model 固定 - texture 可在每层渲染前切换 - animation 可为空 */
 public final class SwordGeoProfileObject implements SingletonGeoAnimatable {
   private final ResourceLocation model;
   private final ResourceLocation animation;
@@ -28,11 +23,21 @@ public final class SwordGeoProfileObject implements SingletonGeoAnimatable {
     this.texture = texture;
   }
 
-  public ResourceLocation model() { return model; }
-  public ResourceLocation texture() { return texture; }
-  public ResourceLocation animation() { return animation; }
+  public ResourceLocation model() {
+    return model;
+  }
 
-  public void updateTick(double tick) { this.animationTick = tick; }
+  public ResourceLocation texture() {
+    return texture;
+  }
+
+  public ResourceLocation animation() {
+    return animation;
+  }
+
+  public void updateTick(double tick) {
+    this.animationTick = tick;
+  }
 
   @Override
   public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
@@ -40,9 +45,12 @@ public final class SwordGeoProfileObject implements SingletonGeoAnimatable {
   }
 
   @Override
-  public AnimatableInstanceCache getAnimatableInstanceCache() { return cache; }
+  public AnimatableInstanceCache getAnimatableInstanceCache() {
+    return cache;
+  }
 
   @Override
-  public double getTick(Object object) { return animationTick; }
+  public double getTick(Object object) {
+    return animationTick;
+  }
 }
-

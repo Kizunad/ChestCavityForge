@@ -7,13 +7,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.common.agent.Agent;
-import net.tigereye.chestcavity.compat.common.agent.Agents;
 import net.tigereye.chestcavity.compat.common.skillcalc.mod.AttackerFlagBonusModifier;
 import net.tigereye.chestcavity.compat.common.skillcalc.mod.DefenderResistanceModifier;
 
-/**
- * 通用伤害计算器：顺序应用注册的修正规则并返回带明细的结果。
- */
+/** 通用伤害计算器：顺序应用注册的修正规则并返回带明细的结果。 */
 public final class DamageCalculator {
 
   private DamageCalculator() {}
@@ -45,20 +42,21 @@ public final class DamageCalculator {
       java.util.Set<DamageKind> kinds) {
     Objects.requireNonNull(attacker, "attacker");
     DamageComputeContext ctx =
-        DamageComputeContext
-            .builder(attacker, baseDamage)
+        DamageComputeContext.builder(attacker, baseDamage)
             .defender(defender)
             .skill(skillId)
             .cast(castId)
             .build();
     if (kinds != null) {
       for (DamageKind k : kinds) {
-        if (k != null) ctx = DamageComputeContext.builder(attacker, baseDamage)
-            .defender(defender)
-            .skill(skillId)
-            .cast(castId)
-            .addKind(k)
-            .build();
+        if (k != null)
+          ctx =
+              DamageComputeContext.builder(attacker, baseDamage)
+                  .defender(defender)
+                  .skill(skillId)
+                  .cast(castId)
+                  .addKind(k)
+                  .build();
       }
     }
     return compute(ctx);
@@ -71,7 +69,8 @@ public final class DamageCalculator {
         new SkillDamageModifier.SkillDamageSink() {
           @Override
           public void mul(String label, double factor, double after) {
-            breakdown.add(new DamageResult.Entry(label, DamageResult.Entry.Kind.MULTIPLY, factor, after));
+            breakdown.add(
+                new DamageResult.Entry(label, DamageResult.Entry.Kind.MULTIPLY, factor, after));
           }
 
           @Override
@@ -90,7 +89,8 @@ public final class DamageCalculator {
         double before = current;
         current = m.apply(ctx, current, sink);
         if (!Double.isFinite(current)) current = before;
-      } catch (Throwable ignored) {}
+      } catch (Throwable ignored) {
+      }
     }
     current = Math.max(0.0, current);
 
@@ -107,4 +107,3 @@ public final class DamageCalculator {
     return new DamageResult(ctx.baseDamage(), current, breakdown, spentAbs, healthDamage);
   }
 }
-
