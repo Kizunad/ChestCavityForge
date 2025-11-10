@@ -268,7 +268,9 @@ final class ResourceFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null || value <= 0.0) return;
+        if (performer == null || value <= 0.0) {
+          return;
+        }
         performer.hurt(performer.damageSources().generic(), (float) value);
       }
 
@@ -289,7 +291,9 @@ final class ResourceFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null || effectId == null || duration <= 0) return;
+        if (performer == null || effectId == null || duration <= 0) {
+          return;
+        }
         var holderOpt = BuiltInRegistries.MOB_EFFECT.getHolder(effectId);
         if (holderOpt.isEmpty()) {
           ChestCavity.LOGGER.warn("[Flow] Unknown effect {} in apply_effect", effectId);
@@ -313,7 +317,9 @@ final class ResourceFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null || value <= 0.0) return;
+        if (performer == null || value <= 0.0) {
+          return;
+        }
         float startingHealth = performer.getHealth();
         float startingAbsorption = performer.getAbsorptionAmount();
         performer.invulnerableTime = 0;
@@ -364,7 +370,8 @@ final class ResourceFlowActions {
     double available = before.isPresent() ? before.getAsDouble() : Double.NaN;
     double remaining = after.isPresent() ? after.getAsDouble() : available;
     ChestCavity.LOGGER.debug(
-        "[Flow] consume_resource failure for {} (identifier={}, scaledAmount={}, originalAmount={}, timeScale={}, reason={}, available={}, remaining={})",
+        "[Flow] consume_resource failure for {} (identifier={}, scaledAmount={},"
+            + " originalAmount={}, timeScale={}, reason={}, available={}, remaining={})",
         name,
         identifier,
         formatDouble(scaledAmount),
@@ -375,7 +382,8 @@ final class ResourceFlowActions {
         formatDouble(remaining));
     if (controller != null) {
       ChestCavity.LOGGER.warn(
-          "[Flow] {} cancelling due to resource failure (identifier={}, required={}, available={}, remaining={}, timeScale={}, reason={})",
+          "[Flow] {} cancelling due to resource failure (identifier={}, required={}, available={},"
+              + " remaining={}, timeScale={}, reason={})",
           name,
           identifier,
           formatDouble(scaledAmount),

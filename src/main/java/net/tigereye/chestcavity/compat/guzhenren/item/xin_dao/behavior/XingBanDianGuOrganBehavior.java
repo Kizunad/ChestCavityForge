@@ -111,7 +111,9 @@ public enum XingBanDianGuOrganBehavior implements OrganIncomingDamageListener {
     if (cc != null && cc.inventory != null) {
       for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
         ItemStack candidate = cc.inventory.getItem(i);
-        if (candidate.isEmpty()) continue;
+        if (candidate.isEmpty()) {
+          continue;
+        }
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(candidate.getItem());
         if (ORGAN_ID.equals(id)) {
           return candidate;
@@ -134,12 +136,18 @@ public enum XingBanDianGuOrganBehavior implements OrganIncomingDamageListener {
   }
 
   private static boolean consumeOneOrgan(ChestCavityInstance cc) {
-    if (cc == null || cc.inventory == null) return false;
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack stack = cc.inventory.getItem(i);
-      if (stack.isEmpty()) continue;
+      if (stack.isEmpty()) {
+        continue;
+      }
       ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-      if (!ORGAN_ID.equals(id)) continue;
+      if (!ORGAN_ID.equals(id)) {
+        continue;
+      }
       stack.shrink(1);
       if (stack.isEmpty()) {
         cc.inventory.setItem(i, ItemStack.EMPTY);
@@ -151,18 +159,26 @@ public enum XingBanDianGuOrganBehavior implements OrganIncomingDamageListener {
   }
 
   private static boolean hasAtLeastOneOrgan(ChestCavityInstance cc) {
-    if (cc == null || cc.inventory == null) return false;
+    if (cc == null || cc.inventory == null) {
+      return false;
+    }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack stack = cc.inventory.getItem(i);
-      if (stack.isEmpty()) continue;
+      if (stack.isEmpty()) {
+        continue;
+      }
       ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-      if (ORGAN_ID.equals(id)) return true;
+      if (ORGAN_ID.equals(id)) {
+        return true;
+      }
     }
     return false;
   }
 
   private static void grantHiddenResistance(LivingEntity victim, int durationTicks) {
-    if (durationTicks <= 0) return;
+    if (durationTicks <= 0) {
+      return;
+    }
     victim.addEffect(
         new MobEffectInstance(
             MobEffects.DAMAGE_RESISTANCE, durationTicks, HIDDEN_RESIST_AMP, false, false, false));

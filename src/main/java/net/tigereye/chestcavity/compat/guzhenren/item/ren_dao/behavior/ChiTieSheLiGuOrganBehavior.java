@@ -56,7 +56,9 @@ public enum ChiTieSheLiGuOrganBehavior implements OrganSlowTickListener {
       return;
     }
     ServerLevel server = entity.level() instanceof ServerLevel s ? s : null;
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
 
     MultiCooldown cd = createCooldown(cc, organ);
     MultiCooldown.Entry passiveReady = cd.entry(KEY_PURGE_READY_AT);
@@ -91,9 +93,13 @@ public enum ChiTieSheLiGuOrganBehavior implements OrganSlowTickListener {
       return;
     }
     ItemStack organ = findPrimaryOrgan(cc);
-    if (organ.isEmpty()) return;
+    if (organ.isEmpty()) {
+      return;
+    }
     ServerLevel server = entity.level() instanceof ServerLevel s ? s : null;
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
 
     MultiCooldown cd = createCooldown(cc, organ);
     long now = server.getGameTime();
@@ -104,7 +110,9 @@ public enum ChiTieSheLiGuOrganBehavior implements OrganSlowTickListener {
     // 资源扣除：先真元（scaled），再魂魄（strict）。任何一步失败则中断。
     Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
         GuzhenrenResourceBridge.open(entity);
-    if (handleOpt.isEmpty()) return;
+    if (handleOpt.isEmpty()) {
+      return;
+    }
     GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
 
     // 先扣魂魄，保证可退款
@@ -135,13 +143,17 @@ public enum ChiTieSheLiGuOrganBehavior implements OrganSlowTickListener {
   }
 
   private static boolean matchesOrgan(ItemStack stack) {
-    if (stack == null || stack.isEmpty()) return false;
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
     ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
     return ORGAN_ID.equals(id);
   }
 
   private static ItemStack findPrimaryOrgan(ChestCavityInstance cc) {
-    if (cc == null || cc.inventory == null) return ItemStack.EMPTY;
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack candidate = cc.inventory.getItem(i);
       if (matchesOrgan(candidate)) {

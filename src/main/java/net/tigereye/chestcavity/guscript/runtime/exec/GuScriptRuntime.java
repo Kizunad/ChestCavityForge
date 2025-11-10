@@ -128,8 +128,7 @@ public final class GuScriptRuntime {
               ? context.performer().level().isClientSide()
               : context.target() != null && context.target().level().isClientSide();
       ChestCavity.LOGGER.info(
-          "[GuScript] Executing root {}#{} ({}) with context {} on {} side for"
-              + " performer {}",
+          "[GuScript] Executing root {}#{} ({}) with context {} on {} side for performer {}",
           rootName,
           rootIndex,
           rootKind,

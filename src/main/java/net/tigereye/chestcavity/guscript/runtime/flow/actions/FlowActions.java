@@ -353,9 +353,13 @@ public final class FlowActions {
       String base =
           net.tigereye.chestcavity.soul.util.SoulNamePool.pick(
               new java.util.Random(rand.nextLong()));
-      if (base == null || base.isBlank()) break;
+      if (base == null || base.isBlank()) {
+        break;
+      }
       String candidate = base;
-      if (candidate.length() > 16) candidate = candidate.substring(0, 16);
+      if (candidate.length() > 16) {
+        candidate = candidate.substring(0, 16);
+      }
       if (!SoulFakePlayerServices.identity().isIdentityNameInUse(candidate)) {
         return candidate;
       }
@@ -365,19 +369,27 @@ public final class FlowActions {
       String base =
           net.tigereye.chestcavity.soul.util.SoulNamePool.pick(
               new java.util.Random(rand.nextLong()));
-      if (base == null || base.isBlank()) break;
+      if (base == null || base.isBlank()) {
+        break;
+      }
       String suffix = String.valueOf(10 + rand.nextInt(90));
       String candidate = base + suffix;
-      if (candidate.length() > 16) candidate = candidate.substring(0, 16);
+      if (candidate.length() > 16) {
+        candidate = candidate.substring(0, 16);
+      }
       if (!SoulFakePlayerServices.identity().isIdentityNameInUse(candidate)) {
         return candidate;
       }
     }
     // Last resort: derive from owner name
     String ownerName = owner.getGameProfile().getName();
-    if (ownerName == null || ownerName.isBlank()) ownerName = "Soul";
+    if (ownerName == null || ownerName.isBlank()) {
+      ownerName = "Soul";
+    }
     String candidate = ownerName + "Soul";
-    if (candidate.length() > 16) candidate = candidate.substring(0, 16);
+    if (candidate.length() > 16) {
+      candidate = candidate.substring(0, 16);
+    }
     return candidate;
   }
 

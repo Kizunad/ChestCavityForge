@@ -177,7 +177,8 @@ public final class LingGuangYiShanGuOrganBehavior extends AbstractGuzhenrenOrgan
     String message =
         String.format(
             Locale.ROOT,
-            "[compat/guzhenren][zhi_dao][ling_guang_yi_shan_gu] %s player=%s delta=%s result=%s payment=%s",
+            "[compat/guzhenren][zhi_dao][ling_guang_yi_shan_gu] %s player=%s delta=%s result=%s"
+                + " payment=%s",
             action,
             playerName,
             format(delta),
