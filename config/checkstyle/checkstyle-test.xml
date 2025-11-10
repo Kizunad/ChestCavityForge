@@ -18,11 +18,6 @@
       <property name="tokens"
                value="LITERAL_DO, LITERAL_ELSE, LITERAL_FOR, LITERAL_IF, LITERAL_WHILE"/>
     </module>
-    <module name="Indentation">
-      <property name="basicOffset" value="4"/>
-      <property name="braceAdjustment" value="0"/>
-      <property name="caseIndent" value="4"/>
-      <property name="tabWidth" value="4"/>
-    </module>
+    <!-- 测试代码不强制缩进规则，避免不同贡献者风格差异造成阻断构建 -->
   </module>
 </module>

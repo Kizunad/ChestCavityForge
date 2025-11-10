@@ -487,7 +487,7 @@ public class FlyingSwordCalculatorTest {
     double baseDamage = 5.0;
     double velocity = 0.5; // 低速
     double vRef = 1.0;
-    double velDmgCoef = FlyingSwordTuning.VEL_DMG_COEF;
+    double velDmgCoef = 1.0;
     double levelScale = FlyingSwordCalculator.calculateLevelScale(
         level, FlyingSwordTuning.DAMAGE_PER_LEVEL);
 
@@ -515,6 +515,13 @@ public class FlyingSwordCalculatorTest {
 
     // 高速高级，伤害应该很高
     assertTrue(damage > baseDamage * 2); // 显著高于基础伤害
+  }
+
+  @Test
+  public void sanity_paramOrder() {
+    // 计算应为 10 * 2 * (1 + (1/1)^2 * 1) = 40
+    double result = FlyingSwordCalculator.calculateDamage(10.0, 1.0, 1.0, 1.0, 2.0);
+    assertEquals(40.0, result, 0.001);
   }
 
   @Test

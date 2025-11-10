@@ -1,17 +1,13 @@
 package net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import java.util.UUID;
 
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.integration.ward.WardTuning;
+import net.tigereye.chestcavity.compat.guzhenren.flyingsword.ai.ward.TargetView;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,78 +34,78 @@ public class InterceptPlannerTest {
   // ====== 测试辅助方法 ======
 
   /**
-     * 创建模拟的 Player
-     */
-  private Player createMockPlayer(Vec3 position, AABB boundingBox) {
-    Player player = mock(Player.class);
-    when(player.position()).thenReturn(position);
-    when(player.getBoundingBox()).thenReturn(boundingBox);
-    when(player.getBbHeight()).thenReturn(1.8f);
-    return player;
+   * 提供无实体依赖的目标视图
+   */
+  private TargetView createTargetView(Vec3 position, AABB boundingBox) {
+    return new TargetView() {
+      @Override
+      public Vec3 position() { return position; }
+
+      @Override
+      public AABB getBoundingBox() { return boundingBox; }
+
+      @Override
+      public double getBbHeight() { return 1.8; }
+    };
   }
 
-  /**
-     * 创建模拟的 Entity（攻击者）
-     */
-  private Entity createMockAttacker(Vec3 position, Vec3 velocity) {
-    Entity entity = mock(Entity.class);
-    when(entity.position()).thenReturn(position);
-    when(entity.getEyePosition()).thenReturn(position.add(0, 1.6, 0));
-    when(entity.getDeltaMovement()).thenReturn(velocity);
-    when(entity.getBoundingBox()).thenReturn(new AABB(
-        position.x - 0.3, position.y, position.z - 0.3,
-        position.x + 0.3, position.y + 1.8, position.z + 0.3
-    ));
-    return entity;
-  }
+  // 近战创建：改用几何版本的 IncomingThreat
 
-  /**
-     * 创建模拟的 FlyingSwordEntity
-     */
-  private FlyingSwordEntity createMockSword(Vec3 position, LivingEntity owner) {
-    FlyingSwordEntity sword = mock(FlyingSwordEntity.class);
-    when(sword.position()).thenReturn(position);
-    when(sword.getOwner()).thenReturn(owner);
-    return sword;
-  }
+  // timeToReach 测试将使用无实体版本 API
 
-  /**
-     * 创建模拟的 WardTuning
-     */
+  /** 创建参数接口（简单实现，提供所有必要方法） */
   private WardTuning createMockTuning(
       double windowMin, double windowMax, double vMax, double reaction) {
-    WardTuning tuning = mock(WardTuning.class);
-    when(tuning.windowMin()).thenReturn(windowMin);
-    when(tuning.windowMax()).thenReturn(windowMax);
-    when(tuning.vMax(any(UUID.class))).thenReturn(vMax);
-    when(tuning.reactionDelay(any(UUID.class))).thenReturn(reaction);
-    return tuning;
+    return new WardTuning() {
+      @Override
+      public int maxSwords(UUID owner) { return 2; }
+
+      @Override
+      public double orbitRadius(UUID owner, int currentSwordCount) { return 3.0; }
+
+      @Override
+      public double vMax(UUID owner) { return vMax; }
+
+      @Override
+      public double aMax(UUID owner) { return 40.0; }
+
+      @Override
+      public double reactionDelay(UUID owner) { return reaction; }
+
+      @Override
+      public double counterRange() { return 5.0; }
+
+      @Override
+      public double windowMin() { return windowMin; }
+
+      @Override
+      public double windowMax() { return windowMax; }
+
+      @Override
+      public int costBlock(UUID owner) { return 4; }
+
+      @Override
+      public int costCounter(UUID owner) { return 5; }
+
+      @Override
+      public int costFail(UUID owner) { return 1; }
+
+      @Override
+      public double counterDamage(UUID owner) { return 5.0; }
+
+      @Override
+      public double initialWardDurability(UUID owner) { return 100.0; }
+    };
   }
 
   private IncomingThreat createMeleeThreat(
-      Entity attacker,
-      Player target,
+      TargetView target,
       Vec3 attackerPos,
       Vec3 attackerVel
   ) {
     Vec3 velocity = attackerVel;
-    double speed = attackerVel.length();
-
-    if (speed < 0.1) {
-      Vec3 direction = target.position().subtract(attackerPos).normalize();
-      speed = 0.5;
-      velocity = direction.scale(speed);
-    }
-
-    return new IncomingThreat(
-        attacker,
-        target,
-        attackerPos,
-        velocity,
-        speed,
-        IncomingThreat.Type.MELEE,
-        0L
-    );
+    // 使用实参速度；静止或低速场景交由算法分支处理（更贴合业务期望）
+    return IncomingThreat.forTestMelee(attackerPos.add(0, 1.6, 0), velocity);
   }
 
   // ====== B.1: 投射物轨迹预测测试 ======
@@ -124,7 +120,7 @@ public class InterceptPlannerTest {
       // 场景：投射物静止在玩家附近
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 projPos = new Vec3(0, 1.0, 0); // 投射物在玩家上方
       Vec3 projVel = new Vec3(0, -0.05, 0); // 缓慢下落（1 block/tick = 20 m/s）
@@ -146,7 +142,7 @@ public class InterceptPlannerTest {
       // 场景：投射物水平飞向玩家
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 projPos = new Vec3(-5, 0.9, 0); // 投射物在玩家左侧5米
       Vec3 projVel = new Vec3(0.5, 0, 0); // 向右飞行（0.5 blocks/tick = 10 m/s）
@@ -167,7 +163,7 @@ public class InterceptPlannerTest {
       // 场景：投射物受重力影响做抛物线运动
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 projPos = new Vec3(-3, 3, 0); // 投射物在左上方
       Vec3 projVel = new Vec3(0.3, -0.1, 0); // 向右下飞行，受重力影响
@@ -188,7 +184,7 @@ public class InterceptPlannerTest {
       // 场景：投射物速度几乎为0
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 projPos = new Vec3(-5, 1, 0);
       Vec3 projVel = new Vec3(0.0001, 0, 0); // 极慢速度
@@ -207,7 +203,7 @@ public class InterceptPlannerTest {
       // 场景：投射物飞行方向不会命中玩家
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 projPos = new Vec3(-5, 1, -5); // 投射物在远处
       Vec3 projVel = new Vec3(0, 0, 0.5); // 沿Z轴飞行，不会命中
@@ -233,15 +229,14 @@ public class InterceptPlannerTest {
       // 场景：攻击者正面冲向玩家
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 attackerPos = new Vec3(-2.5, 0, 0); // 2.5米距离
       Vec3 attackerVel = new Vec3(0.2, 0, 0); // 向玩家冲刺
-      Entity attacker = createMockAttacker(attackerPos, attackerVel);
 
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
+      IncomingThreat threat = createMeleeThreat(player, attackerPos, attackerVel);
 
       InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -257,15 +252,14 @@ public class InterceptPlannerTest {
       // 场景：攻击者非常接近玩家
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 attackerPos = new Vec3(-0.8, 0, 0); // 很近的距离
       Vec3 attackerVel = new Vec3(0.1, 0, 0);
-      Entity attacker = createMockAttacker(attackerPos, attackerVel);
 
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
+      IncomingThreat threat = createMeleeThreat(player, attackerPos, attackerVel);
 
       InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -279,15 +273,14 @@ public class InterceptPlannerTest {
       // 场景：攻击者静止但在攻击范围内
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 attackerPos = new Vec3(-2, 0, 0);
       Vec3 attackerVel = new Vec3(0, 0, 0); // 静止
-      Entity attacker = createMockAttacker(attackerPos, attackerVel);
 
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
+      IncomingThreat threat = createMeleeThreat(player, attackerPos, attackerVel);
 
       InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -302,15 +295,14 @@ public class InterceptPlannerTest {
       // 场景：攻击者距离超过近战范围（3米）
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 attackerPos = new Vec3(-5, 0, 0); // 5米距离
       Vec3 attackerVel = new Vec3(0, 0, 0);
-      Entity attacker = createMockAttacker(attackerPos, attackerVel);
 
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
+      IncomingThreat threat = createMeleeThreat(player, attackerPos, attackerVel);
 
       InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -329,7 +321,7 @@ public class InterceptPlannerTest {
     void testProjectileThreatFullFlow() {
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 projPos = new Vec3(-4, 1, 0);
       Vec3 projVel = new Vec3(0.4, 0, 0); // 0.4 blocks/tick = 8 m/s
@@ -354,15 +346,14 @@ public class InterceptPlannerTest {
     void testMeleeThreatFullFlow() {
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       Vec3 attackerPos = new Vec3(-2, 0, 0);
       Vec3 attackerVel = new Vec3(0.15, 0, 0); // 3 m/s
-      Entity attacker = createMockAttacker(attackerPos, attackerVel);
 
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      IncomingThreat threat = createMeleeThreat(attacker, player, attackerPos, attackerVel);
+      IncomingThreat threat = createMeleeThreat(player, attackerPos, attackerVel);
 
       InterceptQuery result = InterceptPlanner.plan(threat, player, tuning);
 
@@ -377,7 +368,7 @@ public class InterceptPlannerTest {
     void testInterceptPointOffset() {
       Vec3 playerPos = new Vec3(0, 1, 0);
       AABB playerBox = new AABB(-0.3, 0.1, -0.3, 0.3, 1.9, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       // 投射物从左侧飞来
       Vec3 projPos = new Vec3(-3, 1, 0);
@@ -407,13 +398,9 @@ public class InterceptPlannerTest {
       Vec3 swordPos = new Vec3(0, 0, 0);
       Vec3 interceptPoint = new Vec3(10, 0, 0); // 10米距离
       UUID ownerId = UUID.randomUUID();
-      Player owner = mock(Player.class);
-      when(owner.getUUID()).thenReturn(ownerId);
-
-      FlyingSwordEntity sword = createMockSword(swordPos, owner);
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      double result = InterceptPlanner.timeToReach(sword, interceptPoint, tuning);
+      double result = InterceptPlanner.timeToReach(swordPos, interceptPoint, ownerId, tuning);
 
       // max(0.06, 10/10) = max(0.06, 1.0) = 1.0
       assertEquals(1.0, result, 0.01);
@@ -425,13 +412,9 @@ public class InterceptPlannerTest {
       Vec3 swordPos = new Vec3(0, 0, 0);
       Vec3 interceptPoint = new Vec3(0.3, 0, 0); // 0.3米
       UUID ownerId = UUID.randomUUID();
-      Player owner = mock(Player.class);
-      when(owner.getUUID()).thenReturn(ownerId);
-
-      FlyingSwordEntity sword = createMockSword(swordPos, owner);
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      double result = InterceptPlanner.timeToReach(sword, interceptPoint, tuning);
+      double result = InterceptPlanner.timeToReach(swordPos, interceptPoint, ownerId, tuning);
 
       // max(0.06, 0.3/10) = max(0.06, 0.03) = 0.06
       assertEquals(0.06, result, 0.001);
@@ -443,13 +426,9 @@ public class InterceptPlannerTest {
       Vec3 swordPos = new Vec3(0, 0, 0);
       Vec3 interceptPoint = new Vec3(50, 0, 0); // 50米
       UUID ownerId = UUID.randomUUID();
-      Player owner = mock(Player.class);
-      when(owner.getUUID()).thenReturn(ownerId);
-
-      FlyingSwordEntity sword = createMockSword(swordPos, owner);
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      double result = InterceptPlanner.timeToReach(sword, interceptPoint, tuning);
+      double result = InterceptPlanner.timeToReach(swordPos, interceptPoint, ownerId, tuning);
 
       // max(0.06, 50/10) = max(0.06, 5.0) = 5.0
       assertEquals(5.0, result, 0.01);
@@ -461,31 +440,23 @@ public class InterceptPlannerTest {
       Vec3 swordPos = new Vec3(0, 0, 0);
       Vec3 interceptPoint = new Vec3(10, 0, 0);
       UUID ownerId = UUID.randomUUID();
-      Player owner = mock(Player.class);
-      when(owner.getUUID()).thenReturn(ownerId);
-
-      FlyingSwordEntity sword = createMockSword(swordPos, owner);
       WardTuning tuning = createMockTuning(0.1, 1.0, 0.0, 0.06); // vMax=0
 
-      double result = InterceptPlanner.timeToReach(sword, interceptPoint, tuning);
+      double result = InterceptPlanner.timeToReach(swordPos, interceptPoint, ownerId, tuning);
 
       assertEquals(Double.MAX_VALUE, result, "vMax=0应返回MAX_VALUE");
     }
 
     @Test
-    @DisplayName("sword owner为null - 应返回MAX_VALUE")
-    void testTimeToReachNullOwner() {
+    @DisplayName("ownerId为null - 应返回MAX_VALUE")
+    void testTimeToReachNullOwnerId() {
       Vec3 swordPos = new Vec3(0, 0, 0);
       Vec3 interceptPoint = new Vec3(10, 0, 0);
-      FlyingSwordEntity sword = mock(FlyingSwordEntity.class);
-      when(sword.position()).thenReturn(swordPos);
-      when(sword.getOwner()).thenReturn(null); // null owner
-
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      double result = InterceptPlanner.timeToReach(sword, interceptPoint, tuning);
+      double result = InterceptPlanner.timeToReach(swordPos, interceptPoint, null, tuning);
 
-      assertEquals(Double.MAX_VALUE, result, "owner为null应返回MAX_VALUE");
+      assertEquals(Double.MAX_VALUE, result, "ownerId=null应返回MAX_VALUE");
     }
   }
 
@@ -500,7 +471,7 @@ public class InterceptPlannerTest {
     void testThreatTooFast() {
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       // 投射物非常快，几乎立即到达
       Vec3 projPos = new Vec3(-0.5, 1, 0);
@@ -523,7 +494,7 @@ public class InterceptPlannerTest {
     void testThreatTooSlow() {
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       // 投射物速度很慢，需要超过1秒才能到达
       Vec3 projPos = new Vec3(-50, 1, 0);
@@ -542,7 +513,7 @@ public class InterceptPlannerTest {
     void testThreatAtWindowBoundary() {
       Vec3 playerPos = new Vec3(0, 0, 0);
       AABB playerBox = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
-      Player player = createMockPlayer(playerPos, playerBox);
+      TargetView player = createTargetView(playerPos, playerBox);
 
       // 调整投射物使其恰好在窗口边界
       // windowMax=1.0s，如果距离=10m，速度=10m/s，则tImpact=1.0s
@@ -569,7 +540,7 @@ public class InterceptPlannerTest {
     @Test
     @DisplayName("plan() - threat为null应返回null")
     void testPlanNullThreat() {
-      Player player = createMockPlayer(new Vec3(0, 0, 0),
+      TargetView player = createTargetView(new Vec3(0, 0, 0),
           new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
@@ -587,7 +558,7 @@ public class InterceptPlannerTest {
       );
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      InterceptQuery result = InterceptPlanner.plan(threat, null, tuning);
+      InterceptQuery result = InterceptPlanner.plan(threat, (TargetView) null, tuning);
 
       assertNull(result, "owner为null应返回null");
     }
@@ -595,7 +566,7 @@ public class InterceptPlannerTest {
     @Test
     @DisplayName("plan() - tuning为null应返回null")
     void testPlanNullTuning() {
-      Player player = createMockPlayer(new Vec3(0, 0, 0),
+      TargetView player = createTargetView(new Vec3(0, 0, 0),
           new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
       IncomingThreat threat = IncomingThreat.forTest(
           new Vec3(0, 1, 0),
@@ -621,12 +592,9 @@ public class InterceptPlannerTest {
     @DisplayName("timeToReach() - pStar为null应返回MAX_VALUE")
     void testTimeToReachNullPStar() {
       UUID ownerId = UUID.randomUUID();
-      Player owner = mock(Player.class);
-      when(owner.getUUID()).thenReturn(ownerId);
-      FlyingSwordEntity sword = createMockSword(new Vec3(0, 0, 0), owner);
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
-      double result = InterceptPlanner.timeToReach(sword, null, tuning);
+      double result = InterceptPlanner.timeToReach(new Vec3(0, 0, 0), null, ownerId, tuning);
 
       assertEquals(Double.MAX_VALUE, result);
     }
@@ -634,12 +602,7 @@ public class InterceptPlannerTest {
     @Test
     @DisplayName("timeToReach() - tuning为null应返回MAX_VALUE")
     void testTimeToReachNullTuning() {
-      UUID ownerId = UUID.randomUUID();
-      Player owner = mock(Player.class);
-      when(owner.getUUID()).thenReturn(ownerId);
-      FlyingSwordEntity sword = createMockSword(new Vec3(0, 0, 0), owner);
-
-      double result = InterceptPlanner.timeToReach(sword, new Vec3(10, 0, 0), null);
+      double result = InterceptPlanner.timeToReach(new Vec3(0, 0, 0), new Vec3(10, 0, 0), UUID.randomUUID(), null);
 
       assertEquals(Double.MAX_VALUE, result);
     }
@@ -647,14 +610,14 @@ public class InterceptPlannerTest {
     @Test
     @DisplayName("既不是投射物也不是近战 - 应返回null")
     void testNeitherProjectileNorMelee() {
-      Player player = createMockPlayer(new Vec3(0, 0, 0),
+      TargetView player = createTargetView(new Vec3(0, 0, 0),
           new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
       WardTuning tuning = createMockTuning(0.1, 1.0, 10.0, 0.06);
 
       // 既没有投射物数据，也没有攻击者
       IncomingThreat threat = new IncomingThreat(
           null,
-          player,
+          null,
           Vec3.ZERO,
           Vec3.ZERO,
           0.0,
@@ -689,17 +652,7 @@ public class InterceptPlannerTest {
     @Test
     @DisplayName("isMelee() - 有attacker时返回true")
     void testIsMeleeTrue() {
-      Entity attacker = createMockAttacker(new Vec3(0, 0, 0), new Vec3(0.2, 0, 0));
-      Player player = createMockPlayer(new Vec3(0, 0, 0), new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
-      IncomingThreat threat = new IncomingThreat(
-          attacker,
-          player,
-          attacker.position(),
-          new Vec3(0.2, 0, 0),
-          0.2,
-          IncomingThreat.Type.MELEE,
-          0L
-      );
+      IncomingThreat threat = IncomingThreat.forTestMelee(new Vec3(0, 1.6, 0), new Vec3(0.2, 0, 0));
 
       assertTrue(threat.isMelee());
       assertFalse(threat.isProjectile());
@@ -708,10 +661,9 @@ public class InterceptPlannerTest {
     @Test
     @DisplayName("既没有投射物也没有攻击者 - 两个都返回false")
     void testNeitherProjectileNorMeleeHelper() {
-      Player player = createMockPlayer(new Vec3(0, 0, 0), new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3));
       IncomingThreat threat = new IncomingThreat(
           null,
-          player,
+          null,
           Vec3.ZERO,
           Vec3.ZERO,
           0.0,

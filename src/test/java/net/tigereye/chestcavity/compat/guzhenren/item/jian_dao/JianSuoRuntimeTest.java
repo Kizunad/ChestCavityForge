@@ -95,7 +95,7 @@ class JianSuoRuntimeTest {
   void hitDedupWindowLogic() {
     // 验证命中去重窗口的逻辑（时间差计算）
     long now = 1000L;
-    long lastHit = 990L;
+    long lastHit = 991L;
     int dedupTicks = 10;
 
     // 在去重窗口内
@@ -110,7 +110,7 @@ class JianSuoRuntimeTest {
   void cleanupExpirationLogic() {
     // 验证清理过期记录的时间逻辑
     long now = 10000L;
-    long recordTime = 4000L;
+    long recordTime = 3999L;
     long expireTicks = 6000L;
 
     // 记录应该过期

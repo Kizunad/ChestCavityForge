@@ -62,4 +62,10 @@ public record IncomingThreat(
   public static IncomingThreat forTest(Vec3 projPos, Vec3 projVel) {
     return forTest(projPos, projVel, null);
   }
+
+  /** 构建用于测试的近战威胁（不依赖实体，仅几何数据） */
+  public static IncomingThreat forTestMelee(Vec3 attackerEye, Vec3 attackerVel) {
+    return new IncomingThreat(
+        null, null, attackerEye, attackerVel, attackerVel.length(), Type.MELEE, 0L);
+  }
 }

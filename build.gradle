@@ -73,6 +73,11 @@ checkstyle {
     ]
 }
 
+// 测试源集使用更宽松的缩进规则（2 空格），避免大规模格式化测试代码
+tasks.named('checkstyleTest', Checkstyle).configure { t ->
+    t.configFile = file("${rootDir}/config/checkstyle/checkstyle-test.xml")
+}
+
 neoForge {
     version = project.neo_version
 
