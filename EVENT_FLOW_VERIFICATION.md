@@ -14,18 +14,15 @@
 **位置**: `GuzhenrenEventExtension.java` 构造函数
 
 ```java
-// 注册 Watchers 到 NeoForge 事件总线（接收 tick 事件）
+// 注册 Watchers 与 EventManager 到 NeoForge 事件总线
 NeoForge.EVENT_BUS.register(PlayerStatWatcher.getInstance());
 NeoForge.EVENT_BUS.register(PlayerInventoryWatcher.getInstance());
-
-// 注册 EventManager 到自定义事件总线
-CustomEventBus.EVENT_BUS.register(EventManager.getInstance());
+NeoForge.EVENT_BUS.register(EventManager.getInstance());
 ```
 
 **验证结果**: ✅ 正确
-- PlayerStatWatcher 和 PlayerInventoryWatcher 注册到 NeoForge.EVENT_BUS
-- EventManager 注册到 CustomEventBus.EVENT_BUS
-- CustomEventBus 现在会扫描 EventManager 中的 @SubscribeEvent 方法并存储
+- PlayerStatWatcher / PlayerInventoryWatcher / EventManager 均注册到 NeoForge.EVENT_BUS
+- 事件分发与订阅依托 NeoForge 内建机制，省去自定义总线
 
 #### 1.2 触发器/条件/动作注册
 **位置**: `GuzhenrenEventExtension.registerTriggersAndActions()`
@@ -80,26 +77,20 @@ ActionRegistry.register("guzhenren_event_ext:adjust_player_stat", new AdjustPlay
 **步骤 2: 发布事件**
 ```java
 // PlayerStatWatcher.java Line 87
-CustomEventBus.EVENT_BUS.post(new GuzhenrenStatChangeEvent(player, statId, oldValue, currentValue, handle));
+NeoForge.EVENT_BUS.post(new GuzhenrenStatChangeEvent(player, statId, oldValue, currentValue, handle));
 ```
 
 **验证结果**: ✅ 正确
 - 创建 GuzhenrenStatChangeEvent 对象
-- 通过 CustomEventBus 发布
+- 直接投递到 NeoForge.EVENT_BUS（遵循标准事件流）
 
-**步骤 3: CustomEventBus 转发事件**
-- **位置**: `CustomEventBus.post()` (Line 99-145)
-- **操作**:
-  1. 检查事件是否为 null
-  2. 遍历所有订阅者（包括 EventManager）
-  3. 找到匹配事件类型的订阅方法
-  4. 使用反射调用订阅方法
-  5. 处理异常并记录日志
+**步骤 3: NeoForge EVENT_BUS 转发事件**
+- NeoForge 负责遍历所有注册监听器（包含 EventManager），并基于 `@SubscribeEvent` 自动调用匹配方法。
+- 线程安全、带优先级与取消支持，省去自研逻辑。
 
-**验证结果**: ✅ 正确实现（刚完成）
-- 使用 ConcurrentHashMap 存储订阅者
-- 支持事件类型继承（isAssignableFrom）
-- 有完善的错误处理和日志
+**验证结果**: ✅ 正确实现
+- 分发路径与 NeoForge 生态保持一致
+- 无需维护额外订阅表，减少反射风险
 
 **步骤 4: EventManager 接收事件**
 ```java
@@ -113,7 +104,7 @@ public void onStatChange(GuzhenrenStatChangeEvent event) {
 **验证结果**: ✅ 正确
 - 方法带有 @SubscribeEvent 注解
 - 参数类型匹配事件类型
-- CustomEventBus 会找到并调用此方法
+- 由 NeoForge.EVENT_BUS 直接调度该监听器
 
 **步骤 5: 处理事件**
 - **位置**: `EventManager.processEvent()` (Line 42-122)
@@ -175,13 +166,13 @@ public void onStatChange(GuzhenrenStatChangeEvent event) {
 **步骤 2: 发布事件**
 ```java
 // PlayerInventoryWatcher.java Line 102
-CustomEventBus.EVENT_BUS.post(new PlayerObtainedItemEvent(player, item, delta));
+NeoForge.EVENT_BUS.post(new PlayerObtainedItemEvent(player, item, delta));
 ```
 
 **验证结果**: ✅ 正确
 
 **步骤 3-5**: 与场景 A 相同
-- CustomEventBus 转发事件
+- NeoForge.EVENT_BUS 负责事件广播
 - EventManager.onItemObtained() 接收事件
 - processEvent() 处理事件
 
@@ -216,11 +207,9 @@ CustomEventBus.EVENT_BUS.post(new PlayerObtainedItemEvent(player, item, delta));
 - [x] ✅ PlayerInventoryWatcher 实现并工作
 - [x] ✅ GuzhenrenStatChangeEvent 定义完整
 - [x] ✅ PlayerObtainedItemEvent 定义完整
-- [x] ✅ **CustomEventBus 实现完成**（本次完成）
-  - [x] register() 方法：使用反射扫描 @SubscribeEvent 方法
-  - [x] post() 方法：遍历订阅者并调用匹配方法
-  - [x] 支持事件类型继承
-  - [x] 完善的错误处理和日志
+- [x] ✅ **NeoForge EVENT_BUS 集成完成**（本次完成）
+  - [x] EventManager / Watchers 均注册至 NeoForge 事件总线
+  - [x] 所有自定义事件通过 NeoForge.EVENT_BUS 投递
 - [x] ✅ Gamerule 启用/禁用系统
 - [x] ✅ Player data attachment (trigger_once 状态)
 - [x] ✅ ModConfig 配置轮询间隔
@@ -248,9 +237,9 @@ CustomEventBus.EVENT_BUS.post(new PlayerObtainedItemEvent(player, item, delta));
 
 ### ✅ 全链路验证通过
 
-**CustomEventBus 实现状态**:
-- **之前**: 占位实现，register() 和 post() 都是空操作
-- **现在**: 完整实现，支持订阅者注册和事件分发
+**NeoForge EVENT_BUS 接入状态**:
+- **之前**: 自定义占位总线，事件无法真正分发
+- **现在**: 所有事件直接依托 NeoForge.EVENT_BUS，使用官方分发机制
 
 **系统工作流程**:
 ```
@@ -260,11 +249,9 @@ PlayerStatWatcher / PlayerInventoryWatcher 检测变化
     ↓
 创建 GuzhenrenStatChangeEvent / PlayerObtainedItemEvent
     ↓
-CustomEventBus.post(event) ← 【已完成实现】
+NeoForge.EVENT_BUS.post(event)
     ↓
-CustomEventBus 查找订阅者方法 ← 【已完成实现】
-    ↓
-反射调用 EventManager.onStatChange() / onItemObtained() ← 【已完成实现】
+NeoForge 自动调度 EventManager.onStatChange() / onItemObtained()
     ↓
 EventManager.processEvent()
     ↓
@@ -290,15 +277,14 @@ EventManager.processEvent()
 2. 将玩家真元降低到 10% 以下
 3. **预期结果**: 50% 概率收到警告消息 "§c警告：你的真元已低于10%！"
 
-### 测试场景 3: CustomEventBus 日志验证
+### 测试场景 3: NeoForge 事件流日志验证
 启用 DEBUG 日志级别，查看：
 ```
-[INFO] Registered subscriber EventManager with 2 event handler(s)
-[DEBUG] Registered event handler: EventManager.onStatChange(GuzhenrenStatChangeEvent)
-[DEBUG] Registered event handler: EventManager.onItemObtained(PlayerObtainedItemEvent)
-[DEBUG] Event GuzhenrenStatChangeEvent handled by EventManager.onStatChange
-[DEBUG] Event PlayerObtainedItemEvent handled by EventManager.onItemObtained
+[INFO] [guzhenren_event_ext] Registered 2 triggers, 2 conditions, 3 actions
+[INFO] [guzhenren_event_ext] 初始化完成
+[DEBUG] [guzhenren_event_ext] Executing actions for event 'guzhenren_event_ext:test/obtain_dirt' for player ...
 ```
+上述日志即可确认事件在 NeoForge.EVENT_BUS 上被正确触发并进入 EventManager。
 
 ---
 

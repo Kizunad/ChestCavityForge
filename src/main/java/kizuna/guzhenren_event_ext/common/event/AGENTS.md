@@ -1,3 +1,3 @@
 # Package: common.event
 
-This package contains the custom event infrastructure, including the isolated `CustomEventBus` and the definitions for all custom event classes fired by this module.
+This package contains the custom event infrastructure. Event classes defined here are dispatched via NeoForge's global `EVENT_BUS`, ensuring consistent lifecycle handling with the rest of the mod ecosystem.

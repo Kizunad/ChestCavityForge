@@ -1,13 +1,13 @@
 package kizuna.guzhenren_event_ext.common.system;
 
 import kizuna.guzhenren_event_ext.common.config.Gamerules;
-import kizuna.guzhenren_event_ext.common.event.CustomEventBus;
 import kizuna.guzhenren_event_ext.common.event.api.GuzhenrenStatChangeEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 import java.util.Collections;
@@ -84,7 +84,7 @@ public class PlayerStatWatcher {
 
                     if (oldValue != null && Math.abs(currentValue - oldValue) > 1e-9) {
                         // Value has changed, fire event
-                        CustomEventBus.EVENT_BUS.post(new GuzhenrenStatChangeEvent(player, statId, oldValue, currentValue, handle));
+                        NeoForge.EVENT_BUS.post(new GuzhenrenStatChangeEvent(player, statId, oldValue, currentValue, handle));
                     }
                 });
             }

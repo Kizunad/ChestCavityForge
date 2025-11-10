@@ -35,11 +35,9 @@ public class AdjustPlayerStatAction implements IAction {
         String operation = definition.has("operation") ? definition.get("operation").getAsString() : "add";
 
         GuzhenrenResourceBridge.open(player).ifPresent(handle -> {
-            // Read the current value
             double currentValue = handle.read(stat).orElse(0.0);
             double newValue;
 
-            // Perform the operation
             switch (operation.toLowerCase()) {
                 case "add":
                     newValue = currentValue + value;
@@ -59,8 +57,7 @@ public class AdjustPlayerStatAction implements IAction {
                     break;
             }
 
-            // Write the new value
-            handle.write(stat, newValue);
+            handle.writeDouble(stat, newValue);
 
             GuzhenrenEventExtension.LOGGER.debug("Adjusted stat '{}' for player '{}': {} {} {} = {}",
                     stat, player.getName().getString(), currentValue, operation, value, newValue);

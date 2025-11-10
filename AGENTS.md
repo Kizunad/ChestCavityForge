@@ -28,7 +28,7 @@ The architecture is based on a **Polling Detection Model**.
 
 1.  **Load:** The server starts, and the `EventLoader` reads all event JSONs, determining which stats and watchers need to be active.
 2.  **Poll:** The active `Watcher` components periodically check player data.
-3.  **Detect & Fire:** A watcher detects a change (e.g., a new item in the inventory) and fires the corresponding event (e.g., `PlayerObtainedItemEvent`) on a `CustomEventBus`.
+3.  **Detect & Fire:** A watcher detects a change (e.g., a new item in the inventory) and fires the corresponding event (e.g., `PlayerObtainedItemEvent`) onto `NeoForge.EVENT_BUS`.
 4.  **Process:** The `EventManager` catches the event, finds a matching JSON rule (e.g., one with a `player_obtained_item` trigger), and validates it.
 5.  **Validate & Execute:** The `EventManager` checks the `trigger_once` flag and all `conditions`. If all checks pass, it runs the associated `actions`.
 
@@ -40,7 +40,7 @@ The architecture is based on a **Polling Detection Model**.
 
 -   [x] Polling mechanisms (`PlayerStatWatcher`, `PlayerInventoryWatcher`).
 -   [x] Custom event classes (`GuzhenrenStatChangeEvent`, `PlayerObtainedItemEvent`).
--   [x] Custom Event Bus wiring（已完成实现，支持订阅者注册和事件分发）。
+-   [x] NeoForge Event Bus wiring（Watcher 直接向 `NeoForge.EVENT_BUS` 投递事件，`EventManager` 监听处理）。
 -   [x] Gamerule for enabling/disabling the system.
 -   [x] Player data attachment for `trigger_once` state.
 -   [x] Basic file and package structure.
@@ -59,7 +59,7 @@ The architecture is based on a **Polling Detection Model**.
 -   [x] Implement the `player_obtained_item` trigger logic.
 -   [x] Implement a set of standard conditions (`minecraft:random_chance`, `guzhenren:player_health_percent`).
 -   [x] Implement a set of standard actions (`guzhenren_event_ext:send_message`, `guzhenren_event_ext:run_command`, `guzhenren_event_ext:adjust_player_stat`).
--   [x] 验证触发器/动作全链路（CustomEventBus 已实现，全链路已验证）。
+-   [x] 验证触发器/动作全链路（NeoForge Event Bus 分发链路已验证）。
 
 ### Phase 4: Advanced Features & Optimization
 

@@ -154,9 +154,18 @@ public class FxEngineGatingIntegrationTest {
 
     String configString = config.toString();
 
-    assertTrue(configString.contains("gatingCheckChunkLoaded=true"), "toString 应该包含 gatingCheckChunkLoaded");
-    assertTrue(configString.contains("gatingDefaultPlayerRadius=32.0"), "toString 应该包含 gatingDefaultPlayerRadius");
-    assertTrue(configString.contains("gatingPauseOnFail=true"), "toString 应该包含 gatingPauseOnFail");
+    assertTrue(
+        configString.contains("gatingCheckChunkLoaded=true"),
+        "toString 应该包含 gatingCheckChunkLoaded"
+    );
+    assertTrue(
+        configString.contains("gatingDefaultPlayerRadius=32.0"),
+        "toString 应该包含 gatingDefaultPlayerRadius"
+    );
+    assertTrue(
+        configString.contains("gatingPauseOnFail=true"),
+        "toString 应该包含 gatingPauseOnFail"
+    );
   }
 
   // ========== 辅助方法 ==========

@@ -3,7 +3,6 @@ package kizuna.guzhenren_event_ext;
 import kizuna.guzhenren_event_ext.common.attachment.ModAttachments;
 import kizuna.guzhenren_event_ext.common.config.Gamerules;
 import kizuna.guzhenren_event_ext.common.config.ModConfig;
-import kizuna.guzhenren_event_ext.common.event.CustomEventBus;
 import kizuna.guzhenren_event_ext.common.system.EventManager;
 import kizuna.guzhenren_event_ext.common.system.PlayerInventoryWatcher;
 import kizuna.guzhenren_event_ext.common.system.PlayerStatWatcher;
@@ -21,6 +20,7 @@ import kizuna.guzhenren_event_ext.common.system_modules.triggers.PlayerStatChang
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig.Type;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -40,7 +40,8 @@ public class GuzhenrenEventExtension {
     modEventBus.addListener(this::onCommonSetup);
 
     // Register configuration
-    ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SPEC, MODID + "-server.toml");
+    ModContainer container = ModLoadingContext.get().getActiveContainer();
+    container.registerConfig(Type.COMMON, ModConfig.SPEC);
 
     // Register our DeferredRegister to the mod event bus
     ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
@@ -49,9 +50,7 @@ public class GuzhenrenEventExtension {
     NeoForge.EVENT_BUS.register(this); // For onAddReloadListener
     NeoForge.EVENT_BUS.register(PlayerStatWatcher.getInstance());
     NeoForge.EVENT_BUS.register(PlayerInventoryWatcher.getInstance());
-
-    // Register the EventManager to our custom bus
-    CustomEventBus.EVENT_BUS.register(EventManager.getInstance());
+    NeoForge.EVENT_BUS.register(EventManager.getInstance());
   }
 
   private void onCommonSetup(FMLCommonSetupEvent event) {

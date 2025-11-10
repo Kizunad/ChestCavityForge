@@ -1,7 +1,6 @@
 package kizuna.guzhenren_event_ext.common.system;
 
 import kizuna.guzhenren_event_ext.common.config.Gamerules;
-import kizuna.guzhenren_event_ext.common.event.CustomEventBus;
 import kizuna.guzhenren_event_ext.common.event.api.PlayerObtainedItemEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -99,7 +99,7 @@ public class PlayerInventoryWatcher {
 
             if (newCount > oldCount) {
                 int delta = newCount - oldCount;
-                CustomEventBus.EVENT_BUS.post(new PlayerObtainedItemEvent(player, item, delta));
+                NeoForge.EVENT_BUS.post(new PlayerObtainedItemEvent(player, item, delta));
             }
         }
 
