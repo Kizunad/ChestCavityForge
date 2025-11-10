@@ -24,9 +24,13 @@ final class AllyFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null) return;
+        if (performer == null) {
+          return;
+        }
         Level level = performer.level();
-        if (!(level instanceof ServerLevel server)) return;
+        if (!(level instanceof ServerLevel server)) {
+          return;
+        }
         AABB box = new AABB(performer.blockPosition()).inflate(r);
         List<LivingEntity> list = server.getEntitiesOfClass(LivingEntity.class, box);
         for (LivingEntity e : list) {
@@ -54,9 +58,13 @@ final class AllyFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null) return;
+        if (performer == null) {
+          return;
+        }
         Level level = performer.level();
-        if (!(level instanceof ServerLevel server)) return;
+        if (!(level instanceof ServerLevel server)) {
+          return;
+        }
         AABB box = new AABB(performer.blockPosition()).inflate(r);
         List<LivingEntity> allies =
             server.getEntitiesOfClass(
@@ -102,9 +110,13 @@ final class AllyFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null) return;
+        if (performer == null) {
+          return;
+        }
         Level level = performer.level();
-        if (!(level instanceof ServerLevel server)) return;
+        if (!(level instanceof ServerLevel server)) {
+          return;
+        }
         AABB box = new AABB(performer.blockPosition()).inflate(r);
         List<LivingEntity> list = server.getEntitiesOfClass(LivingEntity.class, box);
         for (LivingEntity e : list) {
@@ -129,13 +141,21 @@ final class AllyFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null) return;
+        if (performer == null) {
+          return;
+        }
         Level level = performer.level();
-        if (!(level instanceof ServerLevel server)) return;
+        if (!(level instanceof ServerLevel server)) {
+          return;
+        }
         LivingEntity recent = performer.getLastHurtMob();
-        if (recent == null || !recent.isAlive()) return;
+        if (recent == null || !recent.isAlive()) {
+          return;
+        }
         int ts = performer.getLastHurtMobTimestamp();
-        if (performer.tickCount - ts > window) return;
+        if (performer.tickCount - ts > window) {
+          return;
+        }
         AABB box = new AABB(performer.blockPosition()).inflate(r);
         List<LivingEntity> allies =
             server.getEntitiesOfClass(
@@ -162,7 +182,9 @@ final class AllyFlowActions {
       @Override
       public void apply(
           Player performer, LivingEntity target, FlowController controller, long gameTime) {
-        if (performer == null) return;
+        if (performer == null) {
+          return;
+        }
         Level level = performer.level();
         if (!(level instanceof ServerLevel server)) {
           return;

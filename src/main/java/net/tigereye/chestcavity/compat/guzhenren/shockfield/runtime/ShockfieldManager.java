@@ -17,7 +17,10 @@ import net.tigereye.chestcavity.engine.TickEngineHub;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.tigereye.chestcavity.registration.CCOrganScores;
 
 /**
  * Shockfield 全局管理器：负责创建、更新、熄灭波场。
@@ -104,17 +107,25 @@ public final class ShockfieldManager {
       var ccOpt = net.tigereye.chestcavity.interfaces.ChestCavityEntity.of(owner);
       if (ccOpt.isPresent()) {
         var ccInst = ccOpt.get().getChestCavityInstance();
-        str = ccInst.getOrganScore(net.tigereye.chestcavity.registration.CCOrganScores.STRENGTH);
+        str = ccInst.getOrganScore(CCOrganScores.STRENGTH);
       }
     } catch (Throwable ignored) {}
     double wTier = 1.0;
     try {
-      var main = owner instanceof Player p ? p.getMainHandItem() : net.minecraft.world.item.ItemStack.EMPTY;
+      ItemStack main;
+      if (owner instanceof Player p) {
+        main = p.getMainHandItem();
+      } else {
+        main = ItemStack.EMPTY;
+      }
       if (!main.isEmpty() && main.getItem() instanceof net.minecraft.world.item.TieredItem ti) {
         var t = ti.getTier();
         // 采用 tier.level + 1 的保守权重
         int lvl = 0;
-        try { lvl = (int) t.getClass().getMethod("getLevel").invoke(t); } catch (Throwable ignored) {}
+        try {
+          lvl = (int) t.getClass().getMethod("getLevel").invoke(t);
+        } catch (Throwable ignored) {
+        }
         wTier = Math.max(1.0, 1.0 + lvl);
       }
     } catch (Throwable ignored) {}
@@ -165,7 +176,10 @@ public final class ShockfieldManager {
       double newAmplitude = ShockfieldMath.applyDamping(state.getAmplitude(), deltaSeconds);
       double newPeriod = ShockfieldMath.stretchPeriod(state.getPeriod(), deltaSeconds);
       // 半径按每个波场的速度比例计算
-      double newRadius = ShockfieldMath.RADIAL_SPEED * state.getRadialSpeedScale() * state.getAgeSeconds(currentTick);
+      double newRadius =
+          ShockfieldMath.RADIAL_SPEED
+              * state.getRadialSpeedScale()
+              * state.getAgeSeconds(currentTick);
 
       state.setAmplitude(newAmplitude);
       state.setPeriod(newPeriod);
@@ -262,7 +276,8 @@ public final class ShockfieldManager {
    * @param currentTick 当前游戏tick
    * @param pendingAdds 本tick待加入的子波列表
    */
-  private int computeSerial(UUID ownerId, long currentTick, java.util.Collection<ShockfieldState> pendingAdds) {
+  private int computeSerial(
+      UUID ownerId, long currentTick, java.util.Collection<ShockfieldState> pendingAdds) {
     int maxSerial = -1;
     for (WaveId waveId : activeShockfields.keySet()) {
       if (waveId.sourceId().equals(ownerId) && waveId.spawnTick() == currentTick) {
@@ -514,7 +529,9 @@ public final class ShockfieldManager {
 
   private static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
     var server = event.getServer();
-    if (server == null) return;
+    if (server == null) {
+      return;
+    }
     // 统一使用每个 Level 的 gameTime 作为 Shockfield 的时间域，
     // 避免与 create(...) 中使用的 level.getGameTime() 出现“跨域”差值导致的即刻熄灭或负半径。
     for (ServerLevel level : server.getAllLevels()) {

@@ -30,9 +30,15 @@ public class ChestCavityTypeSerializer {
       throw new JsonSyntaxException("Chest Cavity Types must have a default chest cavity!");
     }
 
-    if (cctJson.exceptionalOrgans == null) cctJson.exceptionalOrgans = new JsonArray();
-    if (cctJson.baseOrganScores == null) cctJson.baseOrganScores = new JsonArray();
-    if (cctJson.forbiddenSlots == null) cctJson.forbiddenSlots = new JsonArray();
+    if (cctJson.exceptionalOrgans == null) {
+      cctJson.exceptionalOrgans = new JsonArray();
+    }
+    if (cctJson.baseOrganScores == null) {
+      cctJson.baseOrganScores = new JsonArray();
+    }
+    if (cctJson.forbiddenSlots == null) {
+      cctJson.forbiddenSlots = new JsonArray();
+    }
     // bossChestCavity defaults to false
     // playerChestCavity defaults to false
     // dropRateMultiplier defaults to true
@@ -272,7 +278,8 @@ public class ChestCavityTypeSerializer {
           chance = chanceElement.getAsInt();
           if (chance < 0 || chance > 100) {
             ChestCavity.LOGGER.warn(
-                "Chance value {} is out of range (0-100) in entry no. {} in {}'s random generators; clamping to valid range",
+                "Chance value {} is out of range (0-100) in entry no. {} in {}'s random"
+                    + " generators; clamping to valid range",
                 chance,
                 index,
                 id);

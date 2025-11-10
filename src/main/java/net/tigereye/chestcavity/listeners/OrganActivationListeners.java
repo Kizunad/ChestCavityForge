@@ -71,7 +71,9 @@ public class OrganActivationListeners {
   // Best-effort lazy registration for optional compat abilities, to avoid <clinit> crashes at mod
   // init.
   private static boolean tryLazyRegister(ResourceLocation id) {
-    if (id == null) return false;
+    if (id == null) {
+      return false;
+    }
     ActivationBootstrap.ensureLoaded(id);
     if (abilityIDMap.containsKey(id)) {
       return true;

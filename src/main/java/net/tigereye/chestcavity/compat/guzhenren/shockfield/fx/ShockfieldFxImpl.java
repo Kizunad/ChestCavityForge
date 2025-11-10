@@ -5,11 +5,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.PhaseKind;
 import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldFxService;
 import net.tigereye.chestcavity.compat.guzhenren.shockfield.api.ShockfieldState;
 import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
@@ -17,10 +15,7 @@ import net.tigereye.chestcavity.guscript.ability.AbilityFxDispatcher;
 /**
  * 剑荡蛊特效实现：精致而节制的粒子+音效。
  *
- * <p>设计理念：
- * - 少量高质量粒子
- * - 剑意的诗意表达
- * - 真元震荡的视觉语言
+ * <p>设计理念： - 少量高质量粒子 - 剑意的诗意表达 - 真元震荡的视觉语言
  */
 public final class ShockfieldFxImpl implements ShockfieldFxService {
 
@@ -30,7 +25,8 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
   private static final ResourceLocation HIT_ENEMY = ChestCavity.id("shockfield/hit_enemy");
   private static final ResourceLocation HIT_ALLY = ChestCavity.id("shockfield/hit_ally");
   private static final ResourceLocation EXTINGUISH = ChestCavity.id("shockfield/extinguish");
-  private static final ResourceLocation SUBWAVE_CREATE = ChestCavity.id("shockfield/subwave_create");
+  private static final ResourceLocation SUBWAVE_CREATE =
+      ChestCavity.id("shockfield/subwave_create");
   private static final ResourceLocation INTERFERENCE_CONSTRUCT =
       ChestCavity.id("shockfield/interference_construct");
   private static final ResourceLocation INTERFERENCE_DESTRUCT =
@@ -41,6 +37,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * 🌀 主波启动（Shockfield 启动）
    *
    * <p>"剑荡起，一念激涌真元，气浪自心而出，万物随之共振。"
+   *
    * <p>真元震荡化作无形之波，天地的尘与光都被推开，留下环形的静默。
    */
   @Override
@@ -104,6 +101,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * 🌊 主波扩散（每秒一圈）
    *
    * <p>"波涌若潮，剑意层层荡开。"
+   *
    * <p>青白的气圈自脚下蔓延，如水面涟漪，又似剑鸣的回音，扩散至天地之间。
    */
   @Override
@@ -129,29 +127,11 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double y = center.y + 0.1;
 
       // 青白色气圈：使用 END_ROD 粒子（细腻的青白光）
-      level.sendParticles(
-          ParticleTypes.END_ROD,
-          x,
-          y,
-          z,
-          1,
-          0.0,
-          0.0,
-          0.0,
-          0.0);
+      level.sendParticles(ParticleTypes.END_ROD, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
 
       // 偶尔添加 SOUL 粒子增强剑意感
       if (i % 3 == 0) {
-        level.sendParticles(
-            ParticleTypes.SOUL,
-            x,
-            y,
-            z,
-            1,
-            0.0,
-            0.05,
-            0.0,
-            0.01);
+        level.sendParticles(ParticleTypes.SOUL, x, y, z, 1, 0.0, 0.05, 0.0, 0.01);
       }
     }
 
@@ -187,6 +167,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * 💥 命中敌方（Wave Impact）
    *
    * <p>"无形之剑，斩于意念之前。"
+   *
    * <p>波锋掠过血肉，敌体被气刃撕裂；伤口中荡起的，是剑心回响的余震。
    */
   @Override
@@ -203,37 +184,17 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
     }
   }
 
-  /**
-   * 敌方命中特效：气刃撕裂
-   */
+  /** 敌方命中特效：气刃撕裂 */
   private void playHitEnemy(ServerLevel level, Vec3 pos, Vec3 direction, double damage) {
     // 1. 气刃撕裂：SWEEP_ATTACK 粒子表现斩击
-    level.sendParticles(
-        ParticleTypes.SWEEP_ATTACK,
-        pos.x,
-        pos.y,
-        pos.z,
-        1,
-        0.0,
-        0.0,
-        0.0,
-        0.0);
+    level.sendParticles(ParticleTypes.SWEEP_ATTACK, pos.x, pos.y, pos.z, 1, 0.0, 0.0, 0.0, 0.0);
 
     // 2. 剑心回响：青白色爆裂
     for (int i = 0; i < 8; i++) {
       double angle = (Math.PI * 2.0 * i) / 8.0;
       double dx = Math.cos(angle) * 0.3;
       double dz = Math.sin(angle) * 0.3;
-      level.sendParticles(
-          ParticleTypes.SOUL_FIRE_FLAME,
-          pos.x,
-          pos.y,
-          pos.z,
-          1,
-          dx,
-          0.2,
-          dz,
-          0.15);
+      level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, pos.x, pos.y, pos.z, 1, dx, 0.2, dz, 0.15);
     }
 
     // 3. 血雾效果（根据伤害量）
@@ -279,6 +240,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * 🪶 命中友方 / 飞剑（Wave Resonance）
    *
    * <p>"同心共振，剑意循环。"
+   *
    * <p>波光拂过，盟者与飞剑皆获共鸣，剑身微颤，如在呼吸持有者的气息。
    */
   private void playHitAlly(ServerLevel level, Vec3 pos, LivingEntity target) {
@@ -289,15 +251,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double dx = Math.cos(angle) * radius;
       double dz = Math.sin(angle) * radius;
       level.sendParticles(
-          ParticleTypes.GLOW,
-          pos.x + dx,
-          pos.y,
-          pos.z + dz,
-          1,
-          0.0,
-          0.1,
-          0.0,
-          0.02);
+          ParticleTypes.GLOW, pos.x + dx, pos.y, pos.z + dz, 1, 0.0, 0.1, 0.0, 0.02);
     }
 
     // 2. 剑意呼吸：SOUL 粒子螺旋上升
@@ -307,15 +261,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double dx = Math.cos(angle) * radius;
       double dz = Math.sin(angle) * radius;
       level.sendParticles(
-          ParticleTypes.SOUL,
-          pos.x + dx,
-          pos.y,
-          pos.z + dz,
-          1,
-          0.0,
-          0.2,
-          0.0,
-          0.05);
+          ParticleTypes.SOUL, pos.x + dx, pos.y, pos.z + dz, 1, 0.0, 0.2, 0.0, 0.05);
     }
 
     // 音效：和谐的共鸣音
@@ -387,8 +333,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
         1.5F);
 
     // 客户端特效
-    AbilityFxDispatcher.play(
-        level, SUBWAVE_CREATE, center, Vec3.ZERO, Vec3.ZERO, null, null, 0.6F);
+    AbilityFxDispatcher.play(level, SUBWAVE_CREATE, center, Vec3.ZERO, Vec3.ZERO, null, null, 0.6F);
   }
 
   // ==================== 波场熄灭 ====================
@@ -396,6 +341,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * 🔚 震荡熄灭（Shockfield 终止）
    *
    * <p>"剑意回寂，波息如初。"
+   *
    * <p>振幅终散，真元消散于风，唯余轻吟一声，似剑在梦中安眠。
    */
   @Override
@@ -411,9 +357,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
     }
   }
 
-  /**
-   * 自然衰减熄灭：温和消散
-   */
+  /** 自然衰减熄灭：温和消散 */
   private void playExtinguishNatural(ServerLevel level, Vec3 center, double radius) {
     // 气息收束：向中心汇聚的粒子
     int count = Math.max(4, (int) (radius * 0.5));
@@ -427,16 +371,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double dx = (center.x - x) * 0.1;
       double dz = (center.z - z) * 0.1;
 
-      level.sendParticles(
-          ParticleTypes.SOUL,
-          x,
-          y,
-          z,
-          1,
-          dx,
-          0.0,
-          dz,
-          0.05);
+      level.sendParticles(ParticleTypes.SOUL, x, y, z, 1, dx, 0.0, dz, 0.05);
     }
 
     // 音效：轻柔的消散音
@@ -454,9 +389,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
     AbilityFxDispatcher.play(level, EXTINGUISH, center, Vec3.ZERO, Vec3.ZERO, null, null, 0.5F);
   }
 
-  /**
-   * 寿命结束：平静终结
-   */
+  /** 寿命结束：平静终结 */
   private void playExtinguishLifetime(ServerLevel level, Vec3 center, double radius) {
     // 剑意安眠：缓慢上升的 SOUL 粒子
     for (int i = 0; i < 12; i++) {
@@ -465,16 +398,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double x = center.x + Math.cos(angle) * r;
       double z = center.z + Math.sin(angle) * r;
 
-      level.sendParticles(
-          ParticleTypes.SOUL,
-          x,
-          center.y + 0.1,
-          z,
-          1,
-          0.0,
-          0.15,
-          0.0,
-          0.03);
+      level.sendParticles(ParticleTypes.SOUL, x, center.y + 0.1, z, 1, 0.0, 0.15, 0.0, 0.03);
     }
 
     // 音效：悠长的剑鸣余韵
@@ -492,9 +416,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
     AbilityFxDispatcher.play(level, EXTINGUISH, center, Vec3.ZERO, Vec3.ZERO, null, null, 1.0F);
   }
 
-  /**
-   * 强制移除：突然消失
-   */
+  /** 强制移除：突然消失 */
   private void playExtinguishRemoved(ServerLevel level, Vec3 center) {
     // 急速消散：向四周爆开
     for (int i = 0; i < 8; i++) {
@@ -503,15 +425,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double dz = Math.sin(angle) * 0.5;
 
       level.sendParticles(
-          ParticleTypes.POOF,
-          center.x,
-          center.y + 0.1,
-          center.z,
-          1,
-          dx,
-          0.1,
-          dz,
-          0.2);
+          ParticleTypes.POOF, center.x, center.y + 0.1, center.z, 1, dx, 0.1, dz, 0.2);
     }
 
     // 音效：短促的断音
@@ -531,6 +445,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * ⚔️ Construct 干涉（波之共鸣） - 预留接口
    *
    * <p>"两道剑波同频共鸣，刹那之间，天地皆鸣。"
+   *
    * <p>当波与波相遇，光与气相融，剑意骤然放大，化作毁灭性的共振脉冲。
    */
   public void playInterferenceConstruct(
@@ -540,16 +455,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double angle = (Math.PI * 2.0 * i) / 16.0;
       double dx = Math.cos(angle) * 0.8;
       double dz = Math.sin(angle) * 0.8;
-      level.sendParticles(
-          ParticleTypes.FLASH,
-          pos.x,
-          pos.y,
-          pos.z,
-          1,
-          dx,
-          0.0,
-          dz,
-          0.5);
+      level.sendParticles(ParticleTypes.FLASH, pos.x, pos.y, pos.z, 1, dx, 0.0, dz, 0.5);
     }
 
     // 音效：震撼的共鸣
@@ -571,6 +477,7 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
    * 💠 Destruct 干涉（波之相杀） - 预留接口
    *
    * <p>"剑波错位，气脉逆流，天地俱寂。"
+   *
    * <p>共振失衡的一刻，光焰熄灭为灰，空气塌陷成真空，连剑鸣都被吞噬。
    */
   public void playInterferenceDestruct(
@@ -585,40 +492,16 @@ public final class ShockfieldFxImpl implements ShockfieldFxService {
       double dx = (pos.x - x) * 0.3;
       double dz = (pos.z - z) * 0.3;
 
-      level.sendParticles(
-          ParticleTypes.SMOKE,
-          x,
-          pos.y,
-          z,
-          1,
-          dx,
-          0.0,
-          dz,
-          0.1);
+      level.sendParticles(ParticleTypes.SMOKE, x, pos.y, z, 1, dx, 0.0, dz, 0.1);
     }
 
     // 光焰熄灭
     level.sendParticles(
-        ParticleTypes.LARGE_SMOKE,
-        pos.x,
-        pos.y + 0.5,
-        pos.z,
-        8,
-        0.3,
-        0.3,
-        0.3,
-        0.05);
+        ParticleTypes.LARGE_SMOKE, pos.x, pos.y + 0.5, pos.z, 8, 0.3, 0.3, 0.3, 0.05);
 
     // 音效：压抑的爆裂音
     level.playSound(
-        null,
-        pos.x,
-        pos.y,
-        pos.z,
-        SoundEvents.GENERIC_EXPLODE,
-        SoundSource.PLAYERS,
-        0.4F,
-        0.5F);
+        null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.4F, 0.5F);
 
     AbilityFxDispatcher.play(
         level, INTERFERENCE_DESTRUCT, pos, Vec3.ZERO, Vec3.ZERO, null, null, 1.0F);

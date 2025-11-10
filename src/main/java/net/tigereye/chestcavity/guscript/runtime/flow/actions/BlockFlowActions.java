@@ -60,7 +60,8 @@ final class BlockFlowActions {
 
     if (replacements.isEmpty() && !allowSnowLayers && dropBlocks) {
       ChestCavity.LOGGER.warn(
-          "[Flow] replace_blocks_sphere has no replacements defined; action will only destroy blocks.");
+          "[Flow] replace_blocks_sphere has no replacements defined; action will only destroy"
+              + " blocks.");
     }
 
     return new FlowEdgeAction() {
