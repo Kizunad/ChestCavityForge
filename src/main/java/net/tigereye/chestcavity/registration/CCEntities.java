@@ -7,6 +7,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.JianQiGuSlashProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
@@ -82,6 +83,18 @@ public final class CCEntities {
                   .clientTrackingRange(64)
                   .updateInterval(1)
                   .build(ChestCavity.MODID + ":sword_slash"));
+
+  public static final DeferredHolder<EntityType<?>, EntityType<JianQiGuSlashProjectile>>
+      JIAN_QI_GU_SLASH =
+          ENTITY_TYPES.register(
+              "jian_qi_gu_slash",
+              () ->
+                  EntityType.Builder.<JianQiGuSlashProjectile>of(
+                          JianQiGuSlashProjectile::new, MobCategory.MISC)
+                      .sized(1.0f, 1.0f)
+                      .clientTrackingRange(64)
+                      .updateInterval(1)
+                      .build(ChestCavity.MODID + ":jian_qi_gu_slash"));
 
   public static final DeferredHolder<EntityType<?>, EntityType<MadBullEntity>> MAD_BULL =
       ENTITY_TYPES.register(

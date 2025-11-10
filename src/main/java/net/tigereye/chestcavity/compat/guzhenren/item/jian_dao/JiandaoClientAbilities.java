@@ -72,5 +72,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianSuo)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(jianSuo);
     }
+
+    // 剑气蛊：一斩开天
+    var jianQi = net.minecraft.resources.ResourceLocation.parse("guzhenren:jian_qi/yi_zhan_kai_tian");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianQi)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(jianQi);
+    }
   }
 }

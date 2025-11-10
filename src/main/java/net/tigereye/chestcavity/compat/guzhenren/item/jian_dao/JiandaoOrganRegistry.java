@@ -4,6 +4,7 @@ import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianDangGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianFengGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianSuoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYingGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianYinGuOrganBehavior;
@@ -96,6 +97,12 @@ public final class JiandaoOrganRegistry {
           OrganIntegrationSpec.builder(JianFengGuOrganBehavior.ORGAN_ID_FIVE)
               .addOnHitListener(JianFengGuOrganBehavior.INSTANCE)
               .addSlowTickListener(JianFengGuOrganBehavior.INSTANCE)
+              .build(),
+          // 剑气蛊（四转）：一斩开天主动技 + 气断山河被动 + 非玩家OnHit触发
+          OrganIntegrationSpec.builder(JianQiGuOrganBehavior.ORGAN_ID)
+              .addOnHitListener(JianQiGuOrganBehavior.INSTANCE)
+              .addSlowTickListener(JianQiGuOrganBehavior.INSTANCE)
+              .ensureAttached(JianQiGuOrganBehavior.INSTANCE::ensureAttached)
               .build());
 
   private JiandaoOrganRegistry() {}
