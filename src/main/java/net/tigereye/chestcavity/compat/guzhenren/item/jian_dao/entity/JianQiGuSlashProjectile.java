@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -11,6 +12,7 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -21,6 +23,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -28,9 +31,13 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianQiGuCalc;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianQiGuTuning;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 剑气蛊剑光投射物实体。
@@ -44,6 +51,15 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public class JianQiGuSlashProjectile extends Entity {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JianQiGuSlashProjectile.class);
+
+  private static final String MOD_ID = "guzhenren";
+  private static final ResourceLocation ORGAN_ID =
+      ResourceLocation.fromNamespaceAndPath(MOD_ID, JianQiGuTuning.ORGAN_ID);
+  private static final String STATE_ROOT = "JianQiGu";
+  private static final String KEY_DUANSHI_STACKS = "DuanshiStacks";
+  private static final String KEY_LAST_CAST_TICK = "LastCastTick";
 
   // ========== 数据同步字段 ==========
 
@@ -274,7 +290,76 @@ public class JianQiGuSlashProjectile extends Entity {
         target.push(push.x * 0.4, 0.15 + Math.abs(push.y) * 0.2, push.z * 0.4);
         target.hurtMarked = true;
       }
+
+      // 成功命中后增加断势层数
+      if (hurt && owner != null) {
+        incrementDuanshiStack(owner);
+      }
     }
+  }
+
+  /**
+   * 增加断势层数（仅在斩击命中时触发）。
+   *
+   * @param owner 斩击的拥有者
+   */
+  private void incrementDuanshiStack(LivingEntity owner) {
+    if (!(this.level() instanceof ServerLevel level)) {
+      return;
+    }
+
+    // 获取胸腔实例
+    ChestCavityInstance cc = ChestCavityInstance.of(owner).orElse(null);
+    if (cc == null) {
+      return;
+    }
+
+    // 查找剑气蛊器官
+    ItemStack organ = findJianQiGuOrgan(cc);
+    if (organ.isEmpty()) {
+      return;
+    }
+
+    // 更新断势层数
+    OrganState state = OrganState.of(organ, STATE_ROOT);
+    long now = level.getGameTime();
+    int currentStacks = state.getInt(KEY_DUANSHI_STACKS, 0);
+    state.setInt(KEY_DUANSHI_STACKS, currentStacks + 1);
+    state.setLong(KEY_LAST_CAST_TICK, now);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "[JianQiGuSlashProjectile] {} duanshi stacks: {} -> {} (from slash hit)",
+          owner.getName().getString(),
+          currentStacks,
+          currentStacks + 1);
+    }
+  }
+
+  /**
+   * 在胸腔中查找剑气蛊器官。
+   *
+   * @param cc 胸腔实例
+   * @return 剑气蛊物品栈，若未找到返回 EMPTY
+   */
+  private ItemStack findJianQiGuOrgan(ChestCavityInstance cc) {
+    if (cc == null || cc.inventory == null) {
+      return ItemStack.EMPTY;
+    }
+
+    for (int i = 0, size = cc.inventory.getContainerSize(); i < size; i++) {
+      ItemStack stack = cc.inventory.getItem(i);
+      if (stack.isEmpty()) {
+        continue;
+      }
+
+      ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+      if (itemId != null && itemId.equals(ORGAN_ID)) {
+        return stack;
+      }
+    }
+
+    return ItemStack.EMPTY;
   }
 
   /**

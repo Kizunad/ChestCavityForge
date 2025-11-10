@@ -21,8 +21,8 @@ public final class JianQiGuTuning {
   /** 器官ID：guzhenren:jianqigu */
   public static final String ORGAN_ID = "jianqigu";
 
-  /** 主动技能ID：guzhenren:jian_qi/yi_zhan_kai_tian */
-  public static final String ABILITY_ID = "jian_qi/yi_zhan_kai_tian";
+  /** 主动技能ID：guzhenren:jian_qi_yi_zhan_kai_tian */
+  public static final String ABILITY_ID = "jian_qi_yi_zhan_kai_tian";
 
   // ========== 主动技能·一斩开天 ==========
 
