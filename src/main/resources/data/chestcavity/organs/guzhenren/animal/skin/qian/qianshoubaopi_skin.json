@@ -1,0 +1,25 @@
+{
+  "itemID": "guzhenren:qianshoubaopi",
+  "organScores": [
+    {
+      "id": "chestcavity:speed",
+      "value": "0.8"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "16"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "-30"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "40"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "guzhenren:wanshoubaopi",
+  "title": "wanshoubaopi",
+  "summary": "",
+  "details": [
+    "速度：1.2",
+    "力量：24",
+    "生命值：-45",
+    "最大魂魄：10",
+    "最大精力：80",
+    "最大真元：60"
+  ],
+  "tags": [
+    "wanshoubaopi",
+    "guzhenren:wanshoubaopi"
+  ],
+  "icon": "guzhenren:wanshoubaopi"
+}

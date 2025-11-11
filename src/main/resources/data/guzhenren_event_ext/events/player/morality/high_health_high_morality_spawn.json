@@ -1,0 +1,30 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/morality/high_health_high_morality_spawn",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "health",
+      "to": {
+        "max_percent": 0.2
+      }
+    },
+    "conditions": [
+      {
+        "type": "guzhenren:player_daode",
+        "min": 10
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 2,
+        "min_distance": 5.0,
+        "max_distance": 15.0,
+        "promote_to_same_realm": true,
+        "custom_name": "魔道修士",
+        "notification_message": "§e魔道修士: 抱歉了，我本不愿与你为敌，但为了我的信仰与追求，我别无选择。愿你在这最后的时刻，找到内心的平静。"
+      }
+    ]
+  }
+]

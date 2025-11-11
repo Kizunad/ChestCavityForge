@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:baoyan",
+  "title": "baoyan",
+  "summary": "",
+  "details": [
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：1",
+    "幸运：-0.01",
+    "速度：0.1"
+  ],
+  "tags": [
+    "baoyan",
+    "guzhenren:baoyan"
+  ],
+  "icon": "guzhenren:baoyan"
+}

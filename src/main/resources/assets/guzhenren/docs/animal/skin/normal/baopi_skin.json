@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:baopi",
+  "title": "baopi",
+  "summary": "",
+  "details": [
+    "速度：0.2",
+    "力量：4",
+    "生命值：-8"
+  ],
+  "tags": [
+    "baopi",
+    "guzhenren:baopi"
+  ],
+  "icon": "guzhenren:baopi"
+}

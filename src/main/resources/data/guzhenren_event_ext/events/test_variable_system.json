@@ -1,0 +1,200 @@
+[
+  {
+    "id": "guzhenren_event_ext:quest/chapter_1_start",
+    "enabled": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "guzhenren:shou_gu"
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "player",
+        "variable": "quest.main_story_chapter",
+        "condition": "not_exists"
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§6§l[主线任务] §r第一章：蛊道入门 - 你获得了寿蛊！"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "quest.main_story_chapter",
+        "value": 1
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "quest.chapter_1_completed",
+        "value": false
+      }
+    ]
+  },
+  {
+    "id": "guzhenren_event_ext:quest/chapter_2_start",
+    "enabled": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "minecraft:ancient_debris"
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "player",
+        "variable": "quest.main_story_chapter",
+        "condition": "==",
+        "value": 1
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§6§l[主线任务] §r第二章：古老的秘密 - 你发现了远古残骸！"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "quest.main_story_chapter",
+        "value": 2
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "quest.chapter_1_completed",
+        "value": true
+      }
+    ]
+  },
+  {
+    "id": "guzhenren_event_ext:world/blood_moon_trigger",
+    "enabled": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "zhenyuan",
+      "to": {
+        "max_percent": 1.0
+      }
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "world",
+        "variable": "event.blood_moon_triggered",
+        "condition": "not_exists"
+      },
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.05
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§4§l血月降临！邪恶的力量正在苏醒..."
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "world",
+        "variable": "event.blood_moon_triggered",
+        "value": true
+      },
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 3,
+        "health_multiplier": 2.0,
+        "damage_multiplier": 1.5,
+        "custom_name": "§4血月蛊修",
+        "notification_message": "§c强大的血月蛊修从黑暗中现身！"
+      }
+    ]
+  },
+  {
+    "id": "guzhenren_event_ext:sidequest/save_villager",
+    "enabled": false,
+    "trigger_once": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "minecraft:emerald"
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "player",
+        "variable": "quest.saved_villager",
+        "condition": "not_exists"
+      },
+      {
+        "type": "guzhenren:player_health_percent",
+        "min": 0.3
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§e[支线任务] 你决定帮助村民，声望+10"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "quest.saved_villager",
+        "value": true
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "reputation.village",
+        "value": 10
+      }
+    ]
+  },
+  {
+    "id": "guzhenren_event_ext:test/variable_removal",
+    "enabled": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "minecraft:coal"
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "player",
+        "variable": "temp.test_flag",
+        "condition": "exists"
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§7临时标志已清除"
+      },
+      {
+        "type": "guzhenren_event_ext:remove_variable",
+        "scope": "player",
+        "variable": "temp.test_flag"
+      }
+    ]
+  },
+  {
+    "id": "guzhenren_event_ext:test/set_temp_flag",
+    "enabled": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "minecraft:iron_ingot"
+    },
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§7临时标志已设置（获得煤炭可清除）"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "temp.test_flag",
+        "value": true
+      }
+    ]
+  }
+]

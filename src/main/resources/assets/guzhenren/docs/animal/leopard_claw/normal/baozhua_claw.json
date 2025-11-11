@@ -1,0 +1,15 @@
+{
+  "id": "guzhenren:baozhua",
+  "title": "baozhua",
+  "summary": "",
+  "details": [
+    "力量：20",
+    "速度：0.15",
+    "防御：-10"
+  ],
+  "tags": [
+    "baozhua",
+    "guzhenren:baozhua"
+  ],
+  "icon": "guzhenren:baozhua"
+}

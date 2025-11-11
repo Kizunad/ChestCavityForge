@@ -1,0 +1,35 @@
+[
+  {
+    "id": "guzhenren_event_ext:world_events/blood_moon_spawn",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "zhenyuan"
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "world",
+        "variable": "blood_moon",
+        "condition": "==",
+        "value": true
+      },
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.1
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "health_multiplier": 20.0,
+        "damage_multiplier": 20.0,
+        "speed_multiplier": 4,
+        "promote_to_same_realm": true,
+        "custom_name": "血道老魔",
+        "notification_message": "§4一个血道老魔被你吸引而来！"
+      }
+    ]
+  }
+]

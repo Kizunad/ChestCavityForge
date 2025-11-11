@@ -1,0 +1,29 @@
+{
+  "itemID": "guzhenren:wanshoubaopi",
+  "organScores": [
+    {
+      "id": "chestcavity:speed",
+      "value": "1.2"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "24"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "-45"
+    },
+    {
+      "id": "guzhenren:zuida_hunpo",
+      "value": "10"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "80"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "60"
+    }
+  ]
+}

@@ -55,6 +55,11 @@ public class ChestCavityInstance implements ContainerListener {
   private boolean randomFillersGenerated = false;
   private final List<RandomFillerEntry> preGeneratedRandomFillers = new ArrayList<>();
 
+  // Reentrancy protection for event processing to prevent ConcurrentModificationException
+  // when nested damage/event triggers occur during listener iteration
+  public boolean isProcessingEvents = false;
+  public boolean needsReevaluation = false;
+
   public int heartBleedTimer = 0;
   public int bloodPoisonTimer = 0;
   public int liverTimer = 0;

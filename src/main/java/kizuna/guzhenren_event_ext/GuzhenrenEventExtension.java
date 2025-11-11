@@ -11,12 +11,21 @@ import kizuna.guzhenren_event_ext.common.system.registry.ActionRegistry;
 import kizuna.guzhenren_event_ext.common.system.registry.ConditionRegistry;
 import kizuna.guzhenren_event_ext.common.system.registry.TriggerRegistry;
 import kizuna.guzhenren_event_ext.common.system_modules.actions.AdjustPlayerStatAction;
+import kizuna.guzhenren_event_ext.common.system_modules.actions.GiveItemAction;
+import kizuna.guzhenren_event_ext.common.system_modules.actions.RemoveVariableAction;
 import kizuna.guzhenren_event_ext.common.system_modules.actions.RunCommandAction;
 import kizuna.guzhenren_event_ext.common.system_modules.actions.SendMessageAction;
+import kizuna.guzhenren_event_ext.common.system_modules.actions.SetVariableAction;
+import kizuna.guzhenren_event_ext.common.system_modules.actions.SpawnHostileGuCultivatorAction;
+import kizuna.guzhenren_event_ext.common.system_modules.conditions.CheckEntityTagCondition;
+import kizuna.guzhenren_event_ext.common.system_modules.conditions.CheckVariableCondition;
 import kizuna.guzhenren_event_ext.common.system_modules.conditions.PlayerHealthPercentCondition;
+import kizuna.guzhenren_event_ext.common.system_modules.conditions.PlayerDaodeCondition;
+import kizuna.guzhenren_event_ext.common.system_modules.conditions.PlayerDaohenCondition;
 import kizuna.guzhenren_event_ext.common.system_modules.conditions.RandomChanceCondition;
 import kizuna.guzhenren_event_ext.common.system_modules.triggers.PlayerObtainedItemTrigger;
 import kizuna.guzhenren_event_ext.common.system_modules.triggers.PlayerStatChangeTrigger;
+import kizuna.guzhenren_event_ext.common.system_modules.triggers.SpecialEntityKilledTrigger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModLoadingContext;
@@ -68,17 +77,26 @@ public class GuzhenrenEventExtension {
     // Register triggers
     TriggerRegistry.getInstance().register("guzhenren_event_ext:player_obtained_item", new PlayerObtainedItemTrigger());
     TriggerRegistry.getInstance().register("guzhenren_event_ext:player_stat_change", new PlayerStatChangeTrigger());
+    TriggerRegistry.getInstance().register("guzhenren_event_ext:special_entity_killed", new SpecialEntityKilledTrigger());
 
     // Register conditions
     ConditionRegistry.getInstance().register("minecraft:random_chance", new RandomChanceCondition());
     ConditionRegistry.getInstance().register("guzhenren:player_health_percent", new PlayerHealthPercentCondition());
+    ConditionRegistry.getInstance().register("guzhenren:player_daode", new PlayerDaodeCondition());
+    ConditionRegistry.getInstance().register("guzhenren:player_daohen", new PlayerDaohenCondition());
+    ConditionRegistry.getInstance().register("guzhenren_event_ext:check_variable", new CheckVariableCondition());
+    ConditionRegistry.getInstance().register("guzhenren_event_ext:check_entity_tag", new CheckEntityTagCondition());
 
     // Register actions
     ActionRegistry.getInstance().register("guzhenren_event_ext:send_message", new SendMessageAction());
     ActionRegistry.getInstance().register("guzhenren_event_ext:run_command", new RunCommandAction());
     ActionRegistry.getInstance().register("guzhenren_event_ext:adjust_player_stat", new AdjustPlayerStatAction());
+    ActionRegistry.getInstance().register("guzhenren_event_ext:spawn_hostile_gucultivator", new SpawnHostileGuCultivatorAction());
+    ActionRegistry.getInstance().register("guzhenren_event_ext:set_variable", new SetVariableAction());
+    ActionRegistry.getInstance().register("guzhenren_event_ext:remove_variable", new RemoveVariableAction());
+    ActionRegistry.getInstance().register("guzhenren_event_ext:give_item", new GiveItemAction());
 
-    LOGGER.info("[{}] Registered 2 triggers, 2 conditions, 3 actions", MODID);
+    LOGGER.info("[{}] Registered 3 triggers, 6 conditions, 7 actions", MODID);
   }
 
   @SubscribeEvent

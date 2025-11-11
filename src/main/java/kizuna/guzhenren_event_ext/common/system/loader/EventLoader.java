@@ -45,23 +45,81 @@ public class EventLoader extends SimplePreparableReloadListener<List<EventDefini
         Map<ResourceLocation, Resource> resources = resourceManager.listResources(DIRECTORY, (location) -> location.getPath().endsWith(".json"));
 
         for (Map.Entry<ResourceLocation, Resource> entry : resources.entrySet()) {
-            try (InputStreamReader reader = new InputStreamReader(entry.getValue().open(), StandardCharsets.UTF_8)) {
-                List<EventDefinition> fileEvents = GSON.fromJson(reader, LIST_TYPE);
-                if (fileEvents != null) {
-                    // Basic validation
-                    fileEvents.forEach(def -> {
-                        if (def.id == null || def.id.isEmpty() || def.trigger == null) {
-                            GuzhenrenEventExtension.LOGGER.warn("Skipping invalid event definition in file {}: id and trigger are required.", entry.getKey());
-                        } else {
-                            definitions.add(def);
-                        }
-                    });
+            try {
+                String json = new String(entry.getValue().open().readAllBytes(), StandardCharsets.UTF_8);
+
+                // 1) 优先按数组解析
+                List<EventDefinition> fileEvents = null;
+                try {
+                    fileEvents = GSON.fromJson(json, LIST_TYPE);
+                } catch (Exception ignore) {
+                    // fallthrough
                 }
+
+                if (fileEvents == null) {
+                    // 2) 兼容：单对象解析（便于子目录内使用单个对象文件）
+                    try {
+                        EventDefinition single = GSON.fromJson(json, EventDefinition.class);
+                        if (single != null) {
+                            fileEvents = new ArrayList<>();
+                            fileEvents.add(single);
+                        }
+                    } catch (Exception ignore) {
+                        // fallthrough
+                    }
+                }
+
+                if (fileEvents == null) {
+                    GuzhenrenEventExtension.LOGGER.warn("Ignoring event file (unparseable): {}", entry.getKey());
+                    continue;
+                }
+
+                // 3) 规范化并校验
+                for (EventDefinition def : fileEvents) {
+                    normalizeDefinition(def);
+                    if (def == null || def.id == null || def.id.isEmpty() || def.trigger == null) {
+                        GuzhenrenEventExtension.LOGGER.warn(
+                            "Skipping invalid event definition in file {}: id and trigger are required.",
+                            entry.getKey());
+                        continue;
+                    }
+                    definitions.add(def);
+                }
+
             } catch (Exception e) {
                 GuzhenrenEventExtension.LOGGER.error("Failed to load event definition file: {}", entry.getKey(), e);
             }
         }
         return definitions;
+    }
+
+    /**
+     * 规范化：兼容将 "id" 用作类型键的写法，统一转成 "type"；确保条件与动作数组非空时元素也被规范化。
+     */
+    private void normalizeDefinition(EventDefinition def) {
+        if (def == null) return;
+        // trigger: id -> type
+        if (def.trigger != null) {
+            if (!def.trigger.has("type") && def.trigger.has("id") && def.trigger.get("id").isJsonPrimitive()) {
+                def.trigger.addProperty("type", def.trigger.get("id").getAsString());
+            }
+        }
+        // conditions
+        if (def.conditions != null) {
+            for (var cond : def.conditions) {
+                if (cond != null && !cond.has("type") && cond.has("id") && cond.get("id").isJsonPrimitive()) {
+                    cond.addProperty("type", cond.get("id").getAsString());
+                }
+            }
+        }
+        // actions
+        if (def.actions != null) {
+            for (var act : def.actions) {
+                if (act != null && !act.has("type") && act.has("id") && act.get("id").isJsonPrimitive()) {
+                    act.addProperty("type", act.get("id").getAsString());
+                }
+            }
+        }
     }
 
     @Override

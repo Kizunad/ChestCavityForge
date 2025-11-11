@@ -1,0 +1,26 @@
+[
+  {
+    "id": "guzhenren_event_ext:gambling/gamblers_coin_good",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "guzhenren_event_ext:gamblers_coin"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.1
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:run_command",
+        "command": "give {player} minecraft:diamond 1"
+      },
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§a幸运女神眷顾了你！你获得了一颗钻石！"
+      }
+    ]
+  }
+]

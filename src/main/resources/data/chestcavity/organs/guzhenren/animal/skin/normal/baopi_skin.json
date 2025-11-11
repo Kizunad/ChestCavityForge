@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:baopi",
+  "organScores": [
+    {
+      "id": "chestcavity:speed",
+      "value": "0.2"
+    },
+    {
+      "id": "chestcavity:strength",
+      "value": "4"
+    },
+    {
+      "id": "chestcavity:health",
+      "value": "-8"
+    }
+  ]
+}

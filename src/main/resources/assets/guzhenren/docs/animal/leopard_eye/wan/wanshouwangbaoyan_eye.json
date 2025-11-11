@@ -1,0 +1,18 @@
+{
+  "id": "guzhenren:wanshouwangbaoyan",
+  "title": "wanshouwangbaoyan",
+  "summary": "",
+  "details": [
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：4",
+    "幸运：-0.04",
+    "速度：0.4",
+    "最大魂魄：10",
+    "最大精力：80",
+    "最大真元：60"
+  ],
+  "tags": [
+    "wanshouwangbaoyan",
+    "guzhenren:wanshouwangbaoyan"
+  ],
+  "icon": "guzhenren:wanshouwangbaoyan"
+}

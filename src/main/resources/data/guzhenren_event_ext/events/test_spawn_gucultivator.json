@@ -1,0 +1,61 @@
+[
+  {
+    "id": "guzhenren_event_ext:test_spawn_on_diamond",
+    "enabled": false,
+    "trigger_once": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "guzhenren:shou_gu"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 2,
+        "min_distance": 6.0,
+        "max_distance": 12.0,
+        "health_multiplier": 1.5,
+        "damage_multiplier": 1.3,
+        "speed_multiplier": 1.2,
+        "promote_to_same_realm": true,
+        "custom_name": "§c§l蛊修",
+        "notification_message": "§c§l警告：{count} 个强大的蛊修已经发现了你刚获得的寿蛊！"
+      }
+    ]
+  },
+  {
+    "id": "guzhenren_event_ext:test_spawn_on_low_health",
+    "enabled": false,
+    "trigger_once": false,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "health",
+      "to": {
+        "max_percent": 0.2
+      }
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "promote_to_same_realm": true,
+        "notification_message": "§e你的虚弱引来了敌对蛊修的注意..."
+      },
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§6小心！趁人之危的蛊修出现了！"
+      }
+    ]
+  }
+]

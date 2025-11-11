@@ -1,0 +1,34 @@
+[
+  {
+    "id": "guzhenren_event_ext:world_events/blood_moon_end",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "zhenyuan"
+    },
+    "conditions": [
+      {
+        "type": "guzhenren_event_ext:check_variable",
+        "scope": "world",
+        "variable": "blood_moon",
+        "condition": "==",
+        "value": true
+      },
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.1
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:remove_variable",
+        "scope": "world",
+        "variable": "blood_moon"
+      },
+      {
+        "type": "guzhenren_event_ext:run_command",
+        "command": "tellraw @a {\"text\":\"周围的血道蛊虫的痕迹褪去了。\",\"color\":\"aqua\"}"
+      }
+    ]
+  }
+]

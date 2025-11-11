@@ -1,0 +1,26 @@
+[
+  {
+    "id": "guzhenren_event_ext:world/spawn_hostile_cultivator_on_item",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_obtained_item",
+      "item": "guzhenren:wei_lian_hua_shi_nian_shou_gu"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.1
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "promote_to_same_realm": true,
+        "min_distance": 5.0,
+        "max_distance": 10.0,
+        "notification_message": "§c寻求寿蛊的修士: 哼！居然敢抢夺我的寿蛊，找死吗你！"
+      }
+    ]
+  }
+]

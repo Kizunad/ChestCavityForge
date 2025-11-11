@@ -1,0 +1,19 @@
+{
+  "id": "guzhenren:shouhuangbaoyan",
+  "title": "shouhuangbaoyan",
+  "summary": "",
+  "details": [
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：6",
+    "幸运：-0.06",
+    "速度：0.6",
+    "寿元：10",
+    "最大魂魄：40",
+    "最大精力：100",
+    "最大真元：80"
+  ],
+  "tags": [
+    "shouhuangbaoyan",
+    "guzhenren:shouhuangbaoyan"
+  ],
+  "icon": "guzhenren:shouhuangbaoyan"
+}

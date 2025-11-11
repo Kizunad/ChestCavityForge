@@ -1,0 +1,30 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/morality/low_health_low_morality_spawn",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "health",
+      "to": {
+        "max_percent": 0.2
+      }
+    },
+    "conditions": [
+      {
+        "type": "guzhenren:player_daode",
+        "max": -10
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 2,
+        "min_distance": 5.0,
+        "max_distance": 15.0,
+        "promote_to_same_realm": true,
+        "custom_name": "被欺辱的正道修士",
+        "notification_message": "§c正道修士: 魔头，三百年前你侮辱了我，夺走了我的清白之身，杀光我全家，诛了我的九族。从那刻起，我恨不得吃你肉，喝你的血！今天，我要让你生不如死！！"
+      }
+    ]
+  }
+]

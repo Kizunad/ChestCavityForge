@@ -1,0 +1,17 @@
+{
+  "id": "guzhenren:baishoubaoyan",
+  "title": "baishoubaoyan",
+  "summary": "",
+  "details": [
+    "箭矢闪避 (被投射物命中时尝试瞬移躲避)：2",
+    "幸运：-0.02",
+    "速度：0.2",
+    "最大精力：10",
+    "最大真元：10"
+  ],
+  "tags": [
+    "baishoubaoyan",
+    "guzhenren:baishoubaoyan"
+  ],
+  "icon": "guzhenren:baishoubaoyan"
+}

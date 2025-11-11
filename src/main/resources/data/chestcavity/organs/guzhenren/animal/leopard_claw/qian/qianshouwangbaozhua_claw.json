@@ -1,0 +1,25 @@
+{
+  "itemID": "guzhenren:qianshouwangbaozhua",
+  "organScores": [
+    {
+      "id": "chestcavity:strength",
+      "value": "60"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "0.35"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "60"
+    },
+    {
+    "id": "chestcavity:defense",
+    "value": "-30"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "45"
+    }
+  ]
+}

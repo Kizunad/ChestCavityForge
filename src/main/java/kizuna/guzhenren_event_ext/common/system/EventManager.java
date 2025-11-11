@@ -7,6 +7,7 @@ import kizuna.guzhenren_event_ext.common.attachment.ModAttachments;
 import kizuna.guzhenren_event_ext.common.event.api.GuzhenrenPlayerEvent;
 import kizuna.guzhenren_event_ext.common.event.api.GuzhenrenStatChangeEvent;
 import kizuna.guzhenren_event_ext.common.event.api.PlayerObtainedItemEvent;
+import kizuna.guzhenren_event_ext.common.event.api.SpecialEntityKilledEvent;
 import kizuna.guzhenren_event_ext.common.system.def.EventDefinition;
 import kizuna.guzhenren_event_ext.common.system.loader.EventLoader;
 import kizuna.guzhenren_event_ext.common.system.registry.ActionRegistry;
@@ -15,9 +16,13 @@ import kizuna.guzhenren_event_ext.common.system.registry.TriggerRegistry;
 import kizuna.guzhenren_event_ext.common.system_modules.IAction;
 import kizuna.guzhenren_event_ext.common.system_modules.ICondition;
 import kizuna.guzhenren_event_ext.common.system_modules.ITrigger;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.Event;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 public class EventManager {
 
@@ -37,6 +42,59 @@ public class EventManager {
     @SubscribeEvent
     public void onItemObtained(PlayerObtainedItemEvent event) {
         processEvent(event, "guzhenren_event_ext:player_obtained_item");
+    }
+
+    /**
+     * 监听实体死亡事件，检查是否为玩家击杀的特殊标记实体
+     */
+    @SubscribeEvent
+    public void onLivingDeath(LivingDeathEvent event) {
+        LivingEntity victim = event.getEntity();
+
+        // 检查击杀者是否为玩家
+        if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) {
+            return;
+        }
+
+        // 检查被击杀实体是否有特殊标记
+        if (!victim.getPersistentData().contains("guzhenren_event_ext:entity_tag")) {
+            return;
+        }
+
+        String entityTag = victim.getPersistentData().getString("guzhenren_event_ext:entity_tag");
+
+        if (entityTag.isEmpty()) {
+            return;
+        }
+
+        GuzhenrenEventExtension.LOGGER.debug(
+            "Player {} killed special entity with tag: {}",
+            killer.getName().getString(),
+            entityTag
+        );
+
+        // 创建并发布自定义事件
+        SpecialEntityKilledEvent customEvent = new SpecialEntityKilledEvent(killer, entityTag);
+        NeoForge.EVENT_BUS.post(customEvent);
+    }
+
+    @SubscribeEvent
+    public void onSpecialEntityKilled(SpecialEntityKilledEvent event) {
+        // 为 CheckEntityTagCondition 提供临时上下文
+        Player player = (Player) event.getEntity();
+        player.getPersistentData().putString(
+            kizuna.guzhenren_event_ext.common.system_modules.conditions.CheckEntityTagCondition.TEMP_ENTITY_TAG_KEY,
+            event.getEntityTag()
+        );
+
+        try {
+            processEvent(event, "guzhenren_event_ext:special_entity_killed");
+        } finally {
+            // 清除临时数据
+            player.getPersistentData().remove(
+                kizuna.guzhenren_event_ext.common.system_modules.conditions.CheckEntityTagCondition.TEMP_ENTITY_TAG_KEY
+            );
+        }
     }
 
     private <T extends Event> void processEvent(T event, String triggerType) {

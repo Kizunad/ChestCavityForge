@@ -146,9 +146,6 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         || organ.isEmpty()) {
       return damage;
     }
-    if (!isPrimaryOrgan(cc, organ)) {
-      return damage;
-    }
     if (damage <= 0.0f) {
       return damage;
     }
@@ -216,9 +213,6 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         || organ.isEmpty()) {
       return;
     }
-    if (!isPrimaryOrgan(cc, organ)) {
-      return;
-    }
 
     OrganState state = resolveOrganState(organ, STATE_ROOT);
     MultiCooldown cooldown = createCooldown(cc, organ);
@@ -243,9 +237,6 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         || cc == null
         || organ == null
         || organ.isEmpty()) {
-      return damage;
-    }
-    if (!isPrimaryOrgan(cc, organ)) {
       return damage;
     }
     if (target.isDeadOrDying()) {
@@ -885,24 +876,6 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static OrganState resolveOrganState(ItemStack organ, String root) {
     return OrganState.of(organ, root);
-  }
-
-  private static boolean isPrimaryOrgan(ChestCavityInstance cc, ItemStack organ) {
-    if (cc == null || cc.inventory == null || organ == null || organ.isEmpty()) {
-      return false;
-    }
-    int size = cc.inventory.getContainerSize();
-    for (int i = 0; i < size; i++) {
-      ItemStack stack = cc.inventory.getItem(i);
-      if (stack == null || stack.isEmpty()) {
-        continue;
-      }
-      if (!matchesOrgan(stack, ORGAN_ID)) {
-        continue;
-      }
-      return stack == organ;
-    }
-    return false;
   }
 
   private static ItemStack findPrimaryOrgan(ChestCavityInstance cc) {

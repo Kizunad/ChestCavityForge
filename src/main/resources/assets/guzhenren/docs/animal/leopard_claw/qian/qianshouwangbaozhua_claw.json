@@ -1,0 +1,17 @@
+{
+  "id": "guzhenren:qianshouwangbaozhua",
+  "title": "qianshouwangbaozhua",
+  "summary": "",
+  "details": [
+    "力量：60",
+    "速度：0.35",
+    "最大精力：60",
+    "防御：-30",
+    "最大真元：45"
+  ],
+  "tags": [
+    "qianshouwangbaozhua",
+    "guzhenren:qianshouwangbaozhua"
+  ],
+  "icon": "guzhenren:qianshouwangbaozhua"
+}

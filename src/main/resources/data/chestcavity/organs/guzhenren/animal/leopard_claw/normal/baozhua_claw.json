@@ -1,0 +1,17 @@
+{
+  "itemID": "guzhenren:baozhua",
+  "organScores": [
+    {
+      "id": "chestcavity:strength",
+      "value": "20"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "0.15"
+    },
+    {
+    "id": "chestcavity:defense",
+    "value": "-10"
+    }
+  ]
+}

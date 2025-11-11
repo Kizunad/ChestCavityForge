@@ -1,0 +1,17 @@
+{
+  "id": "guzhenren:qianshoubaopi",
+  "title": "qianshoubaopi",
+  "summary": "",
+  "details": [
+    "速度：0.8",
+    "力量：16",
+    "生命值：-30",
+    "最大精力：40",
+    "最大真元：40"
+  ],
+  "tags": [
+    "qianshoubaopi",
+    "guzhenren:qianshoubaopi"
+  ],
+  "icon": "guzhenren:qianshoubaopi"
+}

@@ -1,0 +1,25 @@
+{
+  "itemID": "guzhenren:qianshouwangbaoyan",
+  "organScores": [
+    {
+      "id": "chestcavity:arrow_dodging",
+      "value": "3"
+    },
+    {
+      "id": "chestcavity:luck",
+      "value": "-0.03"
+    },
+    {
+      "id": "chestcavity:speed",
+      "value": "0.3"
+    },
+    {
+      "id": "guzhenren:zuida_jingli",
+      "value": "40"
+    },
+    {
+      "id": "guzhenren:zuida_zhenyuan",
+      "value": "40"
+    }
+  ]
+}

@@ -522,6 +522,15 @@ public class ChestCavityUtil {
   }
 
   public static void evaluateChestCavity(ChestCavityInstance cc) {
+    // If currently processing events, defer reevaluation to prevent ConcurrentModificationException
+    // This can happen when organ callbacks trigger damage which recursively enters event handlers
+    if (cc.isProcessingEvents) {
+      ChestCavity.LOGGER.debug(
+          "Deferring evaluateChestCavity for {} due to active event processing", cc.owner.getName());
+      cc.needsReevaluation = true;
+      return;
+    }
+
     Map<ResourceLocation, Float> organScores = cc.getOrganScores();
     if (!cc.opened) {
       organScores.clear();
@@ -787,25 +796,65 @@ public class ChestCavityUtil {
   public static float onHit(
       ChestCavityInstance cc, DamageSource source, LivingEntity target, float damage) {
     if (cc.opened) {
-      // this is for individual organs
-      // Use a snapshot to avoid ConcurrentModificationException when listeners mutate the list
-      for (OrganOnHitContext e : List.copyOf(cc.onHitListeners)) {
-        damage = e.listener.onHit(source, cc.owner, target, cc, e.organ, damage);
+      // Prevent reentrancy: if already processing events, skip nested calls to avoid
+      // ConcurrentModificationException from recursive damage triggers
+      if (cc.isProcessingEvents) {
+        ChestCavity.LOGGER.debug(
+            "Skipping nested onHit call for {} to prevent reentrancy", cc.owner.getName());
+        return damage;
       }
-      // this is for organ scores
-      // OrganOnHitCallback.EVENT.invoker().onHit(source,cc.owner,target,cc,damage);
-      organUpdate(cc);
+
+      cc.isProcessingEvents = true;
+      try {
+        // Use ArrayList constructor for atomic snapshot instead of List.copyOf()
+        // to avoid CME during the copy operation itself
+        List<OrganOnHitContext> snapshot = new ArrayList<>(cc.onHitListeners);
+        for (OrganOnHitContext e : snapshot) {
+          damage = e.listener.onHit(source, cc.owner, target, cc, e.organ, damage);
+        }
+        // this is for organ scores
+        // OrganOnHitCallback.EVENT.invoker().onHit(source,cc.owner,target,cc,damage);
+        organUpdate(cc);
+
+        // Process deferred reevaluation if needed
+        if (cc.needsReevaluation) {
+          cc.needsReevaluation = false;
+          evaluateChestCavity(cc);
+        }
+      } finally {
+        cc.isProcessingEvents = false;
+      }
     }
     return damage;
   }
 
   public static float onIncomingDamage(ChestCavityInstance cc, DamageSource source, float damage) {
     if (cc.opened) {
-      // Snapshot to prevent concurrent modification if callbacks add/remove listeners
-      for (OrganIncomingDamageContext ctx : List.copyOf(cc.onDamageListeners)) {
-        damage = ctx.listener.onIncomingDamage(source, cc.owner, cc, ctx.organ, damage);
+      // Prevent reentrancy
+      if (cc.isProcessingEvents) {
+        ChestCavity.LOGGER.debug(
+            "Skipping nested onIncomingDamage call for {} to prevent reentrancy",
+            cc.owner.getName());
+        return damage;
       }
-      organUpdate(cc);
+
+      cc.isProcessingEvents = true;
+      try {
+        // Use ArrayList constructor for atomic snapshot
+        List<OrganIncomingDamageContext> snapshot = new ArrayList<>(cc.onDamageListeners);
+        for (OrganIncomingDamageContext ctx : snapshot) {
+          damage = ctx.listener.onIncomingDamage(source, cc.owner, cc, ctx.organ, damage);
+        }
+        organUpdate(cc);
+
+        // Process deferred reevaluation if needed
+        if (cc.needsReevaluation) {
+          cc.needsReevaluation = false;
+          evaluateChestCavity(cc);
+        }
+      } finally {
+        cc.isProcessingEvents = false;
+      }
     }
     return damage;
   }
@@ -815,39 +864,60 @@ public class ChestCavityUtil {
       NetworkUtil.SendS2CChestCavityUpdatePacket(cc);
     }
     if (cc.opened) {
-      OrganTickCallback.organTick(cc.owner, cc);
-      // Dispatch per-tick callbacks for organs that react while the owner is burning
-      if (cc.owner.isOnFire() && !cc.onFireListeners.isEmpty()) {
-        for (OrganOnFireContext ctx : List.copyOf(cc.onFireListeners)) {
-          ctx.listener.onFireTick(cc.owner, cc, ctx.organ);
-        }
+      // Prevent reentrancy for tick processing
+      if (cc.isProcessingEvents) {
+        ChestCavity.LOGGER.debug(
+            "Skipping nested onTick call for {} to prevent reentrancy", cc.owner.getName());
+        return;
       }
-      if (cc.owner.onGround() && !cc.onGroundListeners.isEmpty()) {
-        for (OrganOnGroundContext ctx : List.copyOf(cc.onGroundListeners)) {
-          ctx.listener.onGroundTick(cc.owner, cc, ctx.organ);
-        }
-      }
-      if (cc.owner.tickCount % 20 == 0) {
-        LinkageManager.tickSlow(cc);
-        if (!cc.onSlowTickListeners.isEmpty()) {
-          List<OrganSlowTickContext> snapshot = List.copyOf(cc.onSlowTickListeners);
-          for (OrganSlowTickContext ctx : snapshot) {
-            ctx.listener.onSlowTick(cc.owner, cc, ctx.organ);
+
+      cc.isProcessingEvents = true;
+      try {
+        OrganTickCallback.organTick(cc.owner, cc);
+        // Dispatch per-tick callbacks for organs that react while the owner is burning
+        if (cc.owner.isOnFire() && !cc.onFireListeners.isEmpty()) {
+          List<OrganOnFireContext> fireSnapshot = new ArrayList<>(cc.onFireListeners);
+          for (OrganOnFireContext ctx : fireSnapshot) {
+            ctx.listener.onFireTick(cc.owner, cc, ctx.organ);
           }
         }
-      }
-      // Apply generic healing contributions once per tick (server-side)
-      if (!cc.owner.level().isClientSide() && !cc.onHealListeners.isEmpty()) {
-        float totalHeal = 0f;
-        for (OrganHealContext ctx : List.copyOf(cc.onHealListeners)) {
-          totalHeal += Math.max(0f, ctx.listener.getHealingPerTick(cc.owner, cc, ctx.organ));
+        if (cc.owner.onGround() && !cc.onGroundListeners.isEmpty()) {
+          List<OrganOnGroundContext> groundSnapshot = new ArrayList<>(cc.onGroundListeners);
+          for (OrganOnGroundContext ctx : groundSnapshot) {
+            ctx.listener.onGroundTick(cc.owner, cc, ctx.organ);
+          }
         }
-        if (totalHeal > 0f && cc.owner.getHealth() < cc.owner.getMaxHealth()) {
-          float healAmount = totalHeal;
-          runWithOrganHeal(() -> cc.owner.heal(healAmount));
+        if (cc.owner.tickCount % 20 == 0) {
+          LinkageManager.tickSlow(cc);
+          if (!cc.onSlowTickListeners.isEmpty()) {
+            List<OrganSlowTickContext> slowTickSnapshot = new ArrayList<>(cc.onSlowTickListeners);
+            for (OrganSlowTickContext ctx : slowTickSnapshot) {
+              ctx.listener.onSlowTick(cc.owner, cc, ctx.organ);
+            }
+          }
         }
+        // Apply generic healing contributions once per tick (server-side)
+        if (!cc.owner.level().isClientSide() && !cc.onHealListeners.isEmpty()) {
+          float totalHeal = 0f;
+          List<OrganHealContext> healSnapshot = new ArrayList<>(cc.onHealListeners);
+          for (OrganHealContext ctx : healSnapshot) {
+            totalHeal += Math.max(0f, ctx.listener.getHealingPerTick(cc.owner, cc, ctx.organ));
+          }
+          if (totalHeal > 0f && cc.owner.getHealth() < cc.owner.getMaxHealth()) {
+            float healAmount = totalHeal;
+            runWithOrganHeal(() -> cc.owner.heal(healAmount));
+          }
+        }
+        organUpdate(cc);
+
+        // Process deferred reevaluation if needed
+        if (cc.needsReevaluation) {
+          cc.needsReevaluation = false;
+          evaluateChestCavity(cc);
+        }
+      } finally {
+        cc.isProcessingEvents = false;
       }
-      organUpdate(cc);
     }
   }
 
