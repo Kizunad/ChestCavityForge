@@ -1,13 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
 
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.fx.ShuiFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.tuning.ShuiTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -26,9 +24,6 @@ public final class ShuishenguShield implements IncomingDamageShield {
   public static final ShuishenguShield INSTANCE = new ShuishenguShield();
 
   public static final String STATE_KEY = "ChestCavityShuishengu";
-  public static final int BASE_MAX_CHARGE = 20;
-  public static final float DAMAGE_REDUCTION = 40.0f;
-  public static final double SHIELD_ALPHA = 3.0;
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation CHARGE_CHANNEL_ID =
@@ -52,7 +47,7 @@ public final class ShuishenguShield implements IncomingDamageShield {
       return ShieldResult.noShield(damage);
     }
 
-    float maxReduction = DAMAGE_REDUCTION * stackCount;
+    float maxReduction = ShuiTuning.SHUI_SHEN_DAMAGE_REDUCTION * stackCount;
     int cost = computeShieldCost(damage, maxReduction, maxCharge);
     if (cost <= 0) {
       return ShieldResult.noShield(damage);
@@ -71,14 +66,13 @@ public final class ShuishenguShield implements IncomingDamageShield {
 
     LivingEntity victim = context.victim();
     boolean shieldBroken = remainingCharge == 0;
-    playDamageSound(victim, shieldBroken);
-    spawnDamageParticles(victim, stackCount, shieldBroken);
+    ShuiFx.playShieldDamageFx(victim, stackCount, shieldBroken);
 
     return new ShieldResult(remaining, reduction, remaining <= 0.0F);
   }
 
   public static int getEffectiveMaxCharge(int stackCount) {
-    return BASE_MAX_CHARGE * Math.max(1, stackCount);
+    return ShuiTuning.SHUI_SHEN_BASE_MAX_CHARGE * Math.max(1, stackCount);
   }
 
   public static void setCharge(ItemStack stack, int value, int stackCount) {
@@ -102,49 +96,6 @@ public final class ShuishenguShield implements IncomingDamageShield {
     }
   }
 
-  private static void playDamageSound(LivingEntity entity, boolean shieldBroken) {
-    entity
-        .level()
-        .playSound(
-            null,
-            entity.getX(),
-            entity.getY(),
-            entity.getZ(),
-            shieldBroken ? SoundEvents.SHIELD_BREAK : SoundEvents.GENERIC_SPLASH,
-            SoundSource.PLAYERS,
-            shieldBroken ? 0.8f : 0.5f,
-            shieldBroken ? 1.0f : 1.1f);
-  }
-
-  private static void spawnDamageParticles(
-      LivingEntity entity, int stackCount, boolean shieldBroken) {
-    if (!(entity.level() instanceof ServerLevel server)) {
-      return;
-    }
-    double spread = shieldBroken ? 0.9 : 0.6;
-    int splashCount = shieldBroken ? 12 + stackCount * 3 : 6 + stackCount * 2;
-    server.sendParticles(
-        ParticleTypes.SPLASH,
-        entity.getX(),
-        entity.getY() + entity.getBbHeight() * 0.6,
-        entity.getZ(),
-        splashCount,
-        spread,
-        0.3,
-        spread,
-        0.2);
-    server.sendParticles(
-        ParticleTypes.BUBBLE_POP,
-        entity.getX(),
-        entity.getY() + entity.getBbHeight() * 0.6,
-        entity.getZ(),
-        splashCount / 2,
-        spread * 0.5,
-        0.2,
-        spread * 0.5,
-        0.1);
-  }
-
   private static int computeShieldCost(float damage, float reductionPerFullCharge, int maxCharge) {
     if (damage <= 0f) {
       return 0;
@@ -153,7 +104,7 @@ public final class ShuishenguShield implements IncomingDamageShield {
       return maxCharge;
     }
     double ratio = damage / reductionPerFullCharge;
-    double scaled = maxCharge * CurveUtil.expApproach(ratio, SHIELD_ALPHA);
+    double scaled = maxCharge * CurveUtil.expApproach(ratio, ShuiTuning.SHUI_SHEN_SHIELD_ALPHA);
     int rounded = (int) Math.round(scaled);
     return Math.max(1, Math.min(maxCharge, rounded));
   }
