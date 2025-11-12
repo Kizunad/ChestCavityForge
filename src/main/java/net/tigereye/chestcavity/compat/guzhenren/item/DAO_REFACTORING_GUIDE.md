@@ -105,50 +105,90 @@ public final class FengDaoCooldownOps {
 
 **文件**: `feng_dao/calculator/FengDaoDaohenOps.java`
 
+**⚠️ 标准实现方式: 继承 DaohenCalculator (推荐)**
+
 ```java
 package net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.calculator;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.util.DaohenCalculator;
-import net.tigereye.chestcavity.registration.CCOrganScores;
 
 /**
- * 风道道痕计算
+ * 风道道痕计算工具类。
+ *
+ * <p>汇总风道相关器官的道痕值,用于技能效果增幅计算。
  */
 public final class FengDaoDaohenOps extends DaohenCalculator {
 
   private static final FengDaoDaohenOps INSTANCE = new FengDaoDaohenOps();
 
-  private FengDaoDaohenOps() {
-    // 注册风道相关器官的道痕提供器
-    // 示例1: 假设有一个风系器官,每个提供1.0道痕
-    registerProvider(cc -> calculateDaohen(
-        cc.getOrganScore(CCOrganScores.FENG_ORGAN),  // 替换为实际的器官Score
-        1.0  // 每个器官提供1.0道痕
-    ));
+  /** 清风轮蛊每个提供的道痕值。 */
+  private static final double QING_FENG_LUN_GU_DAOHEN_PER_STACK = 1.0;
 
-    // 示例2: 可以注册多个器官
-    // registerProvider(cc -> calculateDaohen(
-    //     cc.getOrganScore(CCOrganScores.FENG_ELITE_ORGAN),
-    //     2.5  // 精英器官提供更多道痕
-    // ));
+  /** 清风轮蛊物品ID。 */
+  private static final ResourceLocation QING_FENG_LUN_GU_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "qing_feng_lun_gu");
+
+  private FengDaoDaohenOps() {
+    // 注册清风轮蛊的道痕提供器
+    registerProvider(cc -> {
+      if (cc == null) {
+        return 0.0;
+      }
+
+      // 遍历胸腔背包,统计清风轮蛊数量
+      int qingFengLunCount = 0;
+      Item qingFengLunItem = BuiltInRegistries.ITEM.get(QING_FENG_LUN_GU_ID);
+
+      for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+        ItemStack organ = cc.inventory.getItem(i);
+        if (organ.getItem() == qingFengLunItem) {
+          qingFengLunCount += organ.getCount();
+        }
+      }
+
+      return calculateDaohen(qingFengLunCount, QING_FENG_LUN_GU_DAOHEN_PER_STACK);
+    });
+
+    // 未来可以在这里继续注册其他风道器官
+    // 示例:
+    // registerProvider(cc -> calculateOtherOrganDaohen(cc));
   }
 
   /**
-   * 计算风道道痕总值
+   * 计算风道道痕总值。
+   *
+   * <p>注意: 方法名为 computeDaohen() 而非 compute(),避免与父类方法名冲突。
    *
    * @param cc 胸腔实例
-   * @return 道痕值
+   * @return 道痕总值
    */
-  public static double compute(ChestCavityInstance cc) {
+  public static double computeDaohen(ChestCavityInstance cc) {
     return INSTANCE.compute(cc);
   }
 }
 ```
 
+**📌 关键实现要点:**
+
+1. **继承 DaohenCalculator**: 使用标准的继承方式,复用基类的 provider 聚合逻辑
+2. **INSTANCE 单例**: 使用 `private static final INSTANCE` 模式
+3. **构造函数注册**: 在私有构造函数中调用 `registerProvider()` 注册所有道痕来源
+4. **静态方法命名**: 使用 `computeDaohen()` 而非 `compute()`,避免与父类方法名冲突
+5. **直接查找物品**: 使用 `BuiltInRegistries.ITEM.get()` 直接查找物品,而非通过 OrganScore
+
+**⚠️ 实现选择:**
+- ✅ **推荐**: 继承 `DaohenCalculator` (如上所示) - 标准化、可扩展、易维护
+- ⚠️ **备选**: 独立实现 (参考 `BingXueDaohenOps`) - 仅在特殊需求时使用
+
 **⚠️ 重要提示:**
-- 需要根据实际的器官系统替换 `CCOrganScores.FENG_ORGAN`
-- 如果暂时没有器官,可以先留空或返回固定值用于测试
+- 需要根据实际的器官物品ID替换 `QING_FENG_LUN_GU_ID`
+- 如果暂时没有器官,可以先不注册 provider,返回 0.0
+- 可以注册多个 provider,基类会自动汇总所有贡献值
 
 ---
 
@@ -391,19 +431,39 @@ public final class FengDaoCooldownOps {
 ```java
 package net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.calculator;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.util.DaohenCalculator;
-import net.tigereye.chestcavity.registration.CCOrganScores;
 
 public final class FengDaoDaohenOps extends DaohenCalculator {
   private static final FengDaoDaohenOps INSTANCE = new FengDaoDaohenOps();
 
+  private static final double QING_FENG_LUN_GU_DAOHEN_PER_STACK = 1.0;
+  private static final ResourceLocation QING_FENG_LUN_GU_ID =
+      ResourceLocation.fromNamespaceAndPath("guzhenren", "qing_feng_lun_gu");
+
   private FengDaoDaohenOps() {
-    registerProvider(cc -> calculateDaohen(
-        cc.getOrganScore(CCOrganScores.FENG_ORGAN), 1.0));
+    registerProvider(cc -> {
+      if (cc == null) {
+        return 0.0;
+      }
+      int count = 0;
+      Item item = BuiltInRegistries.ITEM.get(QING_FENG_LUN_GU_ID);
+      for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
+        ItemStack organ = cc.inventory.getItem(i);
+        if (organ.getItem() == item) {
+          count += organ.getCount();
+        }
+      }
+      return calculateDaohen(count, QING_FENG_LUN_GU_DAOHEN_PER_STACK);
+    });
   }
 
-  public static double compute(ChestCavityInstance cc) {
+  // 注意: 方法名为 computeDaohen(),避免与父类 compute() 冲突
+  public static double computeDaohen(ChestCavityInstance cc) {
     return INSTANCE.compute(cc);
   }
 }
@@ -433,7 +493,7 @@ SkillEffectBus.register(
 // 在风刃技能的激活方法中:
 
 int liupaiExp = cc.getOrganScore(CCOrganScores.LIUPAI_FENGDAO);
-double daohen = FengDaoDaohenOps.compute(cc);
+double daohen = FengDaoDaohenOps.computeDaohen(cc);  // 注意方法名
 
 long cooldown = FengDaoCooldownOps.withFengDaoExp(200L, liupaiExp);
 float damage = 10.0f * (1.0f + (float) daohen * 0.1f);
