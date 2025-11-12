@@ -1,23 +1,16 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.behavior;
 
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
+import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.fx.ShuiFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.shui_dao.tuning.ShuiTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.util.GuzhenrenResourceCostHelper.ConsumptionResult;
@@ -28,7 +21,6 @@ import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
-import org.joml.Vector3f;
 
 /**
  * Behaviour for 灵涎蛊 (Ling Xian Gu).
@@ -58,36 +50,6 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
   private static final String STRESS_COOLDOWN_KEY = "StressCooldown";
   private static final String NORMAL_READY_AT_KEY = "NormalReadyAt";
   private static final String STRESS_READY_AT_KEY = "StressReadyAt";
-
-  private static final int PLAYER_INTERVAL_SECONDS =
-      BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "PLAYER_INTERVAL_SECONDS", 30);
-  private static final int NON_PLAYER_INTERVAL_SECONDS =
-      BehaviorConfigAccess.getInt(
-          LingXianguOrganBehavior.class,
-          "NON_PLAYER_INTERVAL_SECONDS",
-          PLAYER_INTERVAL_SECONDS * 2);
-
-  private static final double BASE_NORMAL_ZHENYUAN_COST = 30.0;
-  private static final double BASE_STRESS_ZHENYUAN_COST = 60.0;
-
-  private static final float BASE_NORMAL_HEAL =
-      BehaviorConfigAccess.getFloat(LingXianguOrganBehavior.class, "BASE_NORMAL_HEAL", 10.0f);
-  private static final float BASE_STRESS_HEAL =
-      BehaviorConfigAccess.getFloat(LingXianguOrganBehavior.class, "BASE_STRESS_HEAL", 20.0f);
-
-  private static final float STRESS_THRESHOLD_RATIO =
-      BehaviorConfigAccess.getFloat(LingXianguOrganBehavior.class, "STRESS_THRESHOLD_RATIO", 0.30f);
-  private static final int WEAKNESS_DURATION_TICKS =
-      BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "WEAKNESS_DURATION_TICKS", 5 * 20);
-  private static final int PLAYER_STRESS_AMPLIFIER =
-      BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "PLAYER_STRESS_AMPLIFIER", 0);
-  private static final int NON_PLAYER_STRESS_AMPLIFIER =
-      BehaviorConfigAccess.getInt(LingXianguOrganBehavior.class, "NON_PLAYER_STRESS_AMPLIFIER", 2);
-
-  private static final DustParticleOptions PLAYER_GLOW =
-      new DustParticleOptions(new Vector3f(90f / 255f, 210f / 255f, 215f / 255f), 1.0f);
-  private static final DustParticleOptions NON_PLAYER_GLOW =
-      new DustParticleOptions(new Vector3f(60f / 255f, 150f / 255f, 170f / 255f), 0.6f);
 
   @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -204,13 +166,13 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
 
   private static boolean attemptBaselineHeal(LivingEntity entity, ItemStack organ, Player player) {
     int stackCount = Math.max(1, organ.getCount());
-    float healAmount = BASE_NORMAL_HEAL * stackCount;
+    float healAmount = ShuiTuning.LING_XIAN_BASE_NORMAL_HEAL * stackCount;
     if (!canHeal(entity, healAmount)) {
       return false;
     }
     ConsumptionResult payment = null;
     if (player != null) {
-      double cost = BASE_NORMAL_ZHENYUAN_COST * stackCount;
+      double cost = ShuiTuning.LING_XIAN_BASE_NORMAL_ZHENYUAN_COST * stackCount;
       payment = ResourceOps.consumeStrict(player, cost, 0.0);
       if (!payment.succeeded()) {
         return false;
@@ -224,8 +186,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
       return false;
     }
     boolean isPlayer = player != null;
-    spawnHealingParticles(entity, stackCount, isPlayer, false);
-    playHealingSound(entity, isPlayer, false);
+    ShuiFx.playHealingFx(entity, stackCount, isPlayer, false);
     ReactionTagOps.add(entity, ReactionTagKeys.WATER_VEIL, 100);
     return true;
   }
@@ -233,13 +194,13 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
   private static boolean attemptStressResponse(
       LivingEntity entity, ItemStack organ, Player player) {
     int stackCount = Math.max(1, organ.getCount());
-    float healAmount = BASE_STRESS_HEAL * stackCount;
+    float healAmount = ShuiTuning.LING_XIAN_BASE_STRESS_HEAL * stackCount;
     if (!canHeal(entity, healAmount)) {
       return false;
     }
     ConsumptionResult payment = null;
     if (player != null) {
-      double cost = BASE_STRESS_ZHENYUAN_COST * stackCount;
+      double cost = ShuiTuning.LING_XIAN_BASE_STRESS_ZHENYUAN_COST * stackCount;
       payment = ResourceOps.consumeStrict(player, cost, 0.0);
       if (!payment.succeeded()) {
         return false;
@@ -253,8 +214,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
       return false;
     }
     boolean isPlayer = player != null;
-    spawnHealingParticles(entity, stackCount, isPlayer, true);
-    playHealingSound(entity, isPlayer, true);
+    ShuiFx.playHealingFx(entity, stackCount, isPlayer, true);
     applyWeakness(entity, isPlayer);
     ReactionTagOps.add(entity, ReactionTagKeys.WATER_VEIL, 140);
     return true;
@@ -276,7 +236,7 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
       return false;
     }
     float ratio = entity.getHealth() / max;
-    return ratio < STRESS_THRESHOLD_RATIO;
+    return ratio < ShuiTuning.LING_XIAN_STRESS_THRESHOLD_RATIO;
   }
 
   private static float applyHealing(LivingEntity entity, float amount) {
@@ -293,104 +253,30 @@ public enum LingXianguOrganBehavior implements OrganSlowTickListener {
   }
 
   private static void applyWeakness(LivingEntity entity, boolean isPlayer) {
-    int amplifier = isPlayer ? PLAYER_STRESS_AMPLIFIER : NON_PLAYER_STRESS_AMPLIFIER;
+    int amplifier =
+        isPlayer
+            ? ShuiTuning.LING_XIAN_PLAYER_STRESS_AMPLIFIER
+            : ShuiTuning.LING_XIAN_NON_PLAYER_STRESS_AMPLIFIER;
     MobEffectInstance effect =
         new MobEffectInstance(
-            MobEffects.WEAKNESS, WEAKNESS_DURATION_TICKS, amplifier, false, true, true);
+            MobEffects.WEAKNESS,
+            ShuiTuning.LING_XIAN_WEAKNESS_DURATION_TICKS,
+            amplifier,
+            false,
+            true,
+            true);
     entity.addEffect(effect);
   }
 
-  private static void spawnHealingParticles(
-      LivingEntity entity, int stackCount, boolean isPlayer, boolean stress) {
-    Level level = entity.level();
-    if (!(level instanceof ServerLevel server)) {
-      return;
-    }
-    RandomSource random = entity.getRandom();
-    DustParticleOptions glow = isPlayer ? PLAYER_GLOW : NON_PLAYER_GLOW;
-    int glowBursts = (isPlayer ? 6 : 3) * stackCount;
-    if (stress) {
-      glowBursts *= 2;
-    }
-    Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
-    double radius = 0.35 + 0.1 * stackCount;
-    for (int i = 0; i < glowBursts; i++) {
-      double angle = random.nextDouble() * Math.PI * 2.0;
-      double distance = radius * (0.35 + random.nextDouble() * 0.65);
-      double offsetX = Math.cos(angle) * distance;
-      double offsetZ = Math.sin(angle) * distance;
-      double offsetY = (random.nextDouble() - 0.5) * 0.4;
-      server.sendParticles(
-          glow,
-          center.x + offsetX,
-          center.y + offsetY,
-          center.z + offsetZ,
-          1,
-          0.02,
-          0.02,
-          0.02,
-          0.01);
-    }
-    int dropletCount = (isPlayer ? 12 : 6) * stackCount;
-    if (stress) {
-      dropletCount += (isPlayer ? 8 : 4) * stackCount;
-    }
-    server.sendParticles(
-        stress ? ParticleTypes.SPLASH : ParticleTypes.DRIPPING_DRIPSTONE_WATER,
-        center.x,
-        center.y,
-        center.z,
-        dropletCount,
-        0.25,
-        0.35,
-        0.25,
-        stress ? 0.04 : 0.02);
-    server.sendParticles(
-        ParticleTypes.CLOUD,
-        center.x,
-        center.y + 0.1,
-        center.z,
-        Mth.clamp(stackCount * (stress ? 6 : 3), 3, 24),
-        0.25,
-        0.15,
-        0.25,
-        0.01);
-  }
-
-  private static void playHealingSound(LivingEntity entity, boolean isPlayer, boolean stress) {
-    Level level = entity.level();
-    double x = entity.getX();
-    double y = entity.getY();
-    double z = entity.getZ();
-    float dropletPitch = isPlayer ? 1.05f : 0.9f;
-    if (stress) {
-      dropletPitch += 0.1f;
-    }
-    level.playSound(
-        null,
-        x,
-        y,
-        z,
-        SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE,
-        SoundSource.PLAYERS,
-        isPlayer ? 0.7f : 0.5f,
-        dropletPitch);
-    level.playSound(
-        null,
-        x,
-        y,
-        z,
-        SoundEvents.GENERIC_DRINK,
-        SoundSource.PLAYERS,
-        stress ? 0.8f : 0.6f,
-        isPlayer ? 1.2f : 0.95f);
-  }
-
   private static int getNormalIntervalSeconds(Player player) {
-    return player != null ? PLAYER_INTERVAL_SECONDS : NON_PLAYER_INTERVAL_SECONDS;
+    return player != null
+        ? ShuiTuning.LING_XIAN_PLAYER_INTERVAL_SECONDS
+        : ShuiTuning.LING_XIAN_NON_PLAYER_INTERVAL_SECONDS;
   }
 
   private static int getStressIntervalSeconds(Player player) {
-    return player != null ? PLAYER_INTERVAL_SECONDS : NON_PLAYER_INTERVAL_SECONDS;
+    return player != null
+        ? ShuiTuning.LING_XIAN_PLAYER_INTERVAL_SECONDS
+        : ShuiTuning.LING_XIAN_NON_PLAYER_INTERVAL_SECONDS;
   }
 }
