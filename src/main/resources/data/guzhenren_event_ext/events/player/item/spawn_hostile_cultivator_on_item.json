@@ -17,6 +17,9 @@
         "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
         "count": 1,
         "promote_to_same_realm": true,
+        "health_multiplier": 20.0,
+        "damage_multiplier": 20.0,
+        "speed_multiplier": 4,
         "min_distance": 5.0,
         "max_distance": 10.0,
         "notification_message": "§c寻求寿蛊的修士: 哼！居然敢抢夺我的寿蛊，找死吗你！"

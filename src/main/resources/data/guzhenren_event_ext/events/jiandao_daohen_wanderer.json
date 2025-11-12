@@ -18,9 +18,17 @@
         "min_distance": 8.0,
         "max_distance": 16.0,
         "promote_to_same_realm": true,
-        "entity_id": "guzhenren:zhongzhounvgushi",           
+        "entity_id": "guzhenren:zhongzhounvgushi",
         "custom_name": "§b§l流浪剑士",
-        "dialogue_message": "久闻剑意不凡，可敢一战？"
+        "dialogue_message": "久闻剑意不凡，可敢一战？",
+        "preferred_dao_tags": ["jiandao", "daodao"],
+        "custom_daohen": [
+          {
+            "daohen": "daohen_jiandao",
+            "value": 200.0,
+            "override": false
+          }
+        ]
       }
     ]
   }

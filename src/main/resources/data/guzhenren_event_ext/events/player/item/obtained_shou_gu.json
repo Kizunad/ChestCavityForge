@@ -17,6 +17,9 @@
         "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
         "count": 1,
         "promote_to_same_realm": true,
+        "health_multiplier": 20.0,
+        "damage_multiplier": 20.0,
+        "speed_multiplier": 4,
         "min_distance": 5.0,
         "max_distance": 10.0,
         "notification_message": "§c寿命不多的正道修士: 小辈，你竟然得到了魔道之物！我看你是活得不耐烦了！"

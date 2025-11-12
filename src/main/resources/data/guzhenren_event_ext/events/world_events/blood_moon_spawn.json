@@ -28,7 +28,15 @@
         "speed_multiplier": 4,
         "promote_to_same_realm": true,
         "custom_name": "血道老魔",
-        "notification_message": "§4一个血道老魔被你吸引而来！"
+        "notification_message": "§4一个血道老魔被你吸引而来！",
+        "preferred_dao_tags": ["xue_dao", "hun_dao"],
+        "custom_daohen": [
+          {
+            "daohen": "daohen_xuedao",
+            "value": 500.0,
+            "override": true
+          }
+        ]
       }
     ]
   }

@@ -8,17 +8,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -27,6 +21,9 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.util.EntitySpawnUtil;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.capabilities.Capabilities.ItemHandler;
+import kizuna.guzhenren_event_ext.common.util.GuCultivatorPersistentUtil;
 
 import java.util.List;
 
@@ -45,7 +42,20 @@ import java.util.List;
  *   "promote_to_same_realm": true,        // 可选：是否提升到同等境界（复制玩家属性并装备蛊虫），默认false
  *   "custom_name": "§c强大的蛊修",        // 可选：自定义名称（支持颜色代码）
  *   "notification_message": "§c附近出现了敌对蛊修！", // 可选：向玩家发送的通知消息
- *   "entity_tag": "blood_moon_boss"       // 可选：实体标签，用于击杀追踪和奖励系统
+ *   "entity_tag": "blood_moon_boss",      // 可选：实体标签，用于击杀追踪和奖励系统
+ *   "preferred_dao_tags": ["jiandao", "xue_dao"], // 可选：优先道类标签数组（装备蛊虫时优先选择这些道类，不足时从主池补全）
+ *   "custom_daohen": [                    // 可选：自定义道痕值数组
+ *     {
+ *       "daohen": "daohen_jiandao",       // 道痕字段名（如 daohen_jiandao = 剑道道痕）
+ *       "value": 100.0,                   // 道痕值
+ *       "override": true                  // 是否覆盖（true=覆盖，false=叠加），默认true
+ *     },
+ *     {
+ *       "daohen": "daohen_xuedao",
+ *       "value": 50.0,
+ *       "override": false                 // 叠加模式：在现有值基础上增加
+ *     }
+ *   ]
  * }
  */
 public class SpawnHostileGuCultivatorAction implements IAction {
@@ -92,11 +102,7 @@ public class SpawnHostileGuCultivatorAction implements IAction {
         int count = definition.has("count") ? definition.get("count").getAsInt() : 1;
         double minDistance = definition.has("min_distance") ? definition.get("min_distance").getAsDouble() : 5.0;
         double maxDistance = definition.has("max_distance") ? definition.get("max_distance").getAsDouble() : 10.0;
-        double healthMultiplier = definition.has("health_multiplier") ? definition.get("health_multiplier").getAsDouble() : 1.0;
-        double damageMultiplier = definition.has("damage_multiplier") ? definition.get("damage_multiplier").getAsDouble() : 1.0;
-        double speedMultiplier = definition.has("speed_multiplier") ? definition.get("speed_multiplier").getAsDouble() : 1.0;
         String customName = definition.has("custom_name") ? definition.get("custom_name").getAsString() : null;
-        String notificationMessage = definition.has("notification_message") ? definition.get("notification_message").getAsString() : null;
         String entityIdOverride = definition.has("entity_id") ? definition.get("entity_id").getAsString() : null;
         String dialogue = definition.has("dialogue_message") ? definition.get("dialogue_message").getAsString() : null;
         boolean promoteToSameRealm = definition.has("promote_to_same_realm") && definition.get("promote_to_same_realm").getAsBoolean();
@@ -140,6 +146,16 @@ public class SpawnHostileGuCultivatorAction implements IAction {
                 continue;
             }
 
+            // 3.1 调用实体自身的 finalizeSpawn，以触发模组原生的初始化流程（含变量/道具/AI挂钩）。
+            try {
+                if (entity instanceof Mob mob) {
+                    var diff = level.getCurrentDifficultyAt(mob.blockPosition());
+                    mob.finalizeSpawn(level, diff, net.minecraft.world.entity.MobSpawnType.MOB_SUMMONED, null);
+                }
+            } catch (Throwable t) {
+                GuzhenrenEventExtension.LOGGER.warn("调用实体 finalizeSpawn 失败，将继续后续镜像与装备：{}", t.getMessage());
+            }
+
             // 4. 设置敌对目标（用户选择：仅攻击触发者）
             if (entity instanceof Mob mob) {
                 // 添加攻击触发者的Goal
@@ -156,15 +172,17 @@ public class SpawnHostileGuCultivatorAction implements IAction {
                 mob.setTarget(serverPlayer);
             }
 
-            // 5. 应用属性增益 + （可选）提升到同等境界/镜像玩家基础属性 + 装备蛊虫
+            // 5. （可选）提升到同等境界（仅资源顶满） + 装备蛊虫
             if (entity instanceof LivingEntity livingEntity) {
-                // 5.1 属性倍数调整
-                applyAttributeBuffs(livingEntity, healthMultiplier, damageMultiplier, speedMultiplier);
-
-                // 5.2 同境界镜像：复制玩家基础属性（生命、攻击、防御、速度）
                 if (promoteToSameRealm) {
-                    mirrorPlayerBaseAttributes(livingEntity, serverPlayer);
-                    // 5.3 依据玩家转数，从对应Tag中随机6个蛊虫并装备到护甲槽与手部
+                    // 顶满资源，避免因资源不足导致 NPC 无法施放蛊虫
+                    topOffGuResources(livingEntity);
+                    // 依据玩家转数，从对应Tag中随机6个蛊虫并装备到实体 ItemHandler 槽
+                    tryEquipGuWormsByZhuanshu(livingEntity, serverPlayer, level, random);
+                } else {
+                    // 顶满资源，避免低资源导致无法施放
+                    topOffGuResources(livingEntity);
+                    // 装备蛊虫
                     tryEquipGuWormsByZhuanshu(livingEntity, serverPlayer, level, random);
                 }
             }
@@ -190,13 +208,6 @@ public class SpawnHostileGuCultivatorAction implements IAction {
                 String speaker = customName != null && !customName.isEmpty() ? customName : entity.getName().getString();
                 serverPlayer.sendSystemMessage(Component.literal("§7" + speaker + "：§r" + dialogue));
             }
-        }
-
-        // 7. 向玩家发送通知消息（用户选择：JSON可配置）
-        if (notificationMessage != null && !notificationMessage.isEmpty() && successCount > 0) {
-            // 替换占位符 {count}
-            String finalMessage = notificationMessage.replace("{count}", String.valueOf(successCount));
-            serverPlayer.sendSystemMessage(Component.literal(finalMessage));
         }
 
         GuzhenrenEventExtension.LOGGER.info("Successfully spawned {} GuCultivator(s) near player {}", successCount, serverPlayer.getName().getString());
@@ -258,85 +269,72 @@ public class SpawnHostileGuCultivatorAction implements IAction {
         return playerPos.add(offsetX, 0, offsetZ);
     }
 
+    // 旧的属性倍增逻辑已移除（KISS）
+
+    // 旧的基础属性镜像已移除（KISS）
+
     /**
-     * 应用属性增益
+     * 镜像玩家的蛊真人核心战斗资源
+     * <p>
+     * 使用 GuzhenrenResourceBridge 通过反射访问玩家和实体的变量数据，
+     * 然后将玩家的核心属性（转数、阶段、真元、魂魄、精力、道痕等）复制到实体。
+     */
+    // 旧的资源镜像已移除（KISS）
+
+    /**
+     * 将 NPC 的核心战斗资源（真元/精力/魂魄）顶至各自上限，保证技能可用。
+     */
+    private void topOffGuResources(LivingEntity target) {
+        try {
+            var targetHandleOpt = GuzhenrenResourceBridge.open(target);
+            if (targetHandleOpt.isEmpty()) return;
+            var h = targetHandleOpt.get();
+            try {
+                h.getMaxZhenyuan().ifPresent(max -> h.setZhenyuan(max));
+            } catch (Throwable ignored) {}
+            try {
+                h.getMaxJingli().ifPresent(max -> h.setJingli(max));
+            } catch (Throwable ignored) {}
+            try {
+                h.read("zuida_hunpo").ifPresent(max -> h.writeDouble("hunpo", max));
+            } catch (Throwable ignored) {}
+            // 念头、稳定度等按需补充
+        } catch (Throwable t) {
+            GuzhenrenEventExtension.LOGGER.debug("顶满 NPC 资源失败：{}", t.getMessage());
+        }
+    }
+
+    /**
+     * 镜像所有道痕值
+     * <p>
+     * 遍历所有已知的道痕字段，将玩家的道痕值复制到目标实体。
+     * 使用 GuzhenrenResourceBridge 的通用 read/writeDouble 方法。
+     */
+    // 旧的道痕镜像已移除（KISS）
+
+    /**
+     * 应用自定义道痕配置
+     * <p>
+     * JSON格式示例：
+     * <pre>
+     * [
+     *   {"daohen": "daohen_jiandao", "value": 100.0, "override": true},
+     *   {"daohen": "daohen_xuedao", "value": 50.0, "override": false}
+     * ]
+     * </pre>
+     * <p>
+     * override = true: 直接覆盖道痕值 <br>
+     * override = false (或缺省): 叠加到现有道痕值
      *
-     * @param entity 目标实体
-     * @param healthMult 生命值倍数
-     * @param damageMult 攻击力倍数
-     * @param speedMult 移动速度倍数
+     * @param entity            目标实体
+     * @param customDaohenArray 自定义道痕配置数组
      */
-    private void applyAttributeBuffs(LivingEntity entity, double healthMult, double damageMult, double speedMult) {
-        // 1. 生命值增益
-        if (healthMult != 1.0) {
-            AttributeInstance maxHealthAttr = entity.getAttribute(Attributes.MAX_HEALTH);
-            if (maxHealthAttr != null) {
-                double currentMax = maxHealthAttr.getBaseValue();
-                maxHealthAttr.setBaseValue(currentMax * healthMult);
-                entity.setHealth(entity.getMaxHealth()); // 回满血
-                GuzhenrenEventExtension.LOGGER.debug("Applied health buff: {} -> {}", currentMax, entity.getMaxHealth());
-            }
-        }
-
-        // 2. 攻击力增益
-        if (damageMult != 1.0) {
-            AttributeInstance attackAttr = entity.getAttribute(Attributes.ATTACK_DAMAGE);
-            if (attackAttr != null) {
-                double currentAttack = attackAttr.getBaseValue();
-                attackAttr.setBaseValue(currentAttack * damageMult);
-                GuzhenrenEventExtension.LOGGER.debug("Applied attack buff: {} -> {}", currentAttack, attackAttr.getBaseValue());
-            }
-        }
-
-        // 3. 移动速度增益
-        if (speedMult != 1.0) {
-            AttributeInstance speedAttr = entity.getAttribute(Attributes.MOVEMENT_SPEED);
-            if (speedAttr != null) {
-                double currentSpeed = speedAttr.getBaseValue();
-                speedAttr.setBaseValue(currentSpeed * speedMult);
-                GuzhenrenEventExtension.LOGGER.debug("Applied speed buff: {} -> {}", currentSpeed, speedAttr.getBaseValue());
-            }
-        }
-    }
-
-    /**
-     * 将玩家当前基础属性镜像到目标实体：生命上限、攻击力、防御（护甲/护甲韧性）、移动速度。
-     */
-    private void mirrorPlayerBaseAttributes(LivingEntity target, ServerPlayer player) {
-        // 生命上限
-        AttributeInstance pMaxHp = player.getAttribute(Attributes.MAX_HEALTH);
-        AttributeInstance tMaxHp = target.getAttribute(Attributes.MAX_HEALTH);
-        if (pMaxHp != null && tMaxHp != null) {
-            tMaxHp.setBaseValue(pMaxHp.getBaseValue());
-            target.setHealth(target.getMaxHealth());
-        }
-        // 攻击力
-        AttributeInstance pAtk = player.getAttribute(Attributes.ATTACK_DAMAGE);
-        AttributeInstance tAtk = target.getAttribute(Attributes.ATTACK_DAMAGE);
-        if (pAtk != null && tAtk != null) {
-            tAtk.setBaseValue(pAtk.getBaseValue());
-        }
-        // 护甲与护甲韧性
-        AttributeInstance pArmor = player.getAttribute(Attributes.ARMOR);
-        AttributeInstance tArmor = target.getAttribute(Attributes.ARMOR);
-        if (pArmor != null && tArmor != null) {
-            tArmor.setBaseValue(pArmor.getBaseValue());
-        }
-        AttributeInstance pArmorTough = player.getAttribute(Attributes.ARMOR_TOUGHNESS);
-        AttributeInstance tArmorTough = target.getAttribute(Attributes.ARMOR_TOUGHNESS);
-        if (pArmorTough != null && tArmorTough != null) {
-            tArmorTough.setBaseValue(pArmorTough.getBaseValue());
-        }
-        // 移动速度
-        AttributeInstance pSpeed = player.getAttribute(Attributes.MOVEMENT_SPEED);
-        AttributeInstance tSpeed = target.getAttribute(Attributes.MOVEMENT_SPEED);
-        if (pSpeed != null && tSpeed != null) {
-            tSpeed.setBaseValue(pSpeed.getBaseValue());
-        }
-    }
+    // 旧的自定义道痕应用已移除（KISS）
 
     /**
      * 基于玩家转数选择对应的标签 guzhenren:yewaigushiguchong{tier}，随机6个物品并装备到护甲与手部。
+     * 
+     * @param preferredDaoTags 可选的优先道类标签列表，优先从这些道类中选择蛊虫，不足时从主池补全
      */
     private void tryEquipGuWormsByZhuanshu(LivingEntity target, ServerPlayer player, ServerLevel level, RandomSource random) {
         int tier = 1;
@@ -353,57 +351,160 @@ public class SpawnHostileGuCultivatorAction implements IAction {
         }
 
         ResourceLocation tagId = ResourceLocation.fromNamespaceAndPath("guzhenren", "yewaigushiguchong" + tier);
-        TagKey<Item> tagKey = TagKey.create(Registries.ITEM, tagId);
 
-        var regOpt = level.registryAccess().lookup(Registries.ITEM);
-        if (regOpt.isEmpty()) {
-            return;
-        }
-        var registry = regOpt.get();
-        var holdersOpt = registry.get(tagKey);
-        if (holdersOpt.isEmpty()) {
-            return;
-        }
-        HolderSet<Item> holders = holdersOpt.get();
-        if (holders.size() <= 0) {
-            return;
-        }
-
-        // 收集候选列表
         java.util.ArrayList<Item> pool = new java.util.ArrayList<>();
-        for (Holder<Item> h : holders) {
-            try {
-                pool.add(h.value());
-            } catch (Throwable ignored) {
-            }
-        }
-        if (pool.isEmpty()) {
-            return;
-        }
+        try {
+            var builtTag = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOrCreateTag(ItemTags.create(tagId));
+            builtTag.iterator().forEachRemaining(h -> { try { pool.add(h.value()); } catch (Throwable ignored) {} });
+        } catch (Throwable ignored) {}
+        if (pool.isEmpty()) return;
 
-        // 随机选择6个（可重复，当候选不足时）
+        ItemStack[] selections = new ItemStack[6];
+        for (int i = 0; i < 6; i++) {
+            Item item = pool.get(random.nextInt(pool.size()));
+            selections[i] = new ItemStack(item);
+        }
+        applyGuStacksToEntityHandler(target, selections);
+        applyWildGuTierPersistentKeys(target, tier, null);
+    }
+
+    /**
+     * 从单一池中随机选择6个蛊虫并装备
+     */
+    private void selectAndEquipFromPool(LivingEntity target, java.util.ArrayList<Item> pool, RandomSource random, int tier) {
         ItemStack[] selections = new ItemStack[6];
         for (int i = 0; i < 6; i++) {
             Item item = pool.get(random.nextInt(pool.size()));
             selections[i] = new ItemStack(item);
         }
 
-        // 装备顺序：头、胸、腿、脚、主手、副手
-        tryEquip(target, EquipmentSlot.HEAD, selections[0]);
-        tryEquip(target, EquipmentSlot.CHEST, selections[1]);
-        tryEquip(target, EquipmentSlot.LEGS, selections[2]);
-        tryEquip(target, EquipmentSlot.FEET, selections[3]);
-        tryEquip(target, EquipmentSlot.MAINHAND, selections[4]);
-        tryEquip(target, EquipmentSlot.OFFHAND, selections[5]);
+        // 写入 NeoForge ItemHandler（实体专用 0..5 槽）
+        applyGuStacksToEntityHandler(target, selections);
+        // 写入必要持久化键（与野外蛊修保持一致，便于 AI/流程识别）
+        applyWildGuTierPersistentKeys(target, tier, null);
     }
 
-    private void tryEquip(LivingEntity target, EquipmentSlot slot, ItemStack stack) {
-        try {
-            if (!stack.isEmpty()) {
-                target.setItemSlot(slot, stack);
+    /**
+     * 优先从优先池选择，不足时从主池补全
+     */
+    private void selectAndEquipWithPreference(
+        LivingEntity target,
+        java.util.ArrayList<Item> preferredPool,
+        java.util.ArrayList<Item> mainPool,
+        RandomSource random,
+        int tier
+    ) {
+        ItemStack[] selections = new ItemStack[6];
+        int fromPreferred = 0;
+        int fromMain = 0;
+
+        for (int i = 0; i < 6; i++) {
+            if (!preferredPool.isEmpty()) {
+                // 优先从优先池选择
+                Item item = preferredPool.get(random.nextInt(preferredPool.size()));
+                selections[i] = new ItemStack(item);
+                fromPreferred++;
+            } else {
+                // 优先池为空，从主池选择
+                Item item = mainPool.get(random.nextInt(mainPool.size()));
+                selections[i] = new ItemStack(item);
+                fromMain++;
             }
-        } catch (Throwable ignored) {
-            // 某些实体可能不支持所有槽位，静默跳过
+        }
+
+        GuzhenrenEventExtension.LOGGER.debug(
+            "蛊虫装备统计：优先道类 {} 个，主池补全 {} 个",
+            fromPreferred, fromMain
+        );
+
+        // 写入 NeoForge ItemHandler（实体专用 0..5 槽）
+        applyGuStacksToEntityHandler(target, selections);
+        // 写入必要持久化键（与野外蛊修保持一致，便于 AI/流程识别）
+        applyWildGuTierPersistentKeys(target, tier, null);
+    }
+
+    /**
+     * 将 6 个蛊虫堆叠写入实体的 ItemHandler 槽（0..5）。
+     * 若实体未提供该能力，记录告警日志。
+     */
+    private void applyGuStacksToEntityHandler(LivingEntity target, ItemStack[] selections) {
+        try {
+            Object cap = target.getCapability(ItemHandler.ENTITY, null);
+            if (cap instanceof IItemHandlerModifiable handler) {
+                int slots = handler.getSlots();
+                for (int i = 0; i < Math.min(6, slots); i++) {
+                    ItemStack s = selections[i] == null ? ItemStack.EMPTY : selections[i];
+                    if (s == null) s = ItemStack.EMPTY;
+                    handler.setStackInSlot(i, s);
+                }
+                GuzhenrenEventExtension.LOGGER.debug("已写入实体 ItemHandler 槽位 0..{} 的蛊虫", Math.min(5, slots - 1));
+                // 装备后预热冷却，令 AI 能在下个 tick 立即尝试使用
+                primeGuUsageCooldowns(target);
+                // 立即尝试一次触发（复制 GuShiGuChong1Procedure 的行为做一次预热）
+                attemptImmediateGuUse(target, handler);
+                return;
+            }
+            GuzhenrenEventExtension.LOGGER.warn("实体不提供 ItemHandler 能力，无法装备蛊虫（将无法触发 NPC 蛊虫逻辑）：{}", target.getName().getString());
+        } catch (Throwable t) {
+            GuzhenrenEventExtension.LOGGER.error("写入实体 ItemHandler 槽位失败", t);
+        }
+    }
+
+    /**
+     * 写入“野外蛊师转数/阶段/转数名”持久化键，便于 NPC 蛊修逻辑识别。
+     * stageNullable: 1..4（初/中/高/巅）；null 则使用默认“中阶(2)”。
+     */
+    private void applyWildGuTierPersistentKeys(LivingEntity target, int tier, Integer stageNullable) {
+        try {
+            GuCultivatorPersistentUtil.setTierAndStage(target, tier, stageNullable);
+        } catch (Throwable t) {
+            GuzhenrenEventExtension.LOGGER.error("写入 NPC 蛊修持久化键失败", t);
+        }
+    }
+
+    /**
+     * 将与蛊虫施放相关的 CD 置零，帮助实体在下一 tick 就尝试施放。
+     * 这些键在模组原生逻辑中缺省即为 0（不存在时 getDouble=0），此处显式置零以避免偶发残留。
+     */
+    private void primeGuUsageCooldowns(LivingEntity target) {
+        try {
+            var tag = target.getPersistentData();
+            tag.putDouble("蛊虫CD", 0.0);
+            tag.putDouble("蛊虫1CD", 0.0);
+            tag.putDouble("蛊虫2CD", 0.0);
+            tag.putDouble("蛊虫3CD", 0.0);
+            tag.putDouble("蛊虫4CD", 0.0);
+            tag.putDouble("蛊虫5CD", 0.0);
+            // 杀招：至少 10s (200t) 后再允许首次释放，避免一生成就放大招
+            double current = tag.getDouble("杀招CD");
+            tag.putDouble("杀招CD", Math.max(current, 200.0));
+        } catch (Throwable t) {
+            GuzhenrenEventExtension.LOGGER.warn("初始化蛊虫/杀招冷却失败，使用缺省 0：{}", t.getMessage());
+        }
+    }
+
+    /**
+     * 直接把第一个非空槽(0..4)的蛊虫塞入主手并 swing 一次，然后清空，等价于 GuShiGuChong1Procedure 的最小复刻。
+     * 用于生成当刻立即触发一次，帮助后续 tick 走上正轨。
+     */
+    private void attemptImmediateGuUse(LivingEntity target, IItemHandlerModifiable handler) {
+        try {
+            int pick = -1;
+            int limit = Math.min(5, handler.getSlots() - 1);
+            for (int i = 0; i <= limit; i++) {
+                if (!handler.getStackInSlot(i).isEmpty()) { pick = i; break; }
+            }
+            if (pick < 0) return;
+
+            ItemStack stack = handler.getStackInSlot(pick).copy();
+            if (stack.isEmpty()) return;
+            // 放主手并挥动
+            target.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, stack);
+            target.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+            // 清空主手，避免持久占用
+            target.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        } catch (Throwable t) {
+            GuzhenrenEventExtension.LOGGER.debug("尝试立即触发蛊虫失败：{}", t.getMessage());
         }
     }
 }
