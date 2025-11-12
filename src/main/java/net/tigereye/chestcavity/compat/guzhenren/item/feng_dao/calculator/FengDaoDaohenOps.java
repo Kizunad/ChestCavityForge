@@ -19,7 +19,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.DaohenCalculator;
  *
  * <h2>使用示例</h2>
  * <pre>{@code
- * double daohen = FengDaoDaohenOps.compute(cc);
+ * double daohen = FengDaoDaohenOps.computeDaohen(cc);
  * float finalDamage = baseDamage * (1.0f + (float) daohen * 0.1f);
  * }</pre>
  */
@@ -66,7 +66,7 @@ public final class FengDaoDaohenOps extends DaohenCalculator {
    * @param cc 胸腔实例
    * @return 道痕总值
    */
-  public static double compute(ChestCavityInstance cc) {
+  public static double computeDaohen(ChestCavityInstance cc) {
     return INSTANCE.compute(cc);
   }
 }

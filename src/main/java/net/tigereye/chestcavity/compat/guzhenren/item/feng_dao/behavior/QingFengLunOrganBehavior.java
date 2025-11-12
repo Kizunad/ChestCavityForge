@@ -307,11 +307,11 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
       MultiCooldown.Entry dedupEntry = cooldown.entry(CD_KEY_DEDUP_RING_BLOCK);
       if (readyEntry.isReady(gameTime) && dedupEntry.isReady(gameTime)) {
         // 读取流派经验并计算冷却时间(被动技能,从资源直接读取)
-        int liupaiExp =
-            (int)
-                ResourceOps.openHandle(player)
-                    .map(h -> h.read("liupai_fengdao").orElse(0.0))
-                    .orElse(0.0);
+        double liupaiExpDouble =
+            ResourceOps.openHandle(player)
+                .map(h -> h.read("liupai_fengdao").orElse(0.0))
+                .orElse(0.0);
+        int liupaiExp = (int) liupaiExpDouble;
         long ringCooldown = FengDaoCooldownOps.withFengDaoExp(FengTuning.WIND_RING_COOLDOWN_TICKS, liupaiExp);
         readyEntry.setReadyAt(gameTime + ringCooldown);
         dedupEntry.setReadyAt(gameTime + 15);
@@ -396,8 +396,8 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
       // 读取快照的流派经验并计算冷却时间
       int liupaiExp =
           (int) SkillEffectBus.consumeMetadata(player, DASH_ABILITY_ID, "fengdao:liupai_fengdao", 0.0);
-      long cooldown = FengDaoCooldownOps.withFengDaoExp(FengTuning.DASH_COOLDOWN_TICKS, liupaiExp);
-      readyEntry.setReadyAt(now + cooldown);
+      long dashCooldown = FengDaoCooldownOps.withFengDaoExp(FengTuning.DASH_COOLDOWN_TICKS, liupaiExp);
+      readyEntry.setReadyAt(now + dashCooldown);
       net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.messages.FengMessages
           .scheduleReadyToast(
               player, organ, readyEntry.getReadyTick(), now, TOAST_TITLE_DASH_READY, TOAST_MSG_DASH_READY);
