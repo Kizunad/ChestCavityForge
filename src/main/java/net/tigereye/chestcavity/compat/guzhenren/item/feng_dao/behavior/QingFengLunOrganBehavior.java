@@ -46,6 +46,8 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TeleportOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.tuning.FengTuning;
+import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.calculator.FengDaoCooldownOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.calculator.FengDaoDaohenOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.calculator.QingFengCalculator;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.calculator.QingFengCalculator.WindStackUpdate;
 import net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.fx.FengFx;
@@ -53,6 +55,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
@@ -303,7 +306,14 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
       MultiCooldown.Entry readyEntry = cooldown.entry(CD_KEY_WIND_RING_READY);
       MultiCooldown.Entry dedupEntry = cooldown.entry(CD_KEY_DEDUP_RING_BLOCK);
       if (readyEntry.isReady(gameTime) && dedupEntry.isReady(gameTime)) {
-        readyEntry.setReadyAt(gameTime + FengTuning.WIND_RING_COOLDOWN_TICKS);
+        // 读取流派经验并计算冷却时间(被动技能,从资源直接读取)
+        int liupaiExp =
+            (int)
+                ResourceOps.openHandle(player)
+                    .map(h -> h.read("liupai_fengdao").orElse(0.0))
+                    .orElse(0.0);
+        long ringCooldown = FengDaoCooldownOps.withFengDaoExp(FengTuning.WIND_RING_COOLDOWN_TICKS, liupaiExp);
+        readyEntry.setReadyAt(gameTime + ringCooldown);
         dedupEntry.setReadyAt(gameTime + 15);
         incrementCounter(state, cc, organ, KEY_RING_BLOCK, 1, Integer.MAX_VALUE);
         playWindRing((ServerLevel) player.level(), player.position());
@@ -383,7 +393,11 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
       return;
     }
     if (!domainActive) {
-      readyEntry.setReadyAt(now + FengTuning.DASH_COOLDOWN_TICKS);
+      // 读取快照的流派经验并计算冷却时间
+      int liupaiExp =
+          (int) SkillEffectBus.consumeMetadata(player, DASH_ABILITY_ID, "fengdao:liupai_fengdao", 0.0);
+      long cooldown = FengDaoCooldownOps.withFengDaoExp(FengTuning.DASH_COOLDOWN_TICKS, liupaiExp);
+      readyEntry.setReadyAt(now + cooldown);
       net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.messages.FengMessages
           .scheduleReadyToast(
               player, organ, readyEntry.getReadyTick(), now, TOAST_TITLE_DASH_READY, TOAST_MSG_DASH_READY);
@@ -466,7 +480,11 @@ public final class QingFengLunOrganBehavior extends AbstractGuzhenrenOrganBehavi
       sendInsufficientMessage(player, "【清风轮】真元不足，技能中止。");
       return;
     }
-    domainReady.setReadyAt(now + FengTuning.DOMAIN_COOLDOWN_TICKS);
+    // 读取快照的流派经验并计算冷却时间
+    int liupaiExp =
+        (int) SkillEffectBus.consumeMetadata(player, WIND_DOMAIN_ABILITY_ID, "fengdao:liupai_fengdao", 0.0);
+    long domainCooldown = FengDaoCooldownOps.withFengDaoExp(FengTuning.DOMAIN_COOLDOWN_TICKS, liupaiExp);
+    domainReady.setReadyAt(now + domainCooldown);
     net.tigereye.chestcavity.compat.guzhenren.item.feng_dao.messages.FengMessages
         .scheduleReadyToast(
             player,
