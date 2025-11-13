@@ -203,4 +203,21 @@ public final class CCEntities {
                       .noSave() // 不保存到区块（临时实体）
                       .fireImmune()
                       .build(ChestCavity.MODID + ":rift"));
+
+  // 多重剑影蛊：持久化蛊修分身
+  public static final DeferredHolder<
+          EntityType<?>,
+          EntityType<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone>>
+      PERSISTENT_GU_CULTIVATOR_CLONE =
+          ENTITY_TYPES.register(
+              "persistent_gu_cultivator_clone",
+              () ->
+                  EntityType.Builder
+                      .<net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone>of(
+                          net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone::new,
+                          MobCategory.MISC)
+                      .sized(0.6f, 1.8f) // 玩家大小
+                      .clientTrackingRange(64)
+                      .updateInterval(2)
+                      .build(ChestCavity.MODID + ":persistent_gu_cultivator_clone"));
 }
