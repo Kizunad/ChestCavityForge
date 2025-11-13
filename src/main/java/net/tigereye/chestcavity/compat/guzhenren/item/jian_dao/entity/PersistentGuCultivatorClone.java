@@ -29,7 +29,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.common.util.LazyOptional;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
@@ -277,9 +276,9 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
      * 允许外部代码通过 Capabilities API 访问分身物品栏
      */
     @Override
-    public <T> LazyOptional<T> getCapability(net.neoforged.neoforge.capabilities.Capability<T> cap, @Nullable Direction side) {
+    public @Nullable Object getCapability(net.neoforged.neoforge.capabilities.EntityCapability<?, ?> cap, @Nullable Direction side) {
         if (cap == Capabilities.ItemHandler.ENTITY) {
-            return LazyOptional.of(() -> this.inventory).cast();
+            return this.inventory;
         }
         return super.getCapability(cap, side);
     }
