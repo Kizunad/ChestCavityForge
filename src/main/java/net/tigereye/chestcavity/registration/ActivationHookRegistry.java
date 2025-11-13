@@ -72,6 +72,8 @@ public final class ActivationHookRegistry {
     registerFamily("daohen_lidao");
     registerFamily("liupai_leidao");
     registerFamily("daohen_leidao");
+    registerFamily("liupai_gudao");
+    registerFamily("daohen_gudao");
 
     // 技能效果: 冰雪道技能集需要快照道痕与流派经验
     SkillEffectBus.register(
