@@ -8,6 +8,7 @@ import net.minecraft.world.item.*;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.DuochongjianyingGuItem;
 import net.tigereye.chestcavity.items.ChestOpener;
 import net.tigereye.chestcavity.items.CreeperAppendix;
 import net.tigereye.chestcavity.items.VenomGland;
@@ -47,6 +48,13 @@ public class CCItems {
   // -- 剑道
   public static final Item GUZHENREN_JIAN_YING_GU =
       resolveExternalItem("guzhenren", "jian_ying_gu");
+
+  // 多重剑影蛊 (jian_dao模块实现)
+  public static final DeferredItem<DuochongjianyingGuItem> DUOCHONGJIANYING_GU =
+      ITEMS.register(
+          "duochongjianying_gu",
+          DuochongjianyingGuItem::new
+      );
 
   // -- 骨道
   public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
