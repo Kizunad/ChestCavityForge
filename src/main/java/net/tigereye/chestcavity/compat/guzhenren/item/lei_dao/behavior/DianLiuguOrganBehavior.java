@@ -245,7 +245,14 @@ public enum DianLiuguOrganBehavior
       ActiveLinkageContext context,
       ItemStack organ,
       IncreaseEffectLedger.Registrar registrar) {
-    // DianLiugu does not contribute to INCREASE effects.
+    if (cc == null || context == null) {
+      return;
+    }
+    // 雷道道痕对电流蛊伤害增幅
+    double daohen =
+        net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
+            .computeDaohen(cc);
+    registrar.register(LEI_DAO_INCREASE_EFFECT, daohen);
   }
 
   private static void arcAdditionalTargets(
