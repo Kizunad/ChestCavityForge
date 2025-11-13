@@ -99,7 +99,7 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         super(type, level);
         this.noCulling = true;
         this.setNoAi(false);
-        this.setPersistenceRequired(true); // 防止消失：确保分身在所有者离线或远离时不会被移除
+        this.setPersistenceRequired(); // 防止消失：确保分身在所有者离线或远离时不会被移除
     }
 
     @Override
@@ -276,11 +276,11 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
      * 允许外部代码通过 Capabilities API 访问分身物品栏
      */
     @Override
-    public @Nullable Object getCapability(net.neoforged.neoforge.capabilities.EntityCapability<?, ?> cap, @Nullable Direction side) {
+    public <T, C> @Nullable T getCapability(net.neoforged.neoforge.capabilities.EntityCapability<T, C> cap, C context) {
         if (cap == Capabilities.ItemHandler.ENTITY) {
-            return this.inventory;
+            return (T) this.inventory;
         }
-        return super.getCapability(cap, side);
+        return super.getCapability(cap, context);
     }
 
     // ============ NBT序列化（区块保存） ============
