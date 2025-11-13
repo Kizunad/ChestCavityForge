@@ -2,7 +2,6 @@ run_client
 run_server
 build
 # Local Gradle caches/state
-.gradle
 .gradle-home
 .idea
 gradle/*
@@ -12,7 +11,6 @@ gradle/*
 logs
 versions
 old_build.txt
-/.gradle
 /bin
 /logs
 /run

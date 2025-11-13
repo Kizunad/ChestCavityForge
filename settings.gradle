@@ -1,6 +1,14 @@
 pluginManagement {
     repositories {
+        // 1. 本地 Maven 仓库（如有）
         mavenLocal()
+
+        // 2. 项目内置离线仓库（通过 Git 同步），支持完全离线解析插件
+        maven {
+            url = uri('./offline-repo')
+        }
+
+        // 3. 在线仓库（仅在有网环境生效；离线时建议使用 --offline）
         gradlePluginPortal()
         maven { url = 'https://maven.neoforged.net/releases' }
     }

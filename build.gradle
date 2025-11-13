@@ -24,8 +24,17 @@ def __useBaritone = !__baritoneOff &&
         ((__baritoneProject != null) || project.hasProperty('baritone_dep') || project.hasProperty('baritone_local') || __baritoneLocalDefault.exists())
 
 repositories {
+    // 1. 本地 Maven 仓库
     mavenLocal()
+
+    // 2. 项目内置离线仓库（通过 Git 同步），支持完全离线解析依赖
+    maven {
+        url = uri('./offline-repo')
+    }
+
+    // 3. 以下为在线仓库：在有网环境可用；离线环境建议使用 --offline，Gradle 不会访问这些地址
     mavenCentral()
+
     // NeoForge 官方
     maven { url = "https://maven.neoforged.net/releases" }
 
@@ -37,6 +46,7 @@ repositories {
 
     // Modern UI
     maven { url = "https://maven.izzel.io/releases" }
+
     // Optional: Baritone (enable via -Pbaritone_dep=group:artifact:version)
     if (project.hasProperty('baritone_dep')) {
         maven { url = "https://impactdevelopment.github.io/maven" }
