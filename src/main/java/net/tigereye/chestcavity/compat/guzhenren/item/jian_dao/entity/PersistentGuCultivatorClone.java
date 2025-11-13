@@ -29,6 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.common.util.LazyOptional;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
@@ -64,8 +65,8 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     private final ItemStackHandler inventory = new ItemStackHandler(7) {
         @Override
         protected void onContentsChanged(int slot) {
-            // 标记需要保存 + 通知分身更新
-            PersistentGuCultivatorClone.this.inventoryChanged = true;
+            // 物品栏变化时，实体会在区块保存时自动持久化
+            // 无需额外操作
         }
 
         @Override
@@ -80,7 +81,6 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             }
         }
     };
-    private boolean inventoryChanged = false;
 
     // ============ AI状态 (PersistentData) ============
     // 由 GuCultivatorAIAdapter 管理，字段包括：
@@ -270,6 +270,18 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
      */
     public ItemStackHandler getInventory() {
         return inventory;
+    }
+
+    /**
+     * 提供 ItemHandler 能力
+     * 允许外部代码通过 Capabilities API 访问分身物品栏
+     */
+    @Override
+    public <T> LazyOptional<T> getCapability(net.neoforged.neoforge.capabilities.Capability<T> cap, @Nullable Direction side) {
+        if (cap == Capabilities.ItemHandler.ENTITY) {
+            return LazyOptional.of(() -> this.inventory).cast();
+        }
+        return super.getCapability(cap, side);
     }
 
     // ============ NBT序列化（区块保存） ============
