@@ -3,8 +3,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity;
 import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -28,7 +26,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
@@ -64,8 +61,8 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     private final ItemStackHandler inventory = new ItemStackHandler(7) {
         @Override
         protected void onContentsChanged(int slot) {
-            // 标记需要保存 + 通知分身更新
-            PersistentGuCultivatorClone.this.inventoryChanged = true;
+            // 物品栏变化时，实体会在区块保存时自动持久化
+            // 无需额外操作
         }
 
         @Override
@@ -80,7 +77,6 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             }
         }
     };
-    private boolean inventoryChanged = false;
 
     // ============ AI状态 (PersistentData) ============
     // 由 GuCultivatorAIAdapter 管理，字段包括：
@@ -100,7 +96,7 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         super(type, level);
         this.noCulling = true;
         this.setNoAi(false);
-        this.setPersistenceRequired(true); // 防止消失：确保分身在所有者离线或远离时不会被移除
+        this.setPersistenceRequired(); // 防止消失：确保分身在所有者离线或远离时不会被移除
     }
 
     @Override
@@ -266,7 +262,11 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     // ============ 能力系统 ============
 
     /**
-     * 获取物品栏 (用于 AI 访问)
+     * 获取物品栏 (用于 AI 访问和外部代码访问)
+     *
+     * 注意：在 NeoForge 1.21.1 中，Entity.getCapability() 是 final 方法，无法覆盖。
+     * 能力系统需要通过其他机制（如 RegisterCapabilitiesEvent）注册。
+     * 目前外部代码可以直接调用此方法访问物品栏。
      */
     public ItemStackHandler getInventory() {
         return inventory;
