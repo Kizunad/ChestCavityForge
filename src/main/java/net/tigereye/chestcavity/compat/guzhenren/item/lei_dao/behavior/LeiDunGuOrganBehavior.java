@@ -160,29 +160,36 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
 
+    // 雷道道痕增幅：吸收伤害和反伤
+    double daohen =
+        net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
+            .computeDaohen(cc);
+    float daohenMultiplier = (float) (1.0 + daohen * 0.1); // 每点道痕+10%
+    float effectiveAbsorbMax = ABSORB_PER_HIT_MAX * daohenMultiplier;
+
     boolean inStableWindow =
         tier >= TIER_FOUR && now < cooldown.entry(KEY_STABLE_UNTIL).getReadyTick();
     float remainingDamage = damage;
     float absorbed = 0.0f;
 
-    if (damage > ABSORB_PER_HIT_MAX && !inStableWindow) {
+    if (damage > effectiveAbsorbMax && !inStableWindow) {
       breakShield(cc, organ, state, cooldown, now);
       resetAbsorbTrackers(cc, organ, state);
       return damage;
     }
 
-    if (damage > ABSORB_PER_HIT_MAX && inStableWindow) {
-      float overflow = damage - ABSORB_PER_HIT_MAX;
-      float reflected = overflow * REFLECT_RATIO_4Z;
+    if (damage > effectiveAbsorbMax && inStableWindow) {
+      float overflow = damage - effectiveAbsorbMax;
+      float reflected = overflow * REFLECT_RATIO_4Z * daohenMultiplier; // 道痕增幅反伤
       LivingEntity attacker =
           source != null && source.getEntity() instanceof LivingEntity living ? living : null;
       if (attacker != null && CombatEntityUtil.areEnemies(attacker, victim)) {
         attacker.hurt(attacker.damageSources().magic(), reflected);
       }
       remainingDamage = overflow - reflected;
-      absorbed = ABSORB_PER_HIT_MAX;
+      absorbed = effectiveAbsorbMax;
     } else {
-      absorbed = Math.min(damage, ABSORB_PER_HIT_MAX);
+      absorbed = Math.min(damage, effectiveAbsorbMax);
       remainingDamage = Math.max(0.0f, damage - absorbed);
     }
 

@@ -2,7 +2,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.behavior;
 
 import java.util.List;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -17,14 +16,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
-import net.tigereye.chestcavity.linkage.LinkageChannel;
-import net.tigereye.chestcavity.linkage.LinkageManager;
-import net.tigereye.chestcavity.linkage.policy.ClampPolicy;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys;
@@ -34,12 +29,6 @@ import net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps;
 public enum DianLiuguOrganBehavior
     implements OrganSlowTickListener, OrganOnHitListener, IncreaseEffectContributor {
   INSTANCE;
-
-  private static final String MOD_ID = "guzhenren";
-  private static final ResourceLocation LEI_DAO_INCREASE_EFFECT =
-      ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/lei_dao_increase_effect");
-
-  private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
   private static final String STATE_ROOT = "DianLiugu";
   private static final String CHARGE_KEY = "Charge";
@@ -74,7 +63,10 @@ public enum DianLiuguOrganBehavior
       return;
     }
 
-    double efficiency = 1.0 + lookupIncreaseEffect(cc);
+    double daohen =
+        net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
+            .computeDaohen(cc);
+    double efficiency = 1.0 + daohen;
     int gained = Math.max(1, (int) Math.floor(efficiency));
     int updatedCharge = Math.min(MAX_CHARGE, currentCharge + gained);
     chargeEntry.setTicks(updatedCharge);
@@ -92,7 +84,10 @@ public enum DianLiuguOrganBehavior
       return;
     }
 
-    double efficiency = 1.0 + lookupIncreaseEffect(cc);
+    double daohen =
+        net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
+            .computeDaohen(cc);
+    double efficiency = 1.0 + daohen;
     int gained = Math.max(1, (int) Math.floor(efficiency));
     int updatedCharge = Math.min(MAX_CHARGE, currentCharge + gained);
     chargeEntry.setTicks(updatedCharge);
@@ -133,7 +128,10 @@ public enum DianLiuguOrganBehavior
       return damage;
     }
 
-    double efficiency = 1.0 + lookupIncreaseEffect(cc);
+    double daohen =
+        net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
+            .computeDaohen(cc);
+    double efficiency = 1.0 + daohen;
     int updated = Math.max(0, charge - 1);
     chargeEntry.setTicks(updated);
 
@@ -164,7 +162,10 @@ public enum DianLiuguOrganBehavior
       return damage;
     }
 
-    double efficiency = 1.0 + lookupIncreaseEffect(cc);
+    double daohen =
+        net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
+            .computeDaohen(cc);
+    double efficiency = 1.0 + daohen;
     int updated = Math.max(0, charge - 1);
     chargeEntry.setTicks(updated);
 
@@ -178,23 +179,7 @@ public enum DianLiuguOrganBehavior
 
   /** Ensures linkage channels exist for the owning chest cavity. */
   public void ensureAttached(ChestCavityInstance cc) {
-    if (cc == null) {
-      return;
-    }
-    ensureChannel(cc, LEI_DAO_INCREASE_EFFECT);
-  }
-
-  private static LinkageChannel ensureChannel(ChestCavityInstance cc, ResourceLocation id) {
-    if (cc == null) {
-      return null;
-    }
-    ActiveLinkageContext context = LinkageManager.getContext(cc);
-    return LedgerOps.ensureChannel(context, id, NON_NEGATIVE);
-  }
-
-  private static double lookupIncreaseEffect(ChestCavityInstance cc) {
-    LinkageChannel channel = ensureChannel(cc, LEI_DAO_INCREASE_EFFECT);
-    return channel == null ? 0.0 : channel.get();
+    // 雷道不使用linkage系统，道痕直接计算
   }
 
   private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {
@@ -245,7 +230,7 @@ public enum DianLiuguOrganBehavior
       ActiveLinkageContext context,
       ItemStack organ,
       IncreaseEffectLedger.Registrar registrar) {
-    // DianLiugu does not contribute to INCREASE effects.
+    // 雷道不使用linkage系统，道痕直接计算
   }
 
   private static void arcAdditionalTargets(
