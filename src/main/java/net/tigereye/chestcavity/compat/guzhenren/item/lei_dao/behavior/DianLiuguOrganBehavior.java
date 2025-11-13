@@ -245,14 +245,15 @@ public enum DianLiuguOrganBehavior
       ActiveLinkageContext context,
       ItemStack organ,
       IncreaseEffectLedger.Registrar registrar) {
-    if (cc == null || context == null) {
+    if (cc == null || context == null || organ == null || organ.isEmpty()) {
       return;
     }
     // 雷道道痕对电流蛊伤害增幅
     double daohen =
         net.tigereye.chestcavity.compat.guzhenren.item.lei_dao.calculator.LeiDaoDaohenOps
             .computeDaohen(cc);
-    registrar.register(LEI_DAO_INCREASE_EFFECT, daohen);
+    int stackCount = Math.max(1, organ.getCount());
+    registrar.record(LEI_DAO_INCREASE_EFFECT, stackCount, daohen);
   }
 
   private static void arcAdditionalTargets(
