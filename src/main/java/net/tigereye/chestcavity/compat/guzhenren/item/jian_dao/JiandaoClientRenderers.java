@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.JianQiGuSlashRenderer;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.PersistentGuCultivatorCloneRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.SingleSwordProjectileRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.SwordShadowCloneRenderer;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.client.FlyingSwordRenderer;
@@ -28,5 +29,9 @@ public final class JiandaoClientRenderers {
     event.registerEntityRenderer(CCEntities.RIFT.get(), RiftRenderer::new);
     // 剑气蛊：剑光斩击渲染器
     event.registerEntityRenderer(CCEntities.JIAN_QI_GU_SLASH.get(), JianQiGuSlashRenderer::new);
+    // 多重剑影蛊：持久化蛊修分身渲染器
+    event.registerEntityRenderer(
+        CCEntities.PERSISTENT_GU_CULTIVATOR_CLONE.get(),
+        PersistentGuCultivatorCloneRenderer::new);
   }
 }

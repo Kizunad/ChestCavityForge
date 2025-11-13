@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordEntity;
 import net.tigereye.chestcavity.registration.CCEntities;
@@ -22,5 +23,9 @@ public final class JiandaoEntityAttributes {
     event.put(
         CCEntities.FLYING_SWORD_REN_SHOU_ZANG_SHENG.get(),
         FlyingSwordEntity.createAttributes().build());
+    // 多重剑影蛊：持久化蛊修分身
+    event.put(
+        CCEntities.PERSISTENT_GU_CULTIVATOR_CLONE.get(),
+        PersistentGuCultivatorClone.createAttributes().build());
   }
 }
