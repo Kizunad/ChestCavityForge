@@ -77,7 +77,7 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final String KEY_NEXT_CHARGE_READY = "next_charge_ready";
   private static final String KEY_COUNTER_ICD_UNTIL = "counter_icd_until";
 
-  private static final int ABSORB_PER_HIT_MAX = 50;
+  private static final int ABSORB_PER_HIT_MAX = 200;
   private static final int REPAIR_COST_ZHENYUAN_3Z = 1200;
   private static final int REPAIR_COST_JINGLI_3Z = 20;
   private static final int REPAIR_DELAY_TICKS = 60;
@@ -103,8 +103,8 @@ public final class LeiDunGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final int OVERLOAD_ABSORB_REQ = 1000;
   private static final int THUNDER_STRIKE_BASE = 1400;
   private static final float CHAIN_RATIO = 0.6f;
-  private static final int COUNTER_ARC_DMG = 20; // 20
-  private static final int COUNTER_ARC_ICD_TICKS = 20 * 4; // 4s
+  private static final int COUNTER_ARC_DMG = 200; // 20
+  private static final int COUNTER_ARC_ICD_TICKS = 20 * 1; // 4s
   private static final int ACTIVE_DOT_PER_SEC_5Z_STRONG = 160;
   private static final int ACTIVE_STRONG_DURATION_SECONDS = 5;
   private static final int ACTIVE_BASE_DURATION_SECONDS = 3;

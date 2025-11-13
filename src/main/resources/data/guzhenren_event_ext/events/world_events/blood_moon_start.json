@@ -9,7 +9,7 @@
     "conditions": [
       {
         "type": "minecraft:random_chance",
-        "chance": 0.001
+        "chance": 0.00001
       },
       {
         "type": "guzhenren_event_ext:check_variable",
