@@ -100,6 +100,7 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         super(type, level);
         this.noCulling = true;
         this.setNoAi(false);
+        this.setPersistenceRequired(true); // 防止消失：确保分身在所有者离线或远离时不会被移除
     }
 
     @Override
