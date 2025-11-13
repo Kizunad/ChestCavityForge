@@ -67,6 +67,7 @@ public final class ActivationHookRegistry {
     registerFamily("liupai_bingxuedao");
     registerFamily("liupai_fengdao");
     registerFamily("daohen_fengdao");
+    registerFamily("liupai_yandao");
 
     // 技能效果: 冰雪道技能集需要快照道痕与流派经验
     SkillEffectBus.register(
@@ -83,6 +84,14 @@ public final class ActivationHookRegistry {
             new ResourceFieldSnapshotEffect(
                 "fengdao:",
                 List.of("daohen_fengdao", "liupai_fengdao"))));
+
+    // 技能效果: 炎道技能需要快照道痕与流派经验
+    SkillEffectBus.register(
+        "^guzhenren:huo_.*$",
+        CompositeEffect.of(
+            new ResourceFieldSnapshotEffect(
+                "yandao:",
+                List.of("daohen_yandao", "liupai_yandao"))));
 
     // 技能效果: 裂剑蛊主动技能需在激活前快照剑道字段（道痕/流派经验），用于持续/倍率/冷却计算
     SkillEffectBus.register(
