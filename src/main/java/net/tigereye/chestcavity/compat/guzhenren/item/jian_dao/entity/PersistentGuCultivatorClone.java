@@ -3,8 +3,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity;
 import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -28,7 +26,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
@@ -265,22 +262,14 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     // ============ 能力系统 ============
 
     /**
-     * 获取物品栏 (用于 AI 访问)
+     * 获取物品栏 (用于 AI 访问和外部代码访问)
+     *
+     * 注意：在 NeoForge 1.21.1 中，Entity.getCapability() 是 final 方法，无法覆盖。
+     * 能力系统需要通过其他机制（如 RegisterCapabilitiesEvent）注册。
+     * 目前外部代码可以直接调用此方法访问物品栏。
      */
     public ItemStackHandler getInventory() {
         return inventory;
-    }
-
-    /**
-     * 提供 ItemHandler 能力
-     * 允许外部代码通过 Capabilities API 访问分身物品栏
-     */
-    @Override
-    public <T, C> @Nullable T getCapability(net.neoforged.neoforge.capabilities.EntityCapability<T, C> cap, C context) {
-        if (cap == Capabilities.ItemHandler.ENTITY) {
-            return (T) this.inventory;
-        }
-        return super.getCapability(cap, context);
     }
 
     // ============ NBT序列化（区块保存） ============
