@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao;
 
 import java.util.UUID;
 import javax.annotation.Nullable;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -143,8 +145,10 @@ public class DuochongjianyingGuItem extends Item {
 
             if (newClone != null) {
                 // 保存UUID到物品NBT
-                stack.getOrCreateTag().putUUID("CloneUUID", newClone.getUUID());
-                stack.getTag().putString("DimensionKey", level.dimension().location().toString());
+                CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+                    tag.putUUID("CloneUUID", newClone.getUUID());
+                    tag.putString("DimensionKey", level.dimension().location().toString());
+                });
 
                 player.displayClientMessage(
                     Component.literal("§6分身已召唤"),
@@ -172,15 +176,17 @@ public class DuochongjianyingGuItem extends Item {
      */
     @Nullable
     private PersistentGuCultivatorClone findClone(Level level, ItemStack stack) {
-        if (!stack.hasTag() || !stack.getTag().hasUUID("CloneUUID")) {
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+
+        if (tag.isEmpty() || !tag.hasUUID("CloneUUID")) {
             return null;
         }
 
-        UUID cloneUUID = stack.getTag().getUUID("CloneUUID");
+        UUID cloneUUID = tag.getUUID("CloneUUID");
 
         // 检查维度一致性
-        if (stack.getTag().contains("DimensionKey")) {
-            String savedDim = stack.getTag().getString("DimensionKey");
+        if (tag.contains("DimensionKey")) {
+            String savedDim = tag.getString("DimensionKey");
             String currentDim = level.dimension().location().toString();
 
             if (!savedDim.equals(currentDim)) {
@@ -234,8 +240,9 @@ public class DuochongjianyingGuItem extends Item {
         }
 
         // 3. 如果物品NBT中有存储的数据,恢复它
-        if (stack.hasTag() && stack.getTag().contains("CloneData")) {
-            CompoundTag cloneData = stack.getTag().getCompound("CloneData");
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if (!tag.isEmpty() && tag.contains("CloneData")) {
+            CompoundTag cloneData = tag.getCompound("CloneData");
             clone.deserializeFromItemNBT(cloneData);
         }
 
@@ -268,7 +275,9 @@ public class DuochongjianyingGuItem extends Item {
     ) {
         // 1. 保存分身数据到物品NBT (使用专用方法)
         CompoundTag cloneData = clone.serializeToItemNBT();
-        stack.getOrCreateTag().put("CloneData", cloneData);
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            tag.put("CloneData", cloneData);
+        });
 
         // 2. 播放召回特效
         clone.level().playSound(
@@ -284,8 +293,10 @@ public class DuochongjianyingGuItem extends Item {
         clone.discard();
 
         // 4. 清除UUID (因为实体已不存在)
-        stack.getTag().remove("CloneUUID");
-        stack.getTag().remove("DimensionKey");
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            tag.remove("CloneUUID");
+            tag.remove("DimensionKey");
+        });
 
         // 5. 提示玩家
         player.displayClientMessage(
@@ -302,11 +313,11 @@ public class DuochongjianyingGuItem extends Item {
      * - 玩家再次尝试召唤时
      */
     private void cleanupCloneData(ItemStack stack) {
-        if (stack.hasTag()) {
-            stack.getTag().remove("CloneUUID");
-            stack.getTag().remove("CloneData");
-            stack.getTag().remove("DimensionKey");
-        }
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            tag.remove("CloneUUID");
+            tag.remove("CloneData");
+            tag.remove("DimensionKey");
+        });
     }
 
     /**
@@ -317,13 +328,17 @@ public class DuochongjianyingGuItem extends Item {
      * - 后续使用：检查UUID是否匹配
      */
     private boolean isOwnedBy(ItemStack stack, Player player) {
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+
         // 如果物品没有绑定所有者,首次使用时绑定
-        if (!stack.hasTag() || !stack.getTag().hasUUID("OwnerUUID")) {
-            stack.getOrCreateTag().putUUID("OwnerUUID", player.getUUID());
+        if (tag.isEmpty() || !tag.hasUUID("OwnerUUID")) {
+            CustomData.update(DataComponents.CUSTOM_DATA, stack, t -> {
+                t.putUUID("OwnerUUID", player.getUUID());
+            });
             return true;
         }
 
-        UUID ownerUUID = stack.getTag().getUUID("OwnerUUID");
+        UUID ownerUUID = tag.getUUID("OwnerUUID");
         return ownerUUID.equals(player.getUUID());
     }
 
