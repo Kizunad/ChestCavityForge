@@ -29,7 +29,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.common.util.LazyOptional;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
@@ -82,7 +81,6 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         }
     };
     private boolean inventoryChanged = false;
-    private LazyOptional<ItemStackHandler> inventoryCapability = LazyOptional.of(() -> inventory);
 
     // ============ AI状态 (PersistentData) ============
     // 由 GuCultivatorAIAdapter 管理，字段包括：
@@ -254,8 +252,8 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             if (++aiTickCounter >= 3) {
                 aiTickCounter = 0;
                 try {
-                    // TODO: 实现蛊虫释放逻辑
-                    // GuCultivatorAIAdapter.tickGuUsage(this, inventory);
+                    // TODO: 实现 GuCultivatorAIAdapter.tickGuUsage(this, inventory);
+                    // 暂时留空，等待 GuCultivatorAIAdapter 实现
                 } catch (Exception e) {
                     // 静默失败，记录日志
                     ChestCavity.LOGGER.warn("分身AI执行失败: {}", e.getMessage());
@@ -266,18 +264,11 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
 
     // ============ 能力系统 ============
 
-    @Override
-    public <T> LazyOptional<T> getCapability(net.neoforged.neoforge.capabilities.Capability<T> cap, @Nullable Direction side) {
-        if (cap == Capabilities.ItemHandler.ENTITY) {
-            return inventoryCapability.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        inventoryCapability.invalidate();
+    /**
+     * 获取物品栏 (用于 AI 访问)
+     */
+    public ItemStackHandler getInventory() {
+        return inventory;
     }
 
     // ============ NBT序列化（区块保存） ============
