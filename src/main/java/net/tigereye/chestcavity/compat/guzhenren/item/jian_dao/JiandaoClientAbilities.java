@@ -78,5 +78,11 @@ public final class JiandaoClientAbilities {
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(jianQi)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(jianQi);
     }
+
+    // 多重剑影蛊：分身召唤/召回
+    var duochongjianyingFenshen = net.minecraft.resources.ResourceLocation.parse("guzhenren:duochongjianying_fenshen");
+    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(duochongjianyingFenshen)) {
+      CCKeybindings.ATTACK_ABILITY_LIST.add(duochongjianyingFenshen);
+    }
   }
 }

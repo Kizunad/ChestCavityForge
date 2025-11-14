@@ -810,6 +810,20 @@ public final class ActiveSkillRegistry {
         CooldownHint.useOrgan("技能就绪", null));
 
     register(
+        "guzhenren:duochongjianying_fenshen",
+        "guzhenren:duochongjianying_fenshen",
+        "guzhenren:duochongjianying",
+        tags("召唤", "管理"),
+        "召唤/召回蛊修分身；Shift+触发打开分身界面管理蛊虫与增益物品",
+        "compat/guzhenren/item/jian_dao/behavior/organ/DuochongjianyingGuOrganBehavior.java:81",
+        () -> {
+          ensureClassLoaded(
+              net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                  .DuochongjianyingGuOrganBehavior.INSTANCE);
+        },
+        CooldownHint.useOrgan("分身就绪", null));
+
+    register(
         "guzhenren:jian_yin_guidance",
         "guzhenren:jian_yin_guidance",
         "guzhenren:jianyingu",
