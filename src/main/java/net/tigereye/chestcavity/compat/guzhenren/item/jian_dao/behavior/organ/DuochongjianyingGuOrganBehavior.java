@@ -120,8 +120,8 @@ public enum DuochongjianyingGuOrganBehavior {
    *
    * <p>当器官首次放入胸腔时调用。
    */
-  public void ensureAttached(ChestCavityInstance cc, ItemStack organ) {
-    if (organ.isEmpty() || cc == null) {
+  public void ensureAttached(ChestCavityInstance cc) {
+    if (cc == null) {
       return;
     }
 
