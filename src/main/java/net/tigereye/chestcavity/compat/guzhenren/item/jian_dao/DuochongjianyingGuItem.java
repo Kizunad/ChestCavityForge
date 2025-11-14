@@ -126,13 +126,16 @@ public class DuochongjianyingGuItem extends Item {
      * <p>逻辑：
      * - 分身存在 -> 召回（保存数据到物品NBT）
      * - 分身不存在 -> 召唤（从物品NBT恢复数据）
+     *
+     * <p>P1修复: 跨维度清理
+     * - 在召唤新分身前,必须先清理旧分身 (防止资源泄漏)
      */
     private InteractionResultHolder<ItemStack> handleSummonOrRecall(
         Level level,
         Player player,
         ItemStack stack
     ) {
-        // 1. 检查是否已有分身存在
+        // 1. 检查是否已有分身存在 (可能在不同维度)
         PersistentGuCultivatorClone existingClone = findClone(level, stack);
 
         if (existingClone != null) {
@@ -140,14 +143,41 @@ public class DuochongjianyingGuItem extends Item {
             recallClone(stack, existingClone, player);
             return InteractionResultHolder.success(stack);
         } else {
-            // 不存在 -> 召唤
+            // 不存在或已死亡 -> 准备召唤新分身
+
+            // P1修复: 检查是否有悬挂的UUID (分身已死亡或在不可访问的维度)
+            CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            boolean hadOldClone = !tag.isEmpty() && tag.hasUUID("CloneUUID");
+
+            if (hadOldClone) {
+                // 有旧UUID但findClone返回null: 可能在其他维度或已死亡
+                // 尝试跨维度查找并强制召回
+                PersistentGuCultivatorClone crossDimensionClone = findAndRecallCrossDimensionClone(level, player, stack);
+
+                if (crossDimensionClone != null) {
+                    // 成功召回跨维度分身
+                    player.displayClientMessage(
+                        Component.literal("§e已自动召回其他维度的分身"),
+                        false
+                    );
+                } else {
+                    // 实体已死亡或无法访问: 清理UUID
+                    cleanupCloneData(stack);
+                    player.displayClientMessage(
+                        Component.literal("§e旧分身已失联,数据已清理"),
+                        false
+                    );
+                }
+            }
+
+            // 召唤新分身
             PersistentGuCultivatorClone newClone = summonClone(level, player, stack);
 
             if (newClone != null) {
                 // 保存UUID到物品NBT
-                CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
-                    tag.putUUID("CloneUUID", newClone.getUUID());
-                    tag.putString("DimensionKey", level.dimension().location().toString());
+                CustomData.update(DataComponents.CUSTOM_DATA, stack, newTag -> {
+                    newTag.putUUID("CloneUUID", newClone.getUUID());
+                    newTag.putString("DimensionKey", level.dimension().location().toString());
                 });
 
                 player.displayClientMessage(
@@ -169,10 +199,10 @@ public class DuochongjianyingGuItem extends Item {
      * 查找分身实体
      *
      * <p>边界检查：
-     * - 维度一致性：跨维度返回null（惰性清理）
-     * - 实体存活性：已死亡返回null（惰性清理）
+     * - 维度一致性：跨维度时查找原维度的实体
+     * - 实体存活性：已死亡时清理UUID
      *
-     * @return 存活的分身实体，或null
+     * @return 存活的分身实体（可能在不同维度），或null
      */
     @Nullable
     private PersistentGuCultivatorClone findClone(Level level, ItemStack stack) {
@@ -183,6 +213,7 @@ public class DuochongjianyingGuItem extends Item {
         }
 
         UUID cloneUUID = tag.getUUID("CloneUUID");
+        ServerLevel targetLevel = null;
 
         // 检查维度一致性
         if (tag.contains("DimensionKey")) {
@@ -190,23 +221,40 @@ public class DuochongjianyingGuItem extends Item {
             String currentDim = level.dimension().location().toString();
 
             if (!savedDim.equals(currentDim)) {
-                // 跨维度场景: 惰性清理 (不立即清理,等待用户下次操作)
+                // 跨维度场景: 尝试访问原维度
+                if (level instanceof ServerLevel serverLevel) {
+                    // 尝试获取保存的维度
+                    var dimensionKey = net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.core.registries.Registries.DIMENSION,
+                        net.minecraft.resources.ResourceLocation.parse(savedDim)
+                    );
+                    targetLevel = serverLevel.getServer().getLevel(dimensionKey);
+                }
+
+                // 如果无法访问原维度,返回null (调用者需要清理)
+                if (targetLevel == null) {
+                    return null;
+                }
+            } else {
+                // 同维度
+                targetLevel = (ServerLevel) level;
+            }
+        } else {
+            // 没有维度记录,假设同维度
+            if (!(level instanceof ServerLevel)) {
                 return null;
             }
+            targetLevel = (ServerLevel) level;
         }
 
         // 查找实体
-        if (!(level instanceof ServerLevel serverLevel)) {
-            return null;
-        }
-
-        Entity entity = serverLevel.getEntity(cloneUUID);
+        Entity entity = targetLevel.getEntity(cloneUUID);
 
         if (entity instanceof PersistentGuCultivatorClone clone && clone.isAlive()) {
             return clone;
         }
 
-        // 实体已死亡或不存在: 惰性清理
+        // 实体已死亡或不存在
         return null;
     }
 
@@ -303,6 +351,78 @@ public class DuochongjianyingGuItem extends Item {
             Component.literal("§6分身已召回"),
             true
         );
+    }
+
+    /**
+     * 跨维度查找并强制召回分身 (P1修复: 防止资源泄漏)
+     *
+     * <p>场景: 玩家在维度A召唤分身,切换到维度B后再次召唤
+     * <p>行为: 主动召回维度A的分身 (保存数据),而不是留下它继续运行
+     *
+     * @return 被召回的分身,如果成功召回; null如果无法找到或召回
+     */
+    @Nullable
+    private PersistentGuCultivatorClone findAndRecallCrossDimensionClone(
+        Level currentLevel,
+        Player player,
+        ItemStack stack
+    ) {
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+
+        if (tag.isEmpty() || !tag.hasUUID("CloneUUID")) {
+            return null;
+        }
+
+        UUID cloneUUID = tag.getUUID("CloneUUID");
+        String savedDim = tag.contains("DimensionKey") ? tag.getString("DimensionKey") : null;
+
+        if (savedDim == null) {
+            return null;
+        }
+
+        // 尝试访问保存的维度
+        if (!(currentLevel instanceof ServerLevel serverLevel)) {
+            return null;
+        }
+
+        try {
+            var dimensionKey = net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION,
+                net.minecraft.resources.ResourceLocation.parse(savedDim)
+            );
+
+            ServerLevel targetLevel = serverLevel.getServer().getLevel(dimensionKey);
+            if (targetLevel == null) {
+                return null;
+            }
+
+            // 查找实体
+            Entity entity = targetLevel.getEntity(cloneUUID);
+            if (!(entity instanceof PersistentGuCultivatorClone clone) || !clone.isAlive()) {
+                return null;
+            }
+
+            // 找到了! 强制召回 (保存数据并移除实体)
+            CompoundTag cloneData = clone.serializeToItemNBT();
+            CustomData.update(DataComponents.CUSTOM_DATA, stack, t -> {
+                t.put("CloneData", cloneData);
+            });
+
+            // 移除实体
+            clone.discard();
+
+            // 清除UUID (即将召唤新分身)
+            CustomData.update(DataComponents.CUSTOM_DATA, stack, t -> {
+                t.remove("CloneUUID");
+                t.remove("DimensionKey");
+            });
+
+            return clone;
+
+        } catch (Exception e) {
+            // 维度解析失败或其他异常
+            return null;
+        }
     }
 
     /**
