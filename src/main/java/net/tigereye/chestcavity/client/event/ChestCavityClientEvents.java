@@ -5,6 +5,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerFragment;
 import net.tigereye.chestcavity.client.modernui.container.TestModernUIContainerMenu;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.client.CloneInventoryScreen;
 import net.tigereye.chestcavity.guscript.ui.GuScriptScreen;
 import net.tigereye.chestcavity.registration.CCContainers;
 import net.tigereye.chestcavity.ui.ChestCavityScreen;
@@ -21,5 +22,6 @@ public final class ChestCavityClientEvents {
         CCContainers.TEST_MODERN_UI_MENU.get(),
         MenuScreenFactory.create(
             menu -> new TestModernUIContainerFragment((TestModernUIContainerMenu) menu)));
+    event.register(CCContainers.CLONE_INVENTORY_MENU.get(), CloneInventoryScreen::new);
   }
 }

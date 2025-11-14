@@ -263,11 +263,11 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     // ============ 能力系统 ============
 
     /**
-     * 获取物品栏 (用于 AI 访问和外部代码访问)
+     * 获取物品栏 (用于 AI 访问、GUI和Capability系统)
      *
      * 注意：在 NeoForge 1.21.1 中，Entity.getCapability() 是 final 方法，无法覆盖。
-     * 能力系统需要通过其他机制（如 RegisterCapabilitiesEvent）注册。
-     * 目前外部代码可以直接调用此方法访问物品栏。
+     * 能力系统通过 RegisterCapabilitiesEvent 注册，在 ChestCavity.registerCapabilities() 中。
+     * 外部代码可以通过 entity.getCapability(Capabilities.ItemHandler.ENTITY) 访问此物品栏。
      */
     public ItemStackHandler getInventory() {
         return inventory;
@@ -438,14 +438,10 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             return;
         }
 
-        // TODO: 实现 CloneInventoryMenu
-        player.displayClientMessage(Component.literal("§7分身界面尚未实现"), true);
-        /*
         player.openMenu(new SimpleMenuProvider(
-                (id, playerInv, p) -> new CloneInventoryMenu(id, playerInv, this),
+                (id, playerInv, p) -> new net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.ui.CloneInventoryMenu(id, playerInv, this),
                 Component.literal("分身物品栏")
         ));
-        */
     }
 
     // ============ 皮肤管理 ============
