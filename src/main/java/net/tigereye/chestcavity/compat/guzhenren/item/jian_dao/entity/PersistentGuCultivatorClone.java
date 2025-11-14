@@ -241,7 +241,7 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             // 初始化AI数据 (首次运行)
             if (!getPersistentData().contains("ai_initialized")) {
                 try {
-                    // TODO: 实现 GuCultivatorAIAdapter.initializeAIData(this);
+                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.GuCultivatorAIAdapter.initializeAIData(this);
                     getPersistentData().putBoolean("ai_initialized", true);
                 } catch (Exception e) {
                     // 初始化失败也标记已尝试，避免循环
@@ -254,8 +254,7 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             if (++aiTickCounter >= 3) {
                 aiTickCounter = 0;
                 try {
-                    // TODO: 实现 GuCultivatorAIAdapter.tickGuUsage(this, inventory);
-                    // 暂时留空，等待 GuCultivatorAIAdapter 实现
+                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.GuCultivatorAIAdapter.tickGuUsage(this, inventory);
                 } catch (Exception e) {
                     // 静默失败，记录日志
                     ChestCavity.LOGGER.warn("分身AI执行失败: {}", e.getMessage());
