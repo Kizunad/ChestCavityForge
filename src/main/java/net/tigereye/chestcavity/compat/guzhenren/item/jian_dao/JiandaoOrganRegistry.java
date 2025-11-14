@@ -30,6 +30,13 @@ public final class JiandaoOrganRegistry {
               .addOnHitListener(JianYingGuOrganBehavior.INSTANCE)
               .ensureAttached(JianYingGuOrganBehavior.INSTANCE::ensureAttached)
               .build(),
+          // 多重剑影蛊：主动技能触发分身召唤/召回（重构自物品模式 2025-11-14）
+          OrganIntegrationSpec.builder(
+                  ResourceLocation.fromNamespaceAndPath(MOD_ID, "duochongjianying"))
+              .ensureAttached(
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                      .DuochongjianyingGuOrganBehavior.INSTANCE::ensureAttached)
+              .build(),
           // 剑引蛊：占位行为（慢tick + 命中桥接）
           OrganIntegrationSpec.builder(JianYinGuTuning.ORGAN_ID)
               .addSlowTickListener(JianYinGuOrganBehavior.INSTANCE)

@@ -49,12 +49,11 @@ public class CCItems {
   public static final Item GUZHENREN_JIAN_YING_GU =
       resolveExternalItem("guzhenren", "jian_ying_gu");
 
-  // 多重剑影蛊 (jian_dao模块实现)
-  public static final DeferredItem<DuochongjianyingGuItem> DUOCHONGJIANYING_GU =
-      ITEMS.register(
-          "duochongjianying_gu",
-          DuochongjianyingGuItem::new
-      );
+  // 多重剑影蛊 (外部物品 - 通过器官系统实现功能)
+  // 重构说明: 从物品模式迁移到器官模式 (2025-11-14)
+  // 参见: JiandaoOrganRegistry - DuochongjianyingGuOrganBehavior
+  public static final Item GUZHENREN_DUOCHONGJIANYING =
+      resolveExternalItem("guzhenren", "duochongjianying");
 
   // -- 骨道
   public static final Item GUZHENREN_GU_QIANG_GU = resolveExternalItem("guzhenren", "gu_qiang_gu");
