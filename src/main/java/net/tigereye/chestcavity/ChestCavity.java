@@ -274,16 +274,16 @@ public class ChestCavity {
    * <p>为 PersistentGuCultivatorClone 分身实体注册 ItemHandler capability，
    * 使外部代码可以通过标准 Capabilities API 访问其物品栏。
    *
-   * @see net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone#getContainerView()
+   * @see net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone#getInventory()
    */
   private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
     // 为 PersistentGuCultivatorClone 注册 ItemHandler 能力
     event.registerEntity(
-        net.neoforged.neoforge.capabilities.Capabilities.Item.ENTITY,
+        net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ENTITY,
         CCEntities.PERSISTENT_GU_CULTIVATOR_CLONE.get(),
         (entity, context) -> {
           if (entity instanceof net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone clone) {
-            return net.neoforged.neoforge.transfer.item.VanillaContainerWrapper.of(clone.getContainerView());
+            return clone.getInventory();
           }
           return null;
         }

@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone;
 import net.tigereye.chestcavity.registration.CCContainers;
 
@@ -42,7 +43,7 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
      * 服务端构造函数 (绑定到实体)
      */
     public CloneInventoryMenu(int syncId, Inventory playerInventory, PersistentGuCultivatorClone clone) {
-        this(syncId, playerInventory, clone.getContainerView(), clone);
+        this(syncId, playerInventory, new ItemStackHandlerContainer(clone.getInventory(), clone), clone);
     }
 
     /**
@@ -198,5 +199,72 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
      */
     public PersistentGuCultivatorClone getClone() {
         return clone;
+    }
+
+    /**
+     * ItemStackHandler 到 Container 的适配器
+     */
+    private static class ItemStackHandlerContainer implements Container {
+        private final ItemStackHandler handler;
+        private final PersistentGuCultivatorClone clone;
+
+        public ItemStackHandlerContainer(ItemStackHandler handler, PersistentGuCultivatorClone clone) {
+            this.handler = handler;
+            this.clone = clone;
+        }
+
+        @Override
+        public int getContainerSize() {
+            return handler.getSlots();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            for (int i = 0; i < handler.getSlots(); i++) {
+                if (!handler.getStackInSlot(i).isEmpty()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public ItemStack getItem(int slot) {
+            return handler.getStackInSlot(slot);
+        }
+
+        @Override
+        public ItemStack removeItem(int slot, int amount) {
+            return handler.extractItem(slot, amount, false);
+        }
+
+        @Override
+        public ItemStack removeItemNoUpdate(int slot) {
+            ItemStack stack = handler.getStackInSlot(slot);
+            handler.setStackInSlot(slot, ItemStack.EMPTY);
+            return stack;
+        }
+
+        @Override
+        public void setItem(int slot, ItemStack stack) {
+            handler.setStackInSlot(slot, stack);
+        }
+
+        @Override
+        public void setChanged() {
+            // 物品栏变化通知
+        }
+
+        @Override
+        public boolean stillValid(Player player) {
+            return clone != null && clone.isOwnedBy(player);
+        }
+
+        @Override
+        public void clearContent() {
+            for (int i = 0; i < handler.getSlots(); i++) {
+                handler.setStackInSlot(i, ItemStack.EMPTY);
+            }
+        }
     }
 }

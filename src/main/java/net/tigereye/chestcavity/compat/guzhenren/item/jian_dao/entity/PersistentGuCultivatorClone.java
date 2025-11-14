@@ -263,80 +263,14 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     // ============ 能力系统 ============
 
     /**
-     * 获取物品栏 (用于 AI 访问和外部代码访问)
+     * 获取物品栏 (用于 AI 访问、GUI和Capability系统)
      *
      * 注意：在 NeoForge 1.21.1 中，Entity.getCapability() 是 final 方法，无法覆盖。
-     * 能力系统需要通过其他机制（如 RegisterCapabilitiesEvent）注册。
-     * 目前外部代码可以直接调用此方法访问物品栏。
+     * 能力系统通过 RegisterCapabilitiesEvent 注册，在 ChestCavity.registerCapabilities() 中。
+     * 外部代码可以通过 entity.getCapability(Capabilities.ItemHandler.ENTITY) 访问此物品栏。
      */
     public ItemStackHandler getInventory() {
         return inventory;
-    }
-
-    /**
-     * 获取物品栏的 Container 视图 (用于 Capability 包装)
-     *
-     * <p>NeoForge 1.21.1 能力系统需要 ResourceHandler&lt;ItemResource&gt; 类型,
-     * 通过 VanillaContainerWrapper 包装 Container 接口可以桥接到新API。
-     *
-     * @return Container 视图，包装了 ItemStackHandler 的所有操作
-     */
-    public net.minecraft.world.Container getContainerView() {
-        return new net.minecraft.world.SimpleContainer(inventory.getSlots()) {
-            @Override
-            public int getContainerSize() {
-                return inventory.getSlots();
-            }
-
-            @Override
-            public boolean isEmpty() {
-                for (int i = 0; i < inventory.getSlots(); i++) {
-                    if (!inventory.getStackInSlot(i).isEmpty()) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public ItemStack getItem(int slot) {
-                return inventory.getStackInSlot(slot);
-            }
-
-            @Override
-            public ItemStack removeItem(int slot, int amount) {
-                return inventory.extractItem(slot, amount, false);
-            }
-
-            @Override
-            public ItemStack removeItemNoUpdate(int slot) {
-                ItemStack stack = inventory.getStackInSlot(slot);
-                inventory.setStackInSlot(slot, ItemStack.EMPTY);
-                return stack;
-            }
-
-            @Override
-            public void setItem(int slot, ItemStack stack) {
-                inventory.setStackInSlot(slot, stack);
-            }
-
-            @Override
-            public void setChanged() {
-                // 通知变化 (可选，用于同步)
-            }
-
-            @Override
-            public boolean stillValid(Player player) {
-                return PersistentGuCultivatorClone.this.isOwnedBy(player);
-            }
-
-            @Override
-            public void clearContent() {
-                for (int i = 0; i < inventory.getSlots(); i++) {
-                    inventory.setStackInSlot(i, ItemStack.EMPTY);
-                }
-            }
-        };
     }
 
     // ============ NBT序列化（区块保存） ============
