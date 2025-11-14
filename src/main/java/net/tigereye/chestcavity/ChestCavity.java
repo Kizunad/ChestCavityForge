@@ -188,6 +188,9 @@ public class ChestCavity {
     // 初始化裂剑蛊系统（飞剑事件钩子、剑气技能注册）
     if (ModList.get().isLoaded("guzhenren")) {
       net.tigereye.chestcavity.compat.guzhenren.rift.RiftSystemInitializer.initialize();
+
+      // 注册多重剑影蛊增益物品（阶段4）
+      net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.CloneBoostItemRegistry.registerDefaults();
     }
   }
 

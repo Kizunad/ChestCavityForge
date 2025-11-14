@@ -327,7 +327,10 @@ public class DuochongjianyingGuItem extends Item {
             tag.put("CloneData", cloneData);
         });
 
-        // 2. 播放召回特效
+        // 2. 移除增益效果（在召回前）
+        clone.removeBoostEffect();
+
+        // 3. 播放召回特效
         clone.level().playSound(
             null,
             clone.blockPosition(),
@@ -337,7 +340,7 @@ public class DuochongjianyingGuItem extends Item {
             1.2f
         );
 
-        // 3. 移除分身实体
+        // 4. 移除分身实体
         clone.discard();
 
         // 4. 清除UUID (因为实体已不存在)

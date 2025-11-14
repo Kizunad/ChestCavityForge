@@ -264,7 +264,10 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
 
         @Override
         public void setChanged() {
-            // 物品栏变化通知
+            // 物品栏变化时，触发增益效果更新
+            if (clone != null && !clone.level().isClientSide) {
+                clone.updateBoostEffect();
+            }
         }
 
         @Override
