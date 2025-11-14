@@ -30,6 +30,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.CloneBoostItemRegistry;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
 import kizuna.guzhenren_event_ext.common.util.GuCultivatorPersistentUtil;
@@ -87,6 +88,9 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
 
     // ============ 分频AI计数器 ============
     private int aiTickCounter = 0;
+
+    // ============ 增益效果追踪 ============
+    private ItemStack currentBoostItem = ItemStack.EMPTY;
 
     // ============ 默认值 ============
     private static final ResourceLocation DEFAULT_TEXTURE =
@@ -273,6 +277,108 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         return inventory;
     }
 
+    // ============ 增益效果管理 ============
+
+    /**
+     * 更新增益效果
+     *
+     * <p>检查增益槽位（槽位6）的物品是否变化，如果变化则：
+     * <ul>
+     *   <li>移除旧的增益效果
+     *   <li>应用新的增益效果
+     * </ul>
+     *
+     * <p><strong>调用时机：</strong>
+     * <ul>
+     *   <li>GUI中增益槽位变化时（由 {@link net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.ui.CloneInventoryMenu} 调用）
+     *   <li>分身从物品NBT恢复后
+     * </ul>
+     */
+    public void updateBoostEffect() {
+        if (this.level().isClientSide) {
+            return; // 仅在服务端处理
+        }
+
+        ItemStack newBoostItem = this.inventory.getStackInSlot(6);
+
+        // 检查增益物品是否变化
+        if (ItemStack.matches(currentBoostItem, newBoostItem)) {
+            return; // 没有变化，不需要更新
+        }
+
+        // 移除旧的增益效果
+        if (!currentBoostItem.isEmpty()) {
+            CloneBoostItemRegistry.getBoostEffect(currentBoostItem.getItem())
+                    .ifPresent(effect -> {
+                        try {
+                            effect.remove(this, currentBoostItem);
+                        } catch (Exception e) {
+                            ChestCavity.LOGGER.warn("移除增益效果失败: {}", e.getMessage());
+                        }
+                    });
+        }
+
+        // 应用新的增益效果
+        if (!newBoostItem.isEmpty()) {
+            CloneBoostItemRegistry.getBoostEffect(newBoostItem.getItem())
+                    .ifPresent(effect -> {
+                        try {
+                            effect.apply(this, newBoostItem);
+                        } catch (Exception e) {
+                            ChestCavity.LOGGER.warn("应用增益效果失败: {}", e.getMessage());
+                        }
+                    });
+        }
+
+        // 更新追踪的增益物品
+        currentBoostItem = newBoostItem.copy();
+    }
+
+    /**
+     * 应用增益效果（用于物品恢复后）
+     *
+     * <p>仅应用效果，不移除旧效果。用于分身首次生成或从NBT恢复后。
+     */
+    public void applyBoostEffect() {
+        if (this.level().isClientSide) {
+            return;
+        }
+
+        ItemStack boostItem = this.inventory.getStackInSlot(6);
+        if (!boostItem.isEmpty()) {
+            CloneBoostItemRegistry.getBoostEffect(boostItem.getItem())
+                    .ifPresent(effect -> {
+                        try {
+                            effect.apply(this, boostItem);
+                            currentBoostItem = boostItem.copy();
+                        } catch (Exception e) {
+                            ChestCavity.LOGGER.warn("应用增益效果失败: {}", e.getMessage());
+                        }
+                    });
+        }
+    }
+
+    /**
+     * 移除所有增益效果（用于分身召回或死亡前）
+     */
+    public void removeBoostEffect() {
+        if (this.level().isClientSide) {
+            return;
+        }
+
+        if (!currentBoostItem.isEmpty()) {
+            CloneBoostItemRegistry.getBoostEffect(currentBoostItem.getItem())
+                    .ifPresent(effect -> {
+                        try {
+                            effect.remove(this, currentBoostItem);
+                        } catch (Exception e) {
+                            ChestCavity.LOGGER.warn("移除增益效果失败: {}", e.getMessage());
+                        }
+                    });
+            currentBoostItem = ItemStack.EMPTY;
+        }
+    }
+
     // ============ NBT序列化（区块保存） ============
 
     @Override
@@ -394,6 +500,9 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         } catch (Exception e) {
             // 静默失败
         }
+
+        // 6. 应用增益效果（恢复后）
+        applyBoostEffect();
     }
 
     // ============ 所有权管理 ============
@@ -495,6 +604,9 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
 
     @Override
     public void die(DamageSource source) {
+        // 移除增益效果（在死亡前）
+        removeBoostEffect();
+
         super.die(source);
 
         // TODO: 查找持有该分身的玩家并清理物品NBT
