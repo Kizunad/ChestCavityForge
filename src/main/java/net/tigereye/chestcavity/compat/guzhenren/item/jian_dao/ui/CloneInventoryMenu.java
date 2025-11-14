@@ -20,8 +20,10 @@ import javax.annotation.Nonnull;
  * <p>槽位布局:
  * <ul>
  *   <li>槽位 0-5: 蛊虫槽位 (仅允许 tag: guzhenren:guchong)
- *   <li>槽位 6: 增益物品槽位 (暂时允许所有物品)
+ *   <li>槽位 6: 增益物品槽位 (由 CloneBoostItemRegistry 管理)
  * </ul>
+ *
+ * @see net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.CloneBoostItemRegistry
  */
 public class CloneInventoryMenu extends AbstractContainerMenu {
 
@@ -119,10 +121,14 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
                     }
                 }
                 // 尝试放入增益槽位 (6)
-                else {
+                else if (isBoostItem(stack)) {
                     if (!this.moveItemStackTo(stack, BOOST_SLOT, BOOST_SLOT + 1, false)) {
                         return ItemStack.EMPTY;
                     }
+                }
+                // 物品不属于任何分身槽位类型
+                else {
+                    return ItemStack.EMPTY;
                 }
             }
 
@@ -156,6 +162,13 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
     }
 
     /**
+     * 检查物品是否为增益物品
+     */
+    private static boolean isBoostItem(ItemStack stack) {
+        return net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.CloneBoostItemRegistry.isBoostItem(stack.getItem());
+    }
+
+    /**
      * 蛊虫槽位 (仅允许蛊虫)
      */
     private static class GuSlot extends Slot {
@@ -175,7 +188,7 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 增益物品槽位 (暂时允许所有物品)
+     * 增益物品槽位 (仅允许 CloneBoostItemRegistry 注册的物品)
      */
     private static class BoostSlot extends Slot {
         public BoostSlot(Container container, int index, int x, int y) {
@@ -184,8 +197,7 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(@Nonnull ItemStack stack) {
-            // TODO: 实现 CloneBoostItemRegistry.isBoostItem(stack.getItem())
-            return true;
+            return isBoostItem(stack);
         }
 
         @Override
