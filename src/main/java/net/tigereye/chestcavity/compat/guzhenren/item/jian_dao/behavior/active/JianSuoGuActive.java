@@ -115,7 +115,7 @@ public final class JianSuoGuActive {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "[JianSuoGuActive] tier={}, daohen={}, liupai={}, dashDist={}, damage={}, cdTicks={}",
-          tier.name(), daohen, liupaiExp, dashDist, damage, cdTicks);
+          organId, daohen, liupaiExp, dashDist, damage, cdTicks);
     }
 
     // 5. 消耗资源
