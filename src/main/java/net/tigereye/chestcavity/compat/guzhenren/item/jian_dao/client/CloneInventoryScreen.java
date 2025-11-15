@@ -17,7 +17,8 @@ public class CloneInventoryScreen extends AbstractContainerScreen<CloneInventory
 
     // 使用原版的小容器纹理作为基础
     private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "textures/gui/clone_inventory.png");
+            // 使用新加入的现代风格底图
+            ResourceLocation.fromNamespaceAndPath(ChestCavity.MODID, "textures/gui/duochongjianying_menu.png");
 
     // 备用：使用原版纹理（如果自定义纹理未准备好）
     private static final ResourceLocation FALLBACK_TEXTURE =

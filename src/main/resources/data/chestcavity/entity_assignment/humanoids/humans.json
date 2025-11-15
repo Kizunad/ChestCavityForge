@@ -8,6 +8,7 @@
     "minecraft:vindicator",
     "minecraft:wandering_trader",
     "minecraft:witch",
-    "chestcavity:test_soul"
+    "chestcavity:test_soul",
+    "chestcavity:persistent_gu_cultivator_clone"
   ]
 }

@@ -18,6 +18,8 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
@@ -25,8 +27,16 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tigereye.chestcavity.ChestCavity;
@@ -63,20 +73,50 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     private final ItemStackHandler inventory = new ItemStackHandler(7) {
         @Override
         protected void onContentsChanged(int slot) {
-            // 物品栏变化时，实体会在区块保存时自动持久化
-            // 无需额外操作
+            // 物品栏变化：标记为脏，下一tick立即同步装备
+            inventoryDirty = true;
+            // 槽6为增益物品，变化时立即应用/移除效果
+            if (slot == 6 && !level().isClientSide) {
+                try {
+                    PersistentGuCultivatorClone.this.updateBoostEffect();
+                } catch (Exception e) {
+                    ChestCavity.LOGGER.warn("增益槽更新失败: {}", e.getMessage());
+                }
+            }
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return slot == 6 ? 1 : super.getSlotLimit(slot);
         }
 
         @Override
         public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
-            if (slot < 6) {
-                // 槽位0-5: 仅允许蛊虫
-                return stack.is(ItemTags.create(ResourceLocation.fromNamespaceAndPath("guzhenren", "guchong")));
-            } else {
-                // 槽位6: 仅允许增益物品（暂时允许所有，后续可通过注册表限制）
-                // TODO: 实现 CloneBoostItemRegistry.isBoostItem(stack.getItem())
-                return true;
+            // 新规则：
+            // 0 主手：允许任意物品
+            // 1 副手：允许食物、金苹果/附魔金苹果、图腾
+            // 2..5 盔甲：要求 ArmorItem 且槽位匹配
+            // 6 增益：暂时允许所有（由增益注册表约束实际效果）
+            if (slot == 0) {
+                return !stack.isEmpty();
             }
+            if (slot == 1) {
+                boolean golden = stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE);
+                boolean totem = stack.is(Items.TOTEM_OF_UNDYING);
+                boolean edible = stack.getItem().getFoodProperties(stack, PersistentGuCultivatorClone.this) != null;
+                return golden || totem || edible;
+            }
+            if (slot >= 2 && slot <= 5) {
+                EquipmentSlot eq = switch (slot) {
+                    case 2 -> EquipmentSlot.HEAD;
+                    case 3 -> EquipmentSlot.CHEST;
+                    case 4 -> EquipmentSlot.LEGS;
+                    default -> EquipmentSlot.FEET;
+                };
+                return stack.getItem() instanceof ArmorItem armor && armor.getEquipmentSlot() == eq;
+            }
+            // 槽位6：增益
+            return true;
         }
     };
 
@@ -86,8 +126,14 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     // - "蛊虫CD", "蛊虫1CD"..."蛊虫5CD": double
     // - "ai_initialized": boolean (标记是否已初始化)
 
-    // ============ 分频AI计数器 ============
-    private int aiTickCounter = 0;
+    // （移除）分频AI计数器：寻路/Goal 每tick由引擎调度，无需自节流
+
+    // ============ 装备同步/副手消耗控制 ============
+    private int equipSyncCounter = 0; // 分频同步装备
+    private static final int EQUIP_SYNC_INTERVAL_TICKS = 20; // 每秒同步一次
+    private static final String KEY_OFFHAND_CONSUME_CD = "offhand_consume_cd";
+    private static final double OFFHAND_CONSUME_COOLDOWN_TICKS = 100.0; // 5秒CD
+    private boolean inventoryDirty = false; // 物品栏变更标记
 
     // ============ 增益效果追踪 ============
     private ItemStack currentBoostItem = ItemStack.EMPTY;
@@ -96,6 +142,12 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     private static final ResourceLocation DEFAULT_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/steve.png");
     private static final int DEFAULT_TINT = 0x80A0A0FF; // 半透明蓝色
+    private static final double BASE_MAX_HEALTH = 20.0;
+    private static final double BASE_ATTACK_DAMAGE = 2.0;
+    private static final ResourceLocation HEALTH_BONUS_ID =
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "clone_health_bonus");
+    private static final ResourceLocation ATTACK_BONUS_ID =
+            ResourceLocation.fromNamespaceAndPath("guzhenren", "clone_attack_bonus");
 
     public PersistentGuCultivatorClone(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -117,14 +169,11 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     protected void registerGoals() {
         // 优先级0-4: 基础生存行为
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new PanicGoal(this, 1.2));
-
-        // 优先级5-7: 战斗行为
+        // 优先级5: 近战（自带接近目标逻辑）
         this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0, true));
-        this.goalSelector.addGoal(6, new MoveTowardsTargetGoal(this, 0.9, 32.0f));
 
         // 优先级8-10: 跟随与闲逛
-        this.goalSelector.addGoal(8, new FollowOwnerGoal(this, 1.0, 10.0f, 2.0f));
+        this.goalSelector.addGoal(8, new FollowOwnerGoal(this, 10.0f, 2.0f));
         this.goalSelector.addGoal(9, new RandomStrollGoal(this, 0.6));
         this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Player.class, 8.0f));
         this.goalSelector.addGoal(11, new RandomLookAroundGoal(this));
@@ -141,39 +190,43 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
      */
     private static class FollowOwnerGoal extends Goal {
         private final PersistentGuCultivatorClone clone;
-        private final double speedModifier;
-        private final float stopDistance;
-        private final float startDistance;
+        private final float startDistanceSq;
+        private final float stopDistanceSq;
 
-        public FollowOwnerGoal(PersistentGuCultivatorClone clone, double speedModifier, float stopDistance, float startDistance) {
+        public FollowOwnerGoal(PersistentGuCultivatorClone clone, float startDistance, float stopDistance) {
             this.clone = clone;
-            this.speedModifier = speedModifier;
-            this.stopDistance = stopDistance;
-            this.startDistance = startDistance;
+            this.startDistanceSq = startDistance * startDistance;
+            this.stopDistanceSq = stopDistance * stopDistance;
         }
 
         @Override
         public boolean canUse() {
+            if (clone.getTarget() != null) {
+                return false;
+            }
             LivingEntity owner = clone.getOwnerEntity();
             if (owner == null || !owner.isAlive()) {
                 return false;
             }
-            return clone.distanceToSqr(owner) > startDistance * startDistance;
+            return clone.distanceToSqr(owner) > startDistanceSq;
         }
 
         @Override
         public void tick() {
             LivingEntity owner = clone.getOwnerEntity();
-            if (owner == null) {
+            if (owner == null || clone.getTarget() != null) {
                 return;
             }
-            if (clone.distanceToSqr(owner) > stopDistance * stopDistance) {
-                clone.getNavigation().moveTo(owner, speedModifier);
-            } else {
+            double distSq = clone.distanceToSqr(owner);
+            if (distSq > startDistanceSq) {
+                clone.getNavigation().moveTo(owner, 1.0);
+            } else if (distSq < stopDistanceSq) {
                 clone.getNavigation().stop();
             }
         }
     }
+
+    // 使用默认 MeleeAttackGoal，无需额外包装
 
     /**
      * 所有者被攻击时反击的AI Goal
@@ -238,29 +291,67 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         super.baseTick();
 
         if (!this.level().isClientSide) {
-            // 初始化AI数据 (首次运行)
-            if (!getPersistentData().contains("ai_initialized")) {
+            // 关闭原蛊虫AI：不再初始化/执行 GuCultivatorAIAdapter
+
+            // 物品栏变更即刻同步（主手/副手/盔甲）
+            if (inventoryDirty) {
+                inventoryDirty = false;
                 try {
-                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.GuCultivatorAIAdapter.initializeAIData(this);
-                    getPersistentData().putBoolean("ai_initialized", true);
+                    syncEquipmentFromInventory();
                 } catch (Exception e) {
-                    // 初始化失败也标记已尝试，避免循环
-                    getPersistentData().putBoolean("ai_initialized", true);
-                    ChestCavity.LOGGER.warn("分身AI初始化失败: {}", e.getMessage());
+                    ChestCavity.LOGGER.warn("分身装备同步失败: {}", e.getMessage());
                 }
             }
 
-            // 每3 tick执行一次AI逻辑 (降低性能开销)
-            if (++aiTickCounter >= 3) {
-                aiTickCounter = 0;
+            // 定期兜底同步（防止漏同步）
+            if (++equipSyncCounter >= EQUIP_SYNC_INTERVAL_TICKS) {
+                equipSyncCounter = 0;
                 try {
-                    net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.GuCultivatorAIAdapter.tickGuUsage(this, inventory);
+                    syncEquipmentFromInventory();
                 } catch (Exception e) {
-                    // 静默失败，记录日志
-                    ChestCavity.LOGGER.warn("分身AI执行失败: {}", e.getMessage());
+                    ChestCavity.LOGGER.warn("分身装备同步失败: {}", e.getMessage());
                 }
             }
+
+            // 副手自动进食/金苹果消耗（满血不消耗，内置CD）
+            try {
+                tickOffhandAutoConsume();
+            } catch (Exception e) {
+                ChestCavity.LOGGER.warn("副手消耗处理失败: {}", e.getMessage());
+            }
+
         }
+    }
+
+    /**
+     * 处理玩家与分身的交互。
+     *
+     * <p><strong>交互逻辑：</strong>
+     * <ul>
+     *   <li>空手 + Shift + 右键 → 打开分身管理界面
+     *   <li>其他情况 → 不处理，传递给父类
+     * </ul>
+     *
+     * @param player 与分身交互的玩家
+     * @param hand 玩家使用的手（主手/副手）
+     * @return 交互结果
+     */
+    @Override
+    public net.minecraft.world.InteractionResult mobInteract(Player player, net.minecraft.world.InteractionHand hand) {
+        if (this.level().isClientSide()) {
+            return net.minecraft.world.InteractionResult.SUCCESS;
+        }
+
+        // 检查是否为空手 Shift+右键
+        ItemStack handItem = player.getItemInHand(hand);
+        if (player.isShiftKeyDown() && handItem.isEmpty()) {
+            if (player instanceof ServerPlayer serverPlayer) {
+                openInventoryMenu(serverPlayer);
+                return net.minecraft.world.InteractionResult.SUCCESS;
+            }
+        }
+
+        return net.minecraft.world.InteractionResult.PASS;
     }
 
     // ============ 能力系统 ============
@@ -457,6 +548,21 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             // 静默失败，使用默认值
         }
 
+        // 6. 分身自身的胸腔数据 (Entity ChestCavity)
+        try {
+            var chestCavity = net.tigereye.chestcavity.registration.CCAttachments.getChestCavity(this);
+            if (chestCavity != null && chestCavity.opened) {
+                CompoundTag ccWrapper = new CompoundTag();
+                chestCavity.toTag(ccWrapper, this.registryAccess());
+                // 仅在胸腔已打开时保存数据
+                if (ccWrapper.contains("ChestCavity")) {
+                    tag.put("EntityChestCavity", ccWrapper.getCompound("ChestCavity"));
+                }
+            }
+        } catch (Exception e) {
+            // 静默失败，胸腔数据丢失但不影响其他功能
+        }
+
         return tag;
     }
 
@@ -500,7 +606,22 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
             // 静默失败
         }
 
-        // 6. 应用增益效果（恢复后）
+        // 6. 分身自身的胸腔数据恢复 (Entity ChestCavity)
+        try {
+            if (tag.contains("EntityChestCavity")) {
+                var chestCavity = net.tigereye.chestcavity.registration.CCAttachments.getChestCavity(this);
+                if (chestCavity != null) {
+                    // 构造包装Tag (ChestCavity系统需要 "ChestCavity" 键)
+                    CompoundTag ccWrapper = new CompoundTag();
+                    ccWrapper.put("ChestCavity", tag.getCompound("EntityChestCavity"));
+                    chestCavity.fromTag(ccWrapper, this, this.registryAccess());
+                }
+            }
+        } catch (Exception e) {
+            // 静默失败，胸腔数据丢失但不影响其他功能
+        }
+
+        // 7. 应用增益效果（恢复后）
         applyBoostEffect();
     }
 
@@ -616,6 +737,172 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         }
     }
 
+    @Override
+    public boolean doHurtTarget(Entity target) {
+        boolean result = super.doHurtTarget(target);
+        if (result) {
+            this.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+        }
+        return result;
+    }
+
+    // ============ 装备同步与副手消耗 ============
+
+    /**
+     * 将物品栏槽位 0..5 同步到实体装备：
+     * 0→主手，1→副手，2→头盔，3→胸甲，4→护腿，5→靴子；6为增益物品不参与。
+     * 盔甲位仅在物品为 ArmorItem 且槽位匹配时同步。
+     */
+    private void syncEquipmentFromInventory() {
+        // 主手/副手
+        ItemStack main = inventory.getStackInSlot(0);
+        ItemStack off = inventory.getStackInSlot(1);
+        if (!(ItemStack.isSameItemSameComponents(main, this.getMainHandItem()) && main.getCount() == this.getMainHandItem().getCount())) {
+            this.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, main.copy());
+        }
+        if (!(ItemStack.isSameItemSameComponents(off, this.getOffhandItem()) && off.getCount() == this.getOffhandItem().getCount())) {
+            this.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, off.copy());
+        }
+
+        // 盔甲：头、胸、腿、足
+        syncArmorSlot(2, EquipmentSlot.HEAD);
+        syncArmorSlot(3, EquipmentSlot.CHEST);
+        syncArmorSlot(4, EquipmentSlot.LEGS);
+        syncArmorSlot(5, EquipmentSlot.FEET);
+    }
+
+    private void syncArmorSlot(int invSlot, EquipmentSlot slot) {
+        ItemStack want = inventory.getStackInSlot(invSlot);
+        ItemStack worn = this.getItemBySlot(slot);
+
+        if (want.isEmpty()) {
+            if (!worn.isEmpty()) this.setItemSlot(slot, ItemStack.EMPTY);
+            return;
+        }
+
+        if (want.getItem() instanceof ArmorItem armor && armor.getEquipmentSlot() == slot) {
+            if (!(ItemStack.isSameItemSameComponents(want, worn) && want.getCount() == worn.getCount())) {
+                this.setItemSlot(slot, want.copy());
+            }
+        } else {
+            // 非法物品不强制覆盖盔甲位
+        }
+    }
+
+    /**
+     * 副手自动进食/金苹果：
+     * - 满血不消耗；
+     * - 非满血且物品可食用或为金苹果/附魔金苹果时，消耗一枚并应用效果；
+     * - 内置5秒CD，使用 PersistentData 键 KEY_OFFHAND_CONSUME_CD 控制。
+     */
+    private void tickOffhandAutoConsume() {
+        var tag = this.getPersistentData();
+        tag.putDouble(KEY_OFFHAND_CONSUME_CD, tag.getDouble(KEY_OFFHAND_CONSUME_CD) - 1.0);
+
+        if (this.getHealth() >= this.getMaxHealth()) {
+            return; // 满血不消耗
+        }
+        if (tag.getDouble(KEY_OFFHAND_CONSUME_CD) > 0.0) {
+            return; // 冷却中
+        }
+
+        ItemStack slotOff = inventory.getStackInSlot(1);
+        if (slotOff.isEmpty()) return;
+
+        boolean isGoldenApple = slotOff.is(Items.GOLDEN_APPLE) || slotOff.is(Items.ENCHANTED_GOLDEN_APPLE);
+        FoodProperties fp0 = slotOff.getItem().getFoodProperties(slotOff, this);
+        boolean isEdible = fp0 != null;
+        if (!isGoldenApple && !isEdible) return;
+
+        // 应用吃下效果
+        if (isGoldenApple) {
+            // 直接调用 finishUsingItem 以应用金苹果完整效果
+            ItemStack tmp = slotOff.copy();
+            tmp.setCount(1);
+            tmp.getItem().finishUsingItem(tmp, this.level(), this);
+            // 消耗1个
+            slotOff.shrink(1);
+            inventory.setStackInSlot(1, slotOff);
+            // 立即反映到副手
+            this.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, slotOff.copy());
+
+            // 反馈特效（可见性/声音）
+            if (this.level() instanceof ServerLevel s) {
+                s.sendParticles(ParticleTypes.HAPPY_VILLAGER, this.getX(), this.getY() + this.getBbHeight() * 0.5,
+                        this.getZ(), 6, 0.3, 0.4, 0.3, 0.1);
+                s.playSound(null, this.blockPosition(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.8f, 1.0f);
+            }
+        } else if (isEdible) {
+            // 普通食物：按营养值转化为治疗量（每点营养=1点生命），并消耗1个
+            int nutrition = fp0.nutrition();
+            if (nutrition > 0) {
+                this.heal(Math.min(nutrition, (int) (this.getMaxHealth() - this.getHealth())));
+            }
+            slotOff.shrink(1);
+            inventory.setStackInSlot(1, slotOff);
+            this.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, slotOff.copy());
+            if (this.level() instanceof ServerLevel s) {
+                s.sendParticles(ParticleTypes.HAPPY_VILLAGER, this.getX(), this.getY() + this.getBbHeight() * 0.5,
+                        this.getZ(), 4, 0.25, 0.3, 0.25, 0.05);
+                s.playSound(null, this.blockPosition(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.6f, 1.2f);
+            }
+        }
+
+        // 冷却重置
+        tag.putDouble(KEY_OFFHAND_CONSUME_CD, OFFHAND_CONSUME_COOLDOWN_TICKS);
+        // 标记脏位，保证后续兜底同步
+        inventoryDirty = true;
+    }
+
+    // ============ 自定义不死图腾效果 ============
+    @Override
+    public boolean hurt(DamageSource source, float amount) {
+        if (this.level().isClientSide) {
+            return super.hurt(source, amount);
+        }
+
+        // 预判致命伤害并尝试触发不死图腾（主手/副手任一持有）
+        float remaining = this.getHealth() - amount;
+        if (remaining <= 0.0f && tryUseTotemLikeEffect()) {
+            // 取消这次伤害
+            return false;
+        }
+        return super.hurt(source, amount);
+    }
+
+    private boolean tryUseTotemLikeEffect() {
+        ItemStack main = this.getMainHandItem();
+        ItemStack off = this.getOffhandItem();
+        boolean hasTotem = main.is(Items.TOTEM_OF_UNDYING) || off.is(Items.TOTEM_OF_UNDYING);
+        if (!hasTotem) return false;
+
+        // 消耗一个
+        if (off.is(Items.TOTEM_OF_UNDYING)) {
+            off.shrink(1);
+            this.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, off);
+        } else {
+            main.shrink(1);
+            this.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, main);
+        }
+
+        // 复活与效果（参考原版：生命值重置+多种增益）
+        this.setHealth(Math.max(1.0f, this.getMaxHealth() * 0.2f));
+        this.removeAllEffects();
+        this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
+        this.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
+        this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
+        this.invulnerableTime = 20; // 短暂无敌窗口
+
+        if (this.level() instanceof ServerLevel s) {
+            s.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, this.getX(), this.getY() + this.getBbHeight() * 0.5,
+                    this.getZ(), 16, 0.5, 0.6, 0.5, 0.1);
+            s.playSound(null, this.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.NEUTRAL, 1.0f, 1.0f);
+        }
+        return true;
+    }
+
+    
+
     // ============ 静态工厂方法 ============
 
     /**
@@ -624,7 +911,8 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
     public static PersistentGuCultivatorClone spawn(
             ServerLevel level,
             Player owner,
-            Vec3 position
+            Vec3 position,
+            double attributeMultiplier
     ) {
         PersistentGuCultivatorClone clone = net.tigereye.chestcavity.registration.CCEntities.PERSISTENT_GU_CULTIVATOR_CLONE.get().create(level);
         if (clone == null) return null;
@@ -657,6 +945,9 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
 
         // 5. 初始化资源 (基于转数)
         initializeResources(clone, cloneTier);
+
+        // 5.1 根据剑道道痕调整基础属性
+        applyAttributeScaling(clone, owner, attributeMultiplier);
 
         // 6. 调用原生初始化 (触发模组AI钩子)
         try {
@@ -701,13 +992,49 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
         }
     }
 
+    private static void applyAttributeScaling(
+            PersistentGuCultivatorClone clone, Player owner, double multiplier) {
+        double bonusFactor = Math.max(0.0, multiplier - 1.0);
+
+        AttributeInstance healthAttr = clone.getAttribute(Attributes.MAX_HEALTH);
+        if (healthAttr != null) {
+            double ownerHealth = owner.getAttributeValue(Attributes.MAX_HEALTH);
+            double bonusFromOwner = Math.max(0.0, ownerHealth - BASE_MAX_HEALTH);
+            double bonus = BASE_MAX_HEALTH * bonusFactor + bonusFromOwner;
+            applyAttributeBonus(healthAttr, HEALTH_BONUS_ID, "jiandao.daohen.health", bonus);
+            clone.setHealth((float) healthAttr.getValue());
+        }
+
+        AttributeInstance attackAttr = clone.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (attackAttr != null) {
+            double ownerAttack = owner.getAttributeValue(Attributes.ATTACK_DAMAGE);
+            double bonusFromOwner = Math.max(0.0, ownerAttack - BASE_ATTACK_DAMAGE);
+            double bonus = BASE_ATTACK_DAMAGE * bonusFactor + bonusFromOwner;
+            applyAttributeBonus(attackAttr, ATTACK_BONUS_ID, "jiandao.daohen.attack", bonus);
+        }
+    }
+
+    private static void applyAttributeBonus(
+            AttributeInstance instance, ResourceLocation id, String name, double amount) {
+        if (instance == null) {
+            return;
+        }
+        instance.removeModifier(id);
+        if (amount <= 0.0) {
+            return;
+        }
+        AttributeModifier modifier =
+                new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_VALUE);
+        instance.addTransientModifier(modifier);
+    }
+
     // ============ 属性配置 ============
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 20.0)         // 基础血量
+                .add(Attributes.MAX_HEALTH, BASE_MAX_HEALTH)         // 基础血量
                 .add(Attributes.MOVEMENT_SPEED, 0.3)      // 移动速度
-                .add(Attributes.ATTACK_DAMAGE, 2.0)       // 基础攻击力
+                .add(Attributes.ATTACK_DAMAGE, BASE_ATTACK_DAMAGE)       // 基础攻击力
                 .add(Attributes.ARMOR, 2.0)               // 基础护甲
                 .add(Attributes.FOLLOW_RANGE, 32.0);      // 跟随范围
     }

@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.component.DataComponents;
@@ -13,6 +15,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -20,8 +23,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JiandaoCooldownOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JiandaoDaohenOps;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
+import net.tigereye.chestcavity.listeners.OrganOnHitListener;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.skill.effects.SkillEffectBus;
 import net.tigereye.chestcavity.util.NBTWriter;
 
 /**
@@ -48,7 +59,8 @@ import net.tigereye.chestcavity.util.NBTWriter;
  * @see PersistentGuCultivatorClone
  * @see net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.ui.CloneInventoryMenu
  */
-public enum DuochongjianyingGuOrganBehavior {
+public enum DuochongjianyingGuOrganBehavior
+    implements OrganOnHitListener, OrganIncomingDamageListener {
   INSTANCE;
 
   private static final String MOD_ID = "guzhenren";
@@ -66,10 +78,53 @@ public enum DuochongjianyingGuOrganBehavior {
   private static final String CLONE_UUID_KEY = "CloneUUID";
   private static final String DIMENSION_KEY = "DimensionKey";
   private static final String CLONE_DATA_KEY = "CloneData";
+  private static final String KEY_COOLDOWN = "AbilityCooldown";
+  private static final long BASE_COOLDOWN_TICKS = 120L * 20L;
+  private static final long MIN_COOLDOWN_TICKS = 20L;
 
   static {
     // 注册主动技能激活监听器
     OrganActivationListeners.register(ABILITY_ID, DuochongjianyingGuOrganBehavior::activateAbility);
+  }
+
+  @Override
+  public float onHit(
+      DamageSource source,
+      LivingEntity attacker,
+      LivingEntity target,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      float damage) {
+    if (!(attacker instanceof ServerPlayer player)
+        || attacker.level().isClientSide()
+        || target == null
+        || !target.isAlive()
+        || organ.isEmpty()
+        || !matchesOrgan(organ)) {
+      return damage;
+    }
+    commandCloneToAttack(player, organ, target);
+    return damage;
+  }
+
+  @Override
+  public float onIncomingDamage(
+      DamageSource source,
+      LivingEntity victim,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      float damage) {
+    if (!(victim instanceof ServerPlayer player)
+        || victim.level().isClientSide()
+        || organ.isEmpty()
+        || !matchesOrgan(organ)) {
+      return damage;
+    }
+    LivingEntity aggressor = resolveAggressor(source);
+    if (aggressor != null && aggressor.isAlive()) {
+      commandCloneToAttack(player, organ, aggressor);
+    }
+    return damage;
   }
 
   /**
@@ -83,8 +138,8 @@ public enum DuochongjianyingGuOrganBehavior {
    *
    * <p>行为:
    * <ul>
-   *   <li>Shift + 触发: 打开分身界面
-   *   <li>普通触发: 召唤/召回分身
+   *   <li>召唤/召回分身
+   *   <li>打开分身界面: 通过空手Shift+右键Entity触发（见 {@link net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.PersistentGuCultivatorClone#mobInteract}）
    * </ul>
    */
   private static void activateAbility(LivingEntity entity, ChestCavityInstance cc) {
@@ -92,26 +147,101 @@ public enum DuochongjianyingGuOrganBehavior {
       return;
     }
 
-    // 1. 查找器官ItemStack
-    ItemStack organ = findOrgan(cc);
-    if (organ.isEmpty()) {
+    List<ItemStack> organs = findOrgans(cc);
+    if (organs.isEmpty()) {
       player.displayClientMessage(Component.literal("§c未找到多重剑影蛊!"), true);
       return;
     }
 
-    // 2. 所有权校验
-    if (!isOwnedBy(organ, player)) {
-      player.displayClientMessage(Component.literal("§c这不是你的蛊虫!"), true);
+    List<ItemStack> usable = new ArrayList<>();
+    boolean denied = false;
+    for (ItemStack organ : organs) {
+      if (isOwnedBy(organ, player)) {
+        usable.add(organ);
+      } else {
+        denied = true;
+      }
+    }
+
+    if (usable.isEmpty()) {
+      if (denied) {
+        player.displayClientMessage(Component.literal("§c胸腔中的多重剑影蛊归属不匹配"), true);
+      } else {
+        player.displayClientMessage(Component.literal("§c没有可用的多重剑影蛊"), true);
+      }
       return;
     }
 
-    // 3. 检查玩家是否按下Shift键
-    if (player.isShiftKeyDown()) {
-      // 打开分身界面
-      handleOpenInventory(player, organ);
+    ServerLevel level = player.serverLevel();
+    long now = level.getGameTime();
+
+    List<MultiCooldown.Entry> cooldownEntries = new ArrayList<>(usable.size());
+    long maxRemaining = 0L;
+    for (ItemStack organ : usable) {
+      MultiCooldown.Entry entry = cooldownEntry(cc, organ);
+      cooldownEntries.add(entry);
+      maxRemaining = Math.max(maxRemaining, entry.remaining(now));
+    }
+
+    if (maxRemaining > 0L) {
+      long seconds = Math.max(1L, (maxRemaining + 19L) / 20L);
+      player.displayClientMessage(
+          Component.literal("§c分身冷却中，剩余 " + seconds + " 秒"),
+          true);
+      return;
+    }
+
+    double snapDaoHen =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "jiandao:daohen_jiandao", Double.NaN);
+    double snapLiupai =
+        SkillEffectBus.consumeMetadata(player, ABILITY_ID, "jiandao:liupai_jiandao", Double.NaN);
+    double effectiveDaohen = resolveEffectiveDaohen(player, snapDaoHen);
+    int liupaiExp = resolveJiandaoLiupaiExp(player, snapLiupai);
+    long cooldownTicks =
+        JiandaoCooldownOps.withJiandaoExp(BASE_COOLDOWN_TICKS, liupaiExp, MIN_COOLDOWN_TICKS);
+
+    boolean anyActive = false;
+    for (ItemStack organ : usable) {
+      if (findClone(level, organ) != null) {
+        anyActive = true;
+        break;
+      }
+    }
+
+    int processed = 0;
+    if (anyActive) {
+      int recalled = 0;
+      for (ItemStack organ : usable) {
+        if (recallCloneForOrgan(player, organ, true)) {
+          recalled++;
+        }
+      }
+      processed = recalled;
+      if (recalled > 0) {
+        player.displayClientMessage(Component.literal("§6已召回 " + recalled + " 个分身"), true);
+      } else {
+        player.displayClientMessage(Component.literal("§e没有可召回的分身"), true);
+      }
     } else {
-      // 召唤/召回分身
-      handleSummonOrRecall(player, organ);
+      int summoned = 0;
+      for (ItemStack organ : usable) {
+        if (summonCloneForOrgan(player, organ, effectiveDaohen)) {
+          summoned++;
+        }
+      }
+      processed = summoned;
+      if (summoned > 0) {
+        player.displayClientMessage(Component.literal("§6已召唤 " + summoned + " 个分身"), true);
+      } else {
+        player.displayClientMessage(Component.literal("§c召唤失败"), true);
+      }
+    }
+
+    if (processed > 0) {
+      long readyTick = now + cooldownTicks;
+      for (MultiCooldown.Entry entry : cooldownEntries) {
+        entry.setReadyAt(readyTick);
+      }
     }
   }
 
@@ -163,75 +293,109 @@ public enum DuochongjianyingGuOrganBehavior {
     clone.openInventoryMenu(player);
   }
 
-  /**
-   * 处理召唤或召回分身
-   *
-   * <p>逻辑：
-   * - 分身存在 -> 召回（保存数据到器官NBT）
-   * - 分身不存在 -> 召唤（从器官NBT恢复数据）
-   *
-   * <p>P1修复: 跨维度清理
-   * - 在召唤新分身前,必须先清理旧分身 (防止资源泄漏)
-   */
-  private static void handleSummonOrRecall(ServerPlayer player, ItemStack organ) {
+  private static boolean summonCloneForOrgan(
+      ServerPlayer player, ItemStack organ, double effectiveDaohen) {
     ServerLevel level = player.serverLevel();
+    if (findClone(level, organ) != null) {
+      return false;
+    }
 
-    // 1. 检查是否已有分身存在 (可能在不同维度)
-    PersistentGuCultivatorClone existingClone = findClone(level, organ);
-
-    if (existingClone != null) {
-      // 存在 -> 召回
-      recallClone(organ, existingClone, player);
-    } else {
-      // 不存在或已死亡 -> 准备召唤新分身
-
-      // P1修复: 检查是否有悬挂的UUID (分身已死亡或在不可访问的维度)
-      CompoundTag stateTag = getStateTag(organ);
-      boolean hadOldClone = !stateTag.isEmpty() && stateTag.hasUUID(CLONE_UUID_KEY);
-
-      if (hadOldClone) {
-        // 有旧UUID但findClone返回null: 可能在其他维度或已死亡
-        // 尝试跨维度查找并强制召回
-        PersistentGuCultivatorClone crossDimensionClone =
-            findAndRecallCrossDimensionClone(level, player, organ);
-
-        if (crossDimensionClone != null) {
-          // 成功召回跨维度分身
-          player.displayClientMessage(
-              Component.literal("§e已自动召回其他维度的分身"),
-              false
-          );
-        } else {
-          // 实体已死亡或无法访问: 清理UUID
-          cleanupCloneData(organ);
-          player.displayClientMessage(
-              Component.literal("§e旧分身已失联,数据已清理"),
-              false
-          );
-        }
-      }
-
-      // 召唤新分身
-      PersistentGuCultivatorClone newClone = summonClone(level, player, organ);
-
-      if (newClone != null) {
-        // 保存UUID到器官NBT
-        updateStateTag(organ, tag -> {
-          tag.putUUID(CLONE_UUID_KEY, newClone.getUUID());
-          tag.putString(DIMENSION_KEY, level.dimension().location().toString());
-        });
-
+    CompoundTag stateTag = getStateTag(organ);
+    boolean hadOldClone = !stateTag.isEmpty() && stateTag.hasUUID(CLONE_UUID_KEY);
+    if (hadOldClone) {
+      PersistentGuCultivatorClone crossDimensionClone =
+          findAndRecallCrossDimensionClone(level, player, organ);
+      if (crossDimensionClone != null) {
         player.displayClientMessage(
-            Component.literal("§6分身已召唤"),
-            true
-        );
+            Component.literal("§e已自动召回其他维度的分身"),
+            false);
       } else {
         player.displayClientMessage(
-            Component.literal("§c召唤失败!"),
-            true
-        );
+            Component.literal("§e旧分身已失联,数据已清理"),
+            false);
       }
+      cleanupCloneData(organ);
     }
+
+    PersistentGuCultivatorClone newClone =
+        summonClone(level, player, organ, computeAttributeMultiplier(effectiveDaohen));
+    if (newClone == null) {
+      return false;
+    }
+
+    updateStateTag(organ, tag -> {
+      tag.putUUID(CLONE_UUID_KEY, newClone.getUUID());
+      tag.putString(DIMENSION_KEY, level.dimension().location().toString());
+    });
+
+    return true;
+  }
+
+  private static boolean recallCloneForOrgan(ServerPlayer player, ItemStack organ, boolean silent) {
+    ServerLevel level = player.serverLevel();
+    PersistentGuCultivatorClone existingClone = findClone(level, organ);
+    if (existingClone != null) {
+      recallClone(organ, existingClone, player, silent);
+      return true;
+    }
+
+    PersistentGuCultivatorClone crossDimensionClone =
+        findAndRecallCrossDimensionClone(level, player, organ);
+    if (crossDimensionClone != null) {
+      if (!silent) {
+        player.displayClientMessage(
+            Component.literal("§e已自动召回其他维度的分身"),
+            false);
+      }
+      return true;
+    }
+
+    CompoundTag stateTag = getStateTag(organ);
+    if (!stateTag.isEmpty() && stateTag.hasUUID(CLONE_UUID_KEY)) {
+      cleanupCloneData(organ);
+      if (!silent) {
+        player.displayClientMessage(
+            Component.literal("§e旧分身记录已清理"),
+            false);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  private static void commandCloneToAttack(
+      ServerPlayer player, ItemStack organ, LivingEntity target) {
+    if (target == null || !target.isAlive()) {
+      return;
+    }
+    PersistentGuCultivatorClone clone = findClone(player.serverLevel(), organ);
+    if (clone == null || !clone.isAlive()) {
+      return;
+    }
+    if (clone == target || clone.isAlliedTo(target)) {
+      return;
+    }
+    clone.setAggressive(true);
+    clone.setTarget(target);
+    clone.setLastHurtByMob(target);
+    clone.getNavigation().moveTo(target, 1.1);
+  }
+
+  @Nullable
+  private static LivingEntity resolveAggressor(@Nullable DamageSource source) {
+    if (source == null) {
+      return null;
+    }
+    Entity direct = source.getDirectEntity();
+    if (direct instanceof LivingEntity living) {
+      return living;
+    }
+    Entity owner = source.getEntity();
+    if (owner instanceof LivingEntity living) {
+      return living;
+    }
+    return null;
   }
 
   /**
@@ -303,7 +467,8 @@ public enum DuochongjianyingGuOrganBehavior {
   private static PersistentGuCultivatorClone summonClone(
       ServerLevel level,
       Player player,
-      ItemStack organ
+      ItemStack organ,
+      double attributeMultiplier
   ) {
     // 1. 计算生成位置 (玩家前方2格)
     Vec3 spawnPos = player.position().add(player.getLookAngle().scale(2.0));
@@ -312,7 +477,8 @@ public enum DuochongjianyingGuOrganBehavior {
     PersistentGuCultivatorClone clone = PersistentGuCultivatorClone.spawn(
         level,
         player,
-        spawnPos
+        spawnPos,
+        attributeMultiplier
     );
 
     if (clone == null) {
@@ -354,6 +520,15 @@ public enum DuochongjianyingGuOrganBehavior {
       PersistentGuCultivatorClone clone,
       Player player
   ) {
+    recallClone(organ, clone, player, false);
+  }
+
+  private static void recallClone(
+      ItemStack organ,
+      PersistentGuCultivatorClone clone,
+      Player player,
+      boolean silent
+  ) {
     // 1. 保存分身数据到器官NBT (使用专用方法)
     CompoundTag cloneData = clone.serializeToItemNBT();
     updateStateTag(organ, tag -> {
@@ -383,10 +558,12 @@ public enum DuochongjianyingGuOrganBehavior {
     });
 
     // 6. 提示玩家
-    player.displayClientMessage(
-        Component.literal("§6分身已召回"),
-        true
-    );
+    if (!silent) {
+      player.displayClientMessage(
+          Component.literal("§6分身已召回"),
+          true
+      );
+    }
   }
 
   /**
@@ -496,31 +673,60 @@ public enum DuochongjianyingGuOrganBehavior {
 
   // ============ 辅助方法 ============
 
-  /**
-   * 在胸腔中查找多重剑影蛊器官
-   */
-  private static ItemStack findOrgan(ChestCavityInstance cc) {
+  private static List<ItemStack> findOrgans(ChestCavityInstance cc) {
+    List<ItemStack> organs = new ArrayList<>();
     if (cc == null || cc.inventory == null) {
-      return ItemStack.EMPTY;
+      return organs;
     }
     for (int i = 0; i < cc.inventory.getContainerSize(); i++) {
       ItemStack stack = cc.inventory.getItem(i);
-      if (stack.isEmpty()) {
-        continue;
-      }
-      ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-      if (ORGAN_ID.equals(id)) {
-        return stack;
+      if (matchesOrgan(stack)) {
+        organs.add(stack);
       }
     }
-    return ItemStack.EMPTY;
+    return organs;
   }
 
-  /**
-   * 检查胸腔中是否有多重剑影蛊器官
-   */
   private static boolean hasOrgan(ChestCavityInstance cc) {
-    return !findOrgan(cc).isEmpty();
+    return !findOrgans(cc).isEmpty();
+  }
+
+  private static boolean matchesOrgan(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
+    ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+    return ORGAN_ID.equals(id);
+  }
+
+  private static MultiCooldown.Entry cooldownEntry(ChestCavityInstance cc, ItemStack organ) {
+    OrganState state = OrganState.of(organ, STATE_ROOT);
+    return MultiCooldown.builder(state).withSync(cc, organ).build().entry(KEY_COOLDOWN);
+  }
+
+  private static double resolveEffectiveDaohen(ServerPlayer player, double snapshotValue) {
+    if (Double.isFinite(snapshotValue)) {
+      return Math.max(0.0, snapshotValue);
+    }
+    long now = player.serverLevel().getGameTime();
+    return Math.max(0.0, JiandaoDaohenOps.effectiveCached(player, now));
+  }
+
+  private static int resolveJiandaoLiupaiExp(ServerPlayer player, double snapshotValue) {
+    double value;
+    if (Double.isFinite(snapshotValue)) {
+      value = snapshotValue;
+    } else {
+      value =
+          ResourceOps.openHandle(player)
+              .map(h -> h.read("liupai_jiandao").orElse(0.0))
+              .orElse(0.0);
+    }
+    return (int) Math.max(0L, Math.round(value));
+  }
+
+  private static double computeAttributeMultiplier(double effectiveDaohen) {
+    return 1.0 + Math.max(0.0, effectiveDaohen) / 1000.0;
   }
 
   /**

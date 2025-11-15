@@ -39,9 +39,14 @@ public class PersistentGuCultivatorCloneRenderer
   public ResourceLocation getTextureLocation(PersistentGuCultivatorClone entity) {
     Minecraft minecraft = Minecraft.getInstance();
     if (minecraft != null && minecraft.level != null) {
-      ResourceLocation fallback = entity.getSkinTexture();
+      ResourceLocation rawFallback = entity.getSkinTexture();
       String model = entity.getSkinModel();
-      String skinUrl = guessSkinUrl(fallback);
+      String skinUrl = guessSkinUrl(rawFallback);
+      // 避免在下载完成前请求不存在的 minecraft:skins/<hash> 资源
+      ResourceLocation fallback = rawFallback;
+      if ("minecraft".equals(fallback.getNamespace()) && fallback.getPath().startsWith("skins/")) {
+        fallback = ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
+      }
       var handle =
           new SkinHandle(
               entity.getUUID(),

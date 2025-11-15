@@ -117,6 +117,11 @@ public final class ActivationHookRegistry {
         "^guzhenren:jian_ying_fenshen$",
         new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
 
+    // 多重剑影蛊（器官版）同样需要快照道痕/流派经验
+    SkillEffectBus.register(
+        "^guzhenren:duochongjianying_fenshen$",
+        new ResourceFieldSnapshotEffect("jiandao:", List.of("daohen_jiandao", "liupai_jiandao")));
+
     // 技能效果: 碎刃蛊主动技能需在激活前快照剑道字段（道痕/流派经验）
     SkillEffectBus.register(
         "^guzhenren:sui_ren_gu$",

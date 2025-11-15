@@ -27,7 +27,9 @@ import net.minecraft.world.entity.player.Player;
 public final class PlayerSkinUtil {
 
   private static final ResourceLocation DEFAULT_TEXTURE =
-      ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/steve.png");
+      // 与 1.21 客户端一致的默认皮肤资源位置
+      ResourceLocation.fromNamespaceAndPath(
+          "minecraft", "textures/entity/player/wide/steve.png");
 
   private PlayerSkinUtil() {}
 

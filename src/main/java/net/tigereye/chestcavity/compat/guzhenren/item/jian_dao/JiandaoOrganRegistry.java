@@ -33,6 +33,12 @@ public final class JiandaoOrganRegistry {
           // 多重剑影蛊：主动技能触发分身召唤/召回（重构自物品模式 2025-11-14）
           OrganIntegrationSpec.builder(
                   ResourceLocation.fromNamespaceAndPath(MOD_ID, "duochongjianying"))
+              .addOnHitListener(
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                      .DuochongjianyingGuOrganBehavior.INSTANCE)
+              .addIncomingDamageListener(
+                  net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
+                      .DuochongjianyingGuOrganBehavior.INSTANCE)
               .ensureAttached(
                   net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ
                       .DuochongjianyingGuOrganBehavior.INSTANCE::ensureAttached)

@@ -60,11 +60,13 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
         cloneInventory.startOpen(playerInventory.player);
 
         // ============ 分身物品栏槽位 (7格) ============
-        // 槽位 0-5: 蛊虫槽位 (第一行，横向排列)
-        for (int i = 0; i < GU_SLOTS; i++) {
-            this.addSlot(new GuSlot(cloneInventory, i, 8 + i * 18, 18));
-        }
-
+        // 0 主手、1 副手（食物/金苹果/图腾）、2..5 盔甲、6 增益
+        this.addSlot(new MainHandSlot(cloneInventory, 0, 8 + 0 * 18, 18));
+        this.addSlot(new OffhandConsumableSlot(cloneInventory, 1, 8 + 1 * 18, 18));
+        this.addSlot(new ArmorSlot(cloneInventory, 2, 8 + 2 * 18, 18, net.minecraft.world.entity.EquipmentSlot.HEAD));
+        this.addSlot(new ArmorSlot(cloneInventory, 3, 8 + 3 * 18, 18, net.minecraft.world.entity.EquipmentSlot.CHEST));
+        this.addSlot(new ArmorSlot(cloneInventory, 4, 8 + 4 * 18, 18, net.minecraft.world.entity.EquipmentSlot.LEGS));
+        this.addSlot(new ArmorSlot(cloneInventory, 5, 8 + 5 * 18, 18, net.minecraft.world.entity.EquipmentSlot.FEET));
         // 槽位 6: 增益槽位 (第二行，左侧)
         this.addSlot(new BoostSlot(cloneInventory, BOOST_SLOT, 8, 54));
 
@@ -114,21 +116,27 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
             }
             // 从玩家背包移动到分身物品栏
             else {
-                // 尝试放入蛊虫槽位 (0-5)
-                if (isGuItem(stack)) {
-                    if (!this.moveItemStackTo(stack, 0, GU_SLOTS, false)) {
-                        return ItemStack.EMPTY;
-                    }
+                // 1) 增益物品 → 槽6
+                if (isBoostItem(stack)) {
+                    if (!this.moveItemStackTo(stack, BOOST_SLOT, BOOST_SLOT + 1, false)) return ItemStack.EMPTY;
                 }
-                // 尝试放入增益槽位 (6)
-                else if (isBoostItem(stack)) {
-                    if (!this.moveItemStackTo(stack, BOOST_SLOT, BOOST_SLOT + 1, false)) {
-                        return ItemStack.EMPTY;
-                    }
+                // 2) 盔甲 → 精确槽 2..5
+                else if (isArmorForSlot(stack, net.minecraft.world.entity.EquipmentSlot.HEAD)) {
+                    if (!this.moveItemStackTo(stack, 2, 3, false)) return ItemStack.EMPTY;
+                } else if (isArmorForSlot(stack, net.minecraft.world.entity.EquipmentSlot.CHEST)) {
+                    if (!this.moveItemStackTo(stack, 3, 4, false)) return ItemStack.EMPTY;
+                } else if (isArmorForSlot(stack, net.minecraft.world.entity.EquipmentSlot.LEGS)) {
+                    if (!this.moveItemStackTo(stack, 4, 5, false)) return ItemStack.EMPTY;
+                } else if (isArmorForSlot(stack, net.minecraft.world.entity.EquipmentSlot.FEET)) {
+                    if (!this.moveItemStackTo(stack, 5, 6, false)) return ItemStack.EMPTY;
                 }
-                // 物品不属于任何分身槽位类型
+                // 3) 可食用/金苹果/图腾 → 副手槽1
+                else if (isOffhandConsumable(stack)) {
+                    if (!this.moveItemStackTo(stack, 1, 2, false)) return ItemStack.EMPTY;
+                }
+                // 4) 其他 → 主手槽0
                 else {
-                    return ItemStack.EMPTY;
+                    if (!this.moveItemStackTo(stack, 0, 1, false)) return ItemStack.EMPTY;
                 }
             }
 
@@ -154,42 +162,18 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
         this.cloneInventory.stopOpen(player);
     }
 
-    /**
-     * 检查物品是否为蛊虫
-     */
-    private static boolean isGuItem(ItemStack stack) {
-        return stack.is(ItemTags.create(ResourceLocation.fromNamespaceAndPath("guzhenren", "guchong")));
-    }
-
-    /**
-     * 检查物品是否为增益物品
-     */
+    // 检查物品是否为增益物品
     private static boolean isBoostItem(ItemStack stack) {
         return net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.CloneBoostItemRegistry.isBoostItem(stack.getItem());
     }
 
-    /**
-     * 蛊虫槽位 (仅允许蛊虫)
-     */
-    private static class GuSlot extends Slot {
-        public GuSlot(Container container, int index, int x, int y) {
-            super(container, index, x, y);
-        }
-
-        @Override
-        public boolean mayPlace(@Nonnull ItemStack stack) {
-            return isGuItem(stack);
-        }
-
-        @Override
-        public int getMaxStackSize() {
-            return 1; // 蛊虫不可堆叠
-        }
+    // 主手槽位（允许任意）
+    private class MainHandSlot extends Slot {
+        public MainHandSlot(Container container, int index, int x, int y) { super(container, index, x, y); }
+        @Override public boolean mayPlace(@Nonnull ItemStack stack) { return !stack.isEmpty(); }
     }
 
-    /**
-     * 增益物品槽位 (仅允许 CloneBoostItemRegistry 注册的物品)
-     */
+    // 增益物品槽位 (仅允许 CloneBoostItemRegistry 注册的物品)
     private static class BoostSlot extends Slot {
         public BoostSlot(Container container, int index, int x, int y) {
             super(container, index, x, y);
@@ -206,9 +190,40 @@ public class CloneInventoryMenu extends AbstractContainerMenu {
         }
     }
 
-    /**
-     * 获取分身实体 (仅服务端可用)
-     */
+    // 盔甲槽位（需槽位匹配）
+    private class ArmorSlot extends Slot {
+        private final net.minecraft.world.entity.EquipmentSlot slot;
+        public ArmorSlot(Container container, int index, int x, int y, net.minecraft.world.entity.EquipmentSlot slot) {
+            super(container, index, x, y);
+            this.slot = slot;
+        }
+        @Override
+        public boolean mayPlace(@Nonnull ItemStack stack) {
+            return isArmorForSlot(stack, slot);
+        }
+        @Override public int getMaxStackSize() { return 1; }
+    }
+
+    private static boolean isArmorForSlot(ItemStack stack, net.minecraft.world.entity.EquipmentSlot slot) {
+        if (!(stack.getItem() instanceof net.minecraft.world.item.ArmorItem armor)) return false;
+        return armor.getEquipmentSlot() == slot;
+    }
+
+    // 副手消耗品（食物/金苹果/图腾）
+    private class OffhandConsumableSlot extends Slot {
+        public OffhandConsumableSlot(Container container, int index, int x, int y) { super(container, index, x, y); }
+        @Override public boolean mayPlace(@Nonnull ItemStack stack) { return isOffhandConsumable(stack); }
+    }
+
+    private boolean isOffhandConsumable(ItemStack stack) {
+        boolean golden = stack.is(net.minecraft.world.item.Items.GOLDEN_APPLE)
+                || stack.is(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE);
+        boolean totem = stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING);
+        boolean edible = clone != null && stack.getItem().getFoodProperties(stack, clone) != null;
+        return golden || totem || edible;
+    }
+
+    // 获取分身实体 (仅服务端可用)
     public PersistentGuCultivatorClone getClone() {
         return clone;
     }

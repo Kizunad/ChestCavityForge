@@ -199,6 +199,8 @@ public class ChestCavity {
     event.enqueueWork(SkillHotbarClientData::initialize);
   }
 
+  
+
   public void doServerStuff(FMLDedicatedServerSetupEvent event) {
     // ServerPlayNetworking.registerGlobalReceiver(CCNetworkingPackets.RECEIVED_UPDATE_PACKET_ID,
     // (server, player, handler, buf, sender) -> {

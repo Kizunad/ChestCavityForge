@@ -1,0 +1,11 @@
+{
+  "itemID": "guzhenren:duochongjianying",
+  "organScores": [
+    {"id": "chestcavity:nerves", "value": "2"},
+    {"id": "chestcavity:speed", "value": "0.3"},
+    {"id": "guzhenren:daohen_jiandao", "value": "10"}
+  ],
+  "abilities": [
+    "guzhenren:duochongjianying_fenshen"
+  ]
+}

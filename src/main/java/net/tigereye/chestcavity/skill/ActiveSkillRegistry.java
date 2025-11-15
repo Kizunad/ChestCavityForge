@@ -814,7 +814,7 @@ public final class ActiveSkillRegistry {
         "guzhenren:duochongjianying_fenshen",
         "guzhenren:duochongjianying",
         tags("召唤", "管理"),
-        "召唤/召回蛊修分身；Shift+触发打开分身界面管理蛊虫与增益物品",
+        "召唤/召回蛊修分身；空手Shift+右键分身打开管理界面配置蛊虫与增益物品",
         "compat/guzhenren/item/jian_dao/behavior/organ/DuochongjianyingGuOrganBehavior.java:81",
         () -> {
           ensureClassLoaded(

@@ -28,7 +28,8 @@ public final class SkinResolver {
   private static final Map<String, CompletableFuture<ResourceLocation>> INFLIGHT =
       new ConcurrentHashMap<>();
   private static final ResourceLocation FALLBACK =
-      ResourceLocation.parse("minecraft:textures/entity/steve.png");
+      // 1.21 默认史蒂夫路径（避免旧路径导致 FileNotFound）
+      ResourceLocation.parse("minecraft:textures/entity/player/wide/steve.png");
 
   private SkinResolver() {}
 
