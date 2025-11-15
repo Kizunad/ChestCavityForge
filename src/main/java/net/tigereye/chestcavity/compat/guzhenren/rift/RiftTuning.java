@@ -19,8 +19,8 @@ public final class RiftTuning {
   public static final double MINOR_DAMAGE_RADIUS = 3.5;
 
   // ====== 持续与衰减 ======
-  public static final int MAJOR_BASE_DURATION_TICKS = 120 * 20;
-  public static final int MAJOR_DECAY_INTERVAL_TICKS = 20 * 20;
+  public static final int MAJOR_BASE_DURATION_TICKS = 20 * 20;
+  public static final int MAJOR_DECAY_INTERVAL_TICKS = 5 * 20;
   public static final double MAJOR_INITIAL_DAMAGE_MULTIPLIER = 1.0;
   public static final double MAJOR_DECAY_STEP = 0.2; // 每次衰减-20%
   public static final double MAJOR_MIN_DAMAGE_MULTIPLIER = 0.2;

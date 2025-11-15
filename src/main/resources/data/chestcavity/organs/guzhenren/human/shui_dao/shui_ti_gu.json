@@ -2,7 +2,7 @@
   "itemID": "guzhenren:shui_ti_gu",
   "organScores": [
     {"id":"chestcavity:strength","value": "12"},
-    {"id":"chestcavity:speed","value": "12"},
+    {"id":"chestcavity:speed","value": "0.12"},
     {"id":"chestcavity:defense","value": "0.5"}
   ]
 }

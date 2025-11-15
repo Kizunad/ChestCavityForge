@@ -11,13 +11,17 @@ import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.cost.ResourceCost;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianSuoGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.behavior.organ.JianSuoGuState;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JianSuoCalc;
+import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.calculator.JiandaoCooldownOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.runtime.jian_suo.JianSuoRuntime;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.tuning.JianSuoGuTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,16 +95,27 @@ public final class JianSuoGuActive {
       return false;
     }
 
-    // 4. 计算参数
+    // 4. 计算参数（按三/四/五转分别配置基础伤害与基础冷却；伤害受道痕线性增幅；冷却受剑道流派经验线性减免，最低1秒）
     double dashDist = JianSuoCalc.dashDistance(daohen);
-    double velocity = player.getDeltaMovement().length();
-    double damage = JianSuoCalc.pathDamage(daohen, velocity);
-    int cdTicks = JianSuoCalc.activeCooldown(daohen);
+
+    // 读取转数（基于器官物品ID）
+    ResourceLocation organId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+    TierParams tier = TierParams.fromOrganId(organId);
+
+    // 伤害 = 基础伤害 * (1 + 道痕/1000)
+    double damage = tier.baseDamage * (1.0 + (daohen / 1000.0));
+
+    // 冷却：基础冷却(秒) -> ticks，再按流派经验减免，最低 1 秒
+    // 优先读取快照（若未来由 SkillEffectBus 提供）；当前直接读取实时资源
+    int liupaiExp = (int) Math.floor(
+        handle.read("jiandao:liupai_jiandao").orElse(0.0));
+    long baseCdTicks = Math.round(tier.baseCooldownSeconds * 20.0);
+    int cdTicks = (int) JiandaoCooldownOps.withJiandaoExp(baseCdTicks, liupaiExp, 20L);
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "[JianSuoGuActive] daohen={}, dashDist={}, damage={}, cd={}",
-          daohen, dashDist, damage, cdTicks);
+          "[JianSuoGuActive] tier={}, daohen={}, liupai={}, dashDist={}, damage={}, cdTicks={}",
+          tier.name(), daohen, liupaiExp, dashDist, damage, cdTicks);
     }
 
     // 5. 消耗资源
@@ -174,5 +189,39 @@ public final class JianSuoGuActive {
     Vec3 lookAngle = entity.getLookAngle();
     Vec3 horizontal = new Vec3(lookAngle.x, 0, lookAngle.z);
     return horizontal.lengthSqr() > 0.01 ? horizontal.normalize() : lookAngle.normalize();
+  }
+}
+
+/**
+ * 剑梭蛊三/四/五转参数。
+ *
+ * <p>KISS：仅维持基础伤害与基础冷却两个参数，其他逻辑复用现有实现。
+ */
+final class TierParams {
+  final double baseDamage;
+  final double baseCooldownSeconds;
+
+  private TierParams(double baseDamage, double baseCooldownSeconds) {
+    this.baseDamage = baseDamage;
+    this.baseCooldownSeconds = baseCooldownSeconds;
+  }
+
+  static TierParams fromOrganId(ResourceLocation id) {
+    if (id != null) {
+      if (id.equals(JianSuoGuOrganBehavior.ORGAN_ID_3)) {
+        // 三转：基础伤害100，基础冷却10s
+        return new TierParams(100.0, 10.0);
+      }
+      if (id.equals(JianSuoGuOrganBehavior.ORGAN_ID_4)) {
+        // 四转：基础伤害1000，基础冷却8s
+        return new TierParams(1000.0, 8.0);
+      }
+      if (id.equals(JianSuoGuOrganBehavior.ORGAN_ID_5)) {
+        // 五转：基础伤害5000，基础冷却6s
+        return new TierParams(5000.0, 6.0);
+      }
+    }
+    // 兜底：按三转处理
+    return new TierParams(100.0, 10.0);
   }
 }

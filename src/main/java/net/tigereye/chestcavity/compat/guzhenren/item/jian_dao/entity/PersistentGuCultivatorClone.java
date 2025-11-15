@@ -57,7 +57,7 @@ import kizuna.guzhenren_event_ext.common.util.GuCultivatorPersistentUtil;
  *   <li>可召唤/召回（序列化到物品NBT）
  * </ul>
  */
-public class PersistentGuCultivatorClone extends PathfinderMob {
+public class PersistentGuCultivatorClone extends PathfinderMob implements OwnableEntity {
 
     // ============ 同步数据 (EntityDataAccessor) ============
     private static final EntityDataAccessor<Optional<UUID>> OWNER =
@@ -656,6 +656,21 @@ public class PersistentGuCultivatorClone extends PathfinderMob {
                 .filter(e -> e instanceof LivingEntity)
                 .map(e -> (LivingEntity) e)
                 .orElse(null);
+    }
+
+    // ============ OwnableEntity 接口实现 ============
+
+    @Override
+    @Nullable
+    public LivingEntity getOwner() {
+        return getOwnerEntity();
+    }
+
+    @Override
+    @Nullable
+    public java.util.UUID getOwnerUUID() {
+        java.util.Optional<java.util.UUID> id = this.entityData.get(OWNER);
+        return id.orElse(null);
     }
 
     /**
