@@ -10,7 +10,6 @@
     "冷却：基础 {JianYuGuTuning.COOLDOWN_BASE_S} 秒，最低可压到 {JianYuGuTuning.COOLDOWN_MIN_S} 秒",
     "防护：持续期维持正面约 60° 锥形额外减伤 {JianYuGuTuning.FRONT_CONE_EXTRA_REDUCTION}，锥形半角 cos = {JianYuGuTuning.FRONT_CONE_HALF_ANGLE_COS}",
     "广播：每秒重新计算并广播“剑域系数”，小域有偏置加成",
-    "属性：+80 剑道道痕，+32 防御",
     "----",
     "剑道道痕：80",
     "防御：32"

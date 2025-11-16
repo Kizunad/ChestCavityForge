@@ -7,7 +7,6 @@
     "被动·残像：暴击后 {JianYingTuning.AFTERIMAGE_DELAY_TICKS} tick 留残像，持续 {JianYingTuning.AFTERIMAGE_DURATION_TICKS} tick 后在 {JianYingTuning.AFTERIMAGE_RADIUS} 格内爆裂，造成 {JianYingTuning.AFTERIMAGE_DAMAGE_RATIO} ×基伤",
     "主动·分身：冷却 {JianYingTuning.CLONE_COOLDOWN_TICKS} tick，持续 {JianYingTuning.CLONE_DURATION_TICKS} tick，分身伤害 {JianYingTuning.CLONE_DAMAGE_RATIO} ×本体，消耗约 50 精力+4000 真元；命中附剑痕并附带缓慢",
     "影袭限流：对同一目标触发间隔至少 {JianYingTuning.ON_HIT_COOLDOWN_TICKS} tick",
-    "属性：神经 +1，速度 +0.4",
     "----",
     "神经 (挖掘速度,攻速相关)：1",
     "速度：0.4"

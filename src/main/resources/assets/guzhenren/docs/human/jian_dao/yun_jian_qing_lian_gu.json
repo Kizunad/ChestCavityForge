@@ -9,7 +9,6 @@
     "被动·恢复：每秒魂魄 +{YunJianQingLianGuTuning.HUNPO_REGEN_PER_SEC}、生命 +{YunJianQingLianGuTuning.HEALTH_REGEN_PER_SEC}",
     "被动·致命守护：致命伤害时消耗真元完全格挡；冷却 {YunJianQingLianGuTuning.SHIELD_COOLDOWN_SEC} 秒；耗真元=伤害×{YunJianQingLianGuTuning.SHIELD_COST_MULT}（仅当生命低于 {YunJianQingLianGuTuning.SHIELD_LETHAL_THRESHOLD} 触发）",
     "AI：非玩家战斗时自动开启，脱战 5 秒收回",
-    "属性：+200 剑道道痕，速度 +1.0，防御 -32",
     "----",
     "剑道道痕：200",
     "速度：1",
