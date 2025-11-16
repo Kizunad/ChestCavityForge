@@ -11,7 +11,7 @@
     "防护：持续期维持正面约 60° 锥形额外减伤 {JianYuGuTuning.FRONT_CONE_EXTRA_REDUCTION}，锥形半角 cos = {JianYuGuTuning.FRONT_CONE_HALF_ANGLE_COS}",
     "广播：每秒重新计算并广播“剑域系数”，小域有偏置加成",
     "----",
-    "剑道道痕：80",
+    "剑道道痕：10",
     "防御：32"
   ],
   "tags": [

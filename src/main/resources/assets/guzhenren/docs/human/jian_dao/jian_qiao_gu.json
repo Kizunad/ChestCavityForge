@@ -7,7 +7,7 @@
     "归鞘修复：召回/夺取时若资源充足，最多修复 {JianQiaoGuTuning.MAX_REPAIR_PERCENT} 耐久，平均每 1% 修复消耗 {JianQiaoGuTuning.REPAIR_JINGLI_PER_PERCENT} 精力",
     "主动·收剑令：冷却 {JianQiaoGuTuning.ACTIVE_COOLDOWN_T} tick，在 {JianQiaoGuTuning.SEIZE_RANGE} 格内尝试夺取敌方可召回飞剑；需道痕与流派经验均 ≥ 对手 2 倍，成功后立即归鞘并触发修复",
     "----",
-    "剑道道痕：120",
+    "剑道道痕：12",
     "神经 (挖掘速度,攻速相关)：1"
   ],
   "tags": [

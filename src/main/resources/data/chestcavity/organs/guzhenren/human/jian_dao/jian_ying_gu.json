@@ -2,7 +2,9 @@
   "itemID": "guzhenren:jian_ying_gu",
   "organScores": [
     {"id": "chestcavity:nerves", "value": "1"},
-    {"id": "chestcavity:speed", "value": "0.4"}
+    {"id": "chestcavity:speed", "value": "0.4"},
+    {"id": "guzhenren:daohen_jiandao", "value": "8.0"}
+
   ]
 }
 

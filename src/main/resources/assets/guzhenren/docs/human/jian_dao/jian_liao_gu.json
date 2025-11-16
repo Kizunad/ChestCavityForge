@@ -7,7 +7,7 @@
     "被动·剑阵互补：每 {JianLiaoGuTuning.SWORD_REPAIR_PERIOD_T} tick 检查，低于 {JianLiaoGuTuning.LOW_DURABILITY_THRESHOLD} 的飞剑会被健康者平摊修复，单次最高 {JianLiaoGuTuning.TARGET_ONCE_CAP_RATIO} 耐久",
     "主动·剑血互济：立即消耗 {JianLiaoGuTuning.ACTIVE_HP_SPEND_RATIO} 最大生命（保底留 1），按消耗量×道痕提升修复效率 {JianLiaoGuTuning.EFFICIENCY_PER_100_SCAR} /100道痕，基础冷却 {JianLiaoGuTuning.ACTIVE_BASE_COOLDOWN_T} tick，可降至 {JianLiaoGuTuning.ACTIVE_MIN_COOLDOWN_T} tick（按 {JianLiaoGuTuning.COOLDOWN_REDUCTION_PER_100_SCAR} /100道痕，最多减至 {JianLiaoGuTuning.COOLDOWN_REDUCTION_CAP}）",
     "----",
-    "剑道道痕：24",
+    "剑道道痕：2.4",
     "生命值：6"
   ],
   "tags": [

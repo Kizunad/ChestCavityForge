@@ -1,6 +1,9 @@
 {
   "itemID": "guzhenren:jianjigu",
   "organScores": [
-    { "id": "guzhenren:daohen_jiandao", "value": "100.0" }
+    { "id": "guzhenren:daohen_jiandao", "value": "10.0" },
+    { "id": "chestcavity:defense", "value": "-5.0" },
+    { "id": "chestcavity:strength", "value": "5.0" },
+    { "id": "chestcavity:health", "value": "-3.0" }
   ]
 }

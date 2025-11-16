@@ -1,7 +1,7 @@
 {
   "itemID": "guzhenren:jiansuoguwuzhuan",
   "organScores": [
-    { "id": "guzhenren:daohen_jiandao", "value": "120.0" },
+    { "id": "guzhenren:daohen_jiandao", "value": "12.0" },
     { "id": "chestcavity:speed", "value": "-4.0" },
     { "id": "chestcavity:strength", "value": "-10.0" }
   ]

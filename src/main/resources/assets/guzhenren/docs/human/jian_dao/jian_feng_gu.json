@@ -7,7 +7,7 @@
     "生成飞剑：四转生成 {JianFengGuTuning.SPAWN_COUNT_FOUR} 把，五转 {JianFengGuTuning.SPAWN_COUNT_FIVE} 把，随侍环绕",
     "协同突击：当距离 ≤{JianFengGuTuning.COOP_TRIGGER_RANGE} 格的目标遭到高额一击时触发协同；两次协同最小间隔 {JianFengGuTuning.COOP_MIN_INTERVAL_TICKS} tick，OnHit 节流 {JianFengGuTuning.COOP_COOLDOWN_TICKS} tick，协同伤害继承 {JianFengGuTuning.COOP_DAMAGE_BASE_MULT} 倍",
     "被动·意随形动：每 {JianFengGuTuning.COOP_COUNT_FOR_RESONANCE} 次协同触发“剑意共振”，基础持续 {JianFengGuTuning.RESONANCE_BASE_DURATION_TICKS} tick，并为飞剑提供 {JianFengGuTuning.RESONANCE_BASE_SPEED_BONUS} 速度增幅",
-    "属性：四转=剑道道痕 +80 / 速 +0.02 / 防 -20 / 力量 +2；五转=剑道道痕 +140 / 速 +0.04 / 防 -40 / 力量 +4"
+    "属性：四转=剑道道痕 +8 / 速 +0.02 / 防 -20 / 力量 +2；五转=剑道道痕 +14 / 速 +0.04 / 防 -40 / 力量 +4"
   ],
   "tags": [
     "剑锋蛊",

@@ -1,7 +1,8 @@
 {
   "itemID": "guzhenren:jian_liao_gu",
   "organScores": [
-    {"id": "guzhenren:daohen_jiandao", "value": "24.0"},
-    {"id": "chestcavity:health", "value": "6.0"}
+    {"id": "guzhenren:daohen_jiandao", "value": "2.4"},
+    {"id": "chestcavity:health", "value": "6.0"},
+    {"id": "chestcavity:defense", "value": "-4.0"}
   ]
 }

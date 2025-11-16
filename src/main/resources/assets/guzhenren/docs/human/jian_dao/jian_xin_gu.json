@@ -8,7 +8,7 @@
     "剑势系统：最大剑势层数 {JianXinGuTuning.MAX_MOMENTUM} 层，充能越多，域压越强",
     "被动·定心返本：定心值满时清除负面并在 {JianXinGuTuning.FREEZE_ON_BREAK_T} tick 内免受打断",
     "----",
-    "剑道道痕：100",
+    "剑道道痕：10",
     "速度：1",
     "防御：-32"
   ],

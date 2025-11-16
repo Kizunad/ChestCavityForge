@@ -19,9 +19,9 @@
     "参数：基础剑气伤害 {JianQiGuTuning.BASE_DAMAGE}，最远 {JianQiGuTuning.MAX_RANGE} 格，剑光速度 {JianQiGuTuning.SLASH_SPEED} 格/tick，命中衰减 {JianQiGuTuning.DECAY_RATE}，威能低于 {JianQiGuTuning.MIN_DAMAGE_RATIO} 自行熄灭，剑光宽 {JianQiGuTuning.SLASH_WIDTH} 格，技能冷却 {JianQiGuTuning.COOLDOWN_TICKS} tick",
     "断势：每 {JianQiGuTuning.DUANSHI_STACK_THRESHOLD} 次有效命中叠 1 层，使下一次伤害 +{JianQiGuTuning.DUANSHI_POWER_BONUS} 并抵消 {JianQiGuTuning.DUANSHI_DECAY_GRACE} 次衰减；若 {JianQiGuTuning.STACK_EXPIRE_TICKS} tick 未再施放即清空",
     "----",
-    "剑道道痕：100",
+    "剑道道痕：10",
     "防御：-40",
-    "速度：0.05",
+    "速度：0.5",
     "力量：20"
   ],
   "tags": [

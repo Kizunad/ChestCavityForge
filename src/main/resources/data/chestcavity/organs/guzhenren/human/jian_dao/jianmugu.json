@@ -2,6 +2,7 @@
   "itemID": "guzhenren:jianmugu",
   "organScores": [
     {"id": "chestcavity:defense", "value": "10"},
-    {"id": "guzhenren:daohen_jiandao", "value": "200"}
+    {"id": "guzhenren:daohen_jiandao", "value": "20"},
+    {"id": "chestcavity:speed", "value": "-0.1"}
   ]
 }

@@ -10,7 +10,7 @@
     "被动·致命守护：致命伤害时消耗真元完全格挡；冷却 {YunJianQingLianGuTuning.SHIELD_COOLDOWN_SEC} 秒；耗真元=伤害×{YunJianQingLianGuTuning.SHIELD_COST_MULT}（仅当生命低于 {YunJianQingLianGuTuning.SHIELD_LETHAL_THRESHOLD} 触发）",
     "AI：非玩家战斗时自动开启，脱战 5 秒收回",
     "----",
-    "剑道道痕：200",
+    "剑道道痕：20",
     "速度：1",
     "防御：-32"
   ],
