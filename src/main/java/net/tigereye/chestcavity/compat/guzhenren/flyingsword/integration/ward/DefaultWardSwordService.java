@@ -294,7 +294,7 @@ public class DefaultWardSwordService implements WardSwordService {
     // 实际分配的飞剑数量 = min(需要的数量, 可用的数量)
     int actualSwords = Math.min(requiredSwords, availableSwords.size());
 
-    LOGGER.info(
+    LOGGER.debug(
         "[WardDebug] Damage: {}, MaxHealth: {}, Required: {}, Available: {}, Actual: {}",
         damageAmount,
         owner.getMaxHealth(),
@@ -814,7 +814,7 @@ public class DefaultWardSwordService implements WardSwordService {
     int afterClean = swords.size();
 
     if (beforeClean != afterClean) {
-      LOGGER.info(
+      LOGGER.debug(
           "[WardDebug] Cleaned {} removed swords, remaining: {}",
           beforeClean - afterClean,
           afterClean);
