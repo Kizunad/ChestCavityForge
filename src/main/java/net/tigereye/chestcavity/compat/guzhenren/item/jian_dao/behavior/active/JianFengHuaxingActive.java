@@ -44,15 +44,10 @@ public final class JianFengHuaxingActive {
   private JianFengHuaxingActive() {}
 
   /**
-   * 激活剑锋蛊能力。
+   * 切换剑锋蛊能力（开关化）。
    *
-   * @param player 玩家
-   * @param cc 玩家的胸腔实例
-   * @param organ 剑锋蛊器官物品
-   * @param state 器官状态
-   * @param cooldown 冷却管理器
-   * @param now 当前游戏时间（tick）
-   * @return 是否成功激活
+   * <p>开启：按转数扣除 BURST 阶段1真元 -> 生成飞剑 -> 冷却；
+   * 关闭：直接回收飞剑，不扣费。
    */
   public static boolean activate(
       ServerPlayer player,
@@ -64,23 +59,15 @@ public final class JianFengHuaxingActive {
 
     ServerLevel level = player.serverLevel();
 
-    // 1. 检查冷却
-    MultiCooldown.Entry readyEntry =
-        cooldown.entry("ready_tick").withDefault(0L);
-    if (now < readyEntry.getReadyTick()) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "[JianFengHuaxingActive] On cooldown, remaining: {} ticks",
-            readyEntry.getReadyTick() - now);
-      }
-      return false;
-    }
+    MultiCooldown.Entry readyEntry = cooldown.entry("ready_tick").withDefault(0L);
 
     // 2. 确定转数（四转/五转）
     ResourceLocation organId = BuiltInRegistries.ITEM.getKey(organ.getItem());
     boolean isFiveTurn = organId != null && organId.getPath().equals(JianFengGuTuning.ORGAN_ID_FIVE);
     int swordCount = isFiveTurn ? JianFengGuTuning.SPAWN_COUNT_FIVE : JianFengGuTuning.SPAWN_COUNT_FOUR;
-    double zhenyuanCost = isFiveTurn ? JianFengGuTuning.COST_ZHENYUAN_FIVE : JianFengGuTuning.COST_ZHENYUAN_FOUR;
+    double zhenyuanCost = isFiveTurn
+        ? JianFengGuTuning.BURST_STAGE1_ZHENYUAN_FIVE
+        : JianFengGuTuning.BURST_STAGE1_ZHENYUAN_FOUR;
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
@@ -103,7 +90,38 @@ public final class JianFengHuaxingActive {
     GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
     double daohen = handle.read("daohen_jiandao").orElse(0.0);
 
-    // 4. 消耗资源
+    // 4. 开关逻辑：若已开启则关闭
+    boolean currentlyActive = !state.getList("spawned_sword_ids", 3).isEmpty();
+    if (currentlyActive) {
+      net.minecraft.nbt.ListTag list = state.getList("spawned_sword_ids", 3);
+      int removed = 0;
+      for (int i = 0; i < list.size(); i++) {
+        int id = list.getInt(i);
+        net.minecraft.world.entity.Entity e = level.getEntity(id);
+        if (e instanceof FlyingSwordEntity fs && fs.isAlive()) {
+          fs.discard();
+          removed++;
+        }
+      }
+      state.remove("spawned_sword_ids");
+      state.setLong("active_until", 0L);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("[JianFengHuaxingActive] Deactivated, despawned {} swords", removed);
+      }
+      return true;
+    }
+
+    // 未开启 -> 检查冷却
+    if (now < readyEntry.getReadyTick()) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "[JianFengHuaxingActive] On cooldown, remaining: {} ticks",
+            readyEntry.getReadyTick() - now);
+      }
+      return false;
+    }
+
+    // 消耗资源（仅真元）
     ResourceCost cost =
         new ResourceCost(
             zhenyuanCost,
@@ -114,7 +132,7 @@ public final class JianFengHuaxingActive {
             0.0f // health
         );
 
-    if (!ResourceOps.payCost(player, cost, "剑锋蛊")) {
+    if (!ResourceOps.payCost(player, cost, "剑锋蛊(BURST-1)")) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("[JianFengHuaxingActive] Insufficient resources");
       }
@@ -168,9 +186,8 @@ public final class JianFengHuaxingActive {
     }
     state.setList("spawned_sword_ids", swordIdList);
 
-    // 7. 设置主动态持续时间
-    long activeUntil = now + JianFengGuTuning.ACTIVE_BASE_DURATION_TICKS;
-    state.setLong("active_until", activeUntil);
+    // 7. 持续：开关化不再设置固定持续时间（active_until=0 表示常驻）
+    state.setLong("active_until", 0L);
 
     // 8. 重置协同计数
     state.setInt("coop_count", 0);
@@ -192,9 +209,8 @@ public final class JianFengHuaxingActive {
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "[JianFengHuaxingActive] Activated! Spawned {} swords, active until {}, cooldown until {}",
+          "[JianFengHuaxingActive] Activated! Spawned {} swords, cooldown until {}",
           swordIds.size(),
-          activeUntil,
           readyAt);
     }
 

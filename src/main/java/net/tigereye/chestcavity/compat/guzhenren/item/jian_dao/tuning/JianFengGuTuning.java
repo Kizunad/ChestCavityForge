@@ -35,12 +35,16 @@ public final class JianFengGuTuning {
   /** 主动期间近战伤害加成倍率（10%） */
   public static final double ACTIVE_BONUS_DAMAGE_MULT = 0.10;
 
-  /** 真元消耗（四转：BURST Tier 4-1，五转：BURST Tier 5-1） */
-  public static final double COST_ZHENYUAN_FOUR = 60.0;
-  public static final double COST_ZHENYUAN_FIVE = 100.0;
+  /**
+   * 开关化：BURST 第1阶段真元消耗（四/五转）
+   *
+   * <p>用于主动技能开关开启时的一次性扣费；关闭不扣费。
+   */
+  public static final double BURST_STAGE1_ZHENYUAN_FOUR = 60.0;
+  public static final double BURST_STAGE1_ZHENYUAN_FIVE = 100.0;
 
-  /** 精力消耗 */
-  public static final double COST_JINGLI = 20.0;
+  /** 精力按开关化需求保持为0（仅扣真元） */
+  public static final double COST_JINGLI = 0.0;
 
   /** 冷却时间（ticks）= 20秒 */
   public static final int COOLDOWN_TICKS = 400;
@@ -58,11 +62,12 @@ public final class JianFengGuTuning {
 
   // ========== 高额一击协同 ==========
 
-  /** 四转高额一击阈值 */
-  public static final float HIGH_HIT_THRESHOLD_FOUR = 100.0f;
-
-  /** 五转高额一击阈值 */
-  public static final float HIGH_HIT_THRESHOLD_FIVE = 500.0f;
+  /**
+   * 协同触发范围：取消伤害阈值，改为距离触发。
+   *
+   * <p>当攻击目标与施术者距离小于等于该值时触发协同。
+   */
+  public static final double COOP_TRIGGER_RANGE = 6.0;
 
   /** 两次协同触发最小间隔（ticks，去抖） */
   public static final int COOP_MIN_INTERVAL_TICKS = 10;
@@ -96,6 +101,11 @@ public final class JianFengGuTuning {
 
   /** 五转共振额外速度加成（+25%） */
   public static final double RESONANCE_FIVE_BONUS = 0.25;
+
+  // ========== 额外特性 ==========
+
+  /** 协同触发时，命中改为 magic 伤害的概率 */
+  public static final double MAGIC_HIT_PROBABILITY = 0.25; // 25%
 
   // ========== 非玩家自动化 ==========
 

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/stat_change/high_zhenyuan_thunder_tribulation",
+    "enabled": true,
+    "trigger_once": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "zhenyuan",
+      "to": {
+        "min_percent": 0.9
+      }
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.005
+      },
+      {
+        "type": "guzhenren:player_daohen",
+        "field": "daohen_leidao",
+        "min": 100
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§e【天劫降临】你的真元充盈引得雷道蛊仙注意，特意引动九天雷劫！渡过此劫，方可更进一步！"
+      },
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "promote_to_same_realm": true,
+        "health_multiplier": 10.5,
+        "damage_multiplier": 1.5,
+        "speed_multiplier": 1.2,
+        "min_distance": 10.0,
+        "max_distance": 64.0,
+        "custom_name": "§d天雷蛊仙的化身",
+        "entity_tag": "thunder_tribulation",
+        "dialogue_message": "§b小娃娃，吾看你资质不错！特意用雷霆洗礼你的道心！",
+        "preferred_dao_tags": ["leidao"],
+        "notification_message": "§e天雷化身降临，是福是祸？"
+      }
+    ]
+  }
+]

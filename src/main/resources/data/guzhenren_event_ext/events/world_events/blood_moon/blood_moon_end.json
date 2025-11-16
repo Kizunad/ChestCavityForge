@@ -4,7 +4,8 @@
     "enabled": true,
     "trigger": {
       "type": "guzhenren_event_ext:player_stat_change",
-      "stat": "zhenyuan"
+      "stat": "zhenyuan",
+      "to": { "min_percent": 0.0 }
     },
     "conditions": [
       {

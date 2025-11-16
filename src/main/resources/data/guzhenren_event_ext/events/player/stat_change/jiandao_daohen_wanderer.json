@@ -15,8 +15,8 @@
       {
         "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
         "count": 1,
-        "min_distance": 8.0,
-        "max_distance": 16.0,
+        "min_distance": 16.0,
+        "max_distance": 64.0,
         "promote_to_same_realm": true,
         "entity_id": "guzhenren:zhongzhounvgushi",
         "custom_name": "§b§l流浪剑士",
@@ -25,7 +25,7 @@
         "custom_daohen": [
           {
             "daohen": "daohen_jiandao",
-            "value": 200.0,
+            "value": 2000.0,
             "override": false
           }
         ]

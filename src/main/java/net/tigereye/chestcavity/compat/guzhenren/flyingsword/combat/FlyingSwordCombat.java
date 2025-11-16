@@ -145,9 +145,12 @@ public final class FlyingSwordCombat {
         String.format("%.2f", levelScale));
 
     // 检查目标状态
-    // 创建伤害源（如果owner是Player则使用playerAttack，否则使用mobAttack）
+    // 创建伤害源（支持一次性 magic 覆盖）
     DamageSource damageSource;
-    if (owner instanceof Player player) {
+    boolean useMagic = sword.consumeNextHitMagic();
+    if (useMagic) {
+      damageSource = sword.damageSources().magic();
+    } else if (owner instanceof Player player) {
       damageSource = sword.damageSources().playerAttack(player);
     } else {
       damageSource = sword.damageSources().mobAttack(owner);
@@ -197,6 +200,19 @@ public final class FlyingSwordCombat {
       if (sword.level() instanceof ServerLevel serverLevel) {
         FlyingSwordFX.spawnAttackImpact(
             serverLevel, sword, target.position().add(0, target.getBbHeight() / 2, 0), damage);
+        // 若为magic命中，追加暴击粒子
+        if (useMagic) {
+          serverLevel.sendParticles(
+              net.minecraft.core.particles.ParticleTypes.CRIT,
+              target.getX(),
+              target.getY() + target.getBbHeight() * 0.5,
+              target.getZ(),
+              8,
+              0.3,
+              0.3,
+              0.3,
+              0.2);
+        }
       }
 
       // 耐久损耗（可被钩子跳过）

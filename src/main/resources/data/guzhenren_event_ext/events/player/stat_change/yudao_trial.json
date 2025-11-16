@@ -1,0 +1,48 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/stat_change/yudao_trial",
+    "enabled": true,
+    "trigger_once": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "daohen_yudao",
+      "to": {
+        "min": 1500
+      }
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.008
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§6【宇道试炼】宇道道痕深厚,引来宇道巨擘!!"
+      },
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "promote_to_same_realm": true,
+        "health_multiplier": 15.0,
+        "damage_multiplier": 1.6,
+        "speed_multiplier": 0.9,
+        "min_distance": 8.0,
+        "max_distance": 32.0,
+        "custom_name": "§6宇道巨擘",
+        "entity_tag": "yudao_trial",
+        "dialogue_message": "§e小子,你的宇道道痕有点多啊!",
+        "preferred_dao_tags": ["yudao"],
+        "custom_daohen": [
+          {
+            "daohen": "daohen_yudao",
+            "value": 1000,
+            "override": false
+          }
+        ],
+        "notification_message": "§6宇道巨擘降临!"
+      }
+    ]
+  }
+]

@@ -100,6 +100,10 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
 
   private int age = 0;
 
+  // ========== 临时战斗标记 ==========
+  /** 下一次命中是否以 magic 伤害类型结算（一次性消费） */
+  private boolean nextHitMagic = false;
+
   // ========== 护幕运行期字段 ==========
   /** 是否为护幕飞剑 */
   private boolean wardSword = false;
@@ -136,6 +140,22 @@ public class FlyingSwordEntity extends PathfinderMob implements OwnableEntity {
     // 避免因远离玩家而被原版自动清除（vanilla checkDespawn），飞剑应作为持久实体存在
     this.setPersistenceRequired();
     this.attributes = FlyingSwordAttributes.createDefault();
+  }
+
+  /** 将下一次命中标记为 magic 伤害类型。 */
+  public void markNextHitAsMagic() {
+    this.nextHitMagic = true;
+  }
+
+  /**
+   * 消费“下一次magic命中”标记。
+   *
+   * @return 若本次应使用 magic 伤害，则返回 true 并清除标记
+   */
+  public boolean consumeNextHitMagic() {
+    boolean v = this.nextHitMagic;
+    this.nextHitMagic = false;
+    return v;
   }
 
   // ========== 骑乘常量 ==========

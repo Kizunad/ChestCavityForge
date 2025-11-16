@@ -1,0 +1,44 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/special_killed/lidao_trial_reward",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:special_entity_killed",
+      "entity_tag": "lidao_trial"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§a【力道试炼完成】力道蛊修被你击败!赐予你:力道道痕+200,生命上限×1.15!"
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "daohen_lidao",
+        "operation": "add",
+        "value": 200
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "zuida_health",
+        "operation": "multiply",
+        "value": 1.15
+      },
+      {
+        "type": "guzhenren_event_ext:run_command",
+        "command": "give @s guzhenren:xindelidaodashiweicanwu 1"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "力道蛊修认可",
+        "value": true
+      }
+    ]
+  }
+]

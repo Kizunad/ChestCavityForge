@@ -62,17 +62,17 @@ public final class WardSwordDamageEvents {
     }
 
     // === 调试日志 ===
-    LOGGER.debug(
+    LOGGER.info(
         "[WardDebug] Player {} taking damage from {}",
         player.getName().getString(),
         event.getSource().getMsgId());
 
     // 检查玩家的护幕是否激活(使用与PlayerTickEvents相同的逻辑)
     boolean wardActive = isWardActive(player);
-    LOGGER.debug("[WardDebug] Ward active: {}", wardActive);
+    LOGGER.info("[WardDebug] Ward active: {}", wardActive);
 
     if (!wardActive) {
-      LOGGER.debug("[WardDebug] Skipping - ward not active");
+      LOGGER.info("[WardDebug] Skipping - ward not active");
       return;
     }
 
@@ -81,31 +81,31 @@ public final class WardSwordDamageEvents {
 
     // 如果没有护幕飞剑，跳过
     boolean hasSwords = service.hasWardSwords(player);
-    LOGGER.debug("[WardDebug] Has ward swords: {}", hasSwords);
+    LOGGER.info("[WardDebug] Has ward swords: {}", hasSwords);
 
     if (!hasSwords) {
-      LOGGER.debug("[WardDebug] Skipping - no ward swords");
+      LOGGER.info("[WardDebug] Skipping - no ward swords");
       return;
     }
 
     // 构建 IncomingThreat 对象
     IncomingThreat threat = buildThreat(event.getSource(), player);
     if (threat == null) {
-      LOGGER.debug("[WardDebug] Skipping - could not build threat from damage source");
+      LOGGER.info("[WardDebug] Skipping - could not build threat from damage source");
       return;
     }
 
-    LOGGER.debug("[WardDebug] Built threat: {}", threat.describe());
+    LOGGER.info("[WardDebug] Built threat: {}", threat.describe());
 
     // 获取原始伤害值(减伤前)
     float originalDamage = event.getAmount();
-    LOGGER.debug("[WardDebug] Original damage: {} HP", originalDamage);
+    LOGGER.info("[WardDebug] Original damage: {} HP", originalDamage);
 
     try {
       // 尝试拦截 - 传入伤害值用于计算需要分配的飞剑数量
       boolean intercepted = service.onIncomingThreat(threat, originalDamage);
 
-      LOGGER.debug("[WardDebug] Intercept result: {}", intercepted);
+      LOGGER.info("[WardDebug] Intercept result: {}", intercepted);
 
       if (intercepted) {
         LOGGER.info(
@@ -119,7 +119,7 @@ public final class WardSwordDamageEvents {
         float reducedDamage = originalDamage * WardConfig.ARMOR_PENETRATION_FACTOR;
         event.setAmount(reducedDamage);
 
-        LOGGER.debug(
+        LOGGER.info(
             "Damage reduced from {} to {} ({}% armor penetration)",
             originalDamage, reducedDamage, (int) (WardConfig.ARMOR_PENETRATION_FACTOR * 100));
       }

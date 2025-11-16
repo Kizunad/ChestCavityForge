@@ -1,0 +1,24 @@
+{
+  "triggers": [
+    "guzhenren_event_ext:player_obtained_item",
+    "guzhenren_event_ext:player_stat_change",
+    "guzhenren_event_ext:special_entity_killed"
+  ],
+  "conditions": [
+    "guzhenren:player_daode",
+    "guzhenren:player_daohen",
+    "guzhenren:player_health_percent",
+    "guzhenren_event_ext:check_entity_tag",
+    "guzhenren_event_ext:check_variable",
+    "minecraft:random_chance"
+  ],
+  "actions": [
+    "guzhenren_event_ext:adjust_player_stat",
+    "guzhenren_event_ext:give_item",
+    "guzhenren_event_ext:remove_variable",
+    "guzhenren_event_ext:run_command",
+    "guzhenren_event_ext:send_message",
+    "guzhenren_event_ext:set_variable",
+    "guzhenren_event_ext:spawn_hostile_gucultivator"
+  ]
+}

@@ -48,7 +48,7 @@ public final class JianmuGuTuning {
   public static final int MIN_WARD_SWORDS = 1;
 
   /** 环绕半径基础值（米）。 */
-  public static final double ORBIT_RADIUS_BASE = 2.6;
+  public static final double ORBIT_RADIUS_BASE = 1.6;
 
   /** 每个额外护幕增加的半径（米）。 */
   public static final double ORBIT_RADIUS_PER_SWORD = 0.4;
@@ -80,10 +80,10 @@ public final class JianmuGuTuning {
   // ===== 时间窗口 =====
 
   /** 最小可达时间窗（秒）。 */
-  public static final double WINDOW_MIN = 0.1;
+  public static final double WINDOW_MIN = 1e-6;
 
   /** 最大可达时间窗（秒）。 */
-  public static final double WINDOW_MAX = 1.0;
+  public static final double WINDOW_MAX = 5.0;
 
   /** 反击最大距离（米）。 */
   public static final double COUNTER_RANGE = 5.0;

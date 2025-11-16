@@ -1,0 +1,38 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/special_killed/jiandao_trial_reward",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:special_entity_killed",
+      "entity_tag": "jiandao_trial"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§a【剑道试炼完成】剑道宗师被你击败!赐予你:剑道道痕+300,剑道传承!"
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "daohen_jiandao",
+        "operation": "add",
+        "value": 300
+      },
+      {
+        "type": "guzhenren_event_ext:run_command",
+        "command": "give @s guzhenren:xindejiandaozhundashijiyicanwu 1"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "剑道宗师传承",
+        "value": true
+      }
+    ]
+  }
+]

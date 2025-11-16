@@ -1,0 +1,44 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/special_killed/shuidao_trial_reward",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:special_entity_killed",
+      "entity_tag": "shuidao_trial"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§a【水道试炼完成】水道长老被你击败!赐予你:水道道痕+250,精力上限×1.25!"
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "daohen_shuidao",
+        "operation": "add",
+        "value": 250
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "zuida_jingli",
+        "operation": "multiply",
+        "value": 1.25
+      },
+      {
+        "type": "guzhenren_event_ext:run_command",
+        "command": "give @s guzhenren:xindeshuidaondashi 1"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "水道长老青睐",
+        "value": true
+      }
+    ]
+  }
+]

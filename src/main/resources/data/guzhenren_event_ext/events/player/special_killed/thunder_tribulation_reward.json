@@ -1,0 +1,44 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/special_killed/thunder_tribulation_reward",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:special_entity_killed",
+      "entity_tag": "thunder_tribulation"
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§a【天劫渡过】雷道蛊仙看上你天赋不错！给予你一大助力：雷道道痕+50，真元上限+20%！雷道蛊仙的注视已加持于你！"
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "daohen_leidao",
+        "operation": "add",
+        "value": 50
+      },
+      {
+        "type": "guzhenren_event_ext:adjust_player_stat",
+        "stat": "zuida_zhenyuan",
+        "operation": "multiply",
+        "value": 1.2
+      },
+      {
+        "type": "guzhenren_event_ext:run_command",
+        "command": "give @s guzhenren:xindeleidaodashi 1"
+      },
+      {
+        "type": "guzhenren_event_ext:set_variable",
+        "scope": "player",
+        "variable": "雷道蛊仙的注视",
+        "value": true
+      }
+    ]
+  }
+]

@@ -191,6 +191,238 @@ tasks.register('lint') { t ->
     t.dependsOn tasks.named('checkstyleMain')
 }
 
+// 校验 Guzhenren Event Extension 的事件 JSON 定义
+// 提取注册类型 -> JSON（便于校验任务消费）
+tasks.register('syncEventValidationTypes', Exec) { task ->
+    File scriptFile = project.file('scripts/sync_event_validation_types.py')
+    task.onlyIf { scriptFile.exists() }
+    task.commandLine 'python3', scriptFile.absolutePath
+    // 简化：显式声明与配置缓存不兼容（脚本执行读取文件系统）
+    task.notCompatibleWithConfigurationCache('Runs external script to generate types; uses file system state')
+}
+
+tasks.register('validateGuzhenrenEvents') { t ->
+    t.group = 'verification'
+    t.description = 'Validate event JSON files under data/guzhenren_event_ext/events'
+    // 优先确保类型清单已更新
+    t.dependsOn tasks.named('syncEventValidationTypes')
+    // 显式声明与配置缓存不兼容（动态文件扫描与日志输出）
+    t.notCompatibleWithConfigurationCache('Scans file tree and uses dynamic project APIs during execution')
+
+    doLast {
+        def baseDir = file("src/main/resources/data/guzhenren_event_ext/events")
+        if (!baseDir.exists()) {
+            logger.lifecycle("[validateGuzhenrenEvents] 跳过：目录不存在 -> ${baseDir}")
+            return
+        }
+
+        // 从 scripts/event_types.json 读取（若存在），否则使用回退集合
+        def typesJson = file('scripts/event_types.json')
+        def allowedTriggers
+        def allowedConditions
+        def allowedActions
+        if (typesJson.exists()) {
+            def parsed = new groovy.json.JsonSlurper().parse(typesJson)
+            allowedTriggers = (parsed.triggers ?: []).toSet()
+            allowedConditions = (parsed.conditions ?: []).toSet()
+            allowedActions = (parsed.actions ?: []).toSet()
+            logger.lifecycle("[validateGuzhenrenEvents] 使用 scripts/event_types.json 中的类型集合：T=${allowedTriggers.size()} C=${allowedConditions.size()} A=${allowedActions.size()}")
+        } else {
+            allowedTriggers = [
+                'guzhenren_event_ext:player_obtained_item',
+                'guzhenren_event_ext:player_stat_change',
+                'guzhenren_event_ext:special_entity_killed',
+            ] as Set
+
+            allowedConditions = [
+                'minecraft:random_chance',
+                'guzhenren:player_health_percent',
+                'guzhenren:player_daode',
+                'guzhenren:player_daohen',
+                'guzhenren_event_ext:check_variable',
+                'guzhenren_event_ext:check_entity_tag',
+            ] as Set
+
+            allowedActions = [
+                'guzhenren_event_ext:send_message',
+                'guzhenren_event_ext:run_command',
+                'guzhenren_event_ext:adjust_player_stat',
+                'guzhenren_event_ext:spawn_hostile_gucultivator',
+                'guzhenren_event_ext:set_variable',
+                'guzhenren_event_ext:remove_variable',
+                'guzhenren_event_ext:give_item',
+            ] as Set
+            logger.lifecycle("[validateGuzhenrenEvents] 回退至内置类型集合（未发现 scripts/event_types.json）")
+        }
+
+        def jsonFiles = fileTree(baseDir) {
+            include '**/*.json'
+        }.files.sort()
+
+        if (jsonFiles.isEmpty()) {
+            logger.lifecycle("[validateGuzhenrenEvents] 未找到事件 JSON 文件：${baseDir}")
+            return
+        }
+
+        def slurper = new groovy.json.JsonSlurper()
+        def errors = []
+        def warnings = []
+        def seenIds = [:].withDefault { [] }
+
+        jsonFiles.each { f ->
+            def rel = project.relativePath(f)
+            def data
+            try {
+                data = slurper.parse(f)
+            } catch (Exception ex) {
+                errors << "${rel}: 无法解析为 JSON -> ${ex.class.simpleName}: ${ex.message}"
+                return
+            }
+
+            def list = []
+            if (data instanceof List) {
+                list = data
+            } else if (data instanceof Map) {
+                list = [data]
+            } else {
+                errors << "${rel}: 根类型必须为对象或数组"
+                return
+            }
+
+            list.eachWithIndex { obj, idx ->
+                def label = list.size() == 1 ? rel : "${rel}[@${idx}]"
+
+                // id
+                def id = obj.id
+                if (!(id instanceof String) || id.trim().isEmpty()) {
+                    errors << "${label}: 缺少必填字段 'id' 或类型非字符串"
+                } else {
+                    seenIds[id] << label
+                    if (!id.startsWith('guzhenren_event_ext:')) {
+                        warnings << "${label}: 建议 'id' 以 'guzhenren_event_ext:' 命名空间开头（当前: ${id})"
+                    }
+                }
+
+                // trigger
+                def trigger = obj.trigger
+                if (!(trigger instanceof Map)) {
+                    errors << "${label}: 缺少必填字段 'trigger' 或类型非对象"
+                } else {
+                    def triggerType = trigger.type ?: trigger.id // 兼容 id -> type
+                    if (!(triggerType instanceof String) || triggerType.trim().isEmpty()) {
+                        errors << "${label}: 触发器缺少 'type'（或 'id'）"
+                    } else if (!allowedTriggers.contains(triggerType)) {
+                        errors << "${label}: 未注册的触发器类型 '${triggerType}'"
+                    } else {
+                        // 触发器特定校验
+                        if (triggerType == 'guzhenren_event_ext:player_stat_change') {
+                            if (!(trigger.stat instanceof String) || trigger.stat.trim().isEmpty()) {
+                                errors << "${label}: player_stat_change 触发器必须提供 'stat'（否则不会被轮询监控）"
+                            }
+                            def hasFrom = trigger.containsKey('from')
+                            def hasTo = trigger.containsKey('to')
+                            if (!hasFrom && !hasTo) {
+                                warnings << "${label}: player_stat_change 建议提供 'from' 或 'to' 以限定范围"
+                            }
+                        }
+                    }
+                }
+
+                // conditions
+                if (obj.containsKey('conditions')) {
+                    def conditions = obj.conditions
+                    if (!(conditions instanceof List)) {
+                        errors << "${label}: 'conditions' 必须为数组"
+                    } else {
+                        conditions.eachWithIndex { c, ci ->
+                            def cLabel = "${label}.conditions[@${ci}]"
+                            if (!(c instanceof Map)) {
+                                errors << "${cLabel}: 条件必须为对象"
+                                return
+                            }
+                            def cType = c.type ?: c.id
+                            if (!(cType instanceof String) || cType.trim().isEmpty()) {
+                                errors << "${cLabel}: 缺少 'type'（或 'id'）"
+                            } else if (!allowedConditions.contains(cType)) {
+                                errors << "${cLabel}: 未注册的条件类型 '${cType}'"
+                            } else if (cType == 'minecraft:random_chance') {
+                                if (!c.containsKey('chance')) {
+                                    errors << "${cLabel}: 缺少必填字段 'chance'"
+                                } else {
+                                    def ch = c.chance
+                                    if (!(ch instanceof Number) || ch.doubleValue() < 0d || ch.doubleValue() > 1d) {
+                                        errors << "${cLabel}: 'chance' 必须为 [0,1] 范围的数值"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // actions
+                if (obj.containsKey('actions')) {
+                    def actions = obj.actions
+                    if (!(actions instanceof List)) {
+                        errors << "${label}: 'actions' 必须为数组"
+                    } else if (actions.isEmpty()) {
+                        warnings << "${label}: 未配置任何动作（事件将无副作用）"
+                    } else {
+                        actions.eachWithIndex { a, ai ->
+                            def aLabel = "${label}.actions[@${ai}]"
+                            if (!(a instanceof Map)) {
+                                errors << "${aLabel}: 动作必须为对象"
+                                return
+                            }
+                            def aType = a.type ?: a.id
+                            if (!(aType instanceof String) || aType.trim().isEmpty()) {
+                                errors << "${aLabel}: 缺少 'type'（或 'id'）"
+                            } else if (!allowedActions.contains(aType)) {
+                                errors << "${aLabel}: 未注册的动作类型 '${aType}'"
+                            }
+                        }
+                    }
+                }
+
+                // trigger_once / enabled 类型提示
+                if (obj.containsKey('trigger_once') && !(obj.trigger_once instanceof Boolean)) {
+                    errors << "${label}: 'trigger_once' 必须为布尔值"
+                }
+                if (obj.containsKey('enabled') && !(obj.enabled instanceof Boolean)) {
+                    errors << "${label}: 'enabled' 必须为布尔值"
+                }
+            }
+        }
+
+        // 重复 id 检查
+        seenIds.each { k, v ->
+            if (v.size() > 1) {
+                errors << "重复的事件 id '${k}'，出现在：${v.join(', ')}"
+            }
+        }
+
+        // 输出结果
+        if (!warnings.isEmpty()) {
+            logger.lifecycle("[validateGuzhenrenEvents] 警告共 ${warnings.size()} 条：")
+            warnings.each { logger.lifecycle("  - ${it}") }
+        }
+        if (!errors.isEmpty()) {
+            logger.error("[validateGuzhenrenEvents] 错误共 ${errors.size()} 条：")
+            errors.each { logger.error("  - ${it}") }
+            throw new GradleException("事件 JSON 校验失败：${errors.size()} 个错误")
+        }
+
+        logger.lifecycle("[validateGuzhenrenEvents] 校验通过：共 ${jsonFiles.size()} 个文件，无错误。")
+    }
+}
+
+// 将 JSON 校验挂接到 check 流水线
+tasks.named('check').configure { dependsOn tasks.named('validateGuzhenrenEvents') }
+
+// 将 JSON 校验挂接到编译阶段，确保编译前失败快
+tasks.named('compileJava', JavaCompile).configure {
+    dependsOn tasks.named('validateGuzhenrenEvents')
+}
+
 dependencies {
     // ===== Cloth Config (强依赖，运行必需) =====
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"

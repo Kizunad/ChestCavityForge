@@ -185,15 +185,12 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
       finalDamage *= (1.0f + (float) JianFengGuTuning.ACTIVE_BONUS_DAMAGE_MULT);
     }
 
-    // 检查是否触发高额一击协同
+    // 取消伤害阈值：改为距离触发
     ResourceLocation organId = BuiltInRegistries.ITEM.getKey(organ.getItem());
     boolean isFiveTurn = organId != null && organId.equals(ORGAN_ID_FIVE);
-    float threshold = isFiveTurn
-        ? JianFengGuTuning.HIGH_HIT_THRESHOLD_FIVE
-        : JianFengGuTuning.HIGH_HIT_THRESHOLD_FOUR;
-
-    if (finalDamage < threshold) {
-      return finalDamage; // 未达到阈值，不触发协同
+    double dist = attacker.position().distanceTo(target.position());
+    if (dist > JianFengGuTuning.COOP_TRIGGER_RANGE) {
+      return finalDamage; // 超出触发范围
     }
 
     // 协同触发冷却（MultiCooldown）
@@ -203,14 +200,26 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
       return finalDamage; // 冷却未就绪，不触发
     }
 
-    // 查找可用的飞剑
-    FlyingSwordEntity sword = findAvailableSword(level, attacker, state);
-    if (sword == null) {
+    // 查找可用飞剑（五转同时两把）
+    java.util.List<FlyingSwordEntity> swords = findAvailableSwords(level, attacker, state, isFiveTurn ? 2 : 1);
+    if (swords.isEmpty()) {
       return finalDamage; // 没有可用飞剑
     }
 
-    // 传递目标并引导飞剑进行一次协同突击（不直接结算伤害，由飞剑AI处理命中）
-    performCoopStrike(level, sword, target);
+    // 概率魔法伤害（命中时）
+    boolean magic = attacker.getRandom().nextDouble() < JianFengGuTuning.MAGIC_HIT_PROBABILITY;
+
+    for (FlyingSwordEntity sword : swords) {
+      if (magic) {
+        // 标记下一次命中为魔法伤害（需要飞剑战斗模块支持）
+        try {
+          sword.markNextHitAsMagic();
+        } catch (Throwable ignored) {
+        }
+      }
+      // 引导飞剑进行一次协同突击（不直接结算伤害，由飞剑AI处理命中）
+      performCoopStrike(level, sword, target);
+    }
 
     // 更新状态
     state.setLong("last_coop_tick", now);
@@ -391,6 +400,26 @@ public enum JianFengGuOrganBehavior implements OrganOnHitListener, OrganSlowTick
     }
 
     return null;
+  }
+
+  /**
+   * 查找多把可用飞剑。
+   */
+  private java.util.List<FlyingSwordEntity> findAvailableSwords(
+      ServerLevel level, LivingEntity owner, OrganState state, int maxCount) {
+    java.util.List<FlyingSwordEntity> result = new java.util.ArrayList<>();
+    net.minecraft.nbt.ListTag swordIdList = state.getList("spawned_sword_ids", 3);
+    for (int i = 0; i < swordIdList.size() && result.size() < Math.max(1, maxCount); i++) {
+      int swordId = swordIdList.getInt(i);
+      net.minecraft.world.entity.Entity entity = level.getEntity(swordId);
+      if (entity instanceof FlyingSwordEntity sword
+          && sword.isAlive()
+          && sword.getOwner() != null
+          && sword.getOwner().getUUID().equals(owner.getUUID())) {
+        result.add(sword);
+      }
+    }
+    return result;
   }
 
   /**

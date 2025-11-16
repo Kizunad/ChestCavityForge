@@ -1,0 +1,39 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/morality/low_daode_demon",
+    "enabled": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "daode",
+      "to": {
+        "max": -50
+      }
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.2
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§5【心魔入侵】§r你的恶行累积，道心崩坏，心魔趁虚而入！"
+      },
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "promote_to_same_realm": true,
+        "health_multiplier": 1.8,
+        "damage_multiplier": 1.6,
+        "speed_multiplier": 1.3,
+        "min_distance": 6.0,
+        "max_distance": 18.0,
+        "custom_name": "§5§l心魔化身",
+        "dialogue_message": "§d哈哈哈，你的欲望、杀戮、贪婪，皆是我之力！",
+        "preferred_dao_tags": ["hun_dao", "mengdao"],
+        "notification_message": "§5心魔现身，考验你的道心！"
+      }
+    ]
+  }
+]

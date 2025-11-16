@@ -308,9 +308,19 @@ public class DefaultWardSwordService implements WardSwordService {
     for (FlyingSwordEntity sword : availableSwords) {
       double tReach = InterceptPlanner.timeToReach(sword, query.interceptPoint(), tuning);
 
-      // 检查是否在时间窗内
-      if (tReach >= tuning.windowMin() && tReach <= tuning.windowMax()) {
+      // 放宽下界判定：仅限制上界（≤ windowMax），允许近距离/快速反应的拦截
+      // 原逻辑：tReach 需满足 [windowMin, windowMax]
+      // 近战近距场景下，tReach 可能小于 windowMin（反应极快），导致误丢弃
+      // 这里仅使用上界过滤，避免近距“必现失败”
+      double windowMax = tuning.windowMax();
+      if (tReach <= windowMax) {
         swordTimes.add(new SwordTimeEntry(sword, tReach));
+      } else {
+        LOGGER.debug(
+            "[WardDebug] Discard sword {}: tReach={:.3f}s > windowMax={:.3f}s",
+            sword.getId(),
+            tReach,
+            windowMax);
       }
     }
 

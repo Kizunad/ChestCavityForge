@@ -1,0 +1,48 @@
+[
+  {
+    "id": "guzhenren_event_ext:player/stat_change/high_jiandao_sword_duel",
+    "enabled": true,
+    "trigger_once": true,
+    "trigger": {
+      "type": "guzhenren_event_ext:player_stat_change",
+      "stat": "daohen_jiandao",
+      "to": {
+        "min": 1500
+      }
+    },
+    "conditions": [
+      {
+        "type": "minecraft:random_chance",
+        "chance": 0.2
+      }
+    ],
+    "actions": [
+      {
+        "type": "guzhenren_event_ext:send_message",
+        "message": "§6【剑心感应】剑道道痕深厚，引来隐世剑修挑战！一战定高下！"
+      },
+      {
+        "type": "guzhenren_event_ext:spawn_hostile_gucultivator",
+        "count": 1,
+        "promote_to_same_realm": true,
+        "health_multiplier": 1.0,
+        "damage_multiplier": 17.0,
+        "speed_multiplier": 1.4,
+        "min_distance": 12.0,
+        "max_distance": 64.0,
+        "entity_id": "guzhenren:zhongzhounvgushi",
+        "custom_name": "§6§l隐世剑修",
+        "dialogue_message": "§e剑道同修，比剑论道如何？",
+        "preferred_dao_tags": ["jiandao"],
+        "custom_daohen": [
+          {
+            "daohen": "daohen_jiandao",
+            "value": 2500.0,
+            "override": false
+          }
+        ],
+        "notification_message": "§6隐世剑修现身，剑气冲霄！"
+      }
+    ]
+  }
+]
