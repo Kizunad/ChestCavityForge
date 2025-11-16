@@ -269,8 +269,10 @@ tasks.register('validateGuzhenrenEvents') { t ->
         def warnings = []
         def seenIds = [:].withDefault { [] }
 
+        def rootPath = project.projectDir.toPath()
+
         jsonFiles.each { f ->
-            def rel = project.relativePath(f)
+            def rel = rootPath.relativize(f.toPath()).toString()
             def data
             try {
                 data = slurper.parse(f)
@@ -571,10 +573,11 @@ dependencies {
 
 // 当提供 baritone 依赖时，使用 Shadow 产出主 jar 并进行重定位
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure { sh ->
+    def embedConfiguration = project.configurations.embed
     if (__useBaritone) {
         zip64 true
         // 仅打包 embed 里的依赖，避免将 runtimeClasspath（NeoForge 等）塞进主包
-        configurations = [project.configurations.embed]
+        configurations = [embedConfiguration]
         archiveClassifier.set('')
         // 全局排除：避免把 Baritone 作为独立模组入口被识别
         // 1) Baritone 模组入口路径（无论是否重定位，名称模式也排除）
@@ -589,7 +592,7 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
         sh.exclude '**/BaritoneMod*.class'
         sh.exclude '**/BaritoneForge*.class'
         // 仅打包 embed 配置里的依赖，避免把运行时所有依赖都塞进来
-        from({ project.configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } }) {
+        from({ embedConfiguration.collect { it.isDirectory() ? it : zipTree(it) } }) {
             // 注意：只在依赖内容里排除 META-INF 与无关资源，保留本模组自己的 META-INF
             exclude 'META-INF/**'
             exclude 'pack.mcmeta'
@@ -641,6 +644,50 @@ tasks.named('jar').configure { t ->
             exclude 'pack.mcmeta'
         }
     }
+}
+
+// === Guzhenren ModernUI 文档占位符渲染/还原流程 ===
+def pythonExecutable = providers.environmentVariable('PYTHON').orElse('python3')
+def guzhenrenDocsScriptFile = layout.projectDirectory.file('scripts/update_guzhenren_docs_values.py').asFile
+
+tasks.register('renderGuzhenrenDocsPlaceholders') {
+    group = 'documentation'
+    description = '在编译前渲染 ModernUI 文档中的 {VAR} 占位符'
+    inputs.file(guzhenrenDocsScriptFile)
+    outputs.dir(layout.projectDirectory.dir('build/tmp/guzhenren_docs_placeholder_backup'))
+    onlyIf { guzhenrenDocsScriptFile.exists() }
+    doLast {
+        exec {
+            commandLine(
+                pythonExecutable.get(),
+                guzhenrenDocsScriptFile.absolutePath,
+                '--groups', 'human',
+                '--render-placeholders',
+                '--apply'
+            )
+        }
+    }
+}
+
+tasks.register('restoreGuzhenrenDocsPlaceholders') {
+    group = 'documentation'
+    description = '构建后还原 ModernUI 文档中的占位符'
+    inputs.file(guzhenrenDocsScriptFile)
+    onlyIf { guzhenrenDocsScriptFile.exists() }
+    doLast {
+        exec {
+            commandLine(
+                pythonExecutable.get(),
+                guzhenrenDocsScriptFile.absolutePath,
+                '--restore-placeholders'
+            )
+        }
+    }
+}
+
+tasks.named('compileJava').configure { t ->
+    t.dependsOn(tasks.named('renderGuzhenrenDocsPlaceholders'))
+    t.finalizedBy(tasks.named('restoreGuzhenrenDocsPlaceholders'))
 }
 
 

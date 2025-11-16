@@ -3,9 +3,12 @@
   "title": "剑鞘蛊",
   "summary": "扩容飞剑仓位，归鞘自动修复；可尝试“收剑令”夺取敌剑。",
   "details": [
-    "仓位：+1；每 100 点剑道道痕再 +1",
-    "归鞘修复：召回/夺取时若资源充足，消耗真元与精力修复 ≤25% 耐久",
-    "主动·收剑令：冷却 20 分钟，在 12 格内尝试夺取敌方可召回飞剑；需道痕与流派经验均 ≥ 对手 2 倍；消耗高阶真元；成功概率随经验差提升；成功后立即归鞘并触发修复"
+    "仓位：基础 {JianQiaoGuTuning.BASE_CAPACITY} 格，装备剑鞘蛊再额外 +{JianQiaoGuTuning.ORGAN_CAPACITY_BONUS} 格，每 {JianQiaoGuTuning.DAO_HEN_PER_EXTRA_SLOT} 剑道道痕再 +1",
+    "归鞘修复：召回/夺取时若资源充足，最多修复 {JianQiaoGuTuning.MAX_REPAIR_PERCENT} 耐久，平均每 1% 修复消耗 {JianQiaoGuTuning.REPAIR_JINGLI_PER_PERCENT} 精力",
+    "主动·收剑令：冷却 {JianQiaoGuTuning.ACTIVE_COOLDOWN_T} tick，在 {JianQiaoGuTuning.SEIZE_RANGE} 格内尝试夺取敌方可召回飞剑；需道痕与流派经验均 ≥ 对手 2 倍，成功后立即归鞘并触发修复",
+    "----",
+    "剑道道痕：120",
+    "神经 (挖掘速度,攻速相关)：1"
   ],
   "tags": [
     "剑鞘蛊",

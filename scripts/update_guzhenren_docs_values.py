@@ -19,6 +19,7 @@ import argparse
 import json
 import re
 import sys
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, MutableMapping, Optional, Tuple
@@ -76,6 +77,8 @@ TUNING_JAVA_DIR = (
     / "jian_dao"
     / "tuning"
 )
+
+PLACEHOLDER_BACKUP_DIR = REPO_ROOT / "build" / "tmp" / "guzhenren_docs_placeholder_backup"
 
 
 def _load_json(path: Path) -> object:
@@ -188,7 +191,13 @@ def substitute_placeholders_in_str(s: str, vars_map: Mapping[str, object]) -> Tu
     return out, changed
 
 
-def process_doc_file(doc_path: Path, group: str, tuning: Optional[Mapping[str, object]], apply: bool) -> Tuple[bool, int, int]:
+def process_doc_file(
+    doc_path: Path,
+    group: str,
+    tuning: Optional[Mapping[str, object]],
+    apply: bool,
+    render_placeholders: bool,
+) -> Tuple[bool, int, int]:
     # returns: (changed?, value_updates, placeholder_updates)
     # 推导源 JSON 路径：与生成器保持同构目录结构
     try:
@@ -224,7 +233,7 @@ def process_doc_file(doc_path: Path, group: str, tuning: Optional[Mapping[str, o
                             changed = True
                             value_updates += 1
                 # 占位符替换（details 字符串）
-                if tuning:
+                if render_placeholders and tuning:
                     replaced, cnt = substitute_placeholders_in_str(item, tuning)
                     if cnt > 0 and replaced != item:
                         item = replaced
@@ -236,7 +245,7 @@ def process_doc_file(doc_path: Path, group: str, tuning: Optional[Mapping[str, o
         doc["details"] = new_details
 
     # 占位符替换（summary）
-    if tuning and isinstance(doc.get("summary"), str):
+    if render_placeholders and tuning and isinstance(doc.get("summary"), str):
         replaced, cnt = substitute_placeholders_in_str(doc["summary"], tuning)
         if cnt > 0 and replaced != doc["summary"]:
             doc["summary"] = replaced
@@ -271,6 +280,18 @@ def iter_target_groups(groups: Iterable[str]) -> List[str]:
     return ordered or list(ALL_GROUPS)
 
 
+def list_doc_files(groups: List[str]) -> List[tuple[str, Path]]:
+    entries: List[tuple[str, Path]] = []
+    for group in groups:
+        doc_root = DOCS_ROOT / group
+        if not doc_root.exists():
+            print(f"[warn] 跳过缺失目录 {doc_root}", file=sys.stderr)
+            continue
+        for doc_path in sorted(doc_root.rglob("*.json")):
+            entries.append((group, doc_path))
+    return entries
+
+
 def load_tuning_json(path: Optional[Path]) -> Optional[Mapping[str, object]]:
     if not path:
         return None
@@ -285,6 +306,9 @@ def load_tuning_json(path: Optional[Path]) -> Optional[Mapping[str, object]]:
 
 
 NUM_LITERAL_TOKEN_RE = re.compile(r"(?P<num>\d+(?:\.\d+)?)(?:[fFdDlL])\b")
+CONFIG_DEFAULT_RE = re.compile(
+    r"BehaviorConfigAccess\.get(?:Float|Int)\([^,]+,[^,]+,(?P<default>[^\)]+)\)"
+)
 
 
 def _strip_java_numeric_suffixes(expr: str) -> str:
@@ -297,6 +321,12 @@ def _safe_eval_numeric_expr(expr: str) -> Optional[float]:
     expr = expr.strip()
     if not expr:
         return None
+    # 去除显式类型转换
+    expr = re.sub(r"^\((?:double|float|int|long)\)\s*", "", expr)
+    # BehaviorConfigAccess 默认值提取
+    config_match = CONFIG_DEFAULT_RE.search(expr)
+    if config_match:
+        expr = config_match.group("default")
     # 去掉 Java 数字分隔下划线
     expr = expr.replace("_", "")
     # 去掉可能的类型后缀
@@ -390,6 +420,31 @@ def load_tuning_from_java(java_dir: Optional[Path]) -> Dict[str, str]:
     return mapping
 
 
+def backup_placeholder_sources(entries: List[tuple[str, Path]]) -> None:
+    if PLACEHOLDER_BACKUP_DIR.exists():
+        shutil.rmtree(PLACEHOLDER_BACKUP_DIR)
+    for _, doc_path in entries:
+        rel = doc_path.relative_to(DOCS_ROOT)
+        backup_path = PLACEHOLDER_BACKUP_DIR / rel
+        backup_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(doc_path, backup_path)
+
+
+def restore_placeholders_from_backup() -> int:
+    if not PLACEHOLDER_BACKUP_DIR.exists():
+        print("[info] 未找到占位符备份目录，无需还原。")
+        return 0
+    restored = 0
+    for backup_path in sorted(PLACEHOLDER_BACKUP_DIR.rglob("*.json")):
+        rel = backup_path.relative_to(PLACEHOLDER_BACKUP_DIR)
+        target = DOCS_ROOT / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(backup_path, target)
+        restored += 1
+    shutil.rmtree(PLACEHOLDER_BACKUP_DIR)
+    return restored
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="更新 guzhenren 文档中的数值与占位符")
     parser.add_argument(
@@ -414,8 +469,21 @@ def main() -> None:
         action="store_true",
         help="执行写入（默认 dry-run，仅显示将发生的更改统计）",
     )
+    parser.add_argument(
+        "--render-placeholders",
+        action="store_true",
+        help="构建前渲染 {VAR} → 数值（会自动备份占位符版本）",
+    )
+    parser.add_argument(
+        "--restore-placeholders",
+        action="store_true",
+        help="构建后还原占位符版本（依赖 render 时生成的备份）",
+    )
 
     args = parser.parse_args()
+
+    if args.render_placeholders and args.restore_placeholders:
+        raise SystemExit("[error] --render-placeholders 与 --restore-placeholders 不能同时使用")
 
     groups = iter_target_groups(args.groups)
 
@@ -425,6 +493,19 @@ def main() -> None:
     if not DOCS_ROOT.exists():
         print(f"[error] 找不到文档目录：{DOCS_ROOT}", file=sys.stderr)
         raise SystemExit(1)
+
+    if args.restore_placeholders:
+        restored = restore_placeholders_from_backup()
+        print(f"[done:restore] 还原 {restored} 个文件。")
+        return
+
+    doc_entries = list_doc_files(groups)
+
+    if args.render_placeholders:
+        if not args.apply:
+            print("[info] render 模式自动启用写入 (--apply)")
+            args.apply = True
+        backup_placeholder_sources(doc_entries)
 
     tuning_map: Dict[str, object] = {}
     # 1) Java 常量（自动）
@@ -440,20 +521,26 @@ def main() -> None:
     total_val_updates = 0
     total_ph_updates = 0
 
-    for group in groups:
-        doc_root = DOCS_ROOT / group
-        if not doc_root.exists():
-            print(f"[warn] 跳过缺失目录 {doc_root}", file=sys.stderr)
-            continue
-        for doc_path in sorted(doc_root.rglob("*.json")):
-            files_scanned += 1
-            changed, vu, pu = process_doc_file(doc_path, group, tuning_map or None, args.apply)
-            if changed:
-                files_changed += 1
-                total_val_updates += vu
-                total_ph_updates += pu
+    render_flag = bool(args.render_placeholders)
+    tuning_for_render = tuning_map if render_flag else None
+
+    for group, doc_path in doc_entries:
+        files_scanned += 1
+        changed, vu, pu = process_doc_file(
+            doc_path,
+            group,
+            tuning_for_render,
+            args.apply,
+            render_flag,
+        )
+        if changed:
+            files_changed += 1
+            total_val_updates += vu
+            total_ph_updates += pu
 
     mode = "write" if args.apply else "dry-run"
+    if args.render_placeholders:
+        mode += "+render"
     print(
         f"[done:{mode}] 扫描 {files_scanned} 个文件，变更 {files_changed} 个；数值更新 {total_val_updates} 处，占位符替换 {total_ph_updates} 处。"
     )

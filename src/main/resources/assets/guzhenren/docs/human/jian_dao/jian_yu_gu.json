@@ -4,12 +4,16 @@
   "summary": "开启可调半径的剑域，持续期提供正面减伤并按大小消耗真元。",
   "details": [
     "用途：控场与增益领域",
-    "操作：先开 6 秒调域窗口，再进入 8–14 秒持续期；再次施放可提前结束",
+    "操作：先开启 {JianYuGuTuning.TUNING_WINDOW_T} tick（约 6 秒）的调域窗口，再进入持续期；可在任何时刻再次施放提前收束",
+    "持续：基础 {JianYuGuTuning.ACTIVE_BASE_S} 秒，每层额外 +{JianYuGuTuning.ACTIVE_PER_LAYER_S} 秒，封顶 {JianYuGuTuning.ACTIVE_MAX_S} 秒",
     "消耗：开启 60 真元+6 念头；窗口期每 2 秒扣费，持续期每秒扣费（随半径/收缩）",
-    "冷却：25 秒（最低 16 秒）",
-    "防护：持续期正面约 60° 额外减伤 10%",
-    "广播：每秒计算并广播“剑域系数”，小域有偏置加成",
-    "属性：+80 剑道道痕，+32 防御"
+    "冷却：基础 {JianYuGuTuning.COOLDOWN_BASE_S} 秒，最低可压到 {JianYuGuTuning.COOLDOWN_MIN_S} 秒",
+    "防护：持续期维持正面约 60° 锥形额外减伤 {JianYuGuTuning.FRONT_CONE_EXTRA_REDUCTION}，锥形半角 cos = {JianYuGuTuning.FRONT_CONE_HALF_ANGLE_COS}",
+    "广播：每秒重新计算并广播“剑域系数”，小域有偏置加成",
+    "属性：+80 剑道道痕，+32 防御",
+    "----",
+    "剑道道痕：80",
+    "防御：32"
   ],
   "tags": [
     "剑域蛊",

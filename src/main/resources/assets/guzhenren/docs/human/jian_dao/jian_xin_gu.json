@@ -4,9 +4,14 @@
   "summary": "心定成域，抗打断的体质核心。",
   "details": [
     "属性：剑道道痕 +100，移动速度 +1，防御 -32",
-    "主动：生成剑域；冥想期间移动速度 -90%",
-    "被动：定心值满时清负面并 2 秒免打断",
-    "剑域：友方每秒 +1 精力；敌方移速/攻速压制；可反制域内剑道引导"
+    "主动·冥思剑域：冷却 {JianXinGuTuning.MEDITATION_COOLDOWN_T} tick，开启后进入极慢移动（速度乘 {JianXinGuTuning.JIAN_XIN_DOMAIN_VELOCITY_DECREASEMENT}）的冥想护域",
+    "剑域增益：友方位于域内时每秒回 +{JianXinGuTuning.REGEN_JINGLI_PER_SEC} 精力，敌方移速/攻速被抑制，可反制域内剑道引导",
+    "剑势系统：最大剑势层数 {JianXinGuTuning.MAX_MOMENTUM} 层，充能越多，域压越强",
+    "被动·定心返本：定心值满时清除负面并在 {JianXinGuTuning.FREEZE_ON_BREAK_T} tick 内免受打断",
+    "----",
+    "剑道道痕：100",
+    "速度：1",
+    "防御：-32"
   ],
   "tags": [
     "剑心蛊",

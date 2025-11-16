@@ -3,12 +3,17 @@
   "title": "蕴剑青莲蛊",
   "summary": "环绕飞剑+青莲剑域；致命时以真元完全格挡。",
   "details": [
-    "主动：生成莲瓣环护并展开青莲剑域；再次施放收回；数量受剑域蛊影响（约 8–32 片）",
-    "消耗：激活每秒消耗 真元（随档次/BURST）+10 精力+2 念头；任一不足自动收回",
-    "被动·恢复：每秒 魂魄 +0.5、生命 +0.1",
-    "被动·致命守护：致命伤害时消耗真元完全格挡；冷却 60 秒；耗真元=伤害×0.05",
+    "主动：生成莲瓣环护并展开青莲剑域；基础飞剑 {YunJianQingLianGuTuning.BASE_SWORD_COUNT} 片，最少 {YunJianQingLianGuTuning.MIN_SWORD_COUNT}、最多 {YunJianQingLianGuTuning.MAX_SWORD_COUNT}（受剑域蛊加成）",
+    "环护表现：飞剑环绕半径 {YunJianQingLianGuTuning.ORBIT_RADIUS_BASE} 格，基础速度 {YunJianQingLianGuTuning.SWORD_SPEED_BASE}，攻击间隔 {YunJianQingLianGuTuning.SWORD_ATTACK_INTERVAL} 秒，飞剑各自耐久 {YunJianQingLianGuTuning.QINGLIAN_SWORD_MAX_DURABILITY}",
+    "消耗：激活每秒消耗真元（BURST 档）+10 精力+2 念头；任一不足自动收回",
+    "被动·恢复：每秒魂魄 +{YunJianQingLianGuTuning.HUNPO_REGEN_PER_SEC}、生命 +{YunJianQingLianGuTuning.HEALTH_REGEN_PER_SEC}",
+    "被动·致命守护：致命伤害时消耗真元完全格挡；冷却 {YunJianQingLianGuTuning.SHIELD_COOLDOWN_SEC} 秒；耗真元=伤害×{YunJianQingLianGuTuning.SHIELD_COST_MULT}（仅当生命低于 {YunJianQingLianGuTuning.SHIELD_LETHAL_THRESHOLD} 触发）",
     "AI：非玩家战斗时自动开启，脱战 5 秒收回",
-    "属性：+200 剑道道痕，速度 +1.0，防御 -32"
+    "属性：+200 剑道道痕，速度 +1.0，防御 -32",
+    "----",
+    "剑道道痕：200",
+    "速度：1",
+    "防御：-32"
   ],
   "tags": [
     "蕴剑青莲蛊",

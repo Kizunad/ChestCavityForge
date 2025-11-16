@@ -3,10 +3,14 @@
   "title": "剑影蛊",
   "summary": "影袭与分身：命中触发剑影，暴击留残像，主动召唤短时分身。",
   "details": [
-    "被动·剑影：近战命中 10% 几率，消耗 200 真元，造成 150 基伤×倍率（首发 40%，短时连触发递减≥15%），命中附 120 刻剑痕",
-    "被动·残像：暴击 10% 几率，20 刻后对 3 格内爆裂（150 基伤×20%×增幅），附 120 刻剑痕",
-    "主动·分身：消耗 50 精力+4000 真元；冷却 400 刻；召唤 2–3 个分身 100 刻（150 基伤×25%×增幅），命中附剑痕+缓慢 III",
-    "属性：神经 +1，速度 +0.4"
+    "被动·剑影：近战命中 {JianYingTuning.PASSIVE_TRIGGER_CHANCE} 几率触发影袭，造成基础 {JianYingTuning.BASE_DAMAGE} ×倍率伤害，首段倍率 {JianYingTuning.PASSIVE_INITIAL_MULTIPLIER}，每次触发递减 {JianYingTuning.PASSIVE_DECAY_STEP} 至不少于 {JianYingTuning.PASSIVE_MIN_MULTIPLIER}，{JianYingTuning.PASSIVE_RESET_WINDOW_TICKS} tick 未触发会重置",
+    "被动·残像：暴击后 {JianYingTuning.AFTERIMAGE_DELAY_TICKS} tick 留残像，持续 {JianYingTuning.AFTERIMAGE_DURATION_TICKS} tick 后在 {JianYingTuning.AFTERIMAGE_RADIUS} 格内爆裂，造成 {JianYingTuning.AFTERIMAGE_DAMAGE_RATIO} ×基伤",
+    "主动·分身：冷却 {JianYingTuning.CLONE_COOLDOWN_TICKS} tick，持续 {JianYingTuning.CLONE_DURATION_TICKS} tick，分身伤害 {JianYingTuning.CLONE_DAMAGE_RATIO} ×本体，消耗约 50 精力+4000 真元；命中附剑痕并附带缓慢",
+    "影袭限流：对同一目标触发间隔至少 {JianYingTuning.ON_HIT_COOLDOWN_TICKS} tick",
+    "属性：神经 +1，速度 +0.4",
+    "----",
+    "神经 (挖掘速度,攻速相关)：1",
+    "速度：0.4"
   ],
   "tags": [
     "剑影蛊",

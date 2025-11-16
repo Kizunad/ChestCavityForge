@@ -16,7 +16,14 @@
     "非玩家适配：",
     " - 拥有剑气蛊的非玩家剑修在近战命中目标时，有一定几率自动施放一斩开天，形成偶发爆发输出",
     " - 自动触发成功后进入约 60 秒冷却，避免怪物高频连发，保持战斗观感与难度平衡",
-    "定位说明：剑气蛊是高风险高收益的剑道爆发器官，提供大量剑道道痕与力量，以牺牲防御为代价换取一斩定乾坤的远近联动斩击能力。与其他剑道器官（剑心蛊、剑域蛊、飞剑体系）联动时可进一步放大输出与控制潜力。"
+    "定位说明：剑气蛊是高风险高收益的剑道爆发器官，提供大量剑道道痕与力量，以牺牲防御为代价换取一斩定乾坤的远近联动斩击能力。与其他剑道器官（剑心蛊、剑域蛊、飞剑体系）联动时可进一步放大输出与控制潜力。",
+    "参数：基础剑气伤害 {JianQiGuTuning.BASE_DAMAGE}，最远 {JianQiGuTuning.MAX_RANGE} 格，剑光速度 {JianQiGuTuning.SLASH_SPEED} 格/tick，命中衰减 {JianQiGuTuning.DECAY_RATE}，威能低于 {JianQiGuTuning.MIN_DAMAGE_RATIO} 自行熄灭，剑光宽 {JianQiGuTuning.SLASH_WIDTH} 格，技能冷却 {JianQiGuTuning.COOLDOWN_TICKS} tick",
+    "断势：每 {JianQiGuTuning.DUANSHI_STACK_THRESHOLD} 次有效命中叠 1 层，使下一次伤害 +{JianQiGuTuning.DUANSHI_POWER_BONUS} 并抵消 {JianQiGuTuning.DUANSHI_DECAY_GRACE} 次衰减；若 {JianQiGuTuning.STACK_EXPIRE_TICKS} tick 未再施放即清空",
+    "----",
+    "剑道道痕：100",
+    "防御：-40",
+    "速度：0.05",
+    "力量：20"
   ],
   "tags": [
     "剑气蛊",

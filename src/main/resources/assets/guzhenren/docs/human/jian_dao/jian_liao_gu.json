@@ -3,10 +3,13 @@
   "title": "剑疗蛊",
   "summary": "治疗与后勤：心跳续航，自修飞剑，主动以血换修复。",
   "details": [
-    "被动·心跳疗愈：每 40 刻按道痕回复生命，保障续航",
-    "被动·剑阵互补：健康飞剑出让少量耐久，平均修复低耐久者；单次不超目标上限的 80%",
-    "主动·剑血互济：立即消耗约 15% 最大生命（保底留 1），按消耗比例×道痕为自有飞剑恢复耐久；冷却随道痕缩短",
-    "属性：+24 剑道道痕，+6 最大生命"
+    "被动·心跳疗愈：每 {JianLiaoGuTuning.HEARTBEAT_PERIOD_T} tick 跳动一次，基础回复 {JianLiaoGuTuning.HEARTBEAT_HEAL_BASE}，每 100 剑道道痕多 {JianLiaoGuTuning.HEARTBEAT_HEAL_PER_100_SCAR}，单跳封顶 {JianLiaoGuTuning.HEARTBEAT_HEAL_CAP_RATIO} 最大生命",
+    "被动·剑阵互补：每 {JianLiaoGuTuning.SWORD_REPAIR_PERIOD_T} tick 检查，低于 {JianLiaoGuTuning.LOW_DURABILITY_THRESHOLD} 的飞剑会被健康者平摊修复，单次最高 {JianLiaoGuTuning.TARGET_ONCE_CAP_RATIO} 耐久",
+    "主动·剑血互济：立即消耗 {JianLiaoGuTuning.ACTIVE_HP_SPEND_RATIO} 最大生命（保底留 1），按消耗量×道痕提升修复效率 {JianLiaoGuTuning.EFFICIENCY_PER_100_SCAR} /100道痕，基础冷却 {JianLiaoGuTuning.ACTIVE_BASE_COOLDOWN_T} tick，可降至 {JianLiaoGuTuning.ACTIVE_MIN_COOLDOWN_T} tick（按 {JianLiaoGuTuning.COOLDOWN_REDUCTION_PER_100_SCAR} /100道痕，最多减至 {JianLiaoGuTuning.COOLDOWN_REDUCTION_CAP}）",
+    "属性：+24 剑道道痕，+6 最大生命",
+    "----",
+    "剑道道痕：24",
+    "生命值：6"
   ],
   "tags": [
     "剑疗蛊",
