@@ -1,23 +1,32 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao;
 
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
-import net.tigereye.chestcavity.registration.CCKeybindings;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientRegistries;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoFxInit;
 
-/** Client-side ability registration for Hun Dao organs. */
+/**
+ * Client-side ability registration entry point for Hun Dao organs.
+ *
+ * <p>Phase 5: Refactored to delegate to HunDaoClientRegistries for cleaner separation of concerns.
+ * This class serves as the top-level entry point called from mod initialization, while actual
+ * registration logic lives in the client/ package.
+ */
 public final class HunDaoClientAbilities {
 
   private HunDaoClientAbilities() {}
 
+  /**
+   * Called during FMLClientSetupEvent.
+   *
+   * <p>Initializes client-side registries and FX system.
+   *
+   * @param event the client setup event
+   */
   public static void onClientSetup(FMLClientSetupEvent event) {
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(GuiQiGuOrganBehavior.ABILITY_ID)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(GuiQiGuOrganBehavior.ABILITY_ID);
-    }
-    ResourceLocation hunShouHuaAbility =
-        ResourceLocation.fromNamespaceAndPath("guzhenren", "synergy/hun_shou_hua");
-    if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(hunShouHuaAbility)) {
-      CCKeybindings.ATTACK_ABILITY_LIST.add(hunShouHuaAbility);
-    }
+    // Initialize FX templates (client needs them for rendering)
+    HunDaoFxInit.init();
+
+    // Register client-side abilities and hooks
+    HunDaoClientRegistries.init();
   }
 }
