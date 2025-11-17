@@ -4,7 +4,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
 
 import com.mojang.logging.LogUtils;
 import java.util.List;
-import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;

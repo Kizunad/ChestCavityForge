@@ -3,7 +3,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
 import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

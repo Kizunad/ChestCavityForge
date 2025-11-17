@@ -60,6 +60,15 @@ public final class HunDaoOpsAdapter
   }
 
   @Override
+  public double readDouble(Player player, String field) {
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handle = openHandle(player);
+    if (handle.isEmpty()) {
+      return 0.0;
+    }
+    return handle.get().read(field).orElse(0.0);
+  }
+
+  @Override
   public OptionalDouble adjustDouble(
       Player player, String field, double amount, boolean clamp, String maxField) {
     return ResourceOps.tryAdjustDouble(player, field, amount, clamp, maxField);
