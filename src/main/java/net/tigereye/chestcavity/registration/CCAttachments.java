@@ -18,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.bian_hua_dao.state.YinYang
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.gui_bian.state.WuxingGuiBianAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.item.combo.bian_hua.wuxing.hua_hen.state.WuxingHuaHenAttachment;
 import net.tigereye.chestcavity.compat.guzhenren.flyingsword.FlyingSwordStorage;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.guscript.data.GuScriptAttachment;
 import net.tigereye.chestcavity.playerprefs.PlayerPreferenceSettings;
@@ -53,6 +54,15 @@ public final class CCAttachments {
               () ->
                   AttachmentType.builder(SoulBeastState::new)
                       .serialize(new SoulBeastStateSerializer())
+                      .build());
+
+  public static final DeferredHolder<AttachmentType<?>, AttachmentType<HunDaoSoulState>>
+      HUN_DAO_SOUL_STATE =
+          ATTACHMENT_TYPES.register(
+              "hun_dao_soul_state",
+              () ->
+                  AttachmentType.builder(HunDaoSoulState::new)
+                      .serialize(new HunDaoSoulStateSerializer())
                       .build());
 
   public static final DeferredHolder<AttachmentType<?>, AttachmentType<SoulContainer>>
@@ -185,6 +195,14 @@ public final class CCAttachments {
 
   public static Optional<SoulBeastState> getExistingSoulBeastState(LivingEntity entity) {
     return entity.getExistingData(SOUL_BEAST_STATE.get());
+  }
+
+  public static HunDaoSoulState getHunDaoSoulState(LivingEntity entity) {
+    return entity.getData(HUN_DAO_SOUL_STATE.get());
+  }
+
+  public static Optional<HunDaoSoulState> getExistingHunDaoSoulState(LivingEntity entity) {
+    return entity.getExistingData(HUN_DAO_SOUL_STATE.get());
   }
 
   private static SoulContainer createSoulContainer(IAttachmentHolder holder) {
@@ -384,6 +402,25 @@ public final class CCAttachments {
     @Override
     public CompoundTag write(
         SoulBeastState attachment, net.minecraft.core.HolderLookup.Provider provider) {
+      return attachment.save();
+    }
+  }
+
+  private static class HunDaoSoulStateSerializer
+      implements IAttachmentSerializer<CompoundTag, HunDaoSoulState> {
+    @Override
+    public HunDaoSoulState read(
+        IAttachmentHolder holder,
+        CompoundTag tag,
+        net.minecraft.core.HolderLookup.Provider provider) {
+      HunDaoSoulState state = new HunDaoSoulState();
+      state.load(tag);
+      return state;
+    }
+
+    @Override
+    public CompoundTag write(
+        HunDaoSoulState attachment, net.minecraft.core.HolderLookup.Provider provider) {
       return attachment.save();
     }
   }
