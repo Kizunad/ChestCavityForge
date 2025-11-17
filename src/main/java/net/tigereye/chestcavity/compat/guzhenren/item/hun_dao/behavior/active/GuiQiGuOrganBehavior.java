@@ -18,9 +18,9 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -54,10 +54,8 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   public static final GuiQiGuOrganBehavior INSTANCE = new GuiQiGuOrganBehavior();
 
-  // Interface dependencies (injected via adapter during Phase 1)
-  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
-
   private static final String MOD_ID = "guzhenren";
+  private static final String MODULE_NAME = "gui_qi_gu";
   private static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "guiqigu");
   public static final ResourceLocation ABILITY_ID =
@@ -107,11 +105,14 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
 
+    // Use runtime context for all resource operations (Phase 3)
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+
     int stackCount = Math.max(1, organ.getCount());
     double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
     double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
-    resourceOps.adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
-    resourceOps.adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
+    runtimeContext.getResourceOps().adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
+    runtimeContext.getResourceOps().adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
   }
 
   @Override
@@ -138,7 +139,9 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
 
-    double maxHunpo = resourceOps.readMaxHunpo(player);
+    // Use runtime context for reading max hunpo (Phase 3)
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+    double maxHunpo = runtimeContext.getResourceOps().readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       return damage;
     }

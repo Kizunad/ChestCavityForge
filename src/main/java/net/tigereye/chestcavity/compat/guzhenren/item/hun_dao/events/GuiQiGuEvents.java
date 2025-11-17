@@ -10,17 +10,14 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
 
 /** Event hooks for Gui Qi Gu's soul-beast specific passive ("噬魂"). */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class GuiQiGuEvents {
-
-  // Interface dependencies (injected via adapter during Phase 1)
-  private static final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
 
   private static final double SOUL_EATER_MIN_HEALTH = 40.0D;
   private static final double SOUL_EATER_TRIGGER_CHANCE = 0.12D;
@@ -62,19 +59,22 @@ public final class GuiQiGuEvents {
       return;
     }
 
+    // Use runtime context for all resource operations (Phase 3)
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+
     double bonus = victim.getMaxHealth() * SOUL_EATER_HUNPO_SCALE;
     if (!(bonus > 0.0D)) {
       return;
     }
-    resourceOps.adjustDouble(player, "zuida_hunpo", bonus, false, null);
+    runtimeContext.getResourceOps().adjustDouble(player, "zuida_hunpo", bonus, false, null);
 
-    double stabilityMax = resourceOps.readDouble(player, "hunpo_kangxing_shangxian");
+    double stabilityMax = runtimeContext.getResourceOps().readDouble(player, "hunpo_kangxing_shangxian");
     double penalty =
         stabilityMax > 0.0D
             ? stabilityMax * SOUL_EATER_STABILITY_PENALTY
-            : resourceOps.readDouble(player, "hunpo_kangxing") * SOUL_EATER_STABILITY_PENALTY;
+            : runtimeContext.getResourceOps().readDouble(player, "hunpo_kangxing") * SOUL_EATER_STABILITY_PENALTY;
     if (penalty > 0.0D) {
-      resourceOps.adjustDouble(player, "hunpo_kangxing", -penalty, true, "hunpo_kangxing_shangxian");
+      runtimeContext.getResourceOps().adjustDouble(player, "hunpo_kangxing", -penalty, true, "hunpo_kangxing_shangxian");
     }
   }
 }
