@@ -15,10 +15,8 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoFxOps;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoNotificationOps;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -52,17 +50,8 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
 
   private static final Logger LOGGER = LogUtils.getLogger();
 
-  // Phase 1: Direct interface injection (current approach)
-  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
-  private final HunDaoFxOps fxOps = HunDaoOpsAdapter.INSTANCE;
-  private final HunDaoNotificationOps notificationOps = HunDaoOpsAdapter.INSTANCE;
-
-  // Phase 2: Runtime context is now available for advanced state management
-  // Usage example (optional migration):
-  // HunDaoRuntimeContext context = HunDaoRuntimeContext.get(player);
-  // context.getStateMachine().activateSoulBeast();
-  // context.getResourceOps().consumeHunpo(player, amount);
-  // context.getSoulState().ifPresent(state -> state.incrementSoulBeastActivationCount());
+  // Phase 2: Use runtime context for unified access to state and operations
+  // Note: Direct interface access still available for backward compatibility
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation HUN_DAO_INCREASE_EFFECT =
@@ -112,15 +101,25 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
   }
 
   @Override
-  /** 慢速心跳：仅在服务端玩家触发。 - 维持活跃态； - 被动魂魄泄露； - 维持饱食饱和； - 写入最近一次同步 tick。 */
+  /**
+   * 慢速心跳：仅在服务端玩家触发。
+   *
+   * <p>职责： - 维持活跃态和魂兽化状态同步； - 维持饱食饱和； - 写入最近一次同步 tick。
+   *
+   * <p>注意：魂魄泄露由 {@link
+   * net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunPoDrainScheduler}
+   * 统一调度，此处不再重复扣减。
+   */
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player) || entity.level().isClientSide()) {
       return;
     }
     ensureAttached(cc);
     ensureActiveState(entity, cc, organ);
-    resourceOps.leakHunpoPerSecond(player, PASSIVE_HUNPO_LEAK);
-    notificationOps.handlePlayer(player);
+    // Hunpo draining is handled by HunPoDrainScheduler - do not duplicate here
+    // Use runtime context for upkeep
+    HunDaoRuntimeContext context = HunDaoRuntimeContext.get(player);
+    context.getNotificationOps().handlePlayer(player);
     OrganState state = organState(organ, STATE_ROOT_KEY);
     logStateChange(
         LOGGER,
@@ -159,6 +158,9 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       return damage;
     }
 
+    // Use runtime context for all operations
+    HunDaoRuntimeContext runtimeContext = HunDaoRuntimeContext.get(player);
+
     // Calculate adjusted hunpo cost
     double attackHunpoCost = ATTACK_HUNPO_COST;
     if (cc != null) {
@@ -168,8 +170,8 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       }
     }
 
-    // Check if player has enough hunpo (through interface)
-    double currentHunpo = resourceOps.readHunpo(player);
+    // Check if player has enough hunpo (through runtime context)
+    double currentHunpo = runtimeContext.getResourceOps().readHunpo(player);
     if (currentHunpo < attackHunpoCost) {
       LOGGER.debug(
           "{} {} lacks hunpo for soul flame ({} / {})",
@@ -180,12 +182,14 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       return damage;
     }
 
-    // Consume hunpo (through interface)
-    resourceOps.adjustDouble(player, "hunpo", -attackHunpoCost, true, "zuida_hunpo");
+    // Consume hunpo (through runtime context)
+    runtimeContext
+        .getResourceOps()
+        .adjustDouble(player, "hunpo", -attackHunpoCost, true, "zuida_hunpo");
     HunDaoDamageUtil.markHunDaoAttack(source);
 
-    // Read max hunpo for damage calculation (through interface)
-    double maxHunpo = resourceOps.readMaxHunpo(player);
+    // Read max hunpo for damage calculation (through runtime context)
+    double maxHunpo = runtimeContext.getResourceOps().readMaxHunpo(player);
     double efficiency = 1.0;
     if (cc != null) {
       ActiveLinkageContext context = LinkageManager.getContext(cc);
@@ -196,12 +200,27 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     }
     double dotDamage = Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * efficiency);
     if (dotDamage > 0.0) {
-      fxOps.applySoulFlame(player, target, dotDamage, SOUL_FLAME_DURATION_SECONDS);
+      // Apply soul flame through runtime context
+      runtimeContext.getFxOps().applySoulFlame(player, target, dotDamage, SOUL_FLAME_DURATION_SECONDS);
+
+      // Track soul flame in persistent state
+      if (target instanceof LivingEntity targetEntity) {
+        HunDaoRuntimeContext targetContext = HunDaoRuntimeContext.get(targetEntity);
+        HunDaoSoulState soulState = targetContext.getOrCreateSoulState();
+        soulState.setSoulFlameDps(dotDamage);
+        soulState.setSoulFlameRemainingTicks(SOUL_FLAME_DURATION_SECONDS * 20);
+        LOGGER.trace(
+            "{} tracked soul flame state: dps={} ticks={}",
+            prefix(),
+            format(dotDamage),
+            SOUL_FLAME_DURATION_SECONDS * 20);
+      }
+
       if (!(target instanceof Player)) {
-        notificationOps.handleNonPlayer(target);
+        runtimeContext.getNotificationOps().handleNonPlayer(target);
       }
       LOGGER.debug(
-          "{} applied soul flame via middleware DoT={}s @{} to {}",
+          "{} applied soul flame via runtime context DoT={}s @{} to {}",
           prefix(),
           SOUL_FLAME_DURATION_SECONDS,
           format(dotDamage),
@@ -285,7 +304,11 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
         OrganStateOps.setBoolean(state, cc, organ, KEY_ACTIVE, true, false));
   }
 
-  /** 确保活跃态与归属 UUID 已写入；若缺失则以当前玩家补全。 */
+  /**
+   * 确保活跃态与归属 UUID 已写入；若缺失则以当前玩家补全。
+   *
+   * <p>使用运行时上下文激活魂兽化状态机，并追踪激活次数。
+   */
   private void ensureActiveState(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player) || organ == null || organ.isEmpty()) {
       return;
@@ -314,9 +337,27 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
           OrganStateOps.setLong(
               state, cc, organ, KEY_OWNER_LSB, uuid.getLeastSignificantBits(), value -> value, 0L));
     }
+    // Use runtime context to activate soul beast state
+    HunDaoRuntimeContext context = HunDaoRuntimeContext.get(player);
     ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(organ.getItem());
+
+    // Check if this is a new activation (not already active)
+    boolean wasActive = context.getStateMachine().isSoulBeastMode();
+
+    // Activate through state machine
     SoulBeastStateManager.setActive(player, true);
     SoulBeastStateManager.setSource(player, itemId);
+
+    // Track activation in persistent state if this is a new activation
+    if (!wasActive && context.getStateMachine().isSoulBeastMode()) {
+      HunDaoSoulState soulState = context.getOrCreateSoulState();
+      soulState.incrementSoulBeastActivationCount();
+      LOGGER.debug(
+          "{} soul beast activated for {} (total activations: {})",
+          prefix(),
+          describePlayer(player),
+          soulState.getSoulBeastActivationCount());
+    }
   }
 
   // 资源维护与 DoT 已解耦至 HunDaoMiddleware
