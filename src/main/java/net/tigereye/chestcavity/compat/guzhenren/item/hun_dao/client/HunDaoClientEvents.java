@@ -82,14 +82,17 @@ public final class HunDaoClientEvents {
       return;
     }
 
+    // Extract partial tick from DeltaTracker
+    float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
+
     // Render HUD (hun po bar, soul beast timer, etc.) if enabled
     if (HunDaoClientConfig.isHudEnabled()) {
-      HunDaoSoulHud.render(event.getGuiGraphics(), event.getPartialTick());
+      HunDaoSoulHud.render(event.getGuiGraphics(), partialTick);
     }
 
     // Render notifications (toast messages) if enabled
     if (HunDaoClientConfig.areNotificationsEnabled()) {
-      HunDaoNotificationRenderer.render(event.getGuiGraphics(), event.getPartialTick());
+      HunDaoNotificationRenderer.render(event.getGuiGraphics(), partialTick);
     }
   }
 }

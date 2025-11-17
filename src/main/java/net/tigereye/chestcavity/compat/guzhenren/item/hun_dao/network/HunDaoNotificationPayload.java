@@ -2,7 +2,6 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -25,12 +24,15 @@ public record HunDaoNotificationPayload(Component message, NotificationCategory 
       StreamCodec.of(HunDaoNotificationPayload::write, HunDaoNotificationPayload::read);
 
   private static void write(FriendlyByteBuf buf, HunDaoNotificationPayload payload) {
-    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, payload.message);
+    // Serialize Component as JSON string for compatibility
+    buf.writeUtf(Component.Serializer.toJson(payload.message), 32767);
     buf.writeVarInt(payload.category.ordinal());
   }
 
   private static HunDaoNotificationPayload read(FriendlyByteBuf buf) {
-    Component message = ComponentSerialization.TRUSTED_STREAM_CODEC.decode(buf);
+    // Deserialize Component from JSON string
+    String json = buf.readUtf(32767);
+    Component message = Component.Serializer.fromJson(json);
     int categoryOrdinal = buf.readVarInt();
     NotificationCategory category =
         NotificationCategory.values()[
