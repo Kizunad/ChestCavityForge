@@ -47,22 +47,22 @@ public final class HunDaoMiddleware {
           target, net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.SOUL_MARK, mark);
     } catch (Throwable ignored) {
     }
-    // 调度 DoT 伤害（纯伤害，无 FX）
+    // 调度 DoT 伤害（FX 由 FxEngine 负责）
     DoTEngine.schedulePerSecond(
         source,
         target,
         perSecondDamage,
         seconds,
-        null, // 不使用 DoTEngine 的音效系统
+        SOUL_FLAME_SOUND,
         0.6f,
         1.0f,
         net.tigereye.chestcavity.util.DoTTypes.HUN_DAO_SOUL_FLAME,
-        null, // 不使用 DoTEngine 的 FX 系统
+        SOUL_FLAME_FX,
         FxAnchor.TARGET,
         Vec3.ZERO,
         0.7f);
-    // 播放魂焰粒子和音效（使用专用的 FX 系统）
-    HunDaoSoulFlameFx.playSoulFlame(target, seconds);
+    // 播放魂焰粒子和音效（数据驱动 FX，不影响其他 DoT）
+    HunDaoSoulFlameFx.playSoulFlame(target, SOUL_FLAME_FX, seconds);
     LOGGER.debug(
         "[hun_dao][middleware] DoT={}s @{} -> {}",
         seconds,

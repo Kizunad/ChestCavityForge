@@ -346,12 +346,12 @@ graph TD
 
 **修复记录**：
 - **D0.1**：魂焰 DoT 缺少粒子特效与音效播放
-  - 修复文件：`HunDaoSoulFlameFx.java` (新建), `HunDaoMiddleware.java`
-  - 修复内容：创建专用的魂焰 FX 类，使用 FxEngine 调度持续特效
+  - 修复文件：`HunDaoSoulFlameFx.java`, `HunDaoMiddleware.java`
+  - 修复内容：通过 `FxEngine/FxRegistry` 播放数据驱动 FX（`soulbeast_dot_tick`），并在 Fx 资源不可用时自动降级到内置粒子
   - 实现：
-    - 紫色灵魂火焰（`SOUL_FIRE_FLAME`）环绕目标螺旋上升
-    - 播放音效 `CUSTOM_SOULBEAST_DOT`
-    - 使用 FxEngine 调度5秒持续特效，避免影响其他 DoT 模块
+    - `HunDaoMiddleware.applySoulFlame()` 仍通过 DoTEngine 调度伤害，但将 FX ID 交由 FxEngine
+    - `HunDaoSoulFlameFx` 调用 `FxRegistry.play()` 播放资源包定义的粒子/音效，确保数据驱动
+    - 当 FxEngine 关闭或 FX ID 未注册时，fallback 粒子方案仍提供视觉反馈
 
 ---
 
@@ -373,21 +373,16 @@ graph TD
 
 | 编号 | 缺陷描述 | 根本原因 | 修复文件 | 验证状态 |
 |------|----------|----------|---------|---------|
-| D0.1 | 魂焰 DoT 缺少粒子特效与音效 | 魂焰 DoT 未播放客户端可见的 FX/音效 | `HunDaoSoulFlameFx.java` (新建)<br/>`HunDaoMiddleware.java` | ✅ 代码修复完成 |
+| D0.1 | 魂焰 DoT 缺少粒子特效与音效 | FX ID 未通过 FxEngine/FxRegistry 播放，且无兜底方案 | `HunDaoSoulFlameFx.java`<br/>`HunDaoMiddleware.java` | ✅ 代码修复完成 |
 | D0.2 | 双大魂蛊威灵减免未生效 | `SoulBeastRuntimeEvents` 直接使用固定常量，未调用减免逻辑 | `SoulBeastRuntimeEvents.java` | ✅ 代码修复完成 |
 
 **技术细节**：
 
 1. **D0.1 修复方案**：
-   - 创建专用的 `HunDaoSoulFlameFx` 类（位于 `item/hun_dao/fx/`）
-   - 使用 `FxEngine` 调度持续的粒子效果（5秒，每5 tick刷新）
-   - 魂焰粒子效果：
-     - 紫色灵魂火焰（`SOUL_FIRE_FLAME`）环绕目标螺旋上升
-     - 灵魂粒子（`SOUL`）作为辅助效果
-     - 脚下环形魂焰（每10 tick）
-   - 在 `HunDaoMiddleware.applySoulFlame()` 中调用 FX
-   - DoTEngine 保持纯粹的伤害调度功能，不负责 FX 播放
-   - 避免跨模块影响：其他 DoT（云道、雷盾等）不受影响
+   - `HunDaoMiddleware.applySoulFlame()` 将 DoT 伤害与 FX 调度解耦，保留 DoTEngine 负责纯伤害
+   - `HunDaoSoulFlameFx` 通过 `FxEngine.registry().play("chestcavity:soulbeast_dot_tick")` 播放数据驱动特效，并传递持续时间/目标等参数
+   - 若 FxEngine 被禁用或 FX ID 未注册，自动降级到内置粒子方案，确保视觉反馈不会缺失
+   - 避免跨模块影响：其他 DoT（云道、雷盾等）继续走各自的 FX ID
 
 2. **D0.2 修复方案**：
    - 在 `onMeleeHit()` 和 `onProjectileImpact()` 中添加威灵减免计算
