@@ -1,6 +1,12 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao;
 
-/** Central place for soul-dao balance constants so that designers can tweak values easily. */
+/**
+ * Central place for soul-dao balance constants so that designers can tweak values easily.
+ *
+ * @deprecated Use {@link net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning}
+ *     instead. This class will be removed in a future phase.
+ */
+@Deprecated
 public final class HunDaoBalance {
 
   public static final double SOUL_BEAST_HUNPO_LEAK_PER_SEC = 3.0D;
