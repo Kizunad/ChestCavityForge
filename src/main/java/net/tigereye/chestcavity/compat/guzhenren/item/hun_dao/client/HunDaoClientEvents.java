@@ -5,7 +5,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoNotificationRenderer;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoSoulHud;
 import org.slf4j.Logger;
 
 /**
@@ -37,6 +40,9 @@ public final class HunDaoClientEvents {
     // Tick client state (decay timers)
     HunDaoClientState.instance().tick();
 
+    // Tick notifications (remove expired)
+    HunDaoNotificationRenderer.tick();
+
     // Optional: Trigger periodic client-side FX based on state
     // Example: Play ambient soul beast particles if soul beast is active
     LocalPlayer player = mc.player;
@@ -58,11 +64,32 @@ public final class HunDaoClientEvents {
     if (event.getLevel().isClientSide()) {
       LOGGER.debug("[hun_dao][client_events] Clearing client state on level unload");
       HunDaoClientState.instance().clearAll();
+      HunDaoNotificationRenderer.clear();
     }
   }
 
-  // Future event handlers can be added here:
-  // - RenderGuiEvent.Pre/Post for HUD rendering (handled by HunDaoSoulHud)
-  // - ClientPlayerNetworkEvent.LoggingOut for state cleanup
-  // - InputEvent for custom keybindings (if needed beyond ChestCavity's system)
+  /**
+   * Called after GUI rendering.
+   *
+   * <p>Renders Hun Dao HUD overlays and notifications.
+   *
+   * @param event the render GUI event
+   */
+  @SubscribeEvent
+  public static void onRenderGui(RenderGuiEvent.Post event) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc.level == null || mc.player == null) {
+      return;
+    }
+
+    // Render HUD (hun po bar, soul beast timer, etc.) if enabled
+    if (HunDaoClientConfig.isHudEnabled()) {
+      HunDaoSoulHud.render(event.getGuiGraphics(), event.getPartialTick());
+    }
+
+    // Render notifications (toast messages) if enabled
+    if (HunDaoClientConfig.areNotificationsEnabled()) {
+      HunDaoNotificationRenderer.render(event.getGuiGraphics(), event.getPartialTick());
+    }
+  }
 }

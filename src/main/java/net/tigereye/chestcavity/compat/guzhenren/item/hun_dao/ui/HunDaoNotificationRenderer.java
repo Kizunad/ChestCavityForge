@@ -95,13 +95,44 @@ public final class HunDaoNotificationRenderer {
       int screenHeight,
       int yOffset,
       float partialTicks) {
-    // TODO Phase 6+: Render notification using GuiGraphics
-    // Example: Toast-style message in top-right corner with fade-out
-    // int x = screenWidth - 200;
-    // int y = yOffset;
-    // int alpha = calculateAlpha(notification);
-    // guiGraphics.fill(...); // Background
-    // guiGraphics.drawString(...); // Message text
+    Minecraft mc = Minecraft.getInstance();
+    String text = notification.message.getString();
+    int textWidth = mc.font.width(text);
+
+    // Position: right side of screen with padding
+    int boxWidth = textWidth + 10;
+    int boxHeight = 18;
+    int x = screenWidth - boxWidth - 5;
+    int y = yOffset;
+
+    // Calculate alpha for fade-out effect
+    int alpha = calculateAlpha(notification);
+    int alphaShifted = (alpha << 24);
+
+    // Background color based on category
+    int backgroundColor = getCategoryBackgroundColor(notification.category);
+    backgroundColor = (backgroundColor & 0x00FFFFFF) | (Math.min(alpha, 170) << 24); // Semi-transparent
+
+    // Border color based on category
+    int borderColor = getCategoryBorderColor(notification.category);
+    borderColor = (borderColor & 0x00FFFFFF) | (alpha << 24);
+
+    // Draw background
+    guiGraphics.fill(x, y, x + boxWidth, y + boxHeight, backgroundColor);
+
+    // Draw border (top, bottom, left, right)
+    guiGraphics.fill(x, y, x + boxWidth, y + 1, borderColor); // Top
+    guiGraphics.fill(x, y + boxHeight - 1, x + boxWidth, y + boxHeight, borderColor); // Bottom
+    guiGraphics.fill(x, y, x + 1, y + boxHeight, borderColor); // Left
+    guiGraphics.fill(x + boxWidth - 1, y, x + boxWidth, y + boxHeight, borderColor); // Right
+
+    // Draw text centered in box
+    int textX = x + 5;
+    int textY = y + 5;
+    int textColor = 0xFFFFFFFF; // White text
+    textColor = (textColor & 0x00FFFFFF) | alphaShifted;
+
+    guiGraphics.drawString(mc.font, text, textX, textY, textColor, false);
   }
 
   /**
@@ -135,6 +166,36 @@ public final class HunDaoNotificationRenderer {
    */
   public static void clear() {
     notifications.clear();
+  }
+
+  /**
+   * Gets background color for notification category.
+   *
+   * @param category the notification category
+   * @return background color (ARGB, alpha will be overridden)
+   */
+  private static int getCategoryBackgroundColor(NotificationCategory category) {
+    return switch (category) {
+      case INFO -> 0x2A2A2A; // Dark gray
+      case WARNING -> 0x664400; // Dark orange
+      case SUCCESS -> 0x004400; // Dark green
+      case ERROR -> 0x440000; // Dark red
+    };
+  }
+
+  /**
+   * Gets border color for notification category.
+   *
+   * @param category the notification category
+   * @return border color (ARGB, alpha will be overridden)
+   */
+  private static int getCategoryBorderColor(NotificationCategory category) {
+    return switch (category) {
+      case INFO -> 0xAAAAAA; // Light gray
+      case WARNING -> 0xFFAA00; // Orange
+      case SUCCESS -> 0x55FF55; // Green
+      case ERROR -> 0xFF5555; // Red
+    };
   }
 
   /**

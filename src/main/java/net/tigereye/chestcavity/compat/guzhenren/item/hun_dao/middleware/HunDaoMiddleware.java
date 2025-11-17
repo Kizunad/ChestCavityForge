@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoSoulFlameFx;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.network.HunDaoNetworkHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.SaturationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.engine.dot.DoTEngine;
@@ -68,6 +69,10 @@ public final class HunDaoMiddleware {
         seconds,
         format(perSecondDamage),
         target.getName().getString());
+
+    // Phase 6: Sync soul flame to clients for HUD display
+    int ticks = seconds * 20;
+    HunDaoNetworkHelper.syncSoulFlame(target, 1, ticks); // Stack count simplified to 1
   }
 
   public void leakHunpoPerSecond(Player player, double amount) {
@@ -117,6 +122,12 @@ public final class HunDaoMiddleware {
         format(amount),
         player.getScoreboardName(),
         reason);
+
+    // Phase 6: Sync hun po to client for HUD display
+    // Note: This may be called frequently. Consider rate-limiting in production.
+    double current = handle.read("hunpo").orElse(0.0);
+    double max = handle.read("zuida_hunpo").orElse(100.0);
+    HunDaoNetworkHelper.syncHunPo(player, current, max);
   }
 
   private String format(double value) {
