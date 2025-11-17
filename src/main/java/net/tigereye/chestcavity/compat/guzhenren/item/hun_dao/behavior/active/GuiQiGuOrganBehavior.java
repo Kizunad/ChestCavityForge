@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active;
 
 import java.util.HashMap;
 import java.util.List;

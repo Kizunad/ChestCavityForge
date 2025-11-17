@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
 import com.mojang.logging.LogUtils;
 import java.util.List;

@@ -2,7 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao;
 
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.registration.CCKeybindings;
 
 /** Client-side ability registration for Hun Dao organs. */
