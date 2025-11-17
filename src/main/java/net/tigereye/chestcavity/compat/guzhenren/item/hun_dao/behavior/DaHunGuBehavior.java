@@ -14,13 +14,13 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoOrganRegistry;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
@@ -42,12 +42,12 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final Logger LOGGER = LogUtils.getLogger();
 
-  private static final double BASE_HUNPO_RECOVERY_PER_SECOND = 2.0;
-  private static final double BASE_NIANTOU_RECOVERY_PER_SECOND = 1.0;
+  // Interface dependencies (injected via adapter during Phase 1)
+  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
+
   private static final double SOUL_INTENT_PER_ORGAN = 0.0075;
   private static final double SOUL_INTENT_MAX = 0.15;
   private static final double WEILING_ATTACK_COST_REDUCTION = 10.0;
-  private static final double WEILING_RADIUS = 8.0D;
   private static final int WEILING_EFFECT_DURATION_TICKS =
       BehaviorConfigAccess.getInt(DaHunGuBehavior.class, "WEILING_EFFECT_DURATION_TICKS", 100);
 
@@ -73,28 +73,22 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     if (!(entity instanceof Player player) || entity.level().isClientSide()) {
       return;
     }
-    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-    if (handleOpt.isEmpty()) {
-      return;
-    }
-    ResourceHandle handle = handleOpt.get();
     boolean soulBeast = SoulBeastStateManager.isActive(player);
     double soulIntentBonus = (!soulBeast && hasXiaoHunGu(cc)) ? computeSoulIntentBonus(cc) : 0.0;
-    double hunpoGain = BASE_HUNPO_RECOVERY_PER_SECOND * (1.0 + soulIntentBonus);
+    double hunpoGain = HunDaoTuning.DaHunGu.RECOVER * (1.0 + soulIntentBonus);
     if (hunpoGain > 0.0) {
-      ResourceOps.tryAdjustDouble(handle, "hunpo", hunpoGain, true, "zuida_hunpo");
+      resourceOps.adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
       LOGGER.debug(
           "[compat/guzhenren][hun_dao][da_hun_gu] +{} hunpo (soul_intent_bonus={}) -> {}",
           format(hunpoGain),
           format(soulIntentBonus),
           describePlayer(player));
     }
-    if (BASE_NIANTOU_RECOVERY_PER_SECOND > 0.0) {
-      ResourceOps.tryAdjustDouble(
-          handle, "niantou", BASE_NIANTOU_RECOVERY_PER_SECOND, true, "niantou_zuida");
+    if (HunDaoTuning.DaHunGu.NIANTOU > 0.0) {
+      resourceOps.adjustDouble(player, "niantou", HunDaoTuning.DaHunGu.NIANTOU, true, "niantou_zuida");
     }
     if (soulBeast && hasDaHunGu(cc)) {
-      double currentHunpo = handle.read("hunpo").orElse(0.0);
+      double currentHunpo = resourceOps.readHunpo(player);
       applyWeiling(player, currentHunpo);
     }
     OrganState state = organState(organ, STATE_ROOT_KEY);
@@ -165,7 +159,7 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
             true,
             true,
             false);
-    int affected = IntimidationHelper.intimidateNearby(player, WEILING_RADIUS, settings);
+    int affected = IntimidationHelper.intimidateNearby(player, HunDaoTuning.Effects.DETER_RADIUS, settings);
     if (affected > 0) {
       LOGGER.debug(
           "[compat/guzhenren][hun_dao][da_hun_gu] weiling intimidated {} targets (hunpo={})",

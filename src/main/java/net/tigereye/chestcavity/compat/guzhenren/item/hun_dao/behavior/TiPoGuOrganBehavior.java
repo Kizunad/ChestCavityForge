@@ -14,14 +14,13 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectContributor;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
@@ -45,6 +44,9 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final Logger LOGGER = LogUtils.getLogger();
   private static final String MOD_ID = "guzhenren";
+
+  // Interface dependencies (injected via adapter during Phase 1)
+  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
 
   private static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tipogu");
@@ -116,19 +118,14 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (!matchesOrgan(organ, ORGAN_ID)) {
       return;
     }
-    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-    if (handleOpt.isEmpty()) {
-      return;
-    }
-    ResourceHandle handle = handleOpt.get();
     int stackCount = Math.max(1, organ.getCount());
     double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
     double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
     if (hunpoGain != 0.0D) {
-      ResourceOps.tryAdjustDouble(handle, "hunpo", hunpoGain, true, "zuida_hunpo");
+      resourceOps.adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
     }
     if (jingliGain != 0.0D) {
-      ResourceOps.tryAdjustDouble(handle, "jingli", jingliGain, true, "zuida_jingli");
+      resourceOps.adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
     }
 
     OrganState state = organState(organ, STATE_ROOT_KEY);
@@ -155,7 +152,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
     boolean forceShieldRefresh = !soulBeast && wasSoulBeast;
     maybeRefreshShield(
-        player, cc, handle, organ, state, cooldown, soulBeast, currentTick, forceShieldRefresh);
+        player, cc, organ, state, cooldown, soulBeast, currentTick, forceShieldRefresh);
   }
 
   @Override
@@ -182,12 +179,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
 
-    Optional<ResourceHandle> handleOpt = GuzhenrenResourceBridge.open(player);
-    if (handleOpt.isEmpty()) {
-      return damage;
-    }
-    ResourceHandle handle = handleOpt.get();
-    double maxHunpo = handle.read("zuida_hunpo").orElse(0.0D);
+    double maxHunpo = resourceOps.readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       return damage;
     }
@@ -197,7 +189,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
     double hunpoCost = maxHunpo * SOUL_BEAST_HUNPO_COST_PERCENT;
-    double currentHunpo = handle.read("hunpo").orElse(0.0D);
+    double currentHunpo = resourceOps.readHunpo(player);
     if (currentHunpo + EPSILON < hunpoCost) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
@@ -209,7 +201,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       }
       return damage;
     }
-    ResourceOps.tryAdjustDouble(handle, "hunpo", -hunpoCost, true, "zuida_hunpo");
+    resourceOps.adjustDouble(player, "hunpo", -hunpoCost, true, "zuida_hunpo");
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "{} applied soul beast strike: extra={} cost={} increase={} target={}",
@@ -293,7 +285,6 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private void maybeRefreshShield(
       Player player,
       ChestCavityInstance cc,
-      ResourceHandle handle,
       ItemStack organ,
       OrganState state,
       MultiCooldown cooldown,
@@ -337,7 +328,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (!shouldRefresh) {
       return;
     }
-    double maxHunpo = handle.read("zuida_hunpo").orElse(0.0D);
+    double maxHunpo = resourceOps.readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       logStateChange(
           LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, updateEntry(shieldTickEntry, currentTick));

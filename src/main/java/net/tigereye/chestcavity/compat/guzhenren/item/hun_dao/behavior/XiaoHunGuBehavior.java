@@ -12,10 +12,11 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.IncreaseEffectLedger;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
@@ -34,14 +35,14 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
   private static final Logger LOGGER = LogUtils.getLogger();
   private static final String MOD_ID = "guzhenren";
 
+  // Interface dependencies (injected via adapter during Phase 1)
+  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
+
   private static final ResourceLocation HUN_DAO_INCREASE_EFFECT =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/hun_dao_increase_effect");
 
   private static final String STATE_ROOT_KEY = "HunDaoHeart";
   private static final String KEY_LAST_SYNC_TICK = "last_sync_tick";
-
-  private static final double BASE_RECOVERY_PER_SECOND = 1.0;
-  private static final double RECOVERY_BONUS = 0.15;
 
   private static final ClampPolicy NON_NEGATIVE = new ClampPolicy(0.0, Double.MAX_VALUE);
 
@@ -96,18 +97,13 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
       return; // only one Xiao Hun Gu may apply its effect
     }
     double bonus = Math.max(0.0, channel.get());
-    double amount = BASE_RECOVERY_PER_SECOND * (1.0 + bonus);
-    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
-        GuzhenrenResourceBridge.open(player);
-    handleOpt.ifPresent(
-        handle -> {
-          ResourceOps.tryAdjustDouble(handle, "hunpo", amount, true, "zuida_hunpo");
-          LOGGER.debug(
-              "[compat/guzhenren][hun_dao][heart][player] +{} hunpo to {} (bonus={})",
-              String.format("%.2f", amount),
-              player.getScoreboardName(),
-              String.format("%.2f", bonus));
-        });
+    double amount = HunDaoTuning.XiaoHunGu.RECOVER * (1.0 + bonus);
+    resourceOps.adjustDouble(player, "hunpo", amount, true, "zuida_hunpo");
+    LOGGER.debug(
+        "[compat/guzhenren][hun_dao][heart][player] +{} hunpo to {} (bonus={})",
+        String.format("%.2f", amount),
+        player.getScoreboardName(),
+        String.format("%.2f", bonus));
     OrganState state = organState(organ, STATE_ROOT_KEY);
     OrganStateOps.setLong(
         state, cc, organ, KEY_LAST_SYNC_TICK, player.level().getGameTime(), value -> value, 0L);
@@ -146,7 +142,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     double previous = ledger.adjust(organ, HUN_DAO_INCREASE_EFFECT, 0.0);
     double totalWithoutSelf = Math.max(0.0, ledger.total(HUN_DAO_INCREASE_EFFECT) - previous);
     boolean activate = requestPrimary && totalWithoutSelf <= 0.0;
-    double target = activate ? RECOVERY_BONUS : 0.0;
+    double target = activate ? HunDaoTuning.XiaoHunGu.RECOVER_BONUS : 0.0;
     double delta = target - previous;
     if (target > 0.0) {
       LedgerOps.set(

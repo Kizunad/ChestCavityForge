@@ -19,15 +19,15 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowController;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowControllerManager;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgram;
 import net.tigereye.chestcavity.guscript.runtime.flow.FlowProgramRegistry;
-import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
@@ -53,6 +53,9 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     implements OrganSlowTickListener, OrganOnHitListener {
 
   public static final GuiQiGuOrganBehavior INSTANCE = new GuiQiGuOrganBehavior();
+
+  // Interface dependencies (injected via adapter during Phase 1)
+  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation ORGAN_ID =
@@ -104,17 +107,11 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
 
-    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
-        GuzhenrenResourceBridge.open(player);
-    if (handleOpt.isEmpty()) {
-      return;
-    }
-    GuzhenrenResourceBridge.ResourceHandle handle = handleOpt.get();
     int stackCount = Math.max(1, organ.getCount());
     double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
     double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
-    ResourceOps.tryAdjustDouble(handle, "hunpo", hunpoGain, true, "zuida_hunpo");
-    ResourceOps.tryAdjustDouble(handle, "jingli", jingliGain, true, "zuida_jingli");
+    resourceOps.adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
+    resourceOps.adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
   }
 
   @Override
@@ -141,12 +138,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
 
-    Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
-        GuzhenrenResourceBridge.open(player);
-    if (handleOpt.isEmpty()) {
-      return damage;
-    }
-    double maxHunpo = handleOpt.get().read("zuida_hunpo").orElse(0.0D);
+    double maxHunpo = resourceOps.readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       return damage;
     }
