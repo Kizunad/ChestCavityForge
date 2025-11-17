@@ -90,7 +90,13 @@
 - **范围膨胀**：遵循 YAGNI，只迁移当前魂道机制；新增功能需单独立项。
 - **审查压力**：0 容忍策略要求每次 PR 粒度可控，建议阶段内多次小提交，方便 review。
 
-## 6. 下一步
+## 6. 编码规范补充
+- 当前仓库 Checkstyle 报告显示 1368 个文件、13331 条 warning（`build/reports/checkstyle/main.html`），短期无法一次清理。
+- **执行要求**：仅需保证本阶段涉及的 `hun_dao` 工作文件在提交前通过 Checkstyle，其它旧文件可暂时忽略。
+- 若修复 Checkstyle 需要大规模格式化，需提前在计划中注明，避免掩盖实际业务改动。
+- Gradle `configuration-cache` 与 `:test` 任务当前会失败，可先专注于模块内校验与 smoke 测试，后续统一处理。
+
+## 7. 下一步
 1. 按此计划在 `docs/Phase0_Plan.md` 填写详细任务与时间表。
 2. 盘点现状，输出 Phase 0 完成报告模板供后续使用。
 

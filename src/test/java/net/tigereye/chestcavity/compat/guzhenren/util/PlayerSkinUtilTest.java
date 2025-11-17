@@ -16,7 +16,7 @@ public class PlayerSkinUtilTest {
     assertEquals("default", snap.model());
     ResourceLocation tex = snap.texture();
     assertEquals("minecraft", tex.getNamespace());
-    assertEquals("textures/entity/steve.png", tex.getPath());
+    assertEquals("textures/entity/player/wide/steve.png", tex.getPath());
     assertEquals(r, snap.red(), 1e-6);
     assertEquals(g, snap.green(), 1e-6);
     assertEquals(b, snap.blue(), 1e-6);
