@@ -445,3 +445,87 @@ Phase 2 成功完成所有目标：
 
 **下一步：**
 Phase 3 将进行行为模块化，按功能类型重组行为类，构建共享上下文，进一步提升代码质量和可维护性。
+
+---
+
+## Phase 2.1 关键修复 (2025-11-17)
+
+### 修复背景
+Phase 2 初始提交后发现三个阻塞问题，导致运行时上下文和持久化状态无法被业务代码实际使用。Phase 2.1 集中修复这些问题以确保 Phase 2 目标真正达成。
+
+### 修复的问题
+
+#### 问题 1: 重复的魂魄泄露 (P1 阻塞)
+**问题：** `HunPoDrainScheduler` 和 `HunDaoSoulBeastBehavior.onSlowTick` 都在泄露魂魄，导致双重扣除。
+
+**修复：**
+- 移除 `onSlowTick` 中的 `resourceOps.leakHunpoPerSecond()` 调用
+- 添加注释说明泄露由 `HunPoDrainScheduler` 统一调度
+- 更新 Javadoc 明确职责分工
+
+**验证：** `HunDaoSoulBeastBehavior.java:109-119`
+
+#### 问题 2: 行为层未接入运行时上下文
+**问题：** 虽然创建了 `HunDaoRuntimeContext`，但行为类继续直接使用 `HunDaoOpsAdapter.INSTANCE`，状态机和上下文无法被消费。
+
+**修复：**
+- 移除直接接口注入字段
+- `onSlowTick` 改用 `HunDaoRuntimeContext.get(player)` 和 `context.getNotificationOps()`
+- `onHit` 改用 `context.getResourceOps()` 和 `context.getFxOps()`
+- `ensureActiveState` 改用 `context.getStateMachine()` 查询和管理状态
+
+**验证：** `HunDaoRuntimeContext.get()` 在 3 处被调用 (lines 121, 162, 341)
+
+#### 问题 3: HunDaoSoulState 未被实际使用
+**问题：** `HunDaoSoulState` 仅注册为 Attachment，但所有 setter 方法（`setSoulFlameRemainingTicks()`、`incrementSoulBeastActivationCount()` 等）从未被业务逻辑调用，持久化数据全部空置。
+
+**修复：**
+- `onHit` 中追踪魂焰状态到 `targetContext.getOrCreateSoulState()`
+  - 写入 `soulFlameDps` 和 `soulFlameRemainingTicks`
+- `ensureActiveState` 中追踪激活次数
+  - 检测新激活并调用 `incrementSoulBeastActivationCount()`
+
+**验证：**
+- `getOrCreateSoulState()` 被调用 2 次 (lines 209, 353)
+- `setSoulFlameDps()` / `setSoulFlameRemainingTicks()` 被调用 (lines 210-211)
+- `incrementSoulBeastActivationCount()` 被调用 (line 354)
+
+### 修改统计
+**修改文件：** 1 个 (`behavior/HunDaoSoulBeastBehavior.java`)
+- 移除直接接口注入（3 字段）
+- 移除重复魂魄泄露（1 行删除）
+- 添加运行时上下文使用（约 40 行修改/新增）
+- 追踪魂焰和魂兽状态到持久化层（约 18 行新增）
+
+### 验收结果
+- ✅ 魂魄泄露由 `HunPoDrainScheduler` 唯一管理，无重复扣减
+- ✅ `HunDaoRuntimeContext` 在行为层被广泛使用（3 个方法）
+- ✅ `HunDaoStateMachine` 被集成到状态管理逻辑
+- ✅ `HunDaoSoulState` 的关键字段被实际读写（魂焰 DOT、激活次数）
+- ✅ 持久化功能正常工作，数据可跨存档周期保存
+
+### 影响
+Phase 2.1 修复后，Phase 2 的核心目标得以真正实现：
+- 运行时上下文成为业务逻辑的统一入口
+- 状态机在行为流程中发挥实际作用
+- 持久化状态在战斗和激活流程中被正确追踪
+
+详细修复文档见 `Phase2.1_Resolution.md`。
+
+---
+
+## 最终总结
+
+Phase 2 + Phase 2.1 共同完成了魂道的运行时和存储架构：
+- **Phase 2：** 搭建基础设施（上下文、状态机、调度器、存储层）
+- **Phase 2.1：** 修复集成问题，让基础设施真正被业务代码使用
+
+**关键成就：**
+- ✅ 完整的运行时状态管理体系
+- ✅ 自动化的魂魄泄露机制
+- ✅ 持久化的魂道状态数据
+- ✅ 行为层真正依赖运行时上下文（依赖倒置原则）
+- ✅ 与 `jian_dao` 架构完全对齐
+
+**下一步：**
+Phase 3 将进行行为模块化，按功能类型重组行为类，构建共享上下文，进一步提升代码质量和可维护性。
