@@ -15,7 +15,10 @@ import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoFxOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoNotificationOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -50,6 +53,10 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
   public static final HunDaoSoulBeastBehavior INSTANCE = new HunDaoSoulBeastBehavior();
 
   private static final Logger LOGGER = LogUtils.getLogger();
+
+  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
+  private final HunDaoFxOps fxOps = HunDaoOpsAdapter.INSTANCE;
+  private final HunDaoNotificationOps notificationOps = HunDaoOpsAdapter.INSTANCE;
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation HUN_DAO_INCREASE_EFFECT =
@@ -106,8 +113,8 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     }
     ensureAttached(cc);
     ensureActiveState(entity, cc, organ);
-    HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, PASSIVE_HUNPO_LEAK);
-    HunDaoMiddleware.INSTANCE.handlerPlayer(player);
+    resourceOps.leakHunpoPerSecond(player, PASSIVE_HUNPO_LEAK);
+    notificationOps.handlePlayer(player);
     OrganState state = organState(organ, STATE_ROOT_KEY);
     logStateChange(
         LOGGER,
@@ -181,10 +188,9 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     }
     double dotDamage = Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * efficiency);
     if (dotDamage > 0.0) {
-      HunDaoMiddleware.INSTANCE.applySoulFlame(
-          player, target, dotDamage, SOUL_FLAME_DURATION_SECONDS);
+      fxOps.applySoulFlame(player, target, dotDamage, SOUL_FLAME_DURATION_SECONDS);
       if (!(target instanceof Player)) {
-        HunDaoMiddleware.INSTANCE.handlerNonPlayer(target);
+        notificationOps.handleNonPlayer(target);
       }
       LOGGER.debug(
           "{} applied soul flame via middleware DoT={}s @{} to {}",
