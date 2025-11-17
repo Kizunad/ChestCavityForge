@@ -58,6 +58,15 @@ public interface HunDaoResourceOps {
   double readMaxHunpo(Player player);
 
   /**
+   * Read a double resource field by name.
+   *
+   * @param player the player
+   * @param field the field name (e.g., "hunpo_kangxing")
+   * @return the field value, or 0.0 if unavailable
+   */
+  double readDouble(Player player, String field);
+
+  /**
    * Adjust a double resource field with optional clamping.
    *
    * @param player the player
