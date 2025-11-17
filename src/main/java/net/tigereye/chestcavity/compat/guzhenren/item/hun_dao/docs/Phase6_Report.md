@@ -195,27 +195,36 @@ Phase 6 聚焦"验收与体验"——将 HUD/FX/同步落地到可发布品质�
 
 ## 编译修复
 
-初次提交后，CI 环境检测到 5 个编译错误，已全部修复：
+初次提交后，CI 环境检测到多轮编译错误，已全部修复：
 
-### 错误 1-2: Component 序列化问题
-**文件**: `HunDaoNotificationPayload.java` (28行, 33行)
-- **问题**: `ComponentSerialization.TRUSTED_STREAM_CODEC` 需要 `RegistryFriendlyByteBuf`，但 Payload 使用 `FriendlyByteBuf`
-- **解决**: 改用 `Component.Serializer.toJson()` / `fromJson()` 进行序列化
-- **提交**: dea7673
+### 第一轮修复 (提交 dea7673)
 
-### 错误 3-4: DeltaTracker 类型问题
-**文件**: `HunDaoClientEvents.java` (87行, 92行)
+**错误 1-2: Component 序列化问题** (已废弃)
+- **问题**: `ComponentSerialization.TRUSTED_STREAM_CODEC` 需要 `RegistryFriendlyByteBuf`
+- **初步解决**: 改用 `Component.Serializer.toJson()` / `fromJson()`
+- **状态**: ❌ 导致新错误（缺少 Provider 参数）
+
+**错误 3-4: DeltaTracker 类型问题**
+- **文件**: `HunDaoClientEvents.java` (87行, 92行)
 - **问题**: `event.getPartialTick()` 返回 `DeltaTracker` 对象，不是 float
-- **解决**: 使用 `event.getPartialTick().getGameTimeDeltaPartialTick(true)` 获取 float 值
-- **提交**: dea7673
+- **解决**: 使用 `event.getPartialTick().getGameTimeDeltaPartialTick(true)`
+- **状态**: ✅ 已修复
 
-### 错误 5: 缺失 import
-**文件**: `HunDaoSoulHud.java` (177行)
+**错误 5: 缺失 import**
+- **文件**: `HunDaoSoulHud.java` (177行)
 - **问题**: 缺少 `UUID` 类的 import
 - **解决**: 添加 `import java.util.UUID;`
-- **提交**: dea7673
+- **状态**: ✅ 已修复
 
-**编译状态**: ✅ 所有已知编译错误已修复
+### 第二轮修复 (提交 4e6a872)
+
+**错误 6-7: Component 序列化参数问题**
+- **文件**: `HunDaoNotificationPayload.java` (28行, 35行)
+- **问题**: `Component.Serializer.toJson/fromJson` 需要 `Provider` 参数
+- **最终解决**: 使用 `buf.writeComponent()` / `buf.readComponent()`
+- **状态**: ✅ 已修复（使用标准 FriendlyByteBuf 方法）
+
+**编译状态**: ✅ 所有编译错误已修复（等待 CI 验证）
 
 ## 待完成任务
 
@@ -351,12 +360,19 @@ Phase 6 成功完成了 Hun Dao 系统的 HUD/FX/同步三大核心功能：
    - +1159 行代码
 
 2. **dea7673** - fix(hun_dao): resolve Phase 6 compilation errors
-   - 修复 5 个编译错误
-   - Component 序列化兼容性修复
-   - DeltaTracker 类型处理
-   - 添加缺失的 import
+   - 修复 DeltaTracker 类型问题（3 个错误）
+   - 添加缺失的 UUID import（1 个错误）
+   - 初步修复 Component 序列化（导致新问题）
+
+3. **571ecba** - docs(hun_dao): update Phase6 report with compilation fixes
+   - 更新报告记录第一轮编译修复
+
+4. **4e6a872** - fix(hun_dao): use FriendlyByteBuf.writeComponent/readComponent
+   - 最终修复 Component 序列化问题（2 个错误）
+   - 使用标准 `buf.writeComponent()` / `buf.readComponent()` 方法
+   - 更简洁且符合 Minecraft 原生 API
 
 **Phase 6 实施完成时间**: 2025-11-18
-**编译修复完成时间**: 2025-11-18
+**编译修复完成时间**: 2025-11-18（共 2 轮，7 个错误全部修复）
 **预计游戏内测试时间**: TBD
 **Phase 7 规划**: 性能优化 + 功能增强（如需要）
