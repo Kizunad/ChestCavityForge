@@ -43,12 +43,20 @@ public final class HunDaoOpsAdapter
 
   @Override
   public double readHunpo(Player player) {
-    return openHandle(player).flatMap(h -> h.read("hunpo")).orElse(0.0);
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handle = openHandle(player);
+    if (handle.isEmpty()) {
+      return 0.0;
+    }
+    return handle.get().read("hunpo").orElse(0.0);
   }
 
   @Override
   public double readMaxHunpo(Player player) {
-    return openHandle(player).flatMap(h -> h.read("zuida_hunpo")).orElse(0.0);
+    Optional<GuzhenrenResourceBridge.ResourceHandle> handle = openHandle(player);
+    if (handle.isEmpty()) {
+      return 0.0;
+    }
+    return handle.get().read("zuida_hunpo").orElse(0.0);
   }
 
   @Override
