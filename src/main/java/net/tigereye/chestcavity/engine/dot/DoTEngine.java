@@ -2,12 +2,10 @@ package net.tigereye.chestcavity.engine.dot;
 
 import com.mojang.logging.LogUtils;
 import java.util.*;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -205,7 +203,6 @@ public final class DoTEngine {
         new HashMap<>(); // target -> (attacker|null -> totalDamage)
     Map<UUID, LivingEntity> targetCache = new HashMap<>();
     Map<UUID, LivingEntity> attackerCache = new HashMap<>();
-    Map<UUID, List<Pulse>> fxPulses = new HashMap<>(); // target -> pulses (for FX/sound)
     UUID NONE = new UUID(0L, 0L);
     for (Map.Entry<Integer, List<Pulse>> entry : due) {
       for (Pulse pulse : entry.getValue()) {
@@ -225,8 +222,6 @@ public final class DoTEngine {
         grouped
             .computeIfAbsent(target.getUUID(), k -> new HashMap<>())
             .merge(atkKey, pulse.amount, Float::sum);
-        // Track pulse for FX/sound playback
-        fxPulses.computeIfAbsent(target.getUUID(), k -> new ArrayList<>()).add(pulse);
       }
     }
     for (Map.Entry<UUID, Map<UUID, Float>> e : grouped.entrySet()) {
@@ -243,78 +238,6 @@ public final class DoTEngine {
         else if (attacker != null) source = attacker.damageSources().mobAttack(attacker);
         else source = target.damageSources().generic();
         target.hurt(source, total);
-      }
-      // Play FX and sound for this target
-      playFxAndSound(target, fxPulses.get(e.getKey()), attackerCache);
-    }
-  }
-
-  private static void playFxAndSound(
-      LivingEntity target, List<Pulse> pulses, Map<UUID, LivingEntity> attackerCache) {
-    if (target == null || pulses == null || pulses.isEmpty()) return;
-    if (!(target.level() instanceof ServerLevel serverLevel)) return;
-
-    // Group pulses by FX type to avoid duplicate effects
-    Set<ResourceLocation> playedFx = new HashSet<>();
-    Set<SoundEvent> playedSounds = new HashSet<>();
-
-    for (Pulse pulse : pulses) {
-      // Play sound effect if not already played
-      if (pulse.sound != null && !playedSounds.contains(pulse.sound)) {
-        Vec3 soundPos = target.position();
-        serverLevel.playSound(
-            null,
-            soundPos.x,
-            soundPos.y,
-            soundPos.z,
-            pulse.sound,
-            SoundSource.HOSTILE,
-            pulse.volume,
-            pulse.pitch);
-        playedSounds.add(pulse.sound);
-        if (debugEnabled()) {
-          LOGGER.info(
-              "[dot] played sound {} for target {}",
-              pulse.sound.getLocation(),
-              target.getName().getString());
-        }
-      }
-
-      // Play particle effects if not already played for this FX type
-      if (pulse.fxId != null && !playedFx.contains(pulse.fxId)) {
-        LivingEntity anchor =
-            pulse.fxAnchor == FxAnchor.ATTACKER
-                ? (pulse.attackerUuid != null ? attackerCache.get(pulse.attackerUuid) : null)
-                : target;
-        if (anchor != null) {
-          Vec3 anchorPos = anchor.position();
-          Vec3 fxPos = anchorPos.add(pulse.fxOffset);
-
-          // Spawn soul flame particles (purple/dark particles around the target)
-          int particleCount = Math.max(3, (int) (pulse.fxIntensity * 8));
-          for (int i = 0; i < particleCount; i++) {
-            double angle = (Math.PI * 2.0 * i) / particleCount;
-            double radius = 0.5;
-            double px = fxPos.x + Math.cos(angle) * radius;
-            double py = fxPos.y + 0.5 + (anchor.getRandom().nextDouble() * 1.0);
-            double pz = fxPos.z + Math.sin(angle) * radius;
-
-            // Velocity toward center and upward
-            double vx = -Math.cos(angle) * 0.02;
-            double vy = 0.05;
-            double vz = -Math.sin(angle) * 0.02;
-
-            serverLevel.sendParticles(
-                ParticleTypes.SOUL_FIRE_FLAME, px, py, pz, 1, vx, vy, vz, 0.02);
-          }
-          playedFx.add(pulse.fxId);
-          if (debugEnabled()) {
-            LOGGER.info(
-                "[dot] played FX {} for target {}",
-                pulse.fxId,
-                target.getName().getString());
-          }
-        }
       }
     }
   }

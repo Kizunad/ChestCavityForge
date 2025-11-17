@@ -9,6 +9,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoSoulFlameFx;
 import net.tigereye.chestcavity.compat.guzhenren.util.SaturationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.engine.dot.DoTEngine;
@@ -36,7 +37,7 @@ public final class HunDaoMiddleware {
     if (perSecondDamage <= 0 || seconds <= 0) {
       return;
     }
-    // 标记魂印，用于触发“魂印回声”等反应规则
+    // 标记魂印，用于触发"魂印回声"等反应规则
     try {
       int mark =
           ChestCavity.config != null
@@ -46,19 +47,22 @@ public final class HunDaoMiddleware {
           target, net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.SOUL_MARK, mark);
     } catch (Throwable ignored) {
     }
+    // 调度 DoT 伤害（纯伤害，无 FX）
     DoTEngine.schedulePerSecond(
         source,
         target,
         perSecondDamage,
         seconds,
-        SOUL_FLAME_SOUND,
+        null, // 不使用 DoTEngine 的音效系统
         0.6f,
         1.0f,
         net.tigereye.chestcavity.util.DoTTypes.HUN_DAO_SOUL_FLAME,
-        SOUL_FLAME_FX,
+        null, // 不使用 DoTEngine 的 FX 系统
         FxAnchor.TARGET,
         Vec3.ZERO,
         0.7f);
+    // 播放魂焰粒子和音效（使用专用的 FX 系统）
+    HunDaoSoulFlameFx.playSoulFlame(target, seconds);
     LOGGER.debug(
         "[hun_dao][middleware] DoT={}s @{} -> {}",
         seconds,
