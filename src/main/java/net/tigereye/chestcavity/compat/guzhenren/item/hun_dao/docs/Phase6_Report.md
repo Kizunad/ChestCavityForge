@@ -193,14 +193,36 @@ Phase 6 聚焦"验收与体验"——将 HUD/FX/同步落地到可发布品质�
 - **可配置**: 客户端配置类预留了扩展到 ModConfigSpec 的接口
 - **防御性编程**: 所有网络代码都检查 null 和客户端/服务器端环境
 
-## 未完成任务
+## 编译修复
 
-由于环境限制（无网络访问），以下任务未完成：
+初次提交后，CI 环境检测到 5 个编译错误，已全部修复：
 
-### 3.1 编译测试
-- **状态**: 未执行
-- **原因**: Gradle 下载失败（网络限制）
-- **建议**: 本地环境执行 `./gradlew compileJava` 和 `./gradlew check`
+### 错误 1-2: Component 序列化问题
+**文件**: `HunDaoNotificationPayload.java` (28行, 33行)
+- **问题**: `ComponentSerialization.TRUSTED_STREAM_CODEC` 需要 `RegistryFriendlyByteBuf`，但 Payload 使用 `FriendlyByteBuf`
+- **解决**: 改用 `Component.Serializer.toJson()` / `fromJson()` 进行序列化
+- **提交**: dea7673
+
+### 错误 3-4: DeltaTracker 类型问题
+**文件**: `HunDaoClientEvents.java` (87行, 92行)
+- **问题**: `event.getPartialTick()` 返回 `DeltaTracker` 对象，不是 float
+- **解决**: 使用 `event.getPartialTick().getGameTimeDeltaPartialTick(true)` 获取 float 值
+- **提交**: dea7673
+
+### 错误 5: 缺失 import
+**文件**: `HunDaoSoulHud.java` (177行)
+- **问题**: 缺少 `UUID` 类的 import
+- **解决**: 添加 `import java.util.UUID;`
+- **提交**: dea7673
+
+**编译状态**: ✅ 所有已知编译错误已修复
+
+## 待完成任务
+
+### 3.1 编译验证
+- **状态**: 待 CI 环境验证
+- **本地状态**: 网络限制无法执行
+- **预期**: 修复后应通过编译
 
 ### 3.2 游戏内测试
 - **状态**: 未执行
@@ -321,6 +343,20 @@ Phase 6 成功完成了 Hun Dao 系统的 HUD/FX/同步三大核心功能：
 
 ---
 
+## Git 提交记录
+
+1. **5743984** - feat(hun_dao): Phase 6 - HUD/FX/Network Sync Implementation
+   - 完成所有 HUD 渲染、通知系统、网络同步功能
+   - 新增 9 个文件，修改 5 个文件
+   - +1159 行代码
+
+2. **dea7673** - fix(hun_dao): resolve Phase 6 compilation errors
+   - 修复 5 个编译错误
+   - Component 序列化兼容性修复
+   - DeltaTracker 类型处理
+   - 添加缺失的 import
+
 **Phase 6 实施完成时间**: 2025-11-18
+**编译修复完成时间**: 2025-11-18
 **预计游戏内测试时间**: TBD
 **Phase 7 规划**: 性能优化 + 功能增强（如需要）
