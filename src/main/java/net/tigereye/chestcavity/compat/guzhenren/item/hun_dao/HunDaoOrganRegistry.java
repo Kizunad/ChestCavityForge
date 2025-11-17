@@ -5,10 +5,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.GuiQiGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.TiPoGuOrganBehavior;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.XiaoHunGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive.DaHunGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive.TiPoGuOrganBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive.XiaoHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 
 /**

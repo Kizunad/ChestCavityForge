@@ -16,7 +16,7 @@ import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageTags;

@@ -1,4 +1,4 @@
-package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior;
+package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
 // file moved from HunDaoHeartBehavior.java to match public class name
 
@@ -11,8 +11,8 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -33,9 +33,7 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final Logger LOGGER = LogUtils.getLogger();
   private static final String MOD_ID = "guzhenren";
-
-  // Interface dependencies (injected via adapter during Phase 1)
-  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
+  private static final String MODULE_NAME = "xiao_hun_gu";
 
   private static final ResourceLocation HUN_DAO_INCREASE_EFFECT =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/hun_dao_increase_effect");
@@ -86,6 +84,10 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
       return;
     }
     ensureAttached(cc);
+
+    // Use runtime context for all resource operations
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+
     ActiveLinkageContext context = LinkageManager.getContext(cc);
     LinkageChannel channel =
         context.getOrCreateChannel(HUN_DAO_INCREASE_EFFECT).addPolicy(NON_NEGATIVE);
@@ -97,20 +99,26 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     }
     double bonus = Math.max(0.0, channel.get());
     double amount = HunDaoTuning.XiaoHunGu.RECOVER * (1.0 + bonus);
-    resourceOps.adjustDouble(player, "hunpo", amount, true, "zuida_hunpo");
-    LOGGER.debug(
-        "[compat/guzhenren][hun_dao][heart][player] +{} hunpo to {} (bonus={})",
-        String.format("%.2f", amount),
-        player.getScoreboardName(),
-        String.format("%.2f", bonus));
+
+    // Access resource ops through runtime context
+    runtimeContext.getResourceOps().adjustDouble(player, "hunpo", amount, true, "zuida_hunpo");
+
+    HunDaoBehaviorContextHelper.debugLog(
+        MODULE_NAME,
+        player,
+        "+{} hunpo (bonus={})",
+        HunDaoBehaviorContextHelper.format(amount),
+        HunDaoBehaviorContextHelper.format(bonus));
+
     OrganState state = organState(organ, STATE_ROOT_KEY);
     OrganStateOps.setLong(
         state, cc, organ, KEY_LAST_SYNC_TICK, player.level().getGameTime(), value -> value, 0L);
   }
 
   private void handlerNonPlayer(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
-    LOGGER.debug(
-        "[compat/guzhenren][hun_dao][heart][nonplayer] skip entity={} type={}",
+    HunDaoBehaviorContextHelper.debugLog(
+        MODULE_NAME,
+        "skip nonplayer entity={} type={}",
         entity.getStringUUID(),
         entity.getType().toShortString());
   }
