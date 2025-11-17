@@ -24,15 +24,14 @@ public record HunDaoNotificationPayload(Component message, NotificationCategory 
       StreamCodec.of(HunDaoNotificationPayload::write, HunDaoNotificationPayload::read);
 
   private static void write(FriendlyByteBuf buf, HunDaoNotificationPayload payload) {
-    // Serialize Component as JSON string for compatibility
-    buf.writeUtf(Component.Serializer.toJson(payload.message), 32767);
+    // Serialize Component using FriendlyByteBuf's built-in method
+    buf.writeComponent(payload.message);
     buf.writeVarInt(payload.category.ordinal());
   }
 
   private static HunDaoNotificationPayload read(FriendlyByteBuf buf) {
-    // Deserialize Component from JSON string
-    String json = buf.readUtf(32767);
-    Component message = Component.Serializer.fromJson(json);
+    // Deserialize Component using FriendlyByteBuf's built-in method
+    Component message = buf.readComponent();
     int categoryOrdinal = buf.readVarInt();
     NotificationCategory category =
         NotificationCategory.values()[
