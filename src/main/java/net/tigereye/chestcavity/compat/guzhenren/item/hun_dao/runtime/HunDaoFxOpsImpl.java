@@ -7,16 +7,17 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoFxDescriptors;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoFxRouter;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoSoulFlameFx;
 import org.slf4j.Logger;
 
 /**
  * Implementation of HunDaoFxOps using the data-driven FX router.
  *
- * <p>Routes all FX requests through HunDaoFxRouter for centralized dispatch. Falls back to
- * HunDaoSoulFlameFx for soul flame effects to maintain compatibility with existing DoT system.
+ * <p>Routes FX requests through HunDaoFxRouter for centralized dispatch. For soul flame,
+ * delegates to HunDaoMiddleware which handles the complete operation (DoT damage scheduling,
+ * reaction tag marking, and FX dispatch).
  *
- * <p>Phase 5: Server-side FX operations decoupled from middleware.
+ * <p>Phase 5: Server-side FX operations with clean separation between core mechanics
+ * (middleware) and pure visual effects (FX router).
  */
 public final class HunDaoFxOpsImpl implements HunDaoFxOps {
 
@@ -29,23 +30,13 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
   @Override
   public void applySoulFlame(
       Player source, LivingEntity target, double perSecondDamage, int seconds) {
-    if (source == null || target == null || !target.isAlive()) {
-      return;
-    }
-    if (perSecondDamage <= 0 || seconds <= 0) {
-      return;
-    }
-
-    if (!(target.level() instanceof ServerLevel level)) {
-      return;
-    }
-
-    // Use HunDaoSoulFlameFx which already integrates with DoTEngine and FxEngine
-    HunDaoSoulFlameFx.playSoulFlame(
-        target, HunDaoFxDescriptors.SOUL_FLAME_TICK, seconds);
+    // Delegate to middleware for full implementation (DoT damage + soul mark + FX)
+    // Middleware handles: DoTEngine scheduling, reaction tag marking, and FX dispatch
+    net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware.INSTANCE
+        .applySoulFlame(source, target, perSecondDamage, seconds);
 
     LOGGER.debug(
-        "[hun_dao][fx_ops] Soul flame applied: {}s @{}/s -> {}",
+        "[hun_dao][fx_ops] Soul flame delegated: {}s @{}/s -> {}",
         seconds,
         String.format("%.2f", perSecondDamage),
         target.getName().getString());
