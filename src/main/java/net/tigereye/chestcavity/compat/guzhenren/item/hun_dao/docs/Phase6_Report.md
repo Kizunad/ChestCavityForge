@@ -221,8 +221,19 @@ Phase 6 聚焦"验收与体验"——将 HUD/FX/同步落地到可发布品质�
 **错误 6-7: Component 序列化参数问题**
 - **文件**: `HunDaoNotificationPayload.java` (28行, 35行)
 - **问题**: `Component.Serializer.toJson/fromJson` 需要 `Provider` 参数
-- **最终解决**: 使用 `buf.writeComponent()` / `buf.readComponent()`
-- **状态**: ✅ 已修复（使用标准 FriendlyByteBuf 方法）
+- **尝试解决**: 使用 `buf.writeComponent()` / `buf.readComponent()`
+- **状态**: ❌ 导致新错误（FriendlyByteBuf 无此方法）
+
+### 第三轮修复 (提交 5b26a3e)
+
+**错误 8-9: FriendlyByteBuf 缺少 Component 方法**
+- **文件**: `HunDaoNotificationPayload.java` (28行, 34行)
+- **问题**: `FriendlyByteBuf` 没有 `writeComponent()` / `readComponent()` 方法
+- **最终解决**: 将 Component 转换为纯文本字符串
+  - 写入: `buf.writeUtf(payload.message.getString())`
+  - 读取: `Component.literal(buf.readUtf())`
+- **理由**: 通知消息仅用于显示，不需要保留富文本格式
+- **状态**: ✅ 已修复
 
 **编译状态**: ✅ 所有编译错误已修复（等待 CI 验证）
 
@@ -368,11 +379,20 @@ Phase 6 成功完成了 Hun Dao 系统的 HUD/FX/同步三大核心功能：
    - 更新报告记录第一轮编译修复
 
 4. **4e6a872** - fix(hun_dao): use FriendlyByteBuf.writeComponent/readComponent
+   - 尝试修复 Component 序列化问题（2 个错误）
+   - 使用 `buf.writeComponent()` / `buf.readComponent()` 方法
+   - 导致新错误（FriendlyByteBuf 无此方法）
+
+5. **cd8c91f** - docs(hun_dao): update Phase 6 report with complete compilation fix history
+   - 更新报告记录第二轮编译修复
+   - 添加完整修复历史
+
+6. **5b26a3e** - fix(hun_dao): serialize Component as plain text for notifications
    - 最终修复 Component 序列化问题（2 个错误）
-   - 使用标准 `buf.writeComponent()` / `buf.readComponent()` 方法
-   - 更简洁且符合 Minecraft 原生 API
+   - 使用 `buf.writeUtf(component.getString())` / `Component.literal(buf.readUtf())`
+   - 纯文本传输适用于通知消息
 
 **Phase 6 实施完成时间**: 2025-11-18
-**编译修复完成时间**: 2025-11-18（共 2 轮，7 个错误全部修复）
+**编译修复完成时间**: 2025-11-18（共 3 轮，9 个错误全部修复）
 **预计游戏内测试时间**: TBD
 **Phase 7 规划**: 性能优化 + 功能增强（如需要）
