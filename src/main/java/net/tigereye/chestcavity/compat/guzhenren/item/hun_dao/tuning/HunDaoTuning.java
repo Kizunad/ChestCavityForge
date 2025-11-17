@@ -63,4 +63,44 @@ public final class HunDaoTuning {
     /** Deterrence effect radius. */
     public static final double DETER_RADIUS = 8.0D;
   }
+
+  /** Tuning constants for 鬼气蛊 (Gui Qi Gu) mechanics. */
+  public static final class GuiQiGu {
+    private GuiQiGu() {}
+
+    /** Passive hunpo recovery per second. */
+    public static final double PASSIVE_HUNPO_PER_SECOND = 3.0D;
+
+    /** Passive jingli recovery per second. */
+    public static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
+
+    /** True damage ratio based on max hunpo (3% of max hunpo). */
+    public static final double TRUE_DAMAGE_RATIO = 0.03D;
+
+    /** Gui Wu (鬼雾) effect radius. */
+    public static final double GUI_WU_RADIUS = 4.0D;
+  }
+
+  /** Tuning constants for 体魄蛊 (Ti Po Gu) mechanics. */
+  public static final class TiPoGu {
+    private TiPoGu() {}
+
+    /** Passive hunpo recovery per second. */
+    public static final double PASSIVE_HUNPO_PER_SECOND = 3.0D;
+
+    /** Passive jingli recovery per second. */
+    public static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
+
+    /** Soul beast mode damage percent (3% of max hunpo). */
+    public static final double SOUL_BEAST_DAMAGE_PERCENT = 0.03D;
+
+    /** Soul beast hunpo cost percent (0.1% of max hunpo). */
+    public static final double SOUL_BEAST_HUNPO_COST_PERCENT = 0.001D;
+
+    /** Zi Hun (子魂) increase effect bonus (10%). */
+    public static final double ZI_HUN_INCREASE_BONUS = 0.10D;
+
+    /** Shield percent based on max hunpo (0.5%). */
+    public static final double SHIELD_PERCENT = 0.005D;
+  }
 }

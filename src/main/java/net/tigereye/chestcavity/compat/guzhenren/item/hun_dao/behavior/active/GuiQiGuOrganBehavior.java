@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.Cooldown;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -63,10 +64,11 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final ResourceLocation GUI_WU_FLOW_ID = ChestCavity.id("hun_dao/gui_wu");
 
-  private static final double PASSIVE_HUNPO_PER_SECOND = 3.0D;
-  private static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
-  private static final double TRUE_DAMAGE_RATIO = 0.03D;
-  private static final double GUI_WU_RADIUS = 4.0D;
+  // Phase 4: Use Tuning constants instead of hardcoded values
+  private static final double PASSIVE_HUNPO_PER_SECOND = HunDaoTuning.GuiQiGu.PASSIVE_HUNPO_PER_SECOND;
+  private static final double PASSIVE_JINGLI_PER_SECOND = HunDaoTuning.GuiQiGu.PASSIVE_JINGLI_PER_SECOND;
+  private static final double TRUE_DAMAGE_RATIO = HunDaoTuning.GuiQiGu.TRUE_DAMAGE_RATIO;
+  private static final double GUI_WU_RADIUS = HunDaoTuning.GuiQiGu.GUI_WU_RADIUS;
   private static final int GUI_WU_COOLDOWN_TICKS =
       BehaviorConfigAccess.getInt(GuiQiGuOrganBehavior.class, "GUI_WU_COOLDOWN_TICKS", 160);
   private static final int SOUL_SCAR_DURATION_TICKS =
