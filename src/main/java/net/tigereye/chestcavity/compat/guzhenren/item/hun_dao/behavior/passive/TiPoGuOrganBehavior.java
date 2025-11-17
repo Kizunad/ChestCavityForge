@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
@@ -50,12 +51,13 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final ResourceLocation HUN_DAO_INCREASE_EFFECT =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/hun_dao_increase_effect");
 
-  private static final double PASSIVE_HUNPO_PER_SECOND = 3.0D;
-  private static final double PASSIVE_JINGLI_PER_SECOND = 1.0D;
-  private static final double SOUL_BEAST_DAMAGE_PERCENT = 0.03D;
-  private static final double SOUL_BEAST_HUNPO_COST_PERCENT = 0.001D;
-  private static final double ZI_HUN_INCREASE_BONUS = 0.10D;
-  private static final double SHIELD_PERCENT = 0.005D;
+  // Phase 4: Use Tuning constants instead of hardcoded values
+  private static final double PASSIVE_HUNPO_PER_SECOND = HunDaoTuning.TiPoGu.PASSIVE_HUNPO_PER_SECOND;
+  private static final double PASSIVE_JINGLI_PER_SECOND = HunDaoTuning.TiPoGu.PASSIVE_JINGLI_PER_SECOND;
+  private static final double SOUL_BEAST_DAMAGE_PERCENT = HunDaoTuning.TiPoGu.SOUL_BEAST_DAMAGE_PERCENT;
+  private static final double SOUL_BEAST_HUNPO_COST_PERCENT = HunDaoTuning.TiPoGu.SOUL_BEAST_HUNPO_COST_PERCENT;
+  private static final double ZI_HUN_INCREASE_BONUS = HunDaoTuning.TiPoGu.ZI_HUN_INCREASE_BONUS;
+  private static final double SHIELD_PERCENT = HunDaoTuning.TiPoGu.SHIELD_PERCENT;
   private static final int SHIELD_REFRESH_INTERVAL_TICKS =
       BehaviorConfigAccess.getInt(TiPoGuOrganBehavior.class, "SHIELD_REFRESH_INTERVAL_TICKS", 200);
   private static final double EPSILON = 1.0E-4D;
