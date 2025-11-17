@@ -104,6 +104,9 @@ public class ChestCavity {
     NeoForge.EVENT_BUS.addListener(WuxingGuiBianConfigCommand::register);
     // Central DoT manager ticking
     DoTEngine.bootstrap();
+    // Hun Dao hunpo drain scheduler
+    NeoForge.EVENT_BUS.register(
+        net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunPoDrainScheduler.INSTANCE);
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
     NeoForge.EVENT_BUS.addListener(PlayerGhostSpawner::onServerTick);
     SoulClanSpawner.init();

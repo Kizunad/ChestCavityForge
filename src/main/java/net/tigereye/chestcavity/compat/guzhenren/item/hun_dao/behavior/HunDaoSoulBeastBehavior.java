@@ -52,9 +52,17 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
 
   private static final Logger LOGGER = LogUtils.getLogger();
 
+  // Phase 1: Direct interface injection (current approach)
   private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
   private final HunDaoFxOps fxOps = HunDaoOpsAdapter.INSTANCE;
   private final HunDaoNotificationOps notificationOps = HunDaoOpsAdapter.INSTANCE;
+
+  // Phase 2: Runtime context is now available for advanced state management
+  // Usage example (optional migration):
+  // HunDaoRuntimeContext context = HunDaoRuntimeContext.get(player);
+  // context.getStateMachine().activateSoulBeast();
+  // context.getResourceOps().consumeHunpo(player, amount);
+  // context.getSoulState().ifPresent(state -> state.incrementSoulBeastActivationCount());
 
   private static final String MOD_ID = "guzhenren";
   private static final ResourceLocation HUN_DAO_INCREASE_EFFECT =
