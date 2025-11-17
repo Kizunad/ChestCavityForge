@@ -5,6 +5,7 @@
 - 完成时间：2025-11-17
 - 初始提交：9167abd
 - 修正提交：02a502f
+- Phase 1.1 完成提交：[待提交]
 
 ## 任务概述
 Phase 1 目标是搭建未来模块化所需的目录与接口层，解耦中间件。
@@ -105,24 +106,22 @@ hun_dao/
 **文件位置：** `tuning/HunDaoTuning.java`
 
 ### 5. 行为类重构 ✅
-更新 `HunDaoSoulBeastBehavior` 以使用接口和 HunDaoTuning：
+更新**所有魂道行为类**以使用接口和 HunDaoTuning（Phase 1.1 完成）：
 
-**修改内容：**
-- ✅ 注入接口依赖：`resourceOps`, `fxOps`, `notificationOps`
+**已完成重构的行为类（5个）：**
+1. ✅ `HunDaoSoulBeastBehavior` - Phase 1 初始完成
+2. ✅ `XiaoHunGuBehavior` - Phase 1.1 新增
+3. ✅ `DaHunGuBehavior` - Phase 1.1 新增
+4. ✅ `GuiQiGuOrganBehavior` - Phase 1.1 新增
+5. ✅ `TiPoGuOrganBehavior` - Phase 1.1 新增
+
+**统一修改模式：**
+- ✅ 注入接口依赖：`resourceOps = HunDaoOpsAdapter.INSTANCE`
 - ✅ 使用 `HunDaoTuning` 作为常量来源（替代硬编码值）
-- ✅ 移除不必要的导入（`BehaviorConfigAccess`, `ResourceOps`, `GuzhenrenResourceBridge`）
-- ✅ **所有资源操作通过接口进行**
+- ✅ 移除直接导入 `GuzhenrenResourceBridge` 和 `ResourceOps`
+- ✅ **所有资源操作通过 `HunDaoResourceOps` 接口进行**
 
-**影响范围：**
-- `onSlowTick()` - 使用 `resourceOps.leakHunpoPerSecond()` 和 `notificationOps.handlePlayer()`
-- `onHit()` - **完全重构**：
-  - `resourceOps.readHunpo(player)` - 读取当前魂魄
-  - `resourceOps.adjustDouble(player, "hunpo", -cost, ...)` - 消耗魂魄
-  - `resourceOps.readMaxHunpo(player)` - 读取最大魂魄
-  - `fxOps.applySoulFlame(...)` - 应用魂焰
-  - `notificationOps.handleNonPlayer(...)` - 维护非玩家实体
-
-**关键改进：** 行为类不再直接访问 `GuzhenrenResourceBridge` 或 `ResourceOps`，完全通过接口抽象。
+**关键改进：** 所有魂道行为类不再直接访问 `GuzhenrenResourceBridge` 或 `ResourceOps`，完全通过接口抽象，实现真正的依赖倒置。
 
 ## 文件修改列表
 
@@ -134,16 +133,29 @@ hun_dao/
 5. `tuning/HunDaoTuning.java` - 新的调参常量类（分组组织）
 6. `docs/Phase1_Plan.md` - Phase 1 实施计划文档
 
-### 修改文件 (2个)
+### 修改文件 (6个)
 1. `HunDaoBalance.java` - 标记为 `@Deprecated`
-2. `behavior/HunDaoSoulBeastBehavior.java` - **完全重构**：
-   - 使用 HunDaoTuning 常量
-   - 所有资源操作通过 HunDaoResourceOps 接口
-   - 移除直接依赖 GuzhenrenResourceBridge 和 ResourceOps
-   - 通过接口访问 FX 和通知操作
+2. `behavior/HunDaoSoulBeastBehavior.java` - **完全重构**（Phase 1）
+3. `behavior/XiaoHunGuBehavior.java` - **完全重构**（Phase 1.1）
+4. `behavior/DaHunGuBehavior.java` - **完全重构**（Phase 1.1）
+5. `behavior/GuiQiGuOrganBehavior.java` - **完全重构**（Phase 1.1）
+6. `behavior/TiPoGuOrganBehavior.java` - **完全重构**（Phase 1.1）
 
-### 新建目录 (7个)
-所有目录已创建，其中 `runtime/` 和 `tuning/` 包含实际文件，其他为占位符供后续 Phase 使用。
+**所有行为类统一改进：**
+- 使用 `HunDaoTuning` 常量替代硬编码值
+- 所有资源操作通过 `HunDaoResourceOps` 接口
+- 移除直接依赖 `GuzhenrenResourceBridge` 和 `ResourceOps`
+- 通过接口访问资源、FX 和通知操作
+
+### 新建目录 (7个) - Phase 1.1 补充完成
+所有目录已创建并包含 README 文档，其中 `runtime/` 和 `tuning/` 包含实际实现文件：
+- ✅ `calculator/` - 占位符（含 README.md）
+- ✅ `client/` - 占位符（含 README.md）
+- ✅ `events/` - 占位符（含 README.md）
+- ✅ `ui/` - 占位符（含 README.md）
+- ✅ `storage/` - 占位符（含 README.md）
+- ✅ `runtime/` - 包含实际接口和适配器实现
+- ✅ `tuning/` - 包含实际调参常量
 
 ## 验收标准检查
 
@@ -160,20 +172,22 @@ hun_dao/
 - ✅ 无直接依赖于废弃类
 
 ### ✅ 行为类通过接口访问资源/FX/通知
-- ✅ `HunDaoSoulBeastBehavior` 完全不依赖 `HunDaoMiddleware`
+- ✅ **所有魂道行为类**（5个）完全不依赖 `HunDaoMiddleware`、`GuzhenrenResourceBridge` 或 `ResourceOps`
 - ✅ **所有资源操作**通过 `HunDaoResourceOps` 接口进行
   - ✅ 魂魄读取：`resourceOps.readHunpo()`
   - ✅ 魂魄调整：`resourceOps.adjustDouble()`
   - ✅ 最大魂魄读取：`resourceOps.readMaxHunpo()`
+  - ✅ 资源句柄：`resourceOps.openHandle()`
 - ✅ FX 操作通过 `HunDaoFxOps` 接口
 - ✅ 通知操作通过 `HunDaoNotificationOps` 接口
 - ✅ 适配器是唯一直接访问底层系统的地方
 
 ### ✅ HunDaoTuning 作为唯一数值来源
-- ✅ `HunDaoSoulBeastBehavior` 使用 `HunDaoTuning` 常量
+- ✅ **所有魂道行为类**（5个）使用 `HunDaoTuning` 常量
 - ✅ 按功能分组（SoulBeast, SoulFlame, XiaoHunGu, DaHunGu, Effects）
 - ✅ 所有常量有清晰文档
 - ✅ 旧 `HunDaoBalance` 标记为废弃
+- ✅ 消除硬编码魔法数字，实现统一调参管理
 
 ## 代码质量
 
@@ -217,8 +231,8 @@ hun_dao/
 - 明确标注哪些目录包含实际文件，哪些为占位符
 
 ## 已知限制
-- `calculator/`, `client/`, `events/`, `ui/`, `storage/` 目录为占位符，将在后续 Phase 中填充
-- 其他行为类（如 `XiaoHunGuBehavior`, `DaHunGuBehavior`）尚未迁移到接口模式，将在需要时逐步迁移
+- `calculator/`, `client/`, `events/`, `ui/`, `storage/` 目录为占位符（已含 README），将在后续 Phase 中填充实际实现
+- ~~其他行为类（如 `XiaoHunGuBehavior`, `DaHunGuBehavior`）尚未迁移到接口模式~~ ✅ **Phase 1.1 已解决**
 
 ## 下一步工作 (Phase 2 预览)
 根据重构计划，Phase 2 将实现：
@@ -245,17 +259,23 @@ fix(hun_dao): Phase 1 corrections - complete resource abstraction and tuning mig
 ```
 
 ## 总结
-Phase 1 已成功完成所有目标（经修正后）：
-- ✅ 目录结构搭建完成（7个新目录）
+Phase 1（含 1.1 补充）已成功完成所有目标：
+- ✅ 目录结构搭建完成（7个新目录，全部包含 README 文档）
 - ✅ 接口层完全解耦成功（包含所有资源操作）
 - ✅ 调参系统重构完成（HunDaoTuning 作为唯一来源）
-- ✅ 行为类完全迁移到接口（无直接依赖）
+- ✅ **所有魂道行为类**完全迁移到接口（5个行为类，无任何直接依赖）
 - ✅ 保持向后兼容性（通过适配器模式）
-- ✅ 计划→实施→报告→审查→修正链路完整
+- ✅ 计划→实施→报告→审查→修正→Phase 1.1 补充链路完整
 
 **关键成就：**
-- 行为类现在完全不依赖 `GuzhenrenResourceBridge` 和 `ResourceOps`
+- **所有魂道行为类**（HunDaoSoulBeastBehavior, XiaoHunGuBehavior, DaHunGuBehavior, GuiQiGuOrganBehavior, TiPoGuOrganBehavior）现在完全不依赖 `GuzhenrenResourceBridge` 和 `ResourceOps`
 - 所有数值常量统一管理在 `HunDaoTuning`
 - 接口抽象层完整且可测试
+- 占位目录全部创建并文档化，为后续 Phase 准备就绪
 
-所有验收标准均已满足，经过审查和修正后，Phase 1 真正达到了依赖倒置的目标，可以安全进入 Phase 2。
+**Phase 1.1 补充工作：**
+- 创建缺失的占位目录（calculator, client, events, ui, storage）并添加 README
+- 将剩余 4 个行为类迁移到接口模式（XiaoHunGuBehavior, DaHunGuBehavior, GuiQiGuOrganBehavior, TiPoGuOrganBehavior）
+- 更新文档以准确反映完成范围
+
+所有验收标准均已满足，Phase 1 真正达到了依赖倒置的目标，可以安全进入 Phase 2。
