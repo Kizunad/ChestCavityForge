@@ -346,12 +346,12 @@ graph TD
 
 **修复记录**：
 - **D0.1**：魂焰 DoT 缺少粒子特效与音效播放
-  - 修复文件：`DoTEngine.java`
-  - 修复内容：在 `handleServerTick()` 中添加 FX/音效播放逻辑
+  - 修复文件：`HunDaoSoulFlameFx.java` (新建), `HunDaoMiddleware.java`
+  - 修复内容：创建专用的魂焰 FX 类，使用 FxEngine 调度持续特效
   - 实现：
-    - 添加 `playFxAndSound()` 方法播放紫色魂焰粒子（`SOUL_FIRE_FLAME`）
+    - 紫色灵魂火焰（`SOUL_FIRE_FLAME`）环绕目标螺旋上升
     - 播放音效 `CUSTOM_SOULBEAST_DOT`
-    - 每次 DoT tick 触发时播放特效，提供视觉和听觉反馈
+    - 使用 FxEngine 调度5秒持续特效，避免影响其他 DoT 模块
 
 ---
 
@@ -373,17 +373,21 @@ graph TD
 
 | 编号 | 缺陷描述 | 根本原因 | 修复文件 | 验证状态 |
 |------|----------|----------|---------|---------|
-| D0.1 | 魂焰 DoT 缺少粒子特效与音效 | `DoTEngine.handleServerTick()` 未播放存储的 FX/音效 | `DoTEngine.java` | ✅ 代码修复完成 |
+| D0.1 | 魂焰 DoT 缺少粒子特效与音效 | 魂焰 DoT 未播放客户端可见的 FX/音效 | `HunDaoSoulFlameFx.java` (新建)<br/>`HunDaoMiddleware.java` | ✅ 代码修复完成 |
 | D0.2 | 双大魂蛊威灵减免未生效 | `SoulBeastRuntimeEvents` 直接使用固定常量，未调用减免逻辑 | `SoulBeastRuntimeEvents.java` | ✅ 代码修复完成 |
 
 **技术细节**：
 
 1. **D0.1 修复方案**：
-   - 在 `DoTEngine.handleServerTick()` 中添加 `playFxAndSound()` 私有方法
-   - 为每个目标收集相关的 Pulse 列表
-   - 对每种 FX 类型和音效去重后播放
-   - 使用 `SOUL_FIRE_FLAME` 粒子类型创建环形紫色魂焰效果
-   - 通过 `serverLevel.playSound()` 播放 `CUSTOM_SOULBEAST_DOT` 音效
+   - 创建专用的 `HunDaoSoulFlameFx` 类（位于 `item/hun_dao/fx/`）
+   - 使用 `FxEngine` 调度持续的粒子效果（5秒，每5 tick刷新）
+   - 魂焰粒子效果：
+     - 紫色灵魂火焰（`SOUL_FIRE_FLAME`）环绕目标螺旋上升
+     - 灵魂粒子（`SOUL`）作为辅助效果
+     - 脚下环形魂焰（每10 tick）
+   - 在 `HunDaoMiddleware.applySoulFlame()` 中调用 FX
+   - DoTEngine 保持纯粹的伤害调度功能，不负责 FX 播放
+   - 避免跨模块影响：其他 DoT（云道、雷盾等）不受影响
 
 2. **D0.2 修复方案**：
    - 在 `onMeleeHit()` 和 `onProjectileImpact()` 中添加威灵减免计算

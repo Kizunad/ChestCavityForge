@@ -118,8 +118,8 @@ Phase0_Plan/Report/脚本均按要求交付，依赖路径与测试脚本覆盖�
 
 #### 已修复问题
 1. ✅ **D0.1**：魂焰 DoT 缺少粒子/音效反馈（smoke_test_script.md:160-165）
-   - **修复文件**：`DoTEngine.java`
-   - **修复内容**：添加 `playFxAndSound()` 方法，在 DoT tick 时播放紫色魂焰粒子和音效
+   - **修复文件**：`HunDaoSoulFlameFx.java` (新建), `HunDaoMiddleware.java`
+   - **修复内容**：创建专用的魂焰 FX 类，使用 FxEngine 调度持续特效，避免跨模块影响
    - **修复日期**：2025-11-17
 
 2. ✅ **D0.2**：大魂蛊威灵减免在 2×大魂蛊 + 小魂蛊 情况下未生效（smoke_test_script.md:117-123）
