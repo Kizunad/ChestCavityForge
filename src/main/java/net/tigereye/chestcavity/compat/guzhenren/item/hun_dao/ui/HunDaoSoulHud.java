@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui;
 
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
@@ -72,14 +73,40 @@ public final class HunDaoSoulHud {
       return; // Player doesn't have hun po system active
     }
 
-    // TODO Phase 6+: Render hun po bar using GuiGraphics
-    // Example position: above hotbar, center-aligned
-    // int barX = screenWidth / 2 - 91;
-    // int barY = screenHeight - 32 - 10;
-    // int barWidth = 182;
-    // int barHeight = 5;
-    // double percentage = hunPoCurrent / hunPoMax;
-    // guiGraphics.fill(...);
+    // Position: above hotbar, center-aligned
+    int barX = screenWidth / 2 - 91;
+    int barY = screenHeight - 32 - 10;
+    int barWidth = 182;
+    int barHeight = 5;
+    double percentage = Math.max(0.0, Math.min(1.0, hunPoCurrent / hunPoMax));
+
+    // Background (dark gray)
+    guiGraphics.fill(barX, barY, barX + barWidth, barY + barHeight, 0xFF2A2A2A);
+
+    // Foreground bar (gradient purple-blue for soul energy)
+    int filledWidth = (int) (barWidth * percentage);
+    if (filledWidth > 0) {
+      // Use purple color for hun po (soul energy): 0xFFAA00FF
+      guiGraphics.fill(barX, barY, barX + filledWidth, barY + barHeight, 0xFFAA00FF);
+    }
+
+    // Border (light gray)
+    guiGraphics.fill(barX - 1, barY - 1, barX + barWidth + 1, barY, 0xFFAAAAAA); // Top
+    guiGraphics.fill(barX - 1, barY + barHeight, barX + barWidth + 1, barY + barHeight + 1, 0xFFAAAAAA); // Bottom
+    guiGraphics.fill(barX - 1, barY, barX, barY + barHeight, 0xFFAAAAAA); // Left
+    guiGraphics.fill(barX + barWidth, barY, barX + barWidth + 1, barY + barHeight, 0xFFAAAAAA); // Right
+
+    // Text: "Hun Po: 50 / 100" centered above bar
+    String text = String.format("Hun Po: %.0f / %.0f", hunPoCurrent, hunPoMax);
+    int textX = screenWidth / 2 - Minecraft.getInstance().font.width(text) / 2;
+    int textY = barY - 10;
+    guiGraphics.drawString(
+        Minecraft.getInstance().font,
+        text,
+        textX,
+        textY,
+        0xFFFFFFFF, // White text
+        true); // Drop shadow
   }
 
   /**
@@ -104,9 +131,27 @@ public final class HunDaoSoulHud {
     int durationTicks = state.getSoulBeastDuration(player.getUUID());
     int durationSeconds = durationTicks / 20;
 
-    // TODO Phase 6+: Render soul beast timer using GuiGraphics
-    // Example: Display "Soul Beast: 12s" in top-right corner
-    // guiGraphics.drawString(...);
+    // Position: top-right corner with padding
+    String text = String.format("Soul Beast: %ds", durationSeconds);
+    int textX = screenWidth - Minecraft.getInstance().font.width(text) - 10;
+    int textY = 10;
+
+    // Background box (semi-transparent dark)
+    int boxPadding = 3;
+    int boxX1 = textX - boxPadding;
+    int boxY1 = textY - boxPadding;
+    int boxX2 = screenWidth - 10 + boxPadding;
+    int boxY2 = textY + 8 + boxPadding;
+    guiGraphics.fill(boxX1, boxY1, boxX2, boxY2, 0xAA000000);
+
+    // Text with red color to indicate transformation
+    guiGraphics.drawString(
+        Minecraft.getInstance().font,
+        text,
+        textX,
+        textY,
+        0xFFFF5555, // Red color for soul beast
+        true); // Drop shadow
   }
 
   /**
@@ -124,9 +169,40 @@ public final class HunDaoSoulHud {
       LocalPlayer player,
       int screenWidth,
       int screenHeight) {
-    // TODO Phase 6+: Render soul flame stacks on crosshair target
-    // Requires target entity tracking (not implemented in Phase 5)
-    // Example: Display "Soul Flame: 3" near crosshair if targeting entity with stacks
+    // Get the entity the player is looking at
+    Minecraft mc = Minecraft.getInstance();
+    if (mc.crosshairPickEntity == null) {
+      return;
+    }
+
+    UUID targetId = mc.crosshairPickEntity.getUUID();
+    int stacks = state.getSoulFlameStacks(targetId);
+
+    if (stacks <= 0) {
+      return;
+    }
+
+    // Position: slightly below crosshair center
+    String text = String.format("Soul Flame: %d", stacks);
+    int textX = screenWidth / 2 - Minecraft.getInstance().font.width(text) / 2;
+    int textY = screenHeight / 2 + 15;
+
+    // Background box (semi-transparent dark)
+    int boxPadding = 2;
+    int boxX1 = textX - boxPadding;
+    int boxY1 = textY - boxPadding;
+    int boxX2 = textX + mc.font.width(text) + boxPadding;
+    int boxY2 = textY + 8 + boxPadding;
+    guiGraphics.fill(boxX1, boxY1, boxX2, boxY2, 0xAA000000);
+
+    // Text with orange/fire color for soul flame
+    guiGraphics.drawString(
+        Minecraft.getInstance().font,
+        text,
+        textX,
+        textY,
+        0xFFFF8800, // Orange color for flame
+        true); // Drop shadow
   }
 
   /**
@@ -151,19 +227,32 @@ public final class HunDaoSoulHud {
     int durationTicks = state.getGuiWuDuration(player.getUUID());
     int durationSeconds = durationTicks / 20;
 
-    // TODO Phase 6+: Render gui wu indicator using GuiGraphics
-    // Example: Display "Gui Wu: 5s" below soul beast timer
-    // guiGraphics.drawString(...);
+    // Position: top-right corner, below soul beast timer if active
+    int yOffset = 10;
+    if (state.isSoulBeastActive(player.getUUID())) {
+      yOffset = 30; // Stack below soul beast timer
+    }
+
+    String text = String.format("Gui Wu: %ds", durationSeconds);
+    int textX = screenWidth - Minecraft.getInstance().font.width(text) - 10;
+    int textY = yOffset;
+
+    // Background box (semi-transparent dark)
+    int boxPadding = 3;
+    int boxX1 = textX - boxPadding;
+    int boxY1 = textY - boxPadding;
+    int boxX2 = screenWidth - 10 + boxPadding;
+    int boxY2 = textY + 8 + boxPadding;
+    guiGraphics.fill(boxX1, boxY1, boxX2, boxY2, 0xAA000000);
+
+    // Text with dark green color for gui wu (ghost mist)
+    guiGraphics.drawString(
+        Minecraft.getInstance().font,
+        text,
+        textX,
+        textY,
+        0xFF55FF55, // Green color for ghost mist
+        true); // Drop shadow
   }
 
-  /**
-   * Registers the HUD overlay with NeoForge rendering system.
-   *
-   * <p>Called during client initialization.
-   */
-  public static void register() {
-    // TODO Phase 6+: Register with RenderGuiEvent.Post or RegisterGuiOverlaysEvent
-    // Example:
-    // NeoForge.EVENT_BUS.addListener(HunDaoSoulHud::onRenderGui);
-  }
 }

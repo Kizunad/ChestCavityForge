@@ -23,6 +23,7 @@ import net.tigereye.chestcavity.client.modernui.container.network.TestModernUICo
 import net.tigereye.chestcavity.client.modernui.network.ActiveSkillTriggerPayload;
 import net.tigereye.chestcavity.client.modernui.network.SkillHotbarSnapshotPayload;
 import net.tigereye.chestcavity.client.modernui.network.SkillHotbarUpdatePayload;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.network.HunDaoNetworkInit;
 import net.tigereye.chestcavity.compat.guzhenren.item.kongqiao.behavior.DaoHenSeedHandler;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastRequestSyncPayload;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
@@ -223,6 +224,9 @@ public final class NetworkHandler {
         net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload.TYPE,
         net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload.STREAM_CODEC,
         net.tigereye.chestcavity.compat.guzhenren.domain.network.DomainRemovePayload::handle);
+
+    // Hun Dao sync (魂道 HUD/FX 同步)
+    HunDaoNetworkInit.register(event);
   }
 
   public static void sendChestCavityUpdate(ServerPlayer player, ChestCavityUpdatePayload payload) {
