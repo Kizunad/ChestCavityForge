@@ -1,0 +1,167 @@
+package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
+
+import com.mojang.logging.LogUtils;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import org.slf4j.Logger;
+
+/**
+ * Registry for Hun Dao FX templates.
+ *
+ * <p>Stores metadata for each FX type (sound events, particle templates, duration parameters) and
+ * provides lookup by FX ID. Used by HunDaoFxRouter to dispatch effects in a data-driven manner.
+ *
+ * <p>Phase 5: Centralized FX registration system.
+ */
+public final class HunDaoFxRegistry {
+
+  private static final Logger LOGGER = LogUtils.getLogger();
+  private static final Map<ResourceLocation, FxTemplate> REGISTRY = new HashMap<>();
+
+  private HunDaoFxRegistry() {}
+
+  /**
+   * Registers an FX template.
+   *
+   * @param fxId the FX resource location
+   * @param template the FX template metadata
+   */
+  public static void register(ResourceLocation fxId, FxTemplate template) {
+    Objects.requireNonNull(fxId, "fxId cannot be null");
+    Objects.requireNonNull(template, "template cannot be null");
+
+    if (REGISTRY.containsKey(fxId)) {
+      LOGGER.warn("[hun_dao][fx_registry] Overwriting existing FX template: {}", fxId);
+    }
+
+    REGISTRY.put(fxId, template);
+    LOGGER.debug("[hun_dao][fx_registry] Registered FX: {} (sound={}, continuous={})",
+        fxId, template.soundEvent != null, template.continuous);
+  }
+
+  /**
+   * Retrieves an FX template by ID.
+   *
+   * @param fxId the FX resource location
+   * @return the FX template, or null if not registered
+   */
+  public static FxTemplate get(ResourceLocation fxId) {
+    return REGISTRY.get(fxId);
+  }
+
+  /**
+   * Checks if an FX ID is registered.
+   *
+   * @param fxId the FX resource location
+   * @return true if registered, false otherwise
+   */
+  public static boolean isRegistered(ResourceLocation fxId) {
+    return REGISTRY.containsKey(fxId);
+  }
+
+  /**
+   * Returns the number of registered FX templates.
+   *
+   * @return the registry size
+   */
+  public static int size() {
+    return REGISTRY.size();
+  }
+
+  /**
+   * Clears all registered FX templates.
+   *
+   * <p>Used for testing or hot-reloading scenarios.
+   */
+  public static void clear() {
+    LOGGER.info("[hun_dao][fx_registry] Clearing {} FX templates", REGISTRY.size());
+    REGISTRY.clear();
+  }
+
+  /**
+   * FX template metadata.
+   *
+   * <p>Stores sound event, particle template reference, and behavioral flags for each FX type.
+   * Instances are created via builder pattern for flexibility.
+   */
+  public static final class FxTemplate {
+    /** Optional sound event to play when FX is triggered. */
+    public final SoundEvent soundEvent;
+
+    /** Sound volume (0.0 to 1.0+). */
+    public final float soundVolume;
+
+    /** Sound pitch (typically 0.5 to 2.0). */
+    public final float soundPitch;
+
+    /** Whether this FX is continuous (ambient) or one-shot (burst). */
+    public final boolean continuous;
+
+    /** Default duration in ticks (for continuous effects). */
+    public final int durationTicks;
+
+    /** Optional particle template identifier (for FxEngine integration). */
+    public final String particleTemplate;
+
+    /** Optional FX category for filtering. */
+    public final HunDaoFxDescriptors.FxCategory category;
+
+    private FxTemplate(Builder builder) {
+      this.soundEvent = builder.soundEvent;
+      this.soundVolume = builder.soundVolume;
+      this.soundPitch = builder.soundPitch;
+      this.continuous = builder.continuous;
+      this.durationTicks = builder.durationTicks;
+      this.particleTemplate = builder.particleTemplate;
+      this.category = builder.category;
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static final class Builder {
+      private SoundEvent soundEvent;
+      private float soundVolume = 1.0F;
+      private float soundPitch = 1.0F;
+      private boolean continuous = false;
+      private int durationTicks = 100;
+      private String particleTemplate;
+      private HunDaoFxDescriptors.FxCategory category = HunDaoFxDescriptors.FxCategory.UTILITY;
+
+      public Builder sound(SoundEvent sound, float volume, float pitch) {
+        this.soundEvent = sound;
+        this.soundVolume = volume;
+        this.soundPitch = pitch;
+        return this;
+      }
+
+      public Builder continuous(boolean continuous) {
+        this.continuous = continuous;
+        return this;
+      }
+
+      public Builder duration(int ticks) {
+        this.durationTicks = ticks;
+        return this;
+      }
+
+      public Builder particles(String template) {
+        this.particleTemplate = template;
+        return this;
+      }
+
+      public Builder category(HunDaoFxDescriptors.FxCategory category) {
+        this.category = category;
+        return this;
+      }
+
+      public FxTemplate build() {
+        return new FxTemplate(this);
+      }
+    }
+  }
+}

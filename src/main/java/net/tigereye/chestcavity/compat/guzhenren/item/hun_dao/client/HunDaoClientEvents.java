@@ -1,0 +1,68 @@
+package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
+
+import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import org.slf4j.Logger;
+
+/**
+ * Client-side event handlers for Hun Dao.
+ *
+ * <p>Listens to NeoForge client events (ClientTickEvent, RenderGuiEvent, etc.) and updates client
+ * state, triggers FX, or renders HUD elements.
+ *
+ * <p>Phase 5: Client event handling decoupled from abilities registration.
+ */
+public final class HunDaoClientEvents {
+
+  private static final Logger LOGGER = LogUtils.getLogger();
+
+  /**
+   * Called every client tick.
+   *
+   * <p>Updates HunDaoClientState timers and triggers periodic FX if needed.
+   *
+   * @param event the client tick event
+   */
+  @SubscribeEvent
+  public static void onClientTick(ClientTickEvent.Post event) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc.level == null || mc.isPaused()) {
+      return;
+    }
+
+    // Tick client state (decay timers)
+    HunDaoClientState.instance().tick();
+
+    // Optional: Trigger periodic client-side FX based on state
+    // Example: Play ambient soul beast particles if soul beast is active
+    LocalPlayer player = mc.player;
+    if (player != null && HunDaoClientState.instance().isSoulBeastActive(player.getUUID())) {
+      // Ambient FX handled by FxEngine, no client-side logic needed here
+      // This is a placeholder for future client-only FX logic
+    }
+  }
+
+  /**
+   * Called when the client unloads a level.
+   *
+   * <p>Clears all cached client state to prevent stale data.
+   *
+   * @param event the level unload event
+   */
+  @SubscribeEvent
+  public static void onLevelUnload(LevelEvent.Unload event) {
+    if (event.getLevel().isClientSide()) {
+      LOGGER.debug("[hun_dao][client_events] Clearing client state on level unload");
+      HunDaoClientState.instance().clearAll();
+    }
+  }
+
+  // Future event handlers can be added here:
+  // - RenderGuiEvent.Pre/Post for HUD rendering (handled by HunDaoSoulHud)
+  // - ClientPlayerNetworkEvent.LoggingOut for state cleanup
+  // - InputEvent for custom keybindings (if needed beyond ChestCavity's system)
+}

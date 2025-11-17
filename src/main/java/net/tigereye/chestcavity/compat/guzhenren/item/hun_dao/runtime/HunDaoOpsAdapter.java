@@ -78,7 +78,42 @@ public final class HunDaoOpsAdapter
 
   @Override
   public void applySoulFlame(Player source, LivingEntity target, double perSecondDamage, int seconds) {
-    HunDaoMiddleware.INSTANCE.applySoulFlame(source, target, perSecondDamage, seconds);
+    HunDaoFxOpsImpl.INSTANCE.applySoulFlame(source, target, perSecondDamage, seconds);
+  }
+
+  @Override
+  public void playSoulBeastActivate(Player player) {
+    HunDaoFxOpsImpl.INSTANCE.playSoulBeastActivate(player);
+  }
+
+  @Override
+  public void playSoulBeastDeactivate(Player player) {
+    HunDaoFxOpsImpl.INSTANCE.playSoulBeastDeactivate(player);
+  }
+
+  @Override
+  public void playSoulBeastHit(Player player, LivingEntity target) {
+    HunDaoFxOpsImpl.INSTANCE.playSoulBeastHit(player, target);
+  }
+
+  @Override
+  public void playGuiWuActivate(Player player, net.minecraft.world.phys.Vec3 position, double radius) {
+    HunDaoFxOpsImpl.INSTANCE.playGuiWuActivate(player, position, radius);
+  }
+
+  @Override
+  public void playGuiWuDissipate(Player player, net.minecraft.world.phys.Vec3 position) {
+    HunDaoFxOpsImpl.INSTANCE.playGuiWuDissipate(player, position);
+  }
+
+  @Override
+  public void playHunPoLeakWarning(Player player) {
+    HunDaoFxOpsImpl.INSTANCE.playHunPoLeakWarning(player);
+  }
+
+  @Override
+  public void playHunPoRecovery(Player player, double amount) {
+    HunDaoFxOpsImpl.INSTANCE.playHunPoRecovery(player, amount);
   }
 
   // HunDaoNotificationOps implementation

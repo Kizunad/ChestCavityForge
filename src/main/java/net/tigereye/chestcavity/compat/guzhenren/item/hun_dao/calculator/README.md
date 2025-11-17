@@ -70,8 +70,42 @@ double guiWuRadius = HunDaoCombatCalculator.skill().calculateGuiWuRadius();
 - [ ] 单元测试覆盖
 - [ ] Smoke 测试验证
 
+## 与 FX 系统的交互 (Phase 5)
+
+Calculator 层负责**计算数值**，FX 层负责**视觉/音效表现**。两者通过 Runtime 层协调：
+
+```
+Behavior → Calculator.dot().calculateSoulFlameDps(ctx)  // 计算 DPS
+         ↓
+Behavior → RuntimeContext.fx().applySoulFlame(...)      // 应用 FX
+         ↓
+       HunDaoFxRouter → FxEngine (客户端粒子/音效)
+```
+
+**职责划分**：
+- Calculator：返回伤害数值、持续时间、范围等
+- FX Router：根据数值调度音效、粒子、动画
+- Behavior：编排两者，先计算后表现
+
+**示例**：
+```java
+// 计算魂焰 DPS 和持续时间
+HunDaoCalcContext ctx = HunDaoCalcContext.create(...);
+double dps = HunDaoCombatCalculator.dot().calculateSoulFlameDps(ctx);
+int duration = HunDaoTuning.SoulFlame.DURATION_SECONDS;
+
+// 应用 DoT（伤害） + FX（表现）
+runtimeContext.fx().applySoulFlame(source, target, dps, duration);
+```
+
+**参见**：
+- `fx/README.md` - FX 系统架构
+- `runtime/README.md` - Runtime 上下文与操作接口
+
 ## 参考
 
 - Phase 4 计划：`docs/Phase4_Plan.md`
+- Phase 5 计划：`docs/Phase5_Plan.md`
+- FX 文档：`fx/README.md`
 - Tuning 文档：`tuning/README.md`（待创建）
 - 测试报告：`docs/Phase4_Report.md`（待创建）
