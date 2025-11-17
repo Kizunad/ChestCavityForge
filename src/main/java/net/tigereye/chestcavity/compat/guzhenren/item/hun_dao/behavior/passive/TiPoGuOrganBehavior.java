@@ -12,9 +12,9 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoOpsAdapter;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.BehaviorConfigAccess;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.LedgerOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.MultiCooldown;
@@ -43,9 +43,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private static final Logger LOGGER = LogUtils.getLogger();
   private static final String MOD_ID = "guzhenren";
-
-  // Interface dependencies (injected via adapter during Phase 1)
-  private final HunDaoResourceOps resourceOps = HunDaoOpsAdapter.INSTANCE;
+  private static final String MODULE_NAME = "ti_po_gu";
 
   private static final ResourceLocation ORGAN_ID =
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "tipogu");
@@ -117,14 +115,18 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (!matchesOrgan(organ, ORGAN_ID)) {
       return;
     }
+
+    // Use runtime context for all resource operations (Phase 3)
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+
     int stackCount = Math.max(1, organ.getCount());
     double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
     double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
     if (hunpoGain != 0.0D) {
-      resourceOps.adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
+      runtimeContext.getResourceOps().adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
     }
     if (jingliGain != 0.0D) {
-      resourceOps.adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
+      runtimeContext.getResourceOps().adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
     }
 
     OrganState state = organState(organ, STATE_ROOT_KEY);
@@ -178,7 +180,10 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
 
-    double maxHunpo = resourceOps.readMaxHunpo(player);
+    // Use runtime context for all resource operations (Phase 3)
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+
+    double maxHunpo = runtimeContext.getResourceOps().readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       return damage;
     }
@@ -188,7 +193,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       return damage;
     }
     double hunpoCost = maxHunpo * SOUL_BEAST_HUNPO_COST_PERCENT;
-    double currentHunpo = resourceOps.readHunpo(player);
+    double currentHunpo = runtimeContext.getResourceOps().readHunpo(player);
     if (currentHunpo + EPSILON < hunpoCost) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
@@ -200,7 +205,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       }
       return damage;
     }
-    resourceOps.adjustDouble(player, "hunpo", -hunpoCost, true, "zuida_hunpo");
+    runtimeContext.getResourceOps().adjustDouble(player, "hunpo", -hunpoCost, true, "zuida_hunpo");
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "{} applied soul beast strike: extra={} cost={} increase={} target={}",
@@ -327,7 +332,10 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (!shouldRefresh) {
       return;
     }
-    double maxHunpo = resourceOps.readMaxHunpo(player);
+
+    // Use runtime context for reading max hunpo (Phase 3)
+    HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(player);
+    double maxHunpo = runtimeContext.getResourceOps().readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       logStateChange(
           LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, updateEntry(shieldTickEntry, currentTick));
