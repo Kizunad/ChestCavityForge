@@ -143,6 +143,11 @@ public final class GuzhenrenModule {
           net.tigereye.chestcavity.compat.guzhenren.domain.client.DomainRenderer::render);
       forgeBus.addListener(
           (ClientTickEvent.Post event) -> PlayerSkinSyncClient.onClientTick(event));
+      // Hun Dao client events (Phase 5.1 fix: register client tick and level unload handlers)
+      forgeBus.addListener(
+          net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientEvents::onClientTick);
+      forgeBus.addListener(
+          net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientEvents::onLevelUnload);
     }
   }
 
@@ -156,5 +161,7 @@ public final class GuzhenrenModule {
     GuzhenrenOrganScoreEffects.bootstrap();
     GuzhenrenNetworkBridge.bootstrap();
     GuScriptModule.bootstrap();
+    // Phase 5.1 fix: Initialize Hun Dao FX templates on both client and server
+    net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoFxInit.init();
   }
 }
