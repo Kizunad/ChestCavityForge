@@ -15,6 +15,8 @@ import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tigereye.chestcavity.ChestCavity;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
 import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageTags;
@@ -66,13 +68,31 @@ public final class SoulBeastRuntimeEvents {
     if (!(targetEntity instanceof LivingEntity target) || !target.isAlive()) {
       return;
     }
+    // Apply weiling (威灵) reduction if applicable
+    double attackHunpoCost = ON_HIT_HUNPO_COST;
+    if (attacker instanceof Player player) {
+      ChestCavityInstance cc = CCAttachments.getExistingChestCavity(player).orElse(null);
+      if (cc != null) {
+        double reduction = DaHunGuBehavior.attackHunpoCostReduction(player, cc);
+        if (reduction > 0.0) {
+          attackHunpoCost = Math.max(0.0, attackHunpoCost - reduction);
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                "[soulbeast] weiling reduction applied: {} -> {} (reduction={})",
+                ON_HIT_HUNPO_COST,
+                attackHunpoCost,
+                reduction);
+          }
+        }
+      }
+    }
     // Strictly consume hunpo first (no HP fallback)
-    var res = ResourceOps.consumeHunpoStrict(attacker, ON_HIT_HUNPO_COST);
+    var res = ResourceOps.consumeHunpoStrict(attacker, attackHunpoCost);
     if (!res.succeeded()) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "[soulbeast] blocked melee DoT: insufficient hunpo (cost={} reason={})",
-            ON_HIT_HUNPO_COST,
+            attackHunpoCost,
             res.failureReason());
       }
       return;
@@ -100,7 +120,25 @@ public final class SoulBeastRuntimeEvents {
     if (!(hit instanceof LivingEntity target) || !target.isAlive()) {
       return;
     }
-    var res = ResourceOps.consumeHunpoStrict(owner, ON_HIT_HUNPO_COST);
+    // Apply weiling (威灵) reduction if applicable
+    double attackHunpoCost = ON_HIT_HUNPO_COST;
+    if (owner instanceof Player player) {
+      ChestCavityInstance cc = CCAttachments.getExistingChestCavity(player).orElse(null);
+      if (cc != null) {
+        double reduction = DaHunGuBehavior.attackHunpoCostReduction(player, cc);
+        if (reduction > 0.0) {
+          attackHunpoCost = Math.max(0.0, attackHunpoCost - reduction);
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                "[soulbeast] weiling reduction applied (projectile): {} -> {} (reduction={})",
+                ON_HIT_HUNPO_COST,
+                attackHunpoCost,
+                reduction);
+          }
+        }
+      }
+    }
+    var res = ResourceOps.consumeHunpoStrict(owner, attackHunpoCost);
     if (!res.succeeded()) {
       return;
     }

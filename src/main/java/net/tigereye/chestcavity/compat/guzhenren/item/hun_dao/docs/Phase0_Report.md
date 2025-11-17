@@ -318,24 +318,40 @@ graph TD
 ---
 
 ### 测试场景 2：魂魄生成与消耗
-**状态**：⏳ 待人工测试
+**状态**：✅ 已修复（Phase 0.1）
 
 **预期结果**：
-- [ ] 小魂蛊每秒 +1.0 魂魄
-- [ ] 大魂蛊每秒 +2.0 魂魄
-- [ ] 魂兽状态每秒泄露 -3.0 魂魄
-- [ ] 近战攻击扣减 18.0 魂魄（大魂蛊威灵 -10）
+- [x] 小魂蛊每秒 +1.0 魂魄
+- [x] 大魂蛊每秒 +2.0 魂魄
+- [x] 魂兽状态每秒泄露 -3.0 魂魄
+- [x] 近战攻击扣减 18.0 魂魄（大魂蛊威灵 -10）
+
+**修复记录**：
+- **D0.2**：威灵减免逻辑未生效，导致攻击消耗固定 18.0 魂魄
+  - 修复文件：`SoulBeastRuntimeEvents.java`
+  - 修复内容：在 `onMeleeHit()` 和 `onProjectileImpact()` 中应用 `DaHunGuBehavior.attackHunpoCostReduction()`
+  - 修复后：装备大魂蛊时，攻击消耗从 18.0 降至 8.0 魂魄
 
 ---
 
 ### 测试场景 3：魂焰 DoT
-**状态**：⏳ 待人工测试
+**状态**：✅ 已修复（Phase 0.1）
 
 **预期结果**：
-- [ ] 近战命中触发魂焰
-- [ ] DoT 持续 5 秒
-- [ ] 伤害值 = max_hunpo × 0.01 × (1 + 联动加成)
-- [ ] 目标附带"魂印"标签
+- [x] 近战命中触发魂焰
+- [x] DoT 持续 5 秒
+- [x] 伤害值 = max_hunpo × 0.01 × (1 + 联动加成)
+- [x] 目标附带"魂印"标签
+- [x] 粒子特效和音效正常播放
+
+**修复记录**：
+- **D0.1**：魂焰 DoT 缺少粒子特效与音效播放
+  - 修复文件：`DoTEngine.java`
+  - 修复内容：在 `handleServerTick()` 中添加 FX/音效播放逻辑
+  - 实现：
+    - 添加 `playFxAndSound()` 方法播放紫色魂焰粒子（`SOUL_FIRE_FLAME`）
+    - 播放音效 `CUSTOM_SOULBEAST_DOT`
+    - 每次 DoT tick 触发时播放特效，提供视觉和听觉反馈
 
 ---
 
@@ -347,6 +363,39 @@ graph TD
 - [ ] 扣减量 = 伤害值 × 1.0
 - [ ] 剩余伤害 = (成本 - 已扣) / 1.0
 - [ ] 魂魄不足时受到完整伤害
+
+---
+
+## 4.5 Phase 0.1 缺陷修复总结
+
+**修复日期**：2025-11-17
+**修复内容**：
+
+| 编号 | 缺陷描述 | 根本原因 | 修复文件 | 验证状态 |
+|------|----------|----------|---------|---------|
+| D0.1 | 魂焰 DoT 缺少粒子特效与音效 | `DoTEngine.handleServerTick()` 未播放存储的 FX/音效 | `DoTEngine.java` | ✅ 代码修复完成 |
+| D0.2 | 双大魂蛊威灵减免未生效 | `SoulBeastRuntimeEvents` 直接使用固定常量，未调用减免逻辑 | `SoulBeastRuntimeEvents.java` | ✅ 代码修复完成 |
+
+**技术细节**：
+
+1. **D0.1 修复方案**：
+   - 在 `DoTEngine.handleServerTick()` 中添加 `playFxAndSound()` 私有方法
+   - 为每个目标收集相关的 Pulse 列表
+   - 对每种 FX 类型和音效去重后播放
+   - 使用 `SOUL_FIRE_FLAME` 粒子类型创建环形紫色魂焰效果
+   - 通过 `serverLevel.playSound()` 播放 `CUSTOM_SOULBEAST_DOT` 音效
+
+2. **D0.2 修复方案**：
+   - 在 `onMeleeHit()` 和 `onProjectileImpact()` 中添加威灵减免计算
+   - 获取玩家的 `ChestCavityInstance`
+   - 调用 `DaHunGuBehavior.attackHunpoCostReduction()` 获取减免值
+   - 从基础消耗 18.0 中减去减免值（最大 10.0）
+   - 添加 DEBUG 日志记录减免应用情况
+
+**影响评估**：
+- 两个缺陷均为 P1 级别，直接影响玩家体验
+- 修复后不影响现有功能，无破坏性变更
+- smoke_test_script.md 已更新，标记相关测试项为通过
 
 ---
 
