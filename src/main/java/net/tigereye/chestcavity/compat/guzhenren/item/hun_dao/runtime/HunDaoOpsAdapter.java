@@ -1,12 +1,16 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime;
 
+import java.util.Optional;
+import java.util.OptionalDouble;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 
 /**
  * Temporary adapter that implements the Hun Dao operation interfaces by delegating to the existing
- * HunDaoMiddleware.
+ * HunDaoMiddleware and ResourceOps.
  *
  * <p>This adapter serves as a transitional layer during Phase 1 of the rearchitecture, allowing
  * behavior classes to depend on interfaces rather than the concrete middleware implementation.
@@ -30,6 +34,27 @@ public final class HunDaoOpsAdapter
   @Override
   public boolean consumeHunpo(Player player, double amount) {
     return HunDaoMiddleware.INSTANCE.consumeHunpo(player, amount);
+  }
+
+  @Override
+  public Optional<GuzhenrenResourceBridge.ResourceHandle> openHandle(Player player) {
+    return ResourceOps.openHandle(player);
+  }
+
+  @Override
+  public double readHunpo(Player player) {
+    return openHandle(player).flatMap(h -> h.read("hunpo")).orElse(0.0);
+  }
+
+  @Override
+  public double readMaxHunpo(Player player) {
+    return openHandle(player).flatMap(h -> h.read("zuida_hunpo")).orElse(0.0);
+  }
+
+  @Override
+  public OptionalDouble adjustDouble(
+      Player player, String field, double amount, boolean clamp, String maxField) {
+    return ResourceOps.tryAdjustDouble(player, field, amount, clamp, maxField);
   }
 
   // HunDaoFxOps implementation
