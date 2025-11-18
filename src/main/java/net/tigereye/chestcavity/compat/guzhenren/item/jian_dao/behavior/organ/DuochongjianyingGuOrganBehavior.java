@@ -95,6 +95,7 @@ public enum DuochongjianyingGuOrganBehavior
       ChestCavityInstance cc,
       ItemStack organ,
       float damage) {
+        //BUG: 玩家有可能攻击自己，需要排除
     if (!(attacker instanceof ServerPlayer player)
         || attacker.level().isClientSide()
         || target == null
@@ -114,6 +115,7 @@ public enum DuochongjianyingGuOrganBehavior
       ChestCavityInstance cc,
       ItemStack organ,
       float damage) {
+        //BUG: 玩家有可能攻击自己，需要排除
     if (!(victim instanceof ServerPlayer player)
         || victim.level().isClientSide()
         || organ.isEmpty()
