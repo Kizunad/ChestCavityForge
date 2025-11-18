@@ -11,6 +11,7 @@ import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -22,8 +23,8 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IH
 /**
  * Soul Overview Tab implementation.
  *
- * <p>Phase 7: Displays soul state, level, rarity, max hun po, and attributes.
- * <p>Phase 7.2: Implements two-column layout for soul fields and grid layout for attributes.
+ * <p>Phase 7.3: Displays soul state, level, rarity, max hun po, and attributes with full i18n
+ * support.
  */
 @OnlyIn(Dist.CLIENT)
 public class SoulOverviewTab implements IHunDaoPanelTab {
@@ -37,7 +38,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
   @NonNull
   @Override
   public String getTitle() {
-    return "Soul Overview";
+    return I18n.get("gui.chestcavity.hun_dao_modern_panel.soul_overview");
   }
 
   /**
@@ -104,50 +105,54 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     Player player = minecraft.player;
 
     if (player == null) {
-      return "No player data available";
+      return I18n.get("text.chestcavity.hun_dao.no_player_data");
     }
 
     HunDaoClientState state = HunDaoClientState.instance();
     var playerId = player.getUUID();
 
     StringBuilder sb = new StringBuilder();
-    sb.append("Soul Overview\n\n");
+    sb.append(I18n.get("gui.chestcavity.hun_dao_modern_panel.soul_overview"));
+    sb.append("\n\n");
 
     // Check if soul system is active
     boolean isActive = state.isSoulSystemActive(playerId);
     if (!isActive) {
-      sb.append("Soul System is Inactive\n");
+      sb.append(I18n.get("text.chestcavity.hun_dao.system_inactive"));
+      sb.append("\n");
       sb.append("→ Display fallback placeholder\n");
       sb.append("→ No crash, no missing data\n\n");
     }
 
     // Soul State
-    sb.append("Soul State: ");
+    sb.append(I18n.get("text.chestcavity.hun_dao.soul_state"));
     sb.append(formatSoulState(state.getSoulState(playerId).orElse(null)));
     sb.append("\n");
 
     // Soul Level
-    sb.append("Soul Level: ");
+    sb.append(I18n.get("text.chestcavity.hun_dao.soul_level"));
     sb.append(formatSoulLevel(state.getSoulLevel(playerId)));
     sb.append("\n");
 
     // Soul Rarity
-    sb.append("Soul Rarity: ");
+    sb.append(I18n.get("text.chestcavity.hun_dao.soul_rarity"));
     sb.append(formatSoulRarity(state.getSoulRarity(playerId).orElse(null)));
     sb.append("\n");
 
     // Soul Max (Hun Po Max)
-    sb.append("Soul Max: ");
+    sb.append(I18n.get("text.chestcavity.hun_dao.soul_max"));
     sb.append(formatSoulMax((int) state.getHunPoMax(playerId)));
     sb.append("\n\n");
 
     // Attributes
-    sb.append("Attributes:\n");
+    sb.append(I18n.get("text.chestcavity.hun_dao.attributes"));
+    sb.append("\n");
     Map<String, Object> attributes = state.getSoulAttributes(playerId);
+    String placeholder = I18n.get("text.chestcavity.hun_dao.placeholder");
     if (attributes.isEmpty()) {
-      sb.append("  - Attribute 1: --\n");
-      sb.append("  - Attribute 2: --\n");
-      sb.append("  - Attribute 3: --\n");
+      sb.append("  - Attribute 1: ").append(placeholder).append("\n");
+      sb.append("  - Attribute 2: ").append(placeholder).append("\n");
+      sb.append("  - Attribute 3: ").append(placeholder).append("\n");
     } else {
       int count = 0;
       for (Map.Entry<String, Object> entry : attributes.entrySet()) {
@@ -163,7 +168,9 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
         count++;
         sb.append("  - Attribute ");
         sb.append(count);
-        sb.append(": --\n");
+        sb.append(": ");
+        sb.append(placeholder);
+        sb.append("\n");
       }
     }
 
@@ -172,24 +179,24 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
   private String formatSoulState(SoulState state) {
     if (state == null) {
-      return "Unknown";
+      return I18n.get(SoulState.UNKNOWN.getTranslationKey());
     }
-    return state.getDisplayName();
+    return I18n.get(state.getTranslationKey());
   }
 
   private String formatSoulLevel(int level) {
-    return level > 0 ? String.valueOf(level) : "--";
+    return level > 0 ? String.valueOf(level) : I18n.get("text.chestcavity.hun_dao.placeholder");
   }
 
   private String formatSoulRarity(SoulRarity rarity) {
     if (rarity == null) {
-      return "Unidentified";
+      return I18n.get(SoulRarity.UNIDENTIFIED.getTranslationKey());
     }
-    return rarity.getDisplayName();
+    return I18n.get(rarity.getTranslationKey());
   }
 
   private String formatSoulMax(int max) {
-    return max > 0 ? String.valueOf(max) : "--";
+    return max > 0 ? String.valueOf(max) : I18n.get("text.chestcavity.hun_dao.placeholder");
   }
 
   @Override
@@ -222,7 +229,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
     // Warning title
     var title = new TextView(context);
-    title.setText("Soul System Inactive");
+    title.setText(I18n.get("text.chestcavity.hun_dao.system_inactive"));
     title.setTextSize(14);
     title.setTextColor(0xFFE2904A);
     title.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -233,7 +240,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
     // Warning description
     var desc = new TextView(context);
-    desc.setText("No soul data available. Activate the soul system to view details.");
+    desc.setText(I18n.get("text.chestcavity.hun_dao.no_player_data"));
     desc.setTextSize(12);
     desc.setTextColor(0xFFDFDFDF);
     desc.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -258,22 +265,29 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     addFieldRow(
         context,
         section,
-        "Soul State",
+        I18n.get("text.chestcavity.hun_dao.soul_state").replace(": ", ""),
         formatSoulState(state.getSoulState(playerId).orElse(null)));
 
     // Soul Level row
-    addFieldRow(context, section, "Soul Level", formatSoulLevel(state.getSoulLevel(playerId)));
+    addFieldRow(
+        context,
+        section,
+        I18n.get("text.chestcavity.hun_dao.soul_level").replace(": ", ""),
+        formatSoulLevel(state.getSoulLevel(playerId)));
 
     // Soul Rarity row
     addFieldRow(
         context,
         section,
-        "Soul Rarity",
+        I18n.get("text.chestcavity.hun_dao.soul_rarity").replace(": ", ""),
         formatSoulRarity(state.getSoulRarity(playerId).orElse(null)));
 
     // Soul Max row
     addFieldRow(
-        context, section, "Soul Max", formatSoulMax((int) state.getHunPoMax(playerId)));
+        context,
+        section,
+        I18n.get("text.chestcavity.hun_dao.soul_max").replace(": ", ""),
+        formatSoulMax((int) state.getHunPoMax(playerId)));
 
     return section;
   }
@@ -331,7 +345,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
     // Section title
     var title = new TextView(context);
-    title.setText("Attributes");
+    title.setText(I18n.get("text.chestcavity.hun_dao.attributes").replace(":", ""));
     title.setTextSize(14);
     title.setTextColor(0xFFFFFFFF);
     var titleParams =
@@ -342,11 +356,12 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
     // Attributes list
     Map<String, Object> attributes = state.getSoulAttributes(playerId);
+    String placeholder = I18n.get("text.chestcavity.hun_dao.placeholder");
     if (attributes.isEmpty()) {
       // Show placeholders
-      addAttributeItem(context, section, "Attribute 1", "--");
-      addAttributeItem(context, section, "Attribute 2", "--");
-      addAttributeItem(context, section, "Attribute 3", "--");
+      addAttributeItem(context, section, "Attribute 1", placeholder);
+      addAttributeItem(context, section, "Attribute 2", placeholder);
+      addAttributeItem(context, section, "Attribute 3", placeholder);
     } else {
       int count = 0;
       for (Map.Entry<String, Object> entry : attributes.entrySet()) {
@@ -356,7 +371,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
       // Fill placeholders if less than 3
       while (count < 3) {
         count++;
-        addAttributeItem(context, section, "Attribute " + count, "--");
+        addAttributeItem(context, section, "Attribute " + count, placeholder);
       }
     }
 

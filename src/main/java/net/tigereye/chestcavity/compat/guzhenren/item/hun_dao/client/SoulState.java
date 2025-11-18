@@ -3,30 +3,41 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
 /**
  * Represents the state of a soul (魂魄状态).
  *
- * <p>Phase 7: Soul state enumeration for Modern UI panel display.
+ * <p>Phase 7.3: Soul state enumeration for Modern UI panel display with i18n support.
  */
 public enum SoulState {
   /** Soul is active (活跃). */
-  ACTIVE("Active"),
+  ACTIVE("soul_state.chestcavity.active"),
 
   /** Soul is resting (休眠). */
-  REST("Rest"),
+  REST("soul_state.chestcavity.rest"),
 
   /** Soul state is unknown (未知). */
-  UNKNOWN("Unknown");
+  UNKNOWN("soul_state.chestcavity.unknown");
 
-  private final String displayName;
+  private final String translationKey;
 
-  SoulState(String displayName) {
-    this.displayName = displayName;
+  SoulState(String translationKey) {
+    this.translationKey = translationKey;
   }
 
   /**
-   * Get the display name of this soul state.
+   * Get the translation key for this soul state.
    *
-   * @return the display name (e.g., "Active", "Rest", "Unknown")
+   * @return the translation key (e.g., "soul_state.chestcavity.active")
    */
+  public String getTranslationKey() {
+    return translationKey;
+  }
+
+  /**
+   * Get the display name of this soul state (deprecated, use getTranslationKey() instead).
+   *
+   * @return the translation key
+   * @deprecated Use {@link #getTranslationKey()} and translate on client side
+   */
+  @Deprecated
   public String getDisplayName() {
-    return displayName;
+    return translationKey;
   }
 }
