@@ -1,7 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.tabs;
 
 import icyllis.modernui.annotation.NonNull;
-import icyllis.modernui.graphics.Canvas;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IHunDaoPanelTab;
@@ -40,17 +39,9 @@ public class ReservedTab implements IHunDaoPanelTab {
     return title;
   }
 
+  @NonNull
   @Override
-  public void renderContent(@NonNull Canvas canvas, int mouseX, int mouseY, float partialTick) {
-    // Placeholder rendering (no-op for Phase 7)
-  }
-
-  /**
-   * Format placeholder content for display.
-   *
-   * @return formatted placeholder text
-   */
-  public String formatPlaceholderContent() {
+  public String getFormattedContent() {
     return "Coming Soon\n\nReserved for Future Use\n\n"
         + "This tab will be implemented in a future phase.";
   }

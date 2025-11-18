@@ -27,14 +27,26 @@ public interface IHunDaoPanelTab {
   String getTitle();
 
   /**
-   * Render the content of this tab.
+   * Render the content of this tab (Phase 7.1: deprecated in favor of getFormattedContent).
    *
    * @param canvas the Modern UI canvas
    * @param mouseX the mouse X position
    * @param mouseY the mouse Y position
    * @param partialTick the partial tick time
    */
-  void renderContent(@NonNull Canvas canvas, int mouseX, int mouseY, float partialTick);
+  default void renderContent(@NonNull Canvas canvas, int mouseX, int mouseY, float partialTick) {
+    // Default no-op implementation for Phase 7.1 TextView-based rendering
+  }
+
+  /**
+   * Get formatted text content for this tab.
+   *
+   * <p>Phase 7.1: Returns the tab's content as formatted text for display in TextView.
+   *
+   * @return formatted text content
+   */
+  @NonNull
+  String getFormattedContent();
 
   /**
    * Check if this tab is visible in the tab bar.

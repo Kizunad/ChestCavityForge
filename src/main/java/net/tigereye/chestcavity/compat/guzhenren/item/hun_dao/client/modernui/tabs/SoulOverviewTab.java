@@ -1,8 +1,6 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.tabs;
 
 import icyllis.modernui.annotation.NonNull;
-import icyllis.modernui.graphics.Canvas;
-import icyllis.modernui.graphics.Paint;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
@@ -21,11 +19,6 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IH
 @OnlyIn(Dist.CLIENT)
 public class SoulOverviewTab implements IHunDaoPanelTab {
 
-  private static final int COLOR_WHITE = 0xFFFFFFFF;
-  private static final int COLOR_GRAY = 0xFF9FA7B3;
-  private static final int COLOR_YELLOW = 0xFFE6B422;
-  private static final int COLOR_RED = 0xFFFF5555;
-
   @NonNull
   @Override
   public String getId() {
@@ -38,21 +31,9 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return "Soul Overview";
   }
 
+  @NonNull
   @Override
-  public void renderContent(@NonNull Canvas canvas, int mouseX, int mouseY, float partialTick) {
-    // This method is called from a custom view that uses Modern UI's Canvas.
-    // For Phase 7, we'll keep this as a placeholder since the main fragment
-    // uses TextView-based rendering. A future phase can implement custom canvas rendering.
-  }
-
-  /**
-   * Format soul data as text for display in a TextView.
-   *
-   * <p>This is a helper method used by the fragment to populate content.
-   *
-   * @return formatted text for soul overview
-   */
-  public String formatSoulData() {
+  public String getFormattedContent() {
     Minecraft minecraft = Minecraft.getInstance();
     Player player = minecraft.player;
 

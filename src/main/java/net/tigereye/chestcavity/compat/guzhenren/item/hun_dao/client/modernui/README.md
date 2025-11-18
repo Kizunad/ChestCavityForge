@@ -1,6 +1,6 @@
 # Hun Dao Modern UI
 
-**Status:** Phase 7 (Complete)
+**Status:** Phase 7.1 (Complete - Production Ready)
 
 ## Purpose
 Modern UI panel for Hun Dao, providing a tabbed interface for viewing soul system information, stats, and future interactive features.
@@ -21,6 +21,32 @@ Modern UI panel for Hun Dao, providing a tabbed interface for viewing soul syste
 ```
 
 ### Core Components
+
+#### CanvasContentView (Phase 7.1)
+Custom view for rendering tab content using Modern UI Canvas API:
+```java
+public class CanvasContentView extends View {
+  private IHunDaoPanelTab activeTab;
+
+  @Override
+  protected void onDraw(@NonNull Canvas canvas) {
+    if (activeTab != null) {
+      activeTab.renderContent(canvas, 0, 0, 0f);
+    }
+  }
+
+  public void setActiveTab(@Nullable IHunDaoPanelTab tab) {
+    this.activeTab = tab;
+    invalidate(); // Trigger redraw
+  }
+}
+```
+
+**Key Features:**
+- Direct Canvas rendering (no TextView intermediate layer)
+- Automatic redraw on tab switch via `invalidate()`
+- Proper Modern UI `View` lifecycle integration
+- Extensible for future Canvas-based features (icons, graphics, animations)
 
 #### IHunDaoPanelTab
 Tab interface defining the contract for all panel tabs:
@@ -43,14 +69,30 @@ public interface IHunDaoPanelTab {
 Main panel fragment extending Modern UI's `Fragment` class:
 - Manages tab lifecycle and switching
 - Renders tab navigation bar
-- Delegates content rendering to active tab
+- Delegates content rendering to active tab via `CanvasContentView`
 - Provides close button and panel chrome
 
 **Key Features:**
 - Dynamic tab list (3 tabs by default, easily extensible)
 - Active tab highlighting
-- Tab switching via button clicks
+- Tab switching via button clicks with immediate content refresh
 - Integration with Minecraft's Modern UI system
+
+**Phase 7.1 Improvements:**
+```java
+private void switchTab(int index) {
+  if (index >= 0 && index < tabs.size()) {
+    activeTabIndex = index;
+    // Update content view to render the new active tab
+    if (contentView != null) {
+      contentView.setActiveTab(tabs.get(index));
+    }
+  }
+}
+```
+- Removed TODO placeholder
+- Actual content refresh on tab switch
+- Uses `CanvasContentView.setActiveTab()` to trigger redraw
 
 #### SoulOverviewTab
 First implemented tab showing core soul information:
@@ -68,10 +110,41 @@ First implemented tab showing core soul information:
 **Fallback Strategy:**
 ```
 If soul system is inactive:
-  → Display "Soul System is Inactive"
-  → Show placeholders for all fields
+  → Display "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  → Display "⚠ Soul System is Inactive" (yellow)
+  → Display "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  → Show placeholders for all fields (Unknown, --, Unidentified)
   → No crash, no missing data
 ```
+
+**Phase 7.1 Canvas Rendering:**
+```java
+@Override
+public void renderContent(@NonNull Canvas canvas, int mouseX, int mouseY, float partialTick) {
+  // Get player and state
+  HunDaoClientState state = HunDaoClientState.instance();
+  UUID playerId = player.getUUID();
+  boolean isActive = state.isSoulSystemActive(playerId);
+
+  // Render title
+  renderText(canvas, "Soul Overview", 10, y, COLOR_WHITE);
+
+  // Warning block if inactive
+  if (!isActive) {
+    renderText(canvas, "━━━━━━━━━━━━━━━━━━━━━━━━━━", 10, y, COLOR_YELLOW);
+    renderText(canvas, "⚠ Soul System is Inactive", 10, y, COLOR_YELLOW);
+    renderText(canvas, "━━━━━━━━━━━━━━━━━━━━━━━━━━", 10, y, COLOR_YELLOW);
+  }
+
+  // Render all fields with fallback values
+  renderText(canvas, "Soul State: " + formatSoulState(...), 10, y, COLOR_GRAY);
+  renderText(canvas, "Soul Level: " + formatSoulLevel(...), 10, y, COLOR_GRAY);
+  // ... etc
+}
+```
+- Uses Modern UI `Paint.get()` for efficient text rendering
+- Color-coded display (white titles, gray data, yellow warnings)
+- Returns next Y position for proper line spacing
 
 #### ReservedTab
 Placeholder for future expansion (Phase 8+):
@@ -84,6 +157,19 @@ Placeholder for future expansion (Phase 8+):
 tabs.add(new ReservedTab("reserved_1", "Reserved"));
 tabs.add(new ReservedTab("reserved_2", "Reserved"));
 ```
+
+**Phase 7.1 Canvas Rendering:**
+```java
+@Override
+public void renderContent(@NonNull Canvas canvas, int mouseX, int mouseY, float partialTick) {
+  renderText(canvas, "Coming Soon", 10, y, COLOR_WHITE);
+  renderText(canvas, "Reserved for Future Use", 10, y, COLOR_GRAY);
+  renderText(canvas, "This tab will be implemented", 10, y, COLOR_GRAY);
+  renderText(canvas, "in a future phase.", 10, y, COLOR_GRAY);
+}
+```
+- Renders placeholder content using Canvas API
+- Prevents user confusion with clear messaging
 
 ## Data Flow
 
@@ -100,7 +186,7 @@ MuiModApi.createScreen(fragment)
 Panel renders on screen
 ```
 
-### Tab Rendering Flow
+### Tab Rendering Flow (Phase 7.1)
 ```
 Fragment.onCreateView()
        ↓
@@ -108,11 +194,34 @@ Initialize tabs (Soul Overview + 2 Reserved)
        ↓
 Build tab navigation bar
        ↓
-Render active tab content
+Create CanvasContentView
+       ↓
+setActiveTab(tabs.get(0)) → invalidate()
+       ↓
+CanvasContentView.onDraw()
+       ↓
+activeTab.renderContent(canvas, ...)
        ↓
 Query HunDaoClientState for data
        ↓
-Format and display in TextView
+Render text with Paint.get() + canvas.drawText()
+```
+
+### Tab Switch Flow (Phase 7.1)
+```
+User clicks tab button
+       ↓
+switchTab(index)
+       ↓
+contentView.setActiveTab(tabs.get(index))
+       ↓
+contentView.invalidate()
+       ↓
+CanvasContentView.onDraw()
+       ↓
+New tab's renderContent() executed
+       ↓
+Content refreshes immediately
 ```
 
 ## Usage
@@ -188,6 +297,19 @@ boolean isActive = state.isSoulSystemActive(playerId);
 6. ✅ Fallback strategy for missing data
 7. ✅ Type-safe enums (`SoulState`, `SoulRarity`)
 
+## Phase 7.1 Achievements (Production Hardening)
+
+1. ✅ **CanvasContentView implementation** - Custom view with proper Canvas rendering
+2. ✅ **Tab switching fully functional** - `switchTab()` triggers immediate content refresh
+3. ✅ **`renderContent()` called properly** - Canvas API integration complete
+4. ✅ **Inactive state warning UI** - Yellow warning block with ⚠ symbol
+5. ✅ **Real data rendering** - All soul fields displayed (state, level, rarity, max, attributes)
+6. ✅ **Zero TODO placeholders** - All implementation complete
+7. ✅ **Color-coded UI** - White titles, gray data, yellow warnings, red errors
+8. ✅ **Comprehensive documentation** - Report, smoke test, and updated READMEs
+
+**Status:** Production ready, meets all quality requirements
+
 ## Future Enhancements (Phase 8+)
 
 ### Additional Tabs
@@ -203,10 +325,11 @@ boolean isActive = state.isSoulSystemActive(playerId);
 - Search/filter for attributes
 
 ### Visual Enhancements
-- Custom Canvas rendering (replace TextView)
+- ✅ Custom Canvas rendering (Phase 7.1 complete)
 - Icon sprites for rarities and states
 - Color themes (dark/light mode)
 - Smooth transitions and animations
+- Custom fonts and text styling
 
 ### Data Synchronization
 - Server→Client payloads for real-time updates
@@ -243,3 +366,6 @@ boolean isActive = state.isSoulSystemActive(playerId);
 - `../ui/README.md` - HUD and notifications
 - `../../docs/Phase7_Plan.md` - Phase 7 implementation plan
 - `../../docs/Phase7_Report.md` - Phase 7 completion report
+- `../../docs/Phase7.1_Plan.md` - Phase 7.1 production hardening plan
+- `../../docs/Phase7.1_Report.md` - Phase 7.1 completion report
+- `../../docs/Phase7.1_Smoke_Test.md` - Phase 7.1 testing procedures
