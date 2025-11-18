@@ -24,7 +24,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.ta
 /**
  * Hun Dao Modern UI panel fragment.
  *
- * <p>Phase 7: Multi-tab panel for soul system information display.
+ * <p>Phase 7.2: Wide-screen panel layout aligned with ASCII design.
  */
 @OnlyIn(Dist.CLIENT)
 public class HunDaoModernPanelFragment extends Fragment {
@@ -32,6 +32,10 @@ public class HunDaoModernPanelFragment extends Fragment {
   private final List<IHunDaoPanelTab> tabs = new ArrayList<>();
   private int activeTabIndex = 0;
   private TabContentView contentView;
+
+  // Phase 7.2: Fixed panel dimensions for wide-screen layout
+  private static final int PANEL_WIDTH_DP = 450;
+  private static final int PANEL_MIN_HEIGHT_DP = 300;
 
   @Nullable
   @Override
@@ -47,7 +51,7 @@ public class HunDaoModernPanelFragment extends Fragment {
     tabs.add(new ReservedTab("reserved_1", "Reserved"));
     tabs.add(new ReservedTab("reserved_2", "Reserved"));
 
-    // Root container
+    // Phase 7.2: Main container with fixed width
     var root = new LinearLayout(context);
     root.setOrientation(LinearLayout.VERTICAL);
     int padding = root.dp(18);
@@ -70,13 +74,12 @@ public class HunDaoModernPanelFragment extends Fragment {
         new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-    // Tab bar
+    // Phase 7.2: Tab bar with weighted layout (equal distribution)
     var tabBar = new LinearLayout(context);
     tabBar.setOrientation(LinearLayout.HORIZONTAL);
-    tabBar.setGravity(Gravity.CENTER_HORIZONTAL);
     var tabBarParams =
         new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     tabBarParams.topMargin = root.dp(12);
     tabBarParams.bottomMargin = root.dp(12);
 
@@ -92,29 +95,43 @@ public class HunDaoModernPanelFragment extends Fragment {
       tabButton.setEnabled(tab.isEnabled());
       tabButton.setOnClickListener(v -> switchTab(tabIndex));
 
+      // Phase 7.2: Use weighted layout params for equal width distribution
+      var tabButtonParams =
+          new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+
       // Add spacing between tabs
       if (i > 0) {
-        var spacer = new View(context);
-        spacer.setLayoutParams(new LinearLayout.LayoutParams(root.dp(8), 1));
-        tabBar.addView(spacer);
+        tabButtonParams.leftMargin = root.dp(8);
       }
 
-      tabBar.addView(tabButton);
+      tabBar.addView(tabButton, tabButtonParams);
     }
 
     root.addView(tabBar, tabBarParams);
 
-    // Tab content area - renders via custom text view
+    // Phase 7.2: Content area with card-style background
     contentView = new TabContentView(context);
-    contentView.setPadding(0, root.dp(20), 0, root.dp(20));
+    int contentPadding = root.dp(16);
+    contentView.setPadding(contentPadding, contentPadding, contentPadding, contentPadding);
+
+    // Add rounded rectangle card background
+    var contentBackground = new ShapeDrawable();
+    contentBackground.setCornerRadius(root.dp(8));
+    contentBackground.setColor(0xDD1A1F26); // Slightly lighter than main panel
+    contentBackground.setStroke(root.dp(1), 0xFF3A7BC8); // Subtle border
+    contentView.setBackground(contentBackground);
+
     // Initialize with the first tab
     if (!tabs.isEmpty()) {
       contentView.setActiveTab(tabs.get(0));
     }
-    root.addView(
-        contentView,
+
+    var contentParams =
         new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    contentParams.topMargin = root.dp(8);
+    contentParams.bottomMargin = root.dp(8);
+    root.addView(contentView, contentParams);
 
     // Close button
     var closeButton = new Button(context);
@@ -127,10 +144,13 @@ public class HunDaoModernPanelFragment extends Fragment {
     closeParams.gravity = Gravity.CENTER_HORIZONTAL;
     root.addView(closeButton, closeParams);
 
-    // Center the layout
+    // Phase 7.2: Set minimum height on root view
+    root.setMinimumHeight(root.dp(PANEL_MIN_HEIGHT_DP));
+
+    // Phase 7.2: Center the layout with fixed width
     var layoutParams =
         new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
+            root.dp(PANEL_WIDTH_DP),
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.CENTER);
     root.setLayoutParams(layoutParams);
