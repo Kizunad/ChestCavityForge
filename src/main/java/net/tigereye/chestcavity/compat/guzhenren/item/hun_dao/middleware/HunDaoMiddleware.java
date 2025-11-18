@@ -61,7 +61,8 @@ public final class HunDaoMiddleware {
         SOUL_FLAME_FX,
         FxAnchor.TARGET,
         Vec3.ZERO,
-        0.7f);
+        0.7f,
+        true);
     // 播放魂焰粒子和音效（数据驱动 FX，不影响其他 DoT）
     HunDaoSoulFlameFx.playSoulFlame(target, SOUL_FLAME_FX, seconds);
     LOGGER.debug(

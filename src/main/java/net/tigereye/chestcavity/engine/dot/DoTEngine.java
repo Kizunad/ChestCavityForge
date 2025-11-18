@@ -68,6 +68,36 @@ public final class DoTEngine {
       FxAnchor fxAnchor,
       Vec3 fxOffset,
       float fxIntensity) {
+    schedulePerSecond(
+        attacker,
+        target,
+        perSecondDamage,
+        durationSeconds,
+        tickSound,
+        volume,
+        pitch,
+        typeId,
+        fxId,
+        fxAnchor,
+        fxOffset,
+        fxIntensity,
+        false);
+  }
+
+  public static void schedulePerSecond(
+      LivingEntity attacker,
+      LivingEntity target,
+      double perSecondDamage,
+      int durationSeconds,
+      SoundEvent tickSound,
+      float volume,
+      float pitch,
+      ResourceLocation typeId,
+      ResourceLocation fxId,
+      FxAnchor fxAnchor,
+      Vec3 fxOffset,
+      float fxIntensity,
+      boolean suppressKnockback) {
     if (typeId == null)
       throw new IllegalArgumentException("DoT typeId must not be null. Use DoTTypes.");
     if (attacker == null || target == null || durationSeconds <= 0 || perSecondDamage <= 0.0)
@@ -94,7 +124,8 @@ public final class DoTEngine {
               fxId,
               anchor,
               safeOffset,
-              intensity));
+              intensity,
+              suppressKnockback));
     }
     if (debugEnabled()) {
       LOGGER.info(
@@ -199,8 +230,8 @@ public final class DoTEngine {
       }
     }
     if (due.isEmpty()) return;
-    Map<UUID, Map<UUID, Float>> grouped =
-        new HashMap<>(); // target -> (attacker|null -> totalDamage)
+    Map<UUID, Map<GroupKey, Float>> grouped =
+        new HashMap<>(); // target -> (attacker|null + knockback flag -> totalDamage)
     Map<UUID, LivingEntity> targetCache = new HashMap<>();
     Map<UUID, LivingEntity> attackerCache = new HashMap<>();
     UUID NONE = new UUID(0L, 0L);
@@ -219,25 +250,38 @@ public final class DoTEngine {
         if (!ReactionAPI.get().preApplyDoT(event.getServer(), pulse.typeId, attacker, target))
           continue;
         UUID atkKey = attacker != null ? attacker.getUUID() : NONE;
+        GroupKey groupKey = new GroupKey(atkKey, pulse.suppressKnockback);
         grouped
             .computeIfAbsent(target.getUUID(), k -> new HashMap<>())
-            .merge(atkKey, pulse.amount, Float::sum);
+            .merge(groupKey, pulse.amount, Float::sum);
       }
     }
-    for (Map.Entry<UUID, Map<UUID, Float>> e : grouped.entrySet()) {
+    for (Map.Entry<UUID, Map<GroupKey, Float>> e : grouped.entrySet()) {
       LivingEntity target = targetCache.get(e.getKey());
       if (target == null || !target.isAlive()) continue;
-      for (Map.Entry<UUID, Float> g : e.getValue().entrySet()) {
+      for (Map.Entry<GroupKey, Float> g : e.getValue().entrySet()) {
         float total = g.getValue();
         if (total <= 0f) {
           continue;
         }
-        LivingEntity attacker = !g.getKey().equals(NONE) ? attackerCache.get(g.getKey()) : null;
+        GroupKey key = g.getKey();
+        LivingEntity attacker =
+            !key.attackerUuid().equals(NONE) ? attackerCache.get(key.attackerUuid()) : null;
         DamageSource source;
         if (attacker instanceof Player player) source = player.damageSources().playerAttack(player);
         else if (attacker != null) source = attacker.damageSources().mobAttack(attacker);
         else source = target.damageSources().generic();
+        Vec3 previousMotion = null;
+        boolean previousImpulse = false;
+        if (key.suppressKnockback()) {
+          previousMotion = target.getDeltaMovement();
+          previousImpulse = target.hasImpulse;
+        }
         target.hurt(source, total);
+        if (key.suppressKnockback()) {
+          target.setDeltaMovement(previousMotion);
+          target.hasImpulse = previousImpulse;
+        }
       }
     }
   }
@@ -264,6 +308,7 @@ public final class DoTEngine {
     final FxAnchor fxAnchor;
     final Vec3 fxOffset;
     final float fxIntensity;
+    final boolean suppressKnockback;
 
     Pulse(
         int dueTick,
@@ -277,7 +322,8 @@ public final class DoTEngine {
         ResourceLocation fxId,
         FxAnchor fxAnchor,
         Vec3 fxOffset,
-        float fxIntensity) {
+        float fxIntensity,
+        boolean suppressKnockback) {
       this.dueTick = dueTick;
       this.attackerUuid = attackerUuid;
       this.targetUuid = targetUuid;
@@ -290,6 +336,9 @@ public final class DoTEngine {
       this.fxAnchor = fxAnchor;
       this.fxOffset = fxOffset;
       this.fxIntensity = fxIntensity;
+      this.suppressKnockback = suppressKnockback;
     }
   }
+
+  private record GroupKey(UUID attackerUuid, boolean suppressKnockback) {}
 }

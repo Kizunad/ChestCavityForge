@@ -113,7 +113,7 @@ public final class HunDaoSoulFlameFx {
     Vec3 targetPos = target.position();
     double targetHeight = target.getBbHeight();
 
-    int particleCount = 8;
+    int particleCount = 4;
     for (int i = 0; i < particleCount; i++) {
       double angle = (Math.PI * 2.0 * i) / particleCount + elapsedTicks * 0.1;
       double radius = 0.5 + Math.sin(elapsedTicks * 0.05 + i) * 0.1;
@@ -134,7 +134,7 @@ public final class HunDaoSoulFlameFx {
     }
 
     if (elapsedTicks % 10 == 0) {
-      int ringCount = 12;
+      int ringCount = 6;
       for (int i = 0; i < ringCount; i++) {
         double angle = (Math.PI * 2.0 * i) / ringCount;
         double r = 0.7;
