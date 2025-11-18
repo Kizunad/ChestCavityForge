@@ -38,7 +38,7 @@ public final class HunDaoClientConfig {
    *
    * <p>Default: true
    */
-  public static boolean renderHunPoBar = true;
+  public static boolean renderHunPoBar = false;
 
   /**
    * Whether to render soul beast and gui wu timers.

@@ -7,8 +7,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoNotificationRenderer;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoSoulHud;
 import org.slf4j.Logger;
 
 /**
@@ -40,9 +38,6 @@ public final class HunDaoClientEvents {
     // Tick client state (decay timers)
     HunDaoClientState.instance().tick();
 
-    // Tick notifications (remove expired)
-    HunDaoNotificationRenderer.tick();
-
     // Optional: Trigger periodic client-side FX based on state
     // Example: Play ambient soul beast particles if soul beast is active
     LocalPlayer player = mc.player;
@@ -64,7 +59,6 @@ public final class HunDaoClientEvents {
     if (event.getLevel().isClientSide()) {
       LOGGER.debug("[hun_dao][client_events] Clearing client state on level unload");
       HunDaoClientState.instance().clearAll();
-      HunDaoNotificationRenderer.clear();
     }
   }
 
@@ -77,22 +71,7 @@ public final class HunDaoClientEvents {
    */
   @SubscribeEvent
   public static void onRenderGui(RenderGuiEvent.Post event) {
-    Minecraft mc = Minecraft.getInstance();
-    if (mc.level == null || mc.player == null) {
-      return;
-    }
-
-    // Extract partial tick from DeltaTracker
-    float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
-
-    // Render HUD (hun po bar, soul beast timer, etc.) if enabled
-    if (HunDaoClientConfig.isHudEnabled()) {
-      HunDaoSoulHud.render(event.getGuiGraphics(), partialTick);
-    }
-
-    // Render notifications (toast messages) if enabled
-    if (HunDaoClientConfig.areNotificationsEnabled()) {
-      HunDaoNotificationRenderer.render(event.getGuiGraphics(), partialTick);
-    }
+    // Phase 6 HUD/notification logic has been disabled per user request.
+    // This handler remains registered to keep future extensions simple.
   }
 }
