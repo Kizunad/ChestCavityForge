@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.tabs;
 
 import icyllis.modernui.annotation.NonNull;
+import net.minecraft.client.resources.language.I18n;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IHunDaoPanelTab;
@@ -8,7 +9,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IH
 /**
  * Reserved Tab placeholder implementation.
  *
- * <p>Phase 7: Placeholder for future expansion (Phase 8+).
+ * <p>Phase 7.3: Placeholder for future expansion (Phase 8+) with i18n support.
  */
 @OnlyIn(Dist.CLIENT)
 public class ReservedTab implements IHunDaoPanelTab {
@@ -42,8 +43,11 @@ public class ReservedTab implements IHunDaoPanelTab {
   @NonNull
   @Override
   public String getFormattedContent() {
-    return "Coming Soon\n\nReserved for Future Use\n\n"
-        + "This tab will be implemented in a future phase.";
+    return I18n.get("text.chestcavity.hun_dao.coming_soon")
+        + "\n\n"
+        + I18n.get("text.chestcavity.hun_dao.reserved_future")
+        + "\n\n"
+        + I18n.get("text.chestcavity.hun_dao.future_phase");
   }
 
   @Override

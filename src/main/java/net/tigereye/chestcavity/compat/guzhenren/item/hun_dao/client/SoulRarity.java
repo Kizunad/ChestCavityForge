@@ -3,36 +3,47 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
 /**
  * Represents the rarity of a soul (魂魄稀有度).
  *
- * <p>Phase 7: Soul rarity enumeration for Modern UI panel display.
+ * <p>Phase 7.3: Soul rarity enumeration for Modern UI panel display with i18n support.
  */
 public enum SoulRarity {
   /** Common rarity (普通). */
-  COMMON("Common"),
+  COMMON("soul_rarity.chestcavity.common"),
 
   /** Rare rarity (稀有). */
-  RARE("Rare"),
+  RARE("soul_rarity.chestcavity.rare"),
 
   /** Epic rarity (史诗). */
-  EPIC("Epic"),
+  EPIC("soul_rarity.chestcavity.epic"),
 
   /** Legendary rarity (传说). */
-  LEGENDARY("Legendary"),
+  LEGENDARY("soul_rarity.chestcavity.legendary"),
 
   /** Unidentified rarity (未鉴定). */
-  UNIDENTIFIED("Unidentified");
+  UNIDENTIFIED("soul_rarity.chestcavity.unidentified");
 
-  private final String displayName;
+  private final String translationKey;
 
-  SoulRarity(String displayName) {
-    this.displayName = displayName;
+  SoulRarity(String translationKey) {
+    this.translationKey = translationKey;
   }
 
   /**
-   * Get the display name of this soul rarity.
+   * Get the translation key for this soul rarity.
    *
-   * @return the display name (e.g., "Common", "Rare", "Epic", "Legendary", "Unidentified")
+   * @return the translation key (e.g., "soul_rarity.chestcavity.common")
    */
+  public String getTranslationKey() {
+    return translationKey;
+  }
+
+  /**
+   * Get the display name of this soul rarity (deprecated, use getTranslationKey() instead).
+   *
+   * @return the translation key
+   * @deprecated Use {@link #getTranslationKey()} and translate on client side
+   */
+  @Deprecated
   public String getDisplayName() {
-    return displayName;
+    return translationKey;
   }
 }

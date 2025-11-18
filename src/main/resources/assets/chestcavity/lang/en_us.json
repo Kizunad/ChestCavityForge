@@ -479,5 +479,32 @@
     "text.autoconfig.chestcavity.option.RATS_MISCHIEF_INTEGRATION": "Rat's Mischief Integration (Restart)",
     "text.autoconfig.chestcavity.option.REQUIEM_INTEGRATION": "Requiem Integration (Restart)",
     "text.autoconfig.chestcavity.option.SMALL_ENDERMEN_INTEGRATION": "Small Endermen Integration (Restart)",
-    "text.autoconfig.chestcavity.option.SNOW_MERCY_INTEGRATION": "Direbats Integration (Restart)"
+    "text.autoconfig.chestcavity.option.SNOW_MERCY_INTEGRATION": "Direbats Integration (Restart)",
+
+    "gui.chestcavity.hun_dao_modern_panel.title": "Hun Dao Modern Panel (Phase 7)",
+    "gui.chestcavity.hun_dao_modern_panel.close": "Close Panel",
+    "gui.chestcavity.hun_dao_modern_panel.soul_overview": "Soul Overview",
+    "gui.chestcavity.hun_dao_modern_panel.reserved": "Reserved",
+
+    "text.chestcavity.hun_dao.no_player_data": "No player data available",
+    "text.chestcavity.hun_dao.system_inactive": "Soul System is Inactive",
+    "text.chestcavity.hun_dao.soul_state": "Soul State: ",
+    "text.chestcavity.hun_dao.soul_level": "Soul Level: ",
+    "text.chestcavity.hun_dao.soul_rarity": "Soul Rarity: ",
+    "text.chestcavity.hun_dao.soul_max": "Soul Max: ",
+    "text.chestcavity.hun_dao.attributes": "Attributes:",
+    "text.chestcavity.hun_dao.placeholder": "--",
+    "text.chestcavity.hun_dao.coming_soon": "Coming Soon",
+    "text.chestcavity.hun_dao.reserved_future": "Reserved for Future Use",
+    "text.chestcavity.hun_dao.future_phase": "This tab will be implemented in a future phase.",
+
+    "soul_state.chestcavity.active": "Active",
+    "soul_state.chestcavity.rest": "Rest",
+    "soul_state.chestcavity.unknown": "Unknown",
+
+    "soul_rarity.chestcavity.common": "Common",
+    "soul_rarity.chestcavity.rare": "Rare",
+    "soul_rarity.chestcavity.epic": "Epic",
+    "soul_rarity.chestcavity.legendary": "Legendary",
+    "soul_rarity.chestcavity.unidentified": "Unidentified"
 }

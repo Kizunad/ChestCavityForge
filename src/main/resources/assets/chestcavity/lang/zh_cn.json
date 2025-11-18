@@ -585,5 +585,32 @@
   "text.autoconfig.chestcavity.option.RATS_MISCHIEF_INTEGRATION": "老鼠的恶作剧整合(需重启)",
   "text.autoconfig.chestcavity.option.REQUIEM_INTEGRATION": "安魂曲整合(需重启)",
   "text.autoconfig.chestcavity.option.SMALL_ENDERMEN_INTEGRATION": "小末影人整合(需重启)",
-  "text.autoconfig.chestcavity.option.SNOW_MERCY_INTEGRATION": "指令集一体化(需重启)"
+  "text.autoconfig.chestcavity.option.SNOW_MERCY_INTEGRATION": "指令集一体化(需重启)",
+
+  "gui.chestcavity.hun_dao_modern_panel.title": "魂道现代面板（第七阶段）",
+  "gui.chestcavity.hun_dao_modern_panel.close": "关闭面板",
+  "gui.chestcavity.hun_dao_modern_panel.soul_overview": "魂魄概览",
+  "gui.chestcavity.hun_dao_modern_panel.reserved": "预留",
+
+  "text.chestcavity.hun_dao.no_player_data": "无玩家数据可用",
+  "text.chestcavity.hun_dao.system_inactive": "魂魄系统未激活",
+  "text.chestcavity.hun_dao.soul_state": "魂态：",
+  "text.chestcavity.hun_dao.soul_level": "魂级：",
+  "text.chestcavity.hun_dao.soul_rarity": "魂品：",
+  "text.chestcavity.hun_dao.soul_max": "魂上限：",
+  "text.chestcavity.hun_dao.attributes": "属性：",
+  "text.chestcavity.hun_dao.placeholder": "——",
+  "text.chestcavity.hun_dao.coming_soon": "即将推出",
+  "text.chestcavity.hun_dao.reserved_future": "为未来使用预留",
+  "text.chestcavity.hun_dao.future_phase": "此标签将在未来阶段实现。",
+
+  "soul_state.chestcavity.active": "激活",
+  "soul_state.chestcavity.rest": "休眠",
+  "soul_state.chestcavity.unknown": "未知",
+
+  "soul_rarity.chestcavity.common": "凡品",
+  "soul_rarity.chestcavity.rare": "稀有",
+  "soul_rarity.chestcavity.epic": "史诗",
+  "soul_rarity.chestcavity.legendary": "传说",
+  "soul_rarity.chestcavity.unidentified": "未鉴定"
 }
