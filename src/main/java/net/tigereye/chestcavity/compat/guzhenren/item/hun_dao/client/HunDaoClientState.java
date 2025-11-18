@@ -1,7 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -11,6 +14,8 @@ import java.util.UUID;
  * and hun po levels for smooth HUD rendering and FX playback. Updated via network sync from server.
  *
  * <p>Phase 5: Client-side state management for HUD and FX systems.
+ *
+ * <p>Phase 7: Extended with soul state, level, rarity, and attributes for Modern UI panel.
  */
 public final class HunDaoClientState {
 
@@ -47,6 +52,23 @@ public final class HunDaoClientState {
 
   /** Gui wu remaining ticks per player (player UUID → remaining ticks). */
   private final Map<UUID, Integer> guiWuDuration = new HashMap<>();
+
+  // ===== Phase 7: Soul Panel Data =====
+
+  /** Soul state per player (player UUID → soul state). */
+  private final Map<UUID, SoulState> soulState = new HashMap<>();
+
+  /** Soul level per player (player UUID → soul level). */
+  private final Map<UUID, Integer> soulLevel = new HashMap<>();
+
+  /** Soul rarity per player (player UUID → soul rarity). */
+  private final Map<UUID, SoulRarity> soulRarity = new HashMap<>();
+
+  /** Soul attributes per player (player UUID → attribute map). */
+  private final Map<UUID, Map<String, Object>> soulAttributes = new HashMap<>();
+
+  /** Whether soul system is active per player (player UUID → active flag). */
+  private final Map<UUID, Boolean> soulSystemActive = new HashMap<>();
 
   // ===== Soul Flame =====
 
@@ -150,6 +172,129 @@ public final class HunDaoClientState {
     return guiWuDuration.getOrDefault(playerId, 0);
   }
 
+  // ===== Phase 7: Soul Panel Methods =====
+
+  /**
+   * Set the soul state for a player.
+   *
+   * @param playerId the player UUID
+   * @param state the soul state (null to clear)
+   */
+  public void setSoulState(UUID playerId, SoulState state) {
+    if (state == null) {
+      soulState.remove(playerId);
+    } else {
+      soulState.put(playerId, state);
+    }
+  }
+
+  /**
+   * Get the soul state for a player.
+   *
+   * @param playerId the player UUID
+   * @return optional soul state
+   */
+  public Optional<SoulState> getSoulState(UUID playerId) {
+    return Optional.ofNullable(soulState.get(playerId));
+  }
+
+  /**
+   * Set the soul level for a player.
+   *
+   * @param playerId the player UUID
+   * @param level the soul level (0 or negative to clear)
+   */
+  public void setSoulLevel(UUID playerId, int level) {
+    if (level <= 0) {
+      soulLevel.remove(playerId);
+    } else {
+      soulLevel.put(playerId, level);
+    }
+  }
+
+  /**
+   * Get the soul level for a player.
+   *
+   * @param playerId the player UUID
+   * @return the soul level (0 if not set)
+   */
+  public int getSoulLevel(UUID playerId) {
+    return soulLevel.getOrDefault(playerId, 0);
+  }
+
+  /**
+   * Set the soul rarity for a player.
+   *
+   * @param playerId the player UUID
+   * @param rarity the soul rarity (null to clear)
+   */
+  public void setSoulRarity(UUID playerId, SoulRarity rarity) {
+    if (rarity == null) {
+      soulRarity.remove(playerId);
+    } else {
+      soulRarity.put(playerId, rarity);
+    }
+  }
+
+  /**
+   * Get the soul rarity for a player.
+   *
+   * @param playerId the player UUID
+   * @return optional soul rarity
+   */
+  public Optional<SoulRarity> getSoulRarity(UUID playerId) {
+    return Optional.ofNullable(soulRarity.get(playerId));
+  }
+
+  /**
+   * Set the soul attributes for a player.
+   *
+   * @param playerId the player UUID
+   * @param attributes the attribute map (null or empty to clear)
+   */
+  public void setSoulAttributes(UUID playerId, Map<String, Object> attributes) {
+    if (attributes == null || attributes.isEmpty()) {
+      soulAttributes.remove(playerId);
+    } else {
+      soulAttributes.put(playerId, new LinkedHashMap<>(attributes));
+    }
+  }
+
+  /**
+   * Get the soul attributes for a player.
+   *
+   * @param playerId the player UUID
+   * @return immutable map of soul attributes (empty if not set)
+   */
+  public Map<String, Object> getSoulAttributes(UUID playerId) {
+    Map<String, Object> attrs = soulAttributes.get(playerId);
+    return attrs != null ? Collections.unmodifiableMap(attrs) : Collections.emptyMap();
+  }
+
+  /**
+   * Set whether the soul system is active for a player.
+   *
+   * @param playerId the player UUID
+   * @param active true if the player has hun dao organs
+   */
+  public void setSoulSystemActive(UUID playerId, boolean active) {
+    if (active) {
+      soulSystemActive.put(playerId, true);
+    } else {
+      soulSystemActive.remove(playerId);
+    }
+  }
+
+  /**
+   * Check if the soul system is active for a player.
+   *
+   * @param playerId the player UUID
+   * @return true if the player has hun dao organs
+   */
+  public boolean isSoulSystemActive(UUID playerId) {
+    return soulSystemActive.getOrDefault(playerId, false);
+  }
+
   // ===== Cleanup =====
 
   /**
@@ -166,6 +311,12 @@ public final class HunDaoClientState {
     hunpoMax.remove(entityId);
     guiWuActive.remove(entityId);
     guiWuDuration.remove(entityId);
+    // Phase 7: Clear soul panel data
+    soulState.remove(entityId);
+    soulLevel.remove(entityId);
+    soulRarity.remove(entityId);
+    soulAttributes.remove(entityId);
+    soulSystemActive.remove(entityId);
   }
 
   /**
@@ -182,6 +333,12 @@ public final class HunDaoClientState {
     hunpoMax.clear();
     guiWuActive.clear();
     guiWuDuration.clear();
+    // Phase 7: Clear soul panel data
+    soulState.clear();
+    soulLevel.clear();
+    soulRarity.clear();
+    soulAttributes.clear();
+    soulSystemActive.clear();
   }
 
   // ===== Client Tick =====
