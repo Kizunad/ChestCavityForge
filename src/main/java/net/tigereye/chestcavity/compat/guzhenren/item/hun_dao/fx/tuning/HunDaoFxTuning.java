@@ -40,6 +40,9 @@ public final class HunDaoFxTuning {
 
     /** Ring particle radius around target. */
     public static final double RING_RADIUS = 0.7D;
+
+    /** Minimum interval between DOT sound replays (ticks). */
+    public static final int SOUND_REPEAT_INTERVAL_TICKS = 40;
   }
 
   /** Soul Beast (魂兽化) transformation effect parameters. */

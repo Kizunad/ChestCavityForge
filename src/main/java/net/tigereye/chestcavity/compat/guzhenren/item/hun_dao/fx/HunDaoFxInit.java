@@ -50,11 +50,12 @@ public final class HunDaoFxInit {
         HunDaoFxDescriptors.SOUL_FLAME_TICK,
         HunDaoFxRegistry.FxTemplate.builder()
             .sound(
-                CCSoundEvents.CUSTOM_SOULBEAST_DOT.get(),
+                CCSoundEvents.CUSTOM_SOULBEAST_DOT,
                 HunDaoFxTuning.SoulFlame.SOUND_VOLUME,
                 HunDaoFxTuning.SoulFlame.SOUND_PITCH)
             .continuous(true)
             .duration(HunDaoFxTuning.SoulFlame.PARTICLE_INTERVAL_TICKS)
+            .minRepeatIntervalTicks(HunDaoFxTuning.SoulFlame.SOUND_REPEAT_INTERVAL_TICKS)
             .particles("soul_flame_tick")
             .category(HunDaoFxDescriptors.FxCategory.SOUL_FLAME)
             .build());
@@ -64,7 +65,7 @@ public final class HunDaoFxInit {
         HunDaoFxDescriptors.SOUL_FLAME_IGNITE,
         HunDaoFxRegistry.FxTemplate.builder()
             .sound(
-                CCSoundEvents.CUSTOM_SOULBEAST_DOT.get(),
+                CCSoundEvents.CUSTOM_SOULBEAST_DOT,
                 HunDaoFxTuning.SoulFlame.SOUND_VOLUME,
                 HunDaoFxTuning.SoulFlame.SOUND_PITCH)
             .continuous(false)
@@ -89,7 +90,7 @@ public final class HunDaoFxInit {
         HunDaoFxDescriptors.SOUL_BEAST_ACTIVATE,
         HunDaoFxRegistry.FxTemplate.builder()
             .sound(
-                CCSoundEvents.CUSTOM_SOULBEAST_DOT.get(), // Reuse for now, can add dedicated sound later
+                CCSoundEvents.CUSTOM_SOULBEAST_DOT, // Reuse for now, can add dedicated sound later
                 HunDaoFxTuning.SoulBeast.ACTIVATION_SOUND_VOLUME,
                 HunDaoFxTuning.SoulBeast.ACTIVATION_SOUND_PITCH)
             .continuous(false)
@@ -112,7 +113,7 @@ public final class HunDaoFxInit {
         HunDaoFxDescriptors.SOUL_BEAST_DEACTIVATE,
         HunDaoFxRegistry.FxTemplate.builder()
             .sound(
-                CCSoundEvents.CUSTOM_SOULBEAST_DOT.get(),
+                CCSoundEvents.CUSTOM_SOULBEAST_DOT,
                 HunDaoFxTuning.SoulBeast.DEACTIVATION_SOUND_VOLUME,
                 HunDaoFxTuning.SoulBeast.DEACTIVATION_SOUND_PITCH)
             .continuous(false)
@@ -137,7 +138,7 @@ public final class HunDaoFxInit {
         HunDaoFxDescriptors.GUI_WU_ACTIVATE,
         HunDaoFxRegistry.FxTemplate.builder()
             .sound(
-                CCSoundEvents.CUSTOM_SOULBEAST_DOT.get(), // Placeholder, can add dedicated sound
+                CCSoundEvents.CUSTOM_SOULBEAST_DOT, // Placeholder, can add dedicated sound
                 HunDaoFxTuning.GuiWu.ACTIVATION_SOUND_VOLUME,
                 HunDaoFxTuning.GuiWu.ACTIVATION_SOUND_PITCH)
             .continuous(false)
@@ -191,7 +192,7 @@ public final class HunDaoFxInit {
         HunDaoFxDescriptors.HUN_PO_LOW_WARNING,
         HunDaoFxRegistry.FxTemplate.builder()
             .sound(
-                CCSoundEvents.CUSTOM_SOULBEAST_DOT.get(),
+                CCSoundEvents.CUSTOM_SOULBEAST_DOT,
                 HunDaoFxTuning.HunPoDrain.LEAK_WARNING_VOLUME,
                 HunDaoFxTuning.HunPoDrain.LEAK_WARNING_PITCH)
             .continuous(false)

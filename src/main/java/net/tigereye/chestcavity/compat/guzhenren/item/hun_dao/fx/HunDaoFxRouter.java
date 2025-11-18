@@ -1,7 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
 import com.mojang.logging.LogUtils;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
@@ -27,6 +31,8 @@ import org.slf4j.Logger;
 public final class HunDaoFxRouter {
 
   private static final Logger LOGGER = LogUtils.getLogger();
+  private static final Map<ResourceLocation, Long2LongOpenHashMap> SOUND_COOLDOWNS =
+      new HashMap<>();
 
   private HunDaoFxRouter() {}
 
@@ -85,8 +91,10 @@ public final class HunDaoFxRouter {
     }
 
     // Play initial sound if configured
-    if (template.soundEvent != null) {
-      playSound(level, target.position(), template.soundEvent, template.soundVolume, template.soundPitch);
+    SoundEvent soundEvent = template.resolveSound();
+    if (soundEvent != null
+        && shouldPlaySound(level, fxId, template, target, target.position())) {
+      playSound(level, target.position(), soundEvent, template.soundVolume, template.soundPitch);
     }
 
     // Dispatch continuous FX via FxEngine
@@ -112,8 +120,10 @@ public final class HunDaoFxRouter {
     }
 
     // Play sound if configured
-    if (template.soundEvent != null) {
-      playSound(level, position, template.soundEvent, template.soundVolume, template.soundPitch);
+    SoundEvent soundEvent = template.resolveSound();
+    if (soundEvent != null
+        && shouldPlaySound(level, fxId, template, target, position)) {
+      playSound(level, position, soundEvent, template.soundVolume, template.soundPitch);
     }
 
     // Dispatch particles via FxEngine if template includes particle data
@@ -145,6 +155,38 @@ public final class HunDaoFxRouter {
         SoundSource.PLAYERS,
         volume,
         pitch);
+  }
+
+  private static boolean shouldPlaySound(
+      ServerLevel level,
+      ResourceLocation fxId,
+      HunDaoFxRegistry.FxTemplate template,
+      Entity target,
+      Vec3 position) {
+    int interval = template.minRepeatIntervalTicks();
+    if (interval <= 0) {
+      return true;
+    }
+
+    long now = level.getGameTime();
+    long anchorKey = computeAnchorKey(target, position);
+    Long2LongOpenHashMap cooldowns =
+        SOUND_COOLDOWNS.computeIfAbsent(fxId, key -> new Long2LongOpenHashMap());
+    long lastPlayed = cooldowns.getOrDefault(anchorKey, Long.MIN_VALUE);
+    if (now - lastPlayed < interval) {
+      return false;
+    }
+
+    cooldowns.put(anchorKey, now);
+    return true;
+  }
+
+  private static long computeAnchorKey(Entity target, Vec3 position) {
+    if (target != null) {
+      return target.getUUID().getMostSignificantBits() ^ target.getUUID().getLeastSignificantBits();
+    }
+    BlockPos pos = BlockPos.containing(position);
+    return pos.asLong();
   }
 
   /**

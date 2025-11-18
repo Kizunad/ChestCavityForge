@@ -1,6 +1,6 @@
 # Hun Dao Client
 
-**Status:** Phase 5 (Complete)
+**Status:** Phase 6 (Complete)
 
 ## Purpose
 Client-side infrastructure for Hun Dao, providing state management, event handling, network synchronization, and FX coordination.
@@ -127,7 +127,13 @@ Client sync handlers provide the bridge between network payloads and client stat
 5. ✅ Automatic timer decay and cleanup logic
 6. ✅ UUID-based multi-entity state tracking
 
-## Future Work (Phase 6+)
+## Phase 6 Achievements
+1. ✅ `HunDaoClientConfig.java` - Client config for HUD/notifications toggles
+2. ✅ Network sync handlers complete with Phase6 payloads (SoulFlame/SoulBeast/HunPo/GuiWu/Clear/Notification)
+3. ✅ `HunDaoClientEvents` - RenderGuiEvent.Post for HUD, ClientTickEvent for state/timers
+4. ✅ Integration with `ui/` HUD/notification rendering
+
+## Future Work (Phase 7+)
 
 - Implement custom network payloads for state synchronization
 - Add client-side particle renderers for hun-dao-specific effects
@@ -138,7 +144,8 @@ Client sync handlers provide the bridge between network payloads and client stat
 ## Related Documentation
 
 - `fx/README.md` - FX system architecture
-- `ui/README.md` - HUD and notification systems
+- `ui/README.md` - HUD and notification systems (Phase 6)
+- `network/README.md` - Payloads & sync (Phase 6, new)
 - `runtime/README.md` - Server-side runtime operations
 - `docs/Phase5_Plan.md` - Phase 5 implementation plan
 - `docs/Phase5_Report.md` - Phase 5 completion report

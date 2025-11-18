@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import org.slf4j.Logger;
@@ -38,8 +39,11 @@ public final class HunDaoFxRegistry {
     }
 
     REGISTRY.put(fxId, template);
-    LOGGER.debug("[hun_dao][fx_registry] Registered FX: {} (sound={}, continuous={})",
-        fxId, template.soundEvent != null, template.continuous);
+    LOGGER.debug(
+        "[hun_dao][fx_registry] Registered FX: {} (sound={}, continuous={})",
+        fxId,
+        template.hasSound(),
+        template.continuous);
   }
 
   /**
@@ -89,7 +93,7 @@ public final class HunDaoFxRegistry {
    */
   public static final class FxTemplate {
     /** Optional sound event to play when FX is triggered. */
-    public final SoundEvent soundEvent;
+    public final Supplier<SoundEvent> soundSupplier;
 
     /** Sound volume (0.0 to 1.0+). */
     public final float soundVolume;
@@ -103,6 +107,9 @@ public final class HunDaoFxRegistry {
     /** Default duration in ticks (for continuous effects). */
     public final int durationTicks;
 
+    /** Minimum ticks between repeated sound playback for the same anchor. */
+    public final int minRepeatIntervalTicks;
+
     /** Optional particle template identifier (for FxEngine integration). */
     public final String particleTemplate;
 
@@ -110,13 +117,14 @@ public final class HunDaoFxRegistry {
     public final HunDaoFxDescriptors.FxCategory category;
 
     private FxTemplate(Builder builder) {
-      this.soundEvent = builder.soundEvent;
+      this.soundSupplier = builder.soundSupplier;
       this.soundVolume = builder.soundVolume;
       this.soundPitch = builder.soundPitch;
       this.continuous = builder.continuous;
       this.durationTicks = builder.durationTicks;
       this.particleTemplate = builder.particleTemplate;
       this.category = builder.category;
+      this.minRepeatIntervalTicks = builder.minRepeatIntervalTicks;
     }
 
     public static Builder builder() {
@@ -124,16 +132,17 @@ public final class HunDaoFxRegistry {
     }
 
     public static final class Builder {
-      private SoundEvent soundEvent;
+      private Supplier<SoundEvent> soundSupplier;
       private float soundVolume = 1.0F;
       private float soundPitch = 1.0F;
       private boolean continuous = false;
       private int durationTicks = 100;
       private String particleTemplate;
       private HunDaoFxDescriptors.FxCategory category = HunDaoFxDescriptors.FxCategory.UTILITY;
+      private int minRepeatIntervalTicks = 0;
 
-      public Builder sound(SoundEvent sound, float volume, float pitch) {
-        this.soundEvent = sound;
+      public Builder sound(Supplier<SoundEvent> soundSupplier, float volume, float pitch) {
+        this.soundSupplier = soundSupplier;
         this.soundVolume = volume;
         this.soundPitch = pitch;
         return this;
@@ -159,9 +168,29 @@ public final class HunDaoFxRegistry {
         return this;
       }
 
+      public Builder minRepeatIntervalTicks(int ticks) {
+        this.minRepeatIntervalTicks = Math.max(0, ticks);
+        return this;
+      }
+
       public FxTemplate build() {
         return new FxTemplate(this);
       }
+    }
+
+    /** Returns true if this template configured a sound supplier. */
+    public boolean hasSound() {
+      return soundSupplier != null;
+    }
+
+    /** Resolves the configured sound event, or null if unavailable. */
+    public SoundEvent resolveSound() {
+      return soundSupplier != null ? soundSupplier.get() : null;
+    }
+
+    /** Returns the minimum repeat interval (ticks) for the configured sound. */
+    public int minRepeatIntervalTicks() {
+      return minRepeatIntervalTicks;
     }
   }
 }
