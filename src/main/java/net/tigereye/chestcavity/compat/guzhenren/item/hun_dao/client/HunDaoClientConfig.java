@@ -3,8 +3,8 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
 /**
  * Client-side configuration for Hun Dao HUD and FX rendering.
  *
- * <p>Controls whether HUD elements and notifications are displayed on the client.
- * This is a simple static configuration for Phase 6; can be expanded to ModConfigSpec in future.
+ * <p>Controls whether HUD elements and notifications are displayed on the client. This is a simple
+ * static configuration for Phase 6; can be expanded to ModConfigSpec in future.
  *
  * <p>Phase 6: Basic client-side rendering toggles.
  */

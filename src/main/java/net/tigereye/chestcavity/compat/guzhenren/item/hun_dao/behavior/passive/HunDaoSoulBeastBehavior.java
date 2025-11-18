@@ -1,19 +1,15 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
 import com.mojang.logging.LogUtils;
-
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -33,7 +29,6 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
-
 import org.slf4j.Logger;
 
 /**
@@ -205,7 +200,9 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     double dotDamage = Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * efficiency);
     if (dotDamage > 0.0) {
       // Apply soul flame through runtime context
-      runtimeContext.getFxOps().applySoulFlame(player, target, dotDamage, SOUL_FLAME_DURATION_SECONDS);
+      runtimeContext
+          .getFxOps()
+          .applySoulFlame(player, target, dotDamage, SOUL_FLAME_DURATION_SECONDS);
 
       // Track soul flame in persistent state
       if (target instanceof LivingEntity targetEntity) {

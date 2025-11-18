@@ -10,8 +10,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoNotificat
 /**
  * Helper class for sending Hun Dao network packets from server to clients.
  *
- * <p>Provides convenient methods to sync HUD/FX state without directly depending on packet
- * classes.
+ * <p>Provides convenient methods to sync HUD/FX state without directly depending on packet classes.
  *
  * <p>Phase 6: Network synchronization for HUD/FX.
  */
@@ -35,10 +34,7 @@ public final class HunDaoNetworkHelper {
         new SoulFlameSyncPayload(entity.getUUID(), stacks, durationTicks);
 
     // Send to all tracking players (within render distance)
-    entity
-        .level()
-        .players()
-        .stream()
+    entity.level().players().stream()
         .filter(p -> p instanceof ServerPlayer)
         .map(p -> (ServerPlayer) p)
         .filter(p -> p.distanceToSqr(entity) < 64 * 64) // 64 block radius
@@ -107,10 +103,7 @@ public final class HunDaoNetworkHelper {
     HunDaoClearEntityPayload payload = new HunDaoClearEntityPayload(entity.getUUID());
 
     // Send to all nearby players
-    entity
-        .level()
-        .players()
-        .stream()
+    entity.level().players().stream()
         .filter(p -> p instanceof ServerPlayer)
         .map(p -> (ServerPlayer) p)
         .filter(p -> p.distanceToSqr(entity) < 128 * 128)
@@ -162,10 +155,7 @@ public final class HunDaoNetworkHelper {
 
     SoulFlameSyncPayload payload = new SoulFlameSyncPayload(entityId, stacks, durationTicks);
 
-    origin
-        .level()
-        .players()
-        .stream()
+    origin.level().players().stream()
         .filter(p -> p instanceof ServerPlayer)
         .map(p -> (ServerPlayer) p)
         .filter(p -> p.distanceToSqr(origin) < 64 * 64)

@@ -31,17 +31,13 @@ public final class HunPoDrainScheduler {
 
   private HunPoDrainScheduler() {}
 
-  /**
-   * Enable the scheduler.
-   */
+  /** Enable the scheduler. */
   public void enable() {
     this.enabled = true;
     LOGGER.debug("[hun_dao][scheduler] Enabled hunpo drain scheduler");
   }
 
-  /**
-   * Disable the scheduler.
-   */
+  /** Disable the scheduler. */
   public void disable() {
     this.enabled = false;
     LOGGER.debug("[hun_dao][scheduler] Disabled hunpo drain scheduler");
@@ -126,11 +122,7 @@ public final class HunPoDrainScheduler {
     if (player == null) {
       return "<null>";
     }
-    return String.format(
-        Locale.ROOT,
-        "%s(%s)",
-        player.getScoreboardName(),
-        player.getUUID());
+    return String.format(Locale.ROOT, "%s(%s)", player.getScoreboardName(), player.getUUID());
   }
 
   private String format(double value) {

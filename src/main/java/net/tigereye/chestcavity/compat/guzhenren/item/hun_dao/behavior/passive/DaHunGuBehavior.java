@@ -1,17 +1,14 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
 import com.mojang.logging.LogUtils;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -26,7 +23,6 @@ import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.So
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
-
 import org.slf4j.Logger;
 
 /**

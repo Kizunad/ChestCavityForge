@@ -1,13 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
 import com.mojang.logging.LogUtils;
-
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -15,18 +12,16 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-
 import net.tigereye.chestcavity.engine.fx.FxContext;
 import net.tigereye.chestcavity.engine.fx.FxEngine;
-
 import org.slf4j.Logger;
 
 /**
  * Central FX router for Hun Dao effects.
  *
- * <p>Dispatches audio and visual effects (sounds, particles, animations) in a data-driven manner
- * by looking up FX templates from HunDaoFxRegistry and routing to appropriate subsystems (FxEngine
- * for particles, Minecraft SoundSystem for audio).
+ * <p>Dispatches audio and visual effects (sounds, particles, animations) in a data-driven manner by
+ * looking up FX templates from HunDaoFxRegistry and routing to appropriate subsystems (FxEngine for
+ * particles, Minecraft SoundSystem for audio).
  *
  * <p>Provides both one-shot and continuous effect dispatch, with automatic fallback handling when
  * FxEngine is unavailable or FX templates are not registered.
@@ -85,7 +80,8 @@ public final class HunDaoFxRouter {
     Objects.requireNonNull(fxId, "fxId cannot be null");
 
     if (durationTicks <= 0) {
-      LOGGER.warn("[hun_dao][fx_router] Invalid duration for continuous FX: {} ticks", durationTicks);
+      LOGGER.warn(
+          "[hun_dao][fx_router] Invalid duration for continuous FX: {} ticks", durationTicks);
       return false;
     }
 
@@ -97,8 +93,7 @@ public final class HunDaoFxRouter {
 
     // Play initial sound if configured
     SoundEvent soundEvent = template.resolveSound();
-    if (soundEvent != null
-        && shouldPlaySound(level, fxId, template, target, target.position())) {
+    if (soundEvent != null && shouldPlaySound(level, fxId, template, target, target.position())) {
       playSound(level, target.position(), soundEvent, template.soundVolume, template.soundPitch);
     }
 
@@ -126,8 +121,7 @@ public final class HunDaoFxRouter {
 
     // Play sound if configured
     SoundEvent soundEvent = template.resolveSound();
-    if (soundEvent != null
-        && shouldPlaySound(level, fxId, template, target, position)) {
+    if (soundEvent != null && shouldPlaySound(level, fxId, template, target, position)) {
       playSound(level, position, soundEvent, template.soundVolume, template.soundPitch);
     }
 
@@ -207,7 +201,8 @@ public final class HunDaoFxRouter {
   private static boolean dispatchToFxEngine(
       ServerLevel level, Vec3 position, ResourceLocation fxId, Entity target, int durationTicks) {
     if (!FxEngine.getConfig().enabled) {
-      LOGGER.debug("[hun_dao][fx_router] FxEngine disabled, skipping particle dispatch for {}", fxId);
+      LOGGER.debug(
+          "[hun_dao][fx_router] FxEngine disabled, skipping particle dispatch for {}", fxId);
       return false;
     }
 
@@ -258,7 +253,8 @@ public final class HunDaoFxRouter {
     }
 
     String fxKey = fxId.toString();
-    // FxEngine.registry().stop(fxKey, target.getUUID()); // TODO: Implement if FxEngine supports stop
+    // FxEngine.registry().stop(fxKey, target.getUUID()); // TODO: Implement if FxEngine supports
+    // stop
     LOGGER.debug("[hun_dao][fx_router] Stop request for FX {} on entity {}", fxId, target.getId());
   }
 }

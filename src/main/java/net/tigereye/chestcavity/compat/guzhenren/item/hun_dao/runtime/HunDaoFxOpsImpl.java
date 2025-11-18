@@ -12,12 +12,12 @@ import org.slf4j.Logger;
 /**
  * Implementation of HunDaoFxOps using the data-driven FX router.
  *
- * <p>Routes FX requests through HunDaoFxRouter for centralized dispatch. For soul flame,
- * delegates to HunDaoMiddleware which handles the complete operation (DoT damage scheduling,
- * reaction tag marking, and FX dispatch).
+ * <p>Routes FX requests through HunDaoFxRouter for centralized dispatch. For soul flame, delegates
+ * to HunDaoMiddleware which handles the complete operation (DoT damage scheduling, reaction tag
+ * marking, and FX dispatch).
  *
- * <p>Phase 5: Server-side FX operations with clean separation between core mechanics
- * (middleware) and pure visual effects (FX router).
+ * <p>Phase 5: Server-side FX operations with clean separation between core mechanics (middleware)
+ * and pure visual effects (FX router).
  */
 public final class HunDaoFxOpsImpl implements HunDaoFxOps {
 
@@ -48,7 +48,8 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
       return;
     }
 
-    boolean dispatched = HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.SOUL_BEAST_ACTIVATE);
+    boolean dispatched =
+        HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.SOUL_BEAST_ACTIVATE);
     LOGGER.debug(
         "[hun_dao][fx_ops] Soul beast activate: {} (dispatched={})",
         player.getScoreboardName(),
@@ -61,7 +62,8 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
       return;
     }
 
-    boolean dispatched = HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.SOUL_BEAST_DEACTIVATE);
+    boolean dispatched =
+        HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.SOUL_BEAST_DEACTIVATE);
     LOGGER.debug(
         "[hun_dao][fx_ops] Soul beast deactivate: {} (dispatched={})",
         player.getScoreboardName(),
@@ -88,7 +90,8 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
       return;
     }
 
-    boolean dispatched = HunDaoFxRouter.dispatch(level, position, HunDaoFxDescriptors.GUI_WU_ACTIVATE);
+    boolean dispatched =
+        HunDaoFxRouter.dispatch(level, position, HunDaoFxDescriptors.GUI_WU_ACTIVATE);
     LOGGER.debug(
         "[hun_dao][fx_ops] Gui wu activate: {} @{} r={} (dispatched={})",
         player.getScoreboardName(),
@@ -103,7 +106,8 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
       return;
     }
 
-    boolean dispatched = HunDaoFxRouter.dispatch(level, position, HunDaoFxDescriptors.GUI_WU_DISSIPATE);
+    boolean dispatched =
+        HunDaoFxRouter.dispatch(level, position, HunDaoFxDescriptors.GUI_WU_DISSIPATE);
     LOGGER.debug(
         "[hun_dao][fx_ops] Gui wu dissipate: {} @{} (dispatched={})",
         player.getScoreboardName(),
@@ -117,7 +121,8 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
       return;
     }
 
-    boolean dispatched = HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.HUN_PO_LOW_WARNING);
+    boolean dispatched =
+        HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.HUN_PO_LOW_WARNING);
     LOGGER.debug(
         "[hun_dao][fx_ops] Hun po leak warning: {} (dispatched={})",
         player.getScoreboardName(),
@@ -130,7 +135,8 @@ public final class HunDaoFxOpsImpl implements HunDaoFxOps {
       return;
     }
 
-    boolean dispatched = HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.HUN_PO_RECOVERY);
+    boolean dispatched =
+        HunDaoFxRouter.dispatch(level, player, HunDaoFxDescriptors.HUN_PO_RECOVERY);
     LOGGER.debug(
         "[hun_dao][fx_ops] Hun po recovery: {} +{} (dispatched={})",
         player.getScoreboardName(),

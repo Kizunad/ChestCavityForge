@@ -9,16 +9,12 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
-
 import java.util.Map;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.world.entity.player.Player;
-
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.SoulRarity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.SoulState;
@@ -45,9 +41,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return I18n.get("gui.chestcavity.hun_dao_modern_panel.soul_overview");
   }
 
-  /**
-   * Phase 7.2: Create custom two-column layout for soul fields and attributes.
-   */
+  /** Phase 7.2: Create custom two-column layout for soul fields and attributes. */
   @Nullable
   @Override
   public View createContentView(@NonNull Context context) {
@@ -215,9 +209,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
   // ==================== Phase 7.2: Layout Helper Methods ====================
 
-  /**
-   * Create a warning card for inactive soul system.
-   */
+  /** Create a warning card for inactive soul system. */
   private View createWarningCard(Context context) {
     var card = new LinearLayout(context);
     card.setOrientation(LinearLayout.VERTICAL);
@@ -257,9 +249,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return card;
   }
 
-  /**
-   * Create soul fields section with two-column layout.
-   */
+  /** Create soul fields section with two-column layout. */
   private View createSoulFieldsSection(
       Context context, HunDaoClientState state, java.util.UUID playerId) {
     var section = new LinearLayout(context);
@@ -296,9 +286,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return section;
   }
 
-  /**
-   * Add a two-column field row (label | value).
-   */
+  /** Add a two-column field row (label | value). */
   private void addFieldRow(Context context, LinearLayout parent, String label, String value) {
     var row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
@@ -328,9 +316,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     parent.addView(row, rowParams);
   }
 
-  /**
-   * Create a horizontal divider line.
-   */
+  /** Create a horizontal divider line. */
   private View createDivider(Context context) {
     var divider = new View(context);
     var background = new ShapeDrawable();
@@ -339,9 +325,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return divider;
   }
 
-  /**
-   * Create attributes section with grid layout.
-   */
+  /** Create attributes section with grid layout. */
   private View createAttributesSection(
       Context context, HunDaoClientState state, java.util.UUID playerId) {
     var section = new LinearLayout(context);
@@ -382,9 +366,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return section;
   }
 
-  /**
-   * Add an attribute item to the attributes section.
-   */
+  /** Add an attribute item to the attributes section. */
   private void addAttributeItem(Context context, LinearLayout parent, String name, String value) {
     var item = new LinearLayout(context);
     item.setOrientation(LinearLayout.HORIZONTAL);

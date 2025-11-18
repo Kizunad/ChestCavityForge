@@ -25,7 +25,8 @@ public final class HunDaoSoulState {
   // NBT keys
   private static final String KEY_SOUL_FLAME_REMAINING_TICKS = "soul_flame_remaining_ticks";
   private static final String KEY_SOUL_FLAME_DPS = "soul_flame_dps";
-  private static final String KEY_SOUL_BEAST_TOTAL_DURATION_TICKS = "soul_beast_total_duration_ticks";
+  private static final String KEY_SOUL_BEAST_TOTAL_DURATION_TICKS =
+      "soul_beast_total_duration_ticks";
   private static final String KEY_SOUL_BEAST_ACTIVATION_COUNT = "soul_beast_activation_count";
   private static final String KEY_LAST_HUNPO_LEAK_TICK = "last_hunpo_leak_tick";
 

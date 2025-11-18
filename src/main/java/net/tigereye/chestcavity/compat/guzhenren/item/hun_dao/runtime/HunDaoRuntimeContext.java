@@ -174,9 +174,7 @@ public final class HunDaoRuntimeContext {
 
   // ===== Builder =====
 
-  /**
-   * Builder for constructing custom runtime contexts.
-   */
+  /** Builder for constructing custom runtime contexts. */
   public static final class Builder {
     private LivingEntity entity;
     private HunDaoResourceOps resourceOps;

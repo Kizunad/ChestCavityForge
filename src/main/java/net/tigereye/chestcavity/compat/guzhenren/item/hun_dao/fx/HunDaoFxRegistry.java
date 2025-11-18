@@ -1,15 +1,12 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
 import com.mojang.logging.LogUtils;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
-
 import org.slf4j.Logger;
 
 /**

@@ -1,12 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
 
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.resources.ResourceLocation;
-
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.registration.CCKeybindings;
-
 import org.slf4j.Logger;
 
 /**
@@ -44,16 +41,13 @@ public final class HunDaoClientRegistries {
     LOGGER.info("[hun_dao][client_registries] Client-side registration complete");
   }
 
-  /**
-   * Registers Hun Dao abilities with ChestCavity's keybinding system.
-   */
+  /** Registers Hun Dao abilities with ChestCavity's keybinding system. */
   private static void registerAbilities() {
     // Register Gui Qi Gu ability
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(GuiQiGuOrganBehavior.ABILITY_ID)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(GuiQiGuOrganBehavior.ABILITY_ID);
       LOGGER.debug(
-          "[hun_dao][client_registries] Registered ability: {}",
-          GuiQiGuOrganBehavior.ABILITY_ID);
+          "[hun_dao][client_registries] Registered ability: {}", GuiQiGuOrganBehavior.ABILITY_ID);
     }
 
     // Register Hun Shou Hua synergy ability
@@ -61,16 +55,15 @@ public final class HunDaoClientRegistries {
         ResourceLocation.fromNamespaceAndPath("guzhenren", "synergy/hun_shou_hua");
     if (!CCKeybindings.ATTACK_ABILITY_LIST.contains(hunShouHuaAbility)) {
       CCKeybindings.ATTACK_ABILITY_LIST.add(hunShouHuaAbility);
-      LOGGER.debug(
-          "[hun_dao][client_registries] Registered ability: {}", hunShouHuaAbility);
+      LOGGER.debug("[hun_dao][client_registries] Registered ability: {}", hunShouHuaAbility);
     }
   }
 
   /**
    * Registers FX hooks for client-side rendering.
    *
-   * <p>Currently a placeholder - FX rendering is handled by FxEngine.
-   * Future phases may add custom particle renderers here.
+   * <p>Currently a placeholder - FX rendering is handled by FxEngine. Future phases may add custom
+   * particle renderers here.
    */
   private static void registerFxHooks() {
     // Placeholder for future FX hook registration
