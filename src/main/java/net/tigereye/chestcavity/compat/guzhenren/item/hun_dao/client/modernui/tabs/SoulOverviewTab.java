@@ -9,12 +9,16 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
+
 import java.util.Map;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.world.entity.player.Player;
+
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.SoulRarity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.SoulState;

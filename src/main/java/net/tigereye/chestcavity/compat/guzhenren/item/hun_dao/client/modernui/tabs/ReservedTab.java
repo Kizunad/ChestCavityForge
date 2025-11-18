@@ -1,9 +1,12 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.tabs;
 
 import icyllis.modernui.annotation.NonNull;
+
 import net.minecraft.client.resources.language.I18n;
+
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IHunDaoPanelTab;
 
 /**
