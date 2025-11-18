@@ -21,6 +21,7 @@ import net.tigereye.chestcavity.client.input.ModernUIKeyDispatcher;
 import net.tigereye.chestcavity.client.modernui.TestModernUIFragment;
 import net.tigereye.chestcavity.client.modernui.config.ChestCavityConfigFragment;
 import net.tigereye.chestcavity.client.modernui.container.network.TestModernUIContainerRequestPayload;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.HunDaoModernPanelFragment;
 
 /** Client-only brigadier commands for Modern UI bring-up and manual diagnostics. */
 @OnlyIn(Dist.CLIENT)
@@ -30,6 +31,11 @@ public final class ModernUIClientCommands {
 
   public static void register(RegisterClientCommandsEvent event) {
     CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+
+    // Hun Dao Modern Panel command (Phase 7)
+    dispatcher.register(
+        Commands.literal("hundaopanel").executes(context -> openHunDaoPanel()));
+
     dispatcher.register(
         Commands.literal("testmodernUI")
             .executes(context -> openTestScreen())
@@ -143,8 +149,17 @@ public final class ModernUIClientCommands {
         ChestCavityConfigFragment::new, "commands.chestcavity.testmodernui.config.opened");
   }
 
+  private static int openHunDaoPanel() {
+    return openFragmentCommand(
+        HunDaoModernPanelFragment::new, "Hun Dao Panel opened (Phase 7)");
+  }
+
   public static void openConfigViaHotkey() {
     openFragment(ChestCavityConfigFragment::new, null);
+  }
+
+  public static void openHunDaoPanelViaHotkey() {
+    openFragment(HunDaoModernPanelFragment::new, null);
   }
 
   private static int openFragmentCommand(

@@ -1,9 +1,9 @@
 # Hun Dao UI
 
-**Status:** Phase 5 (Framework Complete)
+**Status:** Phase 6 (Complete), Phase 7 (Modern UI Panel Added)
 
 ## Purpose
-Client-side UI components for Hun Dao, including HUD overlays and notification rendering for hun po status, soul beast timers, and game event messages.
+Client-side UI components for Hun Dao, including HUD overlays, notification rendering for hun po status, soul beast timers, game event messages, and Modern UI panel integration.
 
 ## Architecture
 
@@ -140,12 +140,35 @@ Phase 5 uses Minecraft's modern `GuiGraphics` API (1.20+):
 - **Notifications:** Top-right corner, slide-in from off-screen
 - **Soul Flame Stacks:** Near crosshair (requires target tracking)
 
+## Phase 7: Modern UI Panel Integration
+
+### Hun Dao Modern Panel
+Phase 7 introduces a comprehensive Modern UI panel for viewing soul system information:
+- **Entry Point:** `/hundaopanel` command
+- **Architecture:** Tab-based interface with extensible design
+- **First Tab:** Soul Overview (state, level, rarity, max, attributes)
+- **Future Tabs:** Reserved for Phase 8+ expansion
+
+**Key Features:**
+- Fallback strategy for missing data (no crashes)
+- Type-safe enums for soul state and rarity
+- Dynamic attribute list rendering
+- Clean separation from HUD rendering
+
+**Documentation:**
+See `client/modernui/README.md` for complete Modern UI panel documentation.
+
 ## Architecture Alignment
 Mirrors `jian_dao/ui/` structure for consistency across weapon systems.
 
 ## Related Documentation
 
 - `client/README.md` - Client state and event handling
+- `client/modernui/README.md` - Modern UI panel architecture (Phase 7)
 - `fx/README.md` - FX system architecture
 - `docs/Phase5_Plan.md` - Phase 5 implementation plan
 - `docs/Phase5_Report.md` - Phase 5 completion report
+- `docs/Phase6_Plan.md` - Phase 6 implementation plan
+- `docs/Phase6_Report.md` - Phase 6 completion report
+- `docs/Phase7_Plan.md` - Phase 7 implementation plan
+- `docs/Phase7_Report.md` - Phase 7 completion report
