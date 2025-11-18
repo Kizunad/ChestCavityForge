@@ -31,6 +31,7 @@ public class HunDaoModernPanelFragment extends Fragment {
 
   private final List<IHunDaoPanelTab> tabs = new ArrayList<>();
   private int activeTabIndex = 0;
+  private CanvasContentView contentView;
 
   @Nullable
   @Override
@@ -103,15 +104,15 @@ public class HunDaoModernPanelFragment extends Fragment {
 
     root.addView(tabBar, tabBarParams);
 
-    // Tab content area (will be rendered via custom canvas)
-    var contentArea = new TextView(context);
-    contentArea.setText("[Tab content renders here]");
-    contentArea.setTextSize(14);
-    contentArea.setTextColor(0xFFDFDFDF);
-    contentArea.setGravity(Gravity.CENTER_HORIZONTAL);
-    contentArea.setPadding(0, root.dp(20), 0, root.dp(20));
+    // Tab content area - renders via custom canvas view
+    contentView = new CanvasContentView(context);
+    contentView.setPadding(0, root.dp(20), 0, root.dp(20));
+    // Initialize with the first tab
+    if (!tabs.isEmpty()) {
+      contentView.setActiveTab(tabs.get(0));
+    }
     root.addView(
-        contentArea,
+        contentView,
         new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -140,7 +141,10 @@ public class HunDaoModernPanelFragment extends Fragment {
   private void switchTab(int index) {
     if (index >= 0 && index < tabs.size()) {
       activeTabIndex = index;
-      // TODO: Refresh content area to show the selected tab's content
+      // Update content view to render the new active tab
+      if (contentView != null) {
+        contentView.setActiveTab(tabs.get(index));
+      }
     }
   }
 
