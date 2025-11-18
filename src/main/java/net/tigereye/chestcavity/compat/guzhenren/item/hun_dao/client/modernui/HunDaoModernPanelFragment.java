@@ -31,7 +31,7 @@ public class HunDaoModernPanelFragment extends Fragment {
 
   private final List<IHunDaoPanelTab> tabs = new ArrayList<>();
   private int activeTabIndex = 0;
-  private CanvasContentView contentView;
+  private TabContentView contentView;
 
   @Nullable
   @Override
@@ -104,8 +104,8 @@ public class HunDaoModernPanelFragment extends Fragment {
 
     root.addView(tabBar, tabBarParams);
 
-    // Tab content area - renders via custom canvas view
-    contentView = new CanvasContentView(context);
+    // Tab content area - renders via custom text view
+    contentView = new TabContentView(context);
     contentView.setPadding(0, root.dp(20), 0, root.dp(20));
     // Initialize with the first tab
     if (!tabs.isEmpty()) {
