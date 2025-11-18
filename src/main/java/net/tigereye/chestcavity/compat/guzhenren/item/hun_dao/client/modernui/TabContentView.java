@@ -6,7 +6,6 @@ import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
-
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -14,6 +13,7 @@ import net.neoforged.api.distmarker.OnlyIn;
  * Custom view for rendering tab content using TextView or custom View.
  *
  * <p>Phase 7.1: Implements proper text-based rendering that displays the active tab's content.
+ *
  * <p>Phase 7.2: Supports custom View layouts from tabs for complex two-column grids and cards.
  */
 @OnlyIn(Dist.CLIENT)
@@ -60,7 +60,6 @@ public class TabContentView extends LinearLayout {
     String content = tab.getFormattedContent();
     contentTextView.setText(content);
     addView(
-        contentTextView,
-        new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        contentTextView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
   }
 }

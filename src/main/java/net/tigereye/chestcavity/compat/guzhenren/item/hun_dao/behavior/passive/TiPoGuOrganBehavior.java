@@ -1,17 +1,14 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
 import com.mojang.logging.LogUtils;
-
 import java.util.List;
 import java.util.Locale;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
@@ -34,7 +31,6 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
-
 import org.slf4j.Logger;
 
 /** Behaviour for 体魄蛊 (Ti Po Gu). */
@@ -56,10 +52,14 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       ResourceLocation.fromNamespaceAndPath(MOD_ID, "linkage/hun_dao_increase_effect");
 
   // Phase 4: Use Tuning constants instead of hardcoded values
-  private static final double PASSIVE_HUNPO_PER_SECOND = HunDaoTuning.TiPoGu.PASSIVE_HUNPO_PER_SECOND;
-  private static final double PASSIVE_JINGLI_PER_SECOND = HunDaoTuning.TiPoGu.PASSIVE_JINGLI_PER_SECOND;
-  private static final double SOUL_BEAST_DAMAGE_PERCENT = HunDaoTuning.TiPoGu.SOUL_BEAST_DAMAGE_PERCENT;
-  private static final double SOUL_BEAST_HUNPO_COST_PERCENT = HunDaoTuning.TiPoGu.SOUL_BEAST_HUNPO_COST_PERCENT;
+  private static final double PASSIVE_HUNPO_PER_SECOND =
+      HunDaoTuning.TiPoGu.PASSIVE_HUNPO_PER_SECOND;
+  private static final double PASSIVE_JINGLI_PER_SECOND =
+      HunDaoTuning.TiPoGu.PASSIVE_JINGLI_PER_SECOND;
+  private static final double SOUL_BEAST_DAMAGE_PERCENT =
+      HunDaoTuning.TiPoGu.SOUL_BEAST_DAMAGE_PERCENT;
+  private static final double SOUL_BEAST_HUNPO_COST_PERCENT =
+      HunDaoTuning.TiPoGu.SOUL_BEAST_HUNPO_COST_PERCENT;
   private static final double ZI_HUN_INCREASE_BONUS = HunDaoTuning.TiPoGu.ZI_HUN_INCREASE_BONUS;
   private static final double SHIELD_PERCENT = HunDaoTuning.TiPoGu.SHIELD_PERCENT;
   private static final int SHIELD_REFRESH_INTERVAL_TICKS =
@@ -132,7 +132,9 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       runtimeContext.getResourceOps().adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
     }
     if (jingliGain != 0.0D) {
-      runtimeContext.getResourceOps().adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
+      runtimeContext
+          .getResourceOps()
+          .adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
     }
 
     OrganState state = organState(organ, STATE_ROOT_KEY);

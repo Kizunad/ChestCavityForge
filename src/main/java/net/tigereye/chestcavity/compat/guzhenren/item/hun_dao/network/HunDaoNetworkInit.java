@@ -37,62 +37,55 @@ public final class HunDaoNetworkInit {
     PayloadRegistrar registrar = event.registrar("1"); // Protocol version
 
     // Register client-bound payloads
-    registrar
-        .playToClient(
-            SoulFlameSyncPayload.TYPE,
-            SoulFlameSyncPayload.STREAM_CODEC,
-            (payload, context) ->
-                context.enqueueWork(
-                    () ->
-                        HunDaoClientSyncHandlers.handleSoulFlameSync(
-                            payload.entityId(), payload.stacks(), payload.durationTicks())));
+    registrar.playToClient(
+        SoulFlameSyncPayload.TYPE,
+        SoulFlameSyncPayload.STREAM_CODEC,
+        (payload, context) ->
+            context.enqueueWork(
+                () ->
+                    HunDaoClientSyncHandlers.handleSoulFlameSync(
+                        payload.entityId(), payload.stacks(), payload.durationTicks())));
 
-    registrar
-        .playToClient(
-            SoulBeastSyncPayload.TYPE,
-            SoulBeastSyncPayload.STREAM_CODEC,
-            (payload, context) ->
-                context.enqueueWork(
-                    () ->
-                        HunDaoClientSyncHandlers.handleSoulBeastSync(
-                            payload.playerId(), payload.active(), payload.durationTicks())));
+    registrar.playToClient(
+        SoulBeastSyncPayload.TYPE,
+        SoulBeastSyncPayload.STREAM_CODEC,
+        (payload, context) ->
+            context.enqueueWork(
+                () ->
+                    HunDaoClientSyncHandlers.handleSoulBeastSync(
+                        payload.playerId(), payload.active(), payload.durationTicks())));
 
-    registrar
-        .playToClient(
-            HunPoSyncPayload.TYPE,
-            HunPoSyncPayload.STREAM_CODEC,
-            (payload, context) ->
-                context.enqueueWork(
-                    () ->
-                        HunDaoClientSyncHandlers.handleHunPoSync(
-                            payload.playerId(), payload.current(), payload.max())));
+    registrar.playToClient(
+        HunPoSyncPayload.TYPE,
+        HunPoSyncPayload.STREAM_CODEC,
+        (payload, context) ->
+            context.enqueueWork(
+                () ->
+                    HunDaoClientSyncHandlers.handleHunPoSync(
+                        payload.playerId(), payload.current(), payload.max())));
 
-    registrar
-        .playToClient(
-            GuiWuSyncPayload.TYPE,
-            GuiWuSyncPayload.STREAM_CODEC,
-            (payload, context) ->
-                context.enqueueWork(
-                    () ->
-                        HunDaoClientSyncHandlers.handleGuiWuSync(
-                            payload.playerId(), payload.active(), payload.durationTicks())));
+    registrar.playToClient(
+        GuiWuSyncPayload.TYPE,
+        GuiWuSyncPayload.STREAM_CODEC,
+        (payload, context) ->
+            context.enqueueWork(
+                () ->
+                    HunDaoClientSyncHandlers.handleGuiWuSync(
+                        payload.playerId(), payload.active(), payload.durationTicks())));
 
-    registrar
-        .playToClient(
-            HunDaoClearEntityPayload.TYPE,
-            HunDaoClearEntityPayload.STREAM_CODEC,
-            (payload, context) ->
-                context.enqueueWork(
-                    () -> HunDaoClientSyncHandlers.handleClearEntity(payload.entityId())));
+    registrar.playToClient(
+        HunDaoClearEntityPayload.TYPE,
+        HunDaoClearEntityPayload.STREAM_CODEC,
+        (payload, context) ->
+            context.enqueueWork(
+                () -> HunDaoClientSyncHandlers.handleClearEntity(payload.entityId())));
 
-    registrar
-        .playToClient(
-            HunDaoNotificationPayload.TYPE,
-            HunDaoNotificationPayload.STREAM_CODEC,
-            (payload, context) ->
-                context.enqueueWork(
-                    () ->
-                        HunDaoNotificationRenderer.show(payload.message(), payload.category())));
+    registrar.playToClient(
+        HunDaoNotificationPayload.TYPE,
+        HunDaoNotificationPayload.STREAM_CODEC,
+        (payload, context) ->
+            context.enqueueWork(
+                () -> HunDaoNotificationRenderer.show(payload.message(), payload.category())));
 
     initialized = true;
     LOGGER.info("[hun_dao][network] Payload registration complete");

@@ -1,10 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
 import com.mojang.logging.LogUtils;
-
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.tuning.HunDaoFxTuning;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
-
 import org.slf4j.Logger;
 
 /**
@@ -41,8 +39,7 @@ public final class HunDaoFxInit {
     registerHunPoFx();
 
     initialized = true;
-    LOGGER.info(
-        "[hun_dao][fx_init] Registered {} FX templates", HunDaoFxRegistry.size());
+    LOGGER.info("[hun_dao][fx_init] Registered {} FX templates", HunDaoFxRegistry.size());
   }
 
   /** Registers soul flame (魂焰) effect templates. */

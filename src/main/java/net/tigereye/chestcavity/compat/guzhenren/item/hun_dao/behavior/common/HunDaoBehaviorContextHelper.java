@@ -1,17 +1,13 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common;
 
 import com.mojang.logging.LogUtils;
-
 import java.util.Locale;
 import java.util.Optional;
-
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
-
 import org.slf4j.Logger;
 
 /**
@@ -61,7 +57,11 @@ public final class HunDaoBehaviorContextHelper {
     try {
       return Optional.of(HunDaoRuntimeContext.get(player));
     } catch (Exception e) {
-      LOGGER.warn("{} failed to get runtime context for player {}", LOG_PREFIX, player.getScoreboardName(), e);
+      LOGGER.warn(
+          "{} failed to get runtime context for player {}",
+          LOG_PREFIX,
+          player.getScoreboardName(),
+          e);
       return Optional.empty();
     }
   }

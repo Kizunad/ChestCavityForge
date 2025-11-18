@@ -7,8 +7,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Interface for hun-dao visual/audio effect operations.
  *
- * <p>Decouples behavior classes from direct middleware dependencies by providing an abstraction
- * for special effects like soul flame DoT, soul beast transformation, and gui wu fog.
+ * <p>Decouples behavior classes from direct middleware dependencies by providing an abstraction for
+ * special effects like soul flame DoT, soul beast transformation, and gui wu fog.
  *
  * <p>Phase 5: Expanded to support data-driven FX dispatch via HunDaoFxRouter.
  */

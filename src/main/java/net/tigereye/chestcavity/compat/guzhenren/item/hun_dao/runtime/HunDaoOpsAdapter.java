@@ -15,7 +15,8 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
  * <p>This adapter serves as a transitional layer during Phase 1 of the rearchitecture, allowing
  * behavior classes to depend on interfaces rather than the concrete middleware implementation.
  *
- * <p>In future phases, this adapter may be replaced by dedicated implementations for each interface.
+ * <p>In future phases, this adapter may be replaced by dedicated implementations for each
+ * interface.
  */
 public final class HunDaoOpsAdapter
     implements HunDaoResourceOps, HunDaoFxOps, HunDaoNotificationOps {
@@ -77,7 +78,8 @@ public final class HunDaoOpsAdapter
   // HunDaoFxOps implementation
 
   @Override
-  public void applySoulFlame(Player source, LivingEntity target, double perSecondDamage, int seconds) {
+  public void applySoulFlame(
+      Player source, LivingEntity target, double perSecondDamage, int seconds) {
     HunDaoFxOpsImpl.INSTANCE.applySoulFlame(source, target, perSecondDamage, seconds);
   }
 
@@ -97,7 +99,8 @@ public final class HunDaoOpsAdapter
   }
 
   @Override
-  public void playGuiWuActivate(Player player, net.minecraft.world.phys.Vec3 position, double radius) {
+  public void playGuiWuActivate(
+      Player player, net.minecraft.world.phys.Vec3 position, double radius) {
     HunDaoFxOpsImpl.INSTANCE.playGuiWuActivate(player, position, radius);
   }
 

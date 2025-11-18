@@ -1,22 +1,18 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
 import com.mojang.logging.LogUtils;
-
 import java.util.function.IntConsumer;
-
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.TickOps;
 import net.tigereye.chestcavity.engine.fx.FxContext;
 import net.tigereye.chestcavity.engine.fx.FxEngine;
 import net.tigereye.chestcavity.engine.fx.FxRegistry;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
-
 import org.slf4j.Logger;
 
 /**

@@ -90,9 +90,7 @@ public final class HunDaoStateMachine {
   public boolean activateSoulBeast() {
     HunDaoState current = getCurrentState();
     if (!canTransition(current, HunDaoState.SOUL_BEAST_ACTIVE)) {
-      LOGGER.debug(
-          "[hun_dao][state] Cannot activate soul beast from state {}",
-          current);
+      LOGGER.debug("[hun_dao][state] Cannot activate soul beast from state {}", current);
       return false;
     }
     SoulBeastStateManager.setEnabled(entity, true);
@@ -109,8 +107,7 @@ public final class HunDaoStateMachine {
   public boolean deactivateSoulBeast() {
     HunDaoState current = getCurrentState();
     if (current == HunDaoState.SOUL_BEAST_PERMANENT) {
-      LOGGER.debug(
-          "[hun_dao][state] Cannot deactivate permanent soul beast");
+      LOGGER.debug("[hun_dao][state] Cannot deactivate permanent soul beast");
       return false;
     }
     if (current == HunDaoState.NORMAL) {
@@ -130,9 +127,7 @@ public final class HunDaoStateMachine {
   public boolean makePermanent() {
     HunDaoState current = getCurrentState();
     if (!canTransition(current, HunDaoState.SOUL_BEAST_PERMANENT)) {
-      LOGGER.debug(
-          "[hun_dao][state] Cannot make soul beast permanent from state {}",
-          current);
+      LOGGER.debug("[hun_dao][state] Cannot make soul beast permanent from state {}", current);
       return false;
     }
     SoulBeastStateManager.setPermanent(entity, true);
@@ -161,19 +156,15 @@ public final class HunDaoStateMachine {
 
   private boolean canTransition(HunDaoState from, HunDaoState to) {
     return switch (from) {
-      case NORMAL -> to == HunDaoState.SOUL_BEAST_ACTIVE
-          || to == HunDaoState.SOUL_BEAST_PERMANENT;
-      case SOUL_BEAST_ACTIVE -> to == HunDaoState.NORMAL
-          || to == HunDaoState.SOUL_BEAST_PERMANENT;
+      case NORMAL -> to == HunDaoState.SOUL_BEAST_ACTIVE || to == HunDaoState.SOUL_BEAST_PERMANENT;
+      case SOUL_BEAST_ACTIVE -> to == HunDaoState.NORMAL || to == HunDaoState.SOUL_BEAST_PERMANENT;
       case SOUL_BEAST_PERMANENT -> to == HunDaoState.SOUL_BEAST_ACTIVE; // Admin only
     };
   }
 
   // ===== Synchronization =====
 
-  /**
-   * Synchronize state to client (if entity is a server player).
-   */
+  /** Synchronize state to client (if entity is a server player). */
   public void syncToClient() {
     if (entity instanceof ServerPlayer player) {
       SoulBeastStateManager.syncToClient(player);
@@ -192,29 +183,19 @@ public final class HunDaoStateMachine {
   }
 
   private void logTransition(HunDaoState from, HunDaoState to) {
-    LOGGER.debug(
-        "[hun_dao][state] {} transitioned {} -> {}",
-        describe(entity),
-        from,
-        to);
+    LOGGER.debug("[hun_dao][state] {} transitioned {} -> {}", describe(entity), from, to);
   }
 
   private String describe(@Nullable LivingEntity entity) {
     if (entity == null) {
       return "<null>";
     }
-    return String.format(
-        Locale.ROOT,
-        "%s(%s)",
-        entity.getName().getString(),
-        entity.getUUID());
+    return String.format(Locale.ROOT, "%s(%s)", entity.getName().getString(), entity.getUUID());
   }
 
   // ===== State Enum =====
 
-  /**
-   * Hun Dao state enumeration.
-   */
+  /** Hun Dao state enumeration. */
   public enum HunDaoState {
     /** Normal state - no soul beast transformation. */
     NORMAL,

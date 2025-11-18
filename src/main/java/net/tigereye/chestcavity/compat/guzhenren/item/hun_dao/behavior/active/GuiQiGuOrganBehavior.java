@@ -6,7 +6,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.DamageTypeTags;
@@ -15,7 +14,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
@@ -67,8 +65,10 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
   private static final ResourceLocation GUI_WU_FLOW_ID = ChestCavity.id("hun_dao/gui_wu");
 
   // Phase 4: Use Tuning constants instead of hardcoded values
-  private static final double PASSIVE_HUNPO_PER_SECOND = HunDaoTuning.GuiQiGu.PASSIVE_HUNPO_PER_SECOND;
-  private static final double PASSIVE_JINGLI_PER_SECOND = HunDaoTuning.GuiQiGu.PASSIVE_JINGLI_PER_SECOND;
+  private static final double PASSIVE_HUNPO_PER_SECOND =
+      HunDaoTuning.GuiQiGu.PASSIVE_HUNPO_PER_SECOND;
+  private static final double PASSIVE_JINGLI_PER_SECOND =
+      HunDaoTuning.GuiQiGu.PASSIVE_JINGLI_PER_SECOND;
   private static final double TRUE_DAMAGE_RATIO = HunDaoTuning.GuiQiGu.TRUE_DAMAGE_RATIO;
   private static final double GUI_WU_RADIUS = HunDaoTuning.GuiQiGu.GUI_WU_RADIUS;
   private static final int GUI_WU_COOLDOWN_TICKS =
@@ -116,7 +116,9 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     double hunpoGain = PASSIVE_HUNPO_PER_SECOND * stackCount;
     double jingliGain = PASSIVE_JINGLI_PER_SECOND * stackCount;
     runtimeContext.getResourceOps().adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
-    runtimeContext.getResourceOps().adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
+    runtimeContext
+        .getResourceOps()
+        .adjustDouble(player, "jingli", jingliGain, true, "zuida_jingli");
   }
 
   @Override

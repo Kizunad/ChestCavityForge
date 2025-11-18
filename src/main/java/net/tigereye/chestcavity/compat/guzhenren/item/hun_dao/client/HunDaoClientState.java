@@ -10,8 +10,8 @@ import java.util.UUID;
 /**
  * Client-side state cache for Hun Dao mechanics.
  *
- * <p>Stores client-specific state like soul flame DoT stacks, soul beast transformation timers,
- * and hun po levels for smooth HUD rendering and FX playback. Updated via network sync from server.
+ * <p>Stores client-specific state like soul flame DoT stacks, soul beast transformation timers, and
+ * hun po levels for smooth HUD rendering and FX playback. Updated via network sync from server.
  *
  * <p>Phase 5: Client-side state management for HUD and FX systems.
  *

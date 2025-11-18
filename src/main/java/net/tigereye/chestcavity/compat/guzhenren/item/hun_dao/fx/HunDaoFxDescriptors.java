@@ -30,12 +30,10 @@ public final class HunDaoFxDescriptors {
   // ===== Soul Beast (魂兽化) FX =====
 
   /** Soul beast activation transformation burst. */
-  public static final ResourceLocation SOUL_BEAST_ACTIVATE =
-      ChestCavity.id("soul_beast_activate");
+  public static final ResourceLocation SOUL_BEAST_ACTIVATE = ChestCavity.id("soul_beast_activate");
 
   /** Soul beast ambient aura particles (while active). */
-  public static final ResourceLocation SOUL_BEAST_AMBIENT =
-      ChestCavity.id("soul_beast_ambient");
+  public static final ResourceLocation SOUL_BEAST_AMBIENT = ChestCavity.id("soul_beast_ambient");
 
   /** Soul beast deactivation fade effect. */
   public static final ResourceLocation SOUL_BEAST_DEACTIVATE =

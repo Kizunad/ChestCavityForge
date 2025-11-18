@@ -24,7 +24,8 @@ public final class HunDaoCalcContext {
   private final double efficiency;
   private final int stackCount;
 
-  private HunDaoCalcContext(double currentHunpo, double maxHunpo, double efficiency, int stackCount) {
+  private HunDaoCalcContext(
+      double currentHunpo, double maxHunpo, double efficiency, int stackCount) {
     this.currentHunpo = Math.max(0.0, currentHunpo);
     this.maxHunpo = Math.max(0.0, maxHunpo);
     this.efficiency = Math.max(0.0, efficiency);

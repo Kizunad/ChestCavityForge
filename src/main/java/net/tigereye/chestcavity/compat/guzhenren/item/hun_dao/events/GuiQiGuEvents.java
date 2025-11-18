@@ -4,11 +4,9 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
@@ -70,13 +68,17 @@ public final class GuiQiGuEvents {
     }
     runtimeContext.getResourceOps().adjustDouble(player, "zuida_hunpo", bonus, false, null);
 
-    double stabilityMax = runtimeContext.getResourceOps().readDouble(player, "hunpo_kangxing_shangxian");
+    double stabilityMax =
+        runtimeContext.getResourceOps().readDouble(player, "hunpo_kangxing_shangxian");
     double penalty =
         stabilityMax > 0.0D
             ? stabilityMax * SOUL_EATER_STABILITY_PENALTY
-            : runtimeContext.getResourceOps().readDouble(player, "hunpo_kangxing") * SOUL_EATER_STABILITY_PENALTY;
+            : runtimeContext.getResourceOps().readDouble(player, "hunpo_kangxing")
+                * SOUL_EATER_STABILITY_PENALTY;
     if (penalty > 0.0D) {
-      runtimeContext.getResourceOps().adjustDouble(player, "hunpo_kangxing", -penalty, true, "hunpo_kangxing_shangxian");
+      runtimeContext
+          .getResourceOps()
+          .adjustDouble(player, "hunpo_kangxing", -penalty, true, "hunpo_kangxing_shangxian");
     }
   }
 }

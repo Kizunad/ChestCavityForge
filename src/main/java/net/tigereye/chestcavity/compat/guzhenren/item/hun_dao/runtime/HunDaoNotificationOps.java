@@ -6,8 +6,8 @@ import net.minecraft.world.entity.player.Player;
 /**
  * Interface for hun-dao notification and upkeep operations.
  *
- * <p>Decouples behavior classes from direct middleware dependencies by providing an abstraction
- * for entity maintenance (saturation, notifications, etc.).
+ * <p>Decouples behavior classes from direct middleware dependencies by providing an abstraction for
+ * entity maintenance (saturation, notifications, etc.).
  */
 public interface HunDaoNotificationOps {
 
