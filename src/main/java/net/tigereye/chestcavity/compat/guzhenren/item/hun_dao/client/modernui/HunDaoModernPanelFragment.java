@@ -144,13 +144,15 @@ public class HunDaoModernPanelFragment extends Fragment {
     closeParams.gravity = Gravity.CENTER_HORIZONTAL;
     root.addView(closeButton, closeParams);
 
+    // Phase 7.2: Set minimum height on root view
+    root.setMinimumHeight(root.dp(PANEL_MIN_HEIGHT_DP));
+
     // Phase 7.2: Center the layout with fixed width
     var layoutParams =
         new FrameLayout.LayoutParams(
             root.dp(PANEL_WIDTH_DP),
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.CENTER);
-    layoutParams.setMinHeight(root.dp(PANEL_MIN_HEIGHT_DP));
     root.setLayoutParams(layoutParams);
 
     return root;
