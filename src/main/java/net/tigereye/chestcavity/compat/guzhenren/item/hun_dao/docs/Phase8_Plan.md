@@ -22,8 +22,11 @@
    - 重跑 `./gradlew checkstyleMain` 并刷新 `docs/checkstyle_hun_dao.log`。
    - 将日志与 `Checkstyle_HunDao.md` 更新到 Phase8 分支。
 2. **Import 策略**
-   - 在 `build.gradle` Checkstyle 配置基础上编写 `intellij-java-google-style` 模板笔记。
-   - 每个子包（behavior/soulbeast/...) 批量整理 import，确保 `java.*`->`javax.*`->`org.*`->`com.*`->`net.minecraft`->`net.tigereye...`。
+   - 制定统一流程：先运行 `IDE optimize imports`，再人工对照 `config/checkstyle/checkstyle.xml` 的 `CustomImportOrder` 要求，确保顺序为 `java.*` → `javax.*` → 第三方 (`org.*`, `com.*`, 其他 mod) → `net.minecraft.*` → `net.tigereye.*`，不同组之间必须空一行。
+   - 在每个子包（behavior/soulbeast/…) 批量整理 import，禁止仅插入空行或注释，否则会像合并提交 `08e72ac` 那样引入更多 `CustomImportOrderCheck` 告警。
+   - 推荐流程：
+     1. `rg -l "CustomImportOrderCheck" docs/checkstyle_hun_dao.log` 找出文件。
+     2. 逐个文件执行 IDE 排序 + 手动核查，提交前再跑 `./gradlew checkstyleMain` 确认零新增 warning。
 3. **Javadoc 批处理**
    - 制定 `Hun Dao API` Javadoc 模板（单句摘要 + `@param`/`@return`）并记录在 docs。
    - 先覆盖公共接口/抽象基类，再处理行为/FX/客户端 tab。
