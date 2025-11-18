@@ -5,18 +5,18 @@
 ## 1. 总览
 
 - 报告生成：`build/reports/checkstyle/main.xml`
-- 提取日志：`docs/checkstyle_hun_dao.log`（641 条 warning，逐行包含文件/行列/规则/文案）
+- 提取日志：`docs/checkstyle_hun_dao.log`（594 条 warning，逐行包含文件/行列/规则/文案）
 - 影响范围：13 个子目录，76 个文件
 
 ### 1.1 规则分布（Top 6）
 
 | Check | 计数 | 核心问题 |
 | --- | --- | --- |
-| `CustomImportOrderCheck` | 340 | import 未分组 & 顺序混乱 |
+| `CustomImportOrderCheck` | 323 | import 未分组 & 顺序混乱 |
 | `MissingJavadocMethodCheck` | 140 | 公开方法缺少 Javadoc |
 | `SummaryJavadocCheck` | 111 | 摘要缺少结尾句点/描述不规范 |
-| `LineLengthCheck` | 32 | 超过 100 列 |
 | `MissingJavadocTypeCheck` | 5 | 类/接口缺少 Javadoc |
+| `LineLengthCheck` | 4 | 超过 100 列 |
 
 > 其余规则（7 类，13 条）详见 log。
 
@@ -24,16 +24,16 @@
 
 | 子目录 | Warning 数 |
 | --- | --- |
-| `behavior/` | 171 |
+| `behavior/` | 155 |
 | `soulbeast/` | 137 |
-| `calculator/` | 86 |
-| `client/` | 62 |
-| `fx/` | 54 |
-| `runtime/` | 39 |
+| `calculator/` | 85 |
+| `client/` | 56 |
+| `fx/` | 46 |
+| `runtime/` | 30 |
 | `middleware/` | 25 |
 | `network/` | 10 |
 | `ui/` | 9 |
-| 其他（root/storage/events/combat） | 49 |
+| 其他（root/storage/events/combat） | 31 |
 
 ## 2. 核心结论
 

@@ -10,9 +10,9 @@
 
 | 优先级 | 问题簇 | 说明 |
 | --- | --- | --- |
-| P1 | Import 顺序 | 324 条；执行 IDE 格式化或 `spotlessApply`（若不可行则手动），并在 PR 前 re-check。|
+| P1 | Import 顺序 | 323 条；执行 IDE 格式化或 `spotlessApply`（若不可行则手动），并在 PR 前 re-check。|
 | P1 | Javadoc 缺失 | 140 (method) + 111 (summary) + 5 (type)，需编写模板+脚本（可 consider snippet reuse）。|
-| P2 | 行长/空行/变量距离等 | 47 条；在主功能完成后逐文件清理。|
+| P2 | 行长/空行/变量距离等 | 31 条；在主功能完成后逐文件清理。|
 
 > 包名告警不在本阶段范围内，重点聚焦 import/Javadoc/行长等可控问题。
 
