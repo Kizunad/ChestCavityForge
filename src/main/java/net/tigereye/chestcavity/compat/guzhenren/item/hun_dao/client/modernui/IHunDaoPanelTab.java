@@ -1,12 +1,16 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui;
 
 import icyllis.modernui.annotation.NonNull;
+import icyllis.modernui.annotation.Nullable;
+import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Canvas;
+import icyllis.modernui.view.View;
 
 /**
  * Interface for Hun Dao Modern UI panel tabs.
  *
  * <p>Phase 7: Tab interface for extensible multi-tab panel architecture.
+ * <p>Phase 7.2: Added createContentView for complex layouts.
  */
 public interface IHunDaoPanelTab {
 
@@ -47,6 +51,21 @@ public interface IHunDaoPanelTab {
    */
   @NonNull
   String getFormattedContent();
+
+  /**
+   * Create a custom content view for this tab.
+   *
+   * <p>Phase 7.2: Tabs can override this to provide custom complex layouts (two-column grids,
+   * cards, etc.). If this returns a non-null View, it will be used instead of the text-based
+   * rendering from getFormattedContent().
+   *
+   * @param context the UI context
+   * @return custom content view, or null to fall back to text rendering
+   */
+  @Nullable
+  default View createContentView(@NonNull Context context) {
+    return null;
+  }
 
   /**
    * Check if this tab is visible in the tab bar.
