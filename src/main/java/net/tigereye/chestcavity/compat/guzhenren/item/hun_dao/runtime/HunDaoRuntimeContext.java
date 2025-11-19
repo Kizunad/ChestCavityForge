@@ -1,8 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime;
 
 import java.util.Optional;
-import javax.annotation.Nullable;
 
+import javax.annotation.Nullable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;

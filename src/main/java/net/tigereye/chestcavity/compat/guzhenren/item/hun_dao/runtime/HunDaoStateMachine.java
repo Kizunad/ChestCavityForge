@@ -1,15 +1,16 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime;
 
-import com.mojang.logging.LogUtils;
 import java.util.Locale;
 import java.util.Optional;
-import javax.annotation.Nullable;
-import org.slf4j.Logger;
 
+import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
+
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 /**
  * State machine for managing hun-dao entity states.

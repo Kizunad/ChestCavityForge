@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.synergy.hun_dao;
 
-import com.mojang.logging.LogUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -28,10 +28,14 @@ import net.tigereye.chestcavity.linkage.effect.GuzhenrenLinkageEffectRegistry;
 import net.tigereye.chestcavity.listeners.OrganActivationListeners;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCAttachments;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
  * 联动：小魂蛊 + 大魂蛊 → 魂兽化仪式。
+ *
+ * <p>该行为在满足条件时触发魂兽化流程。
  *
  * <p>- 仅限玩家在服务端触发； - 激活时启动 {@link HunShouHuaConstants#FLOW_ID} 脚本，执行完整的魂兽化流程； - 记录当前是否满足前置条件 /
  * 是否已使用，以便后续扩展展示状态； - 仅允许魂兽化一次，成功后永久标记。

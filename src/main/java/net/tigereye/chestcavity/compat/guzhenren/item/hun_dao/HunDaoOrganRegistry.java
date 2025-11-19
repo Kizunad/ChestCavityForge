@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
 import net.minecraft.resources.ResourceLocation;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.active.GuiQiGuOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive.DaHunGuBehavior;
@@ -14,7 +15,9 @@ import net.tigereye.chestcavity.compat.guzhenren.module.OrganIntegrationSpec;
 /**
  * 魂道（Hun Dao）相关器官的注册入口。
  *
- * <p>该类将小魂蛊（以及其他魂道器官）与胸腔系统进行行为绑定： - 在每秒（SlowTick）时执行资源维护与状态同步； - 在命中（OnHit）时触发“魂焰”持续伤害效果与魂魄消耗； -
+ * <p>该类将小魂蛊（以及其他魂道器官）与胸腔系统进行行为绑定。
+ *
+ * <p>- 在每秒（SlowTick）时执行资源维护与状态同步； - 在命中（OnHit）时触发“魂焰”持续伤害效果与魂魄消耗； -
  * 在器官被移除（Removal）时保留必要的绑定与活跃态； - 在装备时初始化绑定信息并确保联动通道可用。
  *
  * <p>如需扩展更多魂道器官，按同样方式向 {@link #SPECS} 中追加条目即可。
@@ -73,7 +76,7 @@ public final class HunDaoOrganRegistry {
   /**
    * 提供给集成桥的规格列表。
    *
-   * @return 针对魂道器官的集成规格集合
+   * @return 针对魂道器官的集成规格集合。
    */
   public static List<OrganIntegrationSpec> specs() {
     return SPECS;
@@ -82,7 +85,7 @@ public final class HunDaoOrganRegistry {
   /**
    * Returns the set of registered Hun Dao organ ids (魂道蛊) for chest cavity counting.
    *
-   * @return immutable set of organ identifiers
+   * @return immutable set of organ identifiers.
    */
   public static Set<ResourceLocation> organIds() {
     return ORGAN_IDS;

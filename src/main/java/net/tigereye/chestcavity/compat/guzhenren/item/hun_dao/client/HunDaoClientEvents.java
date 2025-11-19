@@ -1,16 +1,17 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
- * Client-side event handlers for Hun Dao.
+ * Hun Dao 客户端事件处理器.
  *
  * <p>Listens to NeoForge client events (ClientTickEvent, RenderGuiEvent, etc.) and updates client
  * state, triggers FX, or renders HUD elements.
@@ -22,11 +23,11 @@ public final class HunDaoClientEvents {
   private static final Logger LOGGER = LogUtils.getLogger();
 
   /**
-   * Called every client tick.
+   * 每个客户端 tick 调用一次.
    *
-   * <p>Updates HunDaoClientState timers and triggers periodic FX if needed.
+   * <p>更新 HunDaoClientState 计时器，并在需要时触发周期性特效。
    *
-   * @param event the client tick event
+   * @param event 客户端 tick 事件
    */
   @SubscribeEvent
   public static void onClientTick(ClientTickEvent.Post event) {
@@ -48,11 +49,11 @@ public final class HunDaoClientEvents {
   }
 
   /**
-   * Called when the client unloads a level.
+   * 在客户端卸载某个世界时调用.
    *
-   * <p>Clears all cached client state to prevent stale data.
+   * <p>清除缓存的客户端状态，避免陈旧数据。
    *
-   * @param event the level unload event
+   * @param event 世界卸载事件
    */
   @SubscribeEvent
   public static void onLevelUnload(LevelEvent.Unload event) {
@@ -63,11 +64,11 @@ public final class HunDaoClientEvents {
   }
 
   /**
-   * Called after GUI rendering.
+   * 在 GUI 渲染完成后调用.
    *
-   * <p>Renders Hun Dao HUD overlays and notifications.
+   * <p>预留用于绘制 Hun Dao HUD 覆盖层和通知。
    *
-   * @param event the render GUI event
+   * @param event GUI 渲染事件
    */
   @SubscribeEvent
   public static void onRenderGui(RenderGuiEvent.Post event) {

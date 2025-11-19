@@ -23,6 +23,11 @@ public final class HunDaoClientState {
 
   private HunDaoClientState() {}
 
+  /**
+   * 获取客户端状态单例实例.
+   *
+   * @return 客户端状态单例
+   */
   public static HunDaoClientState instance() {
     return INSTANCE;
   }
@@ -72,6 +77,12 @@ public final class HunDaoClientState {
 
   // ===== Soul Flame =====
 
+  /**
+   * 设置某实体的魂焰层数.
+   *
+   * @param entityId 实体 UUID
+   * @param stacks 魂焰层数（小于等于 0 表示清除）
+   */
   public void setSoulFlameStacks(UUID entityId, int stacks) {
     if (stacks <= 0) {
       soulFlameStacks.remove(entityId);
@@ -80,10 +91,22 @@ public final class HunDaoClientState {
     }
   }
 
+  /**
+   * 获取某实体的魂焰层数.
+   *
+   * @param entityId 实体 UUID
+   * @return 当前魂焰层数
+   */
   public int getSoulFlameStacks(UUID entityId) {
     return soulFlameStacks.getOrDefault(entityId, 0);
   }
 
+  /**
+   * 设置某实体的魂焰剩余持续时间.
+   *
+   * @param entityId 实体 UUID
+   * @param ticks 剩余 tick 数（小于等于 0 表示清除）
+   */
   public void setSoulFlameDuration(UUID entityId, int ticks) {
     if (ticks <= 0) {
       soulFlameDuration.remove(entityId);
@@ -92,12 +115,24 @@ public final class HunDaoClientState {
     }
   }
 
+  /**
+   * 获取某实体的魂焰剩余持续时间.
+   *
+   * @param entityId 实体 UUID
+   * @return 剩余 tick 数
+   */
   public int getSoulFlameDuration(UUID entityId) {
     return soulFlameDuration.getOrDefault(entityId, 0);
   }
 
   // ===== Soul Beast =====
 
+  /**
+   * 设置玩家魂兽化是否激活.
+   *
+   * @param playerId 玩家 UUID
+   * @param active 是否激活
+   */
   public void setSoulBeastActive(UUID playerId, boolean active) {
     if (active) {
       soulBeastActive.put(playerId, true);
@@ -106,10 +141,22 @@ public final class HunDaoClientState {
     }
   }
 
+  /**
+   * 检查玩家魂兽化是否激活.
+   *
+   * @param playerId 玩家 UUID
+   * @return true 表示激活
+   */
   public boolean isSoulBeastActive(UUID playerId) {
     return soulBeastActive.getOrDefault(playerId, false);
   }
 
+  /**
+   * 设置玩家魂兽化剩余持续时间.
+   *
+   * @param playerId 玩家 UUID
+   * @param ticks 剩余 tick 数（小于等于 0 表示清除）
+   */
   public void setSoulBeastDuration(UUID playerId, int ticks) {
     if (ticks <= 0) {
       soulBeastDuration.remove(playerId);
@@ -118,25 +165,56 @@ public final class HunDaoClientState {
     }
   }
 
+  /**
+   * 获取玩家魂兽化剩余持续时间.
+   *
+   * @param playerId 玩家 UUID
+   * @return 剩余 tick 数
+   */
   public int getSoulBeastDuration(UUID playerId) {
     return soulBeastDuration.getOrDefault(playerId, 0);
   }
 
   // ===== Hun Po =====
 
+  /**
+   * 设置玩家当前与最大魂魄值.
+   *
+   * @param playerId 玩家 UUID
+   * @param current 当前魂魄值
+   * @param max 最大魂魄值
+   */
   public void setHunPo(UUID playerId, double current, double max) {
     hunpoCurrent.put(playerId, current);
     hunpoMax.put(playerId, max);
   }
 
+  /**
+   * 获取玩家当前魂魄值.
+   *
+   * @param playerId 玩家 UUID
+   * @return 当前魂魄值
+   */
   public double getHunPoCurrent(UUID playerId) {
     return hunpoCurrent.getOrDefault(playerId, 0.0);
   }
 
+  /**
+   * 获取玩家最大魂魄值.
+   *
+   * @param playerId 玩家 UUID
+   * @return 最大魂魄值
+   */
   public double getHunPoMax(UUID playerId) {
     return hunpoMax.getOrDefault(playerId, 0.0);
   }
 
+  /**
+   * 获取玩家当前魂魄百分比（current / max）.
+   *
+   * @param playerId 玩家 UUID
+   * @return 魂魄百分比（max 小于等于 0 时为 0）
+   */
   public double getHunPoPercentage(UUID playerId) {
     double current = getHunPoCurrent(playerId);
     double max = getHunPoMax(playerId);
@@ -148,6 +226,12 @@ public final class HunDaoClientState {
 
   // ===== Gui Wu =====
 
+  /**
+   * 设置玩家鬼雾是否激活.
+   *
+   * @param playerId 玩家 UUID
+   * @param active 是否激活
+   */
   public void setGuiWuActive(UUID playerId, boolean active) {
     if (active) {
       guiWuActive.put(playerId, true);
@@ -156,10 +240,22 @@ public final class HunDaoClientState {
     }
   }
 
+  /**
+   * 检查玩家鬼雾是否激活.
+   *
+   * @param playerId 玩家 UUID
+   * @return true 表示激活
+   */
   public boolean isGuiWuActive(UUID playerId) {
     return guiWuActive.getOrDefault(playerId, false);
   }
 
+  /**
+   * 设置玩家鬼雾剩余持续时间.
+   *
+   * @param playerId 玩家 UUID
+   * @param ticks 剩余 tick 数（小于等于 0 表示清除）
+   */
   public void setGuiWuDuration(UUID playerId, int ticks) {
     if (ticks <= 0) {
       guiWuDuration.remove(playerId);
@@ -168,6 +264,12 @@ public final class HunDaoClientState {
     }
   }
 
+  /**
+   * 获取玩家鬼雾剩余持续时间.
+   *
+   * @param playerId 玩家 UUID
+   * @return 剩余 tick 数
+   */
   public int getGuiWuDuration(UUID playerId) {
     return guiWuDuration.getOrDefault(playerId, 0);
   }

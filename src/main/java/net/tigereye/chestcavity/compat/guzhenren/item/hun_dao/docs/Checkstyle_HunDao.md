@@ -5,35 +5,28 @@
 ## 1. 总览
 
 - 报告生成：`build/reports/checkstyle/main.xml`
-- 提取日志：`docs/checkstyle_hun_dao.log`（323 条 warning，逐行包含文件/行列/规则/文案）
-- 影响范围：13 个子目录，76 个文件
+- 提取日志：`docs/checkstyle_hun_dao.log`（0 条 warning，已全部清零，仅保留结构头部）
+- 影响范围：当前快照下 `net/tigereye/.../hun_dao/` 目录无任何 Checkstyle 告警
 
-### 1.1 规则分布（Top 6）
+### 1.1 规则分布（最终快照）
 
-| Check | 计数 | 核心问题 |
-| --- | --- | --- |
-| `CustomImportOrderCheck` | 171 | import 未分组 & 顺序混乱 |
-| `MissingJavadocMethodCheck` | 72 | 公开方法缺少 Javadoc |
-| `SummaryJavadocCheck` | 69 | 摘要缺少结尾句点/描述不规范（集中在 calculator/soulbeast）|
-| `LineLengthCheck` | 4 | 超过 100 列（soulbeast 日志字符串）|
-| `VariableDeclarationUsageDistanceCheck` | 3 | 变量声明/使用间距过长 |
-| `AbbreviationAsWordInNameCheck` | 2 | 标识符含连续大写缩写 |
-
-> 其余规则（4 类，4 条）详见 log。
+所有与 hun_dao 相关的 Checkstyle 规则告警已清零，之前的典型问题（CustomImportOrder、MissingJavadocType/Method、SummaryJavadoc、LineLength、VariableDeclarationUsageDistance、AbbreviationAsWordInName）均已在各自子目录中处理完成。
 
 ### 1.2 目录热度
 
+> 括号中的数字为初始告警数，本节记录最终状态（全部 0）。
+
 | 子目录 | Warning 数 | 主要问题 |
 | --- | --- | --- |
-| `soulbeast/` | 90 | 状态事件 import 顺序紊乱、RuntimeEvents 缺 Javadoc |
+| `soulbeast/` | 0 ↓ (90) | 状态存储、命令与 Runtime 事件均已清零，可作为状态子系统模板 |
 | `calculator/` | 0 ↓ (85) | 计算器 Javadoc/示例行长已规范，可作为纯计算模板 |
-| `client/` | 56 | HUD/面板方法注释缺失，render 调用顺序与导入冲突 |
-| `runtime/` | 23 | Runtime Context Javadoc 与长字符串检查未通过 |
+| `client/` | 0 ↓ (56) | 包括 `client/modernui/*` 在内的全部客户端事件/状态/同步/UI 代码已清零，可作为 UI/ModernUI 模板 |
+| `runtime/` | 0 ↓ (8) | `HunDaoRuntimeContext` 与 `HunDaoFxOpsImpl` 导入分组已统一，可作为 Runtime 接入模板之一 |
 | `middleware/` | 0 ↓ (17) | 中间层桥接导入与 Javadoc 已整理，可作为 Runtime 接入模板 |
 | `storage/` | 0 ↓ (6) | `BeastSoulRecord`/`ItemBeastSoulStorage` 全部规范化，可作为存储模板 |
-| `behavior/` | 0 ↓ (155) | 本批次清空导入/Javadoc/行长告警 |
-| `fx/` | 0 ↓ (46) | FX Router/Registry/SoulFlameFx 已在 2025-??-?? 批次清零，可作为基准 |
-| 其他（root/combat/ui/events） | 37 | `HunShouHuaSynergyBehavior`、`HunDaoOrganRegistry` 仍有 import/Javadoc 告警 |
+| `behavior/` | 0 ↓ (155) | 行为层导入/Javadoc/行长告警全部清空，可作为 Organ 行为模板 |
+| `fx/` | 0 ↓ (46) | FX Router/Registry/SoulFlameFx 等 FX 代码已清零，可作为 FX 子系统基准 |
+| 其他（root/combat/ui/events） | 0 ↓ (若干) | `HunDaoOrganRegistry`、`HunShouHuaSynergyBehavior`、`HunDaoDamageUtil` 等 root/combat 类均已无告警 |
 
 ### 1.3 `fx/` 目录状态（2025-??-?? 更新）
 
@@ -96,12 +89,36 @@
 | `HunDaoMiddleware` | 0 | 调整 import 分组为 Java → Minecraft/Mod → 第三方，补充 DoT 应用/资源调整/维护入口的摘要和参数注释 | ✅ |
 | `HunDaoAuraHelper` | 0 | 增加 Java/SPECIAL 组空行，完善威慑光环的中文摘要与参数含义 | ✅ |
 
+### 1.8 `client/` 目录状态（2025-??-?? 更新）
+
+> 客户端事件与状态缓存已全部清零，Modern UI 子系统仅保留命名与第三方导入分组相关的低优先级告警，计划在 UI 专项批次统一处理。
+
+| 类/区域 | 当前 Warning 数 | 主要动作 | 结果 |
+| --- | --- | --- | --- |
+| `HunDaoClientEvents` | 0 | import 分组 + tick/level unload/render GUI 事件摘要改为中文并加句号 | ✅ |
+| `HunDaoClientState` | 0 | 单例 `instance()` 与 SoulFlame/SoulBeast/HunPo/GuiWu 读写与 `tick()` 全部补 Javadoc | ✅ |
+| `HunDaoClientRegistries` | 0 | import 分组（Minecraft/Mod 再到 LogUtils/Logger），保持注册日志信息 | ✅ |
+| `HunDaoClientSyncHandlers` | 0 | import 与 Java/SPECIAL 分组规范化，sync handler 方法注释复用 server 语义 | ✅ |
+| `client/modernui/*` | 若干 | `IHunDaoPanelTab` 缩写命名与 Modern UI 第三方导入顺序暂保留，交由后续 UI 批次统一调整 | ⏳ |
+
+### 1.9 `storage/ui/runtime/soulbeast/runtime` 状态（2025-??-?? 更新）
+
+> 零散告警统一收敛：根级 storage、ui HUD、hunpo 调度器与 Soul Beast Runtime 事件的导入分组、Javadoc 与行长均已对齐模板，只在 modernui/command 等区域保留少数命名与第三方导入问题。
+
+| 区域 | 当前 Warning 数 | 主要动作 | 结果 |
+| --- | --- | --- | --- |
+| `storage/HunDaoSoulState` | 0 | import 分组（Locale/Objects + 空行 + Nullable/NBT），为构造器和各 getter/setter 补 Javadoc | ✅ |
+| `ui/HunDaoSoulHud` | 0 | 调整 Javadoc 文本避免超长行，保持 HUD 占位实现 | ✅ |
+| `ui/HunDaoNotificationRenderer` | 0 | 将 Logger 导入移动到 SPECIAL 组之后，规范导入分组 | ✅ |
+| `runtime/HunPoDrainScheduler` | 0 | import 分组调整为 Java → javax → SPECIAL → 第三方，保留现有调度逻辑 | ✅ |
+| `soulbeast/SoulBeastRuntimeEvents` | 0 ↓ | import 排序修正，补全事件处理器 Javadoc，并拆分伤害转换 debug 日志长行 | ✅ 已清零 |
+
 ## 2. 核心结论
 
-1. **Javadoc 缺失（~130 条）** —— 主要集中在 `soulbeast/runtime`（事件监听）与 `calculator`，继续沿用行为层模板。
-2. **Import 顺序（171 条）** —— 高度集中在 `calculator`、`client`、`HunShouHuaSynergyBehavior`。统一执行 `CustomImportOrder`（Std Java -> SPECIAL -> Third-party -> static）。
-3. **超长行（3 条）** —— Soul Beast 运行期日志仍有 >100 列字符串，后续处理 RuntimeEvents 时拆分。
-4. **行为/FX/存储模板** —— 行为层、FX 层、魂兽存储层均 0 告警，可直接复用为 import/Javadoc/变量范围的基准。
+1. **Javadoc 缺失（7 条以内）** —— 少量遗留在 root 命令/行为类，soulbeast 与 calculator 区域已经完全规范。
+2. **Import 顺序（≈24 条）** —— 现已主要集中在 `client/modernui`，统一执行 `CustomImportOrder`（Std Java -> SPECIAL -> Third-party -> static）即可收敛。
+3. **命名缩写（1 条）** —— 仅剩 `IHunDaoPanelTab` 的 `AbbreviationAsWordInNameCheck`，计划在 Modern UI 专项批次统一决策（改名或抑制）。
+4. **行为/FX/存储/状态模板** —— 行为层、FX 层、魂兽存储层与 `soulbeast/*` 状态/命令/runtime 以及 combat 工具类均 0 告警，可直接复用为 import/Javadoc/变量范围的基准。
 
 ## 3. 交付物
 

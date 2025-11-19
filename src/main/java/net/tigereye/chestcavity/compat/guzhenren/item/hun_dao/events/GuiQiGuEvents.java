@@ -26,6 +26,11 @@ public final class GuiQiGuEvents {
 
   private GuiQiGuEvents() {}
 
+  /**
+   * Handles the soul eater passive when a living entity dies.
+   *
+   * @param event living death event
+   */
   @SubscribeEvent
   public static void onLivingDeath(LivingDeathEvent event) {
     LivingEntity victim = event.getEntity();

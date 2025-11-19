@@ -1,10 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.command;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.Locale;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -16,15 +13,23 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.event.SoulBeastStateChangedEvent;
 
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
+/**
+ * Commands for inspecting and manipulating soul beast state on players.
+ */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SoulBeastCommands {
 
   private SoulBeastCommands() {}
 
   /**
-   * Registers the soulbeast commands.
+   * Registers the soul beast commands.
    *
-   * @param event The command registration event.
+   * @param event the command registration event
    */
   public static void register(RegisterCommandsEvent event) {
     CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
@@ -115,6 +120,11 @@ public final class SoulBeastCommands {
     return 1;
   }
 
+  /**
+   * Notifies the player when their soul beast state toggles.
+   *
+   * @param event the state change event
+   */
   @SubscribeEvent
   public static void onSoulBeastStateChanged(SoulBeastStateChangedEvent event) {
     if (!(event.entity() instanceof ServerPlayer player)) {

@@ -15,6 +15,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.So
  * into a soul beast. - Call {@link #clearSoulBeast(LivingEntity)} to clear the state (no-op if
  * permanent). - Call {@link #isSoulBeast(LivingEntity)} to check current state.
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class SoulBeastAPI {
 
   private SoulBeastAPI() {}

@@ -6,6 +6,7 @@ import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
+
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 

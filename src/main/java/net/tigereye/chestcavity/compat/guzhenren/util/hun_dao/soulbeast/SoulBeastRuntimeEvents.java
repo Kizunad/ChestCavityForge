@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast;
 
-import com.mojang.logging.LogUtils;
 import java.util.Optional;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,8 +18,8 @@ import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive.DaHunGuBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware.HunDaoMiddleware;
-import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageTags;
+import net.tigereye.chestcavity.compat.guzhenren.util.IntimidationHelper;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageContext;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.damage.SoulBeastDamageHooks;
@@ -32,11 +32,14 @@ import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
 import net.tigereye.chestcavity.registration.CCAttachments;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
- * Global runtime hooks for Soul Beast mechanics. Performance: every handler returns early if the
- * actor is not a soul beast.
+ * Global runtime hooks for Soul Beast mechanics.
+ *
+ * <p>Performance: every handler returns early if the actor is not a soul beast.
  */
 @EventBusSubscriber(modid = ChestCavity.MODID)
 public final class SoulBeastRuntimeEvents {
@@ -55,7 +58,7 @@ public final class SoulBeastRuntimeEvents {
 
   private SoulBeastRuntimeEvents() {}
 
-  // 近战命中时为魂兽玩家触发魂焰 DoT，优先扣除固定魂魄成本
+  /** Handles melee hit events to trigger soul flame DoT and consume hunpo. */
   @SubscribeEvent
   public static void onMeleeHit(AttackEntityEvent event) {
     if (!(event.getEntity() instanceof LivingEntity attacker) || attacker.level().isClientSide()) {
@@ -103,6 +106,8 @@ public final class SoulBeastRuntimeEvents {
     }
   }
 
+  /** Handles projectile impact events for soul beast projectiles. */
+
   // 远程投射命中魂兽玩家时同样按固定魂魄成本触发魂焰
   @SubscribeEvent
   public static void onProjectileImpact(ProjectileImpactEvent event) {
@@ -148,6 +153,8 @@ public final class SoulBeastRuntimeEvents {
     }
   }
 
+  /** Handles server tick events to process soul beast periodic logic. */
+
   // 服务器每秒维护魂兽的被动魂魄流失与饱和度补充
   @SubscribeEvent
   public static void onServerTick(ServerTickEvent.Post event) {
@@ -164,6 +171,8 @@ public final class SoulBeastRuntimeEvents {
       }
     }
   }
+
+  /** Handles soul beast state change events to update runtime state and effects. */
 
   // 在所有其他伤害修正完成后，把最终伤害转化为魂魄消耗；若伤害被取消则直接跳出
   @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -190,7 +199,8 @@ public final class SoulBeastRuntimeEvents {
     SoulBeastDamageContext context =
         new SoulBeastDamageContext(victim, event.getSource(), incomingDamage);
     double baseHunpoCost = incomingDamage * HUNPO_PER_DAMAGE;
-    double adjustedHunpoCost = SoulBeastDamageHooks.applyHunpoCostModifiers(context, baseHunpoCost);
+    double adjustedHunpoCost =
+        SoulBeastDamageHooks.applyHunpoCostModifiers(context, baseHunpoCost);
     if (!Double.isFinite(adjustedHunpoCost) || adjustedHunpoCost <= 0.0) {
       float adjustedDamage =
           SoulBeastDamageHooks.applyPostConversionDamageModifiers(context, incomingDamage);
@@ -210,7 +220,8 @@ public final class SoulBeastRuntimeEvents {
     }
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "[soulbeast] incoming damage converted: dmg={} hunpoCost={} drained={} remainingDamage={}",
+          "[soulbeast] incoming damage converted: "
+              + "dmg={} hunpoCost={} drained={} remainingDamage={}",
           incomingDamage,
           adjustedHunpoCost,
           drainedHunpo,
@@ -270,6 +281,11 @@ public final class SoulBeastRuntimeEvents {
     return Math.max(0.0, maxHunpo * SOUL_FLAME_PERCENT * eff[0]);
   }
 
+  /**
+   * Handles state changes to apply soul beast side effects such as intimidation and DoT cleanup.
+   *
+   * @param event the state change event
+   */
   @SubscribeEvent
   public static void onSoulBeastStateChanged(SoulBeastStateChangedEvent event) {
     LivingEntity entity = event.entity();

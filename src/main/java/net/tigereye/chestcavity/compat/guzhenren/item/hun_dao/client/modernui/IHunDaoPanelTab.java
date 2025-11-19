@@ -7,12 +7,13 @@ import icyllis.modernui.graphics.Canvas;
 import icyllis.modernui.view.View;
 
 /**
- * Interface for Hun Dao Modern UI panel tabs.
+ * Hun Dao Modern UI 面板标签接口。
  *
  * <p>Phase 7: Tab interface for extensible multi-tab panel architecture.
  *
  * <p>Phase 7.2: Added createContentView for complex layouts.
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public interface IHunDaoPanelTab {
 
   /**
