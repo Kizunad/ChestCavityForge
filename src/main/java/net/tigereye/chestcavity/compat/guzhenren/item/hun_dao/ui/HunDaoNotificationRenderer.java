@@ -6,9 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 占位通知渲染器，Phase 6 UI 需求已被关闭，所有方法均为空实现。
+ * Placeholder notification renderer.
  *
- * <p>保留 API 以便未来重新启用，不再在客户端渲染 toast。
+ * <p>Phase 6 UI requirements have been closed, so all methods are empty implementations. The API
+ * is preserved for future re-enabling, but no toasts are currently rendered on the client.
  */
 public final class HunDaoNotificationRenderer {
 
@@ -16,6 +17,12 @@ public final class HunDaoNotificationRenderer {
 
   private HunDaoNotificationRenderer() {}
 
+  /**
+   * Displays a notification.
+   *
+   * @param message The message to be displayed in the notification.
+   * @param category The category of the notification, which determines its appearance and behavior.
+   */
   public static void show(Component message, NotificationCategory category) {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
@@ -25,20 +32,36 @@ public final class HunDaoNotificationRenderer {
     }
   }
 
+  /**
+   * Renders the notification on the screen. This method is currently a no-op since the UI is
+   * disabled.
+   *
+   * @param guiGraphics The GuiGraphics context for rendering.
+   * @param partialTicks The fraction of a tick that has passed since the last tick.
+   */
   public static void render(GuiGraphics guiGraphics, float partialTicks) {
     // UI removed intentionally
   }
 
+  /**
+   * Ticks the notification logic. This method is currently a no-op since the UI is disabled.
+   */
   public static void tick() {
     // UI removed intentionally
   }
 
+  /**
+   * Clears any active notifications. This method is currently a no-op since the UI is disabled.
+   */
   public static void clear() {
     // UI removed intentionally
   }
 
+  /** Defines the category of a notification, which can be used to style it differently. */
   public enum NotificationCategory {
+    /** For informational messages. */
     INFO,
+    /** For warnings. */
     WARNING,
     SUCCESS,
     ERROR
