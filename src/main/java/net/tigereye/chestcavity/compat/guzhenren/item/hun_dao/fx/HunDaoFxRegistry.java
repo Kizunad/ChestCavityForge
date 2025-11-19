@@ -127,10 +127,20 @@ public final class HunDaoFxRegistry {
       this.minRepeatIntervalTicks = builder.minRepeatIntervalTicks;
     }
 
+    /**
+     * Creates a new FxTemplate builder.
+     *
+     * @return a new builder instance
+     */
     public static Builder builder() {
       return new Builder();
     }
 
+    /**
+     * Builder for creating FxTemplate instances.
+     *
+     * <p>Provides a fluent API for configuring FX template properties.
+     */
     public static final class Builder {
       private Supplier<SoundEvent> soundSupplier;
       private float soundVolume = 1.0F;
@@ -141,6 +151,14 @@ public final class HunDaoFxRegistry {
       private HunDaoFxDescriptors.FxCategory category = HunDaoFxDescriptors.FxCategory.UTILITY;
       private int minRepeatIntervalTicks = 0;
 
+      /**
+       * Configures the sound for this FX.
+       *
+       * @param soundSupplier supplier for the SoundEvent
+       * @param volume sound volume
+       * @param pitch sound pitch
+       * @return this builder
+       */
       public Builder sound(Supplier<SoundEvent> soundSupplier, float volume, float pitch) {
         this.soundSupplier = soundSupplier;
         this.soundVolume = volume;
@@ -148,31 +166,66 @@ public final class HunDaoFxRegistry {
         return this;
       }
 
+      /**
+       * Marks this FX as continuous.
+       *
+       * @param continuous true for continuous, false for one-shot
+       * @return this builder
+       */
       public Builder continuous(boolean continuous) {
         this.continuous = continuous;
         return this;
       }
 
+      /**
+       * Sets the duration for continuous FX.
+       *
+       * @param ticks duration in ticks
+       * @return this builder
+       */
       public Builder duration(int ticks) {
         this.durationTicks = ticks;
         return this;
       }
 
+      /**
+       * Sets the particle template for this FX.
+       *
+       * @param template particle template name
+       * @return this builder
+       */
       public Builder particles(String template) {
         this.particleTemplate = template;
         return this;
       }
 
+      /**
+       * Sets the category for this FX.
+       *
+       * @param category the FX category
+       * @return this builder
+       */
       public Builder category(HunDaoFxDescriptors.FxCategory category) {
         this.category = category;
         return this;
       }
 
+      /**
+       * Sets the minimum interval between sound repeats.
+       *
+       * @param ticks interval in ticks
+       * @return this builder
+       */
       public Builder minRepeatIntervalTicks(int ticks) {
         this.minRepeatIntervalTicks = Math.max(0, ticks);
         return this;
       }
 
+      /**
+       * Builds the FxTemplate.
+       *
+       * @return a new FxTemplate instance
+       */
       public FxTemplate build() {
         return new FxTemplate(this);
       }

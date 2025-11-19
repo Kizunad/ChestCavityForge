@@ -16,9 +16,17 @@ import net.tigereye.chestcavity.registration.CCSoundEvents;
 import org.slf4j.Logger;
 
 /**
- * 魂焰 DoT 特效工具类。
+ * Utility class for soul flame (魂焰) damage-over-time visual and audio effects.
  *
- * <p>优先使用 FxEngine/FxRegistry 播放数据驱动特效，若资源缺失或 FxEngine 关闭则退化为内置粒子。
+ * <p>This class provides methods to play soul flame effects on entities. It prioritizes using the
+ * data-driven FxEngine and FxRegistry for dispatching effects. If the required FX resources are not
+ * registered or if the FxEngine is disabled, it falls back to a built-in particle effect to ensure
+ * visual feedback is always provided.
+ *
+ * <p>This legacy class is retained for backward compatibility with the DoTEngine. It will be
+ * migrated to use the centralized {@link HunDaoFxRouter} in a future update.
+ *
+ * <p>Phase 5: Legacy FX utility with fallback particles.
  */
 public final class HunDaoSoulFlameFx {
 
@@ -27,11 +35,15 @@ public final class HunDaoSoulFlameFx {
   private HunDaoSoulFlameFx() {}
 
   /**
-   * 播放魂焰 DoT 特效（粒子 + 音效）。
+   * Plays the soul flame DoT effect (particles and sound).
    *
-   * @param target 受到魂焰影响的目标
-   * @param fxId 数据驱动 FX ID
-   * @param durationSeconds 持续时间（秒）
+   * <p>This method first attempts to play a data-driven effect using the provided {@code fxId}. If
+   * the effect is not available, it plays a fallback particle effect. A sound is played
+   * immediately for instant audio feedback.
+   *
+   * @param target the entity affected by the soul flame
+   * @param fxId the resource location of the data-driven FX
+   * @param durationSeconds the duration of the effect in seconds
    */
   public static void playSoulFlame(
       LivingEntity target, ResourceLocation fxId, int durationSeconds) {
@@ -60,9 +72,10 @@ public final class HunDaoSoulFlameFx {
       return;
     }
 
-    // 数据驱动 FX 不可用，使用内置粒子方案兜底
+    // Data-driven FX unavailable, using fallback particles
     LOGGER.debug(
-        "[hun_dao][soul_flame_fx] FX {} unavailable (engineDisabled={} registered={}), using fallback particles",
+        "[hun_dao][soul_flame_fx] FX {} unavailable (engineDisabled={}, registered={}), using"
+            + " fallback particles",
         fxId,
         !FxEngine.getConfig().enabled,
         FxEngine.registry().isRegistered(fxId.toString()));
