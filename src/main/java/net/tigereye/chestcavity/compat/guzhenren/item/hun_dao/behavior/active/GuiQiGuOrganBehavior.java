@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.DamageTypeTags;
@@ -114,6 +115,7 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     sendSlotUpdate(cc, organ);
   }
 
+  /** {@inheritDoc} */
   @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player) || entity.level().isClientSide()) {

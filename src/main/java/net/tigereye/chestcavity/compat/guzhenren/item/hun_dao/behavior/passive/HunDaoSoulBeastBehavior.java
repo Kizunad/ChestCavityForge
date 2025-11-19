@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
-import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
@@ -30,10 +30,14 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
- * 小魂蛊（魂道）核心行为：
+ * Core passive behavior for the Hun Dao soul beast heart.
+ *
+ * <p>小魂蛊（魂道）核心行为：
  *
  * <p>- 在玩家佩戴器官时：维持“活跃”状态、绑定归属者 UUID、确保联动通道存在； - 在慢速心跳（onSlowTick）时： 1) 持续消耗一定量魂魄（hunpo）； 2)
  * 通过进食接口维持饱食与饱和（防止战斗状态下过度饥饿）； 3) 同步最近一次心跳时间到 NBT，便于状态调试与回溯； - 在命中（onHit）时： 1) 若魂魄足够，消耗一次性魂魄，按“最大魂魄值
@@ -76,7 +80,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
   private HunDaoSoulBeastBehavior() {}
 
   /**
-   * 确保胸腔联动通道存在（用于从其他模块叠加效率增益）。
+   * Ensures the linkage channel exists for stacking bonuses from other modules.
    *
    * @param cc 胸腔实例
    */
@@ -88,7 +92,11 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     ensureChannel(context, HUN_DAO_INCREASE_EFFECT);
   }
 
-  /** 当器官被装备时：注册移除钩子、确保联动通道、绑定归属与活跃态，并同步一次槽位更新。 */
+  /**
+   * Handles equip-time setup for soul beast organs.
+   *
+   * <p>当器官被装备时：注册移除钩子、确保联动通道、绑定归属与活跃态，并同步一次槽位更新。
+   */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {
@@ -100,9 +108,10 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     sendSlotUpdate(cc, organ);
   }
 
-  @Override
   /**
-   * 慢速心跳：仅在服务端玩家触发。
+   * Handles the slow tick upkeep for server-side players.
+   *
+   * <p>慢速心跳：仅在服务端玩家触发。
    *
    * <p>职责： - 维持活跃态和魂兽化状态同步； - 维持饱食饱和； - 写入最近一次同步 tick。
    *
@@ -110,6 +119,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
    * net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunPoDrainScheduler}
    * 统一调度，此处不再重复扣减。
    */
+  @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player) || entity.level().isClientSide()) {
       return;
@@ -136,11 +146,13 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
             0L));
   }
 
-  @Override
   /**
-   * 命中回调：尝试施加“魂焰”持续伤害。 条件： - 近战（排除弹射物）； - 仅玩家为攻击者且在服务端； - 拥有足够魂魄（ATTACK_HUNPO_COST）。 计算：DoT = 最大魂魄
-   * × SOUL_FLAME_PERCENT ×（1 + 联动增益）。
+   * Applies the soul flame damage-over-time effect on melee hits.
+   *
+   * <p>命中回调：尝试施加“魂焰”持续伤害。 条件： - 近战（排除弹射物）； - 仅玩家为攻击者且在服务端； - 拥有足够魂魄（ATTACK_HUNPO_COST）。 计算：DoT =
+   * 最大魂魄 × SOUL_FLAME_PERCENT ×（1 + 联动增益）。
    */
+  @Override
   public float onHit(
       DamageSource source,
       LivingEntity attacker,
@@ -231,8 +243,8 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     return damage;
   }
 
+  /** Maintains active state and ownership when the organ is removed. 器官被移除时保持活跃态与绑定信息。 */
   @Override
-  /** 器官被移除时：维持活跃态与绑定信息，避免短时摘除导致状态丢失。 */
   public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player)) {
       return;
@@ -254,7 +266,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     return beastSoulStorage;
   }
 
-  /** 初次装备时绑定归属信息并标记活跃态，写入绑定时间与持有者 UUID。 */
+  /** Binds ownership metadata and timestamps when the organ is equipped. */
   private void bindOrganState(ChestCavityInstance cc, ItemStack organ) {
     OrganState state = organState(organ, STATE_ROOT_KEY);
     logStateChange(
@@ -314,7 +326,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
   }
 
   /**
-   * 确保活跃态与归属 UUID 已写入；若缺失则以当前玩家补全。
+   * Ensures active state and ownership UUIDs exist, filling them with the current player if needed.
    *
    * <p>使用运行时上下文激活魂兽化状态机，并追踪激活次数。
    */

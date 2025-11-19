@@ -1,11 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state;
 
-import com.mojang.logging.LogUtils;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
 import javax.annotation.Nullable;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,6 +20,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.event.SoulBeastStateChangedEvent;
 import net.tigereye.chestcavity.registration.CCAttachments;
+
+import com.mojang.logging.LogUtils;
 
 /** Central access point for the {@link SoulBeastState} attachment. */
 public final class SoulBeastStateManager {
@@ -178,7 +180,8 @@ public final class SoulBeastStateManager {
             state.getSource().orElse(null));
     player.connection.send(payload);
     LOGGER.debug(
-        "[compat/guzhenren][hun_dao][state] synced {} -> active={} enabled={} permanent={} source={} tick={}",
+        "[compat/guzhenren][hun_dao][state] synced {} -> active={} enabled={} permanent={} "
+            + "source={} tick={}",
         describe(player),
         state.isActive(),
         state.isEnabled(),
@@ -263,6 +266,11 @@ public final class SoulBeastStateManager {
     }
   }
 
+  /**
+   * Resolves the active client player when running on the logical client.
+   *
+   * @return The Minecraft client player, or {@code null} if not available.
+   */
   @OnlyIn(Dist.CLIENT)
   private static Player resolveClientPlayer() {
     return net.minecraft.client.Minecraft.getInstance().player;
@@ -296,11 +304,24 @@ public final class SoulBeastStateManager {
         });
   }
 
+  /**
+   * Creates an immutable snapshot of the given state flags.
+   *
+   * @param state The source state.
+   * @return Snapshot carrying the current activation flags.
+   */
   private static SoulBeastStateChangedEvent.Snapshot snapshotOf(SoulBeastState state) {
     return new SoulBeastStateChangedEvent.Snapshot(
         state.isActive(), state.isEnabled(), state.isPermanent());
   }
 
+  /**
+   * Posts the change event if the state flags actually differ.
+   *
+   * @param entity The affected entity.
+   * @param previous The previous snapshot.
+   * @param current The current snapshot.
+   */
   private static void postStateChanged(
       LivingEntity entity,
       SoulBeastStateChangedEvent.Snapshot previous,
@@ -313,15 +334,28 @@ public final class SoulBeastStateManager {
     NeoForge.EVENT_BUS.post(new SoulBeastStateChangedEvent(entity, previous, current));
   }
 
+  /**
+   * Updates the bookkeeping tick on the provided state.
+   *
+   * @param entity Entity supplying the world reference.
+   * @param state The state to mutate.
+   */
   private static void touch(LivingEntity entity, SoulBeastState state) {
     long tick = entity.level() != null ? entity.level().getGameTime() : 0L;
     state.setLastTick(tick);
   }
 
+  /**
+   * Builds a concise player identifier for logging.
+   *
+   * @param player The player being described.
+   * @return A formatted description string.
+   */
   private static String describe(Player player) {
     return String.format(Locale.ROOT, "%s(%s)", player.getScoreboardName(), player.getUUID());
   }
 
+  /** Immutable client-side cache entry mirroring server snapshots. */
   public record ClientSnapshot(
       boolean active,
       boolean enabled,
@@ -329,6 +363,11 @@ public final class SoulBeastStateManager {
       long lastTick,
       @Nullable net.minecraft.resources.ResourceLocation source) {
 
+    /**
+     * Converts the snapshot into the event payload type for reuse.
+     *
+     * @return A {@link SoulBeastStateChangedEvent.Snapshot} carrying the same flags.
+     */
     public SoulBeastStateChangedEvent.Snapshot toEventSnapshot() {
       return new SoulBeastStateChangedEvent.Snapshot(active, enabled, permanent);
     }

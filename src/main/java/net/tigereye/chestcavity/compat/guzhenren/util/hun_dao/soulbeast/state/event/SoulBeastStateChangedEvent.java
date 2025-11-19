@@ -14,6 +14,13 @@ public final class SoulBeastStateChangedEvent extends Event {
   private final Snapshot previous;
   private final Snapshot current;
 
+  /**
+   * Creates a new state change event.
+   *
+   * @param entity The entity whose state changed.
+   * @param previous Snapshot captured before the change.
+   * @param current Snapshot captured after the change.
+   */
   public SoulBeastStateChangedEvent(LivingEntity entity, Snapshot previous, Snapshot current) {
     this.entity = entity;
     this.previous = previous;

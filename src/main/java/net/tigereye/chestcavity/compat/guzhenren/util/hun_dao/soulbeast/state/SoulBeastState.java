@@ -3,6 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+
 import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -29,6 +30,7 @@ public final class SoulBeastState {
   private long startedTick;
   @Nullable private ResourceLocation source;
 
+  /** Creates an inactive soul beast state placeholder. */
   public SoulBeastState() {
     this.active = false;
     this.permanent = false;
@@ -38,10 +40,21 @@ public final class SoulBeastState {
     this.source = null;
   }
 
+  /**
+   * Checks whether the state is currently active.
+   *
+   * @return {@code true} if soul beast mode is active
+   */
   public boolean isActive() {
     return active;
   }
 
+  /**
+   * Updates the active flag if necessary.
+   *
+   * @param active new active value
+   * @return {@code true} if the flag changed
+   */
   public boolean setActive(boolean active) {
     if (this.active == active) {
       return false;
@@ -50,10 +63,21 @@ public final class SoulBeastState {
     return true;
   }
 
+  /**
+   * Checks if the state has been made permanent.
+   *
+   * @return {@code true} if the state persists forever
+   */
   public boolean isPermanent() {
     return permanent;
   }
 
+  /**
+   * Updates the permanent flag if necessary.
+   *
+   * @param permanent new permanent flag value
+   * @return {@code true} if the flag changed
+   */
   public boolean setPermanent(boolean permanent) {
     if (this.permanent == permanent) {
       return false;
@@ -62,18 +86,39 @@ public final class SoulBeastState {
     return true;
   }
 
+  /**
+   * Returns the last tick when the state was touched.
+   *
+   * @return last touched tick
+   */
   public long getLastTick() {
     return lastTick;
   }
 
+  /**
+   * Updates the last touched tick.
+   *
+   * @param lastTick world tick timestamp
+   */
   public void setLastTick(long lastTick) {
     this.lastTick = Math.max(0L, lastTick);
   }
 
+  /**
+   * Checks whether the state is administratively enabled.
+   *
+   * @return {@code true} if behavior is enabled server-side
+   */
   public boolean isEnabled() {
     return enabled;
   }
 
+  /**
+   * Updates the enabled flag if necessary.
+   *
+   * @param enabled new enabled value
+   * @return {@code true} if the flag changed
+   */
   public boolean setEnabled(boolean enabled) {
     if (this.enabled == enabled) {
       return false;
@@ -82,18 +127,39 @@ public final class SoulBeastState {
     return true;
   }
 
+  /**
+   * Returns the tick when the state first became active.
+   *
+   * @return origin tick
+   */
   public long getStartedTick() {
     return startedTick;
   }
 
+  /**
+   * Updates the start tick.
+   *
+   * @param startedTick baseline tick
+   */
   public void setStartedTick(long startedTick) {
     this.startedTick = Math.max(0L, startedTick);
   }
 
+  /**
+   * Returns the identifier for the current soul beast source if present.
+   *
+   * @return optional source identifier
+   */
   public Optional<ResourceLocation> getSource() {
     return Optional.ofNullable(source);
   }
 
+  /**
+   * Updates the source identifier if it differs.
+   *
+   * @param source new origin identifier
+   * @return {@code true} if the identifier changed
+   */
   public boolean setSource(@Nullable ResourceLocation source) {
     if (Objects.equals(this.source, source)) {
       return false;

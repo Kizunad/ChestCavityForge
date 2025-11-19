@@ -1,9 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
-import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -23,10 +23,12 @@ import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.So
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.registration.CCStatusEffects;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
- * 大魂蛊（心脏）被动行为：
+ * Passive behavior handler for the Da Hun Gu heart organ.
  *
  * <ul>
  *   <li>每秒恢复 2 点魂魄与 1 点念头；
@@ -77,6 +79,7 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     sendSlotUpdate(cc, organ);
   }
 
+  /** {@inheritDoc} */
   @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player) || entity.level().isClientSide()) {

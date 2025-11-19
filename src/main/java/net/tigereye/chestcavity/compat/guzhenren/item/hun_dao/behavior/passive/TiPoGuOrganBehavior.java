@@ -1,8 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.passive;
 
-import com.mojang.logging.LogUtils;
 import java.util.List;
 import java.util.Locale;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
@@ -31,6 +31,8 @@ import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
 import net.tigereye.chestcavity.listeners.OrganSlowTickListener;
 import net.tigereye.chestcavity.util.AbsorptionHelper;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /** Behaviour for 体魄蛊 (Ti Po Gu). */
@@ -115,6 +117,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     sendSlotUpdate(cc, organ);
   }
 
+  /** {@inheritDoc} */
   @Override
   public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     updateIncreaseContribution(cc, organ, false);
@@ -125,6 +128,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     AbsorptionHelper.clearAbsorptionCapacity(entity, SHIELD_MODIFIER_ID);
   }
 
+  /** {@inheritDoc} */
   @Override
   public void onSlowTick(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
     if (!(entity instanceof Player player) || entity.level().isClientSide()) {
@@ -181,6 +185,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         player, cc, organ, state, cooldown, soulBeast, currentTick, forceShieldRefresh);
   }
 
+  /** {@inheritDoc} */
   @Override
   public float onHit(
       DamageSource source,

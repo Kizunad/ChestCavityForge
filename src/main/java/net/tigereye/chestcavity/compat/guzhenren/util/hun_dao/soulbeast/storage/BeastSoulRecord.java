@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.storage
 
 import java.util.Objects;
 import java.util.Optional;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
@@ -10,14 +11,26 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 
 /**
- * 存储于承载物中的“兽魂”快照（不可变）。
+ * Immutable snapshot of a beast soul stored inside a carrier item.
  *
- * <p>封装： - {@code entityTypeId}：实体类型标识； - {@code entityData}：实体的原始 NBT 数据（不含实体 ID）； - {@code
- * storedGameTime}：被捕获时的游戏时间（tick）。
+ * <p>Fields capture:
+ *
+ * <ul>
+ *   <li>{@code entityTypeId} – type identifier of the captured entity
+ *   <li>{@code entityData} – raw NBT payload (without entity ID)
+ *   <li>{@code storedGameTime} – world time (ticks) when the entity was stored
+ * </ul>
  */
 public record BeastSoulRecord(
     ResourceLocation entityTypeId, CompoundTag entityData, long storedGameTime) {
 
+  /**
+   * Normalizes the snapshot fields.
+   *
+   * @param entityTypeId Captured entity identifier.
+   * @param entityData Serialized entity payload.
+   * @param storedGameTime Game time when the capture occurred.
+   */
   public BeastSoulRecord {
     Objects.requireNonNull(entityTypeId, "entityTypeId");
     entityData = entityData == null ? new CompoundTag() : entityData.copy();

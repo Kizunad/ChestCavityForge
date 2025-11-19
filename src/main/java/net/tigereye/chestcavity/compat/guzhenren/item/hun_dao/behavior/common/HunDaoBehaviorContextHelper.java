@@ -1,17 +1,19 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common;
 
-import com.mojang.logging.LogUtils;
 import java.util.Locale;
 import java.util.Optional;
+
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.interfaces.ChestCavityEntity;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
- * 魂道行为层共享工具类。
+ * Shared utilities for Hun Dao behavior modules.
  *
  * <p>提供统一的：
  *
@@ -31,7 +33,7 @@ public final class HunDaoBehaviorContextHelper {
   private HunDaoBehaviorContextHelper() {}
 
   /**
-   * 从玩家实体获取魂道运行时上下文。
+   * Retrieves the Hun Dao runtime context for the given player.
    *
    * @param player 玩家实体
    * @return 魂道运行时上下文
@@ -45,7 +47,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 从玩家实体安全地获取魂道运行时上下文。
+   * Retrieves the Hun Dao runtime context with Optional safety.
    *
    * @param player 玩家实体
    * @return Optional 包装的魂道运行时上下文
@@ -67,7 +69,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 从实体获取胸腔实例。
+   * Resolves the chest cavity instance from a living entity.
    *
    * @param entity 实体
    * @return Optional 包装的胸腔实例
@@ -80,7 +82,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 检查实体是否为玩家且在服务端。
+   * Checks whether the entity is a server-side player.
    *
    * @param entity 实体
    * @return true 如果是服务端玩家
@@ -90,7 +92,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 检查实体是否在客户端。
+   * Checks whether the entity currently exists on the client.
    *
    * @param entity 实体
    * @return true 如果在客户端
@@ -100,7 +102,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 格式化浮点数为两位小数（日志用）。
+   * Formats a double value to two decimals for logging.
    *
    * @param value 数值
    * @return 格式化的字符串
@@ -110,7 +112,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 格式化浮点数为指定位数小数（日志用）。
+   * Formats a double value with the specified precision.
    *
    * @param value 数值
    * @param precision 小数位数
@@ -121,20 +123,20 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 获取玩家描述（记日志用）。
+   * Provides a log-friendly description of the player.
    *
    * @param player 玩家
-   * @return 玩家名称或 "&lt;unknown&gt;"
+   * @return 玩家名称或 {@code "<unknown>"}
    */
   public static String describePlayer(Player player) {
     return player == null ? "<unknown>" : player.getScoreboardName();
   }
 
   /**
-   * 获取实体描述（记日志用）。
+   * Provides a log-friendly description of the entity.
    *
    * @param entity 实体
-   * @return 实体名称
+   * @return 实体名称或 {@code "<null>"}
    */
   public static String describeEntity(LivingEntity entity) {
     if (entity == null) {
@@ -147,7 +149,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 获取统一的日志前缀。
+   * Returns the shared log prefix for Hun Dao behaviors.
    *
    * @return 日志前缀
    */
@@ -156,7 +158,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 获取带子模块名称的日志前缀。
+   * Returns the log prefix with a sub-module suffix.
    *
    * @param module 子模块名称（如 "xiao_hun_gu", "da_hun_gu"）
    * @return 带子模块的日志前缀
@@ -166,7 +168,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 调试日志：记录玩家操作。
+   * Logs a debug message that references a player.
    *
    * @param module 模块名称
    * @param player 玩家
@@ -186,7 +188,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 调试日志：简单消息。
+   * Logs a debug message without player context.
    *
    * @param module 模块名称
    * @param message 消息模板
@@ -203,7 +205,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 警告日志。
+   * Logs a warning with the shared prefix.
    *
    * @param module 模块名称
    * @param message 消息模板
@@ -218,7 +220,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 错误日志。
+   * Logs an error message with throwable support.
    *
    * @param module 模块名称
    * @param message 消息模板
@@ -234,7 +236,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 检查数值是否接近零（用于浮点数比较）。
+   * Checks whether the value is near zero.
    *
    * @param value 数值
    * @param epsilon 误差范围
@@ -245,7 +247,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 检查数值是否接近零（使用默认 epsilon 1.0E-4）。
+   * Checks whether the value is near zero using the default epsilon.
    *
    * @param value 数值
    * @return true 如果数值接近零
@@ -255,7 +257,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 安全的数值最大值（忽略 NaN）。
+   * Returns the max value while ignoring NaN inputs.
    *
    * @param a 第一个数值
    * @param b 第二个数值
@@ -272,7 +274,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 安全的数值最小值（忽略 NaN）。
+   * Returns the min value while ignoring NaN inputs.
    *
    * @param a 第一个数值
    * @param b 第二个数值
@@ -289,7 +291,7 @@ public final class HunDaoBehaviorContextHelper {
   }
 
   /**
-   * 将数值限制在指定范围内。
+   * Clamps the value within the provided range.
    *
    * @param value 数值
    * @param min 最小值

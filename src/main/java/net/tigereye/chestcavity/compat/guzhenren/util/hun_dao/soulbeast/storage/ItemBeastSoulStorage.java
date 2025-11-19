@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.storage
 
 import java.util.Objects;
 import java.util.Optional;
+
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -11,9 +12,14 @@ import net.minecraft.world.item.component.CustomData;
 import net.tigereye.chestcavity.util.NBTWriter;
 
 /**
- * 默认的 {@link BeastSoulStorage} 实现，面向“承载物”（ItemStack）。 将“兽魂”数据持久化到物品堆的 {@code CustomData}（1.20+
- * 组件）中： - 根键为 {@code rootKey}（默认 {@code HunDaoSoulBeast}）； - 子键 {@code BeastSoul} 下保存：实体类型、实体
- * NBT、存储时间。
+ * Default {@link BeastSoulStorage} implementation backed by {@link ItemStack} custom data.
+ *
+ * <p>Persisted layout:
+ *
+ * <ul>
+ *   <li>Root key {@code rootKey} (default {@code HunDaoSoulBeast})
+ *   <li>Child compound {@code BeastSoul} storing entity type, entity NBT, and stored tick
+ * </ul>
  */
 public final class ItemBeastSoulStorage implements BeastSoulStorage {
 
@@ -25,10 +31,16 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
 
   private final String rootKey;
 
+  /** Creates a storage instance using the default {@value #DEFAULT_ROOT_KEY} root. */
   public ItemBeastSoulStorage() {
     this(DEFAULT_ROOT_KEY);
   }
 
+  /**
+   * Creates a storage instance with a custom root key.
+   *
+   * @param rootKey Root compound key used for persistence.
+   */
   public ItemBeastSoulStorage(String rootKey) {
     this.rootKey = Objects.requireNonNull(rootKey, "rootKey");
   }
@@ -163,7 +175,7 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
         });
   }
 
-  /** 将快照写入到物品的 {@code CustomData} 中。 */
+  /** Writes the snapshot into the carrier's {@code CustomData}. */
   private void writeRecord(ItemStack organ, BeastSoulRecord record) {
     NBTWriter.updateCustomData(
         organ,
@@ -172,12 +184,16 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
               tag.contains(rootKey, Tag.TAG_COMPOUND)
                   ? tag.getCompound(rootKey)
                   : new CompoundTag();
-          CompoundTag storage = new CompoundTag();
-          storage.putString(KEY_ENTITY_TYPE, record.entityTypeId().toString());
-          storage.put(KEY_ENTITY_DATA, record.entityData().copy());
-          storage.putLong(KEY_STORED_AT, record.storedGameTime());
-          state.put(STORAGE_KEY, storage);
+          state.put(STORAGE_KEY, createStoragePayload(record));
           tag.put(rootKey, state);
         });
+  }
+
+  private static CompoundTag createStoragePayload(BeastSoulRecord record) {
+    CompoundTag storage = new CompoundTag();
+    storage.putString(KEY_ENTITY_TYPE, record.entityTypeId().toString());
+    storage.put(KEY_ENTITY_DATA, record.entityData().copy());
+    storage.putLong(KEY_STORED_AT, record.storedGameTime());
+    return storage;
   }
 }
