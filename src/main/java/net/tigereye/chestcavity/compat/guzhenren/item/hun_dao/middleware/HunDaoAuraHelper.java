@@ -13,6 +13,13 @@ public final class HunDaoAuraHelper {
 
   private HunDaoAuraHelper() {}
 
+  /**
+   * Applies a deterrence aura to nearby entities.
+   *
+   * @param source The player emitting the aura.
+   * @param radius The radius of the aura.
+   * @param hunpo The hunpo threshold for applying the effect.
+   */
   public static void applyDeterAura(Player source, double radius, double hunpo) {
     if (source == null || radius <= 0.0D) {
       return;
