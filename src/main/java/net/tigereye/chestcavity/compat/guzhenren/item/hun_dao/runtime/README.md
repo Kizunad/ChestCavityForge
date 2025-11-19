@@ -62,6 +62,7 @@ Unified runtime context providing access to all hun-dao operations and state for
 - Single point of access for all hun-dao systems
 - Builder pattern for testing with mock implementations
 - Convenience methods for entity type checking
+- Phase 9 scar/cooldown helpers available through `getScarOps()` / `getCooldownOps()`
 
 **Usage:**
 ```java
@@ -72,6 +73,9 @@ HunDaoRuntimeContext context = HunDaoRuntimeContext.get(player);
 context.getResourceOps().consumeHunpo(player, 10.0);
 context.getFxOps().applySoulFlame(player, target, 5.0, 3);
 context.getStateMachine().activateSoulBeast();
+long now = player.level().getGameTime();
+double effectiveScar = context.getScarOps().effectiveCached(player, now);
+long cooldown = context.getCooldownOps().withHunDaoExp(200L, (int) effectiveScar, 40L);
 
 // Access persistent state
 context.getSoulState().ifPresent(state -> {
@@ -143,6 +147,8 @@ HunDaoRuntimeContext
 ├─ HunDaoFxOps ────────→ HunDaoOpsAdapter ──→ Middleware
 ├─ HunDaoNotificationOps → HunDaoOpsAdapter ──→ Middleware
 ├─ HunDaoStateMachine ──→ SoulBeastStateManager ──→ SoulBeastState
+├─ HunDaoDaohenOps ────→ Resource Bridge (Phase 9 placeholder math)
+├─ HunDaoCooldownOps ──→ Placeholder cooldown scaling (Phase 9)
 └─ HunDaoSoulState ────→ CCAttachments
 ```
 
@@ -198,6 +204,9 @@ HunDaoRuntimeContext runtimeContext = HunDaoBehaviorContextHelper.getContext(pla
 
 // Access resources
 runtimeContext.getResourceOps().adjustDouble(player, "hunpo", amount, true, "zuida_hunpo");
+double scar =
+    runtimeContext.getScarOps().effectiveCached(player, player.level().getGameTime());
+long cooldown = runtimeContext.getCooldownOps().withHunDaoExp(200L, (int) scar);
 
 // Access state machine
 if (runtimeContext.getStateMachine().isSoulBeastMode()) {

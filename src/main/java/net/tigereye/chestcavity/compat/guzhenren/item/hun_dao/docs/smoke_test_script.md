@@ -26,6 +26,12 @@ rg -n "send|NetworkHelper|sync" src/main/java/net/tigereye/chestcavity/compat/gu
 ```
 **预期结果**: 编译通过，TODO=0，发送点覆盖魂焰/魂兽/GuiWu/HunPo。
 
+### Phase 9 接口编译验证（新增）
+1. `./gradlew compileJava`
+2. `rg -n "TODO: HunDao" src/main/java/net/tigereye/chestcavity/compat/guzhenren/item/hun_dao/calculator`
+
+**预期结果**: 只有 `HunDaoDaohenOps`, `HunDaoCooldownOps` 等占位文件含有 `TODO: HunDao...` 注释，无额外残留。
+
 ---
 
 ## 测试场景 1: 魂焰 DoT（Soul Flame）

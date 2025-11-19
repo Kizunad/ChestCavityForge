@@ -100,5 +100,16 @@
 1. 按此计划在 `docs/Phase0_Plan.md` 填写详细任务与时间表。
 2. 盘点现状，输出 Phase 0 完成报告模板供后续使用。
 
+### Phase 9：道痕/流派接口层（新增）
+- **目标**：对齐 `jian_dao` 的 Dao 痕/流派经验入口，为魂道 buff、冷却缩放预留统一 API。
+- **范围**
+  - Calculator 层新增 `HunDaoDaohenOps`、`HunDaoDaohenCache`、`HunDaoCooldownOps`，仅透传资源数值并输出 WARN。
+  - Runtime Context 注入 `getScarOps()` / `getCooldownOps()`，行为层可立即依赖这些接口。
+  - `HunDaoRuntimeTuning`（新文件）记录缓存 TTL、冷却下限等占位常量。
+  - 文档 + smoke 脚本更新：说明 Phase 9 接口作为占位存在，并要求编译 + `rg TODO` 自检。
+- **验收标准**
+  - `./gradlew compileJava` 通过；`rg "TODO: HunDao"` 只命中新建 stub。
+  - 行为层可引用新接口而不影响现有数值，日志提示 Phase9.x 需要真实实现。
+
 ---  
 如需调整阶段范围或优先级，请在执行前确认，我将同步更新计划文档。

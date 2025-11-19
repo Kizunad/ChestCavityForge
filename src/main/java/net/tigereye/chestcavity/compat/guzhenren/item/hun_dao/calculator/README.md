@@ -16,6 +16,8 @@ Calculator 层是 Hun Dao（魂道）模块 Phase 4 的核心组件，负责将�
 ```
 calculator/
 ├── HunDaoCombatCalculator.java      # 门面（Facade），统一入口
+├── HunDaoDaohenOps.java             # Phase9 Dao痕/流派接口
+├── HunDaoCooldownOps.java           # Phase9 冷却缩放接口
 ├── common/                           # 通用工具
 │   ├── HunDaoCalcContext.java       # 计算上下文（不可变值对象）
 │   └── CalcMath.java                # 数学工具（clamp/softCap/scale）
@@ -69,6 +71,19 @@ double guiWuRadius = HunDaoCombatCalculator.skill().calculateGuiWuRadius();
 - [ ] 行为层迁移完成
 - [ ] 单元测试覆盖
 - [ ] Smoke 测试验证
+
+## Phase 9：道痕/流派接口占位
+
+- **HunDaoDaohenOps / HunDaoDaohenCache**  
+  - API 与 `jian_dao` 的 `JiandaoDaohenOps` 对齐，提供 `effectiveUncached`/`effectiveCached`/`invalidate`。
+  - 当前实现仅透传 `daohen_hun_dao` 与 `liupai_hun_dao` 值，`resolveExpMultiplier` 返回 1.0，并输出 WARN 提醒 Phase9.x 需要补全。
+  - `HunDaoDaohenCache` 提供 20 tick TTL 的简易缓存，后续可扩展为记录原始 Dao 痕/流派快照。
+
+- **HunDaoCooldownOps**  
+  - 对齐 `JiandaoCooldownOps` 的调用方式，提供 `withHunDaoExp(base, liupai, minTicks)`。
+  - Phase 9 仅返回 `baseTicks`，并记录日志，等待 Phase9.x 写入实际冷却缩放逻辑。
+
+这些入口现在已经暴露给 `HunDaoRuntimeContext#getScarOps()` 和 `getCooldownOps()`，行为层可以安全引用 API 而不依赖最终实现。
 
 ## 与 FX 系统的交互 (Phase 5)
 

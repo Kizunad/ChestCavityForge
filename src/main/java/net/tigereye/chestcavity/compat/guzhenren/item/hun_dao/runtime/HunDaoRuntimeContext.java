@@ -5,6 +5,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.HunDaoCooldownOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.HunDaoDaohenOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
@@ -18,6 +20,8 @@ import net.tigereye.chestcavity.registration.CCAttachments;
  *   <li>{@link HunDaoFxOps} - special effects (soul flame)
  *   <li>{@link HunDaoNotificationOps} - notifications and maintenance
  *   <li>{@link HunDaoStateMachine} - state machine for soul beast transformations
+ *   <li>{@link HunDaoDaohenOps} - effective scar computation hook (Phase 9 stub)
+ *   <li>{@link HunDaoCooldownOps} - liupai-based cooldown scaling hook (Phase 9 stub)
  *   <li>{@link HunDaoSoulState} - persistent soul state storage
  * </ul>
  *
@@ -43,17 +47,23 @@ public final class HunDaoRuntimeContext {
   private final HunDaoFxOps fxOps;
   private final HunDaoNotificationOps notificationOps;
   private final HunDaoStateMachine stateMachine;
+  private final HunDaoDaohenOps scarOps;
+  private final HunDaoCooldownOps cooldownOps;
 
   private HunDaoRuntimeContext(
       LivingEntity entity,
       HunDaoResourceOps resourceOps,
       HunDaoFxOps fxOps,
-      HunDaoNotificationOps notificationOps) {
+      HunDaoNotificationOps notificationOps,
+      HunDaoDaohenOps scarOps,
+      HunDaoCooldownOps cooldownOps) {
     this.entity = entity;
     this.resourceOps = resourceOps;
     this.fxOps = fxOps;
     this.notificationOps = notificationOps;
     this.stateMachine = new HunDaoStateMachine(entity);
+    this.scarOps = scarOps;
+    this.cooldownOps = cooldownOps;
   }
 
   // ===== Factory Methods =====
@@ -72,6 +82,8 @@ public final class HunDaoRuntimeContext {
         .resourceOps(HunDaoOpsAdapter.INSTANCE)
         .fxOps(HunDaoOpsAdapter.INSTANCE)
         .notificationOps(HunDaoOpsAdapter.INSTANCE)
+        .scarOps(HunDaoDaohenOps.INSTANCE)
+        .cooldownOps(HunDaoCooldownOps.INSTANCE)
         .build();
   }
 
@@ -134,6 +146,25 @@ public final class HunDaoRuntimeContext {
   }
 
   /**
+   * Get the dao-hen (scar) operation helper.
+   *
+   * <p>Phase 9 returns the stub implementation that proxies to the Guzhenren resource bridge.
+   */
+  public HunDaoDaohenOps getScarOps() {
+    return scarOps;
+  }
+
+  /**
+   * Get the cooldown helper for Hun Dao liupai scaling.
+   *
+   * <p>Phase 9 returns a placeholder that simply logs usage; later phases can inject customized
+   * cooldown strategies here.
+   */
+  public HunDaoCooldownOps getCooldownOps() {
+    return cooldownOps;
+  }
+
+  /**
    * Get the soul state storage.
    *
    * <p>This retrieves the persistent soul state from the entity's attachments.
@@ -181,6 +212,8 @@ public final class HunDaoRuntimeContext {
     private HunDaoResourceOps resourceOps;
     private HunDaoFxOps fxOps;
     private HunDaoNotificationOps notificationOps;
+    private HunDaoDaohenOps scarOps;
+    private HunDaoCooldownOps cooldownOps;
 
     private Builder() {}
 
@@ -229,6 +262,28 @@ public final class HunDaoRuntimeContext {
     }
 
     /**
+     * Set the scar (dao-hen) operations helper.
+     *
+     * @param scarOps scar ops implementation
+     * @return this builder
+     */
+    public Builder scarOps(@Nullable HunDaoDaohenOps scarOps) {
+      this.scarOps = scarOps;
+      return this;
+    }
+
+    /**
+     * Set the cooldown operations helper.
+     *
+     * @param cooldownOps cooldown ops implementation
+     * @return this builder
+     */
+    public Builder cooldownOps(@Nullable HunDaoCooldownOps cooldownOps) {
+      this.cooldownOps = cooldownOps;
+      return this;
+    }
+
+    /**
      * Build the runtime context.
      *
      * @return the new runtime context
@@ -247,7 +302,14 @@ public final class HunDaoRuntimeContext {
       if (notificationOps == null) {
         throw new IllegalStateException("NotificationOps is required");
       }
-      return new HunDaoRuntimeContext(entity, resourceOps, fxOps, notificationOps);
+      if (scarOps == null) {
+        throw new IllegalStateException("ScarOps is required");
+      }
+      if (cooldownOps == null) {
+        throw new IllegalStateException("CooldownOps is required");
+      }
+      return new HunDaoRuntimeContext(
+          entity, resourceOps, fxOps, notificationOps, scarOps, cooldownOps);
     }
   }
 }
