@@ -3,7 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.resour
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 
 /**
- * 魂魄/精力回复计算器（纯计算模块）。
+ * 魂魄/精力回复计算器（纯计算模块）.
  *
  * <p>职责：
  *
@@ -22,7 +22,7 @@ public final class HunPoRecoveryCalculator {
   private HunPoRecoveryCalculator() {}
 
   /**
-   * 计算小魂蛊的基础魂魄回复量。
+   * 计算小魂蛊的基础魂魄回复量.
    *
    * @return 基础回复量
    */
@@ -31,7 +31,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算小魂蛊的额外回复量。
+   * 计算小魂蛊的额外回复量.
    *
    * @return 额外回复量
    */
@@ -40,7 +40,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算小魂蛊的总回复量。
+   * 计算小魂蛊的总回复量.
    *
    * <p>公式：RECOVER + RECOVER_BONUS
    *
@@ -51,7 +51,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算大魂蛊的魂魄回复量。
+   * 计算大魂蛊的魂魄回复量.
    *
    * @return 魂魄回复量
    */
@@ -60,7 +60,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算大魂蛊的念头生成量。
+   * 计算大魂蛊的念头生成量.
    *
    * @return 念头生成量
    */
@@ -69,7 +69,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算鬼气蛊每秒的魂魄被动回复（基于堆叠数）。
+   * 计算鬼气蛊每秒的魂魄被动回复（基于堆叠数）.
    *
    * <p>公式：PASSIVE_HUNPO_PER_SECOND × stackCount
    *
@@ -81,7 +81,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算鬼气蛊每秒的精力被动回复（基于堆叠数）。
+   * 计算鬼气蛊每秒的精力被动回复（基于堆叠数）.
    *
    * <p>公式：PASSIVE_JINGLI_PER_SECOND × stackCount
    *
@@ -93,7 +93,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算体魄蛊每秒的魂魄被动回复（基于堆叠数）。
+   * 计算体魄蛊每秒的魂魄被动回复（基于堆叠数）.
    *
    * <p>公式：PASSIVE_HUNPO_PER_SECOND × stackCount
    *
@@ -105,7 +105,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算体魄蛊每秒的精力被动回复（基于堆叠数）。
+   * 计算体魄蛊每秒的精力被动回复（基于堆叠数）.
    *
    * <p>公式：PASSIVE_JINGLI_PER_SECOND × stackCount
    *
@@ -117,7 +117,7 @@ public final class HunPoRecoveryCalculator {
   }
 
   /**
-   * 计算体魄蛊的子魂增益加成。
+   * 计算体魄蛊的子魂增益加成.
    *
    * @return 增益加成（10% = 0.10）
    */

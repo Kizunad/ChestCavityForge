@@ -4,7 +4,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.common.
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 
 /**
- * 鬼雾（Gui Wu）技能计算器（纯计算模块）。
+ * 鬼雾（Gui Wu）技能计算器（纯计算模块）.
  *
  * <p>职责：
  *
@@ -23,7 +23,7 @@ public final class GuiWuCalculator {
   private GuiWuCalculator() {}
 
   /**
-   * 计算鬼雾的影响范围。
+   * 计算鬼雾的影响范围.
    *
    * @return 影响范围（方块）
    */
@@ -32,7 +32,7 @@ public final class GuiWuCalculator {
   }
 
   /**
-   * 计算鬼雾的影响范围平方（用于距离比较优化）。
+   * 计算鬼雾的影响范围平方（用于距离比较优化）.
    *
    * <p>用于避免开平方根的性能开销。
    *
@@ -44,7 +44,7 @@ public final class GuiWuCalculator {
   }
 
   /**
-   * 判断目标是否在鬼雾范围内。
+   * 判断目标是否在鬼雾范围内.
    *
    * @param distanceSquared 距离平方
    * @return true 如果在范围内
@@ -54,7 +54,7 @@ public final class GuiWuCalculator {
   }
 
   /**
-   * 计算基于范围的衰减系数（中心最强，边缘最弱）。
+   * 计算基于范围的衰减系数（中心最强，边缘最弱）.
    *
    * <p>公式：1.0 - (distance / radius)
    *

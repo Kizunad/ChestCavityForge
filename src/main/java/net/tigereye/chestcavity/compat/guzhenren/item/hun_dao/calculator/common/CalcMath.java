@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.common;
 
 /**
- * 魂道战斗计算的通用数学工具。
+ * 魂道战斗计算的通用数学工具.
  *
  * <p>提供：
  *
@@ -18,7 +18,7 @@ public final class CalcMath {
   private CalcMath() {}
 
   /**
-   * 将值夹紧在 [min, max] 范围内。
+   * 将值夹紧在 [min, max] 范围内.
    *
    * @param value 输入值
    * @param min 最小值
@@ -36,7 +36,7 @@ public final class CalcMath {
   }
 
   /**
-   * 应用软上限：超过阈值后收益递减。
+   * 应用软上限：超过阈值后收益递减.
    *
    * <p>公式：
    *
@@ -59,7 +59,7 @@ public final class CalcMath {
   }
 
   /**
-   * 线性缩放：将输入值从 [inMin, inMax] 映射到 [outMin, outMax]。
+   * 线性缩放：将输入值从 [inMin, inMax] 映射到 [outMin, outMax].
    *
    * @param value 输入值
    * @param inMin 输入范围最小值
@@ -78,7 +78,7 @@ public final class CalcMath {
   }
 
   /**
-   * 计算百分比增益：base * (1 + bonusPercent)。
+   * 计算百分比增益：base * (1 + bonusPercent).
    *
    * @param base 基础值
    * @param bonusPercent 增益百分比（0.1 表示 10%）
@@ -89,7 +89,7 @@ public final class CalcMath {
   }
 
   /**
-   * 计算乘法叠加：base * multiplier。
+   * 计算乘法叠加：base * multiplier.
    *
    * @param base 基础值
    * @param multiplier 乘数
@@ -100,7 +100,7 @@ public final class CalcMath {
   }
 
   /**
-   * 计算加法叠加：base + flat。
+   * 计算加法叠加：base + flat.
    *
    * @param base 基础值
    * @param flat 平坦加成

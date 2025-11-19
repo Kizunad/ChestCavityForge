@@ -4,7 +4,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.common.
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 
 /**
- * 魂道伤害计算器（纯计算模块）。
+ * 魂道伤害计算器（纯计算模块）.
  *
  * <p>职责：
  *
@@ -23,7 +23,7 @@ public final class HunDaoDamageCalculator {
   private HunDaoDamageCalculator() {}
 
   /**
-   * 计算鬼气蛊的真实伤害。
+   * 计算鬼气蛊的真实伤害.
    *
    * <p>公式：maxHunpo × TRUE_DAMAGE_RATIO
    *
@@ -42,7 +42,7 @@ public final class HunDaoDamageCalculator {
   }
 
   /**
-   * 计算体魄蛊魂兽模式的附加伤害。
+   * 计算体魄蛊魂兽模式的附加伤害.
    *
    * <p>公式：maxHunpo × SOUL_BEAST_DAMAGE_PERCENT
    *
@@ -61,7 +61,7 @@ public final class HunDaoDamageCalculator {
   }
 
   /**
-   * 计算体魄蛊的魂兽攻击魂魄消耗。
+   * 计算体魄蛊的魂兽攻击魂魄消耗.
    *
    * <p>公式：maxHunpo × SOUL_BEAST_HUNPO_COST_PERCENT
    *
@@ -76,7 +76,7 @@ public final class HunDaoDamageCalculator {
   }
 
   /**
-   * 计算体魄蛊的护盾数值。
+   * 计算体魄蛊的护盾数值.
    *
    * <p>公式：maxHunpo × SHIELD_PERCENT × stackCount
    *
@@ -97,7 +97,7 @@ public final class HunDaoDamageCalculator {
   }
 
   /**
-   * 计算调整后的魂兽化攻击消耗（考虑大魂蛊减免）。
+   * 计算调整后的魂兽化攻击消耗（考虑大魂蛊减免）.
    *
    * <p>公式：max(0, baseCost - reduction)
    *

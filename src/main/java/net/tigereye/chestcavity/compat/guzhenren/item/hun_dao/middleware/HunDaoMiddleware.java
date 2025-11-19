@@ -1,8 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware;
 
-import com.mojang.logging.LogUtils;
 import java.util.Locale;
 import java.util.Optional;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.LivingEntity;
@@ -17,13 +17,20 @@ import net.tigereye.chestcavity.engine.dot.DoTEngine;
 import net.tigereye.chestcavity.engine.dot.DoTEngine.FxAnchor;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
- * The middleware bridge between Hun Dao behavior and underlying systems (DoT, resources).
+ * Hun Dao 行为与底层系统（DoT、资源）之间的中间层桥接器.
  *
- * <p>- Schedules Damage-over-Time (DoT) effects. - Manages Hunpo resource and saturation upkeep. -
- * Provides placeholders for player/non-player specific handling.
+ * <p>职责：
+ *
+ * <ul>
+ *   <li>调度 Damage-over-Time（DoT）效果
+ *   <li>维护魂魄（hunpo）资源与饱食度
+ *   <li>为玩家/非玩家提供统一的中间层入口
+ * </ul>
  */
 public final class HunDaoMiddleware {
 
@@ -36,12 +43,12 @@ public final class HunDaoMiddleware {
   private HunDaoMiddleware() {}
 
   /**
-   * Applies the Soul Flame DoT effect to a target.
+   * 对目标施加魂焰（Soul Flame）持续伤害效果.
    *
-   * @param source The player applying the effect.
-   * @param target The entity to apply the effect to.
-   * @param perSecondDamage The damage per second.
-   * @param seconds The duration in seconds.
+   * @param source 施加效果的玩家
+   * @param target 受到效果的实体
+   * @param perSecondDamage 每秒伤害
+   * @param seconds 持续秒数
    */
   public void applySoulFlame(
       Player source, LivingEntity target, double perSecondDamage, int seconds) {
@@ -91,10 +98,10 @@ public final class HunDaoMiddleware {
   }
 
   /**
-   * Leaks a specified amount of Hunpo per second from a player.
+   * 以每秒固定速率泄露玩家的魂魄值.
    *
-   * @param player The player to drain hunpo from.
-   * @param amount The amount of hunpo to drain per second.
+   * @param player 被泄露魂魄的玩家
+   * @param amount 每秒泄露的魂魄量
    */
   public void leakHunpoPerSecond(Player player, double amount) {
     if (player == null || amount <= 0.0D) {
@@ -105,11 +112,11 @@ public final class HunDaoMiddleware {
   }
 
   /**
-   * Consumes a specified amount of Hunpo from a player.
+   * 尝试消耗指定数量的魂魄值.
    *
-   * @param player The player to consume hunpo from.
-   * @param amount The amount of hunpo to consume.
-   * @return True if the hunpo was consumed, false otherwise.
+   * @param player 被消耗魂魄的玩家
+   * @param amount 需要消耗的魂魄量
+   * @return true 如果成功消耗；否则返回 false
    */
   public boolean consumeHunpo(Player player, double amount) {
     if (player == null || amount <= 0.0D) {
@@ -130,23 +137,30 @@ public final class HunDaoMiddleware {
   }
 
   /**
-   * Handles player-specific upkeep tasks.
+   * 处理玩家特定的维护逻辑.
    *
-   * @param player The player to handle.
+   * @param player 需要维护的玩家
    */
   public void handlerPlayer(Player player) {
     SaturationHelper.gentlyTopOff(player, 18, 0.5f);
   }
 
   /**
-   * Handles non-player-specific upkeep tasks.
+   * 处理非玩家实体特定的维护逻辑.
    *
-   * @param entity The entity to handle.
+   * @param entity 需要维护的实体
    */
   public void handlerNonPlayer(LivingEntity entity) {
     // placeholder for non-player upkeep paths
   }
 
+  /**
+   * 调整玩家魂魄值并同步到客户端.
+   *
+   * @param player 目标玩家
+   * @param amount 调整量（正为增加，负为减少）
+   * @param reason 日志中的调整原因
+   */
   private void adjustHunpo(Player player, double amount, String reason) {
     Optional<GuzhenrenResourceBridge.ResourceHandle> handleOpt =
         GuzhenrenResourceBridge.open(player);
@@ -167,6 +181,12 @@ public final class HunDaoMiddleware {
     HunDaoNetworkHelper.syncHunPo(player, current, max);
   }
 
+  /**
+   * 以固定格式格式化数值.
+   *
+   * @param value 数值
+   * @return 格式化后的字符串
+   */
   private String format(double value) {
     return String.format(Locale.ROOT, "%.2f", value);
   }

@@ -26,10 +26,10 @@
 | 子目录 | Warning 数 | 主要问题 |
 | --- | --- | --- |
 | `soulbeast/` | 90 | 状态事件 import 顺序紊乱、RuntimeEvents 缺 Javadoc |
-| `calculator/` | 85 | 计算器公式/常量行长与 import 顺序混乱，公共 API 无 Javadoc |
+| `calculator/` | 0 ↓ (85) | 计算器 Javadoc/示例行长已规范，可作为纯计算模板 |
 | `client/` | 56 | HUD/面板方法注释缺失，render 调用顺序与导入冲突 |
 | `runtime/` | 23 | Runtime Context Javadoc 与长字符串检查未通过 |
-| `middleware/` | 17 | 桥接层注释缺失、空行/变量作用域控制不足 |
+| `middleware/` | 0 ↓ (17) | 中间层桥接导入与 Javadoc 已整理，可作为 Runtime 接入模板 |
 | `storage/` | 0 ↓ (6) | `BeastSoulRecord`/`ItemBeastSoulStorage` 全部规范化，可作为存储模板 |
 | `behavior/` | 0 ↓ (155) | 本批次清空导入/Javadoc/行长告警 |
 | `fx/` | 0 ↓ (46) | FX Router/Registry/SoulFlameFx 已在 2025-??-?? 批次清零，可作为基准 |
@@ -71,6 +71,30 @@
 | `BeastSoulStorage` | 0 | 重新撰写接口说明，补充 capture/store/peek/consume/clear 注释 | ✅ |
 | `ItemBeastSoulStorage` | 0 | Import 分组、构造函数 Javadoc、`createStoragePayload()` 提前使用 state | ✅ |
 | `SoulBeastDamageContext` | 0 | 规范 import + record canonical Javadoc | ✅ |
+
+### 1.6 `calculator/` 目录状态（2025-??-?? 更新）
+
+> 85 条计算器告警全部清零：统一 Summary Javadoc 句号、补齐嵌套 Facade 方法注释，并拆分使用示例中的超长行。
+
+| 类 | 当前 Warning 数 | 主要动作 | 结果 |
+| --- | --- | --- | --- |
+| `CalcMath` | 0 | 英文化摘要句号，保留 clamp/softCap/scale 纯函数实现 | ✅ |
+| `HunDaoCalcContext` | 0 | 上下文工厂/with 方法 Javadoc 规范化，覆盖 equals/hashCode/toString 语义 | ✅ |
+| `HunDaoDamageCalculator` | 0 | 伤害公式 Javadoc 首句统一使用 `.`，保持纯输入输出 | ✅ |
+| `HunDaoDotCalculator` | 0 | DPS/总伤害/每 tick 伤害的公式说明与参数注释统一 | ✅ |
+| `HunPoDrainCalculator` | 0 | 泄露/攻击消耗/剩余时间计算摘要句号规范化 | ✅ |
+| `HunPoRecoveryCalculator` | 0 | 小魂蛊/大魂蛊/鬼气蛊/体魄蛊被动回复计算摘要句号规范化 | ✅ |
+| `GuiWuCalculator` | 0 | 鬼雾范围与衰减计算摘要句号规范化 | ✅ |
+| `HunDaoCombatCalculator` | 0 | Facade 示例行拆分、嵌套 Damage/Dot/Resource/SkillOps 方法全部补 Javadoc | ✅ |
+
+### 1.7 `middleware/` 目录状态（2025-??-?? 更新）
+
+> 17 条桥接层告警全部清零：统一导入分组、补全中间层方法 Javadoc，并保持所有副作用集中在 middleware，而 Calculator 仍保持纯计算。
+
+| 类 | 当前 Warning 数 | 主要动作 | 结果 |
+| --- | --- | --- | --- |
+| `HunDaoMiddleware` | 0 | 调整 import 分组为 Java → Minecraft/Mod → 第三方，补充 DoT 应用/资源调整/维护入口的摘要和参数注释 | ✅ |
+| `HunDaoAuraHelper` | 0 | 增加 Java/SPECIAL 组空行，完善威慑光环的中文摘要与参数含义 | ✅ |
 
 ## 2. 核心结论
 

@@ -3,7 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.resour
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 
 /**
- * 魂魄泄露计算器（纯计算模块）。
+ * 魂魄泄露计算器（纯计算模块）.
  *
  * <p>职责：
  *
@@ -22,7 +22,7 @@ public final class HunPoDrainCalculator {
   private HunPoDrainCalculator() {}
 
   /**
-   * 计算魂兽化状态下每秒泄露的魂魄量。
+   * 计算魂兽化状态下每秒泄露的魂魄量.
    *
    * @return 每秒泄露量
    */
@@ -31,7 +31,7 @@ public final class HunPoDrainCalculator {
   }
 
   /**
-   * 计算魂兽化状态下每 tick 泄露的魂魄量。
+   * 计算魂兽化状态下每 tick 泄露的魂魄量.
    *
    * <p>公式：HUNPO_LEAK_PER_SEC / 20
    *
@@ -42,7 +42,7 @@ public final class HunPoDrainCalculator {
   }
 
   /**
-   * 计算魂兽化攻击时的魂魄消耗。
+   * 计算魂兽化攻击时的魂魄消耗.
    *
    * @return 攻击消耗
    */
@@ -51,7 +51,7 @@ public final class HunPoDrainCalculator {
   }
 
   /**
-   * 判断当前魂魄是否足够支付消耗。
+   * 判断当前魂魄是否足够支付消耗.
    *
    * @param currentHunpo 当前魂魄值
    * @param cost 需要的消耗
@@ -62,7 +62,7 @@ public final class HunPoDrainCalculator {
   }
 
   /**
-   * 计算魂魄耗尽前的剩余秒数（魂兽化状态）。
+   * 计算魂魄耗尽前的剩余秒数（魂兽化状态）.
    *
    * <p>公式：currentHunpo / HUNPO_LEAK_PER_SEC
    *
@@ -78,7 +78,7 @@ public final class HunPoDrainCalculator {
   }
 
   /**
-   * 计算魂魄耗尽前的剩余 ticks（魂兽化状态）。
+   * 计算魂魄耗尽前的剩余 ticks（魂兽化状态）.
    *
    * <p>公式：remainingSeconds × 20
    *

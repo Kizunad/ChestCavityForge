@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.middleware;
 
 import java.util.List;
+
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -8,17 +9,17 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 
-/** Applies a simple deterrence aura based on current hunpo thresholds. */
+/** 根据当前魂魄阈值应用简单的威慑光环效果. */
 public final class HunDaoAuraHelper {
 
   private HunDaoAuraHelper() {}
 
   /**
-   * Applies a deterrence aura to nearby entities.
+   * 对附近实体应用威慑光环效果.
    *
-   * @param source The player emitting the aura.
-   * @param radius The radius of the aura.
-   * @param hunpo The hunpo threshold for applying the effect.
+   * @param source 发出光环的玩家
+   * @param radius 光环半径
+   * @param hunpo 触发效果的魂魄阈值
    */
   public static void applyDeterAura(Player source, double radius, double hunpo) {
     if (source == null || radius <= 0.0D) {

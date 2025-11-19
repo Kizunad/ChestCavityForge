@@ -3,7 +3,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.common
 import javax.annotation.Nullable;
 
 /**
- * 魂道战斗计算上下文（不可变值对象）。
+ * 魂道战斗计算上下文（不可变值对象）.
  *
  * <p>用于在各 Calculator 之间传递只读的环境参数，如：
  *
@@ -33,7 +33,7 @@ public final class HunDaoCalcContext {
   }
 
   /**
-   * 创建计算上下文。
+   * 创建计算上下文.
    *
    * @param currentHunpo 当前魂魄值
    * @param maxHunpo 最大魂魄值
@@ -47,7 +47,7 @@ public final class HunDaoCalcContext {
   }
 
   /**
-   * 创建默认上下文（无增益、单堆叠）。
+   * 创建默认上下文（无增益、单堆叠）.
    *
    * @param currentHunpo 当前魂魄值
    * @param maxHunpo 最大魂魄值
@@ -94,7 +94,7 @@ public final class HunDaoCalcContext {
   }
 
   /**
-   * 返回带有新的 efficiency 值的副本。
+   * 返回带有新的 efficiency 值的副本.
    *
    * @param newEfficiency 新的增益系数
    * @return 新的上下文实例
@@ -104,7 +104,7 @@ public final class HunDaoCalcContext {
   }
 
   /**
-   * 返回带有新的 stackCount 值的副本。
+   * 返回带有新的 stackCount 值的副本.
    *
    * @param newStackCount 新的堆叠数
    * @return 新的上下文实例
