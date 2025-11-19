@@ -19,7 +19,12 @@ import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
 import org.slf4j.Logger;
 
-/** 魂道行为与底层系统（DoT、资源）的中间件桥梁。 - 负责调度持续伤害（DoT）效果； - 负责魂魄资源与饱食维护； - 预留玩家/非玩家处理入口（占位符）。 */
+/**
+ * The middleware bridge between Hun Dao behavior and underlying systems (DoT, resources).
+ *
+ * <p>- Schedules Damage-over-Time (DoT) effects. - Manages Hunpo resource and saturation upkeep. -
+ * Provides placeholders for player/non-player specific handling.
+ */
 public final class HunDaoMiddleware {
 
   public static final HunDaoMiddleware INSTANCE = new HunDaoMiddleware();
@@ -30,6 +35,14 @@ public final class HunDaoMiddleware {
 
   private HunDaoMiddleware() {}
 
+  /**
+   * Applies the Soul Flame DoT effect to a target.
+   *
+   * @param source The player applying the effect.
+   * @param target The entity to apply the effect to.
+   * @param perSecondDamage The damage per second.
+   * @param seconds The duration in seconds.
+   */
   public void applySoulFlame(
       Player source, LivingEntity target, double perSecondDamage, int seconds) {
     if (source == null || target == null || !target.isAlive()) {
@@ -38,7 +51,7 @@ public final class HunDaoMiddleware {
     if (perSecondDamage <= 0 || seconds <= 0) {
       return;
     }
-    // 标记魂印，用于触发"魂印回声"等反应规则
+    // Apply Soul Mark for reaction triggers
     try {
       int mark =
           ChestCavity.config != null
@@ -47,8 +60,9 @@ public final class HunDaoMiddleware {
       net.tigereye.chestcavity.util.reaction.tag.ReactionTagOps.add(
           target, net.tigereye.chestcavity.util.reaction.tag.ReactionTagKeys.SOUL_MARK, mark);
     } catch (Throwable ignored) {
+      // Ignored
     }
-    // 调度 DoT 伤害（FX 由 FxEngine 负责）
+    // Schedule DoT damage
     DoTEngine.schedulePerSecond(
         source,
         target,
@@ -63,7 +77,7 @@ public final class HunDaoMiddleware {
         Vec3.ZERO,
         0.7f,
         true);
-    // 播放魂焰粒子和音效（数据驱动 FX，不影响其他 DoT）
+    // Play soul flame particles and sound
     HunDaoSoulFlameFx.playSoulFlame(target, SOUL_FLAME_FX, seconds);
     LOGGER.debug(
         "[hun_dao][middleware] DoT={}s @{} -> {}",
@@ -71,11 +85,17 @@ public final class HunDaoMiddleware {
         format(perSecondDamage),
         target.getName().getString());
 
-    // Phase 6: Sync soul flame to clients for HUD display
+    // Sync soul flame to clients for HUD display
     int ticks = seconds * 20;
     HunDaoNetworkHelper.syncSoulFlame(target, 1, ticks); // Stack count simplified to 1
   }
 
+  /**
+   * Leaks a specified amount of Hunpo per second from a player.
+   *
+   * @param player The player to drain hunpo from.
+   * @param amount The amount of hunpo to drain per second.
+   */
   public void leakHunpoPerSecond(Player player, double amount) {
     if (player == null || amount <= 0.0D) {
       return;
@@ -84,6 +104,13 @@ public final class HunDaoMiddleware {
     SaturationHelper.gentlyTopOff(player, 18, 0.5f);
   }
 
+  /**
+   * Consumes a specified amount of Hunpo from a player.
+   *
+   * @param player The player to consume hunpo from.
+   * @param amount The amount of hunpo to consume.
+   * @return True if the hunpo was consumed, false otherwise.
+   */
   public boolean consumeHunpo(Player player, double amount) {
     if (player == null || amount <= 0.0D) {
       return false;
@@ -102,10 +129,20 @@ public final class HunDaoMiddleware {
     return true;
   }
 
+  /**
+   * Handles player-specific upkeep tasks.
+   *
+   * @param player The player to handle.
+   */
   public void handlerPlayer(Player player) {
     SaturationHelper.gentlyTopOff(player, 18, 0.5f);
   }
 
+  /**
+   * Handles non-player-specific upkeep tasks.
+   *
+   * @param entity The entity to handle.
+   */
   public void handlerNonPlayer(LivingEntity entity) {
     // placeholder for non-player upkeep paths
   }
@@ -124,8 +161,7 @@ public final class HunDaoMiddleware {
         player.getScoreboardName(),
         reason);
 
-    // Phase 6: Sync hun po to client for HUD display
-    // Note: This may be called frequently. Consider rate-limiting in production.
+    // Sync hun po to client for HUD display
     double current = handle.read("hunpo").orElse(0.0);
     double max = handle.read("zuida_hunpo").orElse(100.0);
     HunDaoNetworkHelper.syncHunPo(player, current, max);
