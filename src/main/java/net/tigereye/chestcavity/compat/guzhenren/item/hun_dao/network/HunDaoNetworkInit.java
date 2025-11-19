@@ -1,10 +1,11 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.network;
 
-import com.mojang.logging.LogUtils;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientSyncHandlers;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoNotificationRenderer;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
