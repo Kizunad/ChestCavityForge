@@ -21,6 +21,11 @@ public final class SoulBeastCommands {
 
   private SoulBeastCommands() {}
 
+  /**
+   * Registers the soulbeast commands.
+   *
+   * @param event The command registration event.
+   */
   public static void register(RegisterCommandsEvent event) {
     CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
     dispatcher.register(

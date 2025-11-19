@@ -53,10 +53,22 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
 
   private DaHunGuBehavior() {}
 
+  /**
+   * Ensures that any necessary data linkages are established.
+   *
+   * @param cc The chest cavity instance.
+   */
   public void ensureAttached(ChestCavityInstance cc) {
     // 大魂蛊当前不需要额外的联动通道，预留入口以便未来扩展。
   }
 
+  /**
+   * Called when the organ is equipped.
+   *
+   * @param cc The chest cavity instance.
+   * @param organ The organ being equipped.
+   * @param staleRemovalContexts A list of stale removal contexts.
+   */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {
@@ -142,7 +154,10 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     }
     double bonus = Math.min(SOUL_INTENT_MAX, total * SOUL_INTENT_PER_ORGAN);
     HunDaoBehaviorContextHelper.debugLog(
-        MODULE_NAME, "soul intent bonus computed: organs={} bonus={}", total, format(bonus));
+        MODULE_NAME,
+        "soul intent bonus computed: organs={} bonus={}",
+        total,
+        HunDaoBehaviorContextHelper.format(bonus));
     return bonus;
   }
 
@@ -165,18 +180,19 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
         IntimidationHelper.intimidateNearby(player, HunDaoTuning.Effects.DETER_RADIUS, settings);
     if (affected > 0) {
       HunDaoBehaviorContextHelper.debugLog(
-          MODULE_NAME, "weiling intimidated {} targets (hunpo={})", affected, format(hunpoValue));
+          MODULE_NAME,
+          "weiling intimidated {} targets (hunpo={})",
+          affected,
+          HunDaoBehaviorContextHelper.format(hunpoValue));
     }
   }
 
-  private String describePlayer(Player player) {
-    return player == null ? "<unknown>" : player.getScoreboardName();
-  }
-
-  private String format(double value) {
-    return String.format(Locale.ROOT, "%.2f", value);
-  }
-
+  /**
+   * Checks if the given chest cavity contains a Da Hun Gu.
+   *
+   * @param cc The chest cavity instance to check.
+   * @return {@code true} if the chest cavity contains a Da Hun Gu, {@code false} otherwise.
+   */
   public static boolean hasDaHunGu(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return false;
@@ -194,6 +210,13 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     return false;
   }
 
+  /**
+   * Calculates the hunpo cost reduction for attacks.
+   *
+   * @param player The player.
+   * @param cc The chest cavity instance.
+   * @return The hunpo cost reduction.
+   */
   public static double attackHunpoCostReduction(Player player, ChestCavityInstance cc) {
     if (player == null || !SoulBeastStateManager.isActive(player)) {
       return 0.0;

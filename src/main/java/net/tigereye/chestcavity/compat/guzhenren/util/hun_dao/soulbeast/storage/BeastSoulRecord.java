@@ -23,7 +23,14 @@ public record BeastSoulRecord(
     entityData = entityData == null ? new CompoundTag() : entityData.copy();
   }
 
-  /** 将给定实体序列化为 {@link BeastSoulRecord} 快照。 仅在服务端、且实体类型可解析时返回。 */
+  /**
+   * Serializes the given entity into a {@link BeastSoulRecord} snapshot.
+   *
+   * @param entity The entity to serialize.
+   * @param storedGameTime The game time at which the entity was stored.
+   * @return An optional containing the beast soul record, or an empty optional if the entity is
+   *     null, on the client side, or its type cannot be resolved.
+   */
   public static Optional<BeastSoulRecord> fromEntity(LivingEntity entity, long storedGameTime) {
     if (entity == null || entity.level().isClientSide()) {
       return Optional.empty();
@@ -37,7 +44,13 @@ public record BeastSoulRecord(
     return Optional.of(new BeastSoulRecord(id, tag, storedGameTime));
   }
 
-  /** 尝试在指定维度实例化该快照对应的实体。 注意：调用方需要自行设置位置并加入世界。 */
+  /**
+   * Tries to instantiate the entity corresponding to this snapshot in the specified level.
+   *
+   * @param level The level in which to create the entity.
+   * @return An optional containing the created entity, or an empty optional if the level is null,
+   *     the entity type ID is null, or the entity type cannot be resolved.
+   */
   public Optional<Entity> createEntity(Level level) {
     if (level == null || entityTypeId == null) {
       return Optional.empty();

@@ -102,6 +102,11 @@ public final class SoulBeastState {
     return true;
   }
 
+  /**
+   * Saves the soul beast state to a compound tag.
+   *
+   * @return The compound tag.
+   */
   public CompoundTag save() {
     CompoundTag tag = new CompoundTag();
     tag.putBoolean(KEY_ACTIVE, active);
@@ -115,6 +120,11 @@ public final class SoulBeastState {
     return tag;
   }
 
+  /**
+   * Loads the soul beast state from a compound tag.
+   *
+   * @param tag The compound tag.
+   */
   public void load(CompoundTag tag) {
     if (tag == null || tag.isEmpty()) {
       return;

@@ -83,6 +83,11 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private TiPoGuOrganBehavior() {}
 
+  /**
+   * Ensures that any necessary data linkages are established.
+   *
+   * @param cc The chest cavity instance.
+   */
   public void ensureAttached(ChestCavityInstance cc) {
     if (cc == null) {
       return;
@@ -91,6 +96,13 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     ensureChannel(context, HUN_DAO_INCREASE_EFFECT);
   }
 
+  /**
+   * Called when the organ is equipped.
+   *
+   * @param cc The chest cavity instance.
+   * @param organ The organ being equipped.
+   * @param staleRemovalContexts A list of stale removal contexts.
+   */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {
@@ -142,11 +154,16 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     MultiCooldown.Entry lastTickEntry = cooldown.entry(KEY_LAST_TICK);
     boolean soulBeast = SoulBeastStateManager.isActive(player);
     long currentTick = entity.level().getGameTime();
-    logStateChange(LOGGER, prefix(), organ, KEY_LAST_TICK, updateEntry(lastTickEntry, currentTick));
+    logStateChange(
+        LOGGER,
+        HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
+        organ,
+        KEY_LAST_TICK,
+        updateEntry(lastTickEntry, currentTick));
     boolean wasSoulBeast = state.getBoolean(KEY_SOUL_BEAST, false);
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
         organ,
         KEY_SOUL_BEAST,
         OrganStateOps.setBoolean(state, cc, organ, KEY_SOUL_BEAST, soulBeast, false));
@@ -154,7 +171,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     boolean increaseActive = updateIncreaseContribution(cc, organ, !soulBeast);
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
         organ,
         KEY_INCREASE_ACTIVE,
         OrganStateOps.setBoolean(state, cc, organ, KEY_INCREASE_ACTIVE, increaseActive, false));
@@ -206,10 +223,10 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "{} blocked extra damage: insufficient hunpo (needed={} current={} increase={})",
-            prefix(),
-            format(hunpoCost),
-            format(currentHunpo),
-            format(increase));
+            HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
+            HunDaoBehaviorContextHelper.format(hunpoCost),
+            HunDaoBehaviorContextHelper.format(currentHunpo),
+            HunDaoBehaviorContextHelper.format(increase));
       }
       return damage;
     }
@@ -217,10 +234,10 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "{} applied soul beast strike: extra={} cost={} increase={} target={}",
-          prefix(),
-          format(extraDamage),
-          format(hunpoCost),
-          format(increase),
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
+          HunDaoBehaviorContextHelper.format(extraDamage),
+          HunDaoBehaviorContextHelper.format(hunpoCost),
+          HunDaoBehaviorContextHelper.format(increase),
           target.getName().getString());
     }
     REENTRY_GUARD.set(Boolean.TRUE);
@@ -263,10 +280,10 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "{} increase contribution updated: active={} request={} previous={}",
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
           activate,
           requestActive,
-          format(previous));
+          HunDaoBehaviorContextHelper.format(previous));
     }
     return activate;
   }
@@ -306,10 +323,14 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (soulBeast) {
       MultiCooldown.Entry shieldTickEntry = cooldown.entry(KEY_LAST_SHIELD_TICK);
       logStateChange(
-          LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, updateEntry(shieldTickEntry, currentTick));
+          LOGGER,
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
+          organ,
+          KEY_LAST_SHIELD_TICK,
+          updateEntry(shieldTickEntry, currentTick));
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
           organ,
           KEY_LAST_SHIELD_AMOUNT,
           OrganStateOps.setDouble(
@@ -328,7 +349,7 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
       if (clampedTick != lastRefresh) {
         logStateChange(
             LOGGER,
-            prefix(),
+            HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
             organ,
             KEY_LAST_SHIELD_TICK,
             updateEntry(shieldTickEntry, clampedTick));
@@ -346,10 +367,14 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     double maxHunpo = runtimeContext.getResourceOps().readMaxHunpo(player);
     if (!(maxHunpo > 0.0D)) {
       logStateChange(
-          LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, updateEntry(shieldTickEntry, currentTick));
+          LOGGER,
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
+          organ,
+          KEY_LAST_SHIELD_TICK,
+          updateEntry(shieldTickEntry, currentTick));
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
           organ,
           KEY_LAST_SHIELD_AMOUNT,
           OrganStateOps.setDouble(
@@ -365,10 +390,14 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     }
     float updated = AbsorptionHelper.applyAbsorption(player, shieldValue, SHIELD_MODIFIER_ID, true);
     logStateChange(
-        LOGGER, prefix(), organ, KEY_LAST_SHIELD_TICK, updateEntry(shieldTickEntry, currentTick));
+        LOGGER,
+        HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
+        organ,
+        KEY_LAST_SHIELD_TICK,
+        updateEntry(shieldTickEntry, currentTick));
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
         organ,
         KEY_LAST_SHIELD_AMOUNT,
         OrganStateOps.setDouble(
@@ -376,12 +405,12 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "{} refreshed shield: player={} shield={} increase={} hunpo_max={} updated_abs={}",
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(MODULE_NAME),
           player.getScoreboardName(),
-          format(shieldValue),
-          format(increase),
-          format(maxHunpo),
-          format(updated));
+          HunDaoBehaviorContextHelper.format(shieldValue),
+          HunDaoBehaviorContextHelper.format(increase),
+          HunDaoBehaviorContextHelper.format(maxHunpo),
+          HunDaoBehaviorContextHelper.format(updated));
     }
   }
 
@@ -397,14 +426,6 @@ public final class TiPoGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
         .lookupChannel(HUN_DAO_INCREASE_EFFECT)
         .map(channel -> Math.max(0.0D, channel.get()))
         .orElse(0.0D);
-  }
-
-  private String format(double value) {
-    return String.format(Locale.ROOT, "%.3f", value);
-  }
-
-  private String prefix() {
-    return "[compat/guzhenren][hun_dao][ti_po_gu]";
   }
 
   private static MultiCooldown createCooldown(ChestCavityInstance cc, ItemStack organ) {

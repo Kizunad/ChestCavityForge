@@ -33,7 +33,12 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
     this.rootKey = Objects.requireNonNull(rootKey, "rootKey");
   }
 
-  /** 判断 {@code CustomData} 中对应位置是否存在“兽魂”负载。 */
+  /**
+   * Checks if the item stack has a stored soul.
+   *
+   * @param organ The item stack.
+   * @return {@code true} if the item stack has a stored soul, {@code false} otherwise.
+   */
   @Override
   public boolean hasStoredSoul(ItemStack organ) {
     if (organ == null || organ.isEmpty()) {
@@ -51,7 +56,15 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
     return state.contains(STORAGE_KEY, Tag.TAG_COMPOUND);
   }
 
-  /** 写入“兽魂”快照（若 {@link #canStore(ItemStack, net.minecraft.world.entity.LivingEntity)} 通过）。 */
+  /**
+   * Stores the soul of the given entity in the item stack.
+   *
+   * @param organ The item stack.
+   * @param entity The entity.
+   * @param storedGameTime The game time at which the entity was stored.
+   * @return An optional containing the beast soul record, or an empty optional if the soul could
+   *     not be stored.
+   */
   @Override
   public Optional<BeastSoulRecord> store(
       ItemStack organ, net.minecraft.world.entity.LivingEntity entity, long storedGameTime) {
@@ -66,7 +79,13 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
             });
   }
 
-  /** 读取当前存储的“兽魂”快照，不修改物品。 */
+  /**
+   * Peeks at the stored soul in the item stack.
+   *
+   * @param organ The item stack.
+   * @return An optional containing the beast soul record, or an empty optional if no soul is
+   *     stored.
+   */
   @Override
   public Optional<BeastSoulRecord> peek(ItemStack organ) {
     if (organ == null || organ.isEmpty()) {
@@ -102,7 +121,13 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
     return Optional.of(new BeastSoulRecord(id, entityData, storedAt));
   }
 
-  /** 移除并返回已存“兽魂”快照。 */
+  /**
+   * Consumes the stored soul from the item stack.
+   *
+   * @param organ The item stack.
+   * @return An optional containing the beast soul record, or an empty optional if no soul was
+   *     stored.
+   */
   @Override
   public Optional<BeastSoulRecord> consume(ItemStack organ) {
     Optional<BeastSoulRecord> record = peek(organ);
@@ -110,7 +135,11 @@ public final class ItemBeastSoulStorage implements BeastSoulStorage {
     return record;
   }
 
-  /** 清空“兽魂”存储区；若根状态为空则移除根键。 */
+  /**
+   * Clears the stored soul from the item stack.
+   *
+   * @param organ The item stack.
+   */
   @Override
   public void clear(ItemStack organ) {
     if (organ == null || organ.isEmpty()) {

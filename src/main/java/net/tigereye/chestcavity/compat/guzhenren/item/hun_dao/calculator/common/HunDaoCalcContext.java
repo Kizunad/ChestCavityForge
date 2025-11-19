@@ -57,18 +57,38 @@ public final class HunDaoCalcContext {
     return new HunDaoCalcContext(currentHunpo, maxHunpo, 1.0, 1);
   }
 
+  /**
+   * Returns the current hunpo value.
+   *
+   * @return The current hunpo value.
+   */
   public double getCurrentHunpo() {
     return currentHunpo;
   }
 
+  /**
+   * Returns the maximum hunpo value.
+   *
+   * @return The maximum hunpo value.
+   */
   public double getMaxHunpo() {
     return maxHunpo;
   }
 
+  /**
+   * Returns the efficiency value.
+   *
+   * @return The efficiency value.
+   */
   public double getEfficiency() {
     return efficiency;
   }
 
+  /**
+   * Returns the stack count.
+   *
+   * @return The stack count.
+   */
   public int getStackCount() {
     return stackCount;
   }

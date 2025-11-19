@@ -66,14 +66,14 @@ java {
     withSourcesJar()
 }
 
-/*spotless {
+spotless {
     java {
         googleJavaFormat('1.17.0')
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
     }
-}*/
+}
 
 checkstyle {
     toolVersion = '10.20.0'

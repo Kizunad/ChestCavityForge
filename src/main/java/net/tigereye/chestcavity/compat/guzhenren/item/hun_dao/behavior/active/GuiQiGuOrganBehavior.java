@@ -88,10 +88,24 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
 
   private GuiQiGuOrganBehavior() {}
 
+  /**
+   * Ensures that any necessary data linkages are established.
+   *
+   * <p>Currently a placeholder for future expansion.
+   *
+   * @param cc The chest cavity instance.
+   */
   public void ensureAttached(ChestCavityInstance cc) {
     // No dedicated linkage channels needed yet; method kept for future expansion.
   }
 
+  /**
+   * Called when the organ is equipped.
+   *
+   * @param cc The chest cavity instance.
+   * @param organ The organ being equipped.
+   * @param staleRemovalContexts A list of stale removal contexts.
+   */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {
@@ -169,6 +183,12 @@ public final class GuiQiGuOrganBehavior extends AbstractGuzhenrenOrganBehavior
     return damage;
   }
 
+  /**
+   * Checks if the given chest cavity contains a Gui Qi Gu.
+   *
+   * @param cc The chest cavity instance to check.
+   * @return {@code true} if the chest cavity contains a Gui Qi Gu, {@code false} otherwise.
+   */
   public static boolean hasGuiQiGu(ChestCavityInstance cc) {
     if (cc == null || cc.inventory == null) {
       return false;

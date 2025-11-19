@@ -16,6 +16,11 @@ public final class SoulBeastStateEvents {
 
   private SoulBeastStateEvents() {}
 
+  /**
+   * Synchronizes the soul beast state to the client when a player logs in.
+   *
+   * @param event The player login event.
+   */
   @SubscribeEvent
   public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
     if (event.getEntity() instanceof ServerPlayer player) {
@@ -23,6 +28,11 @@ public final class SoulBeastStateEvents {
     }
   }
 
+  /**
+   * Synchronizes the soul beast state to the client when a player respawns.
+   *
+   * @param event The player respawn event.
+   */
   @SubscribeEvent
   public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
     if (event.getEntity() instanceof ServerPlayer player) {
@@ -30,6 +40,11 @@ public final class SoulBeastStateEvents {
     }
   }
 
+  /**
+   * Synchronizes the soul beast state to the client when a player changes dimension.
+   *
+   * @param event The player changed dimension event.
+   */
   @SubscribeEvent
   public static void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
     if (event.getEntity() instanceof ServerPlayer player) {
@@ -37,6 +52,11 @@ public final class SoulBeastStateEvents {
     }
   }
 
+  /**
+   * Synchronizes the soul beast state to the client when a player is cloned.
+   *
+   * @param event The player clone event.
+   */
   @SubscribeEvent
   public static void onClone(PlayerEvent.Clone event) {
     if (event.getEntity() instanceof ServerPlayer player) {
@@ -44,6 +64,11 @@ public final class SoulBeastStateEvents {
     }
   }
 
+  /**
+   * Periodically synchronizes the soul beast state to the client.
+   *
+   * @param event The server tick event.
+   */
   @SubscribeEvent
   public static void onServerTick(ServerTickEvent.Post event) {
     long current = event.getServer().getTickCount();
@@ -63,6 +88,11 @@ public final class SoulBeastStateEvents {
     }
   }
 
+  /**
+   * Clears the client-side soul beast state cache when the level is unloaded.
+   *
+   * @param event The level unload event.
+   */
   @OnlyIn(Dist.CLIENT)
   @SubscribeEvent
   public static void onClientUnload(LevelEvent.Unload event) {
