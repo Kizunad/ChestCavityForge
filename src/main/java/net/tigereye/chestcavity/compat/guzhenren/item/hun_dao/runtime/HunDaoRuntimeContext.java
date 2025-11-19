@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime;
 
 import java.util.Optional;
 import javax.annotation.Nullable;
+
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
@@ -183,26 +184,56 @@ public final class HunDaoRuntimeContext {
 
     private Builder() {}
 
+    /**
+     * Set the entity for the context.
+     *
+     * @param entity the entity
+     * @return this builder
+     */
     public Builder entity(@Nullable LivingEntity entity) {
       this.entity = entity;
       return this;
     }
 
+    /**
+     * Set the resource operations implementation.
+     *
+     * @param resourceOps the resource ops
+     * @return this builder
+     */
     public Builder resourceOps(@Nullable HunDaoResourceOps resourceOps) {
       this.resourceOps = resourceOps;
       return this;
     }
 
+    /**
+     * Set the FX operations implementation.
+     *
+     * @param fxOps the FX ops
+     * @return this builder
+     */
     public Builder fxOps(@Nullable HunDaoFxOps fxOps) {
       this.fxOps = fxOps;
       return this;
     }
 
+    /**
+     * Set the notification operations implementation.
+     *
+     * @param notificationOps the notification ops
+     * @return this builder
+     */
     public Builder notificationOps(@Nullable HunDaoNotificationOps notificationOps) {
       this.notificationOps = notificationOps;
       return this;
     }
 
+    /**
+     * Build the runtime context.
+     *
+     * @return the new runtime context
+     * @throws IllegalStateException if a required field is missing
+     */
     public HunDaoRuntimeContext build() {
       if (entity == null) {
         throw new IllegalStateException("Entity is required");

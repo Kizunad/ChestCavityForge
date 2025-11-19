@@ -4,11 +4,12 @@ import com.mojang.logging.LogUtils;
 import java.util.Locale;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastState;
 import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.state.SoulBeastStateManager;
-import org.slf4j.Logger;
 
 /**
  * State machine for managing hun-dao entity states.
@@ -30,6 +31,11 @@ public final class HunDaoStateMachine {
 
   private final LivingEntity entity;
 
+  /**
+   * Create a new state machine for an entity.
+   *
+   * @param entity the entity
+   */
   public HunDaoStateMachine(LivingEntity entity) {
     this.entity = entity;
   }

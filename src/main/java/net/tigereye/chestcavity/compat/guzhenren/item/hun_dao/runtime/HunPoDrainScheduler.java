@@ -3,13 +3,14 @@ package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime;
 import com.mojang.logging.LogUtils;
 import java.util.Locale;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
-import org.slf4j.Logger;
 
 /**
  * Scheduler for periodic hunpo drainage during soul beast transformation.
