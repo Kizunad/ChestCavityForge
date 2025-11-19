@@ -20,14 +20,29 @@ public final class SoulBeastStateChangedEvent extends Event {
     this.current = current;
   }
 
+  /**
+   * Returns the entity whose soul beast state changed.
+   *
+   * @return The entity.
+   */
   public LivingEntity entity() {
     return entity;
   }
 
+  /**
+   * Returns the previous soul beast state snapshot.
+   *
+   * @return The previous snapshot.
+   */
   public Snapshot previous() {
     return previous;
   }
 
+  /**
+   * Returns the current soul beast state snapshot.
+   *
+   * @return The current snapshot.
+   */
   public Snapshot current() {
     return current;
   }
@@ -37,6 +52,12 @@ public final class SoulBeastStateChangedEvent extends Event {
 
     public static final Snapshot EMPTY = new Snapshot(false, false, false);
 
+    /**
+     * Returns whether the snapshot represents an active soul beast state.
+     *
+     * @return {@code true} if the snapshot represents an active soul beast state, {@code false}
+     *     otherwise.
+     */
     public boolean isSoulBeast() {
       return active || enabled || permanent;
     }

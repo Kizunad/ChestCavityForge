@@ -45,6 +45,11 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
 
   private XiaoHunGuBehavior() {}
 
+  /**
+   * Ensures that any necessary data linkages are established.
+   *
+   * @param cc The chest cavity instance.
+   */
   public void ensureAttached(ChestCavityInstance cc) {
     if (cc == null) {
       return;
@@ -53,6 +58,13 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     ensureChannel(context, HUN_DAO_INCREASE_EFFECT);
   }
 
+  /**
+   * Called when the organ is equipped.
+   *
+   * @param cc The chest cavity instance.
+   * @param organ The organ being equipped.
+   * @param staleRemovalContexts A list of stale removal contexts.
+   */
   public void onEquip(
       ChestCavityInstance cc, ItemStack organ, List<OrganRemovalContext> staleRemovalContexts) {
     if (cc == null || organ == null || organ.isEmpty()) {

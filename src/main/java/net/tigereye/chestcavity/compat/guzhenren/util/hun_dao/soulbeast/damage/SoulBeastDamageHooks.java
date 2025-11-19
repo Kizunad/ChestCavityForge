@@ -11,6 +11,11 @@ public final class SoulBeastDamageHooks {
 
   private SoulBeastDamageHooks() {}
 
+  /**
+   * Registers a soul beast damage listener.
+   *
+   * @param listener The listener to register.
+   */
   public static void register(SoulBeastDamageListener listener) {
     Objects.requireNonNull(listener, "listener");
     if (!LISTENERS.contains(listener)) {
@@ -18,12 +23,24 @@ public final class SoulBeastDamageHooks {
     }
   }
 
+  /**
+   * Unregisters a soul beast damage listener.
+   *
+   * @param listener The listener to unregister.
+   */
   public static void unregister(SoulBeastDamageListener listener) {
     if (listener != null) {
       LISTENERS.remove(listener);
     }
   }
 
+  /**
+   * Applies hunpo cost modifiers to the base hunpo cost.
+   *
+   * @param context The damage context.
+   * @param baseHunpoCost The base hunpo cost.
+   * @return The modified hunpo cost.
+   */
   public static double applyHunpoCostModifiers(
       SoulBeastDamageContext context, double baseHunpoCost) {
     double cost = baseHunpoCost;
@@ -33,6 +50,13 @@ public final class SoulBeastDamageHooks {
     return cost;
   }
 
+  /**
+   * Applies post-conversion damage modifiers to the base damage.
+   *
+   * @param context The damage context.
+   * @param baseDamage The base damage.
+   * @return The modified damage.
+   */
   public static float applyPostConversionDamageModifiers(
       SoulBeastDamageContext context, float baseDamage) {
     float damage = baseDamage;

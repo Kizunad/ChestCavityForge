@@ -13,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.AbstractGuzhenrenOrganBehavior;
 import net.tigereye.chestcavity.compat.guzhenren.item.common.OrganState;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.HunDaoBehaviorContextHelper;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
@@ -122,7 +123,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     OrganState state = organState(organ, STATE_ROOT_KEY);
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(),
         organ,
         KEY_LAST_SYNC_TICK,
         OrganStateOps.setLong(
@@ -174,10 +175,10 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     if (currentHunpo < attackHunpoCost) {
       LOGGER.debug(
           "{} {} lacks hunpo for soul flame ({} / {})",
-          prefix(),
-          describePlayer(player),
-          format(currentHunpo),
-          format(attackHunpoCost));
+          HunDaoBehaviorContextHelper.logPrefix(),
+          HunDaoBehaviorContextHelper.describePlayer(player),
+          HunDaoBehaviorContextHelper.format(currentHunpo),
+          HunDaoBehaviorContextHelper.format(attackHunpoCost));
       return damage;
     }
 
@@ -212,8 +213,8 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
         soulState.setSoulFlameRemainingTicks(SOUL_FLAME_DURATION_SECONDS * 20);
         LOGGER.trace(
             "{} tracked soul flame state: dps={} ticks={}",
-            prefix(),
-            format(dotDamage),
+            HunDaoBehaviorContextHelper.logPrefix(),
+            HunDaoBehaviorContextHelper.format(dotDamage),
             SOUL_FLAME_DURATION_SECONDS * 20);
       }
 
@@ -222,9 +223,9 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       }
       LOGGER.debug(
           "{} applied soul flame via runtime context DoT={}s @{} to {}",
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(),
           SOUL_FLAME_DURATION_SECONDS,
-          format(dotDamage),
+          HunDaoBehaviorContextHelper.format(dotDamage),
           target.getName().getString());
     }
     return damage;
@@ -239,9 +240,16 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     ensureActiveState(entity, cc, organ);
     SoulBeastStateManager.setActive(player, true);
     LOGGER.debug(
-        "{} soul beast organ removed but state retained for {}", prefix(), describePlayer(player));
+        "{} soul beast organ removed but state retained for {}",
+        HunDaoBehaviorContextHelper.logPrefix(),
+        HunDaoBehaviorContextHelper.describePlayer(player));
   }
 
+  /**
+   * Returns the beast soul storage.
+   *
+   * @return The beast soul storage.
+   */
   public BeastSoulStorage beastSoulStorage() {
     return beastSoulStorage;
   }
@@ -251,7 +259,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     OrganState state = organState(organ, STATE_ROOT_KEY);
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(),
         organ,
         KEY_BOUND,
         OrganStateOps.setBoolean(state, cc, organ, KEY_BOUND, true, false));
@@ -259,7 +267,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       UUID ownerId = cc.owner.getUUID();
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(),
           organ,
           KEY_OWNER_MSB,
           OrganStateOps.setLong(
@@ -272,7 +280,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
               0L));
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(),
           organ,
           KEY_OWNER_LSB,
           OrganStateOps.setLong(
@@ -285,7 +293,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
               0L));
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(),
           organ,
           KEY_BOUND_TIME,
           OrganStateOps.setLong(
@@ -299,7 +307,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     }
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(),
         organ,
         KEY_ACTIVE,
         OrganStateOps.setBoolean(state, cc, organ, KEY_ACTIVE, true, false));
@@ -317,7 +325,7 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     OrganState state = organState(organ, STATE_ROOT_KEY);
     logStateChange(
         LOGGER,
-        prefix(),
+        HunDaoBehaviorContextHelper.logPrefix(),
         organ,
         KEY_ACTIVE,
         OrganStateOps.setBoolean(state, cc, organ, KEY_ACTIVE, true, false));
@@ -325,14 +333,14 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       UUID uuid = player.getUUID();
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(),
           organ,
           KEY_OWNER_MSB,
           OrganStateOps.setLong(
               state, cc, organ, KEY_OWNER_MSB, uuid.getMostSignificantBits(), value -> value, 0L));
       logStateChange(
           LOGGER,
-          prefix(),
+          HunDaoBehaviorContextHelper.logPrefix(),
           organ,
           KEY_OWNER_LSB,
           OrganStateOps.setLong(
@@ -355,26 +363,11 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
       soulState.incrementSoulBeastActivationCount();
       LOGGER.debug(
           "{} soul beast activated for {} (total activations: {})",
-          prefix(),
-          describePlayer(player),
+          HunDaoBehaviorContextHelper.logPrefix(),
+          HunDaoBehaviorContextHelper.describePlayer(player),
           soulState.getSoulBeastActivationCount());
     }
   }
 
   // 资源维护与 DoT 已解耦至 HunDaoMiddleware
-
-  /** 简要描述玩家（记日志用）。 */
-  private String describePlayer(Player player) {
-    return player.getScoreboardName();
-  }
-
-  /** 数值格式化为两位小数（日志用）。 */
-  private String format(double value) {
-    return String.format(Locale.ROOT, "%.2f", value);
-  }
-
-  /** 统一日志前缀。 */
-  private String prefix() {
-    return "[compat/guzhenren][hun_dao]";
-  }
 }
