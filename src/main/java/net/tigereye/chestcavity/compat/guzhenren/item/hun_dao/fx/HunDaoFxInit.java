@@ -1,10 +1,10 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
-import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
-
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.tuning.HunDaoFxTuning;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
+
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 /**
  * Initializes all Hun Dao FX templates on game startup.

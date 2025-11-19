@@ -30,14 +30,21 @@
 3. **Javadoc 批处理**
    - 制定 `Hun Dao API` Javadoc 模板（单句摘要 + `@param`/`@return`）并记录在 docs。
    - 先覆盖公共接口/抽象基类，再处理行为/FX/客户端 tab。
-4. **杂项规则**
+4. **FX 目录专项清理（46 条类告警）**
+   - 目标：`HunDaoFxInit/Registry/Router/SoulFlameFx` 四个类集中出现的 46 条告警（详见 `docs/checkstyle_hun_dao.log` 顶部快照）。
+   - 流程：
+     1. `rg '/fx/' docs/checkstyle_hun_dao.log` 筛出各类 warning 数量；
+     2. 先统一 import 分组（`java` → 第三方 → `net.minecraft` → `net.tigereye`），再按方法可见性补齐 Javadoc/摘要；
+     3. `HunDaoFxRouter` 保证 `sendFx` overloads 从最少参数到最多参数排序；`HunDaoSoulFlameFx` 拆分超长行并在字段/方法间保留空行。
+   - 成果：FX 子系统可提供“零告警”样例，方便迁移到其他目录。2025-??-?? 批次已实操并在 `./gradlew checkstyleMain` 复核为 0 warning。
+5. **杂项规则**
    - 按 log 定位超长行/空行/变量作用域问题。
    - 对 `PackageNameCheck` 以外 residual 逐条消灭。
-5. **自检**
+6. **自检**
    - `./gradlew checkstyleMain` & `./gradlew compileJava`。
    - `rg -n "TODO|FIXME"` 确认无新增临时代码。
    - 更新 `smoke_test_script.md`（新增“Checkstyle 零告警”步骤）。
-6. **文档与报告**
+7. **文档与报告**
    - 编写 `Phase8_Report.md` + `Phase8_Acceptance.md`。
    - 如需中途插入 P8.x，沿用 `Phase8.1_Plan.md` 约定。
 

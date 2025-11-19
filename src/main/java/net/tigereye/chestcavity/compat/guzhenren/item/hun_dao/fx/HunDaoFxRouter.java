@@ -1,10 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
-import com.mojang.logging.LogUtils;
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -14,6 +13,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.engine.fx.FxContext;
 import net.tigereye.chestcavity.engine.fx.FxEngine;
+
+import com.mojang.logging.LogUtils;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import org.slf4j.Logger;
 
 /**
@@ -65,6 +67,39 @@ public final class HunDaoFxRouter {
   }
 
   /**
+   * Core dispatch implementation.
+   *
+   * @param level the server level
+   * @param position the world position
+   * @param fxId the FX resource location
+   * @param target optional target entity (for entity-anchored effects)
+   * @return true if dispatched, false otherwise
+   */
+  private static boolean dispatch(
+      ServerLevel level, Vec3 position, ResourceLocation fxId, Entity target) {
+    HunDaoFxRegistry.FxTemplate template = HunDaoFxRegistry.get(fxId);
+
+    if (template == null) {
+      LOGGER.debug("[hun_dao][fx_router] FX template not registered: {}", fxId);
+      return false;
+    }
+
+    // Play sound if configured
+    SoundEvent soundEvent = template.resolveSound();
+    if (soundEvent != null && shouldPlaySound(level, fxId, template, target, position)) {
+      playSound(level, position, soundEvent, template.soundVolume, template.soundPitch);
+    }
+
+    // Dispatch particles via FxEngine if template includes particle data
+    if (template.particleTemplate != null || template.continuous) {
+      int duration = template.continuous ? template.durationTicks : 20; // One-shot = 1 second
+      return dispatchToFxEngine(level, position, fxId, target, duration);
+    }
+
+    return true;
+  }
+
+  /**
    * Dispatches a continuous (ambient) FX effect.
    *
    * @param level the server level
@@ -99,39 +134,6 @@ public final class HunDaoFxRouter {
 
     // Dispatch continuous FX via FxEngine
     return dispatchToFxEngine(level, target.position(), fxId, target, durationTicks);
-  }
-
-  /**
-   * Core dispatch implementation.
-   *
-   * @param level the server level
-   * @param position the world position
-   * @param fxId the FX resource location
-   * @param target optional target entity (for entity-anchored effects)
-   * @return true if dispatched, false otherwise
-   */
-  private static boolean dispatch(
-      ServerLevel level, Vec3 position, ResourceLocation fxId, Entity target) {
-    HunDaoFxRegistry.FxTemplate template = HunDaoFxRegistry.get(fxId);
-
-    if (template == null) {
-      LOGGER.debug("[hun_dao][fx_router] FX template not registered: {}", fxId);
-      return false;
-    }
-
-    // Play sound if configured
-    SoundEvent soundEvent = template.resolveSound();
-    if (soundEvent != null && shouldPlaySound(level, fxId, template, target, position)) {
-      playSound(level, position, soundEvent, template.soundVolume, template.soundPitch);
-    }
-
-    // Dispatch particles via FxEngine if template includes particle data
-    if (template.particleTemplate != null || template.continuous) {
-      int duration = template.continuous ? template.durationTicks : 20; // One-shot = 1 second
-      return dispatchToFxEngine(level, position, fxId, target, duration);
-    }
-
-    return true;
   }
 
   /**

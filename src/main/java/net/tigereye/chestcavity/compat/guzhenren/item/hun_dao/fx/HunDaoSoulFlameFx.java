@@ -1,7 +1,7 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx;
 
-import com.mojang.logging.LogUtils;
 import java.util.function.IntConsumer;
+
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -13,6 +13,8 @@ import net.tigereye.chestcavity.engine.fx.FxContext;
 import net.tigereye.chestcavity.engine.fx.FxEngine;
 import net.tigereye.chestcavity.engine.fx.FxRegistry;
 import net.tigereye.chestcavity.registration.CCSoundEvents;
+
+import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 /**
@@ -185,6 +187,7 @@ public final class HunDaoSoulFlameFx {
         TickOps.schedule(level, this, interval);
       }
     }
+
     TickOps.schedule(level, new ManualRunner(), interval);
   }
 }
