@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.ui.HunDaoNotificat
 public record HunDaoNotificationPayload(Component message, NotificationCategory category)
     implements CustomPacketPayload {
 
+  /** The type of this payload. */
   public static final Type<HunDaoNotificationPayload> TYPE =
       new Type<>(ResourceLocation.fromNamespaceAndPath("guzhenren", "hun_dao/notification"));
 
