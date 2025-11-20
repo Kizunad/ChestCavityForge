@@ -13,5 +13,10 @@ public final class GRDamageTypes {
           Registries.DAMAGE_TYPE,
           ResourceLocation.fromNamespaceAndPath("guzhenren", "organ_internal"));
 
+  public static final ResourceKey<DamageType> HUNPO_XIAOSUAN =
+      ResourceKey.create(
+          Registries.DAMAGE_TYPE,
+          ResourceLocation.fromNamespaceAndPath("guzhenren", "hunpoxiaosuan"));
+
   private GRDamageTypes() {}
 }

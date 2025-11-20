@@ -7,6 +7,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.HunDaoCooldownOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.calculator.HunDaoDaohenOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.rarity.HunDaoSoulRarityOps;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
 import net.tigereye.chestcavity.registration.CCAttachments;
 
@@ -49,6 +50,7 @@ public final class HunDaoRuntimeContext {
   private final HunDaoStateMachine stateMachine;
   private final HunDaoDaohenOps scarOps;
   private final HunDaoCooldownOps cooldownOps;
+  private final HunDaoSoulRarityOps rarityOps;
 
   private HunDaoRuntimeContext(
       LivingEntity entity,
@@ -56,7 +58,8 @@ public final class HunDaoRuntimeContext {
       HunDaoFxOps fxOps,
       HunDaoNotificationOps notificationOps,
       HunDaoDaohenOps scarOps,
-      HunDaoCooldownOps cooldownOps) {
+      HunDaoCooldownOps cooldownOps,
+      HunDaoSoulRarityOps rarityOps) {
     this.entity = entity;
     this.resourceOps = resourceOps;
     this.fxOps = fxOps;
@@ -64,6 +67,7 @@ public final class HunDaoRuntimeContext {
     this.stateMachine = new HunDaoStateMachine(entity);
     this.scarOps = scarOps;
     this.cooldownOps = cooldownOps;
+    this.rarityOps = rarityOps;
   }
 
   // ===== Factory Methods =====
@@ -84,6 +88,7 @@ public final class HunDaoRuntimeContext {
         .notificationOps(HunDaoOpsAdapter.INSTANCE)
         .scarOps(HunDaoDaohenOps.INSTANCE)
         .cooldownOps(HunDaoCooldownOps.INSTANCE)
+        .rarityOps(HunDaoSoulRarityOps.INSTANCE)
         .build();
   }
 
@@ -165,6 +170,15 @@ public final class HunDaoRuntimeContext {
   }
 
   /**
+   * Get the soul rarity operations helper.
+   *
+   * @return rarity ops instance
+   */
+  public HunDaoSoulRarityOps getRarityOps() {
+    return rarityOps;
+  }
+
+  /**
    * Get the soul state storage.
    *
    * <p>This retrieves the persistent soul state from the entity's attachments.
@@ -214,6 +228,7 @@ public final class HunDaoRuntimeContext {
     private HunDaoNotificationOps notificationOps;
     private HunDaoDaohenOps scarOps;
     private HunDaoCooldownOps cooldownOps;
+    private HunDaoSoulRarityOps rarityOps;
 
     private Builder() {}
 
@@ -284,6 +299,17 @@ public final class HunDaoRuntimeContext {
     }
 
     /**
+     * Set the rarity operations implementation.
+     *
+     * @param rarityOps rarity ops
+     * @return this builder
+     */
+    public Builder rarityOps(@Nullable HunDaoSoulRarityOps rarityOps) {
+      this.rarityOps = rarityOps;
+      return this;
+    }
+
+    /**
      * Build the runtime context.
      *
      * @return the new runtime context
@@ -308,8 +334,10 @@ public final class HunDaoRuntimeContext {
       if (cooldownOps == null) {
         throw new IllegalStateException("CooldownOps is required");
       }
+      HunDaoSoulRarityOps resolvedRarityOps =
+          rarityOps != null ? rarityOps : HunDaoSoulRarityOps.INSTANCE;
       return new HunDaoRuntimeContext(
-          entity, resourceOps, fxOps, notificationOps, scarOps, cooldownOps);
+          entity, resourceOps, fxOps, notificationOps, scarOps, cooldownOps, resolvedRarityOps);
     }
   }
 }

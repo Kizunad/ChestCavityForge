@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.SoulRarity;
+
 /**
  * Client-side state cache for Hun Dao mechanics.
  *

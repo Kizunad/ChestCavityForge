@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.SoulRarity;
 
 /**
  * Persistent state container for hun-dao soul-related data.
@@ -30,6 +31,7 @@ public final class HunDaoSoulState {
       "soul_beast_total_duration_ticks";
   private static final String KEY_SOUL_BEAST_ACTIVATION_COUNT = "soul_beast_activation_count";
   private static final String KEY_LAST_HUNPO_LEAK_TICK = "last_hunpo_leak_tick";
+  private static final String KEY_SOUL_RARITY = "soul_rarity";
 
   // DOT tracking
   private int soulFlameRemainingTicks;
@@ -42,6 +44,9 @@ public final class HunDaoSoulState {
   // Scheduler state
   private long lastHunpoLeakTick;
 
+  // Soul rarity persistence (shared with UI + runtime rarity services)
+  private SoulRarity soulRarity;
+
   /** Creates a new empty soul state with all counters reset to zero. */
   public HunDaoSoulState() {
     this.soulFlameRemainingTicks = 0;
@@ -49,6 +54,7 @@ public final class HunDaoSoulState {
     this.soulBeastTotalDurationTicks = 0L;
     this.soulBeastActivationCount = 0;
     this.lastHunpoLeakTick = 0L;
+    this.soulRarity = SoulRarity.UNIDENTIFIED;
   }
 
   // ===== Soul Flame DOT =====
@@ -152,6 +158,18 @@ public final class HunDaoSoulState {
     this.lastHunpoLeakTick = Math.max(0L, tick);
   }
 
+  // ===== Soul Rarity =====
+
+  /** Returns the persisted soul rarity. */
+  public SoulRarity getSoulRarity() {
+    return soulRarity;
+  }
+
+  /** Sets the persisted soul rarity (null resets to UNIDENTIFIED). */
+  public void setSoulRarity(@Nullable SoulRarity rarity) {
+    this.soulRarity = rarity == null ? SoulRarity.UNIDENTIFIED : rarity;
+  }
+
   // ===== Persistence =====
 
   /**
@@ -166,6 +184,7 @@ public final class HunDaoSoulState {
     tag.putLong(KEY_SOUL_BEAST_TOTAL_DURATION_TICKS, soulBeastTotalDurationTicks);
     tag.putInt(KEY_SOUL_BEAST_ACTIVATION_COUNT, soulBeastActivationCount);
     tag.putLong(KEY_LAST_HUNPO_LEAK_TICK, lastHunpoLeakTick);
+    tag.putString(KEY_SOUL_RARITY, soulRarity.name());
     return tag;
   }
 
@@ -183,6 +202,13 @@ public final class HunDaoSoulState {
     soulBeastTotalDurationTicks = tag.getLong(KEY_SOUL_BEAST_TOTAL_DURATION_TICKS);
     soulBeastActivationCount = tag.getInt(KEY_SOUL_BEAST_ACTIVATION_COUNT);
     lastHunpoLeakTick = tag.getLong(KEY_LAST_HUNPO_LEAK_TICK);
+    if (tag.contains(KEY_SOUL_RARITY)) {
+      try {
+        soulRarity = SoulRarity.valueOf(tag.getString(KEY_SOUL_RARITY));
+      } catch (IllegalArgumentException ex) {
+        soulRarity = SoulRarity.UNIDENTIFIED;
+      }
+    }
   }
 
   /**
@@ -197,6 +223,7 @@ public final class HunDaoSoulState {
     copy.soulBeastTotalDurationTicks = this.soulBeastTotalDurationTicks;
     copy.soulBeastActivationCount = this.soulBeastActivationCount;
     copy.lastHunpoLeakTick = this.lastHunpoLeakTick;
+    copy.soulRarity = this.soulRarity;
     return copy;
   }
 
@@ -212,7 +239,8 @@ public final class HunDaoSoulState {
         && Double.compare(soulFlameDps, other.soulFlameDps) == 0
         && soulBeastTotalDurationTicks == other.soulBeastTotalDurationTicks
         && soulBeastActivationCount == other.soulBeastActivationCount
-        && lastHunpoLeakTick == other.lastHunpoLeakTick;
+        && lastHunpoLeakTick == other.lastHunpoLeakTick
+        && soulRarity == other.soulRarity;
   }
 
   @Override
@@ -222,7 +250,8 @@ public final class HunDaoSoulState {
         soulFlameDps,
         soulBeastTotalDurationTicks,
         soulBeastActivationCount,
-        lastHunpoLeakTick);
+        lastHunpoLeakTick,
+        soulRarity);
   }
 
   @Override
@@ -234,6 +263,7 @@ public final class HunDaoSoulState {
         soulFlameDps,
         soulBeastActivationCount,
         soulBeastTotalDurationTicks,
-        lastHunpoLeakTick);
+        lastHunpoLeakTick)
+        + String.format(Locale.ROOT, " rarity=%s", soulRarity.name());
   }
 }

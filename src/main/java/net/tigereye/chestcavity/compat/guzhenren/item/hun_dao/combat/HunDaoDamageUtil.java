@@ -6,6 +6,8 @@ import java.util.WeakHashMap;
 
 import javax.annotation.Nullable;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.level.Level;
+import net.tigereye.chestcavity.compat.guzhenren.registry.GRDamageSources;
 
 /** Utility helpers for marking soul-dao melee attacks. */
 public final class HunDaoDamageUtil {
@@ -34,5 +36,15 @@ public final class HunDaoDamageUtil {
    */
   public static boolean isHunDao(@Nullable DamageSource source) {
     return source != null && MARKED_SOURCES.contains(source);
+  }
+
+  /**
+   * Builds the shared "Hun Po Xiao Suan" damage source declared in data pack tags and marks it as
+   * Hun Dao damage for downstream logic.
+   */
+  public static DamageSource createHunpoXiaoSuanSource(Level level) {
+    DamageSource source = GRDamageSources.hunpoXiaoSuan(level);
+    markHunDaoAttack(source);
+    return source;
   }
 }

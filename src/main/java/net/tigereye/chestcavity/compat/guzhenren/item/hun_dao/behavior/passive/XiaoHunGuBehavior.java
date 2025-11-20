@@ -215,6 +215,6 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     }
     long now = player.level().getGameTime();
     double scar = Math.max(0.0, context.getScarOps().effectiveCached(player, now));
-    return 1.0 + scar;
+    return 1.0 + scar / 1000.0;
   }
 }

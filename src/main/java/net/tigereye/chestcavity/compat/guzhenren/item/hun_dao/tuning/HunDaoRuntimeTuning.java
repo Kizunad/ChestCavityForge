@@ -1,5 +1,8 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning;
 
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.HunDaoSoulLevelHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.HunDaoSoulLevelTier;
+
 /**
  * Runtime-tuning constants for Hun Dao interfaces introduced in Phase 9.
  *
@@ -57,6 +60,31 @@ public final class HunDaoRuntimeTuning {
     public static final double MIN_MULTIPLIER = 0.5D;
 
     /** Threshold for detecting scar delta that should invalidate caches. */
+    public static final double EPSILON = 1e-3D;
+  }
+
+  /** Tuning constants for mortal-shell (non-soul-beast) hun po limits. */
+  public static final class MortalShell {
+    private MortalShell() {}
+
+    /** Base conversion ratio: every 1 HP safely carries this much hun po. */
+    public static final double HUNPO_PER_HP = 1000.0D / 20.0D;
+
+    /** Maximum person units allowed outside soul beast state (亿人魂). */
+    public static final double MAX_PERSON_UNITS =
+        HunDaoSoulLevelTier.HUNDRED_MILLION_PERSON.getMinPersonUnits();
+
+    /** Hard upper bound for hun po softcap outside soul beast form. */
+    public static final double ABSOLUTE_MAX_HUNPO =
+        MAX_PERSON_UNITS * HunDaoSoulLevelHelper.HUNPO_PER_PERSON;
+
+    /** Minimum leakage applied per second when above the softcap. */
+    public static final double MIN_DECAY_PER_SECOND = 1.0D;
+
+    /** Fraction of the excess capacity drained per second (softcap behaviour). */
+    public static final double DECAY_FRACTION = 0.10D;
+
+    /** Floating point tolerance for comparisons while clamping. */
     public static final double EPSILON = 1e-3D;
   }
 }

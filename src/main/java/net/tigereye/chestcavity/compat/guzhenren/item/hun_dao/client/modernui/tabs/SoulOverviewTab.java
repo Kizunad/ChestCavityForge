@@ -1,6 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.tabs;
 
+import java.text.NumberFormat;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.annotation.Nullable;
@@ -18,9 +21,11 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.HunDaoClientState;
-import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.SoulRarity;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.SoulState;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.client.modernui.IHunDaoPanelTab;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.HunDaoSoulLevelHelper;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.HunDaoSoulLevelTier;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.soul.SoulRarity;
 
 /**
  * Soul Overview Tab implementation.
@@ -131,7 +136,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
 
     // Soul Level
     sb.append(I18n.get("text.chestcavity.hun_dao.soul_level"));
-    sb.append(formatSoulLevel(state.getSoulLevel(playerId)));
+    sb.append(formatSoulLevel(state, playerId));
     sb.append("\n");
 
     // Soul Rarity
@@ -184,15 +189,28 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
     return I18n.get(state.getTranslationKey());
   }
 
-  private String formatSoulLevel(int level) {
-    return level > 0 ? String.valueOf(level) : I18n.get("text.chestcavity.hun_dao.placeholder");
+  private String formatSoulLevel(HunDaoClientState state, UUID playerId) {
+    double hunPoMax = state.getHunPoMax(playerId);
+    HunDaoSoulLevelTier tier = HunDaoSoulLevelHelper.resolveTier(hunPoMax);
+    long units = HunDaoSoulLevelHelper.computePersonUnits(hunPoMax);
+    String tierLabel = I18n.get(tier.getTranslationKey());
+    String unitsPattern = I18n.get("text.chestcavity.hun_dao.soul_level_units");
+    String unitsLabel =
+        String.format(
+            Locale.ROOT,
+            unitsPattern,
+            NumberFormat.getIntegerInstance(Locale.ROOT).format(units));
+    return tierLabel + " · " + unitsLabel;
   }
 
   private String formatSoulRarity(SoulRarity rarity) {
-    if (rarity == null) {
-      return I18n.get(SoulRarity.UNIDENTIFIED.getTranslationKey());
+    SoulRarity resolved = rarity == null ? SoulRarity.UNIDENTIFIED : rarity;
+    String title = I18n.get(resolved.getTranslationKey());
+    String desc = I18n.get(resolved.getDescriptionKey());
+    if (desc != null && !desc.equals(resolved.getDescriptionKey())) {
+      return title + " · " + desc;
     }
-    return I18n.get(rarity.getTranslationKey());
+    return title;
   }
 
   private String formatSoulMax(int max) {
@@ -269,7 +287,7 @@ public class SoulOverviewTab implements IHunDaoPanelTab {
         context,
         section,
         I18n.get("text.chestcavity.hun_dao.soul_level").replace(": ", ""),
-        formatSoulLevel(state.getSoulLevel(playerId)));
+        formatSoulLevel(state, playerId));
 
     // Soul Rarity row
     addFieldRow(

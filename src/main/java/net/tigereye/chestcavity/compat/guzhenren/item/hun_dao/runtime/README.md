@@ -63,6 +63,7 @@ Unified runtime context providing access to all hun-dao operations and state for
 - Builder pattern for testing with mock implementations
 - Convenience methods for entity type checking
 - Phase 9 scar/cooldown helpers available through `getScarOps()` / `getCooldownOps()`
+- Phase 9 soul rarity helper exposed via `getRarityOps()` for all稀有度系数计算
 
 **Usage:**
 ```java
@@ -149,6 +150,7 @@ HunDaoRuntimeContext
 ├─ HunDaoStateMachine ──→ SoulBeastStateManager ──→ SoulBeastState
 ├─ HunDaoDaohenOps ────→ Resource Bridge (Phase 9 placeholder math)
 ├─ HunDaoCooldownOps ──→ Placeholder cooldown scaling (Phase 9)
+├─ HunDaoSoulRarityOps ─→ HunDaoSoulState + rarity profiles (Phase 9新增)
 └─ HunDaoSoulState ────→ CCAttachments
 ```
 

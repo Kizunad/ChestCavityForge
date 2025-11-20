@@ -107,6 +107,9 @@ public class ChestCavity {
     // Hun Dao hunpo drain scheduler
     NeoForge.EVENT_BUS.register(
         net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunPoDrainScheduler.INSTANCE);
+    // Mortal-shell softcap scheduler for Hun Po capacity
+    NeoForge.EVENT_BUS.register(
+        net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunPoCapacityScheduler.INSTANCE);
     NeoForge.EVENT_BUS.addListener(TestSoulSpawner::onServerTick);
     NeoForge.EVENT_BUS.addListener(PlayerGhostSpawner::onServerTick);
     SoulClanSpawner.init();

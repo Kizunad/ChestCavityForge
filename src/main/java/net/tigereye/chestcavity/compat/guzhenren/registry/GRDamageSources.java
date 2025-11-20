@@ -18,4 +18,13 @@ public final class GRDamageSources {
             .getOrThrow(GRDamageTypes.ORGAN_INTERNAL);
     return new DamageSource(type);
   }
+
+  /** Shared hun po damage source for魂道技能。 */
+  public static DamageSource hunpoXiaoSuan(Level level) {
+    Holder<DamageType> type =
+        level.registryAccess()
+            .lookupOrThrow(Registries.DAMAGE_TYPE)
+            .getOrThrow(GRDamageTypes.HUNPO_XIAOSUAN);
+    return new DamageSource(type);
+  }
 }
