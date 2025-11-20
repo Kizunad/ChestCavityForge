@@ -34,4 +34,29 @@ public final class HunDaoRuntimeTuning {
     /** Default minimal cooldown (ticks) when scaling skills. */
     public static final long DEFAULT_MIN_TICKS = 20L;
   }
+
+  /** Tuning constants for soul beast defensive scaling. */
+  public static final class SoulBeastDefense {
+    private SoulBeastDefense() {}
+
+    /** Dao-hen softcap for damage mitigation scaling. */
+    public static final double SCAR_SOFTCAP = 2000.0D;
+
+    /** Maximum percentage of incoming damage that can be mitigated (0.0–1.0). */
+    public static final double MAX_REDUCTION = 0.6D;
+  }
+
+  /** Tuning constants for Hun Po drain scaling. */
+  public static final class HunPoDrain {
+    private HunPoDrain() {}
+
+    /** Maximum multiplier applied when Dao-hen is zero (faster drain). */
+    public static final double MAX_MULTIPLIER = 1.5D;
+
+    /** Minimum multiplier applied when Dao-hen reaches the softcap (slower drain). */
+    public static final double MIN_MULTIPLIER = 0.5D;
+
+    /** Threshold for detecting scar delta that should invalidate caches. */
+    public static final double EPSILON = 1e-3D;
+  }
 }

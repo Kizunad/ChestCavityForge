@@ -93,13 +93,18 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     double soulIntentBonus = (!soulBeast && hasXiaoHunGu(cc)) ? computeSoulIntentBonus(cc) : 0.0;
     double hunpoGain = HunDaoTuning.DaHunGu.RECOVER * (1.0 + soulIntentBonus);
     if (hunpoGain > 0.0) {
-      runtimeContext.getResourceOps().adjustDouble(player, "hunpo", hunpoGain, true, "zuida_hunpo");
+      double scarMultiplier = computeScarMultiplier(runtimeContext, player);
+      double scaledGain = hunpoGain * scarMultiplier;
+      runtimeContext
+          .getResourceOps()
+          .adjustDouble(player, "hunpo", scaledGain, true, "zuida_hunpo");
       HunDaoBehaviorContextHelper.debugLog(
           MODULE_NAME,
           player,
-          "+{} hunpo (soul_intent_bonus={})",
-          HunDaoBehaviorContextHelper.format(hunpoGain),
-          HunDaoBehaviorContextHelper.format(soulIntentBonus));
+          "+{} hunpo (soul_intent_bonus={} scar_mult={})",
+          HunDaoBehaviorContextHelper.format(scaledGain),
+          HunDaoBehaviorContextHelper.format(soulIntentBonus),
+          HunDaoBehaviorContextHelper.format(scarMultiplier));
     }
     if (HunDaoTuning.DaHunGu.NIANTOU > 0.0) {
       runtimeContext
@@ -225,5 +230,14 @@ public final class DaHunGuBehavior extends AbstractGuzhenrenOrganBehavior
       return 0.0;
     }
     return hasDaHunGu(cc) ? WEILING_ATTACK_COST_REDUCTION : 0.0;
+  }
+
+  private double computeScarMultiplier(HunDaoRuntimeContext context, Player player) {
+    if (context == null || player == null) {
+      return 1.0;
+    }
+    long now = player.level().getGameTime();
+    double scar = Math.max(0.0, context.getScarOps().effectiveCached(player, now));
+    return 1.0 + scar;
   }
 }

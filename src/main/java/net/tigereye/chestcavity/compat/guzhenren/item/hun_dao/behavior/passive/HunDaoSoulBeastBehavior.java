@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -17,6 +18,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.behavior.common.Hu
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.combat.HunDaoDamageUtil;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRuntimeContext;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.storage.HunDaoSoulState;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoRuntimeTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.CombatEntityUtil;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.OrganStateOps;
@@ -26,6 +28,7 @@ import net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast.storage.
 import net.tigereye.chestcavity.linkage.ActiveLinkageContext;
 import net.tigereye.chestcavity.linkage.LinkageChannel;
 import net.tigereye.chestcavity.linkage.LinkageManager;
+import net.tigereye.chestcavity.listeners.OrganIncomingDamageListener;
 import net.tigereye.chestcavity.listeners.OrganOnHitListener;
 import net.tigereye.chestcavity.listeners.OrganRemovalContext;
 import net.tigereye.chestcavity.listeners.OrganRemovalListener;
@@ -48,7 +51,11 @@ import org.slf4j.Logger;
  * bound_time}：绑定发生时的游戏时间 - {@code last_sync_tick}：上次慢速心跳写入时间（调试用）
  */
 public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavior
-    implements OrganSlowTickListener, OrganOnHitListener, OrganRemovalListener {
+    implements
+        OrganSlowTickListener,
+        OrganIncomingDamageListener,
+        OrganOnHitListener,
+        OrganRemovalListener {
 
   public static final HunDaoSoulBeastBehavior INSTANCE = new HunDaoSoulBeastBehavior();
 
@@ -66,6 +73,10 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
   private static final double ATTACK_HUNPO_COST = HunDaoTuning.SoulBeast.ON_HIT_COST;
   private static final double SOUL_FLAME_PERCENT = HunDaoTuning.SoulFlame.DPS_FACTOR;
   private static final int SOUL_FLAME_DURATION_SECONDS = HunDaoTuning.SoulFlame.DURATION_SECONDS;
+  private static final double SCAR_MITIGATION_SOFTCAP =
+      HunDaoRuntimeTuning.SoulBeastDefense.SCAR_SOFTCAP;
+  private static final double SCAR_MITIGATION_MAX =
+      HunDaoRuntimeTuning.SoulBeastDefense.MAX_REDUCTION;
 
   private static final String STATE_ROOT_KEY = "HunDaoSoulBeast";
   private static final String KEY_BOUND = "bound";
@@ -243,6 +254,40 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
     return damage;
   }
 
+  @Override
+  public float onIncomingDamage(
+      DamageSource source,
+      LivingEntity victim,
+      ChestCavityInstance cc,
+      ItemStack organ,
+      float damage) {
+    if (!(victim instanceof Player player)
+        || player.level().isClientSide()
+        || source == null
+        || damage <= 0.0F
+        || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
+        || !SoulBeastStateManager.isActive(player)) {
+      return damage;
+    }
+
+    HunDaoRuntimeContext context = HunDaoBehaviorContextHelper.getContext(player);
+    long now = player.level().getGameTime();
+    double scar = Math.max(0.0, context.getScarOps().effectiveCached(player, now));
+    double multiplier = damageMultiplierFromScar(scar);
+    float adjusted = (float) Math.max(0.0, damage * multiplier);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "{} soul beast mitigation applied: scar={} dmg={}→{} multiplier={}",
+          HunDaoBehaviorContextHelper.logPrefix(),
+          HunDaoBehaviorContextHelper.format(scar),
+          HunDaoBehaviorContextHelper.format(damage),
+          HunDaoBehaviorContextHelper.format(adjusted),
+          HunDaoBehaviorContextHelper.format(multiplier));
+    }
+    return adjusted;
+  }
+
   /** Maintains active state and ownership when the organ is removed. 器官被移除时保持活跃态与绑定信息。 */
   @Override
   public void onRemoved(LivingEntity entity, ChestCavityInstance cc, ItemStack organ) {
@@ -379,6 +424,15 @@ public final class HunDaoSoulBeastBehavior extends AbstractGuzhenrenOrganBehavio
           HunDaoBehaviorContextHelper.describePlayer(player),
           soulState.getSoulBeastActivationCount());
     }
+  }
+
+  private double damageMultiplierFromScar(double scar) {
+    if (scar <= 0.0) {
+      return 1.0;
+    }
+    double ratio = Math.min(1.0, scar / SCAR_MITIGATION_SOFTCAP);
+    double mitigation = Math.min(SCAR_MITIGATION_MAX, ratio * SCAR_MITIGATION_MAX);
+    return 1.0 - mitigation;
   }
 
   // 资源维护与 DoT 已解耦至 HunDaoMiddleware

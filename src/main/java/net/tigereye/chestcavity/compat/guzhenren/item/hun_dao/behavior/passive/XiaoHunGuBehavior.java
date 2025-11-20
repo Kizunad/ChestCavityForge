@@ -114,7 +114,12 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
       return; // only one Xiao Hun Gu may apply its effect
     }
     double bonus = Math.max(0.0, channel.get());
-    double amount = HunDaoTuning.XiaoHunGu.RECOVER * (1.0 + bonus);
+    double baseAmount = HunDaoTuning.XiaoHunGu.RECOVER * (1.0 + bonus);
+    if (baseAmount <= 0.0) {
+      return;
+    }
+    double scarMultiplier = computeScarMultiplier(runtimeContext, player);
+    double amount = baseAmount * scarMultiplier;
 
     // Access resource ops through runtime context
     runtimeContext.getResourceOps().adjustDouble(player, "hunpo", amount, true, "zuida_hunpo");
@@ -122,9 +127,10 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
     HunDaoBehaviorContextHelper.debugLog(
         MODULE_NAME,
         player,
-        "+{} hunpo (bonus={})",
+        "+{} hunpo (bonus={} scar_mult={})",
         HunDaoBehaviorContextHelper.format(amount),
-        HunDaoBehaviorContextHelper.format(bonus));
+        HunDaoBehaviorContextHelper.format(bonus),
+        HunDaoBehaviorContextHelper.format(scarMultiplier));
 
     OrganState state = organState(organ, STATE_ROOT_KEY);
     OrganStateOps.setLong(
@@ -201,5 +207,14 @@ public final class XiaoHunGuBehavior extends AbstractGuzhenrenOrganBehavior
       refreshIncreaseContribution(cc, candidate, true);
       break;
     }
+  }
+
+  private double computeScarMultiplier(HunDaoRuntimeContext context, Player player) {
+    if (context == null || player == null) {
+      return 1.0;
+    }
+    long now = player.level().getGameTime();
+    double scar = Math.max(0.0, context.getScarOps().effectiveCached(player, now));
+    return 1.0 + scar;
   }
 }

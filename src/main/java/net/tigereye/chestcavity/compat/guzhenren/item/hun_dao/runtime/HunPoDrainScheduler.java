@@ -1,6 +1,9 @@
 package net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
@@ -8,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoRuntimeTuning;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoTuning;
 
 import com.mojang.logging.LogUtils;
@@ -30,6 +34,7 @@ public final class HunPoDrainScheduler {
   public static final HunPoDrainScheduler INSTANCE = new HunPoDrainScheduler();
 
   private boolean enabled = true;
+  private final Map<UUID, Double> scarSnapshots = new ConcurrentHashMap<>();
 
   private HunPoDrainScheduler() {}
 
@@ -93,8 +98,11 @@ public final class HunPoDrainScheduler {
       return;
     }
 
-    // Leak hunpo per second
-    double leakAmount = HunDaoTuning.SoulBeast.HUNPO_LEAK_PER_SEC;
+    double scar = Math.max(0.0, context.getScarOps().effectiveCached(player, gameTime));
+    trackScarChange(player, scar, context);
+    double multiplier = resolveDrainMultiplier(scar);
+
+    double leakAmount = HunDaoTuning.SoulBeast.HUNPO_LEAK_PER_SEC * multiplier;
     double currentHunpo = context.getResourceOps().readHunpo(player);
 
     if (currentHunpo < leakAmount) {
@@ -111,11 +119,13 @@ public final class HunPoDrainScheduler {
     // Perform the leak
     context.getResourceOps().leakHunpoPerSecond(player, leakAmount);
     LOGGER.trace(
-        "[hun_dao][scheduler] {} leaked {} hunpo ({} -> {})",
+        "[hun_dao][scheduler] {} leaked {} hunpo ({} -> {}) scar={} mult={}",
         describe(player),
         format(leakAmount),
         format(currentHunpo),
-        format(currentHunpo - leakAmount));
+        format(currentHunpo - leakAmount),
+        format(scar),
+        format(multiplier));
   }
 
   // ===== Utilities =====
@@ -129,5 +139,34 @@ public final class HunPoDrainScheduler {
 
   private String format(double value) {
     return String.format(Locale.ROOT, "%.2f", value);
+  }
+
+  private double resolveDrainMultiplier(double scar) {
+    double ratio =
+        Math.min(
+            1.0,
+            Math.max(
+                0.0, scar / HunDaoRuntimeTuning.SoulBeastDefense.SCAR_SOFTCAP));
+    double range =
+        HunDaoRuntimeTuning.HunPoDrain.MAX_MULTIPLIER
+            - HunDaoRuntimeTuning.HunPoDrain.MIN_MULTIPLIER;
+    return HunDaoRuntimeTuning.HunPoDrain.MAX_MULTIPLIER - (range * ratio);
+  }
+
+  private void trackScarChange(
+      ServerPlayer player, double scar, HunDaoRuntimeContext context) {
+    UUID uuid = player.getUUID();
+    Double previous = scarSnapshots.put(uuid, scar);
+    if (previous == null) {
+      return;
+    }
+    if (Math.abs(previous - scar) > HunDaoRuntimeTuning.HunPoDrain.EPSILON) {
+      context.getScarOps().invalidate(player);
+      LOGGER.trace(
+          "[hun_dao][scheduler] scar delta detected for {} ({} -> {}), invalidated cache",
+          describe(player),
+          format(previous),
+          format(scar));
+    }
   }
 }
