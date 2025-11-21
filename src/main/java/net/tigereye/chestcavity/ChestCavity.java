@@ -231,6 +231,9 @@ public class ChestCavity {
     event.addListener(new GuScriptRuleLoader());
     event.addListener(new GuScriptFlowLoader());
     event.addListener(new net.tigereye.chestcavity.compat.guzhenren.gufang.GuFangRecipeLoader());
+    event.addListener(
+        new net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity
+            .HunDaoSoulAvatarTemplateLoader());
     // FX definitions are client-only; do not register on server reload
   }
 

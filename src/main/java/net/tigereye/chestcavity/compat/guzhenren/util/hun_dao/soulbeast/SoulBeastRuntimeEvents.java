@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.compat.guzhenren.util.hun_dao.soulbeast;
 
 import java.util.Optional;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -159,17 +160,27 @@ public final class SoulBeastRuntimeEvents {
   @SubscribeEvent
   public static void onServerTick(ServerTickEvent.Post event) {
     long current = event.getServer().getTickCount();
-    for (Player player : event.getServer().getPlayerList().getPlayers()) {
-      if (!SoulBeastStateManager.isActive(player)) {
-        continue; // fast path when not a soul beast
-      }
-      // once per second: leak hunpo and keep saturation topped off
-      if ((current % 20L) == 0L) {
-        HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, 3.0);
-        HunDaoMiddleware.INSTANCE.handlerPlayer(player);
-        maybeApplyIntimidation(player);
-      }
+    if ((current % 20L) != 0L) {
+      return;
     }
+    MinecraftServer server = event.getServer();
+    tickPlayerSoulBeasts(server);
+    tickNonPlayerSoulBeasts(server, current);
+  }
+
+  private static void tickPlayerSoulBeasts(MinecraftServer server) {
+    for (Player player : server.getPlayerList().getPlayers()) {
+      if (!SoulBeastStateManager.isActive(player)) {
+        continue;
+      }
+      HunDaoMiddleware.INSTANCE.leakHunpoPerSecond(player, 3.0);
+      HunDaoMiddleware.INSTANCE.handlerPlayer(player);
+      maybeApplyIntimidation(player);
+    }
+  }
+
+  private static void tickNonPlayerSoulBeasts(MinecraftServer server, long currentTick) {
+    // 当前所有非玩家魂兽（如魂道分身）通过各自 Hook/实体 Tick 维持状态；预留入口便于未来扩展。
   }
 
   /** Handles soul beast state change events to update runtime state and effects. */

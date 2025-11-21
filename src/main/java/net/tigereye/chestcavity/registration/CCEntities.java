@@ -7,6 +7,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tigereye.chestcavity.ChestCavity;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.entity.XiaoGuangIllusionEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity.HunDaoSoulAvatarEntity;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity.HunDaoSoulAvatarWorldBossEntity;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.JianQiGuSlashProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SingleSwordProjectile;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.entity.SwordShadowClone;
@@ -105,6 +107,30 @@ public final class CCEntities {
                   .clientTrackingRange(48)
                   .updateInterval(1)
                   .build(ChestCavity.MODID + ":mad_bull"));
+
+  public static final DeferredHolder<EntityType<?>, EntityType<HunDaoSoulAvatarEntity>>
+      HUN_DAO_SOUL_AVATAR =
+          ENTITY_TYPES.register(
+              "hun_dao_soul_avatar",
+              () ->
+                  EntityType.Builder.<HunDaoSoulAvatarEntity>of(
+                          HunDaoSoulAvatarEntity::new, MobCategory.MISC)
+                      .sized(0.6f, 1.8f)
+                      .clientTrackingRange(48)
+                      .updateInterval(2)
+                      .build(ChestCavity.MODID + ":hun_dao_soul_avatar"));
+
+  public static final DeferredHolder<EntityType<?>, EntityType<HunDaoSoulAvatarWorldBossEntity>>
+      HUN_DAO_SOUL_AVATAR_BOSS =
+          ENTITY_TYPES.register(
+              "hun_dao_soul_avatar_boss",
+              () ->
+                  EntityType.Builder.<HunDaoSoulAvatarWorldBossEntity>of(
+                          HunDaoSoulAvatarWorldBossEntity::new, MobCategory.MISC)
+                      .sized(0.8f, 2.1f)
+                      .clientTrackingRange(64)
+                      .updateInterval(2)
+                      .build(ChestCavity.MODID + ":hun_dao_soul_avatar_boss"));
 
   public static final DeferredHolder<EntityType<?>, EntityType<SoulChunkLoaderEntity>>
       SOUL_CHUNK_LOADER =

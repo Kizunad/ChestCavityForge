@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoClientAb
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoClientRenderers;
 import net.tigereye.chestcavity.compat.guzhenren.item.guang_dao.GuangDaoEntityAttributes;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoClientAbilities;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoEntityAttributes;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JianYingGuEvents;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientAbilities;
 import net.tigereye.chestcavity.compat.guzhenren.item.jian_dao.JiandaoClientRenderers;
@@ -100,6 +101,7 @@ public final class GuzhenrenModule {
   private static void installModListeners(IEventBus modBus) {
     modBus.addListener(JiandaoEntityAttributes::onAttributeCreation);
     modBus.addListener(GuangDaoEntityAttributes::onAttributeCreation);
+    modBus.addListener(HunDaoEntityAttributes::onAttributeCreation);
     modBus.addListener(SteelBoneAttributeHooks::onAttributeModification);
     if (FMLEnvironment.dist.isClient()) {
       modBus.addListener(Abilities::onClientSetup);
@@ -123,6 +125,8 @@ public final class GuzhenrenModule {
       modBus.addListener(BloodBoneBombClient::onRegisterRenderers);
       modBus.addListener(JiandaoClientRenderers::onRegisterRenderers);
       modBus.addListener(GuangDaoClientRenderers::onRegisterRenderers);
+      modBus.addListener(
+    net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.HunDaoClientRenderers::onRegisterRenderers);
       modBus.addListener(GuDaoClientRenderLayers::onAddLayers);
       // 注意：渲染事件(RenderLevelStageEvent)是 FORGE 总线事件，不应注册到 modBus
     }
@@ -163,5 +167,9 @@ public final class GuzhenrenModule {
     GuScriptModule.bootstrap();
     // Phase 5.1 fix: Initialize Hun Dao FX templates on both client and server
     net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.fx.HunDaoFxInit.init();
+    net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity.HunDaoSoulAvatarDefaultHook
+        .register();
+    net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity.HunDaoSoulAvatarKillLeechHook
+        .register();
   }
 }

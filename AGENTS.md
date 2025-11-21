@@ -67,3 +67,23 @@ The architecture is based on a **Polling Detection Model**.
 -   [ ] Implement more advanced conditions and actions (e.g., checking inventory, giving items, applying potion effects).
 -   [ ] Performance profiling and optimization of the polling mechanism.
 -   [ ] **(Low Priority)** Implement an optional real-time hook into `GuzhenrenResourceBridge` for instant feedback on self-initiated actions.
+
+---
+
+## 常见问题：Hun Dao 世界 Boss（hun_dao_soul_avatar_boss）无法召唤/瞬间消失
+
+**现象**：召唤世界 Boss 后立刻消失，日志显示 `removed: reason=KILLED` 或 `DISCARDED`，玩家尝试传送提示“未找到实体”。
+
+**根因**：
+- 分身基类 `HunDaoSoulAvatarEntity` 在缺省存档字段时会把寿命读成 0，`HunDaoSoulAvatarDefaultHook` 将寿命归零的实体按死亡移除。
+- 世界 Boss 生成时若 `resourceState` 为空或缺失魂魄数值，会被判定为 0 魂魄，随即被移除。
+
+**修复要点**：
+1) `HunDaoSoulAvatarEntity#readAdditionalSaveData` 缺省寿命改为 `-1`（永久），避免存档缺字段时读成 0。  
+2) 世界 Boss 覆盖 `getLifetimeTicks`/`setLifetimeTicks`，强制永久存在，不参与寿命移除。  
+3) `HunDaoSoulAvatarWorldBossEntity.ensureInitializedResources` 在资源缺失时回填初始魂魄（默认 10,000），刷新尺寸，防止出生即判定死亡。  
+4) Boss 移除日志增加原因与堆栈，便于后续排查。
+
+**定位/验证步骤**：
+- 查看服务器日志中 `[hun_dao][boss] removed: reason=...` 行，若为 `KILLED`/`DISCARDED` 且时间戳紧随召唤，即为上述问题。  
+- 在修复后的版本召唤 Boss，观察是否仍即时消失；若存在，请进一步提供最新日志。

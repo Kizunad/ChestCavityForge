@@ -24,6 +24,7 @@ import net.tigereye.chestcavity.soul.entity.SoulClanEntity;
 import net.tigereye.chestcavity.util.ChestCavityUtil;
 import net.tigereye.chestcavity.util.NetworkUtil;
 import net.tigereye.chestcavity.util.ScoreboardUpgradeManager;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity.HunDaoSoulAvatarWorldBossSpawner;
 
 public final class ServerEvents {
 
@@ -32,7 +33,6 @@ public final class ServerEvents {
       ChestCavity.MODID + ":received_chest_opener";
 
   private ServerEvents() {}
-
   public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
     if (event.getEntity() instanceof ServerPlayer player) {
       grantFirstJoinChestOpener(player);
@@ -42,6 +42,9 @@ public final class ServerEvents {
           new PlayerPreferenceSyncPayload(
               CCAttachments.getPlayerPreferences(player).export()));
       scheduleSync(player, true);
+      
+      // 魂道世界Boss生成器
+      HunDaoSoulAvatarWorldBossSpawner.handlePlayerLogin(player);
     }
   }
 

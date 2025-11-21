@@ -24,6 +24,14 @@ public final class HunDaoRuntimeTuning {
     public static final double EPSILON = 1e-6;
   }
 
+  /** Soul avatar general scaling knobs. */
+  public static final class SoulAvatarScaling {
+    private SoulAvatarScaling() {}
+
+    /** Hun po required per +1x size/attack scale. */
+    public static final double HUNPO_PER_SCALE_STEP = 100_000.0D;
+  }
+
   /** Tuning constants for Hun Dao cooldown scaling hooks. */
   public static final class Cooldown {
     private Cooldown() {}
@@ -86,5 +94,39 @@ public final class HunDaoRuntimeTuning {
 
     /** Floating point tolerance for comparisons while clamping. */
     public static final double EPSILON = 1e-3D;
+  }
+
+  /** Tuning constants for soul avatar kill-leech hooks. */
+  public static final class SoulAvatarKillLeech {
+    private SoulAvatarKillLeech() {}
+
+    /** Percentage of victim max HP converted into hun po on kill (0.001 = 0.1%). */
+    public static final double HP_FRACTION = 0.001D;
+  }
+
+  /** Tuning constants for the unique hostile soul avatar boss. */
+  public static final class SoulAvatarWorldBoss {
+    private SoulAvatarWorldBoss() {}
+
+    /** Initial hun po and capacity when spawned. */
+    public static final double INITIAL_HUNPO = 10_000.0D;
+
+    /** Max hun po gained per kill, based on victim HP. */
+    public static final double MAX_HUNPO_PER_HP = 0.10D;
+
+    /** Hun po (current) gained per point of victim hun po. */
+    public static final double HUNPO_GAIN_MULTIPLIER = 1.0D;
+
+    /** Cooldown between random teleports (ticks). */
+    public static final long TELEPORT_COOLDOWN_TICKS = 200L;
+
+    /** Scan radius when looking for low-HP prey to teleport onto. */
+    public static final double TELEPORT_SCAN_RADIUS = 64.0D;
+
+    /** Minimum horizontal spacing from reference players when spawning. */
+    public static final double MIN_SPAWN_DISTANCE = 4000.0D;
+
+    /** Additional randomized radius when selecting the spawn point. */
+    public static final double EXTRA_SPAWN_DISTANCE = 512.0D;
   }
 }
