@@ -26,4 +26,12 @@ public interface HunDaoSoulAvatarHook {
 
   /** 当实体以任意原因被移除时回调。 */
   default void onRemoved(HunDaoSoulAvatarEntity avatar, Entity.RemovalReason reason) {}
+
+  /** 同步魂魄到血量时触发。 */
+  default void onSyncHealth(HunDaoSoulAvatarEntity avatar) {}
+
+  /** 计算伤害减免时触发。 */
+  default double modifyDamage(HunDaoSoulAvatarEntity avatar, double damage) {
+    return damage;
+  }
 }

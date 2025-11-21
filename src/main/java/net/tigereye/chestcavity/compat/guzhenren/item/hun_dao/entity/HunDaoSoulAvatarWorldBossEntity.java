@@ -222,38 +222,7 @@ public class HunDaoSoulAvatarWorldBossEntity extends HunDaoSoulAvatarEntity {
     nextTeleportTick = now + HunDaoRuntimeTuning.SoulAvatarWorldBoss.TELEPORT_COOLDOWN_TICKS;
   }
 
-  @Override
-  public boolean killedEntity(ServerLevel level, LivingEntity victim) {
-    boolean result = super.killedEntity(level, victim);
-    if (!level.isClientSide) {
-      absorbVictim(victim);
-    }
-    return result;
-  }
 
-  private void absorbVictim(LivingEntity victim) {
-    double maxGain =
-        victim.getMaxHealth() * HunDaoRuntimeTuning.SoulAvatarWorldBoss.MAX_HUNPO_PER_HP;
-    double hunpoGain =
-        ResourceOps.openHandle(victim)
-                .map(handle -> handle.getHunpo().orElse(0.0D))
-                .orElse(0.0D)
-            * HunDaoRuntimeTuning.SoulAvatarWorldBoss.HUNPO_GAIN_MULTIPLIER;
-    ResourceOps.openHandle(this)
-        .ifPresent(
-            handle -> {
-              if (maxGain > 0.0D) {
-                handle.adjustDouble("zuida_hunpo", maxGain, true);
-              }
-              if (hunpoGain > 0.0D) {
-                handle.adjustHunpo(hunpoGain, true);
-              }
-              double current = handle.getHunpo().orElse(0.0D);
-              double maxHunpo = handle.getMaxHunpo().orElse(0.0D);
-              getResourceState().setHunpoSnapshot(current, maxHunpo);
-              refreshDimensions();
-            });
-  }
 
   @Override
   public void die(DamageSource source) {

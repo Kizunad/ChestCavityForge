@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.tigereye.chestcavity.ChestCavity;
 
+
 /**
  * 简易 Hook 注册中心，供魂道分身核心事件复用。
  */
@@ -25,6 +26,11 @@ public final class HunDaoSoulAvatarHookRegistry {
     Objects.requireNonNull(id, "id");
     Objects.requireNonNull(hook, "hook");
     HOOKS.put(id, hook);
+  }
+
+  static {
+    HunDaoSoulAvatarDefaultHook.register();
+    HunDaoSoulAvatarKillLeechHook.register();
   }
 
   public static Collection<HunDaoSoulAvatarHook> getHooks() {
@@ -65,5 +71,17 @@ public final class HunDaoSoulAvatarHookRegistry {
 
   public static void dispatchRemoved(HunDaoSoulAvatarEntity avatar, Entity.RemovalReason reason) {
     broadcast(hook -> hook.onRemoved(avatar, reason));
+  }
+
+  public static void dispatchSyncHealth(HunDaoSoulAvatarEntity avatar) {
+    broadcast(hook -> hook.onSyncHealth(avatar));
+  }
+
+  public static double dispatchModifyDamage(HunDaoSoulAvatarEntity avatar, double damage) {
+    double currentDamage = damage;
+    for (HunDaoSoulAvatarHook hook : HOOKS.values()) {
+      currentDamage = hook.modifyDamage(avatar, currentDamage);
+    }
+    return currentDamage;
   }
 }

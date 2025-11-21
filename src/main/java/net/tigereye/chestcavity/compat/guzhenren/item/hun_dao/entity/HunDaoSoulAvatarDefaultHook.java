@@ -12,7 +12,9 @@ import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoRunt
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.runtime.HunDaoStateMachine;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoRuntimeTuning;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.AttributeOps;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.entity.HunDaoSoulAvatarResourceState;
 
 /** Default server-side behaviour hook for soul avatars. */
 public final class HunDaoSoulAvatarDefaultHook implements HunDaoSoulAvatarHook {
@@ -35,6 +37,49 @@ public final class HunDaoSoulAvatarDefaultHook implements HunDaoSoulAvatarHook {
   public void onSpawn(HunDaoSoulAvatarEntity avatar) {
     ensureSoulBeastState(avatar);
     syncAttributes(avatar);
+  }
+
+  @Override
+  public void onSyncHealth(HunDaoSoulAvatarEntity avatar) {
+    if (avatar.level().isClientSide) {
+      return;
+    }
+    HunDaoSoulAvatarResourceState state = avatar.getResourceState();
+    double maxHunpo = Math.max(1.0D, state.getMaxHunpo());
+    double currentHunpo = Math.max(0.0D, state.getHunpo());
+
+    AttributeInstance maxHealthAttr = avatar.getAttribute(Attributes.MAX_HEALTH);
+    if (maxHealthAttr != null) {
+      if (Math.abs(maxHealthAttr.getBaseValue() - maxHunpo) > 1e-3) {
+        maxHealthAttr.setBaseValue(maxHunpo);
+      }
+    }
+
+    if (Math.abs(avatar.getHealth() - currentHunpo) > 1e-3) {
+      avatar.setHealth((float) currentHunpo);
+    }
+  }
+
+  @Override
+  public double modifyDamage(HunDaoSoulAvatarEntity avatar, double damage) {
+    if (!(damage > 0.0D)) {
+      return 0.0D;
+    }
+    double scar =
+        ResourceOps.openHandle(avatar)
+            .map(handle -> DaoHenResourceOps.get(handle, "daohen_hundao"))
+            .orElse(0.0D);
+    double ratio =
+        Math.min(
+            1.0D,
+            Math.max(
+                0.0D, scar / HunDaoRuntimeTuning.SoulBeastDefense.SCAR_SOFTCAP));
+    double reduction = ratio * HunDaoRuntimeTuning.SoulBeastDefense.MAX_REDUCTION;
+    double multiplier = 1.0D - reduction;
+    if (multiplier < 0.0D) {
+      multiplier = 0.0D;
+    }
+    return damage * multiplier;
   }
 
   @Override

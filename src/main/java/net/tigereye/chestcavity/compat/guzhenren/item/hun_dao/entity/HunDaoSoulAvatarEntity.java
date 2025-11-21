@@ -29,7 +29,7 @@ import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoRuntimeTuning;
-import net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps;
+
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
@@ -170,24 +170,7 @@ public class HunDaoSoulAvatarEntity extends PathfinderMob implements OwnableEnti
   }
 
   private double applyScarMitigation(double damage) {
-    if (!(damage > 0.0D)) {
-      return 0.0D;
-    }
-    double scar =
-        ResourceOps.openHandle(this)
-            .map(handle -> DaoHenResourceOps.get(handle, "daohen_hundao"))
-            .orElse(0.0D);
-    double ratio =
-        Math.min(
-            1.0D,
-            Math.max(
-                0.0D, scar / HunDaoRuntimeTuning.SoulBeastDefense.SCAR_SOFTCAP));
-    double reduction = ratio * HunDaoRuntimeTuning.SoulBeastDefense.MAX_REDUCTION;
-    double multiplier = 1.0D - reduction;
-    if (multiplier < 0.0D) {
-      multiplier = 0.0D;
-    }
-    return damage * multiplier;
+    return HunDaoSoulAvatarHookRegistry.dispatchModifyDamage(this, damage);
   }
 
   @Override
@@ -223,6 +206,16 @@ public class HunDaoSoulAvatarEntity extends PathfinderMob implements OwnableEnti
     state.copyFrom(ownerHandle);
     ResourceOps.openHandle(this).ifPresent(state::applyTo);
     this.refreshDimensions();
+  }
+
+  @Override
+  public void refreshDimensions() {
+    super.refreshDimensions();
+    syncHunpoToHealth();
+  }
+
+  protected void syncHunpoToHealth() {
+    HunDaoSoulAvatarHookRegistry.dispatchSyncHealth(this);
   }
 
   public void refreshSnapshotFromHandle() {
