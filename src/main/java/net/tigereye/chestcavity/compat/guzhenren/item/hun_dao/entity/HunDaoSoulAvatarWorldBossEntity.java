@@ -61,35 +61,8 @@ public class HunDaoSoulAvatarWorldBossEntity extends HunDaoSoulAvatarEntity {
   }
 
   @Override
-  public boolean hurt(DamageSource source, float amount) {
-    if (level().isClientSide || amount <= 0.0F) {
-      return super.hurt(source, amount);
-    }
-    double costPerDamage = HunDaoRuntimeTuning.SoulAvatarWorldBoss.HUNPO_PER_DAMAGE;
-    if (!(costPerDamage > 0.0D)) {
-      return super.hurt(source, amount);
-    }
-    double hunpoCost = Math.max(0.0D, amount) * costPerDamage;
-    double remainingDamage = amount;
-    Optional<ResourceHandle> handleOpt = ResourceOps.openHandle(this);
-    if (handleOpt.isPresent()) {
-      ResourceHandle handle = handleOpt.get();
-      double available = handle.getHunpo().orElse(0.0D);
-      double consumed = Math.min(available, hunpoCost);
-      if (consumed > 0.0D) {
-        handle.adjustHunpo(-consumed, true);
-      }
-      double remainingCost = Math.max(0.0D, hunpoCost - consumed);
-      remainingDamage = remainingCost / costPerDamage;
-      double current = handle.getHunpo().orElse(0.0D);
-      double maxHunpo = handle.getMaxHunpo().orElse(0.0D);
-      getResourceState().setHunpoSnapshot(current, maxHunpo);
-      refreshDimensions();
-    }
-    if (remainingDamage <= 0.0D) {
-      return true;
-    }
-    return super.hurt(source, (float) remainingDamage);
+  protected double getHunpoCostPerDamage() {
+    return HunDaoRuntimeTuning.SoulAvatarWorldBoss.HUNPO_PER_DAMAGE;
   }
 
   public static AttributeSupplier.Builder createAttributes() {

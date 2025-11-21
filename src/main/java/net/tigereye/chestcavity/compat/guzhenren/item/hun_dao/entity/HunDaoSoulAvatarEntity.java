@@ -29,6 +29,7 @@ import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoRuntimeTuning;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.guzhenren.util.PlayerSkinUtil;
@@ -126,6 +127,67 @@ public class HunDaoSoulAvatarEntity extends PathfinderMob implements OwnableEnti
       HunDaoSoulAvatarHookRegistry.dispatchDeath(this, source);
     }
     super.die(source);
+  }
+
+  @Override
+  public boolean hurt(DamageSource source, float amount) {
+    if (level().isClientSide || amount <= 0.0F) {
+      return super.hurt(source, amount);
+    }
+    double costPerDamage = getHunpoCostPerDamage();
+    if (!(costPerDamage > 0.0D)) {
+      return super.hurt(source, amount);
+    }
+    double hunpoCost = Math.max(0.0D, amount) * costPerDamage;
+    double remainingDamage = amount;
+    Optional<ResourceHandle> handleOpt = ResourceOps.openHandle(this);
+    if (handleOpt.isPresent()) {
+      ResourceHandle handle = handleOpt.get();
+      double available = handle.getHunpo().orElse(0.0D);
+      double consumed = Math.min(available, hunpoCost);
+      if (consumed > 0.0D) {
+        handle.adjustHunpo(-consumed, true);
+      }
+      double remainingCost = Math.max(0.0D, hunpoCost - consumed);
+      remainingDamage = remainingCost / costPerDamage;
+      double current = handle.getHunpo().orElse(0.0D);
+      double maxHunpo = handle.getMaxHunpo().orElse(0.0D);
+      getResourceState().setHunpoSnapshot(current, maxHunpo);
+      refreshDimensions();
+    }
+    if (remainingDamage <= 0.0D) {
+      return true;
+    }
+    double mitigated = applyScarMitigation(remainingDamage);
+    if (mitigated <= 0.0D) {
+      return true;
+    }
+    return super.hurt(source, (float) mitigated);
+  }
+
+  protected double getHunpoCostPerDamage() {
+    return 1.0D;
+  }
+
+  private double applyScarMitigation(double damage) {
+    if (!(damage > 0.0D)) {
+      return 0.0D;
+    }
+    double scar =
+        ResourceOps.openHandle(this)
+            .map(handle -> DaoHenResourceOps.get(handle, "daohen_hundao"))
+            .orElse(0.0D);
+    double ratio =
+        Math.min(
+            1.0D,
+            Math.max(
+                0.0D, scar / HunDaoRuntimeTuning.SoulBeastDefense.SCAR_SOFTCAP));
+    double reduction = ratio * HunDaoRuntimeTuning.SoulBeastDefense.MAX_REDUCTION;
+    double multiplier = 1.0D - reduction;
+    if (multiplier < 0.0D) {
+      multiplier = 0.0D;
+    }
+    return damage * multiplier;
   }
 
   @Override
