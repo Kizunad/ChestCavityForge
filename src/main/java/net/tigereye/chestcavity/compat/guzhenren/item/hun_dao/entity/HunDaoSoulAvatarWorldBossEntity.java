@@ -34,9 +34,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.tigereye.chestcavity.ChestCavity;
-import net.tigereye.chestcavity.guzhenren.XindeItemKeys;
 import net.tigereye.chestcavity.compat.guzhenren.item.hun_dao.tuning.HunDaoRuntimeTuning;
+import net.tigereye.chestcavity.compat.guzhenren.util.behavior.DaoHenResourceOps;
 import net.tigereye.chestcavity.compat.guzhenren.util.behavior.ResourceOps;
+import net.tigereye.chestcavity.guzhenren.XindeItemKeys;
 import net.tigereye.chestcavity.guzhenren.resource.GuzhenrenResourceBridge.ResourceHandle;
 import net.tigereye.chestcavity.soul.playerghost.PlayerGhostEntity;
 
@@ -57,6 +58,38 @@ public class HunDaoSoulAvatarWorldBossEntity extends HunDaoSoulAvatarEntity {
       EntityType<? extends HunDaoSoulAvatarWorldBossEntity> type, Level level) {
     super(type, level);
     this.xpReward = 1000;
+  }
+
+  @Override
+  public boolean hurt(DamageSource source, float amount) {
+    if (level().isClientSide || amount <= 0.0F) {
+      return super.hurt(source, amount);
+    }
+    double costPerDamage = HunDaoRuntimeTuning.SoulAvatarWorldBoss.HUNPO_PER_DAMAGE;
+    if (!(costPerDamage > 0.0D)) {
+      return super.hurt(source, amount);
+    }
+    double hunpoCost = Math.max(0.0D, amount) * costPerDamage;
+    double remainingDamage = amount;
+    Optional<ResourceHandle> handleOpt = ResourceOps.openHandle(this);
+    if (handleOpt.isPresent()) {
+      ResourceHandle handle = handleOpt.get();
+      double available = handle.getHunpo().orElse(0.0D);
+      double consumed = Math.min(available, hunpoCost);
+      if (consumed > 0.0D) {
+        handle.adjustHunpo(-consumed, true);
+      }
+      double remainingCost = Math.max(0.0D, hunpoCost - consumed);
+      remainingDamage = remainingCost / costPerDamage;
+      double current = handle.getHunpo().orElse(0.0D);
+      double maxHunpo = handle.getMaxHunpo().orElse(0.0D);
+      getResourceState().setHunpoSnapshot(current, maxHunpo);
+      refreshDimensions();
+    }
+    if (remainingDamage <= 0.0D) {
+      return true;
+    }
+    return super.hurt(source, (float) remainingDamage);
   }
 
   public static AttributeSupplier.Builder createAttributes() {
@@ -105,7 +138,28 @@ public class HunDaoSoulAvatarWorldBossEntity extends HunDaoSoulAvatarEntity {
       return;
     }
     ensureInitializedResources();
+    tickHunpoRegen();
     tickTeleportAbility();
+  }
+
+  private void tickHunpoRegen() {
+    long gameTime = level().getGameTime();
+    if ((gameTime % 20L) != 0L) {
+      return;
+    }
+    double regen = HunDaoRuntimeTuning.SoulAvatarWorldBoss.HUNPO_REGEN_PER_SECOND;
+    if (!(regen > 0.0D)) {
+      return;
+    }
+    ResourceOps.openHandle(this)
+        .ifPresent(
+            handle -> {
+              handle.adjustHunpo(regen, true);
+              double current = handle.getHunpo().orElse(0.0D);
+              double maxHunpo = handle.getMaxHunpo().orElse(0.0D);
+              getResourceState().setHunpoSnapshot(current, maxHunpo);
+              refreshDimensions();
+            });
   }
 
   private void ensureInitializedResources() {
@@ -126,12 +180,16 @@ public class HunDaoSoulAvatarWorldBossEntity extends HunDaoSoulAvatarEntity {
     }
     initializedResources = true;
     double initial = HunDaoRuntimeTuning.SoulAvatarWorldBoss.INITIAL_HUNPO;
+    double initScar = HunDaoRuntimeTuning.SoulAvatarWorldBoss.INITIAL_DAO_HEN;
+    double initLiuPai = HunDaoRuntimeTuning.SoulAvatarWorldBoss.INITIAL_LIUPAI_EXP;
     getResourceState().setHunpoSnapshot(initial, initial);
     ResourceOps.openHandle(this)
         .ifPresent(
             handle -> {
               handle.writeDouble("hunpo", initial);
               handle.writeDouble("zuida_hunpo", initial);
+              DaoHenResourceOps.set(handle, "daohen_hundao", initScar);
+              handle.writeDouble("liupai_hundao", initLiuPai);
             });
     refreshDimensions();
     nextTeleportTick = level().getGameTime() + 20_000L; // 1000s 延时首跳，避免瞬间离开

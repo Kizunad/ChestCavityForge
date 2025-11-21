@@ -117,6 +117,18 @@ public final class HunDaoRuntimeTuning {
     /** Hun po (current) gained per point of victim hun po. */
     public static final double HUNPO_GAIN_MULTIPLIER = 1.0D;
 
+    /** Hun po consumed per point of incoming damage when shielding. */
+    public static final double HUNPO_PER_DAMAGE = 1.0D;
+
+    /** Passive hun po regeneration per second. */
+    public static final double HUNPO_REGEN_PER_SECOND = 10.0D;
+
+    /** Initial dao hen value for the boss. */
+    public static final double INITIAL_DAO_HEN = 100_000.0D;
+
+    /** Initial hun dao liupai experience for the boss. */
+    public static final double INITIAL_LIUPAI_EXP = 1_000_001.0D;
+
     /** Cooldown between random teleports (ticks). */
     public static final long TELEPORT_COOLDOWN_TICKS = 200L;
 
